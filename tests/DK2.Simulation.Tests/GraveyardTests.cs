@@ -24,7 +24,10 @@ public class GraveyardTests
         RoomInstance room = Graveyard(db, world, 2, 2);
         GraveyardBurialResult result = default;
 
-        for (int i = 0; i < 5; i++) result = Bury(db, world, room);
+        for (int i = 0; i < 5; i++)
+        {
+            result = Bury(db, world, room);
+        }
 
         CreatureState vampire = Assert.Single(world.Creatures, c => c.CreatureTypeId == room.Definition.CreatedCreatureId);
         Assert.Equal(vampire.Id, result.SpawnedCreatureId);
@@ -181,8 +184,13 @@ public class GraveyardTests
         (GameDatabase db, WorldState world) = Setup(Corpse(200));
         Graveyard(db, world, 2, 2);
         for (int y = 8; y < 11; y++)
+        {
             for (int x = 8; x < 11; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Temple), Keeper);
+            }
+        }
+
         CreatureState vampire = DyingVampire(db, world, 3, new TilePos(9, 9));
 
         new GameSimulation(db, world, 1, [new CreatureHealthSystem()]).Run(4);
@@ -311,7 +319,11 @@ public class GraveyardTests
         Assert.Equal(1, draws.Draws);
 
         // A sixth column: two centres now qualify, one draw, and still one crypt.
-        for (int y = 2; y < 7; y++) Place(db, world, 7, y);
+        for (int y = 2; y < 7; y++)
+        {
+            Place(db, world, 7, y);
+        }
+
         sim.Tick(InputFrame.Empty);
         room = RoomIndex.RoomAt(world, db, (4 * world.Width) + 4)!;
         Assert.True(draws.Draws > 1);
@@ -322,7 +334,12 @@ public class GraveyardTests
     private static void Grow(GameDatabase db, WorldState world, int x0, int y0, int size)
     {
         for (int y = y0; y < y0 + size; y++)
-            for (int x = x0; x < x0 + size; x++) Place(db, world, x, y);
+        {
+            for (int x = x0; x < x0 + size; x++)
+            {
+                Place(db, world, x, y);
+            }
+        }
     }
 
     private static void Place(GameDatabase db, WorldState world, int x, int y)
@@ -355,8 +372,13 @@ public class GraveyardTests
     private static RoomInstance Graveyard(GameDatabase db, WorldState world, int x0, int y0, int size = 3)
     {
         for (int y = y0; y < y0 + size; y++)
+        {
             for (int x = x0; x < x0 + size; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Graveyard), Keeper);
+            }
+        }
+
         return RoomIndex.RoomAt(world, db, (y0 * world.Width) + x0)!;
     }
 

@@ -36,15 +36,23 @@ public class KeeperRetreatStepTests
     private static WorldState World(bool lair = true)
     {
         WorldState world = KeeperWorld.World(Db);
-        if (lair) Lair(world, 13, 13);
+        if (lair)
+        {
+            Lair(world, 13, 13);
+        }
+
         return world;
     }
 
     private static void Lair(WorldState world, int x, int y)
     {
         for (int dy = 0; dy < 2; dy++)
+        {
             for (int dx = 0; dx < 2; dx++)
+            {
                 KeeperWorld.Set(world, Db, new TilePos(x + dx, y + dy), KeeperWorld.LairFloor, Keeper);
+            }
+        }
     }
 
     private static CreatureState Wounded(WorldState world, int health = 299, int x = 17, int y = 17, byte type = KeeperWorld.FighterCreature)
@@ -58,7 +66,10 @@ public class KeeperRetreatStepTests
     private static void AdvanceToTurn(WorldState world, int turn)
     {
         var clock = new GameSimulation(Db, world, 1, Array.Empty<ISimulationSystem>());
-        while (world.CurrentTick.Value + 1 < turn) clock.Tick(new InputFrame(Array.Empty<PlayerCommand>()));
+        while (world.CurrentTick.Value + 1 < turn)
+        {
+            clock.Tick(new InputFrame(Array.Empty<PlayerCommand>()));
+        }
     }
 
     private static int[] Lifted(IReadOnlyList<PlayerCommand> commands) =>
@@ -76,7 +87,11 @@ public class KeeperRetreatStepTests
 
         // 20 % of the level-scaled 1500 is 300; DK2 compares the health strictly below it.
         Assert.Equal(lifted ? [creature.Id] : Array.Empty<int>(), Lifted(commands));
-        if (!lifted) return;
+        if (!lifted)
+        {
+            return;
+        }
+
         Assert.Equal(LairCentre, Assert.Single(commands.OfType<DropCommand>()).Tile);
         var ordered = commands.ToList();
         Assert.Equal(ordered.FindIndex(c => c is TakeCreatureCommand) + 1, ordered.FindIndex(c => c is DropCommand));
@@ -381,7 +396,11 @@ public class KeeperRetreatStepTests
         for (int tick = 0; tick < 4; tick++)
         {
             IReadOnlyList<PlayerCommand> commands = keeper.Think(Db, world);
-            foreach (PlayerCommand command in commands) log.Add((tick, command));
+            foreach (PlayerCommand command in commands)
+            {
+                log.Add((tick, command));
+            }
+
             sim.Tick(new InputFrame(commands));
         }
 

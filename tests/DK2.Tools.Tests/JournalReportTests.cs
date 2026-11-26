@@ -92,7 +92,10 @@ public class JournalReportTests
         var fixture = new Fixture();
         fixture.Journal(end: false);
         using (var stream = new FileStream(fixture.JournalPath, FileMode.Append))
+        {
             stream.Write([2, 0, 0]);
+        }
+
         fixture.Hashes("0\ta0\n1\ta1\n2\ta2\n3\ta3\n");
 
         Assert.Equal(3, fixture.Run());
@@ -110,7 +113,9 @@ public class JournalReportTests
             {
                 writer.WriteHash(tick, (ulong)tick);
                 if (tick is 0 or 49 or 99)
+                {
                     writer.WriteFrame(tick, InputFrame.Of(new SlapCreatureCommand(new PlayerId(3), tick)));
+                }
             }
             writer.WriteEnd(100, "completed");
         }
@@ -151,7 +156,10 @@ public class JournalReportTests
         var fixture = new Fixture();
         using (FileStream stream = File.Create(fixture.JournalPath))
         using (var writer = new InputJournalWriter(stream, new Dictionary<string, string>()))
+        {
             writer.WriteHash(long.MaxValue, 0xa0);
+        }
+
         fixture.Hashes($"{long.MaxValue}\ta0\n");
 
         Assert.Equal(2, fixture.Run());
@@ -182,17 +190,27 @@ public class JournalReportTests
         using (var writer = new InputJournalWriter(stream, new Dictionary<string, string>()))
         {
             writer.WriteHash(0, 0xa0);
-            if (fault == "duplicate hash") writer.WriteHash(0, 0xa0);
+            if (fault == "duplicate hash")
+            {
+                writer.WriteHash(0, 0xa0);
+            }
+
             if (fault == "duplicate frame")
             {
                 writer.WriteFrame(0, InputFrame.Of(new SlapCreatureCommand(new PlayerId(3), 7)));
                 writer.WriteFrame(0, InputFrame.Of(new SlapCreatureCommand(new PlayerId(3), 8)));
             }
             if (fault is "future frame" or "completed end frame")
+            {
                 writer.WriteFrame(fault == "future frame" ? 2 : 1, InputFrame.Of(new CreateImpCommand(new PlayerId(3))));
+            }
+
             writer.WriteHash(1, 0xa1);
             writer.WriteEnd(1, "completed");
-            if (fault == "trailing record") writer.WriteHash(2, 0xa2);
+            if (fault == "trailing record")
+            {
+                writer.WriteHash(2, 0xa2);
+            }
         }
         fixture.Hashes("0\ta0\n1\ta1\n");
 
@@ -283,12 +301,27 @@ public class JournalReportTests
                 ["scenario"] = "<script>bad()</script>",
                 ["commit"] = "fixture-commit",
             });
-            if (hashes) writer.WriteHash(0, 0xa0);
+            if (hashes)
+            {
+                writer.WriteHash(0, 0xa0);
+            }
+
             writer.WriteFrame(1, InputFrame.Of(new SlapCreatureCommand(new PlayerId(3), 7)));
             if (hashes)
+            {
                 for (int tick = 1; tick <= 3; tick++)
-                    if (tick != omittedHash) writer.WriteHash(tick, 0xa0UL + (ulong)tick);
-            if (end) writer.WriteEnd(3, "completed");
+                {
+                    if (tick != omittedHash)
+                    {
+                        writer.WriteHash(tick, 0xa0UL + (ulong)tick);
+                    }
+                }
+            }
+
+            if (end)
+            {
+                writer.WriteEnd(3, "completed");
+            }
         }
 
         public void Hashes(string text) => File.WriteAllText(HashPath, text);

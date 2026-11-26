@@ -50,9 +50,16 @@ public class JournalReplayTests
         var tampered = new MemoryStream();
         using (var writer = new InputJournalWriter(tampered, original.Header))
         {
-            foreach (long tick in original.FrameTicks) writer.WriteFrame(tick, original.FrameAt(tick));
+            foreach (long tick in original.FrameTicks)
+            {
+                writer.WriteFrame(tick, original.FrameAt(tick));
+            }
+
             foreach ((long tick, ulong hash) in original.Hashes)
+            {
                 writer.WriteHash(tick, tick == 5 ? hash ^ 1 : hash);
+            }
+
             writer.WriteEnd(original.TicksRun!.Value, "completed");
         }
 
@@ -115,7 +122,11 @@ public class JournalReplayTests
         bool done = false;
         return new ScenarioController("tag-once", Keeper, view =>
         {
-            if (done) return [];
+            if (done)
+            {
+                return [];
+            }
+
             done = true;
             return [TagTilesCommand.Tag(view.PlayerId, new TilePos(6, 4))];
         });

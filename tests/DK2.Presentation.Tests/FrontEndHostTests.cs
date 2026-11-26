@@ -100,7 +100,11 @@ public sealed class FrontEndHostTests
     public void TypedTextErasesOnBackspaceAndCommitsOnEnter(string typed, string name)
     {
         (CampaignMapController map, Func<IReadOnlyList<HiScoreEntry>?> saved) = NameEntry();
-        using (map) FrontEndHost.TypeName(map, typed);
+        using (map)
+        {
+            FrontEndHost.TypeName(map, typed);
+        }
+
         Assert.Equal(-1, map.EntryRow);
         Assert.Equal(name, saved()![3].Name);
     }
@@ -112,7 +116,11 @@ public sealed class FrontEndHostTests
         // A path in flight: CommitEntry refuses (EntryRow stays), and the text after Enter is still not typed.
         Assert.True(session.TryTransition(new(FrontEndPath.BriefingToTable, FrontEndState.CampaignMapEnter)));
         Assert.True(session.PathPlaying);
-        using (map) FrontEndHost.TypeName(map, "A\rB");
+        using (map)
+        {
+            FrontEndHost.TypeName(map, "A\rB");
+        }
+
         Assert.Equal(3, map.EntryRow);
         Assert.Equal("A", map.HiScores[3].Name);
         Assert.Null(saved());
@@ -122,7 +130,11 @@ public sealed class FrontEndHostTests
     public void TextWithoutEnterLeavesTheEntryOpen()
     {
         (CampaignMapController map, Func<IReadOnlyList<HiScoreEntry>?> saved) = NameEntry();
-        using (map) FrontEndHost.TypeName(map, "Ke\b");
+        using (map)
+        {
+            FrontEndHost.TypeName(map, "Ke\b");
+        }
+
         Assert.Equal(3, map.EntryRow);
         Assert.Equal("K", map.HiScores[3].Name);
         Assert.Null(saved());

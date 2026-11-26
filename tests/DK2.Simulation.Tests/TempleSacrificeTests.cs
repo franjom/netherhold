@@ -19,7 +19,11 @@ public class TempleSacrificeTests
         db.Variables.Sacrifices.Add(new SacrificeEntry(
             TempleSacrificeRules.KeeperSpellIngredient, 4, 0, 0, 0, 0,
             1, 20, Dk2TerrainFixture.GoblinCreatureId));
-        for (int i = 0; i < 448; i++) world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(1, 1));
+        for (int i = 0; i < 448; i++)
+        {
+            world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(1, 1));
+        }
+
         RoomInstance temple = Assert.Single(RoomIndex.Build(world, db), r => r.Definition.TypeId == RoomTypeId.Temple);
         SacrificeResult result = TempleSacrificeRules.OfferKeeperSpell(world, db, temple, 4,
             Floor.Y * world.Width + Floor.X);
@@ -247,7 +251,11 @@ public class TempleSacrificeTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
-        foreach (TilePos temple in temples) Paint(db, world, temple);
+        foreach (TilePos temple in temples)
+        {
+            Paint(db, world, temple);
+        }
+
         return (db, world, new GameSimulation(
             db, world, seed: 42, [new HandSystem(), new TempleSacrificeSystem()]));
     }

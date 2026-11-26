@@ -85,7 +85,10 @@ public sealed class StructureBlocksTests
         {
             for (int x = 5; x <= 7; x++)
             {
-                if (grid.IsWalkable(x, y)) walkable++;
+                if (grid.IsWalkable(x, y))
+                {
+                    walkable++;
+                }
             }
         }
         Assert.Equal(8, walkable);
@@ -128,8 +131,14 @@ public sealed class StructureBlocksTests
         {
             for (int x = 4; x <= 8; x++)
             {
-                if (grid.IsWalkable(x, y)) walkable++;
-                else blocked++;
+                if (grid.IsWalkable(x, y))
+                {
+                    walkable++;
+                }
+                else
+                {
+                    blocked++;
+                }
             }
         }
 
@@ -552,7 +561,11 @@ public sealed class StructureBlocksTests
         Assert.Empty(obstacles);
         Assert.True(steering.TryRoute(goblin, new TilePos(6, 6), Navigation.MoveOptions.Loose));
         (goblin.Dk2StateId, goblin.UtilityNewState) = (6, 1); // walking (6), resuming idle
-        for (int tick = 0; tick < 400 && goblin.Tile != new TilePos(6, 6); tick++) sim.Tick(InputFrame.Empty);
+        for (int tick = 0; tick < 400 && goblin.Tile != new TilePos(6, 6); tick++)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
+
         Assert.Equal(new TilePos(6, 6), goblin.Tile);
     }
 
@@ -591,7 +604,11 @@ public sealed class StructureBlocksTests
         Assert.True(steering.TryRoute(goblin, new TilePos(6, 6), Navigation.MoveOptions.ExactSpot));
         (goblin.Dk2StateId, goblin.UtilityNewState) = (6, 1); // walking (6), resuming idle
         Assert.True((goblin.Body.PathTargetPos - HeartRelativePoint(0, 0)).Length() > 1 << 15);
-        for (int tick = 0; tick < 400 && !goblin.Body.PathFinished; tick++) sim.Tick(InputFrame.Empty);
+        for (int tick = 0; tick < 400 && !goblin.Body.PathFinished; tick++)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
+
         Assert.True(goblin.Body.PathFinished);
         Assert.True(DistanceToHeartCentre(goblin) >= 1 << 15);
         HeartRuin.Set(world, Keeper, true);

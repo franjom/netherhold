@@ -41,7 +41,11 @@ public class CreatureStateMachineTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral]);
         RoomRules.Place(db, ref world.Tile(0, 0), db.Room(type), 0);
-        if (type == RoomTypeId.TortureChamber) world.SpawnObject(db, TortureRules.WheelObjectId, 0, 0).AutoPlaced = true;
+        if (type == RoomTypeId.TortureChamber)
+        {
+            world.SpawnObject(db, TortureRules.WheelObjectId, 0, 0).AutoPlaced = true;
+        }
+
         return new StateHookContext(world, db);
     }
 
@@ -205,7 +209,11 @@ public class CreatureStateMachineTests
             CreatureState creature = Fresh();
             StatePlacement.Place(creature, Sleeping);
             CreatureStateMachine.BeginTravel(DetachedHooks.Context, creature, EnRoute, resume);
-            if (CreatureStateMachine.Arrive(DetachedHooks.Context, creature) || RefusedByTheClaim(creature, resume)) allowed++;
+            if (CreatureStateMachine.Arrive(DetachedHooks.Context, creature) || RefusedByTheClaim(creature, resume))
+            {
+                allowed++;
+            }
+
             Assert.Equal(CreatureStateMachine.Idle, creature.UtilityNewState);
         }
 
@@ -502,7 +510,10 @@ public class CreatureStateMachineTests
         {
             for (int to = 0; to < CreatureStateTable.Count; to++)
             {
-                if (from == to) continue;
+                if (from == to)
+                {
+                    continue;
+                }
 
                 CreatureState creature = Fresh();
                 StatePlacement.Place(creature, from);

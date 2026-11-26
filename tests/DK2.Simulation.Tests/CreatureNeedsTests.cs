@@ -733,7 +733,11 @@ public class CreatureNeedsTests
         var sim = new GameSimulation(db, world, 42, [new CreatureHealthSystem()]);
         sim.ObserveWith(events);
 
-        for (int tick = 0; tick < Second * 5 && goblin.Dk2StateId != CreatureDeathRules.DyingState; tick++) sim.Tick();
+        for (int tick = 0; tick < Second * 5 && goblin.Dk2StateId != CreatureDeathRules.DyingState; tick++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(CreatureDeathRules.DyingState, goblin.Dk2StateId);
         // The rescue window starts after the fall, not at collapse.
         sim.Run(CreatureDeathRules.DyingWindowTicks(db) - Second);
@@ -956,7 +960,11 @@ public class CreatureNeedsTests
         goblin.Health = 0;
         var sim = new GameSimulation(db, world, 42, [new CreatureHealthSystem()]);
         sim.ObserveWith(events);
-        for (int tick = 0; tick < Second * 5 && goblin.Dk2StateId != CreatureDeathRules.DyingState; tick++) sim.Tick();
+        for (int tick = 0; tick < Second * 5 && goblin.Dk2StateId != CreatureDeathRules.DyingState; tick++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(CreatureDeathRules.DyingState, goblin.Dk2StateId);
         sim.Run(CreatureDeathRules.DyingWindowTicks(db));
 
@@ -1056,7 +1064,11 @@ public class CreatureNeedsTests
         for (int x = 2; x <= 4; x++)
         {
             ref TileState tile = ref world.Tile(x, 4);
-            if (tile.TerrainId == Dk2TerrainFixture.LairTerrain) continue;
+            if (tile.TerrainId == Dk2TerrainFixture.LairTerrain)
+            {
+                continue;
+            }
+
             tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
             tile.OwnerPlayerId = Keeper;
         }
@@ -1106,7 +1118,11 @@ public class CreatureNeedsTests
         for (int x = 2; x <= 4; x++)
         {
             ref TileState tile = ref world.Tile(x, 4);
-            if (tile.TerrainId == Dk2TerrainFixture.LairTerrain) continue;
+            if (tile.TerrainId == Dk2TerrainFixture.LairTerrain)
+            {
+                continue;
+            }
+
             tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
             tile.OwnerPlayerId = Keeper;
         }
@@ -1171,7 +1187,11 @@ public class CreatureNeedsTests
         for (int x = 2; x <= 4; x++)
         {
             ref TileState tile = ref world.Tile(x, 4);
-            if (tile.TerrainId == Dk2TerrainFixture.LairTerrain) continue;
+            if (tile.TerrainId == Dk2TerrainFixture.LairTerrain)
+            {
+                continue;
+            }
+
             tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
             tile.OwnerPlayerId = Keeper;
         }

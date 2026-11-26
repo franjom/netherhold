@@ -114,8 +114,16 @@ public sealed class MessageTabsViewTests
             [keeper.Value], fogOfWarEnabled: false);
         var posted = new List<PlayerMessage>();
         posted.Add(world.Messages.Post(world, keeper.Value, PlayerMessageKind.HeartAttacked, 0, 0)!.Value);
-        for (int v = 1; v <= 4; v++) posted.Add(world.Messages.Post(world, keeper.Value, PlayerMessageKind.LowManaWarning, v, 0)!.Value);
-        for (int v = 1; v <= 5; v++) posted.Add(world.Messages.Post(world, keeper.Value, PlayerMessageKind.ManaShortfall, v, 0)!.Value);
+        for (int v = 1; v <= 4; v++)
+        {
+            posted.Add(world.Messages.Post(world, keeper.Value, PlayerMessageKind.LowManaWarning, v, 0)!.Value);
+        }
+
+        for (int v = 1; v <= 5; v++)
+        {
+            posted.Add(world.Messages.Post(world, keeper.Value, PlayerMessageKind.ManaShortfall, v, 0)!.Value);
+        }
+
         var view = new MessageTabsView(keeper);
 
         view.Capture(world, 1000);

@@ -197,7 +197,11 @@ public sealed class TileSoundTests
             world.Tile(4, 5).Health = 1;
             CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, new TilePos(6, 5));
             var sim = new GameSimulation(db, world, seed: 42, [new TileWorkSystem()]);
-            if (sink is not null) sim.ObserveWith(sink);
+            if (sink is not null)
+            {
+                sim.ObserveWith(sink);
+            }
+
             world.QueueWork(new TileWorkOrder((At.Y * world.Width) + At.X, TileWorkKind.Claim, Keeper, imp.Id));
             world.QueueWork(new TileWorkOrder((5 * world.Width) + 4, TileWorkKind.Dig, Keeper, imp.Id));
             sim.Tick(InputFrame.Empty);

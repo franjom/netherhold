@@ -29,7 +29,13 @@ public sealed class CombatPitTargetingTests
         var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(20, 16),
             [PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
-        for (int x = 1; x < world.Width - 1; x++) world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+        {
+            for (int x = 1; x < world.Width - 1; x++)
+            {
+                world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         return (database, world);
     }
 
@@ -117,7 +123,11 @@ public sealed class CombatPitTargetingTests
         (GameDatabase? database, WorldState? world) = Open();
         CreatureState me = world.SpawnArrived(database, SeekerType, Keeper, new TilePos(5, 5));
         CreatureState target = world.SpawnArrived(database, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(11, 5));
-        for (int y = 1; y < world.Height - 1; y++) world.Tile(9, y).TerrainId = Dk2TerrainFixture.Rock;
+        for (int y = 1; y < world.Height - 1; y++)
+        {
+            world.Tile(9, y).TerrainId = Dk2TerrainFixture.Rock;
+        }
+
         world.Tile(7, 5).TerrainId = Dk2TerrainFixture.ClaimedPath;
         world.Tile(7, 5).OwnerPlayerId = Rival;
         ThingProjection.Place(world, database, [new TrapThing(new byte[16])
@@ -138,8 +148,13 @@ public sealed class CombatPitTargetingTests
     {
         (GameDatabase? database, WorldState? world) = Open();
         for (int y = 3; y <= 7; y++)
-        for (int x = 8; x <= 12; x++)
-            RoomRules.Place(database, ref world.Tile(x, y), database.Room(RoomTypeId.DungeonHeart), Rival);
+        {
+            for (int x = 8; x <= 12; x++)
+            {
+                RoomRules.Place(database, ref world.Tile(x, y), database.Room(RoomTypeId.DungeonHeart), Rival);
+            }
+        }
+
         CreatureState me = world.SpawnArrived(database, SeekerType, Keeper, new TilePos(5, 5));
         CreatureState worker = world.SpawnArrived(database, Dk2TerrainFixture.ImpCreatureId, Rival, new TilePos(6, 5));
         Force(me, worker.Id);
@@ -163,7 +178,13 @@ public sealed class CombatPitTargetingTests
         ally.Health = 100;
         StatePlacement.Place(ally, 199);
         if (unreachable)
-            for (int y = 1; y < world.Height - 1; y++) world.Tile(6, y).TerrainId = Dk2TerrainFixture.Rock;
+        {
+            for (int y = 1; y < world.Height - 1; y++)
+            {
+                world.Tile(6, y).TerrainId = Dk2TerrainFixture.Rock;
+            }
+        }
+
         Force(priest, target.Id);
         var select = new SelectOnce(priest, new Sight(false));
 
@@ -175,6 +196,9 @@ public sealed class CombatPitTargetingTests
             Assert.Equal(ally.Id, priest.FightTargetId);
             Assert.Equal(CombatRules.AttackMode.SpellAtAlly, priest.AttackType);
         }
-        else Assert.Equal(CombatRules.NoTarget, priest.FightTargetId);
+        else
+        {
+            Assert.Equal(CombatRules.NoTarget, priest.FightTargetId);
+        }
     }
 }

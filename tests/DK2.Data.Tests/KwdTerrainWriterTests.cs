@@ -32,7 +32,9 @@ public class KwdTerrainWriterTests
         Assert.Equal((ushort)7, records.Single(r => r.Name == "Gold").DestroyedEffectId);
         Assert.Equal((ushort)0, records.Single(r => r.Name == "Reinforced Wall").DestroyedEffectId);
         for (int i = 0; i < records.Count; i++)
+        {
             Assert.Equal(images[i].ToBytes(), KwdTerrainRooms.WriteTerrainRecord(records[i], images[i]));
+        }
     }
 
     private static TerrainDef Read(byte[] source) => KwdTerrainRooms.ParseTerrain([

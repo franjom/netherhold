@@ -30,7 +30,10 @@ public class DeathFallTests
         for (int i = 0; i < 29; i++)
         {
             last = expected.NextInt(0x800);
-            if (i == 17) first = last;
+            if (i == 17)
+            {
+                first = last;
+            }
         }
         Assert.Equal((1041, 1036), (first, last));
 
@@ -106,7 +109,11 @@ public class DeathFallTests
     {
         (GameSimulation sim, CreatureState goblin, _) = Setup(1, open: [(1, 0), (1, 1)]);
         var headings = new List<int>();
-        for (int i = 0; i < 200; i++) InTick(sim, context => headings.Add(DeathFallRules.Pick(context, goblin)));
+        for (int i = 0; i < 200; i++)
+        {
+            InTick(sim, context => headings.Add(DeathFallRules.Pick(context, goblin)));
+        }
+
         Assert.Equal(200, headings.Count);
         Assert.All(headings, h => Assert.Equal(4, ((h + 0x20) & 0x7FF) >> 7));   // east only: the south-east needs the south
     }
@@ -141,9 +148,14 @@ public class DeathFallTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int dy = -1; dy <= 1; dy++)
-        for (int dx = -1; dx <= 1; dx++)
-            world.Tile(At.X + dx, At.Y + dy).TerrainId = (dx, dy) == (0, 0) || open.Contains((dx, dy))
+        {
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                world.Tile(At.X + dx, At.Y + dy).TerrainId = (dx, dy) == (0, 0) || open.Contains((dx, dy))
                 ? Dk2TerrainFixture.ClaimedPath : Dk2TerrainFixture.Rock;
+            }
+        }
+
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, At);
         var lcg = new Dk2Lcg(seed);
         var sim = new GameSimulation(db, world, new SimRandom(lcg), [new CollapseSystem()]);
@@ -179,8 +191,13 @@ public class DeathFallTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int ty = 1; ty < world.Height - 1; ty++)
-        for (int tx = 1; tx < world.Width - 1; tx++)
-            world.Tile(tx, ty).TerrainId = Dk2TerrainFixture.DirtPath;
+        {
+            for (int tx = 1; tx < world.Width - 1; tx++)
+            {
+                world.Tile(tx, ty).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         world.Tile(16, 9).TerrainId = behind;
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(16, 10));
         CreatureDef stepping = db.CreatureById(goblin.CreatureTypeId) with { DeathFallStepY = 3223 };
@@ -206,7 +223,10 @@ public class DeathFallTests
         sim.Tick();
         Assert.Equal(CreatureDeathRules.DyingState, goblin.Dk2StateId);
         Assert.Equal(steps ? (x - 1261, y - 2966) : (x, y), (goblin.PosX, goblin.PosY));
-        if (steps) Assert.Equal((goblin.PosX, goblin.PosY), (goblin.LastPosX, goblin.LastPosY));
+        if (steps)
+        {
+            Assert.Equal((goblin.PosX, goblin.PosY), (goblin.LastPosX, goblin.LastPosY));
+        }
     }
 
     // Level 5: the Wizard's entity steps back on turn 1726 and its body is where it fell until the
@@ -217,8 +237,13 @@ public class DeathFallTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int ty = 1; ty < world.Height - 1; ty++)
-        for (int tx = 1; tx < world.Width - 1; tx++)
-            world.Tile(tx, ty).TerrainId = Dk2TerrainFixture.DirtPath;
+        {
+            for (int tx = 1; tx < world.Width - 1; tx++)
+            {
+                world.Tile(tx, ty).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(16, 10));
         CreatureDef stepping = db.CreatureById(goblin.CreatureTypeId) with { DeathFallStepY = 3223 };
         goblin.Heading = 893;
@@ -227,8 +252,7 @@ public class DeathFallTests
         int x = goblin.PosX, y = goblin.PosY;
         var sim = new GameSimulation(db, world, 1, [new Run(context =>
         {
-            if (goblin.Dk2StateId == CreatureDeathRules.DyingState) return;
-            CreatureStateMachine.TrySetState(context.Hooks, goblin, CreatureDeathRules.FallingState, context.Tick.Value);
+            if (goblin.Dk2StateId == CreatureDeathRules.DyingState) { return; } CreatureStateMachine.TrySetState(context.Hooks, goblin, CreatureDeathRules.FallingState, context.Tick.Value);
             DeathFallRules.Fall(context, goblin, stepping);
         }), new DK2.Simulation.Systems.CreatureMovementSystem()]);
 

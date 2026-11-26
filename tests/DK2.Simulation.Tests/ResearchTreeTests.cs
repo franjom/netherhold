@@ -49,8 +49,12 @@ public sealed class ResearchTreeTests
         if (library)
         {
             for (int y = 1; y <= 3; y++)
-            for (int x = 1; x <= 3; x++)
-                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Library), Keeper);
+            {
+                for (int x = 1; x <= 3; x++)
+                {
+                    RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Library), Keeper);
+                }
+            }
         }
 
         return world;
@@ -248,7 +252,11 @@ public sealed class ResearchTreeTests
         CreatureState newer = Researcher(db, world, new TilePos(3, 3));
         (GameSimulation sim, ListEventSink events) = Simulation(db, world);
 
-        for (int i = 0; i < Second * 12 && !events.Events.Any(e => e.Kind == "research_completed"); i++) sim.Tick();
+        for (int i = 0; i < Second * 12 && !events.Events.Any(e => e.Kind == "research_completed"); i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Contains(events.Events, e => e.Kind == "research_completed" && e.Detail.Contains("book=", StringComparison.Ordinal));
 
         Assert.NotEqual(ResearchStep.CelebratingState, older.Dk2StateId);

@@ -285,7 +285,11 @@ public class CameraRulesTests
         Assert.Equal(new Vector3(12.5f, 1, -20.5f), setup.StartFocus);
         Assert.Equal(1600, setup.Camera.ReferenceScreenWidth);
         Assert.Equal(ClassicCamera.LevelStartYaw, setup.Camera.Yaw);
-        for (int i = 0; i < 20; i++) setup.Camera.ZoomOut();
+        for (int i = 0; i < 20; i++)
+        {
+            setup.Camera.ZoomOut();
+        }
+
         Assert.Equal(ClassicCameraSetup.ZoomOutLimit(53248, 1.2f) - 1, setup.Camera.Zoom.Raw);
         Vector3 clamped = setup.Controls.Advance(new Vector3(29.9f, 1, -10), ClassicCameraKeys.Right, TimeSpan.FromSeconds(1));
         Assert.Equal(30 - RawUnit, clamped.X);

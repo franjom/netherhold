@@ -33,7 +33,9 @@ public class TileOwnershipTests
         byte was = world.Tile(at).TerrainId;
         ref TileState tile = ref world.Tile(at);
         for (int i = 0; i < 2000 && tile.TerrainId == was; i++)
+        {
             TileWorkRules.Apply(Db, ref tile, kind, by);
+        }
 
         Assert.NotEqual(was, world.Tile(at).TerrainId);
     }
@@ -125,7 +127,10 @@ public class TileOwnershipTests
 
         var sim = new GameSimulation(Db, world, seed: 4, Dk2TerrainFixture.DefaultSystems());
         sim.Tick(InputFrame.Of(TagTilesCommand.Tag(Keeper, new TilePos(4, 2))));
-        for (int i = 0; i < 600; i++) sim.Tick(InputFrame.Empty);
+        for (int i = 0; i < 600; i++)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
 
         // The wall came down, the floor it left is the keeper's, and the dirt
         // beyond it has been claimed too — which is only possible if the dug
@@ -182,7 +187,9 @@ public class TileOwnershipTests
 
         ref TileState tile = ref world.Tile(at);
         for (int i = 0; i < 100 && tile.OwnerPlayerId != Keeper; i++)
+        {
             RoomHealthRules.Convert(world, Db, at, Keeper);
+        }
 
         Assert.Equal(Keeper, world.Tile(at).OwnerPlayerId);
         Assert.Equal(Dk2TerrainFixture.TreasuryTerrain, world.Tile(at).TerrainId);

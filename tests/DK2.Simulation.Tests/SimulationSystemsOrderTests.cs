@@ -121,9 +121,20 @@ public class SimulationSystemsOrderTests
             string name = system.GetType().Name;
             yield return name;
             if (system is CreatureUpdateSystem update)
-                foreach (ICreatureUpdateStep step in update.Steps) yield return $"{name}/{step.GetType().Name}";
+            {
+                foreach (ICreatureUpdateStep step in update.Steps)
+                {
+                    yield return $"{name}/{step.GetType().Name}";
+                }
+            }
+
             if (system is RoomTickSystem rooms)
-                foreach (IRoomTickStep step in rooms.Steps) yield return $"{name}/{step.GetType().Name}";
+            {
+                foreach (IRoomTickStep step in rooms.Steps)
+                {
+                    yield return $"{name}/{step.GetType().Name}";
+                }
+            }
         }
     }
 }

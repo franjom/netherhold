@@ -35,7 +35,13 @@ public sealed class ShotSoundTests
             basis.Variables, shots: [definition]);
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 12), [(byte)0, (byte)1, (byte)2, (byte)3, (byte)4]);
         for (int y = 1; y < 11; y++)
-            for (int x = 1; x < 19; x++) world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
+        {
+            for (int x = 1; x < 19; x++)
+            {
+                world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
+            }
+        }
+
         ShotState shot = ShotRules.Spawn(world, definition, Owner, CreatureState.CentreOf(4), CreatureState.CentreOf(4), 0, 0,
             0, FightTargetKind.None, -1, 0, -1, CreatureState.CentreOf(15), CreatureState.CentreOf(4));
         ShotRules.Launch(shot, definition, shot.TargetX, shot.TargetY);
@@ -52,7 +58,10 @@ public sealed class ShotSoundTests
         public void Execute(SimulationContext context)
         {
             context.Navigation.Refresh();
-            if (shot.Age == 0 && context.Tick.Value == 0) ShotRules.RequestTrail(context, shot, new Dk2Angle(256), new Fp32(3000));
+            if (shot.Age == 0 && context.Tick.Value == 0)
+            {
+                ShotRules.RequestTrail(context, shot, new Dk2Angle(256), new Fp32(3000));
+            }
         }
     }
 
@@ -183,7 +192,10 @@ public sealed class ShotSoundTests
         {
             int before = shot.Health;
             sim.Tick();
-            if (Heard(events, ThingSoundEvent.SightOfEvilEnding).Length > 0) healthAtTheAsk = before;
+            if (Heard(events, ThingSoundEvent.SightOfEvilEnding).Length > 0)
+            {
+                healthAtTheAsk = before;
+            }
         }
 
         Assert.Equal(20, healthAtTheAsk);

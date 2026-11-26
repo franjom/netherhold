@@ -66,7 +66,11 @@ public class ObjectReactionTests
         int sign = target.ProcessEnding ? 1 : -1;
         Assert.Equal(512, target.TimerTicks);
         Assert.Equal((sign * 448) & 2047, target.Heading);
-        for (int i = 1; i < 21; i++) simulation.Tick();
+        for (int i = 1; i < 21; i++)
+        {
+            simulation.Tick();
+        }
+
         Assert.Equal((byte)ObjectReactionRules.StruckProcess, target.ProcessState);
         simulation.Tick();
         Assert.Equal((byte)0, target.ProcessState);

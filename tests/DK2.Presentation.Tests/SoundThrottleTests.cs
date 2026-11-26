@@ -40,7 +40,10 @@ public sealed class SoundThrottleTests
     {
         var throttle = new SoundThrottle(0);
         throttle.BeginFrame(16);
-        for (int i = 0; i < 10; i++) Assert.True(throttle.Admit(BattleCall));
+        for (int i = 0; i < 10; i++)
+        {
+            Assert.True(throttle.Admit(BattleCall));
+        }
     }
 
     [Fact]
@@ -63,7 +66,9 @@ public sealed class SoundThrottleTests
         var throttle = new SoundThrottle(0);
         throttle.BeginFrame(600);
         for (uint id = 1; id < 0x400; id++)
+        {
             Assert.Equal(!listed.Contains(id), throttle.Admit(new SoundId(id)));
+        }
     }
 
     /// <summary>On a slow frame an admitted event waits the gap table's next value plus one

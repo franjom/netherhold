@@ -41,7 +41,10 @@ public sealed class CreatureIdentityTests
         _ = new GameSimulation(database, world, new SimRandom(draws), []);
         var creatures = new List<CreatureState>();
         for (int i = 0; i < 8; i++)
+        {
             creatures.Add(world.SpawnCreature(database, Dk2TerrainFixture.GoblinCreatureId, PlayerIds.FirstKeeper, new(2, 2)));
+        }
+
         Assert.Equal(new byte[] { 1, 2, 3, 4, 5, 6, 0, 0 }, creatures.Select(c => c.BloodGroupIndex));
         Assert.Equal(16, draws.Bounds.Count);
     }

@@ -126,7 +126,10 @@ public sealed class BattleTabHudTests
         Assert.Equal(BattleTabButton.Battle, hud.ButtonAt(left + 1, 1461));
         Assert.Equal(BattleTabButton.Alarm, hud.ButtonAt(left + 264 + 127, 1587));
         Assert.Equal(new HoverTextSnapshot("t2166", "t2165", default), hud.HoverText(left + 64, 1500));
-        if (left > 2080) Assert.Equal(BattleTabButton.None, hud.ButtonAt(2100, 1500));
+        if (left > 2080)
+        {
+            Assert.Equal(BattleTabButton.None, hud.ButtonAt(2100, 1500));
+        }
     }
 
     [Fact]

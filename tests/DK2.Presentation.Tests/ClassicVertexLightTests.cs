@@ -33,8 +33,15 @@ public class ClassicVertexLightTests
                 Vector3 expected = Legacy(vertex, legacy, counts);
                 Vector3 actual = ClassicVertexLight.TableSum(new ClassicTileLightGrid(sources, counts, Width), vertex);
                 Assert.Equal(expected, actual);
-                if (actual != Vector3.Zero) nonZero++;
-                if (vertex.LightKind.Y == 1) skippedBounds++;
+                if (actual != Vector3.Zero)
+                {
+                    nonZero++;
+                }
+
+                if (vertex.LightKind.Y == 1)
+                {
+                    skippedBounds++;
+                }
             }
         }
         // The cases reach the light: most sums are not zero.
@@ -60,7 +67,10 @@ public class ClassicVertexLightTests
         Assert.Equal(new Vector3(127f / 255f, 0f, 1f), ClassicVertexLight.PackedDiffuse(new Vector3(0.5f, -2f, 7f)));
         // Each byte value comes back as itself: the nudge keeps k/255 from flooring to k - 1.
         for (int k = 0; k <= 255; k++)
+        {
             Assert.Equal(k / 255f, ClassicVertexLight.PackedDiffuse(new Vector3(k / 255f)).X);
+        }
+
         Assert.Equal(Vector3.Zero, ClassicVertexLight.PackedDiffuse(new Vector3(float.NaN)));
         Assert.Equal(254f / 255f, ClassicVertexLight.PackedDiffuse(new Vector3(254.9f / 255f)).X);
     }
@@ -153,10 +163,13 @@ public class ClassicVertexLightTests
         ClassicPointLight light = Light(new Vector3(1.5f, 1f, -1.5f), ClassicLightFlags.None);
         int tile = 1 * Width + 1;
         for (int i = 0; i < ClassicLightTable.MaximumSources; i++)
+        {
             sources[tile * ClassicLightTable.MaximumSources + i] = ClassicTileLightSource.Of(light) with
             {
                 IntensityFlags = (uint)Math.Round(light.Intensity * 128f) | 0x60u << 8,
             };
+        }
+
         ClassicLitVertex vertex = Terrain(new Vector3(1.5f, 0f, -1.2f), Vector3.UnitY) with { TileAnchor = new Vector2(tile, 1) };
         Vector3 one = light.ContributionAt(vertex.WorldPosition, Vector3.UnitY);
         counts[tile] = 3;
@@ -314,7 +327,11 @@ public class ClassicVertexLightTests
     {
         var position = new Vector3(Next(random, -0.6f, 0.6f), Next(random, -0.2f, 1.2f), Next(random, -0.6f, 0.6f));
         var normal = Vector3.Normalize(new Vector3(Next(random, -1, 1), Next(random, -1, 1), Next(random, -1, 1)) + new Vector3(0, 0.01f, 0));
-        if (random.Next(10) == 0) normal = -normal * 0f;
+        if (random.Next(10) == 0)
+        {
+            normal = -normal * 0f;
+        }
+
         float scale = random.Next(3) == 0 ? Next(random, 0.5f, 2f) : 1f;
         Matrix4x4 m = Matrix4x4.CreateScale(scale, random.Next(4) == 0 ? scale * 1.5f : scale, scale)
             * Matrix4x4.CreateFromYawPitchRoll(Next(random, -3, 3), Next(random, -0.5f, 0.5f), Next(random, -0.5f, 0.5f))
@@ -323,7 +340,11 @@ public class ClassicVertexLightTests
         var anchor = new Vector2(random.Next(-2, Width * Height + 2) + Next(random, 0, 0.99f), anchorKind);
         var bounds = new Vector4(Next(random, -0.3f, 0.3f), Next(random, 0, 0.6f), Next(random, -0.3f, 0.3f), Next(random, 0, 0.8f));
         var kind = new Vector2(random.Next(3) == 0 ? 0 : 1, random.Next(2) == 0 ? 0 : 1);
-        if (random.Next(5) == 0) kind = random.Next(2) == 0 ? new Vector2(0.5f, 2) : new Vector2(2, 1);
+        if (random.Next(5) == 0)
+        {
+            kind = random.Next(2) == 0 ? new Vector2(0.5f, 2) : new Vector2(2, 1);
+        }
+
         var world = Vector3.Transform(position, m);
         var worldNormal = Vector3.TransformNormal(normal, m);
         return new ClassicLitVertex(position, normal, anchor, bounds, kind, m, world, worldNormal);

@@ -38,16 +38,30 @@ public sealed class BlendedTerrainStreamTests
 
         public void SetChunk(int chunk, List<Vector3> positions, IEnumerable<(TestMaterial Material, int[] Indices)> groups)
         {
-            foreach (List<int> list in _byMaterial.Values) list.Clear();
+            foreach (List<int> list in _byMaterial.Values)
+            {
+                list.Clear();
+            }
+
             foreach ((TestMaterial material, int[] indices) in groups)
             {
-                if (!_byMaterial.TryGetValue(material, out List<int>? list)) _byMaterial[material] = list = new List<int>();
+                if (!_byMaterial.TryGetValue(material, out List<int>? list))
+                {
+                    _byMaterial[material] = list = new List<int>();
+                }
+
                 list.AddRange(indices);
             }
             Legacy.SetChunk(chunk, positions, _byMaterial);
             Stream.BeginChunk(chunk, positions.Select(p => new BlendedVertex(p, Vector3.UnitY, default, default, VertexColour.White)).ToList());
             foreach (KeyValuePair<TestMaterial, List<int>> entry in _byMaterial)
-                if (entry.Key.Transparent) Stream.AddChunkTriangles(entry.Key, entry.Value);
+            {
+                if (entry.Key.Transparent)
+                {
+                    Stream.AddChunkTriangles(entry.Key, entry.Value);
+                }
+            }
+
             Stream.EndChunk();
         }
 
@@ -93,7 +107,11 @@ public sealed class BlendedTerrainStreamTests
         {
             LegacyTransparentTerrain.Upload? expected = Legacy.Uploaded;
             Assert.Equal(expected != null, rebuilt);
-            if (expected == null) return;
+            if (expected == null)
+            {
+                return;
+            }
+
             Assert.Equal(expected.GeometryChanged, Stream.GeometryChanged);
             Assert.Equal(expected.Positions, Stream.Vertices.Select(v => v.Position).ToArray());
             Assert.Equal(expected.Runs.Count, Stream.Runs.Count);
@@ -125,14 +143,25 @@ public sealed class BlendedTerrainStreamTests
         int count = random.Next(3, 40);
         float ox = chunk % 4 * 8f, oz = chunk / 4 * 8f;
         for (int i = 0; i < count; i++)
+        {
             positions.Add(new Vector3(ox + (float)random.NextDouble() * 8f, (float)random.NextDouble() * 2f, oz + (float)random.NextDouble() * 8f));
+        }
+
         var groups = new List<(TestMaterial, int[])>();
         foreach (TestMaterial material in Palette)
         {
-            if (random.Next(3) == 0) continue;
+            if (random.Next(3) == 0)
+            {
+                continue;
+            }
+
             int triangles = random.Next(0, 12);
             int[] indices = new int[triangles * 3];
-            for (int i = 0; i < indices.Length; i++) indices[i] = random.Next(count);
+            for (int i = 0; i < indices.Length; i++)
+            {
+                indices[i] = random.Next(count);
+            }
+
             groups.Add((material, indices));
         }
         // Unity's dictionary order is not the palette's: shuffle which material a chunk adds first.
@@ -156,7 +185,11 @@ public sealed class BlendedTerrainStreamTests
     {
         var random = new Random(seed);
         var pair = new Pair();
-        if (transformed) pair.MoveStream(Tilted);
+        if (transformed)
+        {
+            pair.MoveStream(Tilted);
+        }
+
         var focus = new Vector3(16f, 0f, 8f);
         for (int chunk = 0; chunk < 8; chunk++)
         {
@@ -193,9 +226,16 @@ public sealed class BlendedTerrainStreamTests
                     Vector3[] quad = [new(0, 0, 0), new(1, 0, 0), new(1, 1, 0), new(0, 1, 0)];
                     int[] indices = [0, 1, 2, 0, 2, 3];
                     var at = Matrix4x4.Transpose(Matrix4x4.CreateTranslation(focus + new Vector3(random.Next(-4, 5), 1, random.Next(-4, 5))));
-                    if (random.Next(2) == 0) pair.Effects((quad, indices, Glass, at), (quad, indices, Water, Matrix4x4.Identity));
-                    else pair.Effects((quad, indices, Glass, at));
-                    break;
+                    if (random.Next(2) == 0)
+                        {
+                            pair.Effects((quad, indices, Glass, at), (quad, indices, Water, Matrix4x4.Identity));
+                        }
+                        else
+                        {
+                            pair.Effects((quad, indices, Glass, at));
+                        }
+
+                        break;
                 }
                 case 4:
                     pair.PlaceItems(camera, Enumerable.Range(0, random.Next(0, 4))
@@ -224,8 +264,13 @@ public sealed class BlendedTerrainStreamTests
         Vector3 t = Vector3.Normalize(Vector3.Cross(n, MathF.Abs(n.Y) < .9f ? Vector3.UnitY : Vector3.UnitX)), u = Vector3.Cross(n, t);
         var positions = new List<Vector3>();
         foreach (float distance in new[] { 5e-5f, 5e-4f })
+        {
             foreach (Vector3 offset in new[] { Vector3.Zero, t * .3f, u * .3f })
+            {
                 positions.Add(LegacyTransparentTerrain.MultiplyPoint3x4(pair.WorldToLocal, onPlane + offset - n * distance));
+            }
+        }
+
         pair.SetChunk(20, positions, [(Fog, [0, 1, 2, 3, 4, 5])]);
     }
 
@@ -413,8 +458,13 @@ public sealed class BlendedTerrainStreamTests
         // Three quads along the view's forward (+z), far to near: water, water, fog.
         var vertices = new List<BlendedVertex>();
         foreach (float z in new[] { 9f, 6f, 3f })
+        {
             foreach (Vector3 corner in new Vector3[] { new(0, 0, z), new(1, 0, z), new(1, 1, z), new(0, 1, z) })
+            {
                 vertices.Add(new BlendedVertex(corner, Vector3.UnitY, default, default, VertexColour.White));
+            }
+        }
+
         stream.BeginChunk(0, vertices);
         stream.AddChunkTriangles(Fog, [8, 9, 10, 8, 10, 11]);
         stream.AddChunkTriangles(Water, [0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7]);
@@ -436,8 +486,13 @@ public sealed class BlendedTerrainStreamTests
         var vertices = new List<BlendedVertex>();
         // One quad in view, one behind the camera.
         foreach (float z in new[] { 5f, -5f })
+        {
             foreach (Vector3 corner in new Vector3[] { new(0, 0, z), new(1, 0, z), new(1, 1, z) })
+            {
                 vertices.Add(new BlendedVertex(corner, Vector3.UnitY, default, default, VertexColour.White));
+            }
+        }
+
         stream.BeginChunk(3, vertices);
         stream.AddChunkTriangles(Water, [0, 1, 2, 3, 4, 5]);
         stream.EndChunk();
@@ -453,8 +508,13 @@ public sealed class BlendedTerrainStreamTests
         var stream = new BlendedTerrainStream<TestMaterial>(_ => false);
         var vertices = new List<BlendedVertex>();
         foreach (float z in new[] { 9f, 3f })
+        {
             foreach (Vector3 corner in new Vector3[] { new(0, 0, z), new(1, 0, z), new(1, 1, z) })
+            {
                 vertices.Add(new BlendedVertex(corner, Vector3.UnitY, default, default, VertexColour.White));
+            }
+        }
+
         stream.BeginChunk(0, vertices);
         stream.AddChunkTriangles(Water, [0, 1, 2, 3, 4, 5]);
         stream.EndChunk();
@@ -505,14 +565,30 @@ public sealed class BlendedTerrainStreamTests
             (List<Vector3> positions, List<(TestMaterial Material, int[] Indices)> groups) = RandomChunk(random, chunk);
             stream.BeginChunk(chunk, positions.Select(p => new BlendedVertex(p, Vector3.UnitY, default, default, VertexColour.White)).ToList());
             foreach ((TestMaterial material, int[] indices) in groups)
-                if (material.Transparent) stream.AddChunkTriangles(material, indices);
+            {
+                if (material.Transparent)
+                {
+                    stream.AddChunkTriangles(material, indices);
+                }
+            }
+
             stream.EndChunk();
         }
         Camera[] cameras = Enumerable.Range(0, 16).Select(i => Camera.At(new Vector3(16, 0, 8), i * 22.5f)).ToArray();
         for (int pass = 0; pass < 3; pass++)
-            foreach (Camera camera in cameras) stream.Refresh(camera.Forward, Matrix4x4.Identity, camera.Frustum);
+        {
+            foreach (Camera camera in cameras)
+            {
+                stream.Refresh(camera.Forward, Matrix4x4.Identity, camera.Frustum);
+            }
+        }
+
         long before = GC.GetAllocatedBytesForCurrentThread();
-        foreach (Camera camera in cameras) stream.Refresh(camera.Forward, Matrix4x4.Identity, camera.Frustum);
+        foreach (Camera camera in cameras)
+        {
+            stream.Refresh(camera.Forward, Matrix4x4.Identity, camera.Frustum);
+        }
+
         Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
     }
 }

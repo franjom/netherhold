@@ -216,13 +216,15 @@ public sealed class TremorTests
         (GameDatabase? db, WorldState? world) = Setup();
         var sim = new GameSimulation(db, world, 1, [new Probe(context =>
         {
-            for (int i = 0; i < 9; i++)
-                TremorRules.Start(context, new ShotState { PosX = i, PosY = i + 1, Data1 = 0x10005, Data2 = 31 });
-        })]);
+            for (int i = 0; i < 9; i++) { TremorRules.Start(context, new ShotState { PosX = i, PosY = i + 1, Data1 = 0x10005, Data2 = 31 }); } })]);
         sim.Tick();
         Assert.Equal(8, world.Tremors.Count);
         Assert.Equal(8, world.Tremors[0].WorldX);
-        for (int i = 1; i < 8; i++) Assert.Equal(i, world.Tremors[i].WorldX);
+        for (int i = 1; i < 8; i++)
+        {
+            Assert.Equal(i, world.Tremors[i].WorldX);
+        }
+
         Assert.All(world.Tremors, t =>
         {
             Assert.Equal((ushort)20, t.DurationTicks);

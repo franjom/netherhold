@@ -184,8 +184,7 @@ public sealed class TremorCreatureTests
         var sim = new GameSimulation(db, world, 1,
             [new Probe(context =>
             {
-                if (context.Tick.Value != 0) return;
-                context.Navigation.Refresh();
+                if (context.Tick.Value != 0) { return; } context.Navigation.Refresh();
                 Assert.True(context.Navigation.TryRoute(creature, destination, DK2.Simulation.Navigation.MoveOptions.Loose));
                 creature.Dk2StateId = TremorRules.KnockdownState;
             }), new TremorCreatureSystem(), new CreatureMovementSystem()]);
@@ -243,11 +242,14 @@ public sealed class TremorCreatureTests
     {
         (GameDatabase? db, WorldState? world, CreatureState? creature) = Setup();
         for (int y = 8; y <= 12; y++)
+        {
             for (int x = 8; x <= 12; x++)
             {
                 world.Tile(new TilePos(x, y)).TerrainId = Dk2TerrainFixture.DirtPath;
                 world.Tile(new TilePos(x, y)).OwnerPlayerId = PlayerIds.Neutral;
             }
+        }
+
         creature.PosX += 123;
         creature.PosY += 321;
         int targetX = creature.PosX + Fp32.One, targetY = creature.PosY - Fp32.One;
@@ -273,14 +275,22 @@ public sealed class TremorCreatureTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
             [PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 10; y++)
+        {
             for (int x = 1; x <= 10; x++)
             {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
                 world.Tile(x, y).OwnerPlayerId = Keeper;
             }
+        }
+
         for (int y = 6; y < 9; y++)
+        {
             for (int x = 6; x < 9; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Hatchery), Keeper);
+            }
+        }
+
         var food = new TilePos(7, 7);
         world.SpawnObject(db, HatcheryRules.ChickenObjectId, Keeper, world.TileIndex(food));
         CreatureState creature = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(2, 2));
@@ -341,11 +351,17 @@ public sealed class TremorCreatureTests
     {
         (GameDatabase? db, WorldState? world, CreatureState? creature) = MoodSetup(JobType.None, JobType.Sulk);
         foreach (TilePos at in new[] { new TilePos(2, 2), new TilePos(3, 2), new TilePos(2, 3), new TilePos(3, 3) })
+        {
             RoomRules.Place(db, ref world.Tile(at), db.Room(RoomTypeId.Lair), Keeper);
+        }
+
         Assert.True(LairRules.TryPlaceBedInAnyLair(world, db, creature));
 
         var sim = new GameSimulation(db, world, 42, [new CreatureJobSystem(), new CreatureAngerSystem()]);
-        for (int i = 0; i < 40 && creature.Dk2StateId != JobRules.StateFor(JobType.Sulk); i++) sim.Tick();
+        for (int i = 0; i < 40 && creature.Dk2StateId != JobRules.StateFor(JobType.Sulk); i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Equal(JobRules.StateFor(JobType.Sulk), creature.Dk2StateId);
     }
@@ -384,11 +400,14 @@ public sealed class TremorCreatureTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y < 15; y++)
+        {
             for (int x = 1; x < 15; x++)
             {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
                 world.Tile(x, y).OwnerPlayerId = Keeper;
             }
+        }
+
         CreatureState creature = world.SpawnCreature(db, type, Keeper, new TilePos(2, 2));
         creature.Dk2StateId = CreatureStateMachine.Idle;
         creature.Fleeing = true;
@@ -468,7 +487,11 @@ public sealed class TremorCreatureTests
     {
         (GameDatabase? db, WorldState? world, CreatureState? creature) = MoodSetup(JobType.None, JobType.None);
         CreatureDef definition = db.CreatureById(creature.CreatureTypeId);
-        if (mood == CreatureMood.Unhappy) creature.Anger.Lair = CreatureAngerRules.UnhappyAt(definition);
+        if (mood == CreatureMood.Unhappy)
+        {
+            creature.Anger.Lair = CreatureAngerRules.UnhappyAt(definition);
+        }
+
         var draws = new Draws(Enumerable.Repeat((100, 0), rolls).ToArray());
         var sim = new GameSimulation(db, world, new SimRandom(draws), [new CreatureJobSystem(), new CreatureAngerSystem()]);
         sim.Tick();
@@ -521,7 +544,11 @@ public sealed class TremorCreatureTests
     public void SpecialRoleIdleSelectsItsOwnUnbuiltHandlerWithoutKeeperJobs_StronglyInferredFromBinary(bool horny, int destination)
     {
         (GameDatabase? db, WorldState? world, CreatureState? creature) = Setup(horny ? CreatureFlags.IsHorny : default);
-        if (!horny) creature.OwnerPlayerId = PlayerIds.Neutral;
+        if (!horny)
+        {
+            creature.OwnerPlayerId = PlayerIds.Neutral;
+        }
+
         creature.Fleeing = true;
         var random = new SimRandom(42);
         (ulong S0, ulong S1, ulong S2, ulong S3) initialRandomState = random.SaveState();
@@ -531,7 +558,11 @@ public sealed class TremorCreatureTests
         Assert.False(creature.Fleeing);
         Assert.Equal(destination, creature.Dk2StateId);
         Assert.Equal(CreatureActivity.UnbuiltHandler, creature.Activity);
-        if (!horny) Assert.Equal(CreatureJobSystem.NothingToDoTicks, creature.StateDeadlineTick);
+        if (!horny)
+        {
+            Assert.Equal(CreatureJobSystem.NothingToDoTicks, creature.StateDeadlineTick);
+        }
+
         GameSimulation copy = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, systems);
         Assert.Equal(sim.StateHash(), copy.StateHash());
         sim.Run(8);

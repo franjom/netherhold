@@ -172,7 +172,9 @@ public sealed class RoomBuildWaveTests
             slots[index + 1] = wave;
             slots[index] = null;
         }
-        else slots[index] = field switch
+        else
+        {
+            slots[index] = field switch
         {
             "press" => wave with { Press = new TilePos(0, 1) },
             "release" => wave with { Release = new TilePos(3, 2) },
@@ -180,6 +182,8 @@ public sealed class RoomBuildWaveTests
             "cost" => wave with { AccumulatedCost = (ushort)(wave.AccumulatedCost + 1) },
             _ => throw new ArgumentOutOfRangeException(nameof(field)),
         };
+        }
+
         Assert.NotEqual(original, sim.StateHash());
     }
 

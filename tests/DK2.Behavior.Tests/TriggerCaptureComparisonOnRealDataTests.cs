@@ -120,6 +120,9 @@ public class TriggerCaptureComparisonOnRealDataTests
 
         using var writer = new StreamWriter(path);
         simulation.EmitTriggerTurnsTo(writer);
-        for (int turn = 0; turn < turns; turn++) simulation.Tick();
+        for (int turn = 0; turn < turns; turn++)
+        {
+            simulation.Tick();
+        }
     }
 }

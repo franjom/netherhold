@@ -86,10 +86,8 @@ public sealed class CombatStoppedRouteTests
 
         new GameSimulation(db, world, 1, [new RunRule(c =>
         {
-            if (spell) FightRules.StartCast(c, caster, db.CreatureById(caster.CreatureTypeId), 0);
-            else FightRules.StartSwing(c, new WorldSight(c.Navigation, world, db), caster,
-                db.CreatureById(caster.CreatureTypeId), []);
-        })]).Tick();
+            if (spell) { FightRules.StartCast(c, caster, db.CreatureById(caster.CreatureTypeId), 0); } else { FightRules.StartSwing(c, new WorldSight(c.Navigation, world, db), caster,
+                db.CreatureById(caster.CreatureTypeId), []); } })]).Tick();
 
         Assert.True(caster.SwingInProgress);
         Assert.Equal(point, caster.Body.PathTargetPos);
@@ -153,8 +151,13 @@ public sealed class CombatStoppedRouteTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper, (byte)(PlayerIds.FirstKeeper + 1)]);
         for (int y = 0; y < world.Height; y++)
-        for (int x = 0; x < world.Width; x++)
-            world.Tile(new TilePos(x, y)).TerrainId = Dk2TerrainFixture.DirtPath;
+        {
+            for (int x = 0; x < world.Width; x++)
+            {
+                world.Tile(new TilePos(x, y)).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         CreatureState caster = world.SpawnCreature(db, Dk2TerrainFixture.WarlockCreatureId,
             PlayerIds.FirstKeeper, new TilePos(8, 10));
         CreatureState target = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId,

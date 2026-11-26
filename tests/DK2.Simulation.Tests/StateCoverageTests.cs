@@ -19,7 +19,9 @@ public class StateCoverageTableTests
         Assert.Equal(CreatureStateTable.Count, ids.Length);
         Assert.Equal(Enumerable.Range(0, CreatureStateTable.Count), ids.Order());
         for (int id = 0; id < CreatureStateTable.Count; id++)
+        {
             Assert.Equal(id, CreatureStateCoverage.Get(id).StateId);
+        }
     }
 
     [Fact]
@@ -40,7 +42,9 @@ public class StateCoverageTableTests
             // A constant is the state it names; a method (a state picker, a handler) is not checked.
             if (members[0] is FieldInfo { IsLiteral: true } constant
                 && constant.GetRawConstantValue() is int value && value != row.StateId)
+            {
                 wrong.Add($"{row.StateId}: {row.Handler.Name}.{row.Detail} is {value}");
+            }
         }
 
         Assert.True(wrong.Count == 0, string.Join("\n", wrong));
@@ -79,7 +83,10 @@ public class StateCoverageTableTests
         Assert.All(CreatureStateCoverage.All, r =>
         {
             Assert.Equal(r.Status == StateStatus.Built, r.Handler is not null);
-            if (r.Status != StateStatus.Built) Assert.Null(r.UnexercisedBecause);
+            if (r.Status != StateStatus.Built)
+            {
+                Assert.Null(r.UnexercisedBecause);
+            }
         });
     }
 

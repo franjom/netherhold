@@ -69,12 +69,18 @@ public sealed class LairDepartureTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, (byte)3]);
         for (int y = 1; y <= 3; y++)
+        {
             for (int x = 1; x <= 8; x++)
             {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
                 world.Tile(x, y).OwnerPlayerId = 3;
-                if (x >= 6) RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Lair), 3);
+                if (x >= 6)
+                {
+                    RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Lair), 3);
+                }
             }
+        }
+
         CreatureState creature = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, 3, at);
         var attempt = new Attempt(creature);
         var sim = new GameSimulation(db, world, new SimRandom(new Dk2Lcg(seed)), [attempt]);

@@ -19,11 +19,22 @@ public class ClassicWorldLightCacheTests
         cache.SetTerrain(Tile, Source(1, Tile));
         cache.UpdateHand(Source(2, Tile));
         TilePos[] visible = { Tile };
-        for (int i = 0; i < 3; i++) cache.PrepareFrame(visible);
+        for (int i = 0; i < 3; i++)
+        {
+            cache.PrepareFrame(visible);
+        }
+
         Assert.True(cache.TablesUnchanged);
         ClassicLightTable table = cache.VisibleTables[0];
-        if (replaceStatic) table.RebuildStatic(new[] { Source(9, Tile) });
-        else table.RebuildDynamic(new[] { Source(9, Tile) });
+        if (replaceStatic)
+        {
+            table.RebuildStatic(new[] { Source(9, Tile) });
+        }
+        else
+        {
+            table.RebuildDynamic(new[] { Source(9, Tile) });
+        }
+
         cache.PrepareFrame(visible);
         Assert.False(cache.TablesUnchanged);
         Assert.Equal(new[] { 1, 2 }, Ids(table));
@@ -37,7 +48,11 @@ public class ClassicWorldLightCacheTests
             .Select(id => new PortalLightView(new PortalLightId(id), Source(id, Tile))).ToArray();
         TilePos[] visible = { Tile };
         cache.UpdatePortalLights(lights);
-        for (int i = 0; i < 3; i++) cache.PrepareFrame(visible);
+        for (int i = 0; i < 3; i++)
+        {
+            cache.PrepareFrame(visible);
+        }
+
         Assert.True(cache.TablesUnchanged);
         Assert.Equal(Enumerable.Range(1, 24), Ids(cache.VisibleTables[0]));
         Array.Reverse(lights);
@@ -100,12 +115,35 @@ public class ClassicWorldLightCacheTests
         {
             foreach (ClassicWorldLightCache cache in new[] { cached, full })
             {
-                if (frame == 0 || frame == 25) cache.SetTerrain(Tile, Source(1, Tile));
-                if (frame == 15) cache.SetTerrain(Tile, null);
-                if (frame == 5 || frame == 30) cache.UpdateHand(Source(2, Tile));
-                if (frame == 10) cache.UpdateHand(Source(3, new TilePos(6, 5)));
-                if (frame == 35) cache.UpdateHand(null);
-                if (frame == 45) cache.Clear();
+                if (frame == 0 || frame == 25)
+                {
+                    cache.SetTerrain(Tile, Source(1, Tile));
+                }
+
+                if (frame == 15)
+                {
+                    cache.SetTerrain(Tile, null);
+                }
+
+                if (frame == 5 || frame == 30)
+                {
+                    cache.UpdateHand(Source(2, Tile));
+                }
+
+                if (frame == 10)
+                {
+                    cache.UpdateHand(Source(3, new TilePos(6, 5)));
+                }
+
+                if (frame == 35)
+                {
+                    cache.UpdateHand(null);
+                }
+
+                if (frame == 45)
+                {
+                    cache.Clear();
+                }
             }
             // Change an unprepared input twice: final inputs match, but force a full gather.
             full.SetTorch(sentinel, Source(255, sentinel));
@@ -125,13 +163,15 @@ public class ClassicWorldLightCacheTests
                 Assert.Equal(expected.Lights.ToArray(), actual.Lights.ToArray());
             }
             for (int y = 0; y < 20; y++)
-            for (int x = 0; x < 20; x++)
+            {
+                for (int x = 0; x < 20; x++)
             {
                 var tile = new TilePos(x, y);
                 ClassicLightCacheCell expected = full.GetCell(tile), actual = cached.GetCell(tile);
                 Assert.Equal(expected.BuildFrame, actual.BuildFrame);
                 Assert.Equal(expected.StaticSources.ToArray(), actual.StaticSources.ToArray());
                 Assert.Equal(expected.DynamicSources.ToArray(), actual.DynamicSources.ToArray());
+            }
             }
         }
     }
@@ -163,7 +203,11 @@ public class ClassicWorldLightCacheTests
         var cache = new ClassicWorldLightCache(12, 12);
         TilePos[] visible = { Tile };
         cache.UpdateHand(Source(1, Tile));
-        for (int i = 0; i < 3; i++) cache.PrepareFrame(visible);
+        for (int i = 0; i < 3; i++)
+        {
+            cache.PrepareFrame(visible);
+        }
+
         Assert.True(cache.TablesUnchanged);
         cache.UpdateHand(Source(2, Tile));
         cache.PrepareFrame(visible);
@@ -183,7 +227,11 @@ public class ClassicWorldLightCacheTests
         var cache = new ClassicWorldLightCache(12, 12);
         TilePos next = new(6, 5);
         TilePos[] visible = { Tile, next };
-        for (int i = 0; i < 3; i++) cache.PrepareFrame(visible);
+        for (int i = 0; i < 3; i++)
+        {
+            cache.PrepareFrame(visible);
+        }
+
         Assert.True(cache.TablesUnchanged);
         cache.PrepareFrame(new[] { next, Tile });
         Assert.False(cache.TablesUnchanged);
@@ -341,9 +389,17 @@ public class ClassicWorldLightCacheTests
         var cache = new ClassicWorldLightCache(12, 12);
         cache.SetTerrain(Tile, Source(1, Tile));
         TilePos[] visible = { Tile, new(6, 5), new(7, 5) };
-        for (int i = 0; i < 100; i++) cache.PrepareFrame(visible);
+        for (int i = 0; i < 100; i++)
+        {
+            cache.PrepareFrame(visible);
+        }
+
         long before = GC.GetAllocatedBytesForCurrentThread();
-        for (int i = 0; i < 100; i++) cache.PrepareFrame(visible);
+        for (int i = 0; i < 100; i++)
+        {
+            cache.PrepareFrame(visible);
+        }
+
         Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
     }
 
@@ -360,7 +416,10 @@ public class ClassicWorldLightCacheTests
             cache.UpdatePortalLights(portals.Advance(new EffectTime(frame * 33)));
             cache.UpdateHand(ClassicPointLight.FromHand(5 + (frame % 20) * 0.1f, 5.5f, false, true, 12, 12));
             cache.PrepareFrame(visible);
-            if (frame >= 200) Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+            if (frame >= 200)
+            {
+                Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+            }
         }
     }
 
@@ -369,18 +428,34 @@ public class ClassicWorldLightCacheTests
     {
         var cache = new ClassicWorldLightCache(40, 40);
         for (int y = 0; y < 40; y += 2)
-        for (int x = 0; x < 40; x += 3) cache.SetTerrain(new TilePos(x, y), Source(1 + (x + y) % 200, new TilePos(x, y)));
+        {
+            for (int x = 0; x < 40; x += 3)
+            {
+                cache.SetTerrain(new TilePos(x, y), Source(1 + (x + y) % 200, new TilePos(x, y)));
+            }
+        }
         // A 12x12 view sweeping 16 tiles east and back, each frame's tiles prepared once.
         var views = new TilePos[32][];
         for (int step = 0; step < views.Length; step++)
         {
             int left = step < 16 ? step : 31 - step;
             views[step] = new TilePos[144];
-            for (int i = 0; i < 144; i++) views[step][i] = new TilePos(4 + left + i % 12, 10 + i / 12);
+            for (int i = 0; i < 144; i++)
+            {
+                views[step][i] = new TilePos(4 + left + i % 12, 10 + i / 12);
+            }
         }
-        for (int frame = 0; frame < views.Length * 2; frame++) cache.PrepareFrame(views[frame % views.Length]);
+        for (int frame = 0; frame < views.Length * 2; frame++)
+        {
+            cache.PrepareFrame(views[frame % views.Length]);
+        }
+
         long before = GC.GetAllocatedBytesForCurrentThread();
-        for (int frame = 0; frame < views.Length * 3; frame++) cache.PrepareFrame(views[frame % views.Length]);
+        for (int frame = 0; frame < views.Length * 3; frame++)
+        {
+            cache.PrepareFrame(views[frame % views.Length]);
+        }
+
         Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
     }
 
@@ -390,7 +465,11 @@ public class ClassicWorldLightCacheTests
         var cache = new ClassicWorldLightCache(12, 12);
         cache.SetTerrain(Tile, Source(1, Tile));
         TilePos[] visible = { Tile, new(6, 5), new(7, 5) };
-        for (int i = 0; i < 10; i++) cache.PrepareFrame(visible);
+        for (int i = 0; i < 10; i++)
+        {
+            cache.PrepareFrame(visible);
+        }
+
         cache.Clear();
         cache.SetTerrain(Tile, Source(1, Tile));
         long before = GC.GetAllocatedBytesForCurrentThread();

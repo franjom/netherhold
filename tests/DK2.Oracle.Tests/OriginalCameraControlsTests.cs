@@ -67,7 +67,11 @@ public class OriginalCameraControlsTests
                 new(0x00442140, [argument], setup.ToArray(), Ecx: bridge),
                 new(0x00442140, [argument], [(argument, unchecked((uint)-first))], [focusX], Ecx: bridge),
             });
-            foreach (OriginalCpu.Outcome result in results) Assert.Null(result.Fault);
+            foreach (OriginalCpu.Outcome result in results)
+            {
+                Assert.Null(result.Fault);
+            }
+
             var camera = new ClassicCamera(new CameraThing(new byte[84])
             {
                 CameraId = 3, Zoom = 40960, MinZoom = 16384, MaxZoom = 53248,
@@ -93,9 +97,13 @@ public class OriginalCameraControlsTests
         var requests = new List<OriginalCpu.Request>();
         var cases = new List<(int Result, System.Numerics.Vector3 Expected, string Label)>();
         foreach (ushort yaw in new ushort[] { 0, 1, 256, 512, 1023, 1536, 2047 })
+        {
             foreach (int zoom in new[] { 16384, 40960, 53247 })
+            {
                 foreach (int milliseconds in new[] { 16, 33, 2500 })
+                {
                     foreach (bool fast in new[] { false, true })
+                    {
                         foreach (ClassicCameraKeys directions in new[] { ClassicCameraKeys.Right, ClassicCameraKeys.Left,
                             ClassicCameraKeys.Up, ClassicCameraKeys.Down, ClassicCameraKeys.Right | ClassicCameraKeys.Up })
                         {
@@ -129,7 +137,11 @@ public class OriginalCameraControlsTests
                                 (ClassicCameraKeys.Up, 0, -1), (ClassicCameraKeys.Down, 0, 1),
                             })
                             {
-                                if ((directions & key) == 0) continue;
+                                if ((directions & key) == 0)
+                                {
+                                    continue;
+                                }
+
                                 var writes = new List<(uint, uint)>(setup)
                                 {
                                     (argument, unchecked((uint)x)), (argument + 4, unchecked((uint)y)),
@@ -144,8 +156,17 @@ public class OriginalCameraControlsTests
                                 [focusX, focusY, cameraAddress + 0xD70], Ecx: bridge));
                             cases.Add((requests.Count - 1, expected, $"yaw={yaw}, zoom={zoom}, ms={milliseconds}, fast={fast}, keys={directions}"));
                         }
+                    }
+                }
+            }
+        }
+
         IReadOnlyList<OriginalCpu.Outcome> results = OriginalCpu.Run(requests);
-        for (int i = 0; i < results.Count; i++) Assert.True(results[i].Fault is null, $"call{i}: {results[i].Fault}");
+        for (int i = 0; i < results.Count; i++)
+        {
+            Assert.True(results[i].Fault is null, $"call{i}: {results[i].Fault}");
+        }
+
         foreach ((int Result, Vector3 Expected, string Label) sample in cases)
         {
             uint[] actual = results[sample.Result].Reads;

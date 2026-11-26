@@ -15,7 +15,13 @@ public sealed class DevOverlayModelTests
     private static string Text(DevOverlayModel model, string label)
     {
         for (int i = 0; i < model.RowCount; i++)
-            if (model.Kind(i) == DevOverlayRowKind.Row && model.Label(i) == label) return model.Value(i).ToString();
+        {
+            if (model.Kind(i) == DevOverlayRowKind.Row && model.Label(i) == label)
+            {
+                return model.Value(i).ToString();
+            }
+        }
+
         throw new InvalidOperationException("No row " + label);
     }
 
@@ -23,7 +29,13 @@ public sealed class DevOverlayModelTests
     {
         var headings = new List<string>();
         for (int i = 0; i < model.RowCount; i++)
-            if (model.Kind(i) == DevOverlayRowKind.Heading) headings.Add(model.Label(i));
+        {
+            if (model.Kind(i) == DevOverlayRowKind.Heading)
+            {
+                headings.Add(model.Label(i));
+            }
+        }
+
         return headings.ToArray();
     }
 
@@ -182,7 +194,11 @@ public sealed class DevOverlayModelTests
         {
             model.AddTurns(1, 0.5);
             model.AddPart(FrameTelemetryPart.Hud, 0.25);
-            if (model.EndFrame(0.1, 1.5)) model.Compose(facts);
+            if (model.EndFrame(0.1, 1.5))
+            {
+                model.Compose(facts);
+            }
+
             facts.Turn = new GameTick(77 + i);
         }
         model.Compose(frontEnd);

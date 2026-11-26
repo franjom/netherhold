@@ -60,7 +60,11 @@ public class StepBackTests
         (GameDatabase db, WorldState world) = Open(wallRow: 10);
         CreatureState vampire = Facing(db, world, heading: 0);
         int y = vampire.PosY;
-        for (int i = 0; i < 4; i++) Assert.True(Run(db, world, vampire));
+        for (int i = 0; i < 4; i++)
+        {
+            Assert.True(Run(db, world, vampire));
+        }
+
         Assert.Equal(y + 4 * 613, vampire.PosY);
     }
 
@@ -110,8 +114,13 @@ public class StepBackTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 12), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(x, y).TerrainId = y == wallRow ? Dk2TerrainFixture.Rock : Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         return (db, world);
     }
 
@@ -128,10 +137,8 @@ public class StepBackTests
         bool taken = false;
         var sim = new GameSimulation(db, world, 1, [new Probe(context =>
         {
-            if (step)
-                taken = FearRules.StepBack(context, me, db.CreatureById(me.CreatureTypeId),
-                    FearRules.FleeStepBackLength(db.CreatureById(me.CreatureTypeId)), []);
-        }), new Systems.CreatureMovementSystem()]);
+            if (step) { taken = FearRules.StepBack(context, me, db.CreatureById(me.CreatureTypeId),
+                    FearRules.FleeStepBackLength(db.CreatureById(me.CreatureTypeId)), []); } }), new Systems.CreatureMovementSystem()]);
         sim.Tick();
         return taken;
     }

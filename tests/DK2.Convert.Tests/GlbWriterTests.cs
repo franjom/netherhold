@@ -113,7 +113,11 @@ public class GlbWriterTests
             entry.Name.EndsWith(".kmf", StringComparison.OrdinalIgnoreCase)))
         {
             KmfModel source = KmfReader.Read(wad.Extract(entry));
-            if (source.Mesh is null) continue;
+            if (source.Mesh is null)
+            {
+                continue;
+            }
+
             using var glb = GlbDocument.Load(GlbWriter.Write(source));
             Assert.NotEmpty(glb.Json.RootElement.GetProperty("meshes")[0]
                 .GetProperty("primitives").EnumerateArray());
@@ -187,7 +191,11 @@ public class GlbWriterTests
             Assert.Equal("SCALAR", accessor.GetProperty("type").GetString());
             int count = accessor.GetProperty("count").GetInt32();
             float[] result = new float[count];
-            for (int i = 0; i < count; i++) result[i] = F32(_binary, offset + i * 4);
+            for (int i = 0; i < count; i++)
+            {
+                result[i] = F32(_binary, offset + i * 4);
+            }
+
             return result;
         }
 
@@ -207,7 +215,9 @@ public class GlbWriterTests
                 Assert.InRange(length, 0, _binary.Length - offset);
             }
             foreach (JsonElement accessor in root.GetProperty("accessors").EnumerateArray())
+            {
                 Assert.InRange(accessor.GetProperty("bufferView").GetInt32(), 0, views.GetArrayLength() - 1);
+            }
         }
 
         private (JsonElement Accessor, int Offset) Accessor(int index)

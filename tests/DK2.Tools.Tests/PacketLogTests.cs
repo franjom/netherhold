@@ -219,7 +219,11 @@ public sealed class PacketLogTests
     public void SelectedHeaderOffsetRebasesPlaybackAndRequiresEnoughCompleteRecords()
     {
         var bytes = new List<byte>(new byte[83]);
-        for (uint turn = 100; turn <= 10100; turn++) Turn(bytes, turn);
+        for (uint turn = 100; turn <= 10100; turn++)
+        {
+            Turn(bytes, turn);
+        }
+
         string path = Path.GetTempFileName();
         try
         {

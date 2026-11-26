@@ -21,7 +21,11 @@ public class WorkshopStateTests
         GameDatabase basis = Dk2TerrainFixture.Database();
         var clip = new CreatureAnimationTiming { ResourceType = 6, FrameCount = 20, FramesPerSecond = 20 };
         var slots = new CreatureAnimationTiming[CreatureDef.ArtSlotCount];
-        foreach (int slot in new[] { 1, 20, WorkshopStep.WorkArtSlot }) slots[slot] = clip;
+        foreach (int slot in new[] { 1, 20, WorkshopStep.WorkArtSlot })
+        {
+            slots[slot] = clip;
+        }
+
         return new GameDatabase(basis.Terrain.Values, basis.Rooms.Values,
             basis.Creatures.Values.Select(c => c.CreatureId == Vampire ? c with { ArtSlots = slots, ManufacturePerSecond = 40 } : c),
             basis.Variables, basis.KeeperSpells.Values, objects: basis.Objects.Values, shots: basis.Shots.Values);
@@ -32,8 +36,13 @@ public class WorkshopStateTests
     {
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 5; y++)
-        for (int x = 1; x <= 5; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Workshop), Keeper);
+        {
+            for (int x = 1; x <= 5; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Workshop), Keeper);
+            }
+        }
+
         Dk2TerrainFixture.FurnishRooms(db, world);
         ManufactureRules.Enqueue(ref world.Player(Keeper), new ManufactureOrder(ManufactureRules.DoorKind, 1, 60_000));
         return world;
@@ -87,7 +96,10 @@ public class WorkshopStateTests
         (first.StateTargetX, first.StateTargetY) = AutoFurnitureRules.FurniturePosition(world, db, room, machine!);
         first.MachineMode = WorkshopStep.AtIt;
         foreach (ObjectState other in world.Objects.Where(o => WorkshopStep.IsMachine(o.ObjectTypeId) && o.Id != machine!.Id).ToList())
+        {
             world.RemoveObject(other.Id);
+        }
+
         CreatureState second = Maker(db, world, new TilePos(3, 3));
 
         byte? mode = WorkshopStep.Find(world, db, room, second, out ObjectState? found, out (int X, int Y) point);
@@ -106,7 +118,10 @@ public class WorkshopStateTests
         ObjectState machine = world.Objects.First(o => WorkshopStep.IsMachine(o.ObjectTypeId)
             && AutoFurnitureRules.WallSide(world, db, room, o.TileIndex) < 0);
         foreach (ObjectState other in world.Objects.Where(o => WorkshopStep.IsMachine(o.ObjectTypeId) && o.Id != machine.Id).ToList())
+        {
             world.RemoveObject(other.Id);
+        }
+
         (int mx, int my) = AutoFurnitureRules.FurniturePosition(world, db, room, machine);
         CreatureState worker = Maker(db, world, new TilePos(mx >> 12, my >> 12));
         (worker.StateTargetX, worker.StateTargetY, worker.MachineMode) = (mx, my, WorkshopStep.AtIt);
@@ -134,7 +149,10 @@ public class WorkshopStateTests
         sim.Run(2);
         Assert.Equal(WorkshopStep.ChoosingState, it.Dk2StateId);
         Assert.True(it.ActionUntilTick > sim.World.CurrentTick.Value);
-        for (int i = 0; i < 100 && it.CurrentJob != JobType.None; i++) sim.Tick();
+        for (int i = 0; i < 100 && it.CurrentJob != JobType.None; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Equal(JobType.None, it.CurrentJob);
     }
@@ -182,7 +200,10 @@ public class WorkshopStateTests
         GameSimulation sim = Simulation(db, world);
         sim.ObserveWith(sink);
 
-        for (int i = 0; i < 400 && it.Dk2StateId != WorkshopStep.WorkingState; i++) sim.Tick();
+        for (int i = 0; i < 400 && it.Dk2StateId != WorkshopStep.WorkingState; i++)
+        {
+            sim.Tick();
+        }
 
         SimEvent work = Assert.Single(sink.Events, e => e.Kind == "workshop_work");
         int count = int.Parse(work.Detail.Split(' ')[1]["count=".Length..]);
@@ -231,7 +252,11 @@ public class WorkshopStateTests
         {
             sim.Tick();
             // The return state ends a running action on the turns it runs (0x00496D20).
-            if (it.Dk2StateId == WorkshopStep.ReturningState && it.ActionUntilTick == 0) endedIn = 0;
+            if (it.Dk2StateId == WorkshopStep.ReturningState && it.ActionUntilTick == 0)
+            {
+                endedIn = 0;
+            }
+
             order.Add(CreatureStateTable.Get(it.Dk2StateId).IsUtility ? it.UtilityNewState : it.Dk2StateId);
         }
 

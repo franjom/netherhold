@@ -31,7 +31,9 @@ public sealed class PickupFlowTests
         var posted = new List<bool>();
 
         foreach (PlayerCommand command in new PlayerCommand[] { slap, missing, drop, tag })
+        {
             posted.Add(flow.PostWorldCommand(world, db, command, 0, null, output));
+        }
 
         // No creature 77: the pickup is skipped and the frame goes on; no pickup is pending, so the drop is posted.
         Assert.Equal([true, false, true, true], posted);
@@ -93,7 +95,9 @@ public sealed class PickupFlowTests
         var posted = new List<bool>();
 
         foreach (PlayerCommand command in new PlayerCommand[] { pickup, again, drop })
+        {
             posted.Add(flow.PostWorldCommand(world, db, command, 100, null, output));
+        }
 
         Assert.Equal([true, false, false], posted);
         Assert.Same(pickup, Assert.Single(output));

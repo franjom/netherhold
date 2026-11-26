@@ -52,7 +52,11 @@ internal sealed class OriginalExecutable
         foreach (SectionHeader section in _sections)
         {
             uint start = (uint)section.VirtualAddress;
-            if (rva < start || rva >= start + (uint)Math.Max(section.VirtualSize, section.SizeOfRawData)) continue;
+            if (rva < start || rva >= start + (uint)Math.Max(section.VirtualSize, section.SizeOfRawData))
+            {
+                continue;
+            }
+
             uint offset = rva - start;
             Assert.True(offset + length <= section.SizeOfRawData,
                 $"0x{address:X8}+{length} runs past {section.Name}'s file-backed bytes: it is filled at run time.");

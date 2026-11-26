@@ -34,19 +34,26 @@ public class TorturerTests
         var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, Rival, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 8; y++)
-        for (int x = 1; x <= 12; x++)
+        {
+            for (int x = 1; x <= 12; x++)
         {
             ref TileState tile = ref world.Tile(x, y);
             tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
             tile.OwnerPlayerId = Keeper;
         }
+        }
 
         for (int y = 2; y <= 4; y++)
         {
             for (int x = 2; x <= 4; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Prison), Keeper);
+            }
+
             for (int x = 7; x <= 9; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.TortureChamber), Keeper);
+            }
         }
 
         // Auto-placed, as the chamber's own would be: they are its places (ADR-0205). The
@@ -54,9 +61,15 @@ public class TorturerTests
         // Mistress with no victim asks for (0x004F2B80).
         world.SpawnObject(db, TortureRules.WheelObjectId, Keeper, Index(world, Wheel)).AutoPlaced = true;
         if (coals)
+        {
             world.SpawnObject(db, Dk2TerrainFixture.TortureCoalsObjectId, Keeper, Index(world, new TilePos(7, 2))).AutoPlaced = true;
+        }
+
         if (chair)
+        {
             world.SpawnObject(db, TortureRules.ElectricChairObjectId, Keeper, Index(world, Chair)).AutoPlaced = true;
+        }
+
         return world;
     }
 
@@ -71,7 +84,11 @@ public class TorturerTests
             new PrisonSystem(),
             new TortureSystem(),
         ], triggers);
-        if (sink is not null) sim.ObserveWith(sink);
+        if (sink is not null)
+        {
+            sim.ObserveWith(sink);
+        }
+
         return sim;
     }
 
@@ -103,7 +120,10 @@ public class TorturerTests
         {
             int before = mistress.Dk2StateId;
             sim.Tick();
-            if (before == Walk && mistress.Dk2StateId == TortureRules.TorturerFacingState) arrived = sim.CurrentTick.Value - 1;
+            if (before == Walk && mistress.Dk2StateId == TortureRules.TorturerFacingState)
+            {
+                arrived = sim.CurrentTick.Value - 1;
+            }
         }
 
         Assert.True(arrived >= 0);
@@ -154,7 +174,10 @@ public class TorturerTests
         GameSimulation sim = Simulation(db, world, sink);
 
         for (int i = 0; i < 60 * SimulationTiming.TicksPerSecond
-                        && sink.Events.Count(e => e.Kind == "whip_started") < 3; i++) sim.Tick();
+                        && sink.Events.Count(e => e.Kind == "whip_started") < 3; i++)
+        {
+            sim.Tick();
+        }
 
         long[] starts = sink.Events.Where(e => e.Kind == "whip_started").Select(e => e.Tick.Value).ToArray();
         long[] ends = sink.Events.Where(e => e.Kind == "whipped").Select(e => e.Tick.Value).ToArray();
@@ -272,12 +295,16 @@ public class TorturerTests
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
         for (int i = 0; i < 60 * SimulationTiming.TicksPerSecond && whipper.Dk2StateId != TortureRules.TorturerWhippingState; i++)
+        {
             sim.Tick();
+        }
 
         CreatureState second = world.SpawnCreature(db, MistressId, Keeper, Outside);
         for (int i = 0; i < 20 * SimulationTiming.TicksPerSecond
                         && !sink.Events.Any(e => e.Kind == "job_lost" && e.Detail.Contains($"creature={second.Id} ")); i++)
+        {
             sim.Tick();
+        }
 
         Assert.Contains(sink.Events, e => e.Kind == "job_started" && e.Detail.Contains($"creature={second.Id} "));
         Assert.DoesNotContain(sink.Events, e => e.Kind.StartsWith("torturer_to") && e.Detail.Contains($"creature={second.Id} "));
@@ -296,7 +323,9 @@ public class TorturerTests
         CreatureState mistress = world.SpawnCreature(db, MistressId, Keeper, Outside);
         GameSimulation sim = Simulation(db, world);
         for (int i = 0; i < 60 * SimulationTiming.TicksPerSecond && mistress.Dk2StateId != TortureRules.TorturerWhippingState; i++)
+        {
             sim.Tick();
+        }
 
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
@@ -349,8 +378,13 @@ public class TorturerTests
         GameDatabase db = Db;
         WorldState world = World(db);
         for (int y = 6; y <= 8; y++)
-        for (int x = 1; x <= 3; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.TortureChamber), Keeper);
+        {
+            for (int x = 1; x <= 3; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.TortureChamber), Keeper);
+            }
+        }
+
         Victim(db, world);
         CreatureState mistress = world.SpawnCreature(db, MistressId, Keeper, new TilePos(2, 5));
         var sink = new ListEventSink();

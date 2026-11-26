@@ -22,7 +22,10 @@ public sealed class ThunderboltOnRealDataTests
         Assert.Equal(((byte)0x15, 0xC8, 0), spell.Shot(true));
         Assert.Equal(TileConstruction.ThreeByThree, db.Rooms.Values.Single(r => r.TypeId == RoomTypeId.Portal).Construction);
         foreach (RoomTypeId kind in new[] { RoomTypeId.Prison, RoomTypeId.Temple, RoomTypeId.CombatPit })
+        {
             Assert.Equal(TileConstruction.DoubleQuad, db.Rooms.Values.Single(r => r.TypeId == kind).Construction);
+        }
+
         ShotDef shot = db.Shots[0x15];
         Assert.Equal((9, 0, 0, 6), ((int)shot.ProcessType, (int)shot.DamageType, (int)shot.CollideType, (int)shot.AttackCategory));
         Assert.Equal((0x40u, 4u, 8, 0x800, 0x333), (shot.ShotProcessFlags, shot.Flags, (int)shot.Health, shot.Speed, shot.Radius));

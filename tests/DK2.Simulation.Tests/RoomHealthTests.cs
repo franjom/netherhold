@@ -53,10 +53,16 @@ public class RoomHealthTests
     public void ARoomStartsAtStartingHealthTimesItsSize_HoweverItWasLaidDown()
     {
         WorldState world = World();
-        for (int x = 5; x <= 7; x++) Build(world, x, 5, Keeper);
+        for (int x = 5; x <= 7; x++)
+        {
+            Build(world, x, 5, Keeper);
+        }
 
         // Painted straight onto the tiles, as a map load or a test does, with no chain call.
-        for (int x = 5; x <= 6; x++) RoomRules.Place(Db, ref world.Tile(x, 9), Db.Room(RoomTypeId.Treasury), Rival);
+        for (int x = 5; x <= 6; x++)
+        {
+            RoomRules.Place(Db, ref world.Tile(x, 9), Db.Room(RoomTypeId.Treasury), Rival);
+        }
 
         Assert.Equal(3 * PerTile, Health(world, 6, 5));
         Assert.Equal(2 * PerTile, Health(world, 5, 9));
@@ -66,7 +72,11 @@ public class RoomHealthTests
     public void APositiveDeltaClampsAtMaxHealthTimesSize()
     {
         WorldState world = World();
-        for (int x = 5; x <= 6; x++) Build(world, x, 5, Keeper);
+        for (int x = 5; x <= 6; x++)
+        {
+            Build(world, x, 5, Keeper);
+        }
+
         RoomInstance room = RoomAt(world, 5, 5);
         RoomHealthRules.Set(world, Db, room, 100);
 
@@ -81,7 +91,11 @@ public class RoomHealthTests
     public void ANegativeDeltaThatLeavesHealthTakesTheRoomWholeAndResetsIt()
     {
         WorldState world = World();
-        for (int x = 5; x <= 7; x++) Build(world, x, 5, Rival);
+        for (int x = 5; x <= 7; x++)
+        {
+            Build(world, x, 5, Rival);
+        }
+
         RoomInstance room = RoomAt(world, 5, 5);
 
         Assert.Equal(RoomHealthOutcome.Progressed, RoomHealthRules.Apply(world, Db, room, -(3 * PerTile) + 1, Keeper));
@@ -90,7 +104,11 @@ public class RoomHealthTests
 
         // Below 1, not at 0: the applier's test is "greater than zero".
         Assert.Equal(RoomHealthOutcome.TookOver, RoomHealthRules.Apply(world, Db, room, -1, Keeper));
-        for (int x = 5; x <= 7; x++) Assert.Equal(Keeper, world.Tile(x, 5).OwnerPlayerId);
+        for (int x = 5; x <= 7; x++)
+        {
+            Assert.Equal(Keeper, world.Tile(x, 5).OwnerPlayerId);
+        }
+
         Assert.Equal(3 * PerTile, Health(world, 5, 5));
     }
 
@@ -98,7 +116,11 @@ public class RoomHealthTests
     public void AnAddedTileBringsItsStartingHealth_AndADamagedRoomKeepsItsDamage()
     {
         WorldState world = World();
-        for (int x = 5; x <= 6; x++) Build(world, x, 5, Keeper);
+        for (int x = 5; x <= 6; x++)
+        {
+            Build(world, x, 5, Keeper);
+        }
+
         RoomHealthRules.Set(world, Db, RoomAt(world, 5, 5), (2 * PerTile) - 5000);
 
         Build(world, 7, 5, Keeper);
@@ -128,7 +150,10 @@ public class RoomHealthTests
     public void ATileTakenOutLeavesEachPieceTheOldRoomsShare()
     {
         WorldState world = World();
-        for (int x = 5; x <= 9; x++) Build(world, x, 5, Keeper);
+        for (int x = 5; x <= 9; x++)
+        {
+            Build(world, x, 5, Keeper);
+        }
 
         // 5 tiles at 37.4% of their cap: 37% after the 12.12 divide and × 100 >> 12.
         RoomHealthRules.Set(world, Db, RoomAt(world, 5, 5), (5 * PerTile * 374) / 1000);
@@ -143,20 +168,30 @@ public class RoomHealthTests
     public void AnUntouchedRoomCutInTwoLosesNothing()
     {
         WorldState world = World();
-        for (int x = 5; x <= 7; x++) Build(world, x, 5, Keeper);
+        for (int x = 5; x <= 7; x++)
+        {
+            Build(world, x, 5, Keeper);
+        }
 
         Unmake(world, 6, 5);
 
         Assert.Equal(PerTile, Health(world, 5, 5));
         Assert.Equal(PerTile, Health(world, 7, 5));
-        for (int x = 5; x <= 7; x++) Assert.Equal(0, world.Tile(x, 5).RoomHealthLost);
+        for (int x = 5; x <= 7; x++)
+        {
+            Assert.Equal(0, world.Tile(x, 5).RoomHealthLost);
+        }
     }
 
     [Fact]
     public void APieceKeepsAtLeastOneHealth()
     {
         WorldState world = World();
-        for (int x = 5; x <= 7; x++) Build(world, x, 5, Keeper);
+        for (int x = 5; x <= 7; x++)
+        {
+            Build(world, x, 5, Keeper);
+        }
+
         RoomHealthRules.Set(world, Db, RoomAt(world, 5, 5), 1);
 
         Unmake(world, 7, 5);
@@ -193,7 +228,11 @@ public class RoomHealthTests
         sim.Tick(InputFrame.Empty);
         Assert.Equal(5000, RoomHealthRules.Health(world, db, room));
 
-        for (int i = 0; i < 5; i++) sim.Tick(InputFrame.Empty);
+        for (int i = 0; i < 5; i++)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
+
         Assert.Equal(RoomHealthRules.Cap(db, room), RoomHealthRules.Health(world, db, room));
     }
 
@@ -203,7 +242,11 @@ public class RoomHealthTests
     public void RepairStopsAtTheCap_AndOnlyMendsTheKeepersOwnRoom()
     {
         WorldState world = World();
-        for (int x = 5; x <= 6; x++) Build(world, x, 5, Keeper);
+        for (int x = 5; x <= 6; x++)
+        {
+            Build(world, x, 5, Keeper);
+        }
+
         RoomInstance room = RoomAt(world, 5, 5);
         RoomHealthRules.Set(world, Db, room, 10000);
         int index = (5 * world.Width) + 5;
@@ -211,7 +254,11 @@ public class RoomHealthTests
         Assert.Equal(TileWorkOutcome.Rejected, RoomHealthRules.Repair(world, Db, index, Rival).Outcome);
 
         Assert.Equal(3999, RoomHealthRules.Repair(world, Db, index, Keeper).HealthDelta);
-        for (int i = 0; i < 5; i++) RoomHealthRules.Repair(world, Db, index, Keeper);
+        for (int i = 0; i < 5; i++)
+        {
+            RoomHealthRules.Repair(world, Db, index, Keeper);
+        }
+
         Assert.Equal(RoomHealthRules.Cap(Db, room), Health(world, 5, 5));
         Assert.Equal(TileWorkOutcome.NoChange, RoomHealthRules.Repair(world, Db, index, Keeper).Outcome);
     }
@@ -220,7 +267,11 @@ public class RoomHealthTests
     public void ADamagedRoomSurvivesASnapshotRoundTrip()
     {
         WorldState world = World();
-        for (int x = 5; x <= 7; x++) Build(world, x, 5, Keeper);
+        for (int x = 5; x <= 7; x++)
+        {
+            Build(world, x, 5, Keeper);
+        }
+
         RoomHealthRules.Set(world, Db, RoomAt(world, 5, 5), 12345);
 
         var sim = new GameSimulation(Db, world, seed: 1, []);

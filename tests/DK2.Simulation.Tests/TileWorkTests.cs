@@ -165,9 +165,11 @@ public class TileWorkTests
         TileState tile = TileOf(Dk2TerrainFixture.ClaimedPath, owner: 1);
 
         for (int i = 1; i <= 23; i++)
+        {
             Assert.Equal(
                 TileWorkOutcome.Progressed,
                 TileWorkRules.Apply(Db, ref tile, TileWorkKind.AttackTile, PlayerIds.FirstKeeper).Outcome);
+        }
 
         TileWorkResult last = TileWorkRules.Apply(Db, ref tile, TileWorkKind.AttackTile, PlayerIds.FirstKeeper);
 
@@ -199,7 +201,9 @@ public class TileWorkTests
     {
         TileState tile = TileOf(Dk2TerrainFixture.ReinforcedWall, owner: 1);
         while (tile.TerrainId == Dk2TerrainFixture.ReinforcedWall)
+        {
             TileWorkRules.Apply(Db, ref tile, TileWorkKind.DigOwnWall, 1);
+        }
 
         Assert.Equal(Dk2TerrainFixture.Rock, tile.TerrainId);
 
@@ -323,8 +327,10 @@ public class TileWorkTests
     public void EveryWorkKind_ResolvesToAVariableTheDatabaseCarries()
     {
         foreach (TileWorkKind kind in Enum.GetValues<TileWorkKind>())
+        {
             Assert.True(Db.Variables.TryGet(TileWorkRules.Variable(kind), out _),
                 $"{kind} has no balance variable.");
+        }
     }
 
     // ---- tagging ---------------------------------------------------------
@@ -466,8 +472,12 @@ public class TileWorkTests
         sim.Tick(InputFrame.Of(TagTilesCommand.Rect(1, 5, 1, 7, 3)));
 
         for (int y = 1; y <= 3; y++)
+        {
             for (int x = 5; x <= 7; x++)
+            {
                 Assert.True(sim.World.Tile(x, y).IsTaggedBy(1), $"({x},{y}) not tagged");
+            }
+        }
     }
 
     [Fact]

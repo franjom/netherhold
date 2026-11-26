@@ -34,7 +34,11 @@ public sealed class ViewFrustumTests
             foreach (float depth in new[] { near, pose.FarClipDistance })
             {
                 Vector3 point = pose.Position + ray * (depth / Vector3.Dot(ray, forward));
-                foreach (int plane in planes) Assert.InRange(Value(frustum[plane], point), -2e-3f, 2e-3f);
+                foreach (int plane in planes)
+                {
+                    Assert.InRange(Value(frustum[plane], point), -2e-3f, 2e-3f);
+                }
+
                 Assert.InRange(Value(frustum[depth == near ? 4 : 5], point), -2e-3f, 2e-3f);
             }
         }

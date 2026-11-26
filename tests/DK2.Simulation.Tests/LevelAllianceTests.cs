@@ -38,7 +38,9 @@ public sealed class LevelAllianceTests
         WorldState world = Load(new(Keeper, 6), new(Keeper, 9), new(0, Keeper));
 
         for (int i = 0; i < world.PlayerCount; i++)
+        {
             Assert.Equal(0, world.PlayerAtIndex(i).AlliedWith);
+        }
     }
 
     [Fact]

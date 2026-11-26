@@ -31,11 +31,13 @@ public class NeedInterruptTests
     {
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 8; y++)
-        for (int x = 1; x <= 12; x++)
+        {
+            for (int x = 1; x <= 12; x++)
         {
             ref TileState tile = ref world.Tile(x, y);
             tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
             tile.OwnerPlayerId = Keeper;
+        }
         }
 
         Paint(db, world, RoomTypeId.TrainingRoom, 8, 2);
@@ -53,8 +55,12 @@ public class NeedInterruptTests
     private static void Paint(GameDatabase db, WorldState world, RoomTypeId type, int x0, int y0)
     {
         for (int y = y0; y < y0 + 3; y++)
-        for (int x = x0; x < x0 + 3; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(type), Keeper);
+        {
+            for (int x = x0; x < x0 + 3; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(type), Keeper);
+            }
+        }
     }
 
     private static GameSimulation Simulation(GameDatabase db, WorldState world, ListEventSink sink)
@@ -75,7 +81,11 @@ public class NeedInterruptTests
     private static CreatureState Trainee(GameDatabase db, WorldState world, GameSimulation sim)
     {
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, InTraining);
-        for (int i = 0; i < 60 * Second && goblin.Dk2StateId != Training; i++) sim.Tick();
+        for (int i = 0; i < 60 * Second && goblin.Dk2StateId != Training; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(CreatureActivity.AtWork, goblin.Activity);
         Assert.Equal(JobType.Train, goblin.CurrentJob);
         return goblin;
@@ -201,7 +211,10 @@ public class NeedInterruptTests
         CreatureState creature = Fresh(state);
         Assert.Equal(admitted, NeedRules.Admits(creature, CreatureStateCategory.Eating));
         if (CreatureStateTable.Get(state).Category != CreatureStateCategory.Sleeping)
+        {
             Assert.Equal(admitted, NeedRules.Admits(creature, CreatureStateCategory.Sleeping));
+        }
+
         Assert.Equal(admitted, NeedRules.Admits(creature, CreatureStateCategory.Payday));
     }
 
@@ -309,7 +322,10 @@ public class NeedInterruptTests
         {
             int before = goblin.PayAttemptsFailed;
             sim.Tick();
-            if (goblin.PayAttemptsFailed != before) tries.Add(t);
+            if (goblin.PayAttemptsFailed != before)
+            {
+                tries.Add(t);
+            }
         }
 
         Assert.Equal(2, tries.Count);
@@ -343,9 +359,15 @@ public class NeedInterruptTests
         while (goblin.Activity != CreatureActivity.SeekingFood && ticks < 60) { sim.Tick(); ticks++; }
 
         Assert.Equal(CreatureActivity.SeekingFood, goblin.Activity);
-        if (onARoom) Assert.InRange(ticks, NeedRules.DroppedOnARoomGraceTicks - 2, NeedRules.DroppedOnARoomGraceTicks + 4);
+        if (onARoom)
+        {
+            Assert.InRange(ticks, NeedRules.DroppedOnARoomGraceTicks - 2, NeedRules.DroppedOnARoomGraceTicks + 4);
+        }
         // Off a room: the stun, the get-up (257 holds for the type's eleven ticks, ADR-0345), then food.
-        else Assert.InRange(ticks, 0, SimulationTiming.TicksPerSecond + DropLandingRules.GetUpTicks(db.CreatureById(QuickGoblin)) + 4);
+        else
+        {
+            Assert.InRange(ticks, 0, SimulationTiming.TicksPerSecond + DropLandingRules.GetUpTicks(db.CreatureById(QuickGoblin)) + 4);
+        }
     }
 
     private static CreatureState Fresh(int state)

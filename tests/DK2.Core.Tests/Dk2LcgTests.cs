@@ -44,7 +44,11 @@ public class Dk2LcgTests
     public void AThousandDraws_LandOnTheKnownSeed()
     {
         var rng = new Dk2Lcg();
-        for (int i = 0; i < 1000; i++) rng.NextInt(7);
+        for (int i = 0; i < 1000; i++)
+        {
+            rng.NextInt(7);
+        }
+
         Assert.Equal(0x26799AA9u, rng.Seed);
     }
 
@@ -67,7 +71,11 @@ public class Dk2LcgTests
     {
         uint from = Dk2Lcg.LevelStartSeed;
         uint to = from;
-        for (int i = 0; i < 37; i++) to = Dk2Lcg.Step(to);
+        for (int i = 0; i < 37; i++)
+        {
+            to = Dk2Lcg.Step(to);
+        }
+
         Assert.Equal(37, Dk2Lcg.StepsBetween(from, to, 100));
         Assert.Equal(0, Dk2Lcg.StepsBetween(from, from, 100));
         Assert.Equal(-1, Dk2Lcg.StepsBetween(from, to, 36));
@@ -79,7 +87,9 @@ public class Dk2LcgTests
         var direct = new Dk2Lcg();
         var wrapped = new SimRandom(new Dk2Lcg());
         for (int i = 0; i < 100; i++)
+        {
             Assert.Equal(direct.NextInt(1 + i), wrapped.NextInt(1 + i));
+        }
     }
 
     [Fact]
@@ -99,6 +109,8 @@ public class Dk2LcgTests
         var viaAlgorithm = new SimRandom(new Xoshiro256StarStar(12345));
         Assert.IsType<Xoshiro256StarStar>(viaSeed.Algorithm);
         for (int i = 0; i < 100; i++)
+        {
             Assert.Equal(viaAlgorithm.NextInt(1000), viaSeed.NextInt(1000));
+        }
     }
 }

@@ -18,8 +18,11 @@ public sealed class HudTrianglesTests
     {
         float area = 0;
         for (int i = 0; i < triangles.Length; i += 3)
+        {
             area += MathF.Abs((triangles[i + 1].X - triangles[i].X) * (triangles[i + 2].Y - triangles[i].Y)
                 - (triangles[i + 2].X - triangles[i].X) * (triangles[i + 1].Y - triangles[i].Y)) / 2;
+        }
+
         return area;
     }
 
@@ -44,7 +47,10 @@ public sealed class HudTrianglesTests
         float polygon = HudTriangles.CircleSides * 25 * MathF.Tan(MathF.PI / HudTriangles.CircleSides);
         Assert.Equal(polygon, Area(cut), 2);
         Assert.InRange(Area(cut), MathF.PI * 25, MathF.PI * 25 * 1.0011f);
-        foreach (HudVertex v in cut) Assert.True(MathF.Sqrt(v.X * v.X + v.Y * v.Y) <= 5 / MathF.Cos(MathF.PI / HudTriangles.CircleSides) + 1e-4f);
+        foreach (HudVertex v in cut)
+        {
+            Assert.True(MathF.Sqrt(v.X * v.X + v.Y * v.Y) <= 5 / MathF.Cos(MathF.PI / HudTriangles.CircleSides) + 1e-4f);
+        }
     }
 
     [Fact]
@@ -68,7 +74,11 @@ public sealed class HudTrianglesTests
         Assert.Throws<ArgumentException>(() => HudTriangles.ClipToCircle(Square.AsSpan(0, 4), 0, 0, 5, into));
         HudTriangles.ClipToCircle(Square, 0, 0, 5, into);
         long before = GC.GetAllocatedBytesForCurrentThread();
-        for (int i = 0; i < 100; i++) HudTriangles.ClipToCircle(Square, i * .01f, 0, 5, into);
+        for (int i = 0; i < 100; i++)
+        {
+            HudTriangles.ClipToCircle(Square, i * .01f, 0, 5, into);
+        }
+
         Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
     }
 
@@ -112,13 +122,21 @@ public sealed class HudTrianglesTests
         Assert.Equal(a.Draws[0], b.Draws[0]);
         Assert.False(a.SameAs(b));
         var copy = new HudFrame();
-        for (int i = 0; i < 30; i++) copy.AddTriangles("other", Square, HudColor.White);
+        for (int i = 0; i < 30; i++)
+        {
+            copy.AddTriangles("other", Square, HudColor.White);
+        }
+
         copy.CopyFrom(b);
         Assert.True(copy.SameAs(b));
         Assert.Equal(moved, copy.Vertices(copy.Draws[0]).ToArray());
         var small = new HudFrame();
         var big = new HudFrame();
-        for (int i = 0; i < 40; i++) big.AddTriangles("art", Square, HudColor.White);
+        for (int i = 0; i < 40; i++)
+        {
+            big.AddTriangles("art", Square, HudColor.White);
+        }
+
         small.CopyFrom(big);
         Assert.True(small.SameAs(big));
     }
@@ -131,7 +149,10 @@ public sealed class HudTrianglesTests
         HudVertex[] triangle = [new(0, 0, 0, 0), new(4, 0, 1, 0), new(0, 9, 0, 1)];
         HudVertex[] cut = Clip(triangle, 0, 0, 5);
         Assert.NotEqual(triangle, cut);
-        foreach (HudVertex v in cut) Assert.True(MathF.Sqrt(v.X * v.X + v.Y * v.Y) <= 5 / MathF.Cos(MathF.PI / HudTriangles.CircleSides) + 1e-4f);
+        foreach (HudVertex v in cut)
+        {
+            Assert.True(MathF.Sqrt(v.X * v.X + v.Y * v.Y) <= 5 / MathF.Cos(MathF.PI / HudTriangles.CircleSides) + 1e-4f);
+        }
     }
 
     [Theory]

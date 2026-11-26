@@ -32,9 +32,14 @@ public class KwdObjectWriterTests
         Assert.Equal(slots, Read(written).ArtSlots);
         int slot = 0x20 + 5 * 84;
         for (int i = 0; i < source.Length; i++)
+        {
             if (!(i >= slot + 0x40 && i < slot + 0x46)
                 && !(i >= slot + 0x48 && i < slot + 0x4A)
-                && !(i >= slot + 0x50 && i <= slot + 0x52)) Assert.Equal(source[i], written[i]);
+                && !(i >= slot + 0x50 && i <= slot + 0x52))
+            {
+                Assert.Equal(source[i], written[i]);
+            }
+        }
     }
 
     [InstallFact]
@@ -46,7 +51,9 @@ public class KwdObjectWriterTests
         List<KwdRecordImage> images = KwdRecordRoundTrip.Split(chunk);
         Assert.Equal(145, records.Count);
         for (int i = 0; i < records.Count; i++)
+        {
             Assert.Equal(images[i].ToBytes(), KwdObjects.WriteRecord(records[i], images[i]));
+        }
     }
 
     [Fact]
@@ -55,7 +62,10 @@ public class KwdObjectWriterTests
         byte[] source = new byte[894];
         int[] words = [1234, -2345, 15360, 10240, 0x3800];
         for (int i = 0; i < words.Length; i++)
+        {
             System.Buffers.Binary.BinaryPrimitives.WriteInt32LittleEndian(source.AsSpan(0x314 + i * 4), words[i]);
+        }
+
         source[0x328] = 244; source[0x329] = 243; source[0x32A] = 204; source[0x32B] = 127;
         Assert.Equal(new KwdLight(1234, -2345, 15360, 10240, 0x3800, 244, 243, 204, 127),
             Read(source).Light);
@@ -70,7 +80,12 @@ public class KwdObjectWriterTests
             new KwdRecordImage(KwdRecordType.Objects, source));
         Assert.Equal(light, Read(written).Light);
         for (int i = 0; i < source.Length; i++)
-            if (i < 0x314 || i >= 0x32C) Assert.Equal(source[i], written[i]);
+        {
+            if (i < 0x314 || i >= 0x32C)
+            {
+                Assert.Equal(source[i], written[i]);
+            }
+        }
     }
 
     private static ObjectDef Read(byte[] source) => KwdObjects.Parse([

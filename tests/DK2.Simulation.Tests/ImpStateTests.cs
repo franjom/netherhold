@@ -24,10 +24,13 @@ public class ImpStateTests
     {
         GameDatabase database = Dk2TerrainFixture.Database();
         if (turnRate != 4096)
+        {
             database = new GameDatabase(database.Terrain.Values, database.Rooms.Values,
                 database.Creatures.Values.Select(c => c.CreatureId == Dk2TerrainFixture.ImpCreatureId
                     ? c with { TurnRate = turnRate } : c), database.Variables, objects: database.Objects.Values,
                 keeperSpells: database.KeeperSpells.Values);
+        }
+
         var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, impAt);
@@ -78,7 +81,11 @@ public class ImpStateTests
 
     private static void ReachReinforcementEntry(GameSimulation sim, CreatureState imp)
     {
-        for (int i = 0; i < 300 && imp.Dk2StateId != 21; i++) sim.Tick();
+        for (int i = 0; i < 300 && imp.Dk2StateId != 21; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(21, imp.Dk2StateId);
     }
 
@@ -96,7 +103,11 @@ public class ImpStateTests
         {
             sim.Tick(t == 0 && first.Length > 0 ? InputFrame.Of(first) : InputFrame.Empty);
             (int, int, int) now = (imp.Dk2StateId, imp.StateBeforeUtilityState, imp.UtilityNewState);
-            if (now == last) continue;
+            if (now == last)
+            {
+                continue;
+            }
+
             seen.Add(now);
             last = now;
         }
@@ -319,7 +330,11 @@ public class ImpStateTests
         int hands = sim.Database.CreatureById(Dk2TerrainFixture.ImpCreatureId).MaxGoldHeld;
         FloorGold.Drop(sim.World, sim.Database, (2 * sim.World.Width) + 2, hands);
         CreatureState imp = sim.World.Creatures[0];
-        for (int i = 0; i < 200 && imp.Dk2StateId != ImpStates.AtTheStore; i++) sim.Tick();
+        for (int i = 0; i < 200 && imp.Dk2StateId != ImpStates.AtTheStore; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(ImpStates.AtTheStore, imp.Dk2StateId);
         return (sim, imp, events);
     }
@@ -424,7 +439,11 @@ internal static class ImpStateTrace
         {
             sim.Tick(InputFrame.Empty);
             (int, int, int) now = (imp.Dk2StateId, imp.StateBeforeUtilityState, imp.UtilityNewState);
-            if (now == last) continue;
+            if (now == last)
+            {
+                continue;
+            }
+
             seen.Add(now);
             last = now;
         }

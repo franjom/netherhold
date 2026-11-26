@@ -24,12 +24,16 @@ public sealed class StateInvariantTests
         var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(24, 24), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
             {
                 ref TileState tile = ref world.Tile(new TilePos(x, y));
                 if (tile.TerrainId is Dk2TerrainFixture.Rock or Dk2TerrainFixture.Gold or Dk2TerrainFixture.Gems)
+                {
                     tile.TerrainId = Dk2TerrainFixture.DirtPath;
+                }
             }
+        }
 
         Paint(db, world, RoomTypeId.DungeonHeart, 2, 2, 6, 6);
         Paint(db, world, RoomTypeId.Lair, 8, 2, 10, 4);
@@ -42,11 +46,23 @@ public sealed class StateInvariantTests
         GoldStore.Deposit(world, db, Keeper, 5000);
         world.Tile(new TilePos(20, 12)).TerrainId = Dk2TerrainFixture.Rock;
 
-        for (int i = 0; i < 3; i++) world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(3 + i, 8));
-        for (int i = 0; i < 4; i++) world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(8 + i, 10));
+        for (int i = 0; i < 3; i++)
+        {
+            world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(3 + i, 8));
+        }
+
+        for (int i = 0; i < 4; i++)
+        {
+            world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(8 + i, 10));
+        }
+
         world.SpawnCreature(db, Dk2TerrainFixture.WarlockCreatureId, Keeper, new TilePos(12, 10));
         world.SpawnCreature(db, Dk2TerrainFixture.MistressCreatureId, Keeper, new TilePos(13, 10));
-        for (int i = 0; i < 2; i++) world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(10 + i, 16));
+        for (int i = 0; i < 2; i++)
+        {
+            world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(10 + i, 16));
+        }
+
         world.SpawnCreature(db, Dk2TerrainFixture.KnightCreatureId, PlayerIds.Good, new TilePos(14, 18));
 
         var sim = new GameSimulation(db, world, seed: 7, Dk2TerrainFixture.DefaultSystems());
@@ -64,7 +80,10 @@ public sealed class StateInvariantTests
                 Assert.True(named.HasValue, at + " names no activity");
                 seenActivities.Add(named!.Value);
                 bool worker = db.CreatureById(c.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsWorker);
-                if (c.Dk2StateId == ImpStates.TaskSelection) Assert.True(worker, at);
+                if (c.Dk2StateId == ImpStates.TaskSelection)
+                {
+                    Assert.True(worker, at);
+                }
             }
         }
 
@@ -79,7 +98,11 @@ public sealed class StateInvariantTests
     {
         RoomDef room = db.Room(type);
         for (int y = y0; y <= y1; y++)
+        {
             for (int x = x0; x <= x1; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(new TilePos(x, y)), room, Keeper);
+            }
+        }
     }
 }

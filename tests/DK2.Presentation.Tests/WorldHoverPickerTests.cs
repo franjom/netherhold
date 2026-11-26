@@ -33,8 +33,16 @@ public sealed class WorldHoverPickerTests
     private static bool Offer(WorldHoverPicker picker, WorldHoverHit candidate, float height, float radius = .5f,
         float? boundsEntry = null, float? triangle = null, float x = 10.5f)
     {
-        if (!picker.Holds(new Vector3(x, height, -10.5f), radius, out HoverPickProbe probe)) return false;
-        if (!picker.Admits(candidate, probe, boundsEntry)) return false;
+        if (!picker.Holds(new Vector3(x, height, -10.5f), radius, out HoverPickProbe probe))
+        {
+            return false;
+        }
+
+        if (!picker.Admits(candidate, probe, boundsEntry))
+        {
+            return false;
+        }
+
         picker.Offer(candidate, probe, triangle);
         return true;
     }
@@ -280,7 +288,10 @@ public sealed class WorldHoverPickerTests
         {
             near = BitConverter.Int32BitsToSingle(bits);
             far = BitConverter.Int32BitsToSingle(bits + 1);
-            if (near / along == far / along) break;
+            if (near / along == far / along)
+            {
+                break;
+            }
         }
         var picker = new WorldHoverPicker();
         // The view axis is straight down and the ray leans east, so it reaches 0.75 of a unit down per unit.

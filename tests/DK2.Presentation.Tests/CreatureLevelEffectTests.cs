@@ -26,7 +26,11 @@ public class CreatureLevelEffectTests
         var sink = new ListEventSink(); sim.ObserveWith(sink);
         sim.Tick(InputFrame.Of(new GrantCreatureLevelCommand(PlayerIds.FirstKeeper, imp.Id)));
         var model = new RoomConstructionParticles(db, 42, () => new EffectTime(0));
-        foreach (SimEvent emission in sink.Events) model.Emit(emission);
+        foreach (SimEvent emission in sink.Events)
+        {
+            model.Emit(emission);
+        }
+
         model.AdvanceTo(new EffectTime(51));
         Assert.Equal(3, model.Particles.Count);
         Assert.All(model.Particles, p =>
@@ -34,10 +38,18 @@ public class CreatureLevelEffectTests
             Assert.Equal("gsparkle", p.Definition.ArtResource.Name, ignoreCase: true);
             Assert.Equal((p.Definition.Red, p.Definition.Green, p.Definition.Blue), (p.Red, p.Green, p.Blue));
         });
-        for (int step = 2; step <= 32; step++) model.AdvanceTo(new EffectTime(step * 50 + 1));
+        for (int step = 2; step <= 32; step++)
+        {
+            model.AdvanceTo(new EffectTime(step * 50 + 1));
+        }
+
         Assert.Equal(new ushort[] { 554, 555, 556, 557 }, model.Particles.Select(p => p.Definition.EffectElementId).Distinct().Order().ToArray());
         Assert.Contains(model.Particles, p => p.Red < p.Definition.Red);
-        for (int step = 33; step <= 100; step++) model.AdvanceTo(new EffectTime(step * 50 + 1));
+        for (int step = 33; step <= 100; step++)
+        {
+            model.AdvanceTo(new EffectTime(step * 50 + 1));
+        }
+
         Assert.Empty(model.Particles);
     }
 }

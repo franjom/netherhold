@@ -41,8 +41,13 @@ public sealed class CreatureStateSoundTests
         GameDatabase db = Dk2TerrainFixture.Database(joiner);
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, 2, 3, 4]);
         for (int dy = 0; dy < 3; dy++)
+        {
             for (int dx = 0; dx < 3; dx++)
+            {
                 RoomRules.Place(db, ref world.Tile(5 + dx, 5 + dy), db.Room(RoomTypeId.Portal), 3);
+            }
+        }
+
         var sim = new GameSimulation(db, world, seed: 1, Dk2TerrainFixture.DefaultSystems());
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
@@ -56,7 +61,10 @@ public sealed class CreatureStateSoundTests
             before = At(creature);
             Assert.DoesNotContain(Sounds(sink), s => s.Event == ThingSoundEvent.JoinedDungeon);
             sim.Tick();
-            if (creature.Dk2StateId != PortalRules.JoiningState) left = i;
+            if (creature.Dk2StateId != PortalRules.JoiningState)
+            {
+                left = i;
+            }
         }
 
         Assert.True(left >= 0);
@@ -111,13 +119,20 @@ public sealed class CreatureStateSoundTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         // A corridor one tile wide in solid rock, so the door is the only way along the room.
         for (int y = 1; y <= 8; y++)
-        for (int x = 1; x <= 12; x++)
+        {
+            for (int x = 1; x <= 12; x++)
         {
             ref TileState tile = ref world.Tile(x, y);
             tile.TerrainId = y == 3 && x is >= 4 and <= 8 ? Dk2TerrainFixture.ClaimedPath : Dk2TerrainFixture.Rock;
             tile.OwnerPlayerId = Keeper;
         }
-        for (int x = 5; x <= 7; x++) RoomRules.Place(db, ref world.Tile(x, 3), db.Room(RoomTypeId.GuardRoom), Keeper);
+        }
+
+        for (int x = 5; x <= 7; x++)
+        {
+            RoomRules.Place(db, ref world.Tile(x, 3), db.Room(RoomTypeId.GuardRoom), Keeper);
+        }
+
         ThingProjection.Place(world, db, [new DoorThing(new byte[20])
             { X = 6, Y = 3, DoorId = 1, PlayerId = Keeper, Flags = 0x02, Unknown_0011 = new byte[3] }]);
         world.Doors[0].UnderConstruction = false;
@@ -151,15 +166,23 @@ public sealed class CreatureStateSoundTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, 4]);
         for (int y = 1; y < 11; y++)
-        for (int x = 1; x < 11; x++)
+        {
+            for (int x = 1; x < 11; x++)
         {
             ref TileState tile = ref world.Tile(x, y);
             tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
             tile.OwnerPlayerId = Keeper;
         }
+        }
+
         for (int y = 6; y < 9; y++)
-        for (int x = 6; x < 9; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Hatchery), Keeper);
+        {
+            for (int x = 6; x < 9; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Hatchery), Keeper);
+            }
+        }
+
         ObjectState bird = world.SpawnObject(db, HatcheryRules.ChickenObjectId, Keeper, (6 * world.Width) + 7);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
         goblin.Health = 500;
@@ -171,7 +194,10 @@ public sealed class CreatureStateSoundTests
         // hatchery's, 0xE00.
         var birdAt = new FpPosition3(new Fp32(bird.PosX), new Fp32(bird.PosY), new Fp32(0xE00));
 
-        for (int i = 0; i < 40 * Second && !sink.Events.Any(e => e.Kind == "chicken_eaten"); i++) sim.Tick();
+        for (int i = 0; i < 40 * Second && !sink.Events.Any(e => e.Kind == "chicken_eaten"); i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Contains(sink.Events, e => e.Kind == "chicken_eaten");
         ThingSoundRequest[] heard = Sounds(sink);

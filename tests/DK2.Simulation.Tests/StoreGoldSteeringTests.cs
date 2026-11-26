@@ -45,9 +45,17 @@ public sealed class StoreGoldSteeringTests
         (GameDatabase? db, WorldState? world, WorldSteering? nav) = Setup();
         var at = new TilePos(2, 2);
         Store(db, world, at);
-        if (goldFirst) Assert.Equal(1000, GoldStore.Deposit(world, db, PlayerIds.FirstKeeper, 1000));
+        if (goldFirst)
+        {
+            Assert.Equal(1000, GoldStore.Deposit(world, db, PlayerIds.FirstKeeper, 1000));
+        }
+
         world.SpawnObject(db, 8, PlayerIds.FirstKeeper, world.TileIndex(at));
-        if (!goldFirst) Assert.Equal(1000, GoldStore.Deposit(world, db, PlayerIds.FirstKeeper, 1000));
+        if (!goldFirst)
+        {
+            Assert.Equal(1000, GoldStore.Deposit(world, db, PlayerIds.FirstKeeper, 1000));
+        }
+
         nav.Refresh();
 
         List<SteeringObstacle> obstacles = Query(nav, at);
@@ -199,11 +207,14 @@ public sealed class StoreGoldSteeringTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(24, 32),
             [PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 1; y < world.Height - 1; y++)
-        for (int x = 1; x < world.Width - 1; x++)
+        {
+            for (int x = 1; x < world.Width - 1; x++)
         {
             world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
             world.Tile(x, y).OwnerPlayerId = PlayerIds.FirstKeeper;
         }
+        }
+
         return (db, world, new WorldSteering(db, world));
     }
 }

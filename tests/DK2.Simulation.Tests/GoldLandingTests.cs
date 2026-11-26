@@ -34,7 +34,10 @@ public class GoldLandingTests
         ViewEffectRequest shown = Assert.Single(sink.Events, e => e.EffectRequest?.Amount.HasValue == true).EffectRequest!.Value;
         Assert.Equal((500, new TilePos(Destination.X + 1, Destination.Y)), ((int)shown.Amount!, shown.Tile));
         if (restore)
+        {
             simulation = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(simulation), database, [new HandSystem()]);
+        }
+
         var point = new FpPosition2(new Fp32(Destination.X * Fp32.One + 0xD54),
             new Fp32(Destination.Y * Fp32.One + 0x2AA));
         var command = new DropCommand(Keeper, Destination, Position: point);
@@ -75,7 +78,10 @@ public class GoldLandingTests
         Assert.Same(existing, world.ObjectById(existing.Id));
         Assert.Equal(merges ? 2300 : 1800, existing.GoldHeld);
         Assert.Equal(merges ? PlayerIds.Neutral : Keeper.Value, existing.OwnerPlayerId);
-        if (merges) Assert.Null(world.ObjectById(incoming.Id));
+        if (merges)
+        {
+            Assert.Null(world.ObjectById(incoming.Id));
+        }
         else
         {
             Assert.Same(incoming, world.ObjectById(incoming.Id));
@@ -113,7 +119,10 @@ public class GoldLandingTests
         DropCommand second = first with { Position = new FpPosition2(new Fp32(9500), new Fp32(9000)) };
         DropCommand absent = first with { Position = null };
         foreach (DropCommand command in new[] { first, second, absent })
+        {
             Assert.Equal(command, JsonSerializer.Deserialize<DropCommand>(JsonSerializer.Serialize(command)));
+        }
+
         var a = Hash64.Start(); first.HashInto(ref a);
         var b = Hash64.Start(); second.HashInto(ref b);
         var c = Hash64.Start(); absent.HashInto(ref c);

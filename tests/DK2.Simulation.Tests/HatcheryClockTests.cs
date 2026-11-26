@@ -27,7 +27,11 @@ public class HatcheryClockTests
         GameDatabase db, WorldState world, ListEventSink? sink = null)
     {
         var sim = new GameSimulation(db, world, seed: 42, [new HatcherySystem()]);
-        if (sink is not null) sim.ObserveWith(sink);
+        if (sink is not null)
+        {
+            sim.ObserveWith(sink);
+        }
+
         return sim;
     }
 
@@ -120,14 +124,26 @@ public class HatcheryClockTests
 
         // A 3x3 wants one coop, floor(9 / 6) = 1, placed by the level start's rebuild (ADR-0672).
         Assert.Single(world.Objects, o => o.ObjectTypeId == HatcheryRules.CoopObjectId && o.AutoPlaced);
-        for (int i = 0; i < Second; i++) sim.Tick();
+        for (int i = 0; i < Second; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.DoesNotContain(sink.Events, e => e.Kind == "egg_laid");
 
         // This pre-placed 3x3 uses the startup table: nothing at eleven, an egg at twelve.
-        for (int i = 0; i < 10 * Second; i++) sim.Tick();
+        for (int i = 0; i < 10 * Second; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.DoesNotContain(sink.Events, e => e.Kind == "egg_laid");
 
-        for (int i = 0; i < Second; i++) sim.Tick();
+        for (int i = 0; i < Second; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Contains(sink.Events, e => e.Kind == "egg_laid");
     }
 
@@ -140,14 +156,20 @@ public class HatcheryClockTests
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
-        for (int i = 0; i < 12 * Second; i++) sim.Tick();
+        for (int i = 0; i < 12 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         SimEvent laid = sink.Events.Single(e => e.Kind == "egg_laid");
         ObjectState egg = world.Objects.Single(
             o => o.ObjectTypeId == HatcheryRules.EggObjectId);
         int where = egg.TileIndex;
 
-        for (int i = 0; i < 2 * Second; i++) sim.Tick();
+        for (int i = 0; i < 2 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         SimEvent hatched = sink.Events.Single(e => e.Kind == "chicken_hatched");
         Assert.True(hatched.Tick.Value - laid.Tick.Value
@@ -176,12 +198,17 @@ public class HatcheryClockTests
             chicken.HatcheryRoomAnchorTileIndex = room.TileIndices[0]; // in the room's list
         }
         for (int i = 0; i < HatcheryRules.FreeRangeCap(db); i++)
+        {
             world.SpawnObject(db, HatcheryRules.ChickenObjectId, Keeper, 0);
+        }
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
 
-        for (int i = 0; i < 13 * Second; i++) sim.Tick();
+        for (int i = 0; i < 13 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         RoomInstance now = RoomIndex.Build(world, db)
             .Single(r => r.Definition.TypeId == RoomTypeId.Hatchery);
@@ -208,7 +235,10 @@ public class HatcheryClockTests
         }
 
         GameSimulation sim = Simulation(db, world);
-        for (int i = 0; i < 30 * Second; i++) sim.Tick();
+        for (int i = 0; i < 30 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         // It runs - a neutral room is still a room - but everything it makes is
         // the neutral player's, which is what the original would do with a
@@ -224,7 +254,10 @@ public class HatcheryClockTests
         Hatchery(db, world, 3);
 
         GameSimulation sim = Simulation(db, world);
-        for (int i = 0; i < 13 * Second; i++) sim.Tick();
+        for (int i = 0; i < 13 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         byte[] bytes = WorldSnapshot.ToBytes(sim);
         GameSimulation restored = WorldSnapshot.FromBytes(

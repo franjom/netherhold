@@ -33,12 +33,27 @@ public class HeroLairOnRealDataTests
         {
             string level = Path.GetFileNameWithoutExtension(file)[..^"Variables".Length];
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
-            if (map is null) continue;
+            if (map is null)
+            {
+                continue;
+            }
+
             int interior = 0;
             for (int y = 1; y < map.Height - 1; y++)
+            {
                 for (int x = 1; x < map.Width - 1; x++)
-                    if (AllNineAre35(map, x, y)) interior++;
-            if (interior > 0) found[level] = interior;
+                {
+                    if (AllNineAre35(map, x, y))
+                    {
+                        interior++;
+                    }
+                }
+            }
+
+            if (interior > 0)
+            {
+                found[level] = interior;
+            }
         }
         Assert.Equal(
             new SortedDictionary<string, int>(StringComparer.OrdinalIgnoreCase)
@@ -54,8 +69,16 @@ public class HeroLairOnRealDataTests
     private static bool AllNineAre35(LevelMap map, int x, int y)
     {
         for (int dy = -1; dy <= 1; dy++)
+        {
             for (int dx = -1; dx <= 1; dx++)
-                if (map[x + dx, y + dy].TerrainId != HeroLairTerrain) return false;
+            {
+                if (map[x + dx, y + dy].TerrainId != HeroLairTerrain)
+                {
+                    return false;
+                }
+            }
+        }
+
         return true;
     }
 }

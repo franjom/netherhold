@@ -168,7 +168,9 @@ public partial class CampaignPlayerTests
             things: [body.Thing, imp], creatures: [body.Flower]);
         // It sinks and rises on the rim within seconds (state 217): no Imp yet, decision after decision.
         for (int i = 0; i < 10; i++)
+        {
             Assert.Empty(player.Decide(Sinking(1 + i, 1000 + 4 * i)).Actions.OfType<PlayerAction.PickUp>());
+        }
         // Still there after 40 ticks: fetched where it lies.
         Assert.Contains(new PlayerAction.PickUp(imp.Handle), player.Decide(Sinking(11, 1040)).Actions);
         TilePos drop = Assert.Single(player.Decide(PitView([], hand: 1, revision: 12)).Actions.OfType<PlayerAction.DropAt>()).Tile;
@@ -206,8 +208,10 @@ public partial class CampaignPlayerTests
         PlayerVisibleThing near = new(Handle(1), PlayerThingKind.Creature, new TilePos(1, 6), Me, PlayerThingActions.PickUp, creatureType: Imp);
         PlayerVisibleThing far = new(Handle(2), PlayerThingKind.Creature, new TilePos(10, 10), Me, PlayerThingActions.PickUp, creatureType: Imp);
         foreach (PlayerVisibleThing[] order in (PlayerVisibleThing[][])[[near, far, body.Thing], [body.Thing, far, near], [near, body.Thing, far]])
+        {
             Assert.Contains(new PlayerAction.PickUp(near.Handle), PitPlayer().Decide(Observe(1, map: PitMap, rooms: [], owned: PitRooms, tick: 1000,
                 things: order, creatures: [body.Flower])).Actions);
+        }
     }
 
     [Fact]
@@ -255,10 +259,17 @@ public partial class CampaignPlayerTests
                 things: [.. cs.Select(x => x.Thing)], creatures: [.. cs.Select(x => x.Flower)]);
         Assert.Contains(new PlayerAction.PickUp(b.Thing.Handle), player.Decide(View(1000, 0, a, b, c)).Actions);
         player.Decide(View(1004, 1, a, c));
-        for (long t = 1008; t < 1100; t += 4) player.Decide(View(t, 0, a, bIn, c));
+        for (long t = 1008; t < 1100; t += 4)
+        {
+            player.Decide(View(t, 0, a, bIn, c));
+        }
+
         bool lifted = false;
         for (long t = 1100; t < 1400 && !lifted; t += 4)
+        {
             lifted = player.Decide(View(t, 0, a, c)).Actions.Contains(new PlayerAction.PickUp(a.Thing.Handle));
+        }
+
         Assert.True(lifted, "the lone victor was never lifted");
     }
 

@@ -37,10 +37,18 @@ public class DropCombatTests
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Landing)));
         sim.Tick();
         if (type == Dk2TerrainFixture.ImpCreatureId)
+        {
             Assert.Equal(FightTargetKind.Door, creature.FightTargetKind);
-        else Assert.Equal(DropLandingRules.StunnedState, creature.Dk2StateId);
+        }
+        else
+        {
+            Assert.Equal(DropLandingRules.StunnedState, creature.Dk2StateId);
+        }
 
-        for (int i = 0; i < 150 && door.Health == db.Doors[1].Health; i++) sim.Tick();
+        for (int i = 0; i < 150 && door.Health == db.Doors[1].Health; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.True(door.Health < db.Doors[1].Health);
         Assert.Contains(sink.Events, e => e.Kind == (spell ? "shot_door_hit" : "door_hit"));
@@ -84,7 +92,11 @@ public class DropCombatTests
         CreatureState ally = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(9, 7));
         StatePlacement.Place(ally, 199);
         ally.Health = 1;
-        for (int x = 0; x < world.Width; x++) world.Tile(new TilePos(x, 8)).TerrainId = Dk2TerrainFixture.Lava;
+        for (int x = 0; x < world.Width; x++)
+        {
+            world.Tile(new TilePos(x, 8)).TerrainId = Dk2TerrainFixture.Lava;
+        }
+
         Assert.False(new DK2.Simulation.Navigation.WorldSteering(db, world).TryRoute(priest, ally.Tile,
             DK2.Simulation.Navigation.MoveOptions.Plain));
 
@@ -101,7 +113,13 @@ public class DropCombatTests
     {
         (GameDatabase db, WorldState world) = Setup();
         for (int y = 9; y <= 11; y++)
-            for (int x = 8; x <= 10; x++) world.Tile(new TilePos(x, y)).TerrainId = Dk2TerrainFixture.DungeonHeartTerrain;
+        {
+            for (int x = 8; x <= 10; x++)
+            {
+                world.Tile(new TilePos(x, y)).TerrainId = Dk2TerrainFixture.DungeonHeartTerrain;
+            }
+        }
+
         Assert.True(DisposalRules.Disposes(world, db, db.CreatureById(Dk2TerrainFixture.ImpCreatureId), Landing, Keeper));
         CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(7, 10));
         var sim = new GameSimulation(db, world, 7, [new HandSystem()]);
@@ -125,16 +143,31 @@ public class DropCombatTests
             Flags = Dk2TerrainFixture.Goblin().Flags | CreatureFlags.IsWorker };
         (GameDatabase db, WorldState world) = Setup(flags: builtDoor ? (byte)0 : (byte)2, additional: worker);
         for (int y = 9; y <= 11; y++)
-            for (int x = 8; x <= 10; x++) world.Tile(new TilePos(x, y)).TerrainId = terrain;
+        {
+            for (int x = 8; x <= 10; x++)
+            {
+                world.Tile(new TilePos(x, y)).TerrainId = terrain;
+            }
+        }
+
         world.Tile(DoorTile).OwnerPlayerId = Keeper;
         if (terrain == Dk2TerrainFixture.TortureChamberTerrain)
+        {
             world.SpawnObject(db, TortureRules.WheelObjectId, Keeper, world.TileIndex(Landing)).AutoPlaced = true;
-        else Assert.True(DisposalRules.Disposes(world, db, worker, Landing, Keeper));
+        }
+        else
+        {
+            Assert.True(DisposalRules.Disposes(world, db, worker, Landing, Keeper));
+        }
+
         CreatureState creature = world.SpawnCreature(db, 99, Keeper, Landing);
         creature.Flags |= LevelPlacedCreatureRules.PlacedAsDropped;
         StatePlacement.Place(creature, DropLandingRules.LandingState);
         if (terrain == Dk2TerrainFixture.TortureChamberTerrain)
+        {
             Assert.NotNull(TortureRules.FreeDeviceAt(world, db, Keeper, world.TileIndex(Landing), creature.Id));
+        }
+
         new GameSimulation(db, world, 7, [new AutoFurnitureSystem()]).Tick();
         Assert.Equal(builtDoor ? 199 : terrain == Dk2TerrainFixture.PortalTerrain ? 197 : 131, creature.Dk2StateId);
         Assert.Equal(builtDoor ? FightTargetKind.Door : FightTargetKind.None, creature.FightTargetKind);
@@ -171,8 +204,15 @@ public class DropCombatTests
     {
         (GameDatabase db, WorldState world) = Setup();
         CreatureState creature = GettingUp(db, world);
-        if (ineligible) creature.Flags = (byte)(creature.Flags & ~(byte)CreatureFightFlags.MayLookForAFight);
-        else creature.ActionUntilTick = 20;
+        if (ineligible)
+        {
+            creature.Flags = (byte)(creature.Flags & ~(byte)CreatureFightFlags.MayLookForAFight);
+        }
+        else
+        {
+            creature.ActionUntilTick = 20;
+        }
+
         new GameSimulation(db, world, 7, [new CreatureStatusSystem()]).Tick();
         Assert.False(creature.AttackAbnormalTargets);
         Assert.Equal(ineligible ? DropLandingRules.StandingState : DropLandingRules.GettingUpState, creature.Dk2StateId);
@@ -255,10 +295,20 @@ public class DropCombatTests
     {
         (GameDatabase db, WorldState world, CreatureState creature) = StepSetup(-4096);
         if (floorBoundary)
+        {
             for (int y = 8; y <= 10; y++)
+            {
                 for (int x = 8; x <= 10; x++)
+                {
                     world.Tile(new TilePos(x, y)).TerrainId = Dk2TerrainFixture.TrainingRoomTerrain;
-        else world.Tile(new TilePos(9, 9)).TerrainId = Dk2TerrainFixture.Rock;
+                }
+            }
+        }
+        else
+        {
+            world.Tile(new TilePos(9, 9)).TerrainId = Dk2TerrainFixture.Rock;
+        }
+
         int startX = creature.PosX, startY = creature.PosY;
         new GameSimulation(db, world, 7, [new CreatureStatusSystem()]).Tick();
         Assert.Equal((startX, startY), (creature.PosX, creature.PosY));
@@ -284,11 +334,14 @@ public class DropCombatTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < 19; y++)
+        {
             for (int x = 1; x < 19; x++)
             {
                 world.Tile(new TilePos(x, y)).TerrainId = Dk2TerrainFixture.ClaimedPath;
                 world.Tile(new TilePos(x, y)).OwnerPlayerId = Keeper;
             }
+        }
+
         CreatureState creature = world.SpawnCreature(db, 99, Keeper, Landing);
         StatePlacement.Place(creature, DropLandingRules.GettingUpState);
         return (db, world, creature);
@@ -301,11 +354,14 @@ public class DropCombatTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < 19; y++)
+        {
             for (int x = 1; x < 19; x++)
             {
                 world.Tile(new TilePos(x, y)).TerrainId = Dk2TerrainFixture.ClaimedPath;
                 world.Tile(new TilePos(x, y)).OwnerPlayerId = Keeper;
             }
+        }
+
         PlaceDoor(world, db, doorAt ?? DoorTile, owner, flags);
         return (db, world);
     }

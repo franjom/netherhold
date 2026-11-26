@@ -62,7 +62,11 @@ public class HandTests
             new CreatureAngerSystem(),
             new CreatureStatusSystem(),   // the slap's reaction, 77 (ADR-0401)
         ]);
-        if (sink is not null) sim.ObserveWith(sink);
+        if (sink is not null)
+        {
+            sim.ObserveWith(sink);
+        }
+
         return sim;
     }
 
@@ -108,7 +112,10 @@ public class HandTests
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
 
         (int x, int y) = (imp.PosX, imp.PosY);
-        for (int i = 0; i < 60 * Second; i++) sim.Tick();
+        for (int i = 0; i < 60 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         // There is marked rock two tiles away and the imp has had a minute.
         Assert.Equal(x, imp.PosX);
@@ -154,11 +161,15 @@ public class HandTests
 
         var imps = new List<CreatureState>();
         for (int i = 0; i <= capacity; i++)
+        {
             imps.Add(world.SpawnCreature(db, ImpId, Keeper, Floor));
+        }
 
         GameSimulation sim = Simulation(db, world);
         foreach (CreatureState imp in imps)
+        {
             sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
+        }
 
         Assert.Equal(capacity, HandOf(world).Count);
         Assert.False(imps[^1].InHand);
@@ -277,7 +288,10 @@ public class HandTests
         for (int i = 0; i < 10; i++)
         {
             sim.Tick(InputFrame.Of(new SlapCreatureCommand(Keeper, imp.Id)));
-            for (int t = 0; t < Second; t++) sim.Tick();
+            for (int t = 0; t < Second; t++)
+            {
+                sim.Tick();
+            }
         }
 
         Assert.Equal(90, EfficiencyRules.Percent(imp, definition));
@@ -294,7 +308,11 @@ public class HandTests
 
         sim.Tick(InputFrame.Of(new SlapCreatureCommand(Keeper, imp.Id)));
 
-        for (int i = 0; i < EfficiencyRules.SlapBonusTicks - 1; i++) sim.Tick();
+        for (int i = 0; i < EfficiencyRules.SlapBonusTicks - 1; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(90, EfficiencyRules.Percent(imp, definition));
 
         sim.Tick();
@@ -316,11 +334,19 @@ public class HandTests
         int started = imp.SpeedEffectTicks;
         Assert.InRange(started, 399, 400);
 
-        for (int i = 0; i < 10; i++) sim.Tick();
+        for (int i = 0; i < 10; i++)
+        {
+            sim.Tick();
+        }
+
         sim.Tick(InputFrame.Of(new SlapCreatureCommand(Keeper, imp.Id)));
         Assert.Equal(started - 11, imp.SpeedEffectTicks);
 
-        for (int i = 0; i < started; i++) sim.Tick();
+        for (int i = 0; i < started; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(0, imp.SpeedEffectTicks);
     }
 
@@ -344,7 +370,9 @@ public class HandTests
         // Five slaps on five consecutive ticks - a quarter of a game second, so
         // the once-a-second lairless ladder has not contributed anything yet.
         for (int i = 0; i < 5; i++)
+        {
             sim.Tick(InputFrame.Of(new SlapCreatureCommand(Keeper, goblin.Id)));
+        }
 
         Assert.Equal(5 * slap, goblin.Anger.Treatment);
     }
@@ -382,11 +410,24 @@ public class HandTests
         RoomTypeId type = arm.StartsWith("torture") ? RoomTypeId.TortureChamber : RoomTypeId.Lair;
         byte roomOwner = arm.StartsWith("torture") ? Keeper : Rival;
         for (int y = 5; y < 8; y++)
+        {
             for (int x = 5; x < 8; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(type), roomOwner);
+            }
+        }
+
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(6, 6));
-        if (arm.EndsWith("held")) goblin.HeldPlace = new RoomPlace((6 * world.Width) + 6, 0);
-        if (arm.StartsWith("state 120")) goblin.Dk2StateId = 120;
+        if (arm.EndsWith("held"))
+        {
+            goblin.HeldPlace = new RoomPlace((6 * world.Width) + 6, 0);
+        }
+
+        if (arm.StartsWith("state 120"))
+        {
+            goblin.Dk2StateId = 120;
+        }
+
         int health = goblin.Health, anger = goblin.Anger.Max;
 
         new GameSimulation(db, world, 42, [new HandSystem()])
@@ -440,7 +481,10 @@ public class HandTests
         for (int i = 0; i < 5; i++)
         {
             sim.Tick(InputFrame.Of(new SlapCreatureCommand(Keeper, imp.Id)));
-            for (int t = 0; t < Second; t++) sim.Tick();
+            for (int t = 0; t < Second; t++)
+            {
+                sim.Tick();
+            }
         }
 
         Assert.Equal(0, imp.Health);
@@ -647,7 +691,11 @@ public class HandTests
         for (int i = 0; i < 60 * Second; i++)
         {
             sim.Tick();
-            if (world.Tile(Marked.X, Marked.Y).TerrainId != Dk2TerrainFixture.Rock) break;
+            if (world.Tile(Marked.X, Marked.Y).TerrainId != Dk2TerrainFixture.Rock)
+            {
+                break;
+            }
+
             Assert.Equal(90, EfficiencyRules.Percent(imp, db.CreatureById(ImpId)));
         }
 
@@ -693,13 +741,19 @@ public class HandTests
         for (int i = 0; i < 240 * Second; i++)
         {
             sim.Tick();
-            if (world.Tile(near.X, near.Y).TerrainId != Dk2TerrainFixture.Rock) break;
+            if (world.Tile(near.X, near.Y).TerrainId != Dk2TerrainFixture.Rock)
+            {
+                break;
+            }
         }
 
         Assert.NotEqual(Dk2TerrainFixture.Rock, world.Tile(near.X, near.Y).TerrainId);
 
         // Past the abandon and the re-evaluation.
-        for (int i = 0; i < 4 * Second; i++) sim.Tick();
+        for (int i = 0; i < 4 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Equal(ImpTaskKind.Excavate, imp.DroppedTask);
         Assert.Equal(90, EfficiencyRules.Percent(imp, db.CreatureById(ImpId)));
@@ -729,7 +783,9 @@ public class HandTests
         // The one marked tile falls, there is no other, and the next evaluation
         // that still calls itself an excavator finds nothing to excavate.
         for (int i = 0; i < 240 * Second && imp.DroppedTask != ImpTaskKind.None; i++)
+        {
             sim.Tick();
+        }
 
         Assert.Equal(ImpTaskKind.None, imp.DroppedTask);
         Assert.Equal(80, EfficiencyRules.Percent(imp, db.CreatureById(ImpId)));
@@ -815,7 +871,10 @@ public class HandTests
         GameSimulation sim = Simulation(db, world);
 
         sim.Tick(InputFrame.Of(TagTilesCommand.Tag(Keeper, Marked)));
-        if (slapped) sim.Tick(InputFrame.Of(new SlapCreatureCommand(Keeper, imp.Id)));
+        if (slapped)
+        {
+            sim.Tick(InputFrame.Of(new SlapCreatureCommand(Keeper, imp.Id)));
+        }
 
         int ticks = 0;
         while (world.Tile(Marked).TerrainId == Dk2TerrainFixture.Rock
@@ -846,7 +905,10 @@ public class HandTests
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, goblin.Id)));
         int before = goblin.Anger.Lair;
 
-        for (int i = 0; i < HandRules.AngerGraceTicks; i++) sim.Tick();
+        for (int i = 0; i < HandRules.AngerGraceTicks; i++)
+        {
+            sim.Tick();
+        }
 
         // The lairless ladder keeps running — a creature in the hand still knows
         // it has no bed — so "none the wiser" means precisely that AngerInHand has
@@ -880,7 +942,10 @@ public class HandTests
         standing.Anger.Treatment = 20_000;
 
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, goblin.Id)));
-        for (int i = 0; i < HandRules.AngerGraceTicks + (10 * Second); i++) sim.Tick();
+        for (int i = 0; i < HandRules.AngerGraceTicks + (10 * Second); i++)
+        {
+            sim.Tick();
+        }
 
         // Ten game seconds past the grace period is ten applications of -250,
         // and the held Goblin is exactly that much calmer than its twin.
@@ -899,7 +964,10 @@ public class HandTests
         GameSimulation sim = Simulation(db, world);
 
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, goblin.Id)));
-        for (int i = 0; i < 30 * Second; i++) sim.Tick();
+        for (int i = 0; i < 30 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Equal(0, goblin.LastAngryChoiceTick);
         Assert.NotEqual(CreatureActivity.Leaving, goblin.Activity);

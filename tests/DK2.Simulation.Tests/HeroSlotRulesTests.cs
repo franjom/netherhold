@@ -25,7 +25,11 @@ public class HeroSlotRulesTests
     public void AFullListTakesNothing()
     {
         var slots = new HeroSlot[6];
-        for (int id = 1; id <= 6; id++) HeroSlotRules.Mark(slots, id, 1);
+        for (int id = 1; id <= 6; id++)
+        {
+            HeroSlotRules.Mark(slots, id, 1);
+        }
+
         HeroSlotRules.Mark(slots, 99, 1);
         Assert.DoesNotContain(slots, s => s.CreatureId == 99);
     }

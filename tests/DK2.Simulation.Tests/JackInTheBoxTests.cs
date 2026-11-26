@@ -32,7 +32,11 @@ public class JackInTheBoxTests
         ThingProjection.Place(world, db, [new TrapThing(new byte[16])
             { X = 5, Y = 5, TrapId = Dk2TerrainFixture.JackInTheBoxTrapId, PlayerId = Keeper, NumberOfShots = 1 }]);
         CreatureState victim = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(5, 5));
-        for (int i = 1; i < 448; i++) world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(1, 1));
+        for (int i = 1; i < 448; i++)
+        {
+            world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(1, 1));
+        }
+
         int health = victim.Health, trapHealth = Assert.Single(world.Traps).Health;
         var shot = new ShotState { OwnerPlayerId = Keeper, PosX = 5 * Fp32.One + 2048,
             PosY = 5 * Fp32.One + 2048, Data1 = 100, Data2 = victim.Id, TargetKind = FightTargetKind.Creature };
@@ -67,8 +71,13 @@ public class JackInTheBoxTests
         GameDatabase db = Dk2TerrainFixture.Database(Jack());
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 12), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         return (db, world);
     }
 
@@ -131,7 +140,11 @@ public class JackInTheBoxTests
         CreatureState jack = Assert.Single(world.Creatures, c => JackInTheBoxRules.IsJack(c));
         Assert.Equal(CreatureFightFlags.None, (CreatureFightFlags)jack.Flags & (CreatureFightFlags.MayLookForAFight | CreatureFightFlags.Attackable));
         // In 273 the state table already refuses both; the bits are what refuse them on the walk (state 6).
-        for (int i = 0; i < 20 && jack.Dk2StateId != WalkState; i++) sim.Run(1);
+        for (int i = 0; i < 20 && jack.Dk2StateId != WalkState; i++)
+        {
+            sim.Run(1);
+        }
+
         Assert.Equal(WalkState, jack.Dk2StateId);
         Assert.False(CombatRules.MayLookForAFight(world, db, jack, force: false));
         Assert.True(CombatRules.MayLookForAFight(world, db, jack, force: true));
@@ -194,7 +207,10 @@ public class JackInTheBoxTests
             bool whole = FollowPathRules.Progress(jack.Body) == Fixed16.One;
             finished = jack.Body.PathFinished;
             sim.Run(1);
-            if (whole) Assert.Equal(JackInTheBoxRules.SpringState, jack.Dk2StateId);
+            if (whole)
+            {
+                Assert.Equal(JackInTheBoxRules.SpringState, jack.Dk2StateId);
+            }
         }
 
         Assert.Equal(JackInTheBoxRules.SpringState, jack.Dk2StateId);

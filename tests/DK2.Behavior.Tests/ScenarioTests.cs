@@ -101,7 +101,10 @@ public class ScenarioTests
             Assert.Empty(scenario.UnknownKeys);
             IRandomAlgorithm algorithm = scenario.CreateRandom().Algorithm;
             Assert.IsType(expected, algorithm);
-            if (algorithm is Dk2Lcg dk2) Assert.Equal(Dk2Lcg.LevelStartSeed, dk2.Seed);
+            if (algorithm is Dk2Lcg dk2)
+            {
+                Assert.Equal(Dk2Lcg.LevelStartSeed, dk2.Seed);
+            }
         }
         finally
         {

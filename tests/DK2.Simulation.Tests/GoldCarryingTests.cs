@@ -39,7 +39,10 @@ public class GoldCarryingTests
 
         public void Ticks(int count)
         {
-            for (int i = 0; i < count; i++) Tick();
+            for (int i = 0; i < count; i++)
+            {
+                Tick();
+            }
         }
 
         public IEnumerable<SimEvent> Of(string kind) => Events.Events.Where(e => e.Kind == kind);
@@ -167,8 +170,15 @@ public class GoldCarryingTests
         {
             run.Tick();
             long now = run.World.CurrentTick.Value;
-            if (entered < 0 && run.Imp.Dk2StateId == 26) entered = now;
-            if (entered >= 0 && run.Of("delivering").Any()) left = now;
+            if (entered < 0 && run.Imp.Dk2StateId == 26)
+            {
+                entered = now;
+            }
+
+            if (entered >= 0 && run.Of("delivering").Any())
+            {
+                left = now;
+            }
         }
 
         Assert.True(entered >= 0, "the imp never reached the seam");
@@ -194,8 +204,15 @@ public class GoldCarryingTests
         {
             run.Tick();
             long now = run.World.CurrentTick.Value;
-            if (entered < 0 && run.Imp.Dk2StateId == 26) entered = now;
-            if (entered >= 0 && run.Of("gold_mined").Any()) struck = now;
+            if (entered < 0 && run.Imp.Dk2StateId == 26)
+            {
+                entered = now;
+            }
+
+            if (entered >= 0 && run.Of("gold_mined").Any())
+            {
+                struck = now;
+            }
         }
 
         Assert.True(entered >= 0, "the imp never reached the seam");
@@ -230,10 +247,16 @@ public class GoldCarryingTests
         run.World.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(4, 5));
         PutStoreAt(run, new TilePos(1, 1), RoomTypeId.Treasury);
         run.World.Tile(5, 5).Health = 60;
-        foreach (CreatureState imp in run.World.Creatures) imp.GoldHeld = 818;
+        foreach (CreatureState imp in run.World.Creatures)
+        {
+            imp.GoldHeld = 818;
+        }
 
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
-        for (int i = 0; i < 30 && !run.Of("gold_mined").Any(); i++) run.Tick();
+        for (int i = 0; i < 30 && !run.Of("gold_mined").Any(); i++)
+        {
+            run.Tick();
+        }
 
         GameTick fell = Assert.Single(run.Of("gold_mined")).Tick;
         Assert.DoesNotContain(run.Of("delivering"), e => e.Tick == fell);
@@ -265,7 +288,10 @@ public class GoldCarryingTests
         // the imp got home sooner, unloaded, walked back and had already mined
         // two more swings by tick 95. What the test is about is where the load
         // goes, not how long the walk takes.
-        for (int i = 0; i < 95 && run.Of("gold_delivered").Count() == 0; i++) run.Tick();
+        for (int i = 0; i < 95 && run.Of("gold_delivered").Count() == 0; i++)
+        {
+            run.Tick();
+        }
 
         // The load is four swings, 1090 to 1092 by which swings the 272s fall on; the
         // point is that the second tile takes exactly what the first could not, in one deposit.
@@ -296,7 +322,10 @@ public class GoldCarryingTests
         run.World.Tile(3, 2).GoldHeld = 1000;
 
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
-        for (int i = 0; i < 95 && !run.Of("gold_delivered").Any(); i++) run.Tick();
+        for (int i = 0; i < 95 && !run.Of("gold_delivered").Any(); i++)
+        {
+            run.Tick();
+        }
 
         SimEvent delivered = Assert.Single(run.Of("gold_delivered"));
         Assert.Equal(0, run.Imp.GoldHeld);
@@ -342,7 +371,10 @@ public class GoldCarryingTests
         {
             run.Ticks(1);
             takenOver = run.World.Tile(1, 1).OwnerPlayerId != Rival;
-            if (!takenOver) Assert.Equal(0, run.World.Tile(1, 1).GoldHeld);
+            if (!takenOver)
+            {
+                Assert.Equal(0, run.World.Tile(1, 1).GoldHeld);
+            }
         }
 
         // And the run really did reach the interesting state rather than simply
@@ -476,7 +508,10 @@ public class GoldCarryingTests
         GameDatabase database = Dk2TerrainFixture.Database();
         Run run = AtTheSeam();
         int spot = 5 * run.World.Width + 4;
-        foreach (byte cell in SeamSlotCells) FloorGold.PutDown(run.World, database, spot, cell, pile);
+        foreach (byte cell in SeamSlotCells)
+        {
+            FloorGold.PutDown(run.World, database, spot, cell, pile);
+        }
 
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
         bool takenWhileOver = false;
@@ -485,7 +520,10 @@ public class GoldCarryingTests
             bool over = SeamSlotCells.All(c => FloorGold.PileInCell(run.World, spot, c) > FloorGold.MaxPile(database));
             int before = MiningTaken(run);
             run.Tick();
-            if (over && MiningTaken(run) > before) takenWhileOver = true;
+            if (over && MiningTaken(run) > before)
+            {
+                takenWhileOver = true;
+            }
         }
 
         Assert.False(takenWhileOver);
@@ -538,7 +576,10 @@ public class GoldCarryingTests
         run.Imp.GoldHeld = CreatureLevelRules.MaxGoldHeld(database, database.CreatureById(Dk2TerrainFixture.ImpCreatureId), level: 1);
 
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
-        for (int t = 0; t < 120 && !run.Of("job_abandoned").Any(); t++) run.Tick();
+        for (int t = 0; t < 120 && !run.Of("job_abandoned").Any(); t++)
+        {
+            run.Tick();
+        }
 
         SimEvent abandoned = Assert.Single(run.Of("job_abandoned"));
         Assert.Contains("reason=pile_underfoot_full", abandoned.Detail);
@@ -559,7 +600,10 @@ public class GoldCarryingTests
         run.Imp.GoldHeld = FullLoad - 273;
 
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
-        for (int t = 0; t < 120 && !run.Of("delivering").Any(); t++) run.Tick();
+        for (int t = 0; t < 120 && !run.Of("delivering").Any(); t++)
+        {
+            run.Tick();
+        }
 
         SimEvent strike = Assert.Single(run.Of("gold_mined"));
         long after = run.Of("delivering").First().Tick.Value - strike.Tick.Value;
@@ -579,7 +623,11 @@ public class GoldCarryingTests
 
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
         int max = database.CreatureById(Dk2TerrainFixture.ImpCreatureId).MaxGoldHeld;
-        for (int t = 0; t < 300 && run.Imp.GoldHeld < max; t++) run.Tick();
+        for (int t = 0; t < 300 && run.Imp.GoldHeld < max; t++)
+        {
+            run.Tick();
+        }
+
         int held = run.Imp.GoldHeld;
         Assert.True(held >= max, $"hands hold {held}");
         Assert.Equal(Dk2TerrainFixture.Gold, run.World.Tile(5, 5).TerrainId);
@@ -600,7 +648,10 @@ public class GoldCarryingTests
         Run run = AtTheSeam();
         PutStoreAt(run, new TilePos(1, 1), RoomTypeId.Treasury);
         run.Tick(TagTilesCommand.Tag(Keeper, new TilePos(5, 5)));
-        for (int t = 0; t < 60 && run.Imp.GoldHeld == 0; t++) run.Tick();
+        for (int t = 0; t < 60 && run.Imp.GoldHeld == 0; t++)
+        {
+            run.Tick();
+        }
 
         Assert.True(run.Imp.GoldHeld > 0, "the imp should be mid-delivery");
 

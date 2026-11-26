@@ -21,7 +21,10 @@ public class RoomBorderFlameTests
         var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         foreach ((int x, int y) in tiles)
+        {
             RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Casino), Keeper);
+        }
+
         return world;
     }
 
@@ -35,7 +38,10 @@ public class RoomBorderFlameTests
         {
             RoomBorderCursor next = RoomBorderRules.Advance(cursor, world, room);
             if ((next.X, next.Y, next.Orientation) != (cursor.X, cursor.Y, cursor.Orientation))
+            {
                 seen.Add((next.X, next.Y, next.Orientation));
+            }
+
             cursor = next;
         }
         return seen;
@@ -100,7 +106,10 @@ public class RoomBorderFlameTests
         Assert.Equal(sim.StateHash(), copy.StateHash());
 
         foreach ((int x, int y) in new[] { (1, 1), (2, 1), (1, 2), (2, 2) })
+        {
             world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
+        }
+
         sim.Run(1);
         Assert.Empty(world.RoomBorderCursors);
     }

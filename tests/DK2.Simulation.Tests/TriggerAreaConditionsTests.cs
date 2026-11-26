@@ -80,7 +80,10 @@ public class TriggerAreaConditionsTests
             Area(1, 69, new() { ["PlayerId"] = 1 }),
             world =>
             {
-                for (int y = 5; y < 5 + tagged; y++) world.Tile(1, y).SetTaggedBy(1, true);
+                for (int y = 5; y < 5 + tagged; y++)
+                {
+                    world.Tile(1, y).SetTaggedBy(1, true);
+                }
             });
 
         Assert.Equal(expected, state.Read(Marker));
@@ -274,7 +277,10 @@ public class TriggerAreaConditionsTests
             {
                 GameDatabase db = Dk2TerrainFixture.Database();
                 CreatureState creature = world.SpawnCreature(db, GoblinId, 1, new TilePos(x, 5));
-                if (possessed) world.Player(1).PossessedCreatureId = creature.Id;
+                if (possessed)
+                {
+                    world.Player(1).PossessedCreatureId = creature.Id;
+                }
             });
 
         Assert.Equal(0, state.Read(Marker));
@@ -354,7 +360,10 @@ public class TriggerAreaConditionsTests
             new TriggerTree([root, FlagWrite(mode: 0x12)], rootTriggerId: 0),
             state, world, database);
 
-        for (int turn = 1; turn <= 3; turn++) executor.Run(turn);
+        for (int turn = 1; turn <= 3; turn++)
+        {
+            executor.Run(turn);
+        }
 
         Assert.Equal(expected, state.Read(Marker));
     }

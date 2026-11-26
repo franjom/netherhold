@@ -108,11 +108,14 @@ public class KwdRecordJoinTests
         Assert.Equal(408, files.Length);
         int total = 0;
         foreach (string file in files)
-        foreach (KwdChunk chunk in KwdReader.ReadFile(file))
+        {
+            foreach (KwdChunk chunk in KwdReader.ReadFile(file))
         {
             Assert.Equal(chunk.Content, KwdRecordRoundTrip.Join(chunk, KwdRecordRoundTrip.Split(chunk)));
             total++;
         }
+        }
+
         Assert.Equal(409, total);
         Assert.Equal(0, KwdCorpusAudit.Run(Dk2InstallGate.Path).RecordCounts[KwdRecordType.Globals]);
     }

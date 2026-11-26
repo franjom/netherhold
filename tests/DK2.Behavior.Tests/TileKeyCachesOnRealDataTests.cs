@@ -50,7 +50,10 @@ public sealed class TileKeyCachesOnRealDataTests
             Assert.Equal(scratch.Count, live.Count);
             Assert.Equal(scratch.HeartCentres, live.HeartCentres);
             Assert.Equal(scratch.PortalCentres.OrderBy(c => c), live.PortalCentres.OrderBy(c => c));
-            for (int t = 0; t < world.TileCount; t++) Assert.Equal(scratch.Blocks(t), live.Blocks(t));
+            for (int t = 0; t < world.TileCount; t++)
+            {
+                Assert.Equal(scratch.Blocks(t), live.Blocks(t));
+            }
         }
     }
 }

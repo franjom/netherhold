@@ -34,12 +34,15 @@ public class ObjectPlacementTests
         byte wall = db.Terrain.Values.Single(t => t.Name == "Reinforced Wall").TerrainId;
         byte floor = db.Room(type).TerrainId;
         for (int y = Y0; y <= Y0 + height + 1; y++)
+        {
             for (int x = X0; x <= X0 + width + 1; x++)
             {
                 bool ring = x == X0 || x == X0 + width + 1 || y == Y0 || y == Y0 + height + 1;
                 world.Tile(x, y).TerrainId = ring ? wall : floor;
                 world.Tile(x, y).OwnerPlayerId = 3;
             }
+        }
+
         return new Room(db, world, new WorldView(db));
     }
 

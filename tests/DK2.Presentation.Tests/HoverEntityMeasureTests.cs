@@ -141,7 +141,11 @@ public sealed class HoverEntityMeasureTests
         for (int run = 0; run < 300; run++)
         {
             var positions = new Vector3[12];
-            for (int i = 0; i < positions.Length; i++) positions[i] = new Vector3(Next(random), Next(random), Next(random));
+            for (int i = 0; i < positions.Length; i++)
+            {
+                positions[i] = new Vector3(Next(random), Next(random), Next(random));
+            }
+
             int[] triangles = Enumerable.Range(0, 3 * 8 + random.Next(3)).Select(_ => random.Next(positions.Length)).ToArray();
             var origin = new Vector3(Next(random) * 3, 4, Next(random) * 3);
             var direction = Vector3.Normalize(new Vector3(Next(random), -1, Next(random)));
@@ -222,9 +226,15 @@ public sealed class HoverEntityMeasureTests
             var box = new PickBox(low, low + new Vector3(random.Next(1, 6), random.Next(1, 6), random.Next(1, 6)));
             bool expected = false;
             for (int plane = 0; plane < 6 && !expected; plane++)
+            {
                 expected = Corners(box, Vector3.Zero, Quaternion.Identity, Vector3.One).All(c => Plane.DotCoordinate(view[plane], c) < 0f);
+            }
+
             Assert.Equal(expected, view.Excludes(box));
-            if (expected) culled++;
+            if (expected)
+            {
+                culled++;
+            }
         }
         Assert.InRange(culled, 200, 1900);
     }
@@ -289,8 +299,10 @@ public sealed class HoverEntityMeasureTests
     public void TheOverlayDrawsOverCreaturesObjectsDoorsAndTraps()
     {
         foreach (WorldHoverKind kind in Enum.GetValues<WorldHoverKind>())
+        {
             Assert.Equal(kind is WorldHoverKind.Creature or WorldHoverKind.Object or WorldHoverKind.Door or WorldHoverKind.Trap,
                 HoverOverlayPlan.Overlays(kind));
+        }
     }
 
     [Fact]
@@ -336,8 +348,11 @@ public sealed class HoverEntityMeasureTests
     {
         var corners = new Vector3[8];
         for (int i = 0; i < 8; i++)
+        {
             corners[i] = LegacyTransformPoint(new Vector3((i & 1) == 0 ? box.Min.X : box.Max.X, (i & 2) == 0 ? box.Min.Y : box.Max.Y,
                 (i & 4) == 0 ? box.Min.Z : box.Max.Z), position, turn, scale);
+        }
+
         return corners;
     }
 
@@ -356,9 +371,12 @@ public sealed class HoverEntityMeasureTests
         float best = limit;
         bool found = false;
         for (int i = 0; i + 2 < triangles.Length; i += 3)
+        {
             if (WorldHoverPicker.TryHitTriangle(origin, direction, vertices[triangles[i]], vertices[triangles[i + 1]],
                     vertices[triangles[i + 2]], out float t) && t < best)
             { best = t; found = true; }
+        }
+
         return found ? best : null;
     }
 }

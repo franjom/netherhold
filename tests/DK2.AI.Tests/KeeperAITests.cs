@@ -90,7 +90,11 @@ public class KeeperAITests
         for (int i = 0; i < 20; i++)
         {
             WalkStep step = LineWalker.Step(view, state);
-            if (step.Outcome == WalkOutcome.Arrived) break;
+            if (step.Outcome == WalkOutcome.Arrived)
+            {
+                break;
+            }
+
             Assert.Equal(WalkOutcome.Dig, step.Outcome);
             dug.Add(step.Tile);
             KeeperWorld.Set(world, Db, step.Tile, KeeperWorld.ClaimedPath, KeeperWorld.Keeper);
@@ -105,7 +109,10 @@ public class KeeperAITests
     {
         WorldState world = KeeperWorld.World(Db);
         for (int x = 11; x <= 19; x++)
+        {
             KeeperWorld.Set(world, Db, new TilePos(x, 9), KeeperWorld.Impenetrable);
+        }
+
         var view = new KeeperView(Db, world, KeeperWorld.Keeper);
         var state = new KeeperAIState
         {
@@ -149,9 +156,16 @@ public class KeeperAITests
         WorldState world = KeeperWorld.World(Db);
         TilePos[] seams = new[] { new TilePos(4, 4), new TilePos(25, 4), new TilePos(4, 25), new TilePos(25, 25), new TilePos(15, 3) };
         foreach (TilePos s in seams)
+        {
             for (int dy = 0; dy < 2; dy++)
+            {
                 for (int dx = 0; dx < 2; dx++)
+                {
                     KeeperWorld.Set(world, Db, new TilePos(s.X + dx, s.Y + dy), KeeperWorld.Gold);
+                }
+            }
+        }
+
         var view = new KeeperView(Db, world, KeeperWorld.Keeper);
 
         List<GoldDeposit> deposits = GoldScanner.Scan(view);
@@ -197,8 +211,13 @@ public class KeeperAITests
         WorldState world = KeeperWorld.World(Db);
         world.Tile(KeeperWorld.HeartAt).GoldHeld = 100; // below 9 × 50 for a Treasury
         for (int y = 4; y <= 6; y++)
+        {
             for (int x = 14; x <= 16; x++)
+            {
                 KeeperWorld.Set(world, Db, new TilePos(x, y), KeeperWorld.Gold);
+            }
+        }
+
         var sim = new GameSimulation(Db, world, 1, [new TileTagSystem()]);
         var keeper = new KeeperAI(KeeperWorld.Keeper, KeeperWorld.Parameters(speed: 4), new SimRandom(7));
 
@@ -208,8 +227,16 @@ public class KeeperAITests
             IReadOnlyList<PlayerCommand> commands = keeper.Think(Db, world);
             sim.Tick(new InputFrame(commands));
             for (int y = 4; y <= 6; y++)
+            {
                 for (int x = 14; x <= 16; x++)
-                    if (world.Tile(new TilePos(x, y)).IsTaggedBy(KeeperWorld.Keeper)) taggedGold = true;
+                {
+                    if (world.Tile(new TilePos(x, y)).IsTaggedBy(KeeperWorld.Keeper))
+                    {
+                        taggedGold = true;
+                    }
+                }
+            }
+
             KeeperWorld.DigWhatIsTagged(world, Db, KeeperWorld.Keeper);
         }
 
@@ -236,7 +263,11 @@ public class KeeperAITests
     {
         WorldState world = KeeperWorld.World(Db);
         world.Tile(KeeperWorld.HeartAt).GoldHeld = 5000;
-        foreach (byte room in new byte[] { 1, 2, 4 }) world.SetAvailability(KeeperWorld.Keeper, AvailabilityKind.Room, room, 4);
+        foreach (byte room in new byte[] { 1, 2, 4 })
+        {
+            world.SetAvailability(KeeperWorld.Keeper, AvailabilityKind.Room, room, 4);
+        }
+
         world.SetAvailability(KeeperWorld.Keeper, AvailabilityKind.Spell, 4, 1);
 
         KeeperAIParameters parameters = KeeperWorld.Parameters(speed: 2, maxImps: 4)
@@ -248,7 +279,11 @@ public class KeeperAITests
         world.SetAvailability(KeeperWorld.Keeper, AvailabilityKind.Room, 1, 3);
         world.SetAvailability(KeeperWorld.Keeper, AvailabilityKind.Spell, 4, 3);
         var opened = new List<PlayerCommand>();
-        for (int tick = 0; tick < 8; tick++) opened.AddRange(keeper.Think(Db, world));
+        for (int tick = 0; tick < 8; tick++)
+        {
+            opened.AddRange(keeper.Think(Db, world));
+        }
+
         Assert.Contains(opened, c => c is TagTilesCommand);
         Assert.Contains(opened, c => c is CreateImpCommand);
     }
@@ -293,7 +328,10 @@ public class KeeperAITests
         KeeperWorld.Set(world, Db, owned, KeeperWorld.ClaimedPath, KeeperWorld.Keeper);
         var view = new KeeperView(Db, world, KeeperWorld.Keeper);
         Assert.Equal(accepted, RoomPlanner.HasOwnLandOnBoundary(view, centre, 2));
-        if (accepted) Assert.Equal(owned, RoomPlanner.OwnLandOnBoundary(view, centre, 2));
+        if (accepted)
+        {
+            Assert.Equal(owned, RoomPlanner.OwnLandOnBoundary(view, centre, 2));
+        }
     }
 
     [Theory]
@@ -327,7 +365,13 @@ public class KeeperAITests
         {
             var tiles = new HashSet<TilePos>();
             for (int i = 0; i < passes; i++)
-                foreach (TagTilesCommand tag in keeper.Think(Db, world).OfType<TagTilesCommand>()) tiles.UnionWith(tag.Tiles);
+            {
+                foreach (TagTilesCommand tag in keeper.Think(Db, world).OfType<TagTilesCommand>())
+                {
+                    tiles.UnionWith(tag.Tiles);
+                }
+            }
+
             return tiles;
         }
         TilePos first = Assert.Single(Tagged(8));
@@ -347,7 +391,10 @@ public class KeeperAITests
     {
         WorldState world = KeeperWorld.World(Db);
         foreach ((int x, int y) in new[] { (3, 3), (5, 3), (3, 4), (5, 4), (3, 5), (4, 5), (5, 5) })
+        {
             KeeperWorld.Set(world, Db, new TilePos(x, y), KeeperWorld.LairFloor, KeeperWorld.Keeper);
+        }
+
         var view = new KeeperView(Db, world, KeeperWorld.Keeper);
 
         KeeperRoomView lair = Assert.Single(view.OwnRooms, r => r.Definition.TypeId == RoomTypeId.Lair);

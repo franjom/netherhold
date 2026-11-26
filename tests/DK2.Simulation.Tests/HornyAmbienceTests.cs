@@ -31,7 +31,11 @@ public sealed class HornyAmbienceTests
         for (int t = 0; t < Turns; t++) { with.Tick(); without.Tick(); }
 
         var expected = new Dk2Lcg(((Dk2Lcg)without.Rng.Algorithm).Seed);
-        for (int i = 0; i < draws; i++) expected.NextInt(20);
+        for (int i = 0; i < draws; i++)
+        {
+            expected.NextInt(20);
+        }
+
         Assert.Equal(expected.Seed, ((Dk2Lcg)with.Rng.Algorithm).Seed);
     }
 
@@ -46,7 +50,11 @@ public sealed class HornyAmbienceTests
         CreatureState c = world.SpawnCreature(db, 100, Keeper, new TilePos(4, 4));
         Dk2TerrainFixture.SetKnownIdentities(world);
         c.Dk2StateId = state;
-        if (started) world.Player(Keeper).Finale.Flags = FinaleRules.SequenceStarted;
+        if (started)
+        {
+            world.Player(Keeper).Finale.Flags = FinaleRules.SequenceStarted;
+        }
+
         return new GameSimulation(db, world, new SimRandom(new Dk2Lcg(42)), [new CreatureStatusSystem()]);
     }
 }

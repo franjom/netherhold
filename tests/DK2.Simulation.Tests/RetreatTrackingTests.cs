@@ -35,7 +35,11 @@ public class RetreatTrackingTests
         CreatureState knight = world.SpawnCreature(db, Dk2TerrainFixture.KnightCreatureId, PlayerIds.Good, imp.Tile);
         knight.PosX = imp.PosX + 3000;
         knight.PosY = imp.PosY;
-        if (tracking) knight.RetreatingCreature = 999;
+        if (tracking)
+        {
+            knight.RetreatingCreature = 999;
+        }
+
         world.RefreshAttackability();   // as after each creature's last update
         GameSimulation sim = new(db, world, 1, [new CombatSystem()]);
 
@@ -122,9 +126,7 @@ public class RetreatTrackingTests
         int calls = 0;
         var sim = new GameSimulation(db, world, 1, [new Probe(context =>
         {
-            if (++calls == 1)
-                Assert.True(ApproachRules.Enter(context, knight, imp.PosX, imp.PosY));
-            else
+            if (++calls == 1) { Assert.True(ApproachRules.Enter(context, knight, imp.PosX, imp.PosY)); } else
             {
                 var hearts = new HeartSites();
                 hearts.Refresh(world, db);
@@ -200,7 +202,9 @@ public class RetreatTrackingTests
                 ref TileState tile = ref world.Tile(new TilePos(x, y));
                 if (tile.TerrainId == Dk2TerrainFixture.Rock || tile.TerrainId == Dk2TerrainFixture.Gold
                     || tile.TerrainId == Dk2TerrainFixture.Gems)
+                {
                     tile.TerrainId = Dk2TerrainFixture.DirtPath;
+                }
             }
         }
         return (db, world);

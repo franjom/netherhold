@@ -232,13 +232,20 @@ public class ThingProjectionTests
     {
         WorldState world = World(database);
         for (int y = 3; y <= 7; y++)
+        {
             for (int x = 8; x <= 12; x++)
             {
                 ref TileState tile = ref world.Tile(x, y);
                 tile.TerrainId = Dk2TerrainFixture.DungeonHeartTerrain;
                 tile.OwnerPlayerId = PlayerIds.FirstKeeper;
             }
-        if (treasury) world.Tile(1, 1).TerrainId = Dk2TerrainFixture.TreasuryTerrain;
+        }
+
+        if (treasury)
+        {
+            world.Tile(1, 1).TerrainId = Dk2TerrainFixture.TreasuryTerrain;
+        }
+
         return world;
     }
 
@@ -249,7 +256,13 @@ public class ThingProjectionTests
     {
         int sum = 0;
         for (int y = y0; y <= y1; y++)
-            for (int x = x0; x <= x1; x++) sum += world.Tile(x, y).GoldHeld;
+        {
+            for (int x = x0; x <= x1; x++)
+            {
+                sum += world.Tile(x, y).GoldHeld;
+            }
+        }
+
         return sum;
     }
 
@@ -263,11 +276,14 @@ public class ThingProjectionTests
             new Dictionary<byte, int> { [PlayerIds.FirstKeeper] = 16000 });
 
         for (int y = 3; y <= 7; y++)
+        {
             for (int x = 8; x <= 12; x++)
             {
                 bool platform = x is >= 9 and <= 11 && y is >= 4 and <= 6;
                 Assert.Equal(platform ? 0 : 1000, world.Tile(x, y).GoldHeld);
             }
+        }
+
         Assert.Equal(16000, GoldStore.Total(world, PlayerIds.FirstKeeper));
     }
 

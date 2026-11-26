@@ -41,7 +41,11 @@ public sealed class CreatureJobTests
             new CreatureJobSystem(),
             new CreatureAngerSystem(),
         ]);
-        if (sink is not null) sim.ObserveWith(sink);
+        if (sink is not null)
+        {
+            sim.ObserveWith(sink);
+        }
+
         return sim;
     }
 
@@ -155,8 +159,16 @@ public sealed class CreatureJobTests
             WorldState world = World(db);
             Fund(world, 10_000);
             // Two Hearts are two rooms: (1, 1) and (3, 1) do not touch.
-            if (hearts > 0) RoomRules.Place(db, ref world.Tile(1, 1), db.Room(RoomTypeId.DungeonHeart), Keeper);
-            if (hearts > 1) RoomRules.Place(db, ref world.Tile(3, 1), db.Room(RoomTypeId.DungeonHeart), Keeper);
+            if (hearts > 0)
+            {
+                RoomRules.Place(db, ref world.Tile(1, 1), db.Room(RoomTypeId.DungeonHeart), Keeper);
+            }
+
+            if (hearts > 1)
+            {
+                RoomRules.Place(db, ref world.Tile(3, 1), db.Room(RoomTypeId.DungeonHeart), Keeper);
+            }
+
             HeartRuin.Set(world, Keeper, ruined);
             world.SpawnCreature(db, GoblinId, Keeper, Floor);
             var events = new ListEventSink();
@@ -313,8 +325,13 @@ public sealed class CreatureJobTests
         // The enter hook refuses a Casino with no lever (ADR-0313), and 145 one (ADR-0396): a 3x3,
         // its lever on the centre as the room's set-up places it.
         for (int y = 2; y <= 4; y++)
-        for (int x = 2; x <= 4; x++)
-            Paint(db, world, RoomTypeId.Casino, new TilePos(x, y));
+        {
+            for (int x = 2; x <= 4; x++)
+            {
+                Paint(db, world, RoomTypeId.Casino, new TilePos(x, y));
+            }
+        }
+
         world.SpawnObject(db, AutoFurnitureRules.CasinoLeverObjectId, Keeper, (3 * world.Width) + 3).AutoPlaced = true;
 
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
@@ -326,7 +343,10 @@ public sealed class CreatureJobTests
         // off it (ADR-0403; route-less steering, ADR-0751).
         Dk2TerrainFixture.SetKnownIdentities(world);
         GameSimulation sim = Simulation(db, world);
-        for (int tick = 0; tick < Second * 5 && goblin.Dk2StateId != CasinoStep.AtTheTableState; tick++) sim.Tick();
+        for (int tick = 0; tick < Second * 5 && goblin.Dk2StateId != CasinoStep.AtTheTableState; tick++)
+        {
+            sim.Tick();
+        }
 
         Assert.Equal(JobType.Drink, goblin.CurrentJob);
         Assert.Equal(CreatureActivity.AtWork, goblin.Activity);
@@ -564,7 +584,11 @@ public sealed class CreatureJobTests
         for (int t = 0; t < ticks; t++)
         {
             sim.Run(1);
-            if (creature.Dk2StateId == last) continue;
+            if (creature.Dk2StateId == last)
+            {
+                continue;
+            }
+
             seen.Add((creature.Dk2StateId, creature.StateBeforeUtilityState));
             last = creature.Dk2StateId;
         }
@@ -902,12 +926,20 @@ public sealed class CreatureJobTests
         {
             long now = world.CurrentTick.Value;
             sim.Tick();
-            if (goblin.Dk2StateId == TrainingStep.WorkingState && last != TrainingStep.WorkingState) entries.Add(now);
+            if (goblin.Dk2StateId == TrainingStep.WorkingState && last != TrainingStep.WorkingState)
+            {
+                entries.Add(now);
+            }
+
             last = goblin.Dk2StateId;
             for (; seen < events.Events.Count; seen++)
+            {
                 if (events.Events[seen].ThingSound is { Event: ThingSoundEvent.Trained } sound)
+                {
                     sounds.Add((events.Events[seen].Tick.Value, sound,
                         new FpPosition3(new Fp32(goblin.PosX), new Fp32(goblin.PosY), new Fp32(goblin.PosZ))));
+                }
+            }
         }
 
         Assert.NotEmpty(sounds);
@@ -942,7 +974,11 @@ public sealed class CreatureJobTests
         {
             long now = world.CurrentTick.Value;
             sim.Tick();
-            if (goblin.Dk2StateId == TrainingStep.WorkingState && last != TrainingStep.WorkingState) entries.Add(now);
+            if (goblin.Dk2StateId == TrainingStep.WorkingState && last != TrainingStep.WorkingState)
+            {
+                entries.Add(now);
+            }
+
             last = goblin.Dk2StateId;
         }
 

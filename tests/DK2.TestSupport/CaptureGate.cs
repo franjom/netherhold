@@ -24,7 +24,11 @@ public static class Dk2CaptureGate
 
     public static string? SkipReasonFor(string relativePath)
     {
-        if (!Dk2InstallGate.Present) return Dk2InstallGate.SkipReason;
+        if (!Dk2InstallGate.Present)
+        {
+            return Dk2InstallGate.SkipReason;
+        }
+
         return File.Exists(PathFor(relativePath))
             ? null
             : $"Missing {relativePath}; ask the owner for a copy.";
@@ -34,7 +38,10 @@ public static class Dk2CaptureGate
     {
         DirectoryInfo? dir = new(AppContext.BaseDirectory);
         while (dir is not null && !File.Exists(System.IO.Path.Combine(dir.FullName, "DK2.slnx")))
+        {
             dir = dir.Parent;
+        }
+
         return dir?.FullName ?? throw new DirectoryNotFoundException(
             "Could not locate the repository root (no DK2.slnx above the test binaries).");
     }

@@ -13,8 +13,16 @@ public class ResyncStateFileTests
     private static ResyncState Load(JsonNode? terminal, JsonNode? heart)
     {
         var player = new JsonObject { ["id"] = 3, ["money"] = 0, ["mana"] = 0 };
-        if (terminal is not null) player["terminal"] = terminal;
-        if (heart is not null) player["heart"] = heart;
+        if (terminal is not null)
+        {
+            player["terminal"] = terminal;
+        }
+
+        if (heart is not null)
+        {
+            player["heart"] = heart;
+        }
+
         var state = new JsonObject
         {
             ["tick"] = 5000, ["width"] = 1, ["height"] = 1,

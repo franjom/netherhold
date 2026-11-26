@@ -30,11 +30,13 @@ public sealed class EnterHookRefusalTests
         var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y <= 8; y++)
-        for (int x = 1; x <= 12; x++)
+        {
+            for (int x = 1; x <= 12; x++)
         {
             ref TileState tile = ref world.Tile(x, y);
             tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
             tile.OwnerPlayerId = Keeper;
+        }
         }
 
         Fund(world, gold);
@@ -51,8 +53,12 @@ public sealed class EnterHookRefusalTests
     private static void Room(GameDatabase db, WorldState world, RoomTypeId type, int x0, int y0, int size, byte owner = Keeper)
     {
         for (int y = y0; y < y0 + size; y++)
-        for (int x = x0; x < x0 + size; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(type), owner);
+        {
+            for (int x = x0; x < x0 + size; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(type), owner);
+            }
+        }
     }
 
     private static RoomInstance RoomAt(GameDatabase db, WorldState world, int x, int y) =>
@@ -101,12 +107,19 @@ public sealed class EnterHookRefusalTests
         var sink = new ListEventSink();
         var sim = new GameSimulation(db, world, seed: 42, [new CreatureMovementSystem(), new CreatureJobSystem()]);
         sim.ObserveWith(sink);
-        for (int i = 0; i < Second * 10 && walker.Activity != CreatureActivity.GoingToJob; i++) sim.Tick();
+        for (int i = 0; i < Second * 10 && walker.Activity != CreatureActivity.GoingToJob; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(CreatureActivity.GoingToJob, walker.Activity);
         Assert.Equal(JobType.Train, walker.CurrentJob);
 
         Fund(world, TrainingRules.GoldPerSecond(db) - 1);
-        for (int i = 0; i < Second * 20 && walker.Activity == CreatureActivity.GoingToJob; i++) sim.Tick();
+        for (int i = 0; i < Second * 20 && walker.Activity == CreatureActivity.GoingToJob; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Contains(sink.Events, e => e.Kind == "job_lost" && e.Detail.Contains($"creature={walker.Id} ")
             && e.Detail.Contains("reason=keeper_cannot_pay message=0x37"));
@@ -207,7 +220,10 @@ public sealed class EnterHookRefusalTests
         GameDatabase db = Dk2TerrainFixture.Database();
         WorldState world = CasinoWorld(db, size);
         if (size == 5)
+        {
             world.RemoveObject(world.Objects.Single(o => o.ObjectTypeId == AutoFurnitureRules.CasinoLeverObjectId).Id);
+        }
+
         Assert.Null(CasinoRules.Lever(world, RoomAt(db, world, 2, 2)));
         CreatureState goblin = Gambler(db, world, purse: 100, at: new TilePos(2, 3));
 

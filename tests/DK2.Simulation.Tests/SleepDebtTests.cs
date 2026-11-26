@@ -29,7 +29,11 @@ public sealed class SleepDebtTests
     {
         (GameSimulation? sim, CreatureState? creature) = Start();
         MakeOverdue(creature);
-        for (int i = 0; i < 16 && creature.Dk2StateId != LairRules.SleepingState; i++) sim.Tick();
+        for (int i = 0; i < 16 && creature.Dk2StateId != LairRules.SleepingState; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(LairRules.SleepingState, creature.Dk2StateId);
         sim.Run(3);
         Assert.Equal(CreatureActivity.Sleeping, creature.Activity);

@@ -80,7 +80,9 @@ public class RoomInstanceTests
 
         Assert.Equal(9, tiles.Count);
         for (int i = 1; i < tiles.Count; i++)
+        {
             Assert.True(tiles[i] > tiles[i - 1], "tile indices are not ascending");
+        }
     }
 
     /// <summary>
@@ -226,7 +228,12 @@ public class RoomInstanceTests
         int perTile = Db[VariableTypeId.MaxGoldPerDungeonHeartTile];
 
         foreach (int index in RoomAt(world, 5, 5).TileIndices)
-            if (GoldStore.Capacity(world, Db, index) > 0) storing++;
+        {
+            if (GoldStore.Capacity(world, Db, index) > 0)
+            {
+                storing++;
+            }
+        }
 
         Assert.Equal(16, storing);
         Assert.Equal(16_000, storing * perTile);
@@ -440,7 +447,13 @@ public class RoomInstanceTests
             }
         }
         for (int i = 0; i < world.TileCount; i++)
-            if (RoomIndex.RoomAt(world, Db, i) is not null) tiles--;
+        {
+            if (RoomIndex.RoomAt(world, Db, i) is not null)
+            {
+                tiles--;
+            }
+        }
+
         Assert.Equal(0, tiles);
     }
 }

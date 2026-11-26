@@ -19,10 +19,15 @@ public class TortureChamberPlacesOnRealDataTests(ITestOutputHelper output)
     private static IEnumerable<string> LevelNames(string install)
     {
         string maps = Path.Combine(install, "Data", "editor", "maps");
-        if (!Directory.Exists(maps)) yield break;
+        if (!Directory.Exists(maps))
+        {
+            yield break;
+        }
 
         foreach (string file in Directory.EnumerateFiles(maps, "*Map.kld").OrderBy(f => f))
+        {
             yield return Path.GetFileName(file)[..^"Map.kld".Length];
+        }
     }
 
     [InstallFact]
@@ -38,7 +43,10 @@ public class TortureChamberPlacesOnRealDataTests(ITestOutputHelper output)
             LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, level)!;
             var world = WorldState.FromMap(db, map, [0, 1, 2, 3, 4, 5, 6, 7]);
             var rooms = RoomIndex.Build(world, db).Where(r => r.Definition.TypeId == RoomTypeId.TortureChamber).ToList();
-            if (rooms.Count == 0) continue;
+            if (rooms.Count == 0)
+            {
+                continue;
+            }
 
             new GameSimulation(db, world, 1, [new AutoFurnitureSystem()]).Tick();
             foreach (RoomInstance room in RoomIndex.Build(world, db).Where(r => r.Definition.TypeId == RoomTypeId.TortureChamber))
@@ -46,7 +54,10 @@ public class TortureChamberPlacesOnRealDataTests(ITestOutputHelper output)
                 chambers++;
                 AutoFurnitureRules.TryTotalCapacity(world, room, out int capacity);
                 output.WriteLine($"{level} owner={room.OwnerPlayerId} {room.Width}x{room.Height} tiles={room.TileCount} places={capacity}");
-                if (capacity == 0) empty.Add($"{level} owner={room.OwnerPlayerId} {room.Width}x{room.Height}");
+                if (capacity == 0)
+                {
+                    empty.Add($"{level} owner={room.OwnerPlayerId} {room.Width}x{room.Height}");
+                }
             }
         }
 

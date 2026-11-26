@@ -23,7 +23,11 @@ public sealed class PossessionSceneTests
             Depth = new Fp32(0), NameStringId = 0, TooltipStringId = 0,
         };
         var variables = new GlobalVariables();
-        foreach (VariableTypeId id in Enum.GetValues<VariableTypeId>()) variables.Misc[id] = new MiscVariable(id, 0, 0, 0);
+        foreach (VariableTypeId id in Enum.GetValues<VariableTypeId>())
+        {
+            variables.Misc[id] = new MiscVariable(id, 0, 0, 0);
+        }
+
         var database = new GameDatabase([rock], [], [], variables);
         var map = new LevelMap(Width, Height, Enumerable.Repeat(new MapTile(2, PlayerIds.Unowned, 0, 0), Width * Height).ToArray());
         return (database, WorldState.FromMap(database, map, [PlayerIds.FirstKeeper]));

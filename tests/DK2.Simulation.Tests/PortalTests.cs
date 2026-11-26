@@ -208,7 +208,10 @@ public class PortalTests
                 PortalRules.SpawnIntervalTicks(db, n) / SimulationTiming.TicksPerSecond;
             int error = Math.Abs(observedSeconds[n] - predicted);
 
-            if (error <= Tolerance) continue;
+            if (error <= Tolerance)
+            {
+                continue;
+            }
 
             outside++;
             Assert.Equal(knownAnomalyIndex, n);
@@ -872,7 +875,9 @@ public class PortalTests
 
         // The Lair arm skips the draw-down, so holding twenty changes nothing.
         for (int i = 0; i < 20; i++)
+        {
             world.SpawnCreature(db, GoblinId, Keeper, new TilePos(9, 5));
+        }
 
         Assert.True(AttractionBudget.Admits(world, goblin, RoomIndex.Build(world, db), Keeper));
     }
@@ -1115,7 +1120,10 @@ public class PortalTests
 
         CreatureDef imp = db.CreatureByName("Imp")!;
         for (int i = 0; i < 30; i++)
+        {
             world.SpawnCreature(db, imp.CreatureId, Keeper, new TilePos(2, 2));
+        }
+
         world.SpawnCreature(db, GoblinId, Keeper, new TilePos(2, 2));
         Assert.Equal(0, PortalRules.CreatureCount(world, Keeper));
 
@@ -1134,7 +1142,9 @@ public class PortalTests
         WorldState world = World(db);
 
         for (int i = 0; i < 5; i++)
+        {
             world.SpawnCreature(db, GoblinId, Rival, new TilePos(2, 2)).CameThroughPortal = true;
+        }
 
         Assert.Equal(0, PortalRules.CreatureCount(world, Keeper));
         Assert.Equal(5, PortalRules.CreatureCount(world, Rival));
@@ -1260,11 +1270,18 @@ public class PortalTests
         Paint(db, world, RoomTypeId.Lair, 9, 5, 4, 6);   // room for every goblin's bed
         var sim = new GameSimulation(db, world, new SimRandom(new Dk2Lcg(1)), [new PortalSystem()]);
         for (int i = 0; i < portalBorn; i++)
+        {
             world.SpawnCreature(db, GoblinId, Keeper, new TilePos(12 + (i % 3), 2 + (i / 3))).CameThroughPortal = true;
+        }
+
         int due = PortalRules.SpawnIntervalTicks(db, 0) - 1;
         foreach (RoomInstance portal in RoomIndex.Build(world, db).Where(r => PortalRules.IsEntrance(r.Definition)))
+        {
             if (secondRipe || portal.TileIndices[0] == RoomIndex.Build(world, db).Where(r => PortalRules.IsEntrance(r.Definition)).Max(r => r.TileIndices[0]))
+            {
                 world.TileAtIndex(PortalRules.EntranceTileIndex(world, portal)).EntranceIdleTicks = due;
+            }
+        }
 
         sim.Tick();
 
@@ -1327,7 +1344,11 @@ public class PortalTests
         {
             for (int x = 5; x <= 7; x++)
             {
-                if (x == 6 && y == 6) continue;
+                if (x == 6 && y == 6)
+                {
+                    continue;
+                }
+
                 Assert.Equal(0, world.Tile(x, y).EntranceIdleTicks);
             }
         }

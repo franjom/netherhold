@@ -38,7 +38,12 @@ public class KwdDoorWriterTests
             Assert.Equal(changed, Read(written));
             Assert.False(source.SequenceEqual(written));
             for (int i = 0; i < source.Length; i++)
-                if (i < edit.Offset || i >= edit.Offset + edit.Width) Assert.Equal(source[i], written[i]);
+            {
+                if (i < edit.Offset || i >= edit.Offset + edit.Width)
+                {
+                    Assert.Equal(source[i], written[i]);
+                }
+            }
         }
     }
 
@@ -81,7 +86,9 @@ public class KwdDoorWriterTests
         List<KwdRecordImage> images = KwdRecordRoundTrip.Split(chunk);
         Assert.Equal(8, records.Count);
         for (int i = 0; i < records.Count; i++)
+        {
             Assert.Equal(images[i].ToBytes(), KwdDoors.WriteRecord(records[i], images[i]));
+        }
     }
 
     private static DoorDef Read(byte[] source) => KwdDoors.Parse([

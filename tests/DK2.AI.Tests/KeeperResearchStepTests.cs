@@ -23,16 +23,33 @@ public class KeeperResearchStepTests
     private static WorldState World(bool portal = true, bool library = false, bool training = false, bool heroPortal = false)
     {
         WorldState world = KeeperWorld.World(Db);
-        if (portal) Room(world, KeeperWorld.PortalFloor, 4, 4);
-        if (heroPortal) Room(world, KeeperWorld.HeroPortalFloor, 4, 22);
-        if (library) Room(world, KeeperWorld.LibraryFloor, 22, 4);
-        if (training) Room(world, KeeperWorld.TrainingFloor, 22, 22);
+        if (portal)
+        {
+            Room(world, KeeperWorld.PortalFloor, 4, 4);
+        }
+
+        if (heroPortal)
+        {
+            Room(world, KeeperWorld.HeroPortalFloor, 4, 22);
+        }
+
+        if (library)
+        {
+            Room(world, KeeperWorld.LibraryFloor, 22, 4);
+        }
+
+        if (training)
+        {
+            Room(world, KeeperWorld.TrainingFloor, 22, 22);
+        }
+
         return world;
     }
 
     private static void Room(WorldState world, byte floor, int x, int y)
     {
         for (int dy = 0; dy < 3; dy++)
+        {
             for (int dx = 0; dx < 3; dx++)
             {
                 var at = new TilePos(x + dx, y + dy);
@@ -41,6 +58,7 @@ public class KeeperResearchStepTests
                 KeeperWorld.Set(world, Db, at, floor, Keeper);
                 SlabChain.Changed(world, Db, index, terrain, owner);
             }
+        }
     }
 
     private static CreatureState Spawn(WorldState world, byte type, int x = 14, int y = 15) =>
@@ -80,13 +98,22 @@ public class KeeperResearchStepTests
     private static ulong SeedWhere(Func<SimRandom, bool> wanted)
     {
         for (ulong seed = 1; ; seed++)
-            if (wanted(new SimRandom(seed))) return seed;
+        {
+            if (wanted(new SimRandom(seed)))
+            {
+                return seed;
+            }
+        }
     }
 
     private static int NextAfter(ulong seed, params int[] draws)
     {
         var rng = new SimRandom(seed);
-        foreach (int range in draws) rng.NextInt(range);
+        foreach (int range in draws)
+        {
+            rng.NextInt(range);
+        }
+
         return rng.NextInt(1 << 30);
     }
 
@@ -124,7 +151,11 @@ public class KeeperResearchStepTests
     public void FewerThanTwoResearchersAreNeeded(int researchers, bool moved)
     {
         WorldState world = World();
-        for (int i = 0; i < researchers; i++) Spawn(world, KeeperWorld.MoodyCreature, 13 + i);
+        for (int i = 0; i < researchers; i++)
+        {
+            Spawn(world, KeeperWorld.MoodyCreature, 13 + i);
+        }
+
         CreatureState fighter = Spawn(world, KeeperWorld.FighterCreature, 16);
 
         Assert.Equal(moved ? [fighter.Id] : Array.Empty<int>(), Lifted(Move(world)));
@@ -149,7 +180,10 @@ public class KeeperResearchStepTests
         GameDatabase db = KeeperWorld.Database(firstPortalCreatures: 2);
         WorldState world = World();
         CreatureState candidate = Spawn(world, KeeperWorld.SleeperCreature);
-        for (int i = 0; i < fromPortal; i++) Spawn(world, KeeperWorld.FighterCreature, 13 + i).CameThroughPortal = true;
+        for (int i = 0; i < fromPortal; i++)
+        {
+            Spawn(world, KeeperWorld.FighterCreature, 13 + i).CameThroughPortal = true;
+        }
 
         Assert.Equal(moved ? [candidate.Id] : Array.Empty<int>(), Lifted(Move(world, db)));
     }
@@ -426,7 +460,11 @@ public class KeeperResearchStepTests
             case "unpermitted": fighter.ManaRemovalStamp = 1; break;
             case "dropped":
                 var clock = new GameSimulation(Db, world, 1, Array.Empty<ISimulationSystem>());
-                while (world.CurrentTick.Value + 1 < 301) clock.Tick(new InputFrame(Array.Empty<PlayerCommand>()));
+                while (world.CurrentTick.Value + 1 < 301)
+                {
+                    clock.Tick(new InputFrame(Array.Empty<PlayerCommand>()));
+                }
+
                 fighter.DroppedTick = world.CurrentTick.Value - 300;
                 break;
         }

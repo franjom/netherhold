@@ -115,7 +115,9 @@ public class TileWriteGuardTests
             "TileState seen; seen = world.Tile(0, 0); ref TileState rebound = ref world.Tile(0, 1); rebound = ref world.Tile(1, 1);",
         ];
         foreach (string line in allowed)
+        {
             Assert.Empty(Scan([("Case.cs", Wrap(Model, line))]));
+        }
     }
 
     [Fact]
@@ -187,7 +189,13 @@ public class TileWriteGuardTests
                 {
                     case AssignmentExpressionSyntax { RawKind: (int)SyntaxKind.SimpleAssignmentExpression, Right: not RefExpressionSyntax } assignment:
                         foreach (ExpressionSyntax target in Targets(assignment.Left))
-                            if (WritesWholeTile(model, target, tile)) found.Add(At(tree, node, target.ToString() + " = ..."));
+                        {
+                            if (WritesWholeTile(model, target, tile))
+                            {
+                                found.Add(At(tree, node, target.ToString() + " = ..."));
+                            }
+                        }
+
                         break;
                     case InvocationExpressionSyntax call when IsBulkWrite(model, call, tile) && !CountsTheBulkWrite(call):
                         found.Add(At(tree, node, call.ToString()));
@@ -203,11 +211,21 @@ public class TileWriteGuardTests
         switch (left)
         {
             case ParenthesizedExpressionSyntax p:
-                foreach (ExpressionSyntax t in Targets(p.Expression)) yield return t;
+                foreach (ExpressionSyntax t in Targets(p.Expression))
+                {
+                    yield return t;
+                }
+
                 break;
             case TupleExpressionSyntax tuple:
                 foreach (ArgumentSyntax argument in tuple.Arguments)
-                    foreach (ExpressionSyntax t in Targets(argument.Expression)) yield return t;
+                {
+                    foreach (ExpressionSyntax t in Targets(argument.Expression))
+                    {
+                        yield return t;
+                    }
+                }
+
                 break;
             default:
                 yield return left;
@@ -219,7 +237,11 @@ public class TileWriteGuardTests
     // local, a ref or out parameter. A plain local, parameter or field of a class is a copy, and writing it is nothing.
     private static bool WritesWholeTile(SemanticModel model, ExpressionSyntax target, INamedTypeSymbol tile)
     {
-        if (!SymbolEqualityComparer.Default.Equals(model.GetTypeInfo(target).Type, tile)) return false;
+        if (!SymbolEqualityComparer.Default.Equals(model.GetTypeInfo(target).Type, tile))
+        {
+            return false;
+        }
+
         switch (target)
         {
             case InvocationExpressionSyntax:
@@ -254,9 +276,17 @@ public class TileWriteGuardTests
             IdentifierNameSyntax i => i.Identifier.ValueText,
             _ => null,
         };
-        if (name is null || !BulkWriters.Contains(name)) return false;
+        if (name is null || !BulkWriters.Contains(name))
+        {
+            return false;
+        }
+
         var types = call.ArgumentList.Arguments.Select(a => model.GetTypeInfo(a.Expression).Type).ToList();
-        if (call.Expression is MemberAccessExpressionSyntax { Expression: { } receiver }) types.Add(model.GetTypeInfo(receiver).Type);
+        if (call.Expression is MemberAccessExpressionSyntax { Expression: { } receiver })
+        {
+            types.Add(model.GetTypeInfo(receiver).Type);
+        }
+
         return types.Any(t => HoldsTiles(t, tile));
     }
 

@@ -145,14 +145,30 @@ public sealed class BottomPanelViewTests
         var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
             [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
         PlayerId keeper = PlayerIds.FirstKeeper;
-        foreach (KeeperSpellDef spell in db.KeeperSpells.Values) world.SetAvailability(keeper, AvailabilityKind.Spell, spell.KeeperSpellId, 1);
-        foreach (DoorDef door in db.Doors.Values) world.SetAvailability(keeper, AvailabilityKind.Door, door.DoorId, 1);
-        foreach (TrapDef trap in db.Traps.Values) world.SetAvailability(keeper, AvailabilityKind.Trap, trap.TrapId, 1);
+        foreach (KeeperSpellDef spell in db.KeeperSpells.Values)
+        {
+            world.SetAvailability(keeper, AvailabilityKind.Spell, spell.KeeperSpellId, 1);
+        }
+
+        foreach (DoorDef door in db.Doors.Values)
+        {
+            world.SetAvailability(keeper, AvailabilityKind.Door, door.DoorId, 1);
+        }
+
+        foreach (TrapDef trap in db.Traps.Values)
+        {
+            world.SetAvailability(keeper, AvailabilityKind.Trap, trap.TrapId, 1);
+        }
+
         var panel = new BottomPanelView(db, keeper, (_, name) => name);
 
         world.SetAvailability(keeper, AvailabilityKind.Spell, 5, 3);
         TrapDef? hidden = db.Traps.Values.FirstOrDefault(t => (t.Flags & 0x2000) != 0);
-        if (hidden != null) world.SetAvailability(keeper, AvailabilityKind.Trap, hidden.TrapId, 3);
+        if (hidden != null)
+        {
+            world.SetAvailability(keeper, AvailabilityKind.Trap, hidden.TrapId, 3);
+        }
+
         panel.Capture(world);
         Assert.True(panel.TabVisible(BottomPanelCategory.Creatures));
         Assert.True(panel.TabVisible(BottomPanelCategory.Rooms));
@@ -277,10 +293,18 @@ public sealed class BottomPanelViewTests
         var panel = new BottomPanelView(db, PlayerIds.FirstKeeper, (_, name) => name);
         // Warm past the runtime's own one-off cost: run alone, the second Capture took 88 bytes in its
         // loop methods' on-stack replacement out of quick JIT (gone with DOTNET_TC_QuickJitForLoops=0).
-        for (int i = 0; i < 100; i++) panel.Capture(world);
+        for (int i = 0; i < 100; i++)
+        {
+            panel.Capture(world);
+        }
+
         ulong hash = sim.StateHash();
         long before = GC.GetAllocatedBytesForCurrentThread();
-        for (int i = 0; i < 100; i++) panel.Capture(world);
+        for (int i = 0; i < 100; i++)
+        {
+            panel.Capture(world);
+        }
+
         Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
         Assert.Equal(hash, sim.StateHash());
     }

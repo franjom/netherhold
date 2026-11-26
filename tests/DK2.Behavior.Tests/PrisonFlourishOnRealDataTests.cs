@@ -31,7 +31,9 @@ public class PrisonFlourishOnRealDataTests
         Assert.Equal(0u, bile.AngryArtFlags & 1);
         Assert.True(PrisonRules.HasAngryFlourish(bile));
         foreach (string none in new[] { "Imp", "Skeleton", "Jack" })
+        {
             Assert.False(PrisonRules.HasAngryFlourish(db.Creatures.Values.Single(c => c.Name == none)));
+        }
 
         CreatureDef firefly = db.CreatureById(12);
         Assert.Equal((34, 30), (firefly.AngryFrames, firefly.AngryFramesPerSecond));

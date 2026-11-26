@@ -49,18 +49,28 @@ public class PlayerObservationPrisonerTests
         int width = PlayerObservationTests.Width, height = PlayerObservationTests.Height;
         var tiles = new MapTile[width * height];
         for (int y = 0; y < height; y++)
+        {
             for (int x = 0; x < width; x++)
+            {
                 tiles[y * width + x] = new MapTile(PlayerObservationTests.DirtPath, x < PlayerObservationTests.Seen ? (byte)3 : (byte)4, 0, 0);
+            }
+        }
         // Two portals, apart: 15 for the first and 5 for the second.
         tiles[0] = new MapTile(PortalTerrain, 3, 0, 0);
         tiles[2] = new MapTile(PortalTerrain, 3, 0, 0);
         var world = WorldState.FromMap(database, new LevelMap(width, height, tiles), [3, 4], fogOfWarEnabled: true);
         for (int y = 0; y < height; y++)
+        {
             for (int x = 0; x < PlayerObservationTests.Seen; x++)
+            {
                 world.Tile(x, y).SetExploredBy(3);
+            }
+        }
         // Two arrivals and one creature that did not come through a portal: no screen shows the arrivals (owner, 2026-11-17).
         foreach (bool arrived in new[] { true, true, false })
+        {
             world.SpawnCreature(database, PlayerObservationTests.Fighter, PlayerObservationTests.Viewer, PlayerObservationTests.OwnFloor).CameThroughPortal = arrived;
+        }
 
         PlayerRoomSummary portal = Assert.Single(Observe(database, world).Rooms, r => r.Type == RoomTypeId.Portal);
         Assert.Equal((2, 20, 0), (portal.TileCount, portal.Capacity, portal.Used));

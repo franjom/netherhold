@@ -19,7 +19,11 @@ public class LeavingRouteTests
         var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
             [PlayerIds.Unowned, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         TilePos portal = new(3, 3);
-        if (hasPortal) RoomRules.Place(database, ref world.Tile(portal), database.Room(RoomTypeId.Portal), PlayerIds.Neutral);
+        if (hasPortal)
+        {
+            RoomRules.Place(database, ref world.Tile(portal), database.Room(RoomTypeId.Portal), PlayerIds.Neutral);
+        }
+
         CreatureState creature = world.SpawnCreature(database, 7, PlayerIds.FirstKeeper, new TilePos(1, 1));
         creature.Dk2StateId = LeavingRules.ChoosingState;
         creature.Body.PathTotalCount = 1;
@@ -32,7 +36,10 @@ public class LeavingRouteTests
                 "test", out selected)), new CreatureMovementSystem()]);
         simulation.Tick();
         Assert.Equal(hasPortal, succeeded);
-        if (hasPortal) Assert.Equal(portal, selected);
+        if (hasPortal)
+        {
+            Assert.Equal(portal, selected);
+        }
         else
         {
             Assert.False(creature.HasRoute);

@@ -17,7 +17,10 @@ public sealed class EffectGroupPartsTests
         var random = new Random(11);
         var elements = new List<KmfGroupElement>();
         for (int i = 0; i < 200; i++)
+        {
             elements.Add(new KmfGroupElement("part" + i, new Vector3(Value(random), Value(random), Value(random))));
+        }
+
         elements.Add(new KmfGroupElement("edge", new Vector3(-0.0001f, 1.99999f, -0.5f)));
         EffectGroupPart[] parts = EffectGroupParts.Of(new KmfGroup(elements));
         Assert.Equal(elements.Count, parts.Length);

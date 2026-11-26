@@ -39,7 +39,11 @@ public class DropLandingTests
         long dropped = sim.World.CurrentTick.Value;
         Assert.Equal(255, goblin.Dk2StateId);
 
-        while (goblin.Dk2StateId == 255 && sim.World.CurrentTick.Value < dropped + 200) sim.Tick();
+        while (goblin.Dk2StateId == 255 && sim.World.CurrentTick.Value < dropped + 200)
+        {
+            sim.Tick();
+        }
+
         long up = sim.World.CurrentTick.Value;
         // 255 counts from the turn after it is set (Age 1, 0x004810E0): the Goblin's 1 s is four
         // turns in 255, as Level 1's capture measured.
@@ -47,7 +51,11 @@ public class DropLandingTests
         Assert.Equal(257, goblin.Dk2StateId);
         Assert.Contains(sink.Events, e => e.Kind == "getting_up");
 
-        while (goblin.Dk2StateId == 257 && sim.World.CurrentTick.Value < up + 40) sim.Tick();
+        while (goblin.Dk2StateId == 257 && sim.World.CurrentTick.Value < up + 40)
+        {
+            sim.Tick();
+        }
+
         long stood = sim.World.CurrentTick.Value;
         Assert.Equal(11, stood - up);
         Assert.Equal(DropLandingRules.StandingState, goblin.Dk2StateId);
@@ -56,7 +64,11 @@ public class DropLandingTests
         Assert.Equal(stood - 1, stamped);
         Assert.Contains(sink.Events, e => e.Kind == "standing" && e.Detail.EndsWith($"until={stamped + DropLandingRules.StandTicks}"));
 
-        while (goblin.Dk2StateId == DropLandingRules.StandingState && sim.World.CurrentTick.Value < stood + 80) sim.Tick();
+        while (goblin.Dk2StateId == DropLandingRules.StandingState && sim.World.CurrentTick.Value < stood + 80)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(stamped + DropLandingRules.StandTicks + 1, sim.World.CurrentTick.Value);
         Assert.NotEqual(DropLandingRules.StandingState, goblin.Dk2StateId);
     }
@@ -209,7 +221,10 @@ public class DropLandingTests
         sim.Tick(lifted
             ? InputFrame.Of(new DropCommand(Keeper, Floor), new PickUpCreatureCommand(Keeper, goblin.Id))
             : InputFrame.Of(new DropCommand(Keeper, Floor)));
-        if (!lifted) goblin.Health = 0;
+        if (!lifted)
+        {
+            goblin.Health = 0;
+        }
 
         sim.Run(lifted ? 2 : 1);
 
@@ -246,7 +261,10 @@ public class DropLandingTests
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Floor)));
         sim.Tick();
         long stunnedOn = sim.World.CurrentTick.Value - 1;
-        for (int i = 0; i < 20; i++) sim.Tick();
+        for (int i = 0; i < 20; i++)
+        {
+            sim.Tick();
+        }
 
         var dazed = sink.Events.Where(e => e.EffectRequest?.EffectId.Value == Combat.StatusEffectRules.DazedEffectId).ToList();
         Assert.Single(dazed);
@@ -279,7 +297,11 @@ public class DropLandingTests
         // Stunned, it is still its jailer's to lift (+0x3CB kept); 255's end clears it (0x004811E5),
         // so once up it is not (owner, 2026-11-01).
         Assert.True(HandRules.HasPickupPermission(sim.World, db, captive, Keeper));
-        while (captive.Dk2StateId == 255) sim.Tick();
+        while (captive.Dk2StateId == 255)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(257, captive.Dk2StateId);
         Assert.False(PrisonRules.IsImprisoned(captive));
         Assert.False(HandRules.HasPickupPermission(sim.World, db, captive, Keeper));

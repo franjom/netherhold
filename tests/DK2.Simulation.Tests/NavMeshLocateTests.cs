@@ -73,13 +73,20 @@ public sealed class NavMeshLocateTests
     {
         for (int t = 0; t < mesh.TriangleSlots; t++)
         {
-            if (!mesh.IsTriangleLive(t)) continue;
+            if (!mesh.IsTriangleLive(t))
+            {
+                continue;
+            }
+
             for (int i = 0; i < 3; i++)
             {
                 int p = mesh.Vertex(t, i), q = mesh.Vertex(t, (i + 1) % 3);
                 bool pa = mesh.PointX(p) == ax && mesh.PointY(p) == ay, qb = mesh.PointX(q) == bx && mesh.PointY(q) == by;
                 bool pb = mesh.PointX(p) == bx && mesh.PointY(p) == by, qa = mesh.PointX(q) == ax && mesh.PointY(q) == ay;
-                if ((pa && qb) || (pb && qa)) return true;
+                if ((pa && qb) || (pb && qa))
+                {
+                    return true;
+                }
             }
         }
         return false;

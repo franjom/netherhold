@@ -24,7 +24,11 @@ public class WorkerDrawLagTests
         foreach (double seconds in frameSeconds)
         {
             double advance = seconds * TicksPerSecond;
-            if (observe) lag.Observe(advance);
+            if (observe)
+            {
+                lag.Observe(advance);
+            }
+
             debt += advance;
             int ticks = (int)Math.Min(debt, MaxTicksPerFrame);
             debt -= ticks;
@@ -41,7 +45,10 @@ public class WorkerDrawLagTests
     {
         double[] drawn = DrawnTimes(Steady(240, 60), observe: true);
         double step = TicksPerSecond / 60;
-        for (int i = 30; i < drawn.Length; i++) Assert.Equal(step, drawn[i] - drawn[i - 1], 9);
+        for (int i = 30; i < drawn.Length; i++)
+        {
+            Assert.Equal(step, drawn[i] - drawn[i - 1], 9);
+        }
     }
 
     [Fact]
@@ -57,9 +64,17 @@ public class WorkerDrawLagTests
     public void TheLagIsOneFrameOfTheRateTheGameIsRunningAt()
     {
         var lag = new WorkerDrawLag();
-        for (int i = 0; i < 100; i++) lag.Observe(TicksPerSecond / 120);
+        for (int i = 0; i < 100; i++)
+        {
+            lag.Observe(TicksPerSecond / 120);
+        }
+
         Assert.Equal(TicksPerSecond / 120, lag.Lag, 9);
-        for (int i = 0; i < 100; i++) lag.Observe(TicksPerSecond / 30);
+        for (int i = 0; i < 100; i++)
+        {
+            lag.Observe(TicksPerSecond / 30);
+        }
+
         Assert.Equal(TicksPerSecond / 30, lag.Lag, 6);
     }
 
@@ -87,7 +102,11 @@ public class WorkerDrawLagTests
             // the draw clock reaches its last tick.
             if (pending > 0 && (running += 1 / fps) >= tickSeconds)
             {
-                if (observeTick && !observed) lag.ObserveTick(running * TicksPerSecond);
+                if (observeTick && !observed)
+                {
+                    lag.ObserveTick(running * TicksPerSecond);
+                }
+
                 observed = true;
                 if (debt >= lag.Lag)
                 {
@@ -104,25 +123,43 @@ public class WorkerDrawLagTests
                 observed = false;
             }
             double fraction = lag.Fraction(debt, pending + starting);
-            if (frame >= 200 && pending + starting > 0 && fraction >= 1) clamps++;
+            if (frame >= 200 && pending + starting > 0 && fraction >= 1)
+            {
+                clamps++;
+            }
+
             drawn.Add(presented + fraction);
             pending += starting;
         }
-        for (int i = 60; i < drawn.Count; i++) Assert.True(drawn[i] >= drawn[i - 1] - 1e-9, $"frame {i} drew backwards");
+        for (int i = 60; i < drawn.Count; i++)
+        {
+            Assert.True(drawn[i] >= drawn[i - 1] - 1e-9, $"frame {i} drew backwards");
+        }
+
         if (observeTick)
         {
             Assert.Equal(0, clamps);
             double step = TicksPerSecond / fps;
-            for (int i = 200; i < drawn.Count; i++) Assert.Equal(step, drawn[i] - drawn[i - 1], 9);
+            for (int i = 200; i < drawn.Count; i++)
+            {
+                Assert.Equal(step, drawn[i] - drawn[i - 1], 9);
+            }
         }
-        else Assert.True(clamps >= clampsAtLeast, $"expected the clock to clamp at every tick, saw {clamps}");
+        else
+        {
+            Assert.True(clamps >= clampsAtLeast, $"expected the clock to clamp at every tick, saw {clamps}");
+        }
     }
 
     [Fact]
     public void TheTickTimeRisesAtOnceAndDecaysSlowly()
     {
         var lag = new WorkerDrawLag();
-        for (int i = 0; i < 100; i++) lag.Observe(TicksPerSecond / 150);
+        for (int i = 0; i < 100; i++)
+        {
+            lag.Observe(TicksPerSecond / 150);
+        }
+
         lag.ObserveTick(0.08);
         Assert.Equal(TicksPerSecond / 150 + 0.08, lag.Lag, 9);
         lag.ObserveTick(0.02);
@@ -133,17 +170,28 @@ public class WorkerDrawLagTests
     public void AStallNeverDrawsBackwardsAndNeverHidesAWholeTick()
     {
         var lag = new WorkerDrawLag();
-        for (int i = 0; i < 10; i++) lag.Observe(2);
+        for (int i = 0; i < 10; i++)
+        {
+            lag.Observe(2);
+        }
+
         Assert.Equal(1, lag.Lag);
         double[] drawn = DrawnTimes(Steady(100, 60).Append(0.5).Concat(Steady(100, 60)), observe: true);
-        for (int i = 1; i < drawn.Length; i++) Assert.True(drawn[i] >= drawn[i - 1] - 1e-9, $"frame {i} drew backwards");
+        for (int i = 1; i < drawn.Length; i++)
+        {
+            Assert.True(drawn[i] >= drawn[i - 1] - 1e-9, $"frame {i} drew backwards");
+        }
     }
 
     [Fact]
     public void TheFractionStaysWithinTheKnownMovementInterval()
     {
         var lag = new WorkerDrawLag();
-        for (int i = 0; i < 20; i++) lag.Observe(0.25);
+        for (int i = 0; i < 20; i++)
+        {
+            lag.Observe(0.25);
+        }
+
         Assert.Equal(0, lag.Fraction(0, 0));
         Assert.Equal(1, lag.Fraction(0.9, 1));
         Assert.Equal(0.5, lag.Fraction(0.75, 0), 9);

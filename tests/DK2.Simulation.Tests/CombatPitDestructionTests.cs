@@ -20,8 +20,13 @@ public sealed class CombatPitDestructionTests
             basis.Creatures.Values, basis.Variables);
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 3; y <= 7; y++)
-        for (int x = 3; x <= 7; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.CombatPit), PlayerIds.FirstKeeper);
+        {
+            for (int x = 3; x <= 7; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.CombatPit), PlayerIds.FirstKeeper);
+            }
+        }
+
         CreatureState creature = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, PlayerIds.FirstKeeper, new TilePos(5, 5));
         creature.CombatPitFighter = fighter;
         var sim = new GameSimulation(db, world, 42, []);

@@ -97,8 +97,13 @@ public class RoutelessSteeringTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
             [PlayerIds.Unowned, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         CreatureState idler = world.SpawnCreature(db, type, owner, new TilePos(5, 5));
         CreatureState neighbour = world.SpawnCreature(db, Goblin, Keeper, new TilePos(5, 5));
         idler.PosX = CreatureState.CentreOf(5) - 100;

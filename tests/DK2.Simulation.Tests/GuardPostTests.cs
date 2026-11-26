@@ -24,15 +24,23 @@ public sealed class GuardPostTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y <= 8; y++)
+        {
             for (int x = 1; x <= 12; x++)
             {
                 ref TileState tile = ref world.Tile(x, y);
                 tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
                 tile.OwnerPlayerId = Keeper;
             }
+        }
+
         for (int y = 3; y <= 5; y++)
+        {
             for (int x = 5; x <= 7; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.GuardRoom), Keeper);
+            }
+        }
+
         return (db, world);
     }
 
@@ -66,8 +74,13 @@ public sealed class GuardPostTests
         // slab (10,6) is one tile away, the first room's (5,3) five.
         (GameDatabase db, WorldState world) = World();
         for (int y = 6; y <= 7; y++)
+        {
             for (int x = 10; x <= 11; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.GuardRoom), Keeper);
+            }
+        }
+
         TrapState near = Post(db, world, 9, 6);
         TrapState inside = Post(db, world, 7, 3);
 

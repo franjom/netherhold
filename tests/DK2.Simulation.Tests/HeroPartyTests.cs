@@ -229,8 +229,11 @@ public class HeroPartyTests
             },
         ]);
         foreach (HeroPartyState party in world.HeroParties)
+        {
             Assert.True(HeroPartyRules.Spawn(
                 new StateHookContext(world, database), null, Tree(0, 0), party, PointId, partyType: 0, _ => { }));
+        }
+
         CreatureState asker = world.Creatures.Single(c => c.TriggerId == 7);
         CreatureState ownMate = world.Creatures.Single(c => c.PartyId == 0 && c.Id != asker.Id);
         CreatureState other = world.Creatures.Single(c => c.PartyId == 1);

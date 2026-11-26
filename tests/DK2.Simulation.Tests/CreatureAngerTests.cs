@@ -54,7 +54,11 @@ public class CreatureAngerTests
             new CreatureHealthSystem(),
             new CreatureAngerSystem(),
         ]);
-        if (sink is not null) sim.ObserveWith(sink);
+        if (sink is not null)
+        {
+            sim.ObserveWith(sink);
+        }
+
         return sim;
     }
 
@@ -80,7 +84,11 @@ public class CreatureAngerTests
             new CreatureHealthSystem(),
             new CreatureAngerSystem(),
         ]);
-        if (sink is not null) sim.ObserveWith(sink);
+        if (sink is not null)
+        {
+            sim.ObserveWith(sink);
+        }
+
         return sim;
     }
 
@@ -332,7 +340,11 @@ public class CreatureAngerTests
         // It has to notice and walk there — one tile, a couple of seconds, and
         // each of those seconds is still charged 100 (ADR-0060).
         int waited = 0;
-        while (!LairRules.HasBed(world, db, goblin) && waited++ < Second * 20) sim.Run(1);
+        while (!LairRules.HasBed(world, db, goblin) && waited++ < Second * 20)
+        {
+            sim.Run(1);
+        }
+
         Assert.True(LairRules.HasBed(world, db, goblin), "never got its bed");
         Assert.True(peak >= CreatureAngerRules.UnhappyAt(definition));
 

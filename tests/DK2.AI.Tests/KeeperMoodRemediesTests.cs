@@ -30,8 +30,12 @@ public class KeeperMoodRemediesTests
     private static void Paint(WorldState world, byte floor, int x0, int y0)
     {
         for (int y = y0; y < y0 + 3; y++)
+        {
             for (int x = x0; x < x0 + 3; x++)
+            {
                 KeeperWorld.Set(world, Db, new TilePos(x, y), floor, Keeper);
+            }
+        }
     }
 
     private static (bool Handled, List<PlayerCommand> Commands, KeeperView View) Remedy(
@@ -111,7 +115,10 @@ public class KeeperMoodRemediesTests
     {
         (WorldState? world, CreatureState? creature) = Moody(AngerBucket.Pay);
         var state = new KeeperAIState();
-        for (int i = 0; i < 3; i++) Assert.True(state.Responses.TryReceive(() => new KeeperThreatResponse(1, new TilePos(i, 1))));
+        for (int i = 0; i < 3; i++)
+        {
+            Assert.True(state.Responses.TryReceive(() => new KeeperThreatResponse(1, new TilePos(i, 1))));
+        }
 
         (bool handled, List<PlayerCommand>? commands, KeeperView _) = Remedy(world, Post(world, PlayerMessageKind.CreatureUnhappy, AngerComplaint.Money, creature.Id), state: state);
 
@@ -263,7 +270,10 @@ public class KeeperMoodRemediesTests
         (WorldState? world, CreatureState? creature) = Moody(AngerBucket.Pay);
         PlayerMessage message = Post(world, PlayerMessageKind.CreatureUnhappy, AngerComplaint.Money, creature.Id);
         var state = new KeeperAIState();
-        for (int i = 0; i < 3; i++) state.Responses.TryReceive(() => new KeeperThreatResponse(1, new TilePos(i, 1)));
+        for (int i = 0; i < 3; i++)
+        {
+            state.Responses.TryReceive(() => new KeeperThreatResponse(1, new TilePos(i, 1)));
+        }
 
         var commands = new List<PlayerCommand>();
         var view = new KeeperView(Db, world, Keeper);

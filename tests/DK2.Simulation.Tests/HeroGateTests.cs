@@ -19,8 +19,13 @@ public class HeroGateTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         return (db, world);
     }
 
@@ -87,7 +92,10 @@ public class HeroGateTests
     {
         (GameDatabase db, WorldState world) = Open();
         Paint(world, Dk2TerrainFixture.HeroGateTileTerrain, (5, 5));
-        foreach ((int x, int y) in new[] { (5, 4), (6, 5), (5, 6) }) world.Tile(x, y).TerrainId = Dk2TerrainFixture.Rock;
+        foreach ((int x, int y) in new[] { (5, 4), (6, 5), (5, 6) })
+        {
+            world.Tile(x, y).TerrainId = Dk2TerrainFixture.Rock;
+        }
 
         var at = new TilePos(5, 5);
         Assert.Equal(HeroPartyRules.StepOffResult.Walks, HeroPartyRules.StepOff(world, db, new SimRandom(7), PlayerIds.Good, ref at, out TilePos side));

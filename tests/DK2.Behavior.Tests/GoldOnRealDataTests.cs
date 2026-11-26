@@ -53,7 +53,10 @@ public class GoldOnRealDataTests
     private static Level? Level1()
     {
         string install = Dk2InstallGate.Path;
-        if (install is null) return null; // skipped: no DK2 install
+        if (install is null)
+        {
+            return null; // skipped: no DK2 install
+        }
 
         // The level's own variables: variable 74, the hands test's margin, is only in a level's
         // file (340), and without it a miner fills to the full 1400 (ADR-0296).
@@ -181,7 +184,10 @@ public class GoldOnRealDataTests
         {
             int gold = world.TileAtIndex(i).GoldHeld;
             Assert.True(gold <= perTile, $"a tile holds {gold}, over the limit of {perTile}");
-            if (gold > 0) filled++;
+            if (gold > 0)
+            {
+                filled++;
+            }
         }
         Assert.True(filled >= 2, $"the loads landed in {filled} tile(s)");
     }
@@ -217,11 +223,21 @@ public class GoldOnRealDataTests
         for (int i = 0; i < level.World.TileCount; i++)
         {
             ref TileState tile = ref level.World.TileAtIndex(i);
-            if (tile.OwnerPlayerId != Keeper) continue;
-            if (RoomRules.RoomOn(level.Db, tile)?.TypeId != RoomTypeId.DungeonHeart) continue;
+            if (tile.OwnerPlayerId != Keeper)
+            {
+                continue;
+            }
+
+            if (RoomRules.RoomOn(level.Db, tile)?.TypeId != RoomTypeId.DungeonHeart)
+            {
+                continue;
+            }
 
             heartTiles++;
-            if (GoldStore.Capacity(level.World, level.Db, i) > 0) storing++;
+            if (GoldStore.Capacity(level.World, level.Db, i) > 0)
+            {
+                storing++;
+            }
         }
 
         Assert.Equal(25, heartTiles);

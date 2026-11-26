@@ -178,7 +178,10 @@ public class LightningTests
         Assert.Equal(0, database.Shots[21].Mass);
         Assert.Equal(ProceduralArtKind.Lightning, database.Shots[55].MeshResource.ProceduralKind);
         foreach (byte id in new byte[] { 30, 59, 63 })
+        {
             Assert.Equal(ProceduralArtKind.TripleLightning, database.Shots[id].MeshResource.ProceduralKind);
+        }
+
         Assert.Equal(ProceduralArtKind.FixedLightning, database.Effects[4].ArtResource.ProceduralKind);
         Assert.Equal(ProceduralArtKind.IceRing, database.Effects[28].ArtResource.ProceduralKind);
         using var art = DK2.Art.InstallArtProvider.Open(Dk2InstallGate.Path, database);

@@ -25,7 +25,9 @@ public class NavMeshPartialTests
             Height = rows.Length;
             _bytes = new byte[Width * Height];
             for (int y = 0; y < Height; y++)
+            {
                 for (int x = 0; x < Width; x++)
+                {
                     _bytes[(y * Width) + x] = rows[y][x] switch
                     {
                         '#' => NavBytes.Solid,
@@ -33,6 +35,8 @@ public class NavMeshPartialTests
                         'L' => NavBytes.Lava,
                         _ => NavBytes.Floor,
                     };
+                }
+            }
         }
 
         public int Width { get; }
@@ -89,8 +93,13 @@ public class NavMeshPartialTests
         var mesh = NavMesh.Build(grid);
 
         for (int y = 2; y < 5; y++)
+        {
             for (int x = 2; x < 5; x++)
+            {
                 grid.Set(x, y, NavBytes.Water);
+            }
+        }
+
         mesh.Retriangulate(grid, 2, 2, 5, 5);
 
         AssertEdited(mesh, grid);
@@ -124,7 +133,11 @@ public class NavMeshPartialTests
             int y = 1 + (int)((state >> 8) % (uint)(grid.Height - 2));
             state = (state * 1664525) + 1013904223;
             byte nav = new[] { NavBytes.Floor, NavBytes.Water, NavBytes.Lava, NavBytes.Solid }[(state >> 16) % 4];
-            if (grid.NavByte(x, y) == nav) continue;
+            if (grid.NavByte(x, y) == nav)
+            {
+                continue;
+            }
+
             grid.Set(x, y, nav);
             try
             {
@@ -155,9 +168,16 @@ public class NavMeshPartialTests
         NavMeshTests.AssertInvariants(mesh);
         for (int t = 0; t < mesh.TriangleSlots; t++)
         {
-            if (!mesh.IsTriangleLive(t)) continue;
+            if (!mesh.IsTriangleLive(t))
+            {
+                continue;
+            }
+
             for (int i = 0; i < 3; i++)
+            {
                 Assert.False(mesh.IsConstraint(t, i), $"triangle {t} edge {i} keeps a constraint bit after the edit");
+            }
+
             long cx = 0, cy = 0;
             for (int i = 0; i < 3; i++)
             {
@@ -177,6 +197,8 @@ public class NavMeshPartialTests
                 $"triangle {t} carries byte {mesh.NavByte(t)} over tile ({tx},{ty}) whose byte is {grid.NavByte(tx, ty)}");
         }
         foreach ((int x, int y) in new[] { (0, 0), (grid.Width, 0), (grid.Width, grid.Height), (0, grid.Height) })
+        {
             Assert.True(mesh.TryLocateVertex(x, y, out _, out _), $"map corner ({x},{y}) is no longer a vertex");
+        }
     }
 }

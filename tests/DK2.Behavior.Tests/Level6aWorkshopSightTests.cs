@@ -33,7 +33,10 @@ public class Level6aWorkshopSightTests
         simulation.Tick();
 
         Assert.True(world.DoorAt(37, 24)!.Open);
-        for (int y = 25; y <= 27; y++) Assert.True(world.Tile(37, y).IsExploredBy(Keeper), $"(37,{y})");
+        for (int y = 25; y <= 27; y++)
+        {
+            Assert.True(world.Tile(37, y).IsExploredBy(Keeper), $"(37,{y})");
+        }
     }
 
     [InstallFact]
@@ -44,7 +47,10 @@ public class Level6aWorkshopSightTests
         simulation.Tick();
 
         Assert.False(world.DoorAt(37, 24)!.Open);
-        for (int y = 25; y <= 28; y++) Assert.False(world.Tile(37, y).IsExploredBy(Keeper), $"(37,{y})");
+        for (int y = 25; y <= 28; y++)
+        {
+            Assert.False(world.Tile(37, y).IsExploredBy(Keeper), $"(37,{y})");
+        }
     }
 
     /// <summary>Sight marks the blocking tile itself (0x0044E7F0 tests the slots before the cell closes
@@ -101,9 +107,19 @@ public class Level6aWorkshopSightTests
         var world = WorldState.FromMap(db, map, players.Select(p => p.PlayerId), fogOfWarEnabled: true);
         ThingProjection.Place(world, db, GameDatabaseLoader.LoadCampaignThings(install, "Level6a")!);
         for (int y = 25; y <= 28; y++)
-            for (int x = 36; x <= 38; x++) world.Tile(x, y).ClearExploredBy(Keeper);
+        {
+            for (int x = 36; x <= 38; x++)
+            {
+                world.Tile(x, y).ClearExploredBy(Keeper);
+            }
+        }
+
         world.SpawnCreature(db, 1, Keeper, new TilePos(37, 23));
-        if (lockHatcheryDoor) world.DoorAt(37, 24)!.LockMode = 3;
+        if (lockHatcheryDoor)
+        {
+            world.DoorAt(37, 24)!.LockMode = 3;
+        }
+
         return (new GameSimulation(db, world, 1, [new DoorSystem(), new FogOfWarSystem()]), world);
     }
 }

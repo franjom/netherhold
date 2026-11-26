@@ -134,7 +134,11 @@ public class CombatFearTests
         WithdrawCall call = CallWithdraw(db, world, goblin, 1u);
 
         var picks = new Dk2Lcg(call.SeedBefore);
-        for (int i = 0; i < 3; i++) picks.NextInt(1);
+        for (int i = 0; i < 3; i++)
+        {
+            picks.NextInt(1);
+        }
+
         Assert.True(call.Withdrew);
         Assert.NotEqual(picks.Seed, call.SeedAfter);
         Assert.InRange(goblin.Destination.X, 11, 13);
@@ -226,13 +230,20 @@ public class CombatFearTests
         WithdrawCall call = CallWithdraw(db, world, goblin, seed, demon.Tile);
 
         var replay = new Dk2Lcg(call.SeedBefore);
-        for (int i = 0; i < 3; i++) replay.NextInt(1);
+        for (int i = 0; i < 3; i++)
+        {
+            replay.NextInt(1);
+        }
+
         replay.NextInt(2);
         for (int attempt = 0; attempt < 5; attempt++)
         {
             int west = replay.NextInt(8);
             replay.NextInt(4);
-            if (west <= 1) break;
+            if (west <= 1)
+            {
+                break;
+            }
         }
         replay.NextInt(3);
         replay.NextInt(3);
@@ -243,7 +254,11 @@ public class CombatFearTests
     private static uint Stepped(uint seed, int draws)
     {
         var lcg = new Dk2Lcg(seed);
-        for (int i = 0; i < draws; i++) lcg.NextInt(2);
+        for (int i = 0; i < draws; i++)
+        {
+            lcg.NextInt(2);
+        }
+
         return lcg.Seed;
     }
 
@@ -457,7 +472,10 @@ public class CombatFearTests
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
 
-        for (int t = 0; t < 100 && !sink.Events.Any(e => e.Kind == "withdraws"); t++) sim.Tick();
+        for (int t = 0; t < 100 && !sink.Events.Any(e => e.Kind == "withdraws"); t++)
+        {
+            sim.Tick();
+        }
 
         Assert.Contains(sink.Events, e => e.Kind == "withdraws" && e.Detail.Contains("creature=" + goblin.Id));
         // Fled at 2 with a 60-turn back-off whose steps all slide (ADR-0594), so the timer runs out at 63
@@ -478,7 +496,11 @@ public class CombatFearTests
         CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 12, 12);
         CreatureState demon = Touching(db, world, Dk2TerrainFixture.BileDemonCreatureId, Rival, goblin);
         GameSimulation sim = Combat(db, world);
-        for (int t = 0; t < 10 && goblin.Activity != CreatureActivity.Fleeing; t++) sim.Tick();
+        for (int t = 0; t < 10 && goblin.Activity != CreatureActivity.Fleeing; t++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(CreatureActivity.Fleeing, goblin.Activity);
         Assert.True(goblin.BackOffTimer > 1);
 
@@ -545,9 +567,16 @@ public class CombatFearTests
         (GameDatabase db, WorldState world) = OpenWorld();
         // The Goblin in a one-tile pocket whose only open neighbour the Demon stands on.
         for (int dy = -1; dy <= 1; dy++)
+        {
             for (int dx = -1; dx <= 1; dx++)
+            {
                 if ((dx != 0 || dy != 0) && !(dx == 1 && dy == 0))
+                {
                     world.Tile(new TilePos(12 + dx, 12 + dy)).TerrainId = Dk2TerrainFixture.Rock;
+                }
+            }
+        }
+
         CreatureState goblin = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Keeper, 12, 12);
         CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Rival, 13, 12);
         demon.PosX = goblin.PosX + 2200;
@@ -724,7 +753,9 @@ public class CombatFearTests
                 ref TileState tile = ref world.Tile(new TilePos(x, y));
                 if (tile.TerrainId == Dk2TerrainFixture.Rock || tile.TerrainId == Dk2TerrainFixture.Gold
                     || tile.TerrainId == Dk2TerrainFixture.Gems)
+                {
                     tile.TerrainId = Dk2TerrainFixture.DirtPath;
+                }
             }
         }
         return (db, world);

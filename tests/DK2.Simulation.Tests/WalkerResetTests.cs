@@ -88,12 +88,15 @@ public sealed class WalkerResetTests
     {
         (GameDatabase db, WorldState world) = World();
         for (int x = 1; x <= 8; x++)
-        for (int y = 3; y <= 5; y++)
+        {
+            for (int y = 3; y <= 5; y++)
         {
             ref TileState tile = ref world.Tile(x, y);
             tile.TerrainId = y == 4 ? Dk2TerrainFixture.ClaimedPath : Dk2TerrainFixture.Rock;
             tile.OwnerPlayerId = y == 4 ? Keeper : (byte)0;
         }
+        }
+
         world.Tile(1, 4).GoldHeld = 10_000;
         CreatureState walker = Walker(db, world, Keeper, TravelToRoom, LairRules.MakingAHomeState);
         var sim = new GameSimulation(db, world, seed: 1, [new BlueprintSystem()]);

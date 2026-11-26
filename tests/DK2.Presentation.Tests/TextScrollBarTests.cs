@@ -37,7 +37,11 @@ public sealed class TextScrollBarTests
         var bar = new TextScrollBar();
         bar.Reset(textPixels: 500, boxPixels: 300);
         Assert.Equal((64, 16), bar.Thumb(TextScrollBar.Height));
-        for (int i = 0; i < 200; i++) bar.Step(1);
+        for (int i = 0; i < 200; i++)
+        {
+            bar.Step(1);
+        }
+
         Assert.Equal((64 + 160 - 16, 16), bar.Thumb(TextScrollBar.Height));
     }
 

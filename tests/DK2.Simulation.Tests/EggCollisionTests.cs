@@ -88,8 +88,15 @@ public class EggCollisionTests
     public void HeldOrCarriedEggsDoNotMoveAgeOrDraw(bool carried)
     {
         (GameSimulation? sim, ObjectState? egg, ListEventSink? events, CollisionRandom? rng) = Start(0, defaultSystems: true);
-        if (carried) egg.CarriedByCreatureId = 123;
-        else egg.InHand = true;
+        if (carried)
+        {
+            egg.CarriedByCreatureId = 123;
+        }
+        else
+        {
+            egg.InHand = true;
+        }
+
         sim.Tick();
         Assert.Contains(egg, sim.World.Objects);
         Assert.Equal(37, egg.ProcessAgeTicks);
@@ -119,13 +126,21 @@ public class EggCollisionTests
     {
         (GameSimulation? sim, ObjectState? egg, ListEventSink _, CollisionRandom? rng) = Start(0, defaultSystems: true);
         sim.World.RemoveObject(egg.Id);
-        if (!eggNewer) egg = AddEgg(sim);
+        if (!eggNewer)
+        {
+            egg = AddEgg(sim);
+        }
+
         ObjectState chicken = sim.World.SpawnObject(sim.Database, HatcheryRules.ChickenObjectId, Keeper,
             sim.World.TileIndex(new TilePos(1, 1)));
         chicken.ProcessState = (byte)ChickenProcess.Loose;
         sim.World.Tile(2, 1).TerrainId = Dk2TerrainFixture.Rock;
         sim.World.Tile(1, 2).TerrainId = Dk2TerrainFixture.Rock;
-        if (eggNewer) egg = AddEgg(sim);
+        if (eggNewer)
+        {
+            egg = AddEgg(sim);
+        }
+
         rng.Bounds.Clear();
         sim.Tick();
         Assert.Equal(eggNewer ? new[] { 2, 4 } : [4, 2], rng.Bounds.Take(2));
@@ -179,7 +194,11 @@ public class EggCollisionTests
                 sim.World.TileIndex(new TilePos(2, 2)));
             thing.ProcessState = 29;
         }
-        else egg.PhysicalVelocityX = 2000;
+        else
+        {
+            egg.PhysicalVelocityX = 2000;
+        }
+
         var art = new CreatureAnimationTiming[9];
         art[0] = art[5] = new() { ResourceType = 6, FrameCount = 45, FramesPerSecond = 30 };
         GameDatabase db = sim.Database;

@@ -22,7 +22,10 @@ public class TaskStealingTests
 
         public void Ticks(int count)
         {
-            for (int i = 0; i < count; i++) Sim.Tick(InputFrame.Empty);
+            for (int i = 0; i < count; i++)
+            {
+                Sim.Tick(InputFrame.Empty);
+            }
         }
 
         public CreatureState Imp(TilePos at) =>
@@ -112,7 +115,11 @@ public class TaskStealingTests
     {
         Run run = Start();
         CreatureState first = run.Imp(new TilePos(3, 2));
-        for (int i = 0; i < 200 && first.Dk2StateId is not (15 or 16); i++) run.Ticks(1);
+        for (int i = 0; i < 200 && first.Dk2StateId is not (15 or 16); i++)
+        {
+            run.Ticks(1);
+        }
+
         Assert.True(first.Dk2StateId is 15 or 16);
         Assert.Equal(run.Index(new TilePos(4, 2)), first.TargetTileIndex);
         int centreX = CreatureState.CentreOf(4), centreY = CreatureState.CentreOf(2);
@@ -150,7 +157,11 @@ public class TaskStealingTests
         CreatureState[] miners = [run.Imp(new TilePos(2, 2)), run.Imp(new TilePos(2, 3)), run.Imp(new TilePos(3, 2))];
         run.Sim.Tick(InputFrame.Of(TagTilesCommand.Tag(Keeper, new TilePos(5, 5))));
         int seam = run.Index(new TilePos(5, 5));
-        for (int i = 0; i < 400 && !miners.All(m => m.TargetTileIndex == seam && m.Dk2StateId == 26); i++) run.Ticks(1);
+        for (int i = 0; i < 400 && !miners.All(m => m.TargetTileIndex == seam && m.Dk2StateId == 26); i++)
+        {
+            run.Ticks(1);
+        }
+
         Assert.All(miners, m => Assert.True(m.TargetTileIndex == seam && m.Dk2StateId == 26));
 
         CreatureState moved = miners.Single(m => m.WorkSlot == miners.Max(n => n.WorkSlot));
@@ -179,7 +190,10 @@ public class TaskStealingTests
         enemy.Health = run.Db.TerrainById(Dk2TerrainFixture.ClaimedPath).MaxHealth;
         run.Imp(new TilePos(3, 2));
 
-        for (int i = 0; i < 3000 && run.World.Tile(4, 2).OwnerPlayerId != Keeper; i++) run.Ticks(1);
+        for (int i = 0; i < 3000 && run.World.Tile(4, 2).OwnerPlayerId != Keeper; i++)
+        {
+            run.Ticks(1);
+        }
 
         Assert.Equal(Keeper, run.World.Tile(4, 2).OwnerPlayerId);
         Assert.Single(run.Of("attack_to_claim"));

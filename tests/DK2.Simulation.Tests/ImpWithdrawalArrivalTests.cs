@@ -88,11 +88,14 @@ public sealed class ImpWithdrawalArrivalTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 1; y < world.Height - 1; y++)
-        for (int x = 1; x < world.Width - 1; x++)
+        {
+            for (int x = 1; x < world.Width - 1; x++)
         {
             world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
             world.Tile(x, y).OwnerPlayerId = PlayerIds.FirstKeeper;
         }
+        }
+
         return (db, world, world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId,
             PlayerIds.FirstKeeper, new TilePos(7, 6)));
     }

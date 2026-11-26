@@ -29,7 +29,9 @@ public class PlacedThingsOnRealDataTests
         Assert.True(Directory.Exists(maps), $"'{maps}' is missing from the installation.");
 
         foreach (string file in Directory.EnumerateFiles(maps, "*Things.kld").OrderBy(f => f))
+        {
             yield return Path.GetFileName(file)[..^"Things.kld".Length];
+        }
     }
 
     private static IEnumerable<(int X, int Y)> Tiles(ThingRecord record)
@@ -75,7 +77,10 @@ public class PlacedThingsOnRealDataTests
         foreach (string level in LevelNames(install))
         {
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
-            if (map is null) continue;
+            if (map is null)
+            {
+                continue;
+            }
 
             List<ThingRecord>? things = GameDatabaseLoader.LoadCampaignThings(install, level);
             Assert.NotNull(things);
@@ -88,7 +93,9 @@ public class PlacedThingsOnRealDataTests
                     maxX = Math.Max(maxX, x);
                     maxY = Math.Max(maxY, y);
                     if (!map.Contains(x, y))
+                    {
                         offenders.Add($"{level} {record.GetType().Name} ({x},{y}) on {map.Width}x{map.Height}");
+                    }
                 }
             }
         }
@@ -189,18 +196,30 @@ public class PlacedThingsOnRealDataTests
         foreach (string level in LevelNames(install))
         {
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
-            if (map is null) continue;
+            if (map is null)
+            {
+                continue;
+            }
 
             foreach (ThingRecord record in GameDatabaseLoader.LoadCampaignThings(install, level) ?? [])
             {
-                if (record is not RoomThing room || !map.Contains(room.X, room.Y)) continue;
+                if (record is not RoomThing room || !map.Contains(room.X, room.Y))
+                {
+                    continue;
+                }
 
                 rooms++;
                 roomTypes.Add(room.RoomType);
                 MapTile tile = map[room.X, room.Y];
                 if (tile.TerrainId != room.RoomType)
+                {
                     terrainDisagreements.Add($"{level} ({room.X},{room.Y}) record {room.RoomType} grid {tile.TerrainId}");
-                if (tile.PlayerId != room.PlayerId) ownerDisagreements++;
+                }
+
+                if (tile.PlayerId != room.PlayerId)
+                {
+                    ownerDisagreements++;
+                }
             }
         }
 
@@ -213,7 +232,9 @@ public class PlacedThingsOnRealDataTests
         // and three of the four are not room ids at all.
         Assert.Equal(new[] { 14, 33, 34, 37 }, roomTypes.ToArray());
         foreach (int terrainId in roomTypes)
+        {
             Assert.NotNull(db.RoomByTerrain((byte)terrainId));
+        }
     }
 
     /// <summary>
@@ -311,7 +332,10 @@ public class PlacedThingsOnRealDataTests
         foreach (string level in LevelNames(install))
         {
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
-            if (map is null) continue;
+            if (map is null)
+            {
+                continue;
+            }
 
             List<ThingRecord>? things = GameDatabaseLoader.LoadCampaignThings(install, level);
             Assert.NotNull(things);
@@ -331,8 +355,15 @@ public class PlacedThingsOnRealDataTests
             effectGenerators += result.EffectGenerators;
             rooms += result.RoomsAlreadyInTheGrid;
             notYet += result.NotYetProjected;
-            if (result.Doors != 0 || result.Traps != 0) levelsWithDoorsOrTraps++;
-            if (result.HeroParties != 0) levelsWithHeroParties++;
+            if (result.Doors != 0 || result.Traps != 0)
+            {
+                levelsWithDoorsOrTraps++;
+            }
+
+            if (result.HeroParties != 0)
+            {
+                levelsWithHeroParties++;
+            }
 
             Assert.Equal(result.Creatures, world.Creatures.Count);
             Assert.Equal(result.Objects, world.Objects.Count);
@@ -376,7 +407,11 @@ public class PlacedThingsOnRealDataTests
                 Assert.Equal(source.PlayerId, projected.PlayerId);
                 Assert.Equal(source.Flags, projected.Flags);
                 Assert.Equal((source.Flags & 0x02) != 0, projected.UnderConstruction);
-                if (projected.UnderConstruction) unfinishedDoors++;
+                if (projected.UnderConstruction)
+                {
+                    unfinishedDoors++;
+                }
+
                 Assert.Equal(source.Unknown_0011.ToArray(), projected.Unknown_0011.ToArray());
             }
 
@@ -393,7 +428,10 @@ public class PlacedThingsOnRealDataTests
                 Assert.Equal(source.PlayerId, projected.PlayerId);
                 Assert.Equal(source.Unknown_000F, projected.Unknown_000F);
                 Assert.Equal(source.NumberOfShots == 0, projected.UnderConstruction);
-                if (projected.UnderConstruction) unfinishedTraps++;
+                if (projected.UnderConstruction)
+                {
+                    unfinishedTraps++;
+                }
             }
 
             HeroPartyThing[] authoredParties = things.OfType<HeroPartyThing>().ToArray();
@@ -520,7 +558,11 @@ public class PlacedThingsOnRealDataTests
             foreach (ThingRecord record in
                      GameDatabaseLoader.LoadCampaignThings(install, level) ?? [])
             {
-                if (record is not ActionPointThing point) continue;
+                if (record is not ActionPointThing point)
+                {
+                    continue;
+                }
+
                 sourceBits |= point.Flags;
                 points++;
             }
@@ -561,15 +603,25 @@ public class PlacedThingsOnRealDataTests
         {
             foreach (ThingRecord record in GameDatabaseLoader.LoadCampaignThings(install, level) ?? [])
             {
-                if (record is not HeroPartyThing party) continue;
+                if (record is not HeroPartyThing party)
+                {
+                    continue;
+                }
+
                 foreach (GoodCreatureThing m in party.Members)
                 {
-                    if (m.CreatureId == 0) continue;
+                    if (m.CreatureId == 0)
+                    {
+                        continue;
+                    }
+
                     members++;
                     flags.Add(m.Flags); flags2.Add(m.Flags2); objectives.Add(m.Objective);
                     radii.Add(m.WanderRadius);
                     if (m.PartyId != party.PartyId)
+                    {
                         mismatches.Add($"{level} party {party.PartyId} member {m.CreatureId}: tail {m.PartyId}");
+                    }
                 }
             }
         }

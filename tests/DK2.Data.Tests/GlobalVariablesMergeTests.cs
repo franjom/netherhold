@@ -24,7 +24,10 @@ public class GlobalVariablesMergeTests
     {
         var vars = new GlobalVariables();
         foreach ((VariableTypeId id, int value) in values)
+        {
             vars.Misc[id] = new MiscVariable(id, value, 0, 0);
+        }
+
         return vars;
     }
 

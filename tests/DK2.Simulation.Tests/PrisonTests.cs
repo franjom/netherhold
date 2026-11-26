@@ -57,9 +57,17 @@ public class PrisonTests
             new PrisonerEatSystem(),
             new PrisonerWanderSystem(),
         };
-        if (last is not null) systems.Add(last);
+        if (last is not null)
+        {
+            systems.Add(last);
+        }
+
         var sim = new GameSimulation(db, world, seed: 42, systems);
-        if (sink is not null) sim.ObserveWith(sink);
+        if (sink is not null)
+        {
+            sim.ObserveWith(sink);
+        }
+
         return sim;
     }
 
@@ -87,8 +95,12 @@ public class PrisonTests
         }
 
         for (int y = 3; y <= 5; y++)
+        {
             for (int x = 4; x <= 6; x++)
+            {
                 Paint(db, world, RoomTypeId.Prison, new TilePos(x, y));
+            }
+        }
     }
 
     /// <summary>A 5x5 prison, <b>whose fenced interior is exactly the 3x3 that
@@ -109,8 +121,12 @@ public class PrisonTests
         }
 
         for (int y = 2; y <= 6; y++)
+        {
             for (int x = 3; x <= 7; x++)
+            {
                 Paint(db, world, RoomTypeId.Prison, new TilePos(x, y));
+            }
+        }
     }
 
     /// <summary>
@@ -136,8 +152,16 @@ public class PrisonTests
         /// cell (state 44's walk), so the Prison fills after state 43's own check.</summary>
         public void Execute(SimulationContext context)
         {
-            if (_filled || imp.Activity != CreatureActivity.CarryingBody) return;
-            if (atTheDoor && imp.UtilityNewState != ImpStates.AtThePrisonDoor) return;
+            if (_filled || imp.Activity != CreatureActivity.CarryingBody)
+            {
+                return;
+            }
+
+            if (atTheDoor && imp.UtilityNewState != ImpStates.AtThePrisonDoor)
+            {
+                return;
+            }
+
             _filled = true;
             Prisoner(db, context.World, CellB);
         }
@@ -172,7 +196,10 @@ public class PrisonTests
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
-        for (int i = 0; i < 30 * Second; i++) sim.Tick();
+        for (int i = 0; i < 30 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Equal(CreatureActivity.Imprisoned, enemy.Activity);
         Assert.Equal(Keeper, enemy.PrisonOwnerPlayerId);
@@ -270,15 +297,23 @@ public class PrisonTests
         WorldState world = World(db);
         Prison(db, world);
         for (int y = 1; y <= 8; y++)
+        {
             for (int x = 9; x <= 14; x++)
             {
                 ref TileState tile = ref world.Tile(x, y);
                 tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
                 tile.OwnerPlayerId = Keeper;
             }
+        }
+
         for (int y = 3; y <= 5; y++)
+        {
             for (int x = 10; x <= 12; x++)
+            {
                 Paint(db, world, RoomTypeId.Prison, new TilePos(x, y));
+            }
+        }
+
         Prisoner(db, world, CellA);
         CreatureState enemy = world.SpawnCreature(db, GoblinId, Rival, new TilePos(1, 1));
         Down(new StateHookContext(world, db), enemy);
@@ -286,7 +321,10 @@ public class PrisonTests
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink, new FillWhenCarrying(db, imp));
 
-        for (int i = 0; i < 60 * Second && !PrisonRules.IsImprisoned(enemy); i++) sim.Tick();
+        for (int i = 0; i < 60 * Second && !PrisonRules.IsImprisoned(enemy); i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Contains(sink.Events, e => e.Kind == "prisoner_redirected" && e.Detail.Contains($"body={enemy.Id}"));
         Assert.True(PrisonRules.IsImprisoned(enemy));
@@ -308,7 +346,10 @@ public class PrisonTests
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink, new UnpaintWhenCarrying(imp));
 
-        for (int i = 0; i < 60 * Second && !sink.Events.Any(e => e.Kind == "body_dropped"); i++) sim.Tick();
+        for (int i = 0; i < 60 * Second && !sink.Events.Any(e => e.Kind == "body_dropped"); i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Contains(sink.Events, e => e.Kind == "body_dropped" && e.Detail.Contains("reason=no_prison"));
         Assert.True(CreatureDeathRules.IsDying(enemy));
@@ -325,11 +366,19 @@ public class PrisonTests
 
         public void Execute(SimulationContext context)
         {
-            if (_done || imp.Activity != CreatureActivity.CarryingBody) return;
+            if (_done || imp.Activity != CreatureActivity.CarryingBody)
+            {
+                return;
+            }
+
             _done = true;
             for (int y = 3; y <= 5; y++)
+            {
                 for (int x = 4; x <= 6; x++)
+                {
                     context.World.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
+                }
+            }
         }
     }
 
@@ -346,7 +395,10 @@ public class PrisonTests
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
 
         GameSimulation sim = Simulation(db, world);
-        for (int i = 0; i < 20 * Second; i++) sim.Tick();
+        for (int i = 0; i < 20 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.False(PrisonRules.IsImprisoned(enemy));
         Assert.NotEqual(CreatureActivity.FetchingBody, imp.Activity);
@@ -372,7 +424,10 @@ public class PrisonTests
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink, new FillWhenCarrying(db, imp));
-        for (int i = 0; i < 30 * Second; i++) sim.Tick();
+        for (int i = 0; i < 30 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.False(PrisonRules.IsImprisoned(enemy));
         Assert.Contains(sink.Events, e =>
@@ -434,8 +489,12 @@ public class PrisonTests
             }
         }
         for (int y = 1; y <= 3; y++)
+        {
             for (int x = 9; x <= 13; x++)
+            {
                 Paint(db, world, RoomTypeId.Prison, new TilePos(x, y));
+            }
+        }
 
         Prisoner(db, world, CellA);
         Prisoner(db, world, CellB);
@@ -445,7 +504,10 @@ public class PrisonTests
         world.SpawnCreature(db, ImpId, Keeper, Floor);
 
         GameSimulation sim = Simulation(db, world);
-        for (int i = 0; i < 90 * Second; i++) sim.Tick();
+        for (int i = 0; i < 90 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.True(PrisonRules.IsImprisoned(enemy));
         Assert.True(enemy.Tile.X >= 9);
@@ -464,8 +526,12 @@ public class PrisonTests
 
         // A 3×3 Temple whose centre, (2, 7), is its pool: only there is an offering made (ADR-0400).
         for (int y = 6; y <= 8; y++)
-        for (int x = 1; x <= 3; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Temple), Keeper);
+        {
+            for (int x = 1; x <= 3; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Temple), Keeper);
+            }
+        }
 
         CreatureState captive = Prisoner(db, world, CellB);
 
@@ -523,8 +589,12 @@ public class PrisonTests
         WorldState world = World(db);
 
         for (int y = 3; y < 3 + h; y++)
+        {
             for (int x = 4; x < 4 + w; x++)
+            {
                 Paint(db, world, RoomTypeId.Prison, new TilePos(x, y));
+            }
+        }
 
         RoomInstance prison = RoomIndex.Build(world, db)
             .Single(r => r.Definition.TypeId == RoomTypeId.Prison);
@@ -566,11 +636,19 @@ public class PrisonTests
 
         // Twelve at a time, not three a second: the hook reloads variable19 << 2 (ADR-0171).
         // It bites on the fifth turn after entry and then every 17 (Q424): turns 4, 21, 38.
-        for (int i = 0; i < 4; i++) sim.Tick();
+        for (int i = 0; i < 4; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(390, captive.Health);
         sim.Tick();
         Assert.Equal(390 - 12, captive.Health);
-        for (int i = 0; i < 16; i++) sim.Tick();
+        for (int i = 0; i < 16; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(390 - 12, captive.Health);
         sim.Tick();
         Assert.Equal(390 - 24, captive.Health);
@@ -607,7 +685,11 @@ public class PrisonTests
         int captiveId = captive.Id;
 
         GameSimulation sim = Simulation(db, world);
-        for (int i = 0; i < 548; i++) sim.Tick();
+        for (int i = 0; i < 548; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.NotNull(world.CreatureById(captiveId));
 
         sim.Tick();
@@ -645,7 +727,11 @@ public class PrisonTests
         for (int i = 0; i < 5 * Second; i++)
         {
             sim.Tick();
-            if (world.CreatureById(captiveId) is null) break;
+            if (world.CreatureById(captiveId) is null)
+            {
+                break;
+            }
+
             died = captive.Tile;
         }
 
@@ -685,7 +771,10 @@ public class PrisonTests
         int arrived = bones.Health;
 
         GameSimulation sim = Simulation(db, world);
-        for (int i = 0; i < 60 * Second; i++) sim.Tick();
+        for (int i = 0; i < 60 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Equal(arrived, bones.Health);
         Assert.True(PrisonRules.IsImprisoned(bones));
@@ -693,7 +782,11 @@ public class PrisonTests
         // And the control, on the same map and the same clock: a Goblin does.
         CreatureState goblin = Prisoner(db, world, CellB);
         int before = goblin.Health;
-        for (int i = 0; i < 10 * Second; i++) sim.Tick();
+        for (int i = 0; i < 10 * Second; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.True(goblin.Health < before);
     }
 
@@ -709,7 +802,10 @@ public class PrisonTests
         captive.Health = 1;
 
         GameSimulation sim = Simulation(db, world);
-        for (int i = 0; i < 2 * Second; i++) sim.Tick();
+        for (int i = 0; i < 2 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.DoesNotContain(world.Creatures, CreatureDeathRules.IsCorpse);
         Assert.DoesNotContain(world.Creatures, CreatureDeathRules.IsDying);
@@ -732,7 +828,10 @@ public class PrisonTests
         CreatureState captive = Prisoner(db, world, CellA);
 
         GameSimulation sim = Simulation(db, world);
-        for (int i = 0; i < 20 * Second; i++) sim.Tick();
+        for (int i = 0; i < 20 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         // Wandering is not a change of activity: the original stays in its
         // prison states throughout, and so does this. Nor is walking to a
@@ -763,7 +862,10 @@ public class PrisonTests
         captive.HungerNeed = 0;
 
         GameSimulation sim = Simulation(db, world);
-        for (int i = 0; i < 10 * Second; i++) sim.Tick();
+        for (int i = 0; i < 10 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Equal(EatingRules.HungerFill(db, goblin, captive.Level), captive.HungerNeed);
 
@@ -907,7 +1009,10 @@ public class PrisonTests
         sim.Tick(InputFrame.Of(new SlapCreatureCommand(Keeper, captive.Id)));
         Assert.True(captive.Health <= 0, "one slap was not enough to finish it");
 
-        for (int i = 0; i < 2 * Second; i++) sim.Tick();
+        for (int i = 0; i < 2 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Contains(sink.Events, e => e.Kind == "prisoner_slain");
         Assert.DoesNotContain(sink.Events, e => e.Kind == "prisoner_perished");
@@ -963,7 +1068,11 @@ public class PrisonTests
         Assert.Equal(255, captive.Dk2StateId);
         Assert.True(PrisonRules.IsImprisoned(captive));
         var status = new GameSimulation(db, world, 1, [new CreatureStatusSystem()]);
-        while (captive.Dk2StateId == 255) status.Tick();
+        while (captive.Dk2StateId == 255)
+        {
+            status.Tick();
+        }
+
         Assert.False(PrisonRules.IsImprisoned(captive));
         Assert.Equal(Rival, captive.OwnerPlayerId);
         Assert.NotEqual(CreatureActivity.Imprisoned, captive.Activity);
@@ -986,7 +1095,10 @@ public class PrisonTests
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
         sim.Tick(InputFrame.Of(SellRoomCommand.At(Keeper, CellA)));
-        for (int i = 0; i < 2 * Second; i++) sim.Tick();
+        for (int i = 0; i < 2 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         // The Prison's freed and tiles-changed slots kick it to 126, which finds no Prison and lets
         // it go (0x004E2C00, 0x004E2B30, ADR-0406).
@@ -1021,7 +1133,10 @@ public class PrisonTests
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
-        for (int i = 0; i < 20 * Second; i++) sim.Tick();
+        for (int i = 0; i < 20 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.False(PrisonRules.IsImprisoned(first));
         Assert.False(PrisonRules.IsImprisoned(filler));
@@ -1048,7 +1163,10 @@ public class PrisonTests
         CreatureState second = Prisoner(db, world, CellB);
 
         GameSimulation sim = Simulation(db, world);
-        for (int i = 0; i < 30 * Second; i++) sim.Tick();
+        for (int i = 0; i < 30 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.True(PrisonRules.IsImprisoned(first));
         Assert.True(PrisonRules.IsImprisoned(second));
@@ -1065,7 +1183,10 @@ public class PrisonTests
         CreatureState captive = Prisoner(db, world, CellA);
 
         GameSimulation sim = Simulation(db, world);
-        for (int i = 0; i < 3 * Second; i++) sim.Tick();
+        for (int i = 0; i < 3 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         byte[] bytes = WorldSnapshot.ToBytes(sim);
         GameSimulation restored = WorldSnapshot.FromBytes(
@@ -1120,7 +1241,9 @@ public class PrisonTests
         // Every tile of it, rim and fenced alike, is ground a walker may stand on.
         var grid = new WorldPathGrid(db, world, db.CreatureById(GoblinId));
         foreach (int tileIndex in prison.TileIndices)
+        {
             Assert.True(grid.IsWalkable(tileIndex % world.Width, tileIndex / world.Width));
+        }
 
         // And a free creature standing on one is nobody's prisoner and stays put
         // where a captive would be shuffled about its cell.
@@ -1129,7 +1252,10 @@ public class PrisonTests
 
         TilePos start = free.Tile;
         GameSimulation sim = Simulation(db, world);
-        for (int i = 0; i < 5 * Second; i++) sim.Tick();
+        for (int i = 0; i < 5 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Equal(start, free.Tile);
     }
@@ -1150,8 +1276,13 @@ public class PrisonTests
 
         // A second prison raises the ceiling for both, because the sum is the keeper's.
         for (int y = 2; y <= 4; y++)
+        {
             for (int x = 9; x <= 11; x++)
+            {
                 Paint(db, world, RoomTypeId.Prison, new TilePos(x, y));
+            }
+        }
+
         Assert.Equal(12, PrisonRules.SkeletonCap(world, db, Keeper));
 
         // And a rival's prison is nobody else's ceiling.
@@ -1217,7 +1348,10 @@ public class PrisonTests
         for (int i = 0; i < 80 * Second; i++)
         {
             sim.Tick();
-            if (world.CreatureById(captive.Id) is null) break;
+            if (world.CreatureById(captive.Id) is null)
+            {
+                break;
+            }
 
             visited.Add(captive.Tile);
             Assert.InRange(captive.Tile.X, 4, 6);
@@ -1280,7 +1414,10 @@ public class PrisonTests
         for (int i = 0; i < 60 * Second; i++)
         {
             sim.Tick();
-            if (world.CreatureById(captive.Id) is null) break;
+            if (world.CreatureById(captive.Id) is null)
+            {
+                break;
+            }
 
             visited.Add(captive.Tile);
             Assert.True(
@@ -1323,12 +1460,14 @@ public class PrisonTests
         WorldState world = World(db);
 
         for (int y = 1; y <= 8; y++)
+        {
             for (int x = 1; x <= 8; x++)
             {
                 ref TileState tile = ref world.Tile(x, y);
                 tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
                 tile.OwnerPlayerId = Keeper;
             }
+        }
 
         var only = new TilePos(4, 4);
         Paint(db, world, RoomTypeId.Prison, only);
@@ -1338,7 +1477,9 @@ public class PrisonTests
         StatePlacement.As(captive, CreatureActivity.Imprisoned);
 
         for (int start = 0; start < PrisonRules.WanderDirections; start++)
+        {
             Assert.False(PrisonRules.TryWanderStep(world, db, captive, start, out _));
+        }
     }
 
     /// <summary>
@@ -1362,7 +1503,11 @@ public class PrisonTests
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
-        for (int i = 0; i < 548; i++) sim.Tick();
+        for (int i = 0; i < 548; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.NotNull(world.CreatureById(captiveId));
         Assert.Contains(sink.Events, e => e.Kind == "prisoner_stepped");
 
@@ -1402,7 +1547,10 @@ public class PrisonTests
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
-        for (int i = 0; i < 10 * Second; i++) sim.Tick();
+        for (int i = 0; i < 10 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         // The bird is gone, the hunger is paid off, and the Goblin is
         // HpFromChicken better for it — capped at the missing health, and a captive
@@ -1448,7 +1596,10 @@ public class PrisonTests
         Chicken(db, world, CellA);
 
         GameSimulation sim = Simulation(db, world);
-        for (int i = 0; i < 4 * Second; i++) sim.Tick();
+        for (int i = 0; i < 4 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Equal(3 * fill, captive.HungerNeed);
     }
@@ -1469,7 +1620,10 @@ public class PrisonTests
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
-        for (int i = 0; i < 10 * Second; i++) sim.Tick();
+        for (int i = 0; i < 10 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Null(world.ObjectById(bird.Id));
 
@@ -1504,7 +1658,10 @@ public class PrisonTests
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
-        for (int i = 0; i < 5 * Second; i++) sim.Tick();
+        for (int i = 0; i < 5 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         // One attempt a game second, five seconds, five helpings of 25.
         Assert.Equal(5, sink.Events.Count(e => e.Kind == "prisoner_no_food"));
@@ -1525,7 +1682,10 @@ public class PrisonTests
         ObjectState bird = Chicken(db, world, Floor);
 
         GameSimulation sim = Simulation(db, world);
-        for (int i = 0; i < 10 * Second; i++) sim.Tick();
+        for (int i = 0; i < 10 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.NotNull(world.ObjectById(bird.Id));
         Assert.True(captive.HungerNeed > 0);
@@ -1547,7 +1707,10 @@ public class PrisonTests
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
-        for (int i = 0; i < 10 * Second; i++) sim.Tick();
+        for (int i = 0; i < 10 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         List<SimEvent> events = [.. sink.Events];
         int chosen = events.FindIndex(e => e.Kind == "prisoner_food_chosen");
@@ -1573,10 +1736,17 @@ public class PrisonTests
         int captiveId = captive.Id;
 
         GameSimulation sim = Simulation(db, world);
-        for (int i = 0; i < 5 * Second; i++) sim.Tick();
+        for (int i = 0; i < 5 * Second; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(0, captive.HungerNeed);
 
-        for (int i = 0; i < 400 * Second; i++) sim.Tick();
+        for (int i = 0; i < 400 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Null(world.CreatureById(captiveId));
         Assert.Contains(world.Creatures, c =>
@@ -1602,7 +1772,10 @@ public class PrisonTests
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
-        for (int i = 0; i < 3 * Second; i++) sim.Tick();
+        for (int i = 0; i < 3 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.True(near.HungerNeed > 0);
         Assert.NotNull(world.ObjectById(bird.Id));
@@ -1615,7 +1788,10 @@ public class PrisonTests
         Assert.False(bird.InHand);
         Assert.Equal((CellC.Y * world.Width) + CellC.X, bird.TileIndex);
 
-        for (int i = 0; i < 10 * Second; i++) sim.Tick();
+        for (int i = 0; i < 10 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         // One bird, two hungry prisoners, one meal - and it went to the nearer.
         Assert.Null(world.ObjectById(bird.Id));
@@ -1689,8 +1865,12 @@ public class PrisonTests
     {
         GameDatabase basis = Db;
         var slots = new CreatureAnimationTiming[CreatureDef.ArtSlotCount];
-        if (slot != 0) slots[slot] = new CreatureAnimationTiming
+        if (slot != 0)
+        {
+            slots[slot] = new CreatureAnimationTiming
             { ResourceType = 6, FrameCount = 8, FramesPerSecond = 8 };
+        }
+
         var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values,
             basis.Creatures.Values.Select(c => c.CreatureId == GoblinId ? c with { ArtSlots = slots } : c),
             basis.Variables, objects: basis.Objects.Values);
@@ -1727,7 +1907,10 @@ public class PrisonTests
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
-        for (int i = 0; i < 10 * Second && !sink.Events.Any(e => e.Kind == "prisoner_ate"); i++) sim.Tick();
+        for (int i = 0; i < 10 * Second && !sink.Events.Any(e => e.Kind == "prisoner_ate"); i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Contains(sink.Events, e => e.Kind == "prisoner_ate");
         Assert.Equal(0, captive.Anger.Hunger);
@@ -1750,7 +1933,10 @@ public class PrisonTests
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
-        for (int i = 0; i < 10 * Second && !sink.Events.Any(e => e.Kind == "prisoner_ate"); i++) sim.Tick();
+        for (int i = 0; i < 10 * Second && !sink.Events.Any(e => e.Kind == "prisoner_ate"); i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Equal(1, captive.HungerNeed);
         Assert.Equal(PrisonRules.SeekingFoodState, captive.Dk2StateId);
@@ -1772,11 +1958,18 @@ public class PrisonTests
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
-        for (int i = 0; i < 5 * Second && !sink.Events.Any(e => e.Kind == "prisoner_food_chosen"); i++) sim.Tick();
+        for (int i = 0; i < 5 * Second && !sink.Events.Any(e => e.Kind == "prisoner_food_chosen"); i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Contains(sink.Events, e => e.Kind == "prisoner_food_chosen");
 
         world.RemoveObject(bird.Id);
-        for (int i = 0; i < 5 * Second && !sink.Events.Any(e => e.Kind == "prisoner_food_lost"); i++) sim.Tick();
+        for (int i = 0; i < 5 * Second && !sink.Events.Any(e => e.Kind == "prisoner_food_lost"); i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Contains(sink.Events, e => e.Kind == "prisoner_food_lost");
         Assert.Equal(PrisonRules.SeekingFoodState, captive.Dk2StateId);
@@ -1844,7 +2037,10 @@ public class PrisonTests
         StatePlacement.Place(captive, CreatureStateMachine.Idle);
 
         GameSimulation sim = Simulation(db, world);
-        for (int i = 0; i < 10 * Second; i++) sim.Tick();
+        for (int i = 0; i < 10 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Equal(390, captive.Health);
     }
@@ -1931,7 +2127,10 @@ public class PrisonTests
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
-        for (int i = 0; i < 60 * Second; i++) sim.Tick();
+        for (int i = 0; i < 60 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.DoesNotContain(sink.Events, e => e.Kind == "prisoner_flourish");
         Assert.Contains(sink.Events, e => e.Kind == "prisoner_stepped");

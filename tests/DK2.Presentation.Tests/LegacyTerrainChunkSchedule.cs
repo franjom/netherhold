@@ -61,12 +61,23 @@ internal sealed class LegacyTerrainChunkSchedule
             int x = tileIndex % _width, y = tileIndex / _width, height = _tiles.Length / _width;
             _lattice.Invalidate(x, y);
             for (int ty = Math.Max(0, y - 2); ty <= Math.Min(height - 1, y + 2); ty++)
+            {
                 for (int tx = Math.Max(0, x - 2); tx <= Math.Min(_width - 1, x + 2); tx++)
+                {
                     MarkStale((ty * _width) + tx);
+                }
+            }
         }
-        else if (draws || _drawn[tileIndex]) MarkStale(tileIndex);
+        else if (draws || _drawn[tileIndex])
+        {
+            MarkStale(tileIndex);
+        }
+
         if (tile.Tagged != _tiles[tileIndex].Tagged || tile.AmbientTint != _tiles[tileIndex].AmbientTint)
+        {
             DirtyNeighbours(tileIndex);
+        }
+
         _tiles[tileIndex] = tile;
         _drawn[tileIndex] = draws;
         return draws;
@@ -74,7 +85,11 @@ internal sealed class LegacyTerrainChunkSchedule
 
     public void Flush()
     {
-        if (_dirty.Count == 0) return;
+        if (_dirty.Count == 0)
+        {
+            return;
+        }
+
         _restartedAt = Now();
         bool budgeted = FlushBudgetMilliseconds > 0 && _chunks.Count > 0;
         Task? build = _buildTask;
@@ -91,14 +106,27 @@ internal sealed class LegacyTerrainChunkSchedule
         _dirtyOrder.Clear();
         _dirtyOrder.AddRange(_dirty);
         _dirtyOrder.Sort();
-        if (budgeted) StartBuild();
-        else BuildInline();
+        if (budgeted)
+        {
+            StartBuild();
+        }
+        else
+        {
+            BuildInline();
+        }
 
         foreach (int chunk in _dirtyOrder)
         {
             if (budgeted && _dirty.Count < _dirtyOrder.Count && Now() - _restartedAt >= FlushBudgetMilliseconds)
+            {
                 break;
-            if (AnyStale(chunk)) continue;
+            }
+
+            if (AnyStale(chunk))
+            {
+                continue;
+            }
+
             Rebuild(chunk);
             _dirty.Remove(chunk);
         }
@@ -120,10 +148,25 @@ internal sealed class LegacyTerrainChunkSchedule
     private void DirtyNeighbours(int tileIndex)
     {
         int x = tileIndex % _width, y = tileIndex / _width, height = _tiles.Length / _width;
-        if (x > 0) MarkStale(tileIndex - 1);
-        if (x < _width - 1) MarkStale(tileIndex + 1);
-        if (y > 0) MarkStale(tileIndex - _width);
-        if (y < height - 1) MarkStale(tileIndex + _width);
+        if (x > 0)
+        {
+            MarkStale(tileIndex - 1);
+        }
+
+        if (x < _width - 1)
+        {
+            MarkStale(tileIndex + 1);
+        }
+
+        if (y > 0)
+        {
+            MarkStale(tileIndex - _width);
+        }
+
+        if (y < height - 1)
+        {
+            MarkStale(tileIndex + _width);
+        }
     }
 
     private void MarkStale(int tileIndex)
@@ -140,8 +183,16 @@ internal sealed class LegacyTerrainChunkSchedule
         int height = _tiles.Length / _width;
         int x0 = chunk % _chunksX * ChunkSize, y0 = chunk / _chunksX * ChunkSize;
         for (int y = y0; y < Math.Min(y0 + ChunkSize, height); y++)
+        {
             for (int x = x0; x < Math.Min(x0 + ChunkSize, _width); x++)
-                if (_stale[(y * _width) + x]) return true;
+            {
+                if (_stale[(y * _width) + x])
+                {
+                    return true;
+                }
+            }
+        }
+
         return false;
     }
 
@@ -152,10 +203,15 @@ internal sealed class LegacyTerrainChunkSchedule
         {
             int x0 = chunk % _chunksX * ChunkSize, y0 = chunk / _chunksX * ChunkSize;
             for (int y = y0; y < Math.Min(y0 + ChunkSize, height); y++)
+            {
                 for (int x = x0; x < Math.Min(x0 + ChunkSize, _width); x++)
                 {
                     int index = (y * _width) + x;
-                    if (!_stale[index]) continue;
+                    if (!_stale[index])
+                    {
+                        continue;
+                    }
+
                     if (!_drawn[index])
                     {
                         _stale[index] = false;
@@ -164,31 +220,51 @@ internal sealed class LegacyTerrainChunkSchedule
                     _builder.Prepare(x, y, _tiles, _geometry[index] ??= new TerrainTileGeometry());
                     _building.Add(index);
                 }
+            }
         }
     }
 
     private void StartBuild()
     {
         PrepareStale();
-        if (_building.Count == 0) return;
+        if (_building.Count == 0)
+        {
+            return;
+        }
+
         _buildTask = Task.Run(() =>
         {
-            foreach (int index in _building) _builder.Build(_geometry[index]!);
+            foreach (int index in _building)
+            {
+                _builder.Build(_geometry[index]!);
+            }
         });
     }
 
     private void BuildInline()
     {
         PrepareStale();
-        foreach (int index in _building) _builder.Build(_geometry[index]!);
-        foreach (int index in _building) _stale[index] = false;
+        foreach (int index in _building)
+        {
+            _builder.Build(_geometry[index]!);
+        }
+
+        foreach (int index in _building)
+        {
+            _stale[index] = false;
+        }
+
         _building.Clear();
     }
 
     private void JoinBuild()
     {
         Task? build = _buildTask;
-        if (build == null) return;
+        if (build == null)
+        {
+            return;
+        }
+
         _buildTask = null;
         try
         {
@@ -196,7 +272,11 @@ internal sealed class LegacyTerrainChunkSchedule
         }
         finally
         {
-            foreach (int index in _building) _stale[index] = false;
+            foreach (int index in _building)
+            {
+                _stale[index] = false;
+            }
+
             _building.Clear();
         }
     }
@@ -207,14 +287,27 @@ internal sealed class LegacyTerrainChunkSchedule
         int height = _tiles.Length / _width;
         int x0 = chunk % _chunksX * ChunkSize, y0 = chunk / _chunksX * ChunkSize;
         for (int y = y0; y < Math.Min(y0 + ChunkSize, height); y++)
+        {
             for (int x = x0; x < Math.Min(x0 + ChunkSize, _width); x++)
             {
                 int index = (y * _width) + x;
-                if (_drawn[index] && _geometry[index] is TerrainTileGeometry geometry) upload.Add(index, geometry);
+                if (_drawn[index] && _geometry[index] is TerrainTileGeometry geometry)
+                {
+                    upload.Add(index, geometry);
+                }
             }
+        }
+
         Uploads.Add(upload);
-        if (upload.Vertices == 0) _chunks.Remove(chunk);
-        else _chunks.Add(chunk);
+        if (upload.Vertices == 0)
+        {
+            _chunks.Remove(chunk);
+        }
+        else
+        {
+            _chunks.Add(chunk);
+        }
+
         Uploaded?.Invoke();
     }
 }
@@ -259,7 +352,10 @@ internal sealed class SchedulerLog : ITerrainChunkSink
             for (int s = 0; s < geometry.KeyCount; s++)
             {
                 Numbers.Add(geometry.Keys[s].GetHashCode());
-                foreach (int index in geometry.Triangles[s].AsSpan()) Numbers.Add(index);
+                foreach (int index in geometry.Triangles[s].AsSpan())
+                {
+                    Numbers.Add(index);
+                }
             }
         }
 

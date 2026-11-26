@@ -21,12 +21,15 @@ public class JobRoomFinderMessageTests
     {
         var world = WorldState.FromMap(Db, Dk2TerrainFixture.Map(width: 20), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 8; y++)
+        {
             for (int x = 1; x <= 12; x++)
             {
                 ref TileState tile = ref world.Tile(x, y);
                 tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
                 tile.OwnerPlayerId = Keeper;
             }
+        }
+
         ref TileState treasury = ref world.Tile(12, 8);
         treasury.TerrainId = Dk2TerrainFixture.TreasuryTerrain;
         treasury.GoldHeld = 100_000;
@@ -37,14 +40,21 @@ public class JobRoomFinderMessageTests
     {
         List<AvailabilityState> rows = world.Player(Keeper).Availabilities;
         rows.RemoveAll(a => a.Kind == AvailabilityKind.Room && a.TypeId == (int)room);
-        if (value != 1) rows.Add(new AvailabilityState(AvailabilityKind.Room, (int)room, value));
+        if (value != 1)
+        {
+            rows.Add(new AvailabilityState(AvailabilityKind.Room, (int)room, value));
+        }
     }
 
     private static void Room(WorldState world, RoomTypeId type, int x0, int y0)
     {
         for (int y = y0; y < y0 + 3; y++)
+        {
             for (int x = x0; x < x0 + 3; x++)
+            {
                 RoomRules.Place(Db, ref world.Tile(x, y), Db.Room(type), Keeper);
+            }
+        }
     }
 
     private sealed class Probe(Action<SimulationContext> act) : ISimulationSystem
@@ -70,11 +80,18 @@ public class JobRoomFinderMessageTests
         WorldState world = World();
         Available(world, RoomTypeId.TrainingRoom);
         Room(world, RoomTypeId.TrainingRoom, 5, 1);
-        if (furnished) Dk2TerrainFixture.FurnishRooms(Db, world);
+        if (furnished)
+        {
+            Dk2TerrainFixture.FurnishRooms(Db, world);
+        }
+
         var hooks = new StateHookContext(world, Db);
         for (int i = 0; i < 2 && furnished; i++)
+        {
             Assert.True(CreatureStateMachine.TrySetState(hooks, world.SpawnCreature(Db, GoblinId, Keeper, new TilePos(6, 2)),
                 JobRules.StateFor(JobType.Train)!.Value));
+        }
+
         return world;
     }
 
@@ -156,11 +173,18 @@ public class JobRoomFinderMessageTests
     {
         WorldState world = World();
         Available(world, RoomTypeId.Temple);
-        for (int x = 5; x < 7; x++) RoomRules.Place(Db, ref world.Tile(x, 1), Db.Room(RoomTypeId.Temple), Keeper);
+        for (int x = 5; x < 7; x++)
+        {
+            RoomRules.Place(Db, ref world.Tile(x, 1), Db.Room(RoomTypeId.Temple), Keeper);
+        }
+
         RoomInstance temple = RoomIndex.RoomAt(world, Db, 1 * world.Width + 5)!;
         Assert.False(RoomNeedRules.IsEquipped(world, temple));
         for (int i = 0; i < 2; i++)
+        {
             world.SpawnCreature(Db, GoblinId, Keeper, new TilePos(5 + i, 1)).HeldPlace = new RoomPlace(1 * world.Width + 5 + i, RoomCapacityRules.Units);
+        }
+
         Assert.Equal(PlayerMessageKind.RoomUnequipped, Seek(world, RoomTypeId.Temple)?.Kind);
     }
 
@@ -196,7 +220,11 @@ public class JobRoomFinderMessageTests
         Room(world, RoomTypeId.Library, 5, 1);
         world.Player(Keeper).ResearchTarget = 1;
         int middle = 2 * world.Width + 6;
-        for (int i = 0; i < 2; i++) world.SpawnObject(Db, ResearchTreeRules.BookObjectTypeId, Keeper, middle);
+        for (int i = 0; i < 2; i++)
+        {
+            world.SpawnObject(Db, ResearchTreeRules.BookObjectTypeId, Keeper, middle);
+        }
+
         PlayerMessage message = Seek(world, RoomTypeId.Library)!.Value;
         RoomInstance room = RoomIndex.RoomAt(world, Db, middle)!;
         Assert.Equal((PlayerMessageKind.RoomStorageFull, (int)RoomTypeId.Library, SlabChain.FirstSlab(world, room), (uint)SimulationTiming.TicksFromSeconds(120)),
@@ -295,7 +323,11 @@ public class JobRoomFinderMessageTests
         }
 
         Assert.Equal(PlayerMessageKind.RoomNeeded, Ask()?.Kind);
-        for (int x = 5; x < 7; x++) RoomRules.Place(Db, ref world.Tile(x, 1), Db.Room(RoomTypeId.CombatPit), Keeper);
+        for (int x = 5; x < 7; x++)
+        {
+            RoomRules.Place(Db, ref world.Tile(x, 1), Db.Room(RoomTypeId.CombatPit), Keeper);
+        }
+
         new GameSimulation(Db, world, 1, []).Run(30);
         Assert.Equal(PlayerMessageKind.RoomFull, Ask()?.Kind);
     }
@@ -332,7 +364,11 @@ public class JobRoomFinderMessageTests
         Assert.True(RoomNeedRules.IsEquipped(world, RoomIndex.RoomAt(world, Db, 2 * world.Width + 6)!));
 
         WorldState strip = World();
-        for (int x = 5; x < 8; x++) RoomRules.Place(Db, ref strip.Tile(x, 1), Db.Room(RoomTypeId.Casino), Keeper);
+        for (int x = 5; x < 8; x++)
+        {
+            RoomRules.Place(Db, ref strip.Tile(x, 1), Db.Room(RoomTypeId.Casino), Keeper);
+        }
+
         Assert.False(RoomNeedRules.IsEquipped(strip, RoomIndex.RoomAt(strip, Db, 1 * strip.Width + 6)!));
     }
 

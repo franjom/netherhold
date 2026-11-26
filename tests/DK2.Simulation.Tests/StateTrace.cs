@@ -18,7 +18,11 @@ internal static class StateTrace
             sim.Tick();
             observeTick?.Invoke();
             (int, int, int) now = (creature.Dk2StateId, creature.StateBeforeUtilityState, creature.UtilityNewState);
-            if (now == last) continue;
+            if (now == last)
+            {
+                continue;
+            }
+
             seen.Add(now);
             last = now;
         }

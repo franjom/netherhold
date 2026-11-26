@@ -27,7 +27,11 @@ internal static class Dk2TerrainFixture
     {
         foreach (CreatureState creature in world.Creatures)
         {
-            if (creature.NameIndex != CreatureIdentityRules.UnassignedNameIndex) continue;
+            if (creature.NameIndex != CreatureIdentityRules.UnassignedNameIndex)
+            {
+                continue;
+            }
+
             creature.NameIndex = (ushort)(creature.Id % CreatureIdentityRules.NameCount);
             creature.BloodGroupIndex = (byte)(creature.Id % CreatureIdentityRules.BloodGroupCount);
         }
@@ -730,7 +734,11 @@ internal static class Dk2TerrainFixture
             AutoFurnitureRules.DesiredFurniture(world, database, room, pieces);
             foreach ((int tile, byte type) in pieces)
             {
-                if (type == HatcheryRules.CoopObjectId || database.ObjectById(type) is null) continue;
+                if (type == HatcheryRules.CoopObjectId || database.ObjectById(type) is null)
+                {
+                    continue;
+                }
+
                 world.SpawnObject(database, type, room.OwnerPlayerId, tile).AutoPlaced = true;
             }
         }
@@ -1520,10 +1528,18 @@ internal static class Dk2TerrainFixture
         for (int i = 0; i < world.PlayerCount; i++)
         {
             ref PlayerState player = ref world.Player(world.PlayerAtIndex(i).PlayerId);
-            if (!player.PlayerId.IsKeeper) continue;
+            if (!player.PlayerId.IsKeeper)
+            {
+                continue;
+            }
+
             foreach (RoomTypeId type in Enum.GetValues<RoomTypeId>())
+            {
                 if (!player.Availabilities.Exists(a => a.Kind == AvailabilityKind.Room && a.TypeId == (int)type))
+                {
                     player.Availabilities.Add(new AvailabilityState(AvailabilityKind.Room, (int)type, 2));
+                }
+            }
         }
         return world;
     }
@@ -1896,6 +1912,7 @@ internal static class Dk2TerrainFixture
     public static void HeartRoom(WorldState world, GameDatabase database, byte owner, bool heart = true)
     {
         for (int y = 1; y <= 5; y++)
+        {
             for (int x = 1; x <= 5; x++)
             {
                 ref TileState floor = ref world.Tile(x, y);
@@ -1903,7 +1920,12 @@ internal static class Dk2TerrainFixture
                 ManaRules.SetTerrain(world, database, ref floor, ClaimedPath);
                 ManaRules.SetOwner(world, database, ref floor, owner);
             }
-        if (heart) PlaceHeart(world, database, owner);
+        }
+
+        if (heart)
+        {
+            PlaceHeart(world, database, owner);
+        }
     }
 
     /// <summary>Puts the one-tile Dungeon Heart of <see cref="HeartRoom"/> at <see cref="HeartTile"/>.</summary>

@@ -35,7 +35,13 @@ internal static class KwdNestedOverlayChecks
             byte[] source = Frame(image.ToBytes());
             byte[] result = write(replace(read(source), row), new KwdRecordImage(type, source));
             for (int i = 0; i < source.Length; i++)
-                if (i < offset || i >= offset + width) Assert.Equal(source[i], result[i]);
+            {
+                if (i < offset || i >= offset + width)
+                {
+                    Assert.Equal(source[i], result[i]);
+                }
+            }
+
             return result[offset..(offset + width)];
         }, fields);
     }

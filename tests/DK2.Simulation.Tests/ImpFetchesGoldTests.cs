@@ -36,7 +36,10 @@ public class ImpFetchesGoldTests
 
         public void Ticks(int count)
         {
-            for (int i = 0; i < count; i++) Tick();
+            for (int i = 0; i < count; i++)
+            {
+                Tick();
+            }
         }
 
         public IEnumerable<SimEvent> Of(string kind) => Events.Events.Where(e => e.Kind == kind);
@@ -49,7 +52,9 @@ public class ImpFetchesGoldTests
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
 
         for (int i = 0; i < imps; i++)
+        {
             world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, impAt);
+        }
 
         var sim = new GameSimulation(database, world, seed, Dk2TerrainFixture.DefaultSystems());
         var sink = new ListEventSink();
@@ -83,15 +88,29 @@ public class ImpFetchesGoldTests
             for (int x = 0; x < world.Width; x++)
             {
                 ref TileState floor = ref world.Tile(x, y);
-                if (floor.OwnerPlayerId != Keeper) continue;
-                if (run.Db.TerrainById(floor.TerrainId).IsSolid) continue;
+                if (floor.OwnerPlayerId != Keeper)
+                {
+                    continue;
+                }
+
+                if (run.Db.TerrainById(floor.TerrainId).IsSolid)
+                {
+                    continue;
+                }
 
                 for (int i = 0; i < dx.Length; i++)
                 {
                     var at = new TilePos(x + dx[i], y + dy[i]);
-                    if (!world.Contains(at)) continue;
+                    if (!world.Contains(at))
+                    {
+                        continue;
+                    }
+
                     ref TileState rock = ref world.Tile(at);
-                    if (rock.TerrainId != Dk2TerrainFixture.Rock) continue;
+                    if (rock.TerrainId != Dk2TerrainFixture.Rock)
+                    {
+                        continue;
+                    }
 
                     rock.TerrainId = wall.TerrainId;
                     rock.Health = wall.MaxHealth;
@@ -578,7 +597,9 @@ public class ImpFetchesGoldTests
 
             run.Ticks(2);
             if (run.Of("fetch_taken").FirstOrDefault() is { } fetch)
+            {
                 taken.Add(fetch.Detail.Contains("(2,2)") ? "west" : fetch.Detail.Contains("(6,2)") ? "east" : fetch.Detail);
+            }
         }
         Assert.Equal(new HashSet<string> { "west", "east" }, taken);
     }

@@ -32,11 +32,14 @@ public sealed class PossessedExcavationTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 1; y < 19; y++)
-        for (int x = 1; x < 19; x++)
+        {
+            for (int x = 1; x < 19; x++)
         {
             world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
             world.Tile(x, y).OwnerPlayerId = PlayerIds.FirstKeeper;
         }
+        }
+
         foreach (int x in new[] { 4, 6 })
         {
             world.Tile(x, 5).TerrainId = mine ? Dk2TerrainFixture.Gold : Dk2TerrainFixture.Rock;
@@ -131,7 +134,12 @@ public sealed class PossessedExcavationTests
         east.Tick(Press(eastImp));
         west.Tick(Press(westImp, 0x600));
         foreach (GameSimulation? sim in new[] { east, west })
-            foreach (int x in new[] { 4, 6 }) sim.World.Tile(x, 5).Health = 30000;
+        {
+            foreach (int x in new[] { 4, 6 })
+            {
+                sim.World.Tile(x, 5).Health = 30000;
+            }
+        }
 
         Assert.NotEqual(east.StateHash(), west.StateHash());
     }

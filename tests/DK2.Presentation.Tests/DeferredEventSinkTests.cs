@@ -20,7 +20,11 @@ public sealed class DeferredEventSinkTests
         Exception? workerFailure = null;
         var worker = new Thread(() =>
         {
-            try { foreach (SimEvent item in events) sink.Emit(item); }
+            try { foreach (SimEvent item in events)
+                {
+                    sink.Emit(item);
+                }
+            }
             catch (Exception error) { workerFailure = error; }
         });
         worker.Start();

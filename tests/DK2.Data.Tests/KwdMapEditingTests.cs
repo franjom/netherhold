@@ -21,7 +21,14 @@ public class KwdMapEditingTests
         editor.RepaintMap(location,new TilePos(1,1),new MapTile(13,14,15,16));
         KwdChunk edited=KwdThingEditingTests.Reload(editor.ToBytes("map.kld"));
         Assert.Equal(chunk.HeaderBlock,edited.HeaderBlock);
-        for(int i=0;i<24;i++) if(i<16 || i>=20) Assert.Equal(chunk.Content[i],edited.Content[i]);
+        for(int i=0;i<24;i++)
+        {
+            if (i<16 || i>=20)
+            {
+                Assert.Equal(chunk.Content[i],edited.Content[i]);
+            }
+        }
+
         Assert.Equal(new MapTile(13,14,15,16),editor.ReadMap(location)[1,1]);
     }
 
@@ -34,8 +41,14 @@ public class KwdMapEditingTests
         LevelMap original=MapGrid.Parse([chunk])!;
         editor.ResizeMap(location,new KwdMapDimensions(3,3),fill);
         LevelMap result=editor.ReadMap(location);
-        for(int y=0;y<3;y++) for(int x=0;x<3;x++)
-            Assert.Equal(x<2 && y<2 ? original[x,y] : new MapTile(0xFA,0xFB,0xFC,0xFD),result[x,y]);
+        for(int y=0;y<3;y++)
+        {
+            for (int x=0;x<3;x++)
+            {
+                Assert.Equal(x<2 && y<2 ? original[x,y] : new MapTile(0xFA,0xFB,0xFC,0xFD),result[x,y]);
+            }
+        }
+
         KwdChunk reread=KwdThingEditingTests.Reload(editor.ToBytes("map.kld"));
         Assert.Equal(0,reread.ItemCount); Assert.Equal(36,reread.Content.Length);
         Assert.Equal(3,BinaryPrimitives.ReadInt32LittleEndian(reread.HeaderBlock));

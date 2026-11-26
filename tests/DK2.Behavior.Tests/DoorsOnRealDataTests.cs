@@ -34,7 +34,10 @@ public class DoorsOnRealDataTests(ITestOutputHelper output)
             string level = Path.GetFileName(file)[..^"Things.kld".Length];
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
             List<ThingRecord>? things = GameDatabaseLoader.LoadCampaignThings(install, level);
-            if (map is null || things is null || !things.OfType<DoorThing>().Any()) continue;
+            if (map is null || things is null || !things.OfType<DoorThing>().Any())
+            {
+                continue;
+            }
 
             var world = WorldState.FromMap(
                 db, map, [PlayerIds.Unowned, PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper,
@@ -58,10 +61,15 @@ public class DoorsOnRealDataTests(ITestOutputHelper output)
                     Orientation = door.Orientation, Health = door.Health, Unknown_0011 = new byte[3],
                 };
                 if (DoorRules.OwnerLost(world, probe))
+                {
                     ownerKills.Add($"{level} ({door.X},{door.Y}) {def.Name} p{door.PlayerId} tile p{world.Tile(door.X, door.Y).OwnerPlayerId}");
+                }
+
                 probe.Health = door.Health;
                 if (!def.Flags.HasFlag(DoorFlags.Barricade) && DoorRules.SupportLost(navigation, probe))
+                {
                     supportKills.Add($"{level} ({door.X},{door.Y}) {def.Name} orientation {door.Orientation}");
+                }
             }
         }
 

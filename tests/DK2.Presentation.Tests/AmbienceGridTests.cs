@@ -28,7 +28,13 @@ public sealed class AmbienceGridTests
         byte water = database.WaterTerrain!.TerrainId;
         var listener = new TilePos(20, 20);
         for (int y = 0; y < world.Height; y++)
-            for (int x = 0; x < world.Width; x++) world.Tile(x, y).ClearExploredBy(Viewer);
+        {
+            for (int x = 0; x < world.Width; x++)
+            {
+                world.Tile(x, y).ClearExploredBy(Viewer);
+            }
+        }
+
         world.Tile(20, 20).TerrainId = water;
         world.Tile(20, 20).SetExploredBy(Viewer);
         world.Tile(25, 25).TerrainId = water;     // the corner of the window
@@ -71,7 +77,7 @@ public sealed class AmbienceGridTests
     {
         string[] cells = new string[AmbienceGrid.Side * AmbienceGrid.Side];
         Array.Fill(cells, "");
-        void Put(string category, int count, int from) { for (int i = 0; i < count; i++) cells[from + i] = category; }
+        void Put(string category, int count, int from) { for (int i = 0; i < count; i++) { cells[from + i] = category; } }
         Put("TERRAIN_LAVA", 3, 0);
         Put("TERRAIN_WATER", 5, 10);
         Put("ROOM_GRAVEYARD", 3, 30);   // ties LAVA on cells and came later: the first seen is kept (an inference)
@@ -98,9 +104,21 @@ public sealed class AmbienceGridTests
     {
         string[] cells = new string[AmbienceGrid.Side * AmbienceGrid.Side];
         Array.Fill(cells, "");
-        for (int i = 0; i < 30; i++) cells[i] = "TERRAIN_LAVA";
-        for (int i = 30; i < 40; i++) cells[i] = "ROOM_GRAVEYARD";
-        for (int i = 40; i < 70; i++) cells[i] = "TERRAIN_WATER";
+        for (int i = 0; i < 30; i++)
+        {
+            cells[i] = "TERRAIN_LAVA";
+        }
+
+        for (int i = 30; i < 40; i++)
+        {
+            cells[i] = "ROOM_GRAVEYARD";
+        }
+
+        for (int i = 40; i < 70; i++)
+        {
+            cells[i] = "TERRAIN_WATER";
+        }
+
         Func<string, bool> any = _ => true;
         var into = new List<AmbienceGrid.Emitter> { new("STALE", Vector3.Zero) };
         AmbienceGrid.Emitters(cells, new TilePos(20, 20), any, into);

@@ -22,8 +22,13 @@ public class BoulderTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 12), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(x, y).TerrainId = corridor && y != Row ? Dk2TerrainFixture.Rock : Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         return (db, world);
     }
 
@@ -69,7 +74,10 @@ public class BoulderTests
 
         sim.Run(1);
         Assert.Equal((6, Row - 1), (boulder.PosX >> 12, boulder.PosY >> 12));
-        for (int i = 0; i < 3 && !sink.Events.Any(e => e.Kind == "boulder_turned"); i++) sim.Run(1);
+        for (int i = 0; i < 3 && !sink.Events.Any(e => e.Kind == "boulder_turned"); i++)
+        {
+            sim.Run(1);
+        }
 
         SimEvent turned = Assert.Single(sink.Events, e => e.Kind == "boulder_turned");
         Assert.Contains($"at=6,{Row - 1} roll=-4096,0", turned.Detail);
@@ -100,7 +108,10 @@ public class BoulderTests
         Assert.Equal((0x1000, 0, (sbyte)1, (sbyte)0), (boulder.RollX, boulder.RollY, boulder.RollSignX, boulder.RollSignY));
         Assert.Equal(4915 / 4, boulder.RollSpeed);
 
-        for (int i = 0; i < 10 && !sink.Events.Any(e => e.Kind == "boulder_struck_creature"); i++) sim.Run(1);
+        for (int i = 0; i < 10 && !sink.Events.Any(e => e.Kind == "boulder_struck_creature"); i++)
+        {
+            sim.Run(1);
+        }
         // The goblin's level-scaled Hp halved, over BoulderToCreatureDamagePercentage 50: its whole Hp.
         int damage = (CreatureLevelRules.MaxHealth(db, goblinDef, goblin.Level) >> 1) * 100 / 50;
         SimEvent struck = Assert.Single(sink.Events, e => e.Kind == "boulder_struck_creature");
@@ -120,7 +131,11 @@ public class BoulderTests
         var sink = new ListEventSink();
         GameSimulation sim = Sim(db, world, sink);
 
-        for (int i = 0; i < 10 && !sink.Events.Any(e => e.Kind == "boulder_struck_creature"); i++) sim.Run(1);
+        for (int i = 0; i < 10 && !sink.Events.Any(e => e.Kind == "boulder_struck_creature"); i++)
+        {
+            sim.Run(1);
+        }
+
         Assert.Equal(BoulderRules.StunnedState, goblin.Dk2StateId);
         Assert.Equal(CombatRules.TicksOf(goblinDef.StunDuration), goblin.StunTicks);
         Assert.Contains($"damage=100 landed=100 health={full - 100} wear=4000 knocked",
@@ -133,14 +148,22 @@ public class BoulderTests
     {
         (GameDatabase db, WorldState world) = Open(corridor: false);
         for (int y = Row - 2; y <= Row + 2; y++)
+        {
             for (int x = 10; x <= 14; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.DungeonHeart), Rival);
+            }
+        }
+
         world.Player(Rival).HeartHealth = 50000;
         ObjectState boulder = Rolling(db, world, 5, Row);
         var sink = new ListEventSink();
         GameSimulation sim = Sim(db, world, sink);
 
-        for (int i = 0; i < 20 && !sink.Events.Any(e => e.Kind == "boulder_struck_heart"); i++) sim.Run(1);
+        for (int i = 0; i < 20 && !sink.Events.Any(e => e.Kind == "boulder_struck_heart"); i++)
+        {
+            sim.Run(1);
+        }
         // def 13's Hp 34464, capped by the 4000 the boulder has left: it breaks, the heart keeps 46000.
         Assert.Equal(46000, world.Player(Rival).HeartHealth);
         Assert.Equal(Keeper, world.Player(Rival).HeartLastAttackerPlayerId);
@@ -174,7 +197,10 @@ public class BoulderTests
         var sink = new ListEventSink();
         GameSimulation sim = Sim(db, world, sink);
 
-        for (int i = 0; i < 400 && world.Objects.Contains(boulder); i++) sim.Run(1);
+        for (int i = 0; i < 400 && world.Objects.Contains(boulder); i++)
+        {
+            sim.Run(1);
+        }
 
         var turns = sink.Events.Where(e => e.Kind == "boulder_turned").ToList();
         Assert.Equal(10, turns.Count);
@@ -189,17 +215,29 @@ public class BoulderTests
     public void AtABlockedTileWithBothSidesOpenItTakesTheSideOfItsLaunchSign_AndOneSideOpenTakesThatSide()
     {
         (GameDatabase db, WorldState world) = Open(corridor: false);
-        for (int y = 1; y < world.Height - 1; y++) world.Tile(10, y).TerrainId = Dk2TerrainFixture.Rock;
+        for (int y = 1; y < world.Height - 1; y++)
+        {
+            world.Tile(10, y).TerrainId = Dk2TerrainFixture.Rock;
+        }
+
         ObjectState boulder = Rolling(db, world, 5, Row);
         boulder.RollSignY = 1;
         var sink = new ListEventSink();
         GameSimulation sim = Sim(db, world, sink);
 
-        for (int i = 0; i < 20 && !sink.Events.Any(e => e.Kind == "boulder_turned"); i++) sim.Run(1);
+        for (int i = 0; i < 20 && !sink.Events.Any(e => e.Kind == "boulder_turned"); i++)
+        {
+            sim.Run(1);
+        }
+
         Assert.Contains("at=9,5 roll=0,4096 wear=400", Assert.Single(sink.Events, e => e.Kind == "boulder_turned").Detail);
 
         // Going south along x 9, the bottom border blocks it; west is open, east (x 10) rock: west.
-        for (int i = 0; i < 40 && sink.Events.Count(e => e.Kind == "boulder_turned") < 2; i++) sim.Run(1);
+        for (int i = 0; i < 40 && sink.Events.Count(e => e.Kind == "boulder_turned") < 2; i++)
+        {
+            sim.Run(1);
+        }
+
         Assert.Contains("at=9,10 roll=-4096,0 wear=800", sink.Events.Where(e => e.Kind == "boulder_turned").ElementAt(1).Detail);
     }
 
@@ -210,8 +248,13 @@ public class BoulderTests
         Assert.True(BoulderRules.Blocked(world, db, 0, Row));
         Assert.True(BoulderRules.Blocked(world, db, -1, Row));
         for (int y = 2; y <= 4; y++)
+        {
             for (int x = 12; x <= 14; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Prison), Keeper);
+            }
+        }
+
         Assert.True(BoulderRules.Blocked(world, db, 13, 3));
         Assert.False(BoulderRules.Blocked(world, db, 12, 3));
 
@@ -232,7 +275,11 @@ public class BoulderTests
         var sink = new ListEventSink();
         GameSimulation sim = Sim(db, world, sink);
 
-        for (int i = 0; i < 20 && world.Objects.Contains(boulder); i++) sim.Run(1);
+        for (int i = 0; i < 20 && world.Objects.Contains(boulder); i++)
+        {
+            sim.Run(1);
+        }
+
         var worn = sink.Events.Where(e => e.Kind == "boulder_worn").Select(e => e.Detail).ToList();
         Assert.NotEmpty(worn);
         Assert.All(worn.Where(d => d.Contains("at=7,5")), d => Assert.Matches(@"wear=(400|800|1200)\b", d));
@@ -253,7 +300,11 @@ public class BoulderTests
         var sink = new ListEventSink();
         GameSimulation sim = Sim(db, world, sink);
 
-        for (int i = 0; i < 10 && world.Doors.Count > 0; i++) sim.Run(1);
+        for (int i = 0; i < 10 && world.Doors.Count > 0; i++)
+        {
+            sim.Run(1);
+        }
+
         Assert.Empty(world.Doors);
         Assert.Contains("damage=400 health=0 wear=400", Assert.Single(sink.Events, e => e.Kind == "boulder_struck_door").Detail);
     }
@@ -271,7 +322,11 @@ public class BoulderTests
         var sink = new ListEventSink();
         GameSimulation sim = Sim(db, world, sink);
 
-        for (int i = 0; i < 10 && !sink.Events.Any(e => e.Kind == "boulder_struck_trap"); i++) sim.Run(1);
+        for (int i = 0; i < 10 && !sink.Events.Any(e => e.Kind == "boulder_struck_trap"); i++)
+        {
+            sim.Run(1);
+        }
+
         Assert.Contains(sink.Events, e => e.Kind == "trap_fired" && e.Detail.StartsWith($"trap={spike.Id} "));
         Assert.Equal(4000 - (4000 >> 2), spike.Health);
         Assert.Contains("damage=1000 health=3000", Assert.Single(sink.Events, e => e.Kind == "boulder_struck_trap").Detail);

@@ -39,18 +39,29 @@ public sealed class ModelInstanceLookTests
     public void AnObjectsInstanceIsItsTintedAndFadedLook()
     {
         foreach (ObjectMaterialLook look in Looks)
+        {
             foreach (TerrainLightColour tint in Tints)
+            {
                 for (int alpha = 1; alpha <= 255; alpha++)
+                {
                     Assert.Equal(look.Tinted(tint).Faded((byte)alpha), Drawn(look, ModelInstanceLook.Object(tint, (byte)alpha)));
+                }
+            }
+        }
     }
 
     [Fact]
     public void AStructuresInstanceIsItsInstanceTintedLookAndNothingUnderAPlan()
     {
         foreach (ObjectMaterialLook look in Looks)
+        {
             for (int tint = 0; tint < 256; tint += 5)
+            {
                 Assert.Equal(look.InstanceTinted((byte)tint, (byte)tint, (byte)tint),
                     Drawn(look, ModelInstanceLook.Structure((byte)tint, plan: false)));
+            }
+        }
+
         Assert.Equal(ModelInstanceLook.None, ModelInstanceLook.Structure(128, plan: true));
     }
 

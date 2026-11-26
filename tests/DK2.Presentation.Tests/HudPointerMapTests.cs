@@ -26,7 +26,10 @@ public sealed class HudPointerMapTests
     public void EveryPanelButTheQueryCountsWhateverTheGates()
     {
         for (HudPointerPanel panel = HudPointerPanel.Minimap; panel < HudPointerPanel.CreatureQuery; panel++)
+        {
             Assert.True(HudPointerMap.Over(new Panels(panel, []), fullMapVisible: false, queryHasTarget: false, modal: true));
+        }
+
         Assert.False(HudPointerMap.Over(new Panels(null, []), fullMapVisible: false, queryHasTarget: true, modal: false));
     }
 

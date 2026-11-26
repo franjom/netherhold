@@ -52,7 +52,11 @@ public class RouteWindowTests
         Fixed16Vector[] route = SevenPointsAlongX();
         RouteWindow.Load(body, route, route[^1], 0);
 
-        for (int i = 0; i < 4; i++) Assert.False(RouteWindow.Advance(body));
+        for (int i = 0; i < 4; i++)
+        {
+            Assert.False(RouteWindow.Advance(body));
+        }
+
         Assert.Equal(0, body.PathSubpathDist);
         Assert.True(RouteWindow.Advance(body));
         Assert.Equal(5, body.SubpathIndex);

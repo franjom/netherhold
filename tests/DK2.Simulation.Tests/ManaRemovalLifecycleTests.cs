@@ -31,16 +31,26 @@ public class ManaRemovalLifecycleTests
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         int claimed = 9;
         for (int y = 1; y < world.Height - 1 && claimed < claimedTiles; y++)
+        {
             for (int x = 1; x < world.Width - 1 && claimed < claimedTiles; x++)
             {
-                if (x <= 3 && y <= 3) continue;
+                if (x <= 3 && y <= 3)
+                {
+                    continue;
+                }
+
                 ManaRules.SetTerrain(world, db, ref world.Tile(x, y), Dk2TerrainFixture.ClaimedPath);
                 ManaRules.SetOwner(world, db, ref world.Tile(x, y), Keeper);
                 claimed++;
             }
+        }
+
         var spawned = new List<CreatureState>();
         for (int i = 0; i < imps; i++)
+        {
             spawned.Add(world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, owner, new TilePos(1 + i % 3, 1 + i / 3)));
+        }
+
         return (db, world, spawned);
     }
 
@@ -164,7 +174,11 @@ public class ManaRemovalLifecycleTests
     public void AUniqueLowestLevelNonImpIsStampedNeverExpiresAndLeavesNoCorpseWhenItDies()
     {
         (GameDatabase? db, WorldState? world, List<CreatureState>? imps) = Setup();
-        foreach (CreatureState imp in imps) imp.Level = 2;
+        foreach (CreatureState imp in imps)
+        {
+            imp.Level = 2;
+        }
+
         CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(3, 3));
         Assert.True(CreatureDeathRules.LeavesBody(db.CreatureById(goblin.CreatureTypeId)));
         world.Player(Keeper).ManaPressure = Ready;
@@ -380,11 +394,19 @@ public class ManaRemovalLifecycleTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)1, (byte)2, Keeper]);
         for (int y = 3; y <= 5; y++)
+        {
             for (int x = 4; x <= 6; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Prison), Keeper);
+            }
+        }
+
         int cap = PrisonRules.SkeletonCap(world, db, Keeper);
         for (int i = 0; i < cap; i++)
+        {
             world.SpawnCreature(db, Dk2TerrainFixture.SkeletonCreatureId, Keeper, new TilePos(1, 1));
+        }
+
         CreatureState captive = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, 1, new TilePos(5, 4));
         Assert.True(PrisonRules.Imprison(new StateHookContext(world, db), captive, Keeper, (4 * world.Width) + 5));
         captive.CorpseSuppressed = suppressed;

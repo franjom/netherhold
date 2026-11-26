@@ -172,15 +172,22 @@ public class ImpWanderTests
     {
         (GameDatabase db, WorldState world) = AllClaimed();
         for (int y = 3; y <= 5; y++)
+        {
             for (int x = 10; x <= 12; x++)
+            {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DungeonHeartTerrain;
+            }
+        }
         // Unowned water the imp can walk on and has no work in: reachable, never a destination.
         for (int y = 7; y <= 10; y++)
+        {
             for (int x = 2; x <= 6; x++)
             {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.Water;
                 world.Tile(x, y).OwnerPlayerId = PlayerIds.Unowned;
             }
+        }
+
         CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(7, 6));
         var sim = new GameSimulation(db, world, 11, [new ImpTaskSystem(), new CreatureMovementSystem()]);
 
@@ -199,7 +206,10 @@ public class ImpWanderTests
                 aims.Add(aim);
                 reach.Add(d);
             }
-            if (imp.Dk2StateId != 6) from = imp.Tile;
+            if (imp.Dk2StateId != 6)
+            {
+                from = imp.Tile;
+            }
         }
 
         Assert.True(aims.Count >= 5, $"only {aims.Count} trips");
@@ -218,11 +228,14 @@ public class ImpWanderTests
         db = IdleActionClockTests.WithImpIdleArt(db);
         world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
             {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
                 world.Tile(x, y).OwnerPlayerId = Keeper;
             }
+        }
+
         world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(7, 6));
         var sim = new GameSimulation(db, world, 11, [new ImpTaskSystem(), new CreatureMovementSystem()]);
         var sink = new ListEventSink();
@@ -242,8 +255,16 @@ public class ImpWanderTests
     {
         (GameDatabase db, WorldState world) = AllClaimed();
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
-                if (x != 7 || y != 6) world.Tile(x, y).TerrainId = Dk2TerrainFixture.ImpenetrableRock;
+            {
+                if (x != 7 || y != 6)
+                {
+                    world.Tile(x, y).TerrainId = Dk2TerrainFixture.ImpenetrableRock;
+                }
+            }
+        }
+
         CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(7, 6));
         var sim = new GameSimulation(db, world, 11, [new ImpTaskSystem(), new CreatureMovementSystem()]);
 
@@ -262,11 +283,14 @@ public class ImpWanderTests
         var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
             {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
                 world.Tile(x, y).OwnerPlayerId = Keeper;
             }
+        }
+
         return (db, world);
     }
 }

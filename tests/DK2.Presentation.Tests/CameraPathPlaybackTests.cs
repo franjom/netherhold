@@ -221,7 +221,11 @@ public class CameraPathPlaybackTests
         {
             director.Update(now, world.CurrentTick.Value + Math.Min(debt, 1));
             firstPose ??= director.Pose;
-            if (drawn.Count == 0 || drawn[^1] != director.PathId) drawn.Add(director.PathId);
+            if (drawn.Count == 0 || drawn[^1] != director.PathId)
+            {
+                drawn.Add(director.PathId);
+            }
+
             double seconds = frame == 0 ? Math.Max(firstFrameSeconds, 1 / 60d) : 1 / 60d;
             now += seconds * 1000;
             debt += Math.Min(seconds, 1 / 3d) * SimulationTiming.TicksPerSecond;
@@ -343,7 +347,10 @@ public class CameraPathPlaybackTests
         director.Update(0, 0);
 
         Assert.Equal(taken, director.TryTakeCameraMove(out TilePos tile));
-        if (taken) Assert.Equal(new TilePos(7, 2), tile);
+        if (taken)
+        {
+            Assert.Equal(new TilePos(7, 2), tile);
+        }
     }
 
     /// <summary>Only the kinds DK2 sends to no keeper in particular broadcast: a camera zoom

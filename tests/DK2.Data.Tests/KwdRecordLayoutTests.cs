@@ -146,20 +146,32 @@ public class KwdRecordLayoutTests
         {
             foreach (KwdChunk chunk in KwdReader.ReadFile(file))
             {
-                if (!KwdTaggedRecords.IsTagged(chunk.Type)) continue;
+                if (!KwdTaggedRecords.IsTagged(chunk.Type))
+                {
+                    continue;
+                }
 
                 // Split throws unless itemCount records consume the chunk to the byte.
                 List<KwdTaggedRecords.TaggedRecord> records = KwdTaggedRecords.Split(chunk);
                 Assert.Equal(chunk.ItemCount, records.Count);
 
                 chunks++;
-                if (chunk.Type == KwdRecordType.Things) things += records.Count;
-                else triggers += records.Count;
+                if (chunk.Type == KwdRecordType.Things)
+                {
+                    things += records.Count;
+                }
+                else
+                {
+                    triggers += records.Count;
+                }
 
                 foreach (KwdTaggedRecords.TaggedRecord record in records)
                 {
                     if (!payloadSizes.TryGetValue((chunk.Type, record.Tag), out SortedSet<int>? seen))
+                    {
                         payloadSizes[(chunk.Type, record.Tag)] = seen = [];
+                    }
+
                     seen.Add(record.Payload.Length);
                 }
             }
@@ -183,12 +195,20 @@ public class KwdRecordLayoutTests
         {
             bool present = payloadSizes.TryGetValue((KwdRecordType.Things, tag), out SortedSet<int>? sizes);
             Assert.Equal(inMaps, present);
-            if (present) Assert.Equal(size, sizes!.Single());
-            else Assert.False(inMaps, $"thing {name} ({tag}) was expected in the shipped maps.");
+            if (present)
+            {
+                Assert.Equal(size, sizes!.Single());
+            }
+            else
+            {
+                Assert.False(inMaps, $"thing {name} ({tag}) was expected in the shipped maps.");
+            }
         }
 
         foreach ((int tag, (string _, int size)) in KwdTaggedRecords.TriggerPayloadSizes)
+        {
             Assert.Equal(size, payloadSizes[(KwdRecordType.Triggers, tag)].Single());
+        }
 
         // Nothing turned up that is not in those two tables.
         Assert.DoesNotContain(payloadSizes.Keys, k =>

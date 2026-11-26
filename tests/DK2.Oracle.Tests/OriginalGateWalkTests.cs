@@ -33,9 +33,21 @@ public class OriginalGateWalkTests(ITestOutputHelper log)
             (r, cap, after) =>
             {
                 int dA = GateWalk.Octile(r.A, r.Crossing), dB = GateWalk.Octile(r.B, r.Crossing);
-                if (dA < cap >> 1 && dB < cap >> 1) return "both near";
-                if (dA < (cap + 2) >> 1) return "A near";
-                if (dB < (cap + 2) >> 1) return "B near";
+                if (dA < cap >> 1 && dB < cap >> 1)
+                {
+                    return "both near";
+                }
+
+                if (dA < (cap + 2) >> 1)
+                {
+                    return "A near";
+                }
+
+                if (dB < (cap + 2) >> 1)
+                {
+                    return "B near";
+                }
+
                 bool movedA = after[0] != r.A.X || after[1] != r.A.Y, movedB = after[2] != r.B.X || after[3] != r.B.Y;
                 return movedA ? movedB ? "move both" : "move A only" : movedB ? "move B only" : "move neither";
             },
@@ -94,9 +106,19 @@ public class OriginalGateWalkTests(ITestOutputHelper log)
             bool hit = GateWalk.Intersect(ref mine, p, q);
             if (original[i].Fault is { } fault)
             {
-                if (!fault.StartsWith("divide", StringComparison.Ordinal)) mismatches.Add($"{at}: original fault ({fault})");
-                else if (hit || Show(Words(mine)) != Show(Words(r))) mismatches.Add($"{at}: original divide fault, ours {hit} {Show(Words(mine))}");
-                else faults++;
+                if (!fault.StartsWith("divide", StringComparison.Ordinal))
+                {
+                    mismatches.Add($"{at}: original fault ({fault})");
+                }
+                else if (hit || Show(Words(mine)) != Show(Words(r)))
+                {
+                    mismatches.Add($"{at}: original divide fault, ours {hit} {Show(Words(mine))}");
+                }
+                else
+                {
+                    faults++;
+                }
+
                 continue;
             }
 
@@ -107,7 +129,10 @@ public class OriginalGateWalkTests(ITestOutputHelper log)
             reached[original[i].Eax != 0 ? "hit" : written ? "written, outside the box"
                 : zero ? "not written, zero denominator" : "not written, past the gate's ends"]++;
             string theirs = $"{original[i].Eax != 0} {Show(after)}", ours = $"{hit} {Show(Words(mine))}";
-            if (theirs != ours) mismatches.Add($"{at}: original {theirs}, ours {ours}");
+            if (theirs != ours)
+            {
+                mismatches.Add($"{at}: original {theirs}, ours {ours}");
+            }
         }
         log.WriteLine($"intersect: {inputs.Count} inputs, {faults} divide faults in the original, no crossing in ours; arms: " +
                       string.Join(", ", reached.Select(kv => $"{kv.Key} {kv.Value}")));
@@ -136,8 +161,15 @@ public class OriginalGateWalkTests(ITestOutputHelper log)
             string at = $"{name}({Show(Words(inputs[i].Record))}, cap {inputs[i].Cap})";
             if (original[i].Fault is { } fault)
             {
-                if (fault.StartsWith("divide", StringComparison.Ordinal)) faults++;
-                else mismatches.Add($"{at}: original fault ({fault})");
+                if (fault.StartsWith("divide", StringComparison.Ordinal))
+                {
+                    faults++;
+                }
+                else
+                {
+                    mismatches.Add($"{at}: original fault ({fault})");
+                }
+
                 continue;
             }
 
@@ -152,7 +184,10 @@ public class OriginalGateWalkTests(ITestOutputHelper log)
                 mine = Show(Words(r));
             }
             catch (DivideByZeroException) { mine = "divide fault"; }
-            if (theirs != mine) mismatches.Add($"{at}: original {theirs}, ours {mine}");
+            if (theirs != mine)
+            {
+                mismatches.Add($"{at}: original {theirs}, ours {mine}");
+            }
         }
         log.WriteLine($"{name}: {inputs.Length} inputs, {faults} outside the original's domain (divide fault); arms: " +
                       string.Join(", ", reached.Select(kv => $"{kv.Key} {kv.Value}")));

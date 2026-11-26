@@ -20,9 +20,14 @@ public class FloorHeightTests
         var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(12, 12), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(new TilePos(x, y)).TerrainId =
                     x is >= 3 and <= 7 && y is >= 3 and <= 7 ? Dk2TerrainFixture.Water : Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         return (db, world);
     }
 
@@ -62,11 +67,13 @@ public class FloorHeightTests
     {
         (GameDatabase db, WorldState world) = Pool();
         for (int y = 8; y <= 10; y++)
+        {
             for (int x = 2; x <= 4; x++)
             {
                 ref TileState tile = ref world.Tile(x, y);
                 RoomRules.Place(db, ref tile, db.Room(RoomTypeId.Hatchery), Keeper);
             }
+        }
 
         Assert.Equal(0xE00, FloorHeightRules.At(world, db, CreatureState.CentreOf(3), CreatureState.CentreOf(9)));
         Assert.Equal(0xE00, FloorHeightRules.At(world, db, CreatureState.CentreOf(2), CreatureState.CentreOf(9)));
@@ -92,8 +99,12 @@ public class FloorHeightTests
         (GameDatabase db, WorldState world) = Pool();
         world.Tile(new TilePos(9, 9)).TerrainId = Dk2TerrainFixture.Lava;
         for (int dy = -1; dy <= 1; dy++)
+        {
             for (int dx = -1; dx <= 1; dx++)
+            {
                 world.Tile(new TilePos(9 + dx, 9 + dy)).TerrainId = Dk2TerrainFixture.Lava;
+            }
+        }
 
         Assert.Equal(FloorHeightRules.Liquid, FloorHeightRules.At(world, db, CreatureState.CentreOf(9), CreatureState.CentreOf(9)));
     }
@@ -124,11 +135,14 @@ public class FloorHeightTests
     {
         (GameDatabase db, WorldState world) = Pool();
         for (int y = 8; y <= 10; y++)
+        {
             for (int x = 2; x <= 4; x++)
             {
                 ref TileState tile = ref world.Tile(x, y);
                 RoomRules.Place(db, ref tile, db.Room(type), Keeper);
             }
+        }
+
         return (db, world);
     }
 

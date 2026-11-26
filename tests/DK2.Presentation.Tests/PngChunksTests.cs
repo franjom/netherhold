@@ -30,7 +30,10 @@ public sealed class PngChunksTests
         foreach (byte b in bytes)
         {
             crc ^= b;
-            for (int k = 0; k < 8; k++) crc = (crc & 1) != 0 ? 0xEDB88320 ^ (crc >> 1) : crc >> 1;
+            for (int k = 0; k < 8; k++)
+            {
+                crc = (crc & 1) != 0 ? 0xEDB88320 ^ (crc >> 1) : crc >> 1;
+            }
         }
         return ~crc;
     }
@@ -43,7 +46,11 @@ public sealed class PngChunksTests
         BinaryPrimitives.WriteUInt32BigEndian(header.AsSpan(4), 1);
         header[8] = 8; header[9] = 2;
         var raw = new MemoryStream();
-        using (var z = new ZLibStream(raw, CompressionLevel.Optimal, leaveOpen: true)) z.Write([0, 231, 24, 24, 1, 2, 3]);
+        using (var z = new ZLibStream(raw, CompressionLevel.Optimal, leaveOpen: true))
+        {
+            z.Write([0, 231, 24, 24, 1, 2, 3]);
+        }
+
         byte[] ihdr = Chunk("IHDR", header), idat = Chunk("IDAT", raw.ToArray()), iend = Chunk("IEND", []);
         var png = new List<byte>(Signature);
         png.AddRange(ihdr);
@@ -60,7 +67,10 @@ public sealed class PngChunksTests
     {
         var types = new List<string>();
         for (int at = 8; at < png.Length; at += 12 + (int)BinaryPrimitives.ReadUInt32BigEndian(png.AsSpan(at)))
+        {
             types.Add(Encoding.ASCII.GetString(png, at + 4, 4));
+        }
+
         return types;
     }
 

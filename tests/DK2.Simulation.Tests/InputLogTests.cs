@@ -347,12 +347,16 @@ public class InputLogTests
     private static TilePos Rock(GameDatabase database, WorldState world)
     {
         for (int y = 0; y < world.Height; y++)
+        {
             for (int x = 0; x < world.Width; x++)
             {
                 TerrainDef terrain = database.TerrainById(world.Tile(x, y).TerrainId);
                 if (terrain.IsSolid && terrain.IsTaggable && !terrain.IsImpenetrable)
+                {
                     return new TilePos(x, y);
+                }
             }
+        }
 
         throw new InvalidOperationException("the fixture map has no diggable tile");
     }

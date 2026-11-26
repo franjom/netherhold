@@ -252,12 +252,15 @@ public sealed class KeeperSpellTests
         (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         byte terrain = db.Rooms.Values.Single(r => r.TypeId == kind).TerrainId;
         for (int y = 1; y < 19; y++)
+        {
             for (int x = 1; x < 19; x++)
             {
                 world.Tile(x, y).TerrainId = x >= 8 && x <= 12 && y >= 8 && y <= 12
                     ? terrain : Dk2TerrainFixture.ClaimedPath;
                 world.Tile(x, y).OwnerPlayerId = Keeper;
             }
+        }
+
         if (rim) { target.PosX = 8 * Fp32.One + Fp32.One / 2; target.PosY = target.PosX; }
         var boundary = new Boundary();
         new GameSimulation(db, world, 1, [boundary]).Tick(InputFrame.Of(new CastSpellOnCreatureCommand(Keeper, 6, target.Id)));
@@ -274,11 +277,14 @@ public sealed class KeeperSpellTests
         (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         byte terrain = db.Rooms.Values.Single(r => r.TypeId == kind).TerrainId;
         for (int y = 9; y <= 11; y++)
+        {
             for (int x = 9; x <= 11; x++)
             {
                 world.Tile(x, y).TerrainId = x == 9 && y == 9 ? Dk2TerrainFixture.ClaimedPath : terrain;
                 world.Tile(x, y).OwnerPlayerId = Keeper;
             }
+        }
+
         var boundary = new Boundary();
         new GameSimulation(db, world, 1, [boundary]).Tick(InputFrame.Of(new CastSpellOnCreatureCommand(Keeper, 6, target.Id)));
         Assert.Equal(expected, boundary.Refusal);
@@ -319,7 +325,9 @@ public sealed class KeeperSpellTests
         public void Execute(SimulationContext context)
         {
             foreach (CastSpellOnCreatureCommand command in context.Input.All.OfType<CastSpellOnCreatureCommand>())
+            {
                 Result = KeeperSpellRules.CastOnCreature(context, command, out Refusal);
+            }
         }
     }
 

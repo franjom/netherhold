@@ -14,7 +14,9 @@ public class SimRandomTests
         var a = new SimRandom(12345);
         var b = new SimRandom(12345);
         for (int i = 0; i < 1000; i++)
+        {
             Assert.Equal(a.NextUInt64(), b.NextUInt64());
+        }
     }
 
     [Fact]
@@ -29,11 +31,16 @@ public class SimRandomTests
     public void SaveRestore_ContinuesIdentically()
     {
         var original = new SimRandom(999);
-        for (int i = 0; i < 37; i++) original.NextUInt64();
+        for (int i = 0; i < 37; i++)
+        {
+            original.NextUInt64();
+        }
 
         var restored = SimRandom.Restore(original.SaveState());
         for (int i = 0; i < 100; i++)
+        {
             Assert.Equal(original.NextUInt64(), restored.NextUInt64());
+        }
     }
 
     [Fact]
@@ -52,7 +59,11 @@ public class SimRandomTests
     {
         var rng = new SimRandom(7);
         var seen = new HashSet<int>();
-        for (int i = 0; i < 10_000; i++) seen.Add(rng.NextInt(3, 5));
+        for (int i = 0; i < 10_000; i++)
+        {
+            seen.Add(rng.NextInt(3, 5));
+        }
+
         Assert.Equal(new HashSet<int> { 3, 4, 5 }, seen);
     }
 

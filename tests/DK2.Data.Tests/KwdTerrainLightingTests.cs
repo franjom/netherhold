@@ -43,7 +43,11 @@ public class KwdTerrainLightingTests
     {
         byte[] source = new byte[552];
         int[] offsets = [0x1DB, 0x1DC, 0x1DD, 0x201, 0x202, 0x203];
-        for (int i = 0; i < offsets.Length; i++) source[offsets[i]] = (byte)(10 + i);
+        for (int i = 0; i < offsets.Length; i++)
+        {
+            source[offsets[i]] = (byte)(10 + i);
+        }
+
         TerrainDef terrain = Read(source);
         Assert.Equal(new TerrainLighting(10, 11, 12, 13, 14, 15), terrain.Lighting);
         var image = new KwdRecordImage(KwdRecordType.Terrain, source);
@@ -51,7 +55,11 @@ public class KwdTerrainLightingTests
         byte[] edited = KwdTerrainRooms.WriteTerrainRecord(
             terrain with { Lighting = new TerrainLighting(21, 22, 23, 24, 25, 26) }, image);
         byte[] expected = (byte[])source.Clone();
-        for (int i = 0; i < offsets.Length; i++) expected[offsets[i]] = (byte)(21 + i);
+        for (int i = 0; i < offsets.Length; i++)
+        {
+            expected[offsets[i]] = (byte)(21 + i);
+        }
+
         Assert.Equal(expected, edited);
         Assert.Equal(source, KwdTerrainRooms.WriteTerrainRecord(terrain with { Lighting = null }, image));
     }

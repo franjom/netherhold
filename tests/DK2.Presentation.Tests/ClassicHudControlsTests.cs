@@ -383,17 +383,29 @@ public sealed class ClassicHudControlsTests
     {
         var controls = new ClassicHudControls();
         Assert.False(controls.Accepts(ClassicHudAction.None));
-        foreach (ClassicHudAction action in HostActions) Assert.True(controls.Accepts(action));
+        foreach (ClassicHudAction action in HostActions)
+        {
+            Assert.True(controls.Accepts(action));
+        }
+
         Assert.True(controls.Accepts(ClassicHudAction.ToggleOptions));
 
         controls.Apply(ClassicHudAction.ToggleOptions);
-        foreach (ClassicHudAction action in HostActions) Assert.False(controls.Accepts(action));
+        foreach (ClassicHudAction action in HostActions)
+        {
+            Assert.False(controls.Accepts(action));
+        }
+
         Assert.True(controls.Accepts(ClassicHudAction.ToggleOptions));
         Assert.True(controls.Accepts(ClassicHudAction.ToggleFullMap));   // Apply itself refuses it while the menu is open
         controls.Apply(ClassicHudAction.ToggleOptions);
 
         controls.Apply(ClassicHudAction.ToggleFullMap);
-        foreach (ClassicHudAction action in HostActions) Assert.False(controls.Accepts(action));
+        foreach (ClassicHudAction action in HostActions)
+        {
+            Assert.False(controls.Accepts(action));
+        }
+
         Assert.True(controls.Accepts(ClassicHudAction.ToggleFullMap));
         controls.Apply(ClassicHudAction.ToggleFullMap);
 
@@ -415,6 +427,8 @@ public sealed class ClassicHudControlsTests
         Assert.Equal(GuiButtonTarget.Sell, sell);
         foreach (ClassicHudAction other in new[] { ClassicHudAction.None, ClassicHudAction.ToggleOptions, ClassicHudAction.ToggleFullMap,
             ClassicHudAction.NavigateHeart })
+        {
             Assert.False(ClassicHudControlLayout.TryGuiButton(other, out _));
+        }
     }
 }

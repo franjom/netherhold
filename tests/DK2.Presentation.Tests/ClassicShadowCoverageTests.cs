@@ -18,7 +18,11 @@ public sealed class ClassicShadowCoverageTests
         byte[] samples = new byte[size * size];
         Vector2 a = new(2, 2), b = new(3, 2), c = new(2, 3);
 
-        if (reverse) (a, c) = (c, a);
+        if (reverse)
+        {
+            (a, c) = (c, a);
+        }
+
         ClassicShadowCoverage.AddTriangle(samples, a, b, c);
         ClassicShadowCoverage.AddTriangle(samples, a, b, c);
         ClassicShadowCoverage.Resolve(samples);

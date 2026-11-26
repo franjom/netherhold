@@ -118,6 +118,8 @@ public sealed class ClassicKeyNamesTests
     {
         Assert.Equal(99, UnityTable.Count);
         for (int scan = -1; scan <= 256; scan++)
+        {
             Assert.Equal(UnityTable.TryGetValue(scan, out string? name) ? name : "None", ClassicKeyNames.Name(new KeyScanCode(scan)));
+        }
     }
 }

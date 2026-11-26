@@ -30,8 +30,13 @@ public sealed class LibraryCapacityTests
     {
         var world = WorldState.FromMap(Db, Dk2TerrainFixture.Map(), [Keeper, PlayerIds.Neutral]);
         for (int y = 1; y <= 3; y++)
-        for (int x = 1; x <= 3; x++)
-            RoomRules.Place(Db, ref world.Tile(x, y), Db.Room(type), Keeper);
+        {
+            for (int x = 1; x <= 3; x++)
+            {
+                RoomRules.Place(Db, ref world.Tile(x, y), Db.Room(type), Keeper);
+            }
+        }
+
         Dk2TerrainFixture.FurnishRooms(Db, world);
         RoomInstance room = RoomIndex.RoomAt(world, Db, world.TileIndex(new TilePos(2, 2)))!;
         CreatureState seeker = world.SpawnCreature(Db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(2, 2));
@@ -41,8 +46,12 @@ public sealed class LibraryCapacityTests
     private static void FillShelves(WorldState world, RoomInstance room)
     {
         foreach (int tile in AutoFurnitureRules.FloorSlotSet(world, room))
-        for (int i = 0; i < ResearchTreeRules.ShelfCapacity; i++)
-            world.SpawnObject(Db, ResearchTreeRules.BookObjectTypeId, Keeper, tile);
+        {
+            for (int i = 0; i < ResearchTreeRules.ShelfCapacity; i++)
+            {
+                world.SpawnObject(Db, ResearchTreeRules.BookObjectTypeId, Keeper, tile);
+            }
+        }
     }
 
     [Theory]
@@ -84,7 +93,11 @@ public sealed class LibraryCapacityTests
     public void EnterHookChecksShelfAndFailureSearchesCapacityAgain(bool shelvesFull)
     {
         (WorldState? world, RoomInstance? room, CreatureState? seeker) = Setup(RoomTypeId.Library);
-        if (shelvesFull) FillShelves(world, room);
+        if (shelvesFull)
+        {
+            FillShelves(world, room);
+        }
+
         var draws = new Draws();
         new GameSimulation(Db, world, new SimRandom(draws), [new Probe(draws, context =>
             Assert.Equal(!shelvesFull, CreatureStateMachine.TrySetState(context.Hooks, seeker, JobRules.StateFor(JobType.Research)!.Value)))]).Tick();
@@ -109,16 +122,26 @@ public sealed class LibraryCapacityTests
         (WorldState? world, RoomInstance? room, CreatureState? seeker) = Setup(RoomTypeId.Library);
         FillShelves(world, room);
         for (int y = 1; y <= 3; y++)
-        for (int x = 4; x <= 11; x++)
+        {
+            for (int x = 4; x <= 11; x++)
         {
             ref TileState tile = ref world.Tile(x, y);
             tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
             tile.OwnerPlayerId = Keeper;
         }
+        }
+
         foreach (int left in new[] { 5, 9 })
-        for (int y = 1; y <= 3; y++)
-        for (int x = left; x < left + 3; x++)
-            RoomRules.Place(Db, ref world.Tile(x, y), Db.Room(RoomTypeId.Library), Keeper);
+        {
+            for (int y = 1; y <= 3; y++)
+            {
+                for (int x = left; x < left + 3; x++)
+                {
+                    RoomRules.Place(Db, ref world.Tile(x, y), Db.Room(RoomTypeId.Library), Keeper);
+                }
+            }
+        }
+
         Dk2TerrainFixture.FurnishRooms(Db, world);
         var draws = new Draws();
         new GameSimulation(Db, world, new SimRandom(draws), [new Probe(draws, context =>

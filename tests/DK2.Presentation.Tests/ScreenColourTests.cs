@@ -130,7 +130,11 @@ public sealed class ScreenColourTests
     {
         var colours = new ScreenColourChange();
         colours.Start(ScreenColourKind.Damage, 0, 125);
-        for (int i = 0; i < 8; i++) Assert.True(colours.Queue(ScreenColourKind.Black, 250));
+        for (int i = 0; i < 8; i++)
+        {
+            Assert.True(colours.Queue(ScreenColourKind.Black, 250));
+        }
+
         Assert.False(colours.Queue(ScreenColourKind.White, 250));
         colours.Step(200);
         Assert.True(colours.Running);

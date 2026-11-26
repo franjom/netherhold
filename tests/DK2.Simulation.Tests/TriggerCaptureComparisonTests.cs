@@ -213,8 +213,11 @@ public class TriggerCaptureComparisonTests
             cells[0] = string.Empty;
             cells[1] = row.Tick.ToString(System.Globalization.CultureInfo.InvariantCulture);
             foreach ((string id, int value) in row.Events)
+            {
                 cells[Array.IndexOf(columns, id)] = value.ToString(
                     System.Globalization.CultureInfo.InvariantCulture);
+            }
+
             lines.Add(string.Join(',', cells));
         }
         return new StringReader(string.Join(Environment.NewLine, lines));

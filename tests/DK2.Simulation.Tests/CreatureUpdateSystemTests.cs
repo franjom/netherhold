@@ -71,7 +71,11 @@ public class CreatureUpdateSystemTests
         int made = -1;
         var fight = new Step("fight", log, (context, creature) =>
         {
-            if (creature.Id != b || made >= 0) return;
+            if (creature.Id != b || made >= 0)
+            {
+                return;
+            }
+
             made = context.World.SpawnCreature(context.Database, GoblinId, Keeper, new TilePos(3, 1)).Id;
             context.World.RemoveCreature(b);
         });
@@ -98,7 +102,11 @@ public class CreatureUpdateSystemTests
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(1, 3));
         var send = new Step("send", [], (context, creature) =>
         {
-            if (context.Tick.Value != 0) return;
+            if (context.Tick.Value != 0)
+            {
+                return;
+            }
+
             CreatureStateMachine.BeginTravel(context.Hooks, creature, TravelToPoint, CreatureStateMachine.Idle);
             Assert.True(context.Navigation.TryRoute(creature, new TilePos(3, creature.Tile.Y), MoveOptions.Plain));
         });

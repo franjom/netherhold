@@ -25,7 +25,10 @@ public class ImpSupplyTests
 
         public void Ticks(int count)
         {
-            for (int i = 0; i < count; i++) Tick();
+            for (int i = 0; i < count; i++)
+            {
+                Tick();
+            }
         }
 
         public IEnumerable<SimEvent> Of(string kind) => Events.Events.Where(e => e.Kind == kind);
@@ -102,11 +105,14 @@ public class ImpSupplyTests
         var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper, (byte)4]);
         Dk2TerrainFixture.HeartRoom(world, database, Keeper);
         for (int y = 4; y <= 8; y++)
+        {
             for (int x = 8; x <= 12; x++)
             {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
                 world.Tile(x, y).OwnerPlayerId = 4;
             }
+        }
+
         world.Tile(10, 6).TerrainId = Dk2TerrainFixture.DungeonHeartTerrain;
         world.Player(Keeper).NextFreeImpTick = GameTick.Zero;
         world.Player(4).NextFreeImpTick = GameTick.Zero;
@@ -177,11 +183,14 @@ public class ImpSupplyTests
         var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [Keeper, (byte)4]);
         Dk2TerrainFixture.HeartRoom(world, database, Keeper);
         for (int y = 4; y <= 8; y++)
+        {
             for (int x = 8; x <= 12; x++)
             {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
                 world.Tile(x, y).OwnerPlayerId = 4;
             }
+        }
+
         world.Tile(10, 6).TerrainId = Dk2TerrainFixture.DungeonHeartTerrain;
         world.Player(Keeper).NextFreeImpTick = GameTick.Zero;
         world.Player(4).NextFreeImpTick = GameTick.Zero;
@@ -236,7 +245,10 @@ public class ImpSupplyTests
         CreatureState imp = Assert.Single(run.World.Creatures);
         Assert.Equal(ImpCreationRules.FallingState, imp.Dk2StateId);
 
-        for (int i = 0; i < 20 && imp.Dk2StateId == ImpCreationRules.FallingState; i++) run.Tick();
+        for (int i = 0; i < 20 && imp.Dk2StateId == ImpCreationRules.FallingState; i++)
+        {
+            run.Tick();
+        }
 
         Assert.NotEqual(ImpCreationRules.FallingState, imp.Dk2StateId);
         ViewEffectRequest trail = Assert.Single(run.Events.Events,
@@ -355,7 +367,9 @@ public class ImpSupplyTests
         var at = run.Of("imp_generated").Select(e => e.Tick.Value).ToList();
         Assert.Equal(4, at.Count);
         for (int i = 1; i < at.Count; i++)
+        {
             Assert.Equal(interval + 1, (int)(at[i] - at[i - 1]));
+        }
     }
 
     [Fact]
@@ -422,7 +436,11 @@ public class ImpSupplyTests
         run.Ticks(interval * 4);
         run.Ticks(interval * 20);
 
-        for (int i = 0; i < 3; i++) run.World.RemoveCreature(run.World.Creatures[0].Id);
+        for (int i = 0; i < 3; i++)
+        {
+            run.World.RemoveCreature(run.World.Creatures[0].Id);
+        }
+
         Assert.Equal(1, run.Imps);
 
         long from = run.Sim.CurrentTick.Value;
@@ -487,9 +505,15 @@ public class ImpSupplyTests
     private static void SetRing(WorldState world, byte terrain)
     {
         for (int y = 1; y <= 5; y++)
+        {
             for (int x = 1; x <= 5; x++)
+            {
                 if (new TilePos(x, y) != Dk2TerrainFixture.HeartTile)
+                {
                     world.Tile(x, y).TerrainId = terrain;
+                }
+            }
+        }
     }
 
     // ---- Create Imp -------------------------------------------------------

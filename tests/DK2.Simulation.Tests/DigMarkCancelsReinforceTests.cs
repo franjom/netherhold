@@ -47,10 +47,17 @@ public class DigMarkCancelsReinforceTests
         {
             sim.Tick(InputFrame.Empty);
             CreatureState imp = sim.World.Creatures[0];
-            if (imp.Dk2StateId != work || imp.TargetWork != TileWorkKind.Reinforce) continue;
+            if (imp.Dk2StateId != work || imp.TargetWork != TileWorkKind.Reinforce)
+            {
+                continue;
+            }
+
             var wall = new TilePos(imp.TargetTileIndex % sim.World.Width, imp.TargetTileIndex / sim.World.Width);
             ref TileState tile = ref sim.World.Tile(wall);
-            if (tile.Health > database.TerrainById(tile.TerrainId).StartingHealth) return (wall, tile.Health);
+            if (tile.Health > database.TerrainById(tile.TerrainId).StartingHealth)
+            {
+                return (wall, tile.Health);
+            }
         }
         throw new InvalidOperationException("the Imp never struck a wall to reinforce it");
     }
@@ -68,7 +75,11 @@ public class DigMarkCancelsReinforceTests
         int work = ImpStates.For(TileWorkKind.Reinforce).Work;
         int limit = SimulationTiming.TicksFromSeconds(2);
         int waited = 0;
-        while (sim.World.Creatures[0].Dk2StateId == work && waited++ < limit) sim.Tick(InputFrame.Empty);
+        while (sim.World.Creatures[0].Dk2StateId == work && waited++ < limit)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
+
         Assert.NotEqual(work, sim.World.Creatures[0].Dk2StateId);
         Assert.Contains(events.Events, e => e.Kind == "job_abandoned"
             && e.Detail.Contains("Reinforce") && e.Detail.Contains("reason=gone"));
@@ -77,7 +88,9 @@ public class DigMarkCancelsReinforceTests
         Assert.Equal(rock, sim.World.Tile(wall).TerrainId);
 
         for (int i = 0; i < SimulationTiming.TicksFromSeconds(30) && sim.World.Tile(wall).TerrainId == rock; i++)
+        {
             sim.Tick(InputFrame.Empty);
+        }
 
         string at = $"({wall.X},{wall.Y})";
         Assert.Contains(events.Events, e => e.Kind == "job_taken"
@@ -92,7 +105,10 @@ public class DigMarkCancelsReinforceTests
         (GameSimulation sim, ListEventSink events) = StartReinforcing();
         (TilePos wall, int reinforced) = RunUntilReinforcing(sim);
 
-        for (int i = 0; i < SimulationTiming.TicksFromSeconds(2); i++) sim.Tick(InputFrame.Empty);
+        for (int i = 0; i < SimulationTiming.TicksFromSeconds(2); i++)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
 
         CreatureState imp = sim.World.Creatures[0];
         Assert.Equal(TileWorkKind.Reinforce, imp.TargetWork);
@@ -111,7 +127,10 @@ public class DigMarkCancelsReinforceTests
         ref TileState tile = ref sim.World.Tile(wall);
         tile.TaggedBy = tile.TaggedBy.With(new PlayerId(Rival));
 
-        for (int i = 0; i < SimulationTiming.TicksFromSeconds(2); i++) sim.Tick(InputFrame.Empty);
+        for (int i = 0; i < SimulationTiming.TicksFromSeconds(2); i++)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
 
         CreatureState imp = sim.World.Creatures[0];
         Assert.Equal(TileWorkKind.Reinforce, imp.TargetWork);

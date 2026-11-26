@@ -338,7 +338,11 @@ public class PlayerRunTests
     {
         (WorldState? world, GameSimulation? simulation, PlayerRunCoordinator? coordinator, Scripted _) = Coordinated(finaleTicks: 3);
         WinWithGem(world);
-        for (int i = 0; i < 3; i++) Step(simulation, coordinator, []);
+        for (int i = 0; i < 3; i++)
+        {
+            Step(simulation, coordinator, []);
+        }
+
         Assert.False(coordinator.Stopped);
         Step(simulation, coordinator, []);
 
@@ -486,8 +490,16 @@ public class PlayerRunTests
         using var stream = new MemoryStream();
         using (var writer = new InputJournalWriter(stream, header))
         {
-            foreach (long tick in journal.FrameTicks) writer.WriteFrame(tick, journal.FrameAt(tick));
-            foreach (KeyValuePair<long, ulong> hash in journal.Hashes.OrderBy(h => h.Key)) writer.WriteHash(hash.Key, hash.Value);
+            foreach (long tick in journal.FrameTicks)
+            {
+                writer.WriteFrame(tick, journal.FrameAt(tick));
+            }
+
+            foreach (KeyValuePair<long, ulong> hash in journal.Hashes.OrderBy(h => h.Key))
+            {
+                writer.WriteHash(hash.Key, hash.Value);
+            }
+
             writer.WriteEnd(ticksRun ?? journal.TicksRun ?? -1, endReason ?? journal.EndReason ?? "");
         }
         return InputJournal.Read(new MemoryStream(stream.ToArray()));

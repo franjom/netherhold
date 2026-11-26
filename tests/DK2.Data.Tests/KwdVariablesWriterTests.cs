@@ -45,7 +45,12 @@ public class KwdVariablesWriterTests
             Assert.False(source.SequenceEqual(written));
             (int Offset, int Width) field = fields[property.Name];
             for (int i = 0; i < source.Length; i++)
-                if (i < field.Offset || i >= field.Offset + field.Width) Assert.Equal(source[i], written[i]);
+            {
+                if (i < field.Offset || i >= field.Offset + field.Width)
+                {
+                    Assert.Equal(source[i], written[i]);
+                }
+            }
         }
         Assert.Equal(source, image.ToBytes());
     }
@@ -99,13 +104,18 @@ public class KwdVariablesWriterTests
         foreach (string file in Directory.EnumerateFiles(editor, "*", SearchOption.AllDirectories)
             .Where(f => Path.GetExtension(f).Equals(".kwd", StringComparison.OrdinalIgnoreCase)
                 || Path.GetExtension(f).Equals(".kld", StringComparison.OrdinalIgnoreCase)))
-        foreach (KwdChunk chunk in KwdReader.ReadFile(file).Where(c => c.Type == KwdRecordType.Variables))
-        foreach (KwdRecordImage image in KwdRecordRoundTrip.Split(chunk))
+        {
+            foreach (KwdChunk chunk in KwdReader.ReadFile(file).Where(c => c.Type == KwdRecordType.Variables))
+            {
+                foreach (KwdRecordImage image in KwdRecordRoundTrip.Split(chunk))
         {
             byte[] source = image.ToBytes();
             Assert.Equal(source, KwdVariables.WriteRecord(KwdVariables.ParseRecord(source), image));
             count++;
         }
+            }
+        }
+
         Assert.Equal(8246, count);
     }
 

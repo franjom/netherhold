@@ -58,8 +58,16 @@ public class CommandCodecHostileInputTests
             byte[] input = new byte[random.Next(0, 64)];
             random.NextBytes(input);
             // Most random tags are unknown; aim half the cases at real ones.
-            if (input.Length >= 2 && i % 2 == 0) input[0] = (byte)random.Next(0, 40);
-            if (input.Length >= 2) input[1] = 0;
+            if (input.Length >= 2 && i % 2 == 0)
+            {
+                input[0] = (byte)random.Next(0, 40);
+            }
+
+            if (input.Length >= 2)
+            {
+                input[1] = 0;
+            }
+
             AssertControlled(input);
         }
     }
@@ -76,7 +84,10 @@ public class CommandCodecHostileInputTests
             {
                 case 0:
                     for (int f = random.Next(1, 4); f > 0; f--)
+                    {
                         input[random.Next(input.Length)] ^= (byte)(1 << random.Next(8));
+                    }
+
                     break;
                 case 1:
                     input = input[..random.Next(input.Length)];
@@ -123,7 +134,11 @@ public class CommandCodecHostileInputTests
     private static byte[] Bytes(Action<BinaryWriter> write)
     {
         var stream = new MemoryStream();
-        using (var w = new BinaryWriter(stream)) write(w);
+        using (var w = new BinaryWriter(stream))
+        {
+            write(w);
+        }
+
         return stream.ToArray();
     }
 }

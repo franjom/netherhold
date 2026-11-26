@@ -38,7 +38,12 @@ public class PrisonRescueMessageTests
     private static void Prison(WorldState world, int x0, int y0, int x1, int y1)
     {
         for (int y = y0; y <= y1; y++)
-            for (int x = x0; x <= x1; x++) Build(world, x, y, RoomTypeId.Prison);
+        {
+            for (int x = x0; x <= x1; x++)
+            {
+                Build(world, x, y, RoomTypeId.Prison);
+            }
+        }
     }
 
     private static void Build(WorldState world, int x, int y, RoomTypeId type)
@@ -95,8 +100,16 @@ public class PrisonRescueMessageTests
     public void ASalePiecesTakeTheOldRoomsByteAndAOneTilePieceTurnsActivationOn()
     {
         WorldState world = World();
-        for (int x = 4; x <= 6; x++) Floor(world, x, 2);
-        for (int x = 4; x <= 6; x++) Build(world, x, 2, RoomTypeId.Prison);
+        for (int x = 4; x <= 6; x++)
+        {
+            Floor(world, x, 2);
+        }
+
+        for (int x = 4; x <= 6; x++)
+        {
+            Build(world, x, 2, RoomTypeId.Prison);
+        }
+
         JailBreakRules.DoorOf(world, PrisonAt(world, 4, 2)) = JailBreakRules.Open;
 
         // Sold from the middle: two one-tile pieces, each the old byte and Activation.
@@ -116,10 +129,14 @@ public class PrisonRescueMessageTests
         LevelMap fixture = Dk2TerrainFixture.Map();
         var tiles = new MapTile[fixture.Width * fixture.Height];
         for (int y = 0; y < fixture.Height; y++)
+        {
             for (int x = 0; x < fixture.Width; x++)
+            {
                 tiles[(y * fixture.Width) + x] = x is >= 4 and <= 6 && y is >= 4 and <= 6
                     ? new MapTile(Db.Room(RoomTypeId.Prison).TerrainId, Keeper, 0, 0)
                     : fixture[x, y];
+            }
+        }
 
         var world = WorldState.FromMap(Db, new LevelMap(fixture.Width, fixture.Height, tiles),
             [(byte)0, Rival, PlayerIds.Neutral, Keeper]);
@@ -179,9 +196,17 @@ public class PrisonRescueMessageTests
     public void APrisonWithAPlaceThatTheRoutedSearchRejectsPosts43(bool wayIn, bool activated)
     {
         WorldState world = World();
-        if (wayIn) Floor(world, 4, 3);
+        if (wayIn)
+        {
+            Floor(world, 4, 3);
+        }
+
         Prison(world, 4, 4, 6, 6);
-        if (!activated) JailBreakRules.DoorOf(world, PrisonAt(world, 5, 5)) = 0;
+        if (!activated)
+        {
+            JailBreakRules.DoorOf(world, PrisonAt(world, 5, 5)) = 0;
+        }
+
         Fallen(world, Rival);
         CreatureState imp = RunImp(world);
         Assert.Equal([PlayerMessageKind.RoomUnreachable], Posted(world, RoomTypeId.Prison));
@@ -270,7 +295,11 @@ public class PrisonRescueMessageTests
             [new CreatureMovementSystem(), new ImpTaskSystem(), new CreatureSleepSystem(), new CreatureHealthSystem()]);
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
-        for (int i = 0; i < 50 && !sink.Events.Any(e => e.Kind == "body_picked_up"); i++) sim.Tick();
+        for (int i = 0; i < 50 && !sink.Events.Any(e => e.Kind == "body_picked_up"); i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Contains(sink.Events, e => e.Kind == "body_picked_up" && e.Detail.Contains("to=(1,1)"));
 
         ref TileState sold = ref world.Tile(1, 1);

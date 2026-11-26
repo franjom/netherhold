@@ -166,8 +166,13 @@ public sealed class ThreatFleeTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         CreatureState me = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, Me);
         Dk2TerrainFixture.SetKnownIdentities(world);
         me.Flags |= (byte)CreatureFightFlags.Attackable;   // 0x0045A8B0's bit, recomputed by the update in play

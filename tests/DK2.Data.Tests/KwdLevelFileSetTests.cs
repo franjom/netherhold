@@ -23,7 +23,14 @@ public class KwdLevelFileSetTests
         editor.EditRecord<ObjectThing>(location,row=>row with { MoneyAmount=13 });
         Assert.Equal(13,editor.ReadRecord<ObjectThing>(location).MoneyAmount);
         byte[] edited=editor.Chunks("things.kld")[0].Content;
-        for(int i=0;i<edited.Length;i++) if(i<24 || i>=28) Assert.Equal(source.Content[i],edited[i]);
+        for(int i=0;i<edited.Length;i++)
+        {
+            if (i<24 || i>=28)
+            {
+                Assert.Equal(source.Content[i],edited[i]);
+            }
+        }
+
         Assert.Equal(payload,source.Content[8..]);
         IReadOnlyList<KwdChunk> snapshot =editor.Chunks("things.kld"); snapshot[0].Content[0]=0;
         Assert.Equal(194,editor.Chunks("things.kld")[0].Content[0]);
@@ -34,7 +41,11 @@ public class KwdLevelFileSetTests
             Assert.Equal(editor.ToBytes("things.kld"),File.ReadAllBytes(Path.Combine(root,"things.kld")));
             Assert.Equal(13,((ObjectThing)KwdThings.Parse(KwdReader.ReadFile(Path.Combine(root,"things.kld"))).Single()).MoneyAmount);
         }
-        finally { if(Directory.Exists(root)) Directory.Delete(root,true); }
+        finally { if(Directory.Exists(root))
+            {
+                Directory.Delete(root,true);
+            }
+        }
     }
 
     [Fact]
@@ -56,7 +67,11 @@ public class KwdLevelFileSetTests
             editor.EditRecord<DoorDef>(new("defs.kwd",0,0),row=>row with { Health=13 });
             Assert.Equal(13,editor.ReadRecord<DoorDef>(new("defs.kwd",0,0)).Health);
         }
-        finally { if(Directory.Exists(root)) Directory.Delete(root,true); }
+        finally { if(Directory.Exists(root))
+            {
+                Directory.Delete(root,true);
+            }
+        }
     }
 
     [Fact]
@@ -80,7 +95,10 @@ public class KwdLevelFileSetTests
         foreach(string level in levels)
         {
             var editor=KwdLevelFileSet.Load(level,Dk2InstallGate.Path);
-            foreach(string file in editor.Files) Assert.Equal(File.ReadAllBytes(Path.Combine(Dk2InstallGate.Path,file)),editor.ToBytes(file));
+            foreach(string file in editor.Files)
+            {
+                Assert.Equal(File.ReadAllBytes(Path.Combine(Dk2InstallGate.Path,file)),editor.ToBytes(file));
+            }
         }
     }
 
@@ -91,8 +109,15 @@ public class KwdLevelFileSetTests
         {
             BinaryPrimitives.WriteInt32LittleEndian(header,width); BinaryPrimitives.WriteInt32LittleEndian(header.AsSpan(4),height);
         }
-        else if(type==KwdRecordType.Level) BinaryPrimitives.WriteUInt16LittleEndian(header,(ushort)count);
-        else BinaryPrimitives.WriteInt32LittleEndian(header,count);
+        else if(type==KwdRecordType.Level)
+        {
+            BinaryPrimitives.WriteUInt16LittleEndian(header,(ushort)count);
+        }
+        else
+        {
+            BinaryPrimitives.WriteInt32LittleEndian(header,count);
+        }
+
         return new KwdChunk { Type=type,ItemCount=count,Content=content,HeaderBlock=header,
             ContainerHeader=new KwdContainerHeader((uint)(28+header.Length+content.Length),(uint)type+(type==KwdRecordType.Level?3u:2u),(uint)content.Length,content.Length) };
     }
@@ -102,7 +127,11 @@ public class KwdLevelFileSetTests
         byte[] content=new byte[25603+8+paths.Length*72];
         BinaryPrimitives.WriteInt32LittleEndian(content.AsSpan(25603),222);
         BinaryPrimitives.WriteInt32LittleEndian(content.AsSpan(25607),paths.Length*72);
-        for(int i=0;i<paths.Length;i++) Encoding.ASCII.GetBytes(paths[i]).CopyTo(content,25611+i*72+8);
+        for(int i=0;i<paths.Length;i++)
+        {
+            Encoding.ASCII.GetBytes(paths[i]).CopyTo(content,25611+i*72+8);
+        }
+
         return Fixture(KwdRecordType.Level,content,paths.Length);
     }
 }

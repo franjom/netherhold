@@ -55,13 +55,18 @@ public class CampaignPlayerLevel1Tests(ITestOutputHelper output)
                         PlayerFinale finale = world.Player(Keeper).Finale;
                         gem = finale.GemObjectId;
                         gemTile = (finale.GemTileX, finale.GemTileY);
-                        if (world.ObjectById(gem) is { } thing) gemPoint = (thing.PosX, thing.PosY);
+                        if (world.ObjectById(gem) is { } thing)
+                        {
+                            gemPoint = (thing.PosX, thing.PosY);
+                        }
                     }
                     for (int i = 0; i < world.PlayerCount; i++)
                     {
                         ref readonly PlayerState other = ref world.PlayerAtIndex(i);
                         if (other.PlayerId != Keeper && other.Status == PlayerStatus.Won && !othersWon.Contains(other.PlayerId))
+                        {
                             othersWon.Add(other.PlayerId);
+                        }
                     }
                 },
             });

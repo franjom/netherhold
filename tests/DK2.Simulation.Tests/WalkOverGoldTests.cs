@@ -217,7 +217,11 @@ public sealed class WalkOverGoldTests
     {
         Run run = Start();
         CreatureState imp = run.Spawn(Dk2TerrainFixture.ImpCreatureId);
-        if (possessed) run.World.Player(Keeper).PossessedCreatureId = imp.Id;
+        if (possessed)
+        {
+            run.World.Player(Keeper).PossessedCreatureId = imp.Id;
+        }
+
         run.Pile(800);
 
         run.Tick();

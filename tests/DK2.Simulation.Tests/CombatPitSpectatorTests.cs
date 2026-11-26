@@ -33,16 +33,23 @@ public sealed class CombatPitSpectatorTests
             watcher with { CreatureId = SlowTurner, Name = "Slow Goblin", TurnRate = 256 });
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y <= 8; y++)
-        for (int x = 1; x <= 12; x++)
+        {
+            for (int x = 1; x <= 12; x++)
         {
             ref TileState tile = ref world.Tile(x, y);
             tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
             tile.OwnerPlayerId = Keeper;
         }
+        }
 
         for (int y = 2; y <= 6; y++)
-        for (int x = 4; x <= 8; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.CombatPit), Keeper);
+        {
+            for (int x = 4; x <= 8; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.CombatPit), Keeper);
+            }
+        }
+
         return (db, world);
     }
 
@@ -71,7 +78,12 @@ public sealed class CombatPitSpectatorTests
     private static void EndTheFight(GameDatabase db, WorldState world)
     {
         foreach (CreatureState c in world.Creatures)
-            if (c.Dk2StateId == Engaging) Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), c, CreatureStateMachine.Idle));
+        {
+            if (c.Dk2StateId == Engaging)
+            {
+                Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), c, CreatureStateMachine.Idle));
+            }
+        }
     }
 
     private static bool OnTheFloor(GameDatabase db, WorldState world, CreatureState c) =>
@@ -84,7 +96,10 @@ public sealed class CombatPitSpectatorTests
         (GameSimulation sim, ListEventSink sink) = Simulation(db, world);
         CreatureState watcher = world.SpawnCreature(db, Watcher, Keeper, Outside);
 
-        for (int i = 0; i < 12; i++) sim.Tick();
+        for (int i = 0; i < 12; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.DoesNotContain(sink.Events, e => e.Kind == "job_taken");
         Assert.Contains(sink.Events, e => e.Kind == "job_refused" && e.Detail.Contains("reason=no_fight_to_watch"));
@@ -102,11 +117,13 @@ public sealed class CombatPitSpectatorTests
         GameDatabase db = Dk2TerrainFixture.Database(watcherDef);
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y <= 10; y++)
-        for (int x = 1; x <= 14; x++)
+        {
+            for (int x = 1; x <= 14; x++)
         {
             ref TileState tile = ref world.Tile(x, y);
             tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
             tile.OwnerPlayerId = Keeper;
+        }
         }
 
         RoomDef pit = db.Room(RoomTypeId.CombatPit);
@@ -119,17 +136,32 @@ public sealed class CombatPitSpectatorTests
         }
 
         for (int y = 1; y <= 3; y++)
-        for (int x = 11; x <= 13; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), pit, Keeper);
+        {
+            for (int x = 11; x <= 13; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), pit, Keeper);
+            }
+        }
 
         foreach (TilePos floor in new[] { new TilePos(2, 2), new TilePos(12, 2) })
-        foreach (byte owner in new[] { Keeper, Rival })
-            Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, owner, floor), Engaging));
+        {
+            foreach (byte owner in new[] { Keeper, Rival })
+            {
+                Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, owner, floor), Engaging));
+            }
+        }
 
         (GameSimulation sim, ListEventSink sink) = Simulation(db, world);
-        for (int i = 0; i < 3; i++) sim.Tick();
+        for (int i = 0; i < 3; i++)
+        {
+            sim.Tick();
+        }
+
         CreatureState watcher = world.SpawnCreature(db, Watcher, Keeper, new TilePos(7, 4));
-        for (int i = 0; i < 300 && watcher.Dk2StateId != CombatPitSpectatorRules.ChoosingState; i++) sim.Tick();
+        for (int i = 0; i < 300 && watcher.Dk2StateId != CombatPitSpectatorRules.ChoosingState; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Equal(CombatPitSpectatorRules.ChoosingState, watcher.Dk2StateId);
         Assert.True(watcher.Tile.X <= 3, $"the watcher went to ({watcher.Tile.X},{watcher.Tile.Y}), not pit A");
@@ -145,7 +177,11 @@ public sealed class CombatPitSpectatorTests
         (GameDatabase db, WorldState world) = World();
         AFight(db, world);
         (GameSimulation sim, ListEventSink sink) = Simulation(db, world, seed);
-        for (int i = 0; i < 3; i++) sim.Tick();
+        for (int i = 0; i < 3; i++)
+        {
+            sim.Tick();
+        }
+
         CreatureState watcher = world.SpawnCreature(db, Watcher, Keeper, Outside);
         sim.Tick();   // 1 hands over to 89 (ADR-0574)
 
@@ -155,7 +191,11 @@ public sealed class CombatPitSpectatorTests
         Assert.Equal(TravelToRoom, watcher.Dk2StateId);
         Assert.Equal(CombatPitSpectatorRules.ChoosingState, watcher.UtilityNewState);
 
-        for (int i = 0; i < 200 && watcher.Dk2StateId == TravelToRoom; i++) sim.Tick();
+        for (int i = 0; i < 200 && watcher.Dk2StateId == TravelToRoom; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(CombatPitSpectatorRules.ChoosingState, watcher.Dk2StateId);
         Assert.True(Pit(db, world).Contains((watcher.Tile.Y * world.Width) + watcher.Tile.X));
         Assert.False(OnTheFloor(db, world, watcher));
@@ -179,7 +219,10 @@ public sealed class CombatPitSpectatorTests
             sim.Tick();
             seen.Add(watcher.Dk2StateId is 6 or 7 ? watcher.UtilityNewState + 1000 : watcher.Dk2StateId);
             Assert.False(OnTheFloor(db, world, watcher));
-            if (i > 0) Assert.NotEqual(CreatureActivity.Idle, watcher.Activity);   // while the fight lasts, it never stops watching
+            if (i > 0)
+            {
+                Assert.NotEqual(CreatureActivity.Idle, watcher.Activity);   // while the fight lasts, it never stops watching
+            }
         }
 
         Assert.Superset(new HashSet<int> { 142, 143, 144, 1143 }, seen);
@@ -205,7 +248,10 @@ public sealed class CombatPitSpectatorTests
         for (int i = 0; i < 300 && !sink.Events.Any(e => e.Kind == "spectator_cheer"); i++)
         {
             sim.Tick();
-            if (watcher.Dk2StateId == CombatPitSpectatorRules.FacingState) facing++;
+            if (watcher.Dk2StateId == CombatPitSpectatorRules.FacingState)
+            {
+                facing++;
+            }
         }
         Assert.Contains(sink.Events, e => e.Kind == "spectator_cheer");
         Assert.True(facing >= 3, $"143 held for {facing} turns");
@@ -227,7 +273,10 @@ public sealed class CombatPitSpectatorTests
 
         // Until a 144 has just looked and seen the fight, then the fight ends.
         for (int i = 0; i < 400 && !(watcher.Dk2StateId == CombatPitSpectatorRules.ChoosingState && stamp.PitFightSeenTick == sim.World.CurrentTick.Value - 1); i++)
+        {
             sim.Tick();
+        }
+
         Assert.Equal(sim.World.CurrentTick.Value - 1, stamp.PitFightSeenTick);
         EndTheFight(db, world);
 
@@ -238,7 +287,11 @@ public sealed class CombatPitSpectatorTests
             Assert.NotEqual(CreatureActivity.Idle, watcher.Activity);
         }
 
-        for (int i = 0; i < 100 && watcher.Activity != CreatureActivity.Idle; i++) sim.Tick();
+        for (int i = 0; i < 100 && watcher.Activity != CreatureActivity.Idle; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(CreatureActivity.Idle, watcher.Activity);
         Assert.Equal(JobType.None, watcher.CurrentJob);
     }
@@ -253,7 +306,11 @@ public sealed class CombatPitSpectatorTests
     {
         (GameDatabase db, WorldState world) = World();
         (GameSimulation sim, _) = Simulation(db, world);
-        for (int i = 0; i < 20; i++) sim.Tick();
+        for (int i = 0; i < 20; i++)
+        {
+            sim.Tick();
+        }
+
         CreatureState watcher = world.SpawnCreature(db, Watcher, Keeper, Rim);
         Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), watcher, CombatPitSpectatorRules.ChoosingState));
         Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), watcher, CombatPitSpectatorRules.CheeringState));

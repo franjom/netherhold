@@ -71,7 +71,10 @@ public sealed class ClassicLightPublisherTests
         for (int frame = 0; frame < 4 && result == ClassicLightPublication.Changed; frame++)
         {
             result = publisher.Prepare(TopDown, Viewport, 10);
-            if (result == ClassicLightPublication.Changed) publisher.Publish(sink);
+            if (result == ClassicLightPublication.Changed)
+            {
+                publisher.Publish(sink);
+            }
         }
         Assert.Equal(ClassicLightPublication.Unchanged, result);
 

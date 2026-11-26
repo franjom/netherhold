@@ -26,12 +26,15 @@ public sealed class BlueprintPlacementTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y <= 8; y++)
-        for (int x = 1; x <= 10; x++)
+        {
+            for (int x = 1; x <= 10; x++)
         {
             ref TileState tile = ref world.Tile(x, y);
             tile.TerrainId = y is 3 or 5 ? Dk2TerrainFixture.Rock : Dk2TerrainFixture.ClaimedPath;
             tile.OwnerPlayerId = y is 3 or 5 ? (byte)0 : Keeper;
         }
+        }
+
         world.Tile(1, 8).GoldHeld = gold;
         return (db, world);
     }

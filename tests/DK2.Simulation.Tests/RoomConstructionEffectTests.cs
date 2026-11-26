@@ -22,7 +22,10 @@ public class RoomConstructionEffectTests
             : BuildRoomCommand.Rect(PlayerIds.FirstKeeper, RoomTypeId.Lair, 1, 1, 1, 1);
 
         simulation.Tick(InputFrame.Of(command));
-        if (rectangle) simulation.Run(2);
+        if (rectangle)
+        {
+            simulation.Run(2);
+        }
 
         SimEvent[] effects = events.Events.Where(e => e.Kind == "construction_effect").ToArray();
         Assert.Equal(command.Tiles.Count, effects.Length);
@@ -42,8 +45,10 @@ public class RoomConstructionEffectTests
     {
         (GameSimulation? simulation, ListEventSink? events) = Start();
         if (alreadyBuilt)
+        {
             RoomRules.Place(simulation.Database, ref simulation.World.Tile(new TilePos(1, 1)),
                 simulation.Database.Room(RoomTypeId.Lair), PlayerIds.FirstKeeper);
+        }
 
         int coordinate = alreadyBuilt ? 1 : 0;
         simulation.Tick(InputFrame.Of(BuildRoomCommand.Rect(PlayerIds.FirstKeeper, RoomTypeId.Lair,

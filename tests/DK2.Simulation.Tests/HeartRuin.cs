@@ -17,7 +17,9 @@ internal static class HeartRuin
         {
             ref TileState tile = ref world.TileAtIndex(i);
             if (tile.OwnerPlayerId == player.Value && tile.TerrainId == Dk2TerrainFixture.DungeonHeartTerrain)
+            {
                 tile.RoomRuined = ruined;
+            }
         }
     }
 }

@@ -39,8 +39,12 @@ public class PrisonGateTests
         }
 
         for (int y = 2; y <= 6; y++)
+        {
             for (int x = 3; x <= 7; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Prison), Keeper);
+            }
+        }
     }
 
     private static GameSimulation Simulation(GameDatabase db, WorldState world, ListEventSink sink)
@@ -106,7 +110,11 @@ public class PrisonGateTests
         {
             s.Sim.Tick();
             int here = Index(world, s.Imp.Tile);
-            if (here == last) continue;
+            if (here == last)
+            {
+                continue;
+            }
+
             if (s.Prison.IsInterior(here) && enteredAt is null)
             {
                 enteredFrom = last;
@@ -138,7 +146,11 @@ public class PrisonGateTests
             s.Sim.Tick();
             imprisoned |= s.Sink.Events.Any(e => e.Kind == "creature_imprisoned");
             int here = Index(world, s.Imp.Tile);
-            if (imprisoned && here != last && last == s.Door + world.Width && here == s.Door) leftByDoor = true;
+            if (imprisoned && here != last && last == s.Door + world.Width && here == s.Door)
+            {
+                leftByDoor = true;
+            }
+
             last = here;
         }
 
@@ -158,7 +170,11 @@ public class PrisonGateTests
         for (int i = 0; i < 40 * Second && !s.Sink.Events.Any(e => e.Kind == "body_dropped"); i++)
         {
             s.Sim.Tick();
-            if (filled || s.Imp.Activity != CreatureActivity.CarryingBody) continue;
+            if (filled || s.Imp.Activity != CreatureActivity.CarryingBody)
+            {
+                continue;
+            }
+
             filled = true;
             // Capacity is nine interior tiles plus one: ten captives fill it.
             for (int k = 0; k < PrisonRules.Capacity(s.Prison); k++)

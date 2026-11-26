@@ -25,9 +25,15 @@ public class HudTextAtlasTests
             new BitmapGlyph(' ', 0, 0, 0, 0, 2, Array.Empty<byte>()),
         });
         foreach (string text in new[] { "aj", "ajaj a", "X\nX", "jX aj\nXjaj", "", "  ", "j", "aXa\naXa\naXa" })
+        {
             foreach (bool centred in new[] { false, true })
+            {
                 foreach (int wrap in new[] { 0, 5, 9 })
+                {
                     AssertPiecesMatch(new HudText(font, text, wrap, centred));
+                }
+            }
+        }
     }
 
     [InstallFact]
@@ -42,7 +48,14 @@ public class HudTextAtlasTests
             AssertPiecesMatch(new HudText(font, sample, 0));
             AssertPiecesMatch(new HudText(font, sample, 120, Centred: true));
             var every = new System.Text.StringBuilder();
-            for (char a = '!'; a <= '~'; a++) for (char b = '!'; b <= '~'; b++) every.Append(a).Append(b).Append(' ');
+            for (char a = '!'; a <= '~'; a++)
+            {
+                for (char b = '!'; b <= '~'; b++)
+                {
+                    every.Append(a).Append(b).Append(' ');
+                }
+            }
+
             AssertPiecesMatch(new HudText(font, every.ToString(), 1200));
         }
     }
@@ -59,14 +72,24 @@ public class HudTextAtlasTests
             Assert.InRange(piece.X, 0, width - piece.Width);
             Assert.InRange(piece.Y, 0, height - piece.Height);
             for (int y = piece.Y; y < piece.Y + piece.Height; y++)
+            {
                 for (int x = piece.X; x < piece.X + piece.Width; x++)
                 {
                     byte alpha = piece.Alpha(x, y);
-                    if (alpha == 0) continue;
+                    if (alpha == 0)
+                    {
+                        continue;
+                    }
+
                     int at = (y * width + x) * 4;
-                    if (drawn[at + 3] != 0) Assert.Fail($"pixel {x},{y} of \"{text.Text}\" inked twice");
+                    if (drawn[at + 3] != 0)
+                    {
+                        Assert.Fail($"pixel {x},{y} of \"{text.Text}\" inked twice");
+                    }
+
                     drawn[at] = drawn[at + 1] = drawn[at + 2] = 255; drawn[at + 3] = alpha;
                 }
+            }
         }
         Assert.Equal(expected, drawn);
     }
@@ -83,14 +106,18 @@ public class HudTextAtlasTests
         Array.Fill(source, (byte)200);
         byte[] into = new byte[source.Length];
         foreach (int maximum in new[] { 0, 1, 2, 3, 4, 7, 8, 12, 37, 100, 360, 1000 })
+        {
             for (int value = -1; value <= maximum + 1; value++)
             {
                 var fraction = new HudGaugeFraction(value, maximum);
                 HudImagePixels.Fill(source, width, height, new HudImage("g", HudImageVariant.Gauge, Gauge: fraction), into);
                 int lit = mask.LitCount(fraction);
                 for (int i = 0; i < width * height; i++)
+                {
                     Assert.Equal(into[i * 4] != 0, mask.Ranks[i] < lit);
+                }
             }
+        }
     }
 
     [Fact]

@@ -14,8 +14,16 @@ public sealed class BlendedItemOrderTests
     private static BlendedItemOrder Order(float[] runs, params (int Batch, float Distance, BlendedItemBlend Blend)[] items)
     {
         var order = new BlendedItemOrder();
-        foreach (float run in runs) order.AddRun(run);
-        foreach ((int batch, float distance, BlendedItemBlend blend) in items) order.Add(batch, distance, blend);
+        foreach (float run in runs)
+        {
+            order.AddRun(run);
+        }
+
+        foreach ((int batch, float distance, BlendedItemBlend blend) in items)
+        {
+            order.Add(batch, distance, blend);
+        }
+
         order.Order();
         return order;
     }
@@ -77,8 +85,16 @@ public sealed class BlendedItemOrderTests
     private static BlendedItemOrder Boxed(float[] runs, params (int Batch, float Distance, BlendedItemBlend Blend, BlendedItemRect Rect)[] items)
     {
         var order = new BlendedItemOrder();
-        foreach (float run in runs) order.AddRun(run);
-        foreach ((int batch, float distance, BlendedItemBlend blend, BlendedItemRect rect) in items) order.Add(batch, distance, blend, rect);
+        foreach (float run in runs)
+        {
+            order.AddRun(run);
+        }
+
+        foreach ((int batch, float distance, BlendedItemBlend blend, BlendedItemRect rect) in items)
+        {
+            order.Add(batch, distance, blend, rect);
+        }
+
         order.Order();
         return order;
     }
@@ -124,7 +140,11 @@ public sealed class BlendedItemOrderTests
     public void AnItemLooksBackOnlySoFar()
     {
         var items = new List<(int, float, BlendedItemBlend, BlendedItemRect)> { (Dust, 100f, Mix, Left) };
-        for (int i = 0; i < BlendedItemOrder.LookBack; i++) items.Add((10 + i, 99f - i, Mix, Right));
+        for (int i = 0; i < BlendedItemOrder.LookBack; i++)
+        {
+            items.Add((10 + i, 99f - i, Mix, Right));
+        }
+
         items.Add((Dust, 1f, Mix, Left));
         BlendedItemOrder order = Boxed([], items.ToArray());
         Assert.Equal(BlendedItemOrder.LookBack + 2, order.Segments.Count);
@@ -254,19 +274,38 @@ public sealed class BlendedItemOrderTests
     public void ReorderingAllocatesNothingOnceGrown()
     {
         var order = new BlendedItemOrder();
-        for (int r = 0; r < 40; r++) order.AddRun(100f - r);
+        for (int r = 0; r < 40; r++)
+        {
+            order.AddRun(100f - r);
+        }
+
         void Frame(int shift)
         {
             order.ClearItems();
             for (int i = 0; i < 300; i++)
+            {
                 order.Add(i % 3, 30f + (i * 37 + shift) % 97 * 0.73f, i % 3 == 2 ? Mix : Add);
-            for (int b = 0; b < 40 + shift % 7; b++) order.AddBarrier(30f + (b * 53 + shift) % 89 * 0.79f, Left);
+            }
+
+            for (int b = 0; b < 40 + shift % 7; b++)
+            {
+                order.AddBarrier(30f + (b * 53 + shift) % 89 * 0.79f, Left);
+            }
+
             order.Order();
         }
         // The first pass grows the buffers to these frames' largest; the same frames again allocate nothing.
-        for (int f = 0; f < 20; f++) Frame(f);
+        for (int f = 0; f < 20; f++)
+        {
+            Frame(f);
+        }
+
         long before = GC.GetAllocatedBytesForCurrentThread();
-        for (int f = 0; f < 20; f++) Frame(f);
+        for (int f = 0; f < 20; f++)
+        {
+            Frame(f);
+        }
+
         Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
     }
 
@@ -275,7 +314,11 @@ public sealed class BlendedItemOrderTests
     {
         float[] runs = [40f, 35f, 35f - BlendedRunSlots<object>.KeyStep, 20f, 10f];
         var order = new BlendedItemOrder();
-        foreach (float run in runs) order.AddRun(run);
+        foreach (float run in runs)
+        {
+            order.AddRun(run);
+        }
+
         var random = new Random(7);
         float[] distances = new float[500];
         for (int i = 0; i < distances.Length; i++)
@@ -286,11 +329,18 @@ public sealed class BlendedItemOrderTests
         order.Order();
         Assert.Equal(Enumerable.Range(0, distances.Length), order.Items.ToArray().OrderBy(i => i));
         foreach (BlendedItemSegment segment in order.Segments)
+        {
             foreach (int item in order.Items.Slice(segment.Start, segment.Count).ToArray())
+            {
                 // The draw falls between the same two runs as each of its items.
                 Assert.Equal(runs.Count(run => run >= distances[item]), runs.Count(run => run > segment.Distance));
+            }
+        }
+
         for (int s = 1; s < order.Segments.Count; s++)
+        {
             Assert.True(order.Segments[s].Distance < order.Segments[s - 1].Distance);
+        }
     }
 
     [Fact]
@@ -301,7 +351,11 @@ public sealed class BlendedItemOrderTests
         float[] runs = [30f, 20f, 10f];
         var random = new Random(11);
         var order = new BlendedItemOrder();
-        foreach (float run in runs) order.AddRun(run);
+        foreach (float run in runs)
+        {
+            order.AddRun(run);
+        }
+
         int n = 400;
         float[] distances = new float[n];
         int[] batches = new int[n];
@@ -322,24 +376,53 @@ public sealed class BlendedItemOrderTests
         int[] segmentOf = new int[n];
         int at = 0;
         foreach (BlendedItemSegment segment in order.Segments)
-            foreach (int item in order.Items.Slice(segment.Start, segment.Count).ToArray()) drawnAt[item] = at++;
+        {
+            foreach (int item in order.Items.Slice(segment.Start, segment.Count).ToArray())
+            {
+                drawnAt[item] = at++;
+            }
+        }
+
         for (int s = 0; s < order.Segments.Count; s++)
-            foreach (int item in order.Items.Slice(order.Segments[s].Start, order.Segments[s].Count).ToArray()) segmentOf[item] = s;
+        {
+            foreach (int item in order.Items.Slice(order.Segments[s].Start, order.Segments[s].Count).ToArray())
+            {
+                segmentOf[item] = s;
+            }
+        }
+
         Assert.True(order.Segments.Count < n / 2, $"{order.Segments.Count} draws for {n} items");
         for (int a = 0; a < n; a++)
+        {
             for (int b = 0; b < n; b++)
             {
-                if (a == b || batches[a] == batches[b] || !(distances[a] > distances[b] || (distances[a] == distances[b] && a < b))) continue;
-                if (blends[a] == Add && blends[b] == Add || !rects[a].Overlaps(rects[b])) continue;
+                if (a == b || batches[a] == batches[b] || !(distances[a] > distances[b] || (distances[a] == distances[b] && a < b)))
+                {
+                    continue;
+                }
+
+                if (blends[a] == Add && blends[b] == Add || !rects[a].Overlaps(rects[b]))
+                {
+                    continue;
+                }
+
                 Assert.True(drawnAt[a] < drawnAt[b], $"item {a} at {distances[a]} draws after item {b} at {distances[b]}");
                 // The renderer orders draws by key alone, so a later draw must be keyed strictly nearer.
                 if (segmentOf[a] != segmentOf[b])
+                {
                     Assert.True(order.Segments[segmentOf[a]].Distance > order.Segments[segmentOf[b]].Distance,
                         $"draw {segmentOf[a]} is not keyed beyond draw {segmentOf[b]}");
+                }
             }
+        }
+
         foreach (BlendedItemSegment segment in order.Segments)
+        {
             foreach (int item in order.Items.Slice(segment.Start, segment.Count).ToArray())
+            {
                 Assert.Equal(runs.Count(run => run >= distances[item]), runs.Count(run => run > segment.Distance));
+            }
+        }
     }
 
     private static readonly System.Numerics.Matrix4x4 TiltedView = ViewFrustum.FromPose(new ClassicCameraPose(
@@ -357,7 +440,11 @@ public sealed class BlendedItemOrderTests
                 (float)random.NextDouble() * 12);
             float radius = (float)random.NextDouble() * 0.8f + 0.01f;
             var box = BlendedItemRect.OfSphere(TiltedView, centre, radius);
-            if (box == BlendedItemRect.Everywhere) continue;
+            if (box == BlendedItemRect.Everywhere)
+            {
+                continue;
+            }
+
             boxed++;
             for (int k = 0; k < 64; k++)
             {
@@ -453,7 +540,11 @@ public sealed class BlendedItemOrderTests
         float[] runs = [25f, 12f];
         var random = new Random(5);
         var order = new BlendedItemOrder();
-        foreach (float run in runs) order.AddRun(run);
+        foreach (float run in runs)
+        {
+            order.AddRun(run);
+        }
+
         int n = 300, barriers = 40;
         float[] distances = new float[n];
         var rects = new BlendedItemRect[n];
@@ -474,16 +565,22 @@ public sealed class BlendedItemOrderTests
         order.Order();
         Assert.Equal(n, order.Items.Length);
         foreach (BlendedItemSegment segment in order.Segments)
+        {
             foreach (int item in order.Items.Slice(segment.Start, segment.Count).ToArray())
             {
                 Assert.Equal(runs.Count(run => run >= distances[item]), runs.Count(run => run > segment.Distance));
                 foreach ((float distance, BlendedItemRect rect) in walls)
                 {
-                    if (distance == distances[item] || !rect.Overlaps(rects[item])) continue;
+                    if (distance == distances[item] || !rect.Overlaps(rects[item]))
+                    {
+                        continue;
+                    }
+
                     Assert.True(distances[item] > distance == segment.Distance > distance,
                         $"item {item} at {distances[item]} drawn at {segment.Distance} across the barrier at {distance}");
                 }
             }
+        }
     }
 
     [Fact]
@@ -544,7 +641,11 @@ public sealed class BlendedItemOrderTests
         order.AddRun(upper);
         order.AddRun(lower);
         float mid = (upper + lower) / 2;
-        for (int i = 0; i < 6; i++) order.Add(i % 2 == 0 ? Flower : Ring, mid, Mix);
+        for (int i = 0; i < 6; i++)
+        {
+            order.Add(i % 2 == 0 ? Flower : Ring, mid, Mix);
+        }
+
         order.Order();
         float gap = order.MinimumGap(upper);
         float previous = upper;
@@ -564,9 +665,21 @@ public sealed class BlendedItemOrderTests
     {
         static void Frame(BlendedItemOrder order)
         {
-            for (int r = 0; r < 60; r++) order.AddRun(100f - r);
-            for (int i = 0; i < 400; i++) order.Add(i % 5, 40f + i * 0.13f % 50, i % 2 == 0 ? Add : Mix, Left);
-            for (int b = 0; b < 100; b++) order.AddBarrier(45f + b * 0.3f, Right);
+            for (int r = 0; r < 60; r++)
+            {
+                order.AddRun(100f - r);
+            }
+
+            for (int i = 0; i < 400; i++)
+            {
+                order.Add(i % 5, 40f + i * 0.13f % 50, i % 2 == 0 ? Add : Mix, Left);
+            }
+
+            for (int b = 0; b < 100; b++)
+            {
+                order.AddBarrier(45f + b * 0.3f, Right);
+            }
+
             order.Order();
         }
         // A first order on another instance compiles the code; the measured one only fills ensured buffers.

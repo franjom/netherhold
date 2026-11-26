@@ -44,10 +44,14 @@ public sealed class ImpJobSoundTests
                 Sim.Tick();
                 CreatureState? imp = World.Creatures.FirstOrDefault(c => c.CreatureTypeId == ImpId) ?? World.Creatures[0];
                 for (int e = seen; e < Events.Events.Count; e++)
+                {
                     if (Events.Events[e].ThingSound is { } sound)
+                    {
                         Sounds.Add(new Heard(Events.Events[e].Tick.Value, sound, imp!.Id,
                             new(new Fp32(imp.PosX), new Fp32(imp.PosY), new Fp32(imp.PosZ)),
                             imp.CarriedObjectId >= 0 || imp.CarriedCreatureId >= 0));
+                    }
+                }
             }
         }
 
@@ -61,7 +65,10 @@ public sealed class ImpJobSoundTests
 
     private static void Paint(GameDatabase db, WorldState world, RoomTypeId type, params TilePos[] at)
     {
-        foreach (TilePos tile in at) RoomRules.Place(db, ref world.Tile(tile.X, tile.Y), db.Room(type), Keeper);
+        foreach (TilePos tile in at)
+        {
+            RoomRules.Place(db, ref world.Tile(tile.X, tile.Y), db.Room(type), Keeper);
+        }
     }
 
     // ---- the gold deposit ------------------------------------------------------------------------
@@ -199,8 +206,13 @@ public sealed class ImpJobSoundTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, (byte)1, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 3; y++)
-        for (int x = 1; x <= 3; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Workshop), Keeper);
+        {
+            for (int x = 1; x <= 3; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Workshop), Keeper);
+            }
+        }
+
         for (int x = 4; x <= 12; x++)
         {
             world.Tile(x, 2).TerrainId = Dk2TerrainFixture.ClaimedPath;
@@ -280,8 +292,13 @@ public sealed class ImpJobSoundTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, 1, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 3; y++)
-        for (int x = 4; x <= 6; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Graveyard), Keeper);
+        {
+            for (int x = 4; x <= 6; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Graveyard), Keeper);
+            }
+        }
+
         Dk2TerrainFixture.FurnishRooms(db, world);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
         CreatureDeathRules.BecomeCorpse(world, db, goblin);

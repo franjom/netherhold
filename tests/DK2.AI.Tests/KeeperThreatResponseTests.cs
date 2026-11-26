@@ -35,8 +35,12 @@ public class KeeperThreatResponseTests
     private static void Open(WorldState world, int x0, int y0, int x1, int y1)
     {
         for (int y = y0; y <= y1; y++)
+        {
             for (int x = x0; x <= x1; x++)
+            {
                 KeeperWorld.Set(world, Db, new TilePos(x, y), KeeperWorld.DirtPath);
+            }
+        }
     }
 
     [Fact]
@@ -81,7 +85,9 @@ public class KeeperThreatResponseTests
         GameSimulation sim = Sim(world);
         KeeperAI keeper = NewKeeper(speed: 0);
         for (int i = 0; i < 3; i++)
+        {
             Assert.True(keeper.State.Responses.TryReceive(() => new KeeperThreatResponse(9, new TilePos(1, 1))));
+        }
 
         IReadOnlyList<PlayerCommand> refused = keeper.Think(Db, world);
         Assert.DoesNotContain(refused, c => c is AcknowledgePlayerMessageCommand);
@@ -336,7 +342,11 @@ public class KeeperThreatResponseTests
         Fighter(world, Hero, 5, 7);
         // As if each had just stepped onto its tile, so the first scan is due at once rather than at
         // its phase (a made creature holds its creation tile, ADR-0645).
-        foreach (CreatureState creature in world.Creatures) creature.LastFightScanTileIndex = -1;
+        foreach (CreatureState creature in world.Creatures)
+        {
+            creature.LastFightScanTileIndex = -1;
+        }
+
         var sim = new GameSimulation(Db, world, 1, [new CombatSystem(), new HandSystem(), new RescuePrioritySystem()]);
         KeeperAI keeper = NewKeeper(speed: 2, withdraw: true);
         var log = new List<(long Tick, PlayerCommand Command)>();
@@ -344,7 +354,11 @@ public class KeeperThreatResponseTests
         for (int tick = 0; tick < 6; tick++)
         {
             IReadOnlyList<PlayerCommand> commands = keeper.Think(Db, world);
-            foreach (PlayerCommand command in commands) log.Add((tick, command));
+            foreach (PlayerCommand command in commands)
+            {
+                log.Add((tick, command));
+            }
+
             sim.Tick(new InputFrame(commands));
         }
 
@@ -393,7 +407,11 @@ public class KeeperThreatResponseTests
         {
             var probe = new SimRandom(seed);
             bool first = probe.NextInt(100) < 50, second = probe.NextInt(100) < 50;
-            if (first != second) break;
+            if (first != second)
+            {
+                break;
+            }
+
             seed++;
         }
         var replay = new SimRandom(seed);
@@ -432,7 +450,11 @@ public class KeeperThreatResponseTests
         sim.Run(398);
         // Counts as an ally at the fight but, just spawned past turn 300, is never withdrawn.
         world.SpawnCreature(db, KeeperWorld.FighterCreature, Keeper, new TilePos(5, 6));
-        for (int i = 0; i < 4; i++) world.SpawnCreature(db, KeeperWorld.FighterCreature, Hero, new TilePos(7, 4 + i));
+        for (int i = 0; i < 4; i++)
+        {
+            world.SpawnCreature(db, KeeperWorld.FighterCreature, Hero, new TilePos(7, 4 + i));
+        }
+
         Attack(world, 5, 5);
         KeeperAI keeper = NewKeeper(speed: 2, withdraw: true);
 
@@ -490,13 +512,21 @@ public class KeeperThreatResponseTests
             WorldState world = KeeperWorld.World(Db);
             KeeperWorld.Set(world, Db, new TilePos(13, 13), KeeperWorld.PrisonFloor, Keeper);
             Fighter(world, Keeper, 14, 15);
-            for (int i = 0; i < 4; i++) Fighter(world, Hero, 16 + (i % 2), 14 + (i / 2));
+            for (int i = 0; i < 4; i++)
+            {
+                Fighter(world, Hero, 16 + (i % 2), 14 + (i / 2));
+            }
+
             GameSimulation sim = Sim(world);
             KeeperAI keeper = NewKeeper(speed: 2, withdraw: true, imprison: 50, seed: seed);
             var hash = Hash64.Start();
             for (int tick = 0; tick < 40; tick++)
             {
-                if (tick % 5 == 0) Attack(world, 16, 15, tick % 10 == 0 ? PlayerMessageKind.CombatStarted : PlayerMessageKind.HeartAttacked);
+                if (tick % 5 == 0)
+                {
+                    Attack(world, 16, 15, tick % 10 == 0 ? PlayerMessageKind.CombatStarted : PlayerMessageKind.HeartAttacked);
+                }
+
                 var frame = new InputFrame(keeper.Think(Db, world));
                 frame.HashInto(ref hash);
                 sim.Tick(frame);
@@ -530,7 +560,11 @@ public class KeeperThreatResponseTests
     public void ARoomAttackRerollsImprisonmentWithNoPrisonAndReadsTheRoomByItsFirstSlab()
     {
         WorldState world = KeeperWorld.World(Db);
-        for (int x = 13; x <= 14; x++) KeeperWorld.Set(world, Db, new TilePos(x, 13), KeeperWorld.LairFloor, Keeper);
+        for (int x = 13; x <= 14; x++)
+        {
+            KeeperWorld.Set(world, Db, new TilePos(x, 13), KeeperWorld.LairFloor, Keeper);
+        }
+
         Fighter(world, Keeper, 14, 15);
         CreatureState hero = Fighter(world, Hero, 14, 14);
         int tag = (13 * world.Width) + 13;

@@ -41,11 +41,19 @@ public class TorchLayoutTests
         int moved = 0;
         for (int i = 0; i < world.TileCount; i++)
         {
-            if (layout.At(i) is not TorchView torch) continue;
+            if (layout.At(i) is not TorchView torch)
+            {
+                continue;
+            }
+
             Vector3 straight = TorchGeometry.Vertex(torch, Vector3.Zero, null);
             Vector3 wallPoint = lattice.Deform(new Vector3(straight.X, -straight.Z, -straight.Y), torch.Wall.X, torch.Wall.Y);
             var wallMount = new Vector3(wallPoint.X, -wallPoint.Z, -wallPoint.Y);
-            if (Vector3.Distance(straight, wallMount) > 0.001f) moved++;
+            if (Vector3.Distance(straight, wallMount) > 0.001f)
+            {
+                moved++;
+            }
+
             Assert.True(Vector3.Distance(wallMount, TorchGeometry.Vertex(torch, Vector3.Zero, lattice)) < 0.00001f);
         }
         Assert.True(moved > 0);
@@ -95,7 +103,11 @@ public class TorchLayoutTests
                     && Enumerable.Range(0, 4).Any(d => FaceOk(db, world, x, y, d));
                 TorchView? torch = layout.At(index);
                 Assert.Equal(eligible, torch.HasValue);
-                if (torch is not TorchView t) continue;
+                if (torch is not TorchView t)
+                {
+                    continue;
+                }
+
                 torches++;
                 int face = Enumerable.Range(0, 4).Single(d => new TilePos(x - Dx[d], y - Dy[d]) == t.Wall);
                 Assert.True(FaceOk(db, world, x, y, face));
@@ -142,7 +154,11 @@ public class TorchLayoutTests
         bool sawRoom = false, sawPlain = false;
         for (int index = 0; index < world.TileCount; index++)
         {
-            if (layout.At(index) is not TorchView torch) continue;
+            if (layout.At(index) is not TorchView torch)
+            {
+                continue;
+            }
+
             RoomTorch? room = db.RoomByTerrain(world.TileAtIndex(index).TerrainId)?.Torch;
             if (room is null)
             {
@@ -215,11 +231,14 @@ public class TorchLayoutTests
         (int left, int top) = SolidBlock(db, world, 9);
         RoomDef def = db.Room(type);
         for (int y = top + 2; y < top + 7; y++)
+        {
             for (int x = left + 2; x < left + 7; x++)
             {
                 world.Tile(x, y).TerrainId = def.TerrainId;
                 world.Tile(x, y).OwnerPlayerId = 1;
             }
+        }
+
         var layout = new TorchLayout(db);
         layout.Update(world);
 
@@ -251,7 +270,11 @@ public class TorchLayoutTests
         (GameDatabase db, WorldState world) = Load();
         SolidBlock(db, world, 9);
         var layout = new TorchLayout(db);
-        if (!atLevelStart) layout.Update(world);
+        if (!atLevelStart)
+        {
+            layout.Update(world);
+        }
+
         RoomDef chamber = db.Room(RoomTypeId.TortureChamber);
         const int x = 5;   // odd, so the plain parity lets a north face pass
         for (int y = 4; y <= 8; y++)
@@ -275,19 +298,30 @@ public class TorchLayoutTests
         TerrainDef wall = db.Terrain.Values.First(t => t.IsSolid && !t.IsImpenetrable
             && t.Flags.HasFlag(TerrainFlags.Torch) && t.Flags.HasFlag(TerrainFlags.AllowRoomWalls));
         for (int y = 2; y < 2 + size; y++)
+        {
             for (int x = 2; x < 2 + size; x++)
             {
                 world.Tile(x, y).TerrainId = wall.TerrainId;
                 world.Tile(x, y).OwnerPlayerId = 0;
             }
+        }
+
         return (2, 2);
     }
 
     private static bool FaceOk(GameDatabase db, WorldState world, int fx, int fy, int d)
     {
         int wx = fx - Dx[d], wy = fy - Dy[d];
-        if (!world.Contains(wx, wy) || world.DoorAt(wx, wy) is not null) return false;
-        if (!db.TerrainById(world.Tile(wx, wy).TerrainId).Flags.HasFlag(TerrainFlags.Torch)) return false;
+        if (!world.Contains(wx, wy) || world.DoorAt(wx, wy) is not null)
+        {
+            return false;
+        }
+
+        if (!db.TerrainById(world.Tile(wx, wy).TerrainId).Flags.HasFlag(TerrainFlags.Torch))
+        {
+            return false;
+        }
+
         return d % 2 == 0 ? (fx & 1) == 1 : (fy & 1) == 0;
     }
 

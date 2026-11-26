@@ -28,7 +28,11 @@ public sealed class Level6aAllocationBudgetTests(ITestOutputHelper output)
 
         const int ticks = 200;
         long before = GC.GetAllocatedBytesForCurrentThread();
-        for (int i = 0; i < ticks; i++) simulation.Tick();
+        for (int i = 0; i < ticks; i++)
+        {
+            simulation.Tick();
+        }
+
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 
         output.WriteLine($"Level6a ticks 1501-1700: {allocated / ticks} bytes/tick (no harness hash)");

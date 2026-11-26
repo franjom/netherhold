@@ -23,8 +23,12 @@ public class AutoFurnitureTests
     {
         RoomDef room = database.Room(type);
         for (int dy = 0; dy < height; dy++)
-        for (int dx = 0; dx < width; dx++)
-            RoomRules.Place(database, ref world.Tile(x + dx, y + dy), room, Keeper);
+        {
+            for (int dx = 0; dx < width; dx++)
+            {
+                RoomRules.Place(database, ref world.Tile(x + dx, y + dy), room, Keeper);
+            }
+        }
     }
 
     [Fact]
@@ -182,7 +186,9 @@ public class AutoFurnitureTests
         WorldState world = World(database);
         PaintRectangle(database, world, RoomTypeId.Casino, 4, 4, 5, 3);
         for (int x = 4; x <= 8; x++)
+        {
             world.Tile(x, 3).TerrainId = Dk2TerrainFixture.ReinforcedWall;
+        }
 
         new GameSimulation(database, world, 1, [new AutoFurnitureSystem()]).Tick();
 
@@ -202,7 +208,9 @@ public class AutoFurnitureTests
         WorldState world = World(database);
         PaintRectangle(database, world, RoomTypeId.Casino, 4, 4, 5, 3);
         for (int x = 4; x <= 8; x++)
+        {
             world.Tile(x, 3).TerrainId = Dk2TerrainFixture.ReinforcedWall;
+        }
 
         new GameSimulation(database, world, 1, [new AutoFurnitureSystem()]).Tick();
 

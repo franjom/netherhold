@@ -73,11 +73,13 @@ public class RouteRequestVelocityTests
         var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
             {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
                 world.Tile(x, y).OwnerPlayerId = Keeper;
             }
+        }
 
         CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(7, 6));
         imp.Body.Vel = Moving;

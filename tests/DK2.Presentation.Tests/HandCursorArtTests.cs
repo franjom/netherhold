@@ -29,7 +29,9 @@ public sealed class HandCursorArtTests
         // Every frame takes frame 0's tip: the resting claw, so the hand does not move about the pointer.
         Vector2 resting = Tip(alpha, width, 0, frameHeight);
         for (int frame = 0; frame < sprite.FrameCount; frame++)
+        {
             Assert.Equal(resting, HandCursor.Anchor(kind, frame));
+        }
     }
 
     private static Vector2 Tip(byte[] alpha, int width, int top, int height)
@@ -37,12 +39,19 @@ public sealed class HandCursorArtTests
         float best = float.NegativeInfinity;
         Vector2 tip = default;
         for (int y = 0; y < height; y++)
-        for (int x = 0; x < width; x++)
         {
-            if (alpha[(top + y) * width + x] == 0) continue;
-            float score = -x + 0.25f * y;
+            for (int x = 0; x < width; x++)
+        {
+            if (alpha[(top + y) * width + x] == 0)
+                {
+                    continue;
+                }
+
+                float score = -x + 0.25f * y;
             if (score > best) { best = score; tip = new Vector2(x, y); }
         }
+        }
+
         return tip;
     }
 
@@ -64,7 +73,11 @@ public sealed class HandCursorArtTests
                 Assert.Equal(6, data[9]);
                 interlace = data[12];
             }
-            else if (type == "IDAT") idat.Write(data);
+            else if (type == "IDAT")
+            {
+                idat.Write(data);
+            }
+
             at += length + 12;
         }
         using var inflate = new ZLibStream(new MemoryStream(idat.ToArray()), CompressionMode.Decompress);
@@ -80,7 +93,11 @@ public sealed class HandCursorArtTests
         {
             int passWidth = (width - pass[0] + pass[2] - 1) / pass[2];
             int passHeight = (height - pass[1] + pass[3] - 1) / pass[3];
-            if (passWidth <= 0 || passHeight <= 0) continue;
+            if (passWidth <= 0 || passHeight <= 0)
+            {
+                continue;
+            }
+
             int stride = passWidth * 4;
             byte[] previous = new byte[stride];
             byte[] line = new byte[stride];
@@ -103,7 +120,10 @@ public sealed class HandCursorArtTests
                     });
                 }
                 for (int column = 0; column < passWidth; column++)
+                {
                     alpha[(pass[1] + row * pass[3]) * width + pass[0] + column * pass[2]] = line[column * 4 + 3];
+                }
+
                 (previous, line) = (line, previous);
             }
         }

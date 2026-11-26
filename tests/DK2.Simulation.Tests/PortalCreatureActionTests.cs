@@ -15,7 +15,11 @@ public class PortalCreatureActionTests
     {
         (GameDatabase? db, WorldState? world) = Setup();
         Paint(db, world, RoomTypeId.Portal, 5, 5, 3);
-        for (int i = 0; i < 448; i++) world.SpawnCreature(db, 7, 3, new TilePos(1, 1));
+        for (int i = 0; i < 448; i++)
+        {
+            world.SpawnCreature(db, 7, 3, new TilePos(1, 1));
+        }
+
         Assert.Null(PortalRules.CreateScriptedArrival(new StateHookContext(world, db), 3, 7, 1));
         Assert.Equal(448, world.Creatures.Count);
         Assert.Equal(0, world.Tile(6, 6).EntranceCreaturesGenerated);
@@ -85,7 +89,10 @@ public class PortalCreatureActionTests
         (GameDatabase? db, WorldState? world) = Setup();
         Paint(db, world, RoomTypeId.Portal, 5, 5, 3);
         for (int i = 0; i < PortalRules.CreatureCapacity(db, 1); i++)
+        {
             world.SpawnCreature(db, 7, 3, new TilePos(1, 1));
+        }
+
         int before = world.Creatures.Count;
         ref TileState centre = ref world.Tile(6, 6);
         centre.EntranceCreaturesGenerated = 9;
@@ -181,7 +188,11 @@ public class PortalCreatureActionTests
         };
         var tree = new TriggerTree([condition, .. Records(2)], 0);
         var executor = new TriggerExecutor(tree, world.Triggers, world, db);
-        if (!creationEvent) executor.Run(10);
+        if (!creationEvent)
+        {
+            executor.Run(10);
+        }
+
         CreatureState spawned = world.Creatures.Last();
         Assert.Equal(2, world.Creatures.Count);
         Assert.Equal((byte)3, spawned.OwnerPlayerId);
@@ -225,7 +236,11 @@ public class PortalCreatureActionTests
         while (joining < 100)
         {
             sim.Tick();
-            if (creature.Dk2StateId != PortalRules.JoiningState) break;
+            if (creature.Dk2StateId != PortalRules.JoiningState)
+            {
+                break;
+            }
+
             Assert.Equal(new TilePos(6, 6), creature.Tile);
             joining++;
         }
@@ -255,7 +270,10 @@ public class PortalCreatureActionTests
         CreatureState creature = PortalRules.CreateScriptedArrival(new StateHookContext(world, db), 3, 91, 1)!;
         Assert.Equal(PortalRules.JoiningState, creature.Dk2StateId);
 
-        for (int i = 0; i < 100 && creature.Dk2StateId == PortalRules.JoiningState; i++) sim.Tick();
+        for (int i = 0; i < 100 && creature.Dk2StateId == PortalRules.JoiningState; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Equal(CreatureActivity.SeekingLair, creature.Activity);
     }
@@ -284,8 +302,14 @@ public class PortalCreatureActionTests
         ref TileState centre = ref world.Tile(6, 6);
         Assert.Equal(1, centre.EntranceCreaturesGenerated);
         Assert.Equal((6 * world.Width) + 6, creature.PortalEntranceTile);
-        if (tallyBeforeDeath >= 0) centre.EntranceCreaturesGenerated = tallyBeforeDeath + 1;
-        else centre.EntranceCreaturesGenerated = 0;
+        if (tallyBeforeDeath >= 0)
+        {
+            centre.EntranceCreaturesGenerated = tallyBeforeDeath + 1;
+        }
+        else
+        {
+            centre.EntranceCreaturesGenerated = 0;
+        }
 
         creature.DieInstantly = true;
         creature.Health = 0;
@@ -325,7 +349,11 @@ public class PortalCreatureActionTests
     private static void Paint(GameDatabase db, WorldState world, RoomTypeId type, int x, int y, byte owner)
     {
         for (int dy = 0; dy < 3; dy++)
+        {
             for (int dx = 0; dx < 3; dx++)
+            {
                 RoomRules.Place(db, ref world.Tile(x + dx, y + dy), db.Room(type), owner);
+            }
+        }
     }
 }

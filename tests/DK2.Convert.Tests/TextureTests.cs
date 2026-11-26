@@ -66,9 +66,13 @@ public class TextureTests
             KmfModel model = KmfReader.Read(meshes.Extract(entry));
             foreach (string name in model.Materials.SelectMany(material =>
                 material.TextureNames.Append(material.EnvironmentTextureName)))
+            {
                 if (!string.IsNullOrEmpty(name))
+                {
                     try { _ = textures.FindBest(name); }
                     catch (FileNotFoundException) { missing.Add(name); }
+                }
+            }
         }
         Assert.Empty(missing);
     }
@@ -139,12 +143,20 @@ public class TextureTests
                 height = checked((int)BinaryPrimitives.ReadUInt32BigEndian(data[4..]));
                 Assert.Equal(6, data[9]);
             }
-            else if (type == "IDAT") idat.Write(data);
+            else if (type == "IDAT")
+            {
+                idat.Write(data);
+            }
+
             position += 12 + length;
         }
         idat.Position = 0;
         using var raw = new MemoryStream();
-        using (var zlib = new ZLibStream(idat, CompressionMode.Decompress)) zlib.CopyTo(raw);
+        using (var zlib = new ZLibStream(idat, CompressionMode.Decompress))
+        {
+            zlib.CopyTo(raw);
+        }
+
         byte[] scanlines = raw.ToArray();
         byte[] pixels = new byte[checked(width * height * 4)];
         int rowBytes = width * 4;

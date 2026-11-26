@@ -121,7 +121,11 @@ public class KeeperAIPersonalityTests
                 var log = new List<string>();
                 for (int t = 0; t < 30; t++)
                 {
-                    foreach (PlayerCommand c in keeper.Think(Db, world)) log.Add(c.ToString());
+                    foreach (PlayerCommand c in keeper.Think(Db, world))
+                    {
+                        log.Add(c.ToString());
+                    }
+
                     KeeperWorld.DigWhatIsTagged(world, Db, KeeperWorld.Keeper);
                 }
                 return string.Join("\n", log);

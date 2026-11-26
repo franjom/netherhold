@@ -33,8 +33,16 @@ public class KeeperAttackPlannerTests
         WorldState world = KeeperWorld.World(Db, morePlayers: other ? [Enemy, Other] : [Enemy]);
         Dungeon(world, Keeper, KeeperWorld.HeartAt);
         Dungeon(world, Enemy, EnemyHeart);
-        if (other) Dungeon(world, Other, OtherHeart);
-        if (open) KeeperWorld.Set(world, Db, new TilePos(15, 10), KeeperWorld.DirtPath);
+        if (other)
+        {
+            Dungeon(world, Other, OtherHeart);
+        }
+
+        if (open)
+        {
+            KeeperWorld.Set(world, Db, new TilePos(15, 10), KeeperWorld.DirtPath);
+        }
+
         world.SetAvailability(Keeper, AvailabilityKind.Spell, CallToArmsRules.SpellId, 3);
         world.Player(Keeper).Mana = 20000;
         return world;
@@ -43,12 +51,23 @@ public class KeeperAttackPlannerTests
     private static void Dungeon(WorldState world, byte owner, TilePos heart)
     {
         for (int y = heart.Y - 4; y <= heart.Y + 4; y++)
+        {
             for (int x = heart.X - 4; x <= heart.X + 4; x++)
+            {
                 if (world.Contains(x, y) && !Db.TerrainById(world.Tile(x, y).TerrainId).IsImpenetrable)
+                {
                     KeeperWorld.Set(world, Db, new TilePos(x, y), KeeperWorld.ClaimedPath, owner);
+                }
+            }
+        }
+
         for (int y = heart.Y - 2; y <= heart.Y + 2; y++)
+        {
             for (int x = heart.X - 2; x <= heart.X + 2; x++)
+            {
                 KeeperWorld.Set(world, Db, new TilePos(x, y), KeeperWorld.HeartFloor, owner);
+            }
+        }
     }
 
     private static KeeperAIParameters Attacker(byte firstEnd = 0, byte firstStart = 2, byte usage = 1, byte wait = 0) =>
@@ -66,7 +85,11 @@ public class KeeperAttackPlannerTests
     private static CreatureState Fighter(WorldState world, byte owner, int x, int y, int level = 1)
     {
         CreatureState creature = world.SpawnCreature(Db, KeeperWorld.FighterCreature, owner, new TilePos(x, y));
-        while (creature.Level < level) CreatureLevelRules.LevelUp(new StateHookContext(world, Db), Db.CreatureById(KeeperWorld.FighterCreature), creature);
+        while (creature.Level < level)
+        {
+            CreatureLevelRules.LevelUp(new StateHookContext(world, Db), Db.CreatureById(KeeperWorld.FighterCreature), creature);
+        }
+
         return creature;
     }
 
@@ -98,8 +121,16 @@ public class KeeperAttackPlannerTests
         KeeperAIParameters p = Attacker() with { IACreatureSkillLevel = 2, NeverAttack = gate == 0 };
         var state = new KeeperAIState();
         state.InitialiseBreaches(1);
-        if (gate == 1) state.CannotAttackCounter = 5;
-        if (gate == 2) state.CallToArmsInUse = true;
+        if (gate == 1)
+        {
+            state.CannotAttackCounter = 5;
+        }
+
+        if (gate == 2)
+        {
+            state.CallToArmsInUse = true;
+        }
+
         (KeeperAttackPlanner planner, _, List<PlayerCommand> commands) = Planner(world, p, state);
 
         Assert.False(planner.Plan());
@@ -114,7 +145,11 @@ public class KeeperAttackPlannerTests
     public void ReadinessWantsStrictlyMoreNonWorkersThanTheMinimumAndWorkersDoNotCount(int minimum, int fighters, bool ready)
     {
         WorldState world = World();
-        for (int i = 0; i < fighters; i++) Fighter(world, Keeper, 13 + i, 15);
+        for (int i = 0; i < fighters; i++)
+        {
+            Fighter(world, Keeper, 13 + i, 15);
+        }
+
         world.SpawnCreature(Db, KeeperWorld.WorkerCreature, Keeper, new TilePos(15, 16));
         (KeeperAttackPlanner planner, KeeperAIState state, _) = Planner(world, Attacker() with { IAMinimumCreatures = (byte)minimum });
 
@@ -145,7 +180,11 @@ public class KeeperAttackPlannerTests
     public void MoreUnderLevelledFightersThanTheLevelAreNotGrantedAndTheArmyIsNotReady()
     {
         WorldState world = World();
-        for (int i = 0; i < 3; i++) Fighter(world, Keeper, 13 + i, 15);
+        for (int i = 0; i < 3; i++)
+        {
+            Fighter(world, Keeper, 13 + i, 15);
+        }
+
         (KeeperAttackPlanner planner, KeeperAIState state, List<PlayerCommand> commands) = Planner(world, Attacker() with { IACreatureSkillLevel = 2 });
 
         Assert.False(planner.Plan());
@@ -202,7 +241,11 @@ public class KeeperAttackPlannerTests
         WorldState world = World();
         Fighter(world, Keeper, 15, 15); Fighter(world, Keeper, 16, 15);
         world.SetAvailability(Keeper, AvailabilityKind.Spell, KeeperSpellRules.Thunderbolt, 2);
-        for (int x = 13; x <= 14; x++) KeeperWorld.Set(world, Db, new TilePos(x, 20), KeeperWorld.LibraryFloor, Keeper);
+        for (int x = 13; x <= 14; x++)
+        {
+            KeeperWorld.Set(world, Db, new TilePos(x, 20), KeeperWorld.LibraryFloor, Keeper);
+        }
+
         var rng = new SimRandom(5);
         var view = new KeeperView(Db, world, Keeper);
         var state = new KeeperAIState();
@@ -264,8 +307,16 @@ public class KeeperAttackPlannerTests
     {
         WorldState world = World();
         Fighter(world, Keeper, 15, 15); Fighter(world, Keeper, 16, 15);
-        for (int i = 0; i < enemyFighters; i++) Fighter(world, Enemy, 13 + i, 5);
-        for (int i = 0; i < enemyWorkers; i++) world.SpawnCreature(Db, KeeperWorld.WorkerCreature, Enemy, new TilePos(15, 6));
+        for (int i = 0; i < enemyFighters; i++)
+        {
+            Fighter(world, Enemy, 13 + i, 5);
+        }
+
+        for (int i = 0; i < enemyWorkers; i++)
+        {
+            world.SpawnCreature(Db, KeeperWorld.WorkerCreature, Enemy, new TilePos(15, 6));
+        }
+
         (KeeperAttackPlanner planner, KeeperAIState state, _) = Planner(world, Attacker());
 
         Assert.Equal(attacks, planner.Plan());
@@ -281,8 +332,16 @@ public class KeeperAttackPlannerTests
     {
         WorldState world = World(other: true);
         Fighter(world, Keeper, 15, 15);
-        if (change == 1) world.SetAllied(Keeper, Enemy, true);
-        if (change == 2) world.Player(Enemy).Status = PlayerStatus.Conquered;
+        if (change == 1)
+        {
+            world.SetAllied(Keeper, Enemy, true);
+        }
+
+        if (change == 2)
+        {
+            world.Player(Enemy).Status = PlayerStatus.Conquered;
+        }
+
         if (change == 3) { world.Player(Enemy).Status = PlayerStatus.Lost; world.Player(Other).Status = PlayerStatus.Conquered; }
         (KeeperAttackPlanner planner, KeeperAIState state, _) = Planner(world, Attacker());
 
@@ -310,7 +369,11 @@ public class KeeperAttackPlannerTests
     {
         WorldState world = World();
         Fighter(world, Keeper, 15, 15);
-        for (int ex = 5; ex <= 7; ex++) KeeperWorld.Set(world, Db, new TilePos(ex, 1), KeeperWorld.TreasuryFloor, Enemy);
+        for (int ex = 5; ex <= 7; ex++)
+        {
+            KeeperWorld.Set(world, Db, new TilePos(ex, 1), KeeperWorld.TreasuryFloor, Enemy);
+        }
+
         Fighter(world, Enemy, 6, 1);
         (KeeperAttackPlanner planner, KeeperAIState state, _) = Planner(world, Attacker(firstEnd: firstEnd, firstStart: 2));
 
@@ -342,7 +405,11 @@ public class KeeperAttackPlannerTests
         Assert.True(planner.Plan());
         Assert.Equal(OwnHeartPosition, state.DigRoomAtCurrent);
 
-        for (int x = 13; x <= 14; x++) KeeperWorld.Set(world, Db, new TilePos(x, 21), KeeperWorld.TreasuryFloor, Keeper);
+        for (int x = 13; x <= 14; x++)
+        {
+            KeeperWorld.Set(world, Db, new TilePos(x, 21), KeeperWorld.TreasuryFloor, Keeper);
+        }
+
         (planner, state, _) = Planner(world, Attacker(firstEnd: 0, firstStart: 0));
         Assert.True(planner.Plan());
         Assert.Equal(new TilePos(13, 21), state.DigRoomAtCurrent);
@@ -353,7 +420,11 @@ public class KeeperAttackPlannerTests
     {
         WorldState world = World();
         Fighter(world, Keeper, 15, 15);
-        for (int x = 13; x <= 14; x++) KeeperWorld.Set(world, Db, new TilePos(x, 11), KeeperWorld.TreasuryFloor, Keeper);
+        for (int x = 13; x <= 14; x++)
+        {
+            KeeperWorld.Set(world, Db, new TilePos(x, 11), KeeperWorld.TreasuryFloor, Keeper);
+        }
+
         (KeeperAttackPlanner planner, KeeperAIState state, _) = Planner(world, Attacker(firstEnd: 0, firstStart: 3));
 
         // The Treasury's first slab (13,11) is nearer the end's first slab (13,3) than the heart's (13,13).
@@ -487,11 +558,18 @@ public class KeeperAttackPlannerTests
     {
         WorldState world = World(open: true);
         // Own land within five tiles of every point the front can draw: a row at the enemy's edge.
-        for (int x = 13; x <= 17; x++) KeeperWorld.Set(world, Db, new TilePos(x, 9), KeeperWorld.ClaimedPath, Keeper);
+        for (int x = 13; x <= 17; x++)
+        {
+            KeeperWorld.Set(world, Db, new TilePos(x, 9), KeeperWorld.ClaimedPath, Keeper);
+        }
+
         Fighter(world, Keeper, 15, 15, 2); Fighter(world, Keeper, 16, 15);
         var keeper = new KeeperAI(Keeper, Attacker(usage: 1), new SimRandom(3));
 
-        for (int t = 0; t < 8 && !keeper.State.CallToArmsInUse; t++) keeper.Think(Db, world);
+        for (int t = 0; t < 8 && !keeper.State.CallToArmsInUse; t++)
+        {
+            keeper.Think(Db, world);
+        }
 
         Assert.Equal(1, keeper.State.Responses.Count);
         KeeperThreatResponse queued = keeper.State.Responses.Current!.Value;
@@ -528,7 +606,11 @@ public class KeeperAttackPlannerTests
         // Two off the heart routes, so the start room's position is kept: the heart room's, first
         // slab plus three, which lies in the inner three by three that target 4 refuses.
         Assert.Equal((OwnHeartPosition.X, OwnHeartPosition.Y), (keeper.State.CallToArmsX >> 12, keeper.State.CallToArmsY >> 12));
-        for (int t = 0; t < 6; t++) Assert.Empty(keeper.Think(Db, world).OfType<CastSpellAtPlaceCommand>());
+        for (int t = 0; t < 6; t++)
+        {
+            Assert.Empty(keeper.Think(Db, world).OfType<CastSpellAtPlaceCommand>());
+        }
+
         Assert.False(keeper.State.CallToArmsInUse);
     }
 
@@ -538,7 +620,11 @@ public class KeeperAttackPlannerTests
         WorldState world = World(open: true);
         // The start room: a Treasury on the patch's south edge, the own room furthest from the heart.
         var treasury = new TilePos(13, 20);
-        for (int x = 13; x <= 14; x++) KeeperWorld.Set(world, Db, new TilePos(x, 20), KeeperWorld.TreasuryFloor, Keeper);
+        for (int x = 13; x <= 14; x++)
+        {
+            KeeperWorld.Set(world, Db, new TilePos(x, 20), KeeperWorld.TreasuryFloor, Keeper);
+        }
+
         KeeperWorld.Set(world, Db, new TilePos(27, 27), KeeperWorld.DirtPath);
         CreatureState straggler = Fighter(world, Keeper, 27, 27); // sixteen tiles off, and not the list's head
         Fighter(world, Keeper, 15, 15); // the newest, which the route tests use
@@ -550,18 +636,30 @@ public class KeeperAttackPlannerTests
         // The staging point: two off the heart routes, so the start room's own position is kept.
         Assert.Equal((treasury.X, treasury.Y), (keeper.State.CallToArmsX >> 12, keeper.State.CallToArmsY >> 12));
         CastSpellAtPlaceCommand? first = null;
-        for (int t = 0; t < 8 && first is null; t++) first = keeper.Think(Db, world).OfType<CastSpellAtPlaceCommand>().SingleOrDefault();
+        for (int t = 0; t < 8 && first is null; t++)
+        {
+            first = keeper.Think(Db, world).OfType<CastSpellAtPlaceCommand>().SingleOrDefault();
+        }
+
         Assert.NotNull(first);
         Assert.Equal((treasury.X, treasury.Y), (first!.X >> 12, first.Y >> 12));
         keeper.State.CallToArmsCastTurn = -100; // ours: the call is treated as seen
         world.Player(Keeper).CallToArms = new CallToArmsState(true, 1, (ushort)treasury.X, (ushort)treasury.Y, 0);
 
         // Two non-workers, one within ten tiles: 2 <= floor(5/4) fails, the call stays put.
-        for (int t = 0; t < 4; t++) Assert.Empty(keeper.Think(Db, world).OfType<CastSpellAtPlaceCommand>());
+        for (int t = 0; t < 4; t++)
+        {
+            Assert.Empty(keeper.Think(Db, world).OfType<CastSpellAtPlaceCommand>());
+        }
+
         straggler.PosX = CreatureState.CentreOf(16); straggler.PosY = CreatureState.CentreOf(16);
         // Both near: 2 <= 2, the call creeps to the route's first waypoint and is cast again.
         CastSpellAtPlaceCommand? crept = null;
-        for (int t = 0; t < 8 && crept is null; t++) crept = keeper.Think(Db, world).OfType<CastSpellAtPlaceCommand>().SingleOrDefault();
+        for (int t = 0; t < 8 && crept is null; t++)
+        {
+            crept = keeper.Think(Db, world).OfType<CastSpellAtPlaceCommand>().SingleOrDefault();
+        }
+
         Assert.NotNull(crept);
         Assert.True(crept!.Y < first.Y, $"the call did not move north: {crept.X >> 12},{crept.Y >> 12}");
     }

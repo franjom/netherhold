@@ -59,7 +59,13 @@ public class CasinoPartyRebuildTests
     {
         int count = 0;
         for (int i = 0; i < world.TileCount; i++)
-            if (world.TileAtIndex(i).CasinoParty != 0) count++;
+        {
+            if (world.TileAtIndex(i).CasinoParty != 0)
+            {
+                count++;
+            }
+        }
+
         return count;
     }
 
@@ -108,7 +114,11 @@ public class CasinoPartyRebuildTests
     public void ASaleEndsThePartyInEveryPieceAndLeavesTheKeepersCountRaised_ADk2Quirk()
     {
         WorldState world = World();
-        for (int x = 3; x <= 5; x++) Build(world, x);
+        for (int x = 3; x <= 5; x++)
+        {
+            Build(world, x);
+        }
+
         StartParty(world, 3, 10);
         world.Player(Keeper).CasinoParties = 1;
 

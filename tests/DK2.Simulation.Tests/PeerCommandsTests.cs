@@ -33,15 +33,19 @@ public class PeerCommandsTests
         // CommandCodecTests.EveryCommandType_HasASample keeps the samples complete, so a new
         // command type lands here and needs a decision.
         foreach (PlayerCommand command in CommandCodecTests.Samples())
+        {
             Assert.True(PeerCommands.IsAllowedFromPeer(command) != Refused.Contains(command.GetType()),
                 $"{command.GetType().Name}: allowed and refused lists disagree");
+        }
     }
 
     [Fact]
     public void AnAllowedCommand_FromItsOwnPlayer_DecodesUnchanged()
     {
         foreach (PlayerCommand command in CommandCodecTests.Samples().Where(PeerCommands.IsAllowedFromPeer))
+        {
             Assert.Equal(Encode(command), Encode(Decode(command, command.PlayerId)));
+        }
     }
 
     [Fact]
@@ -58,7 +62,9 @@ public class PeerCommandsTests
     public void ARefusedCommand_IsRefusedEvenFromItsOwnPlayer()
     {
         foreach (PlayerCommand command in CommandCodecTests.Samples().Where(c => Refused.Contains(c.GetType())))
+        {
             Assert.Throws<InvalidDataException>(() => Decode(command, command.PlayerId));
+        }
     }
 
     [Theory]
@@ -76,7 +82,9 @@ public class PeerCommandsTests
             new SellRoomCommand(P, [off]),
         ];
         foreach (PlayerCommand command in commands)
+        {
             Assert.Throws<InvalidDataException>(() => Decode(command, P));
+        }
     }
 
     [Fact]
@@ -103,7 +111,11 @@ public class PeerCommandsTests
     private static byte[] Encode(PlayerCommand command)
     {
         var stream = new MemoryStream();
-        using (var w = new BinaryWriter(stream)) CommandCodec.Write(w, command);
+        using (var w = new BinaryWriter(stream))
+        {
+            CommandCodec.Write(w, command);
+        }
+
         return stream.ToArray();
     }
 }

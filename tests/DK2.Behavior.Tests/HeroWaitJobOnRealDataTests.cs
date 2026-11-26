@@ -65,7 +65,11 @@ public class HeroWaitJobOnRealDataTests
         CreatureState guard = Assert.Single(sim.World.Creatures, c => c.Tile == new TilePos(19, 26)
             && db.CreatureById(c.CreatureTypeId).Name == "Guard");
         Assert.Equal(JobType.KillCreatures, guard.GoodJob);
-        for (int i = 0; i < 10 && guard.Dk2StateId != HeroJobRules.WaitFailedState; i++) sim.Tick();
+        for (int i = 0; i < 10 && guard.Dk2StateId != HeroJobRules.WaitFailedState; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(HeroJobRules.WaitFailedState, guard.Dk2StateId);
         long deadline = guard.StateDeadlineTick;
 
@@ -89,17 +93,36 @@ public class HeroWaitJobOnRealDataTests
             string level = Path.GetFileName(file)[..^"Things.kld".Length];
             foreach (ThingRecord record in GameDatabaseLoader.LoadCampaignThings(install, level) ?? [])
             {
-                if (record is GoodCreatureThing good && good.Objective == WaitJob) placed++;
-                if (record is not HeroPartyThing party) continue;
+                if (record is GoodCreatureThing good && good.Objective == WaitJob)
+                {
+                    placed++;
+                }
+
+                if (record is not HeroPartyThing party)
+                {
+                    continue;
+                }
+
                 foreach (GoodCreatureThing m in party.Members.Where(m => m.CreatureId != 0 && m.Objective == WaitJob))
                 {
-                    if ((m.Flags & LeaderBit) != 0) leaders++;
-                    else followers++;
+                    if ((m.Flags & LeaderBit) != 0)
+                    {
+                        leaders++;
+                    }
+                    else
+                    {
+                        followers++;
+                    }
                 }
             }
 
             foreach (TriggerRecord t in GameDatabaseLoader.LoadCampaignTriggers(install, level) ?? [])
-                if (t is ActionTriggerRecord && t.Type == 15 && t.Parameters["ObjectiveType"] == WaitJob) scripted++;
+            {
+                if (t is ActionTriggerRecord && t.Type == 15 && t.Parameters["ObjectiveType"] == WaitJob)
+                {
+                    scripted++;
+                }
+            }
         }
 
         Assert.Equal((6, 14, 127, 7), (leaders, followers, placed, scripted));

@@ -19,11 +19,31 @@ public sealed class PossessionAbilityTests
     {
         (GameDatabase? db, WorldState _, CreatureState? me) = Open();
         CreatureDef definition = db.CreatureById(me.CreatureTypeId);
-        if (refusal == "horny") definition = definition with { Flags = definition.Flags | CreatureFlags.IsHorny };
-        if (refusal == "only-horny") definition = definition with { Flags = definition.Flags | CreatureFlags.OnlyAttackableByHorny };
-        if (refusal == "dying") me.Dk2StateId = CreatureDeathRules.DyingState;
-        if (refusal == "carried") me.CarriedByCreatureId = 999;
-        if (refusal == "hand") me.InHand = true;
+        if (refusal == "horny")
+        {
+            definition = definition with { Flags = definition.Flags | CreatureFlags.IsHorny };
+        }
+
+        if (refusal == "only-horny")
+        {
+            definition = definition with { Flags = definition.Flags | CreatureFlags.OnlyAttackableByHorny };
+        }
+
+        if (refusal == "dying")
+        {
+            me.Dk2StateId = CreatureDeathRules.DyingState;
+        }
+
+        if (refusal == "carried")
+        {
+            me.CarriedByCreatureId = 999;
+        }
+
+        if (refusal == "hand")
+        {
+            me.InHand = true;
+        }
+
         int notifications = 0;
         me.PossessionColourChanged += _ => notifications++;
 
@@ -52,8 +72,13 @@ public sealed class PossessionAbilityTests
     {
         (GameDatabase? db, WorldState? world, CreatureState? me) = Open();
         for (int y = 3; y <= 7; y++)
+        {
             for (int x = 3; x <= 7; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Prison), 4);
+            }
+        }
+
         CreatureState captive = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, 1, new TilePos(6, 5));
         Assert.True(PrisonRules.Imprison(new StateHookContext(world, db), captive, 4, 5 * world.Width + 6));
         var sim = new GameSimulation(db, world, 1, [new PossessionSystem()]);
@@ -80,7 +105,11 @@ public sealed class PossessionAbilityTests
         Assert.Equal(19, enemy.PossessionFearTicks);
         Assert.Equal(2000, enemy.TempFear);
         Assert.Equal(me.Id, enemy.PossessionFearSource.Value);
-        for (int i = 0; i < 19; i++) sim.Tick();
+        for (int i = 0; i < 19; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(0, enemy.PossessionFearTicks);
         Assert.Equal(40000, enemy.TempFear);
         sim.Tick();

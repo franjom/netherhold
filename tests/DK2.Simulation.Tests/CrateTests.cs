@@ -37,8 +37,13 @@ public class CrateTests
     {
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, (byte)1, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 3; y++)
-        for (int x = 1; x <= 3; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Workshop), Keeper);
+        {
+            for (int x = 1; x <= 3; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Workshop), Keeper);
+            }
+        }
+
         for (int x = 4; x <= 12; x++)
         {
             world.Tile(x, 2).TerrainId = Dk2TerrainFixture.ClaimedPath;
@@ -166,7 +171,11 @@ public class CrateTests
             CreatureState a = Maker(db, world, new TilePos(2, 2));
             CreatureState b = Maker(db, world, new TilePos(3, 3));
             // Action 32 still playing, as it is mid-work (state 64's random(7) + 6 plays).
-            if (actionRunning) a.ActionUntilTick = b.ActionUntilTick = 1000;
+            if (actionRunning)
+            {
+                a.ActionUntilTick = b.ActionUntilTick = 1000;
+            }
+
             ManufactureRules.Enqueue(ref world.Player(Keeper), new ManufactureOrder(CrateRules.DoorKind, 1, 1000));
             world.Player(Keeper).ManufacturePoints = 995;
             var sink = new ListEventSink();
@@ -186,11 +195,23 @@ public class CrateTests
             // Each celebration in the flagged run is one draw more; a maker whose action still runs
             // celebrates a turn after the crate, where the flagless run's does at once.
             int celebrated = withSink.Events.Count(e => e.Kind == "crate_celebrated");
-            while (celebratedAt.Count < celebrated) celebratedAt.Add(tick);
+            while (celebratedAt.Count < celebrated)
+            {
+                celebratedAt.Add(tick);
+            }
+
             var expected = new Dk2Lcg(((Dk2Lcg)without.Rng.Algorithm).Seed);
-            for (int i = 0; i < celebrated; i++) expected.NextInt(2);
+            for (int i = 0; i < celebrated; i++)
+            {
+                expected.NextInt(2);
+            }
+
             Assert.Equal(expected.Seed, ((Dk2Lcg)with.Rng.Algorithm).Seed);
-            if (celebrated < 2) continue;
+            if (celebrated < 2)
+            {
+                continue;
+            }
+
             Assert.Equal(2, withoutSink.Events.Count(e => e.Kind == "crate_celebrated"));
             // The crate is made on the first turn; the flagless run's two celebrate at once.
             Assert.Equal(actionRunning ? 1 : 0, celebratedAt.Max());
@@ -282,7 +303,13 @@ public class CrateTests
         WorldState world = World(db);
         RoomInstance workshop = Workshop(db, world);
         foreach (int tile in workshop.TileIndices)
-            for (int k = 0; k < 3; k++) world.SpawnObject(db, DoorCrate, Keeper, tile);
+        {
+            for (int k = 0; k < 3; k++)
+            {
+                world.SpawnObject(db, DoorCrate, Keeper, tile);
+            }
+        }
+
         Assert.False(CrateRules.WorkshopHasRoom(world, db, workshop));
         Assert.False(RoomCapacityRules.HasRoom(world, db, workshop));
 
@@ -324,7 +351,10 @@ public class CrateTests
 
         // Enough crates to pass the slots in index order: none is set down on one.
         for (int i = 0; i < 11; i++)
+        {
             Assert.True(CrateRules.List(new StateHookContext(world, db), workshop, world.SpawnObject(db, DoorCrate, PlayerIds.Unowned, workshop.TileIndices[0])));
+        }
+
         Assert.All(world.Objects.Where(o => o.ObjectTypeId == DoorCrate), o => Assert.DoesNotContain(o.TileIndex, slots));
     }
 
@@ -364,7 +394,10 @@ public class CrateTests
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
 
-        while (!sink.Events.Any(e => e.Kind == "crate_picked_up") && sim.CurrentTick.Value < Second * 20) sim.Tick();
+        while (!sink.Events.Any(e => e.Kind == "crate_picked_up") && sim.CurrentTick.Value < Second * 20)
+        {
+            sim.Tick();
+        }
 
         Assert.True(crate.CarriedByCreatureId >= 0);
         Assert.Equal(PlayerIds.Unowned, crate.OwnerPlayerId);
@@ -469,7 +502,10 @@ public class CrateTests
         world.SpawnCreature(db, ImpId, Keeper, ImpAt);
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
-        while (!sink.Events.Any(e => e.Kind == "crate_picked_up") && sim.CurrentTick.Value < Second * 20) sim.Tick();
+        while (!sink.Events.Any(e => e.Kind == "crate_picked_up") && sim.CurrentTick.Value < Second * 20)
+        {
+            sim.Tick();
+        }
 
         world.Doors[0].UnderConstruction = false;
         sim.Run(Second * 10);
@@ -490,7 +526,10 @@ public class CrateTests
         world.SpawnCreature(db, ImpId, Keeper, ImpAt);
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
-        while (!sink.Events.Any(e => e.Kind == "crate_picked_up") && sim.CurrentTick.Value < Second * 20) sim.Tick();
+        while (!sink.Events.Any(e => e.Kind == "crate_picked_up") && sim.CurrentTick.Value < Second * 20)
+        {
+            sim.Tick();
+        }
 
         world.Tile(8, 2).TerrainId = Dk2TerrainFixture.Rock;   // the corridor is cut before the door
         world.Tile(8, 2).OwnerPlayerId = PlayerIds.Unowned;

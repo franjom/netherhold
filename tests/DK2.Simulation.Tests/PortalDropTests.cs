@@ -115,7 +115,11 @@ public sealed class PortalDropTests
         Assert.Equal(firstState, creature.Dk2StateId);
         Assert.Contains(creature, sim.World.Creatures);
         // Our fixture clock: allow its five-second stun and Getup animation to finish.
-        for (int tick = 0; tick < 40 && creature.Dk2StateId != LeavingRules.PortalDropState; tick++) placed.Tick();
+        for (int tick = 0; tick < 40 && creature.Dk2StateId != LeavingRules.PortalDropState; tick++)
+        {
+            placed.Tick();
+        }
+
         Assert.Equal(LeavingRules.PortalDropState, creature.Dk2StateId);
         placed.Tick();
         Assert.DoesNotContain(creature, sim.World.Creatures);
@@ -142,12 +146,22 @@ public sealed class PortalDropTests
         creature.PosY = CreatureState.CentreOf(6);
         creature.Dk2StateId = 197;
         creature.Possessed = possessing;
-        if (!possessing) creature.ChickenTicks = 1;
+        if (!possessing)
+        {
+            creature.ChickenTicks = 1;
+        }
+
         sim.Tick();
         Assert.Contains(creature, sim.World.Creatures);
         Assert.Equal(0, creature.ChickenTicks);
-        if (possessing) Assert.Equal(197, creature.Dk2StateId);
-        else Assert.NotEqual(197, creature.Dk2StateId);
+        if (possessing)
+        {
+            Assert.Equal(197, creature.Dk2StateId);
+        }
+        else
+        {
+            Assert.NotEqual(197, creature.Dk2StateId);
+        }
     }
 
     private static (GameSimulation Sim, CreatureState Creature, ListEventSink Events) Setup(byte portalOwner = 3, bool worker = false, RoomTypeId portalType = RoomTypeId.Portal)
@@ -158,14 +172,19 @@ public sealed class PortalDropTests
             fixture.Creatures.Values.Select(c => worker && c.CreatureId == 7 ? c with { Flags = c.Flags | CreatureFlags.IsWorker } : c), fixture.Variables);
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, (byte)3, (byte)4]);
         for (int y = 4; y <= 8; y++)
-        for (int x = 4; x <= 8; x++)
+        {
+            for (int x = 4; x <= 8; x++)
         {
             ref TileState tile = ref world.Tile(x, y);
             tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
             tile.OwnerPlayerId = PlayerIds.FirstKeeper;
             if (x is >= 5 and <= 7 && y is >= 5 and <= 7)
-                RoomRules.Place(db, ref tile, db.Room(portalType), portalOwner);
+                {
+                    RoomRules.Place(db, ref tile, db.Room(portalType), portalOwner);
+                }
+            }
         }
+
         CreatureState creature = world.SpawnCreature(db, 7, PlayerIds.FirstKeeper, new TilePos(4, 4));
         var events = new ListEventSink();
         var sim = new GameSimulation(db, world, 1, [new HandSystem(), new CreatureStatusSystem(), new CreatureJobSystem()]);

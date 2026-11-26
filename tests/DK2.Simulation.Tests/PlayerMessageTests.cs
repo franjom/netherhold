@@ -44,7 +44,10 @@ public class PlayerMessageTests
         WorldState world = TestWorld.World(TestWorld.Database());
         PlayerMessage oldest = world.Messages.Post(world, 1, PlayerMessageKind.HeartAttacked, 0, 0)!.Value;
         for (int i = 0; i < PlayerMessageQueue.Capacity; i++)
+        {
             world.Messages.Post(world, 2, PlayerMessageKind.CombatStarted, i, 0);
+        }
+
         Assert.Equal(256, world.Messages.Entries.Count);
         Assert.DoesNotContain(world.Messages.Entries, m => m.Id == oldest.Id);
         Assert.Equal(2u, world.Messages.Entries[0].Id);
@@ -130,7 +133,10 @@ public class PlayerMessageTests
         {
             GameSimulation sim = TestWorld.Simulation();
             foreach (int y in reverse ? new[] { 4, 3 } : new[] { 3, 4 })
+            {
                 sim.World.Messages.Post(sim.World, owner, PlayerMessageKind.CombatStarted, x, y);
+            }
+
             return sim;
         }
         GameSimulation baseline = Make();

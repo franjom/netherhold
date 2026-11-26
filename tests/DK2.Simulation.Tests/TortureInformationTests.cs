@@ -51,7 +51,10 @@ public sealed class TortureInformationTests
         var rng = new SimRandom(3);
 
         var drawn = new List<int>();
-        for (int i = 0; i < 40; i++) drawn.Add(TortureInformationRules.Give(world, rng, fighter, Rival, Keeper));
+        for (int i = 0; i < 40; i++)
+        {
+            drawn.Add(TortureInformationRules.Give(world, rng, fighter, Rival, Keeper));
+        }
 
         Assert.Equal(1, drawn.Count(r => r == 5));
         Assert.Equal(1, drawn.Count(r => r == 8));
@@ -143,7 +146,11 @@ public sealed class TortureRevealTests
     public void WithEveryRoomExploredTheFirstCreatureOnUnexploredGroundIsTagged()
     {
         (GameDatabase db, WorldState world) = Setup();
-        foreach (TilePos t in RoomA.Concat(RoomB)) world.Tile(t.X, t.Y).SetExploredBy(Keeper);
+        foreach (TilePos t in RoomA.Concat(RoomB))
+        {
+            world.Tile(t.X, t.Y).SetExploredBy(Keeper);
+        }
+
         CreatureState seen = world.SpawnCreature(db, 7, Rival, new TilePos(12, 6));
         world.Tile(12, 6).SetExploredBy(Keeper);
         CreatureState hidden = world.SpawnCreature(db, 7, Rival, new TilePos(14, 6));
@@ -188,7 +195,9 @@ public sealed class TortureRevealTests
         var rng = new SimRandom(1);
         int reward = 0;
         for (int i = 0; i < 50 && reward != 10; i++)
+        {
             reward = TortureInformationRules.Award(world, db, rng, scout, Rival, Keeper).Reward;
+        }
 
         Assert.Equal(10, reward);
         Assert.Contains(world.Messages.Entries, m => m.PlayerId == Keeper && m.Kind == PlayerMessageKind.InformationUnlocked);
@@ -199,8 +208,13 @@ public sealed class TortureRevealTests
     {
         (GameDatabase db, WorldState world) = Setup();
         for (int y = 4; y <= 8; y++)
+        {
             for (int x = 10; x <= 14; x++)
+            {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
+            }
+        }
+
         CreatureState own = world.SpawnCreature(db, 7, Rival, new TilePos(11, 6));
         own.TortureSightPasses = 3;
         own.TortureSightPlayerId = Rival;
@@ -216,7 +230,11 @@ public sealed class TortureRevealTests
         Assert.Equal(3, own.TortureSightPasses);
         Assert.Equal(0, spent.TortureSightPasses);
 
-        for (int x = 10; x <= 14; x++) world.Tile(x, 4).ClearExploredBy(Keeper);
+        for (int x = 10; x <= 14; x++)
+        {
+            world.Tile(x, 4).ClearExploredBy(Keeper);
+        }
+
         (spent.PosX, spent.PosY) = (CreatureState.CentreOf(13), CreatureState.CentreOf(5));
         sim.Tick();
         Assert.False(world.Tile(14, 4).IsExploredBy(Keeper));
@@ -233,11 +251,14 @@ public sealed class TortureRevealTests
         spy.TortureSightPlayerId = Keeper;
         spy.TortureSightTileIndex = world.TileIndex(spy.Tile);
         for (int y = 4; y <= 8; y++)
+        {
             for (int x = 10; x <= 14; x++)
             {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
                 world.Tile(x, y).ClearExploredBy(Keeper);
             }
+        }
+
         var sim = new GameSimulation(db, world, seed: 1, [new Systems.FogOfWarSystem()]);
 
         sim.Tick();

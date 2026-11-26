@@ -143,7 +143,10 @@ public class KmfReaderTests
         {
             KmfModel model = KmfReader.Read(wad.Extract(entry));
             Assert.True(model.Version > 0, entry.Name);
-            if (model.Kind != KmfKind.Group) Assert.NotNull(model.Mesh);
+            if (model.Kind != KmfKind.Group)
+            {
+                Assert.NotNull(model.Mesh);
+            }
         }
     }
 

@@ -11,8 +11,12 @@ public sealed class CombatPitCompletionTests
     private static void PutPit(GameSimulation sim, GameDatabase db)
     {
         for (int y = 2; y <= 6; y++)
-        for (int x = 4; x <= 8; x++)
-            RoomRules.Place(db, ref sim.World.Tile(x, y), db.Room(RoomTypeId.CombatPit), PlayerIds.FirstKeeper);
+        {
+            for (int x = 4; x <= 8; x++)
+            {
+                RoomRules.Place(db, ref sim.World.Tile(x, y), db.Room(RoomTypeId.CombatPit), PlayerIds.FirstKeeper);
+            }
+        }
     }
 
     [Fact]
@@ -115,11 +119,19 @@ public sealed class CombatPitCompletionTests
         Assert.Equal(31, c.ActionArtSlot);
         Assert.Equal(0, c.ActionCount);
         Assert.Equal(0, c.ActionUntilTick);
-        for (int i = 0; i < 5; i++) sim.Tick();
+        for (int i = 0; i < 5; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(139, c.Dk2StateId);
         Assert.Equal(0, c.Anger[AngerBucket.Work]);
         Assert.Equal(0, c.Anger[AngerBucket.Company]);
-        for (int i = 0; i < 100 && c.Anger[AngerBucket.Work] == 0; i++) sim.Tick();
+        for (int i = 0; i < 100 && c.Anger[AngerBucket.Work] == 0; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.True(c.Anger[AngerBucket.Work] > 0);
     }
     [Fact]
@@ -130,10 +142,18 @@ public sealed class CombatPitCompletionTests
         sim.Tick();
         Assert.Equal(35, CreatureCurrentAction.IndexOf(c, db.CreatureById(c.CreatureTypeId), sim.CurrentTick));
         Assert.Equal(8, c.ActionArtSlot);
-        for (int i = 0; i < 5; i++) sim.Tick();
+        for (int i = 0; i < 5; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(140, c.Dk2StateId);
         Assert.Equal(1000, c.Anger[AngerBucket.Treatment]);
-        for (int i = 0; i < 100 && c.Dk2StateId == 140; i++) sim.Tick();
+        for (int i = 0; i < 100 && c.Dk2StateId == 140; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(138, c.Dk2StateId);
         Assert.Equal(900, c.Anger[AngerBucket.Treatment]);
     }

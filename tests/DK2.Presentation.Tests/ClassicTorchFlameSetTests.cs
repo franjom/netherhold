@@ -65,10 +65,17 @@ public sealed class ClassicTorchFlameSetTests
         int bent = 0;
         for (int i = 0; i < world.TileCount; i++)
         {
-            if (layout.At(i) is not TorchView torch) continue;
+            if (layout.At(i) is not TorchView torch)
+            {
+                continue;
+            }
+
             Vector3 point = ClassicTorchFlame.RenderPoint(torch, lattice);
             Assert.Equal(Legacy(torch, lattice), point);
-            if (Vector3.Distance(point, ClassicTorchFlame.RenderPoint(torch, null)) > 0.001f) bent++;
+            if (Vector3.Distance(point, ClassicTorchFlame.RenderPoint(torch, null)) > 0.001f)
+            {
+                bent++;
+            }
         }
         Assert.True(bent > 0);
     }
@@ -78,7 +85,11 @@ public sealed class ClassicTorchFlameSetTests
     {
         FpPosition3 raw = ClassicTorchFlame.Position(torch);
         var point = new Vector3(raw.X.Raw / 4096f, raw.Y.Raw / 4096f, -raw.Z.Raw / 4096f);
-        if (lattice != null) point = lattice.Deform(point, torch.Wall.X, torch.Wall.Y);
+        if (lattice != null)
+        {
+            point = lattice.Deform(point, torch.Wall.X, torch.Wall.Y);
+        }
+
         return new Vector3(point.X, -point.Z, -point.Y);
     }
 }

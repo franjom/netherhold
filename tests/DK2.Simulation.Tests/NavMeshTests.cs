@@ -36,11 +36,16 @@ public class NavMeshTests
 
         int borders = 0;
         for (int t = 0; t < mesh.TriangleSlots; t++)
+        {
             for (int i = 0; i < 3; i++)
             {
                 Assert.False(mesh.IsConstraint(t, i));
-                if (mesh.Neighbour(t, i) == NavMesh.NoNeighbour) borders++;
+                if (mesh.Neighbour(t, i) == NavMesh.NoNeighbour)
+                {
+                    borders++;
+                }
             }
+        }
 
         Assert.Equal(4, borders);
     }
@@ -99,8 +104,16 @@ public class NavMeshTests
         // The border edge is now two edges; both still border nothing.
         int borders = 0;
         for (int t = 0; t < mesh.TriangleSlots; t++)
+        {
             for (int i = 0; i < 3; i++)
-                if (mesh.Neighbour(t, i) == NavMesh.NoNeighbour) borders++;
+            {
+                if (mesh.Neighbour(t, i) == NavMesh.NoNeighbour)
+                {
+                    borders++;
+                }
+            }
+        }
+
         Assert.Equal(5, borders);
     }
 
@@ -142,8 +155,13 @@ public class NavMeshTests
             var m = new NavMesh();
             m.Reset(12, 12);
             for (int y = 2; y <= 10; y += 4)
+            {
                 for (int x = 2; x <= 10; x += 4)
+                {
                     m.InsertPoint(x, y);
+                }
+            }
+
             AssertInvariants(m);
             return m;
         }
@@ -173,7 +191,14 @@ public class NavMeshTests
         // back first: the next split's first new triangle takes the higher of the two freed slots.
         int freedHigh = -1, freedLow = -1;
         for (int i = 0; i < mesh.TriangleSlots; i++)
-            if (!mesh.IsTriangleLive(i)) { if (i > freedHigh) { freedLow = freedHigh; freedHigh = i; } else freedLow = i; }
+        {
+            if (!mesh.IsTriangleLive(i)) { if (i > freedHigh) { freedLow = freedHigh; freedHigh = i; } else
+                {
+                    freedLow = i;
+                }
+            }
+        }
+
         int again = mesh.InsertPoint(5, 3);
         Assert.Equal(p, again);
         Assert.Equal(4, mesh.TriangleSlots);
@@ -212,15 +237,29 @@ public class NavMeshTests
         mesh.Reset(0, 0, 12, 12);
         mesh.InsertRectangle(0, 0, 12, 12, NavBytes.Floor);
         mesh.InsertPoint(6, 6);
-        foreach ((int x, int y) in new[] { (3, 3), (9, 3), (9, 9), (3, 9), (6, 2), (2, 6) }) mesh.InsertPoint(x, y);
+        foreach ((int x, int y) in new[] { (3, 3), (9, 3), (9, 9), (3, 9), (6, 2), (2, 6) })
+        {
+            mesh.InsertPoint(x, y);
+        }
+
         mesh.CoarsenRectangle(0, 0, 12, 12);
         Assert.True(mesh.TryLocateVertex(6, 6, out int t, out int s));
         int live = mesh.LiveTriangleCount();
         int degree = 0;
         for (int i = 0; i < mesh.TriangleSlots; i++)
+        {
             if (mesh.IsTriangleLive(i))
+            {
                 for (int k = 0; k < 3; k++)
-                    if (mesh.PointX(mesh.Vertex(i, k)) == 6 && mesh.PointY(mesh.Vertex(i, k)) == 6) degree++;
+                {
+                    if (mesh.PointX(mesh.Vertex(i, k)) == 6 && mesh.PointY(mesh.Vertex(i, k)) == 6)
+                    {
+                        degree++;
+                    }
+                }
+            }
+        }
+
         Assert.True(degree >= 5, $"the centre has degree {degree}, so nothing is reduced");
 
         Assert.True(mesh.RemoveVertex(t, s));
@@ -228,9 +267,15 @@ public class NavMeshTests
         Assert.False(mesh.TryLocateVertex(6, 6, out _, out _));
         AssertInvariants(mesh);
         for (int i = 0; i < mesh.TriangleSlots; i++)
+        {
             if (mesh.IsTriangleLive(i))
+            {
                 for (int k = 0; k < 3; k++)
+                {
                     Assert.False(mesh.PointX(mesh.Vertex(i, k)) == 6 && mesh.PointY(mesh.Vertex(i, k)) == 6);
+                }
+            }
+        }
     }
 
     /// <summary>The edge finder (`0x004C9C30`) returns the edge that leaves a vertex along a direction,
@@ -262,7 +307,10 @@ public class NavMeshTests
     {
         for (int t = 0; t < mesh.TriangleSlots; t++)
         {
-            if (!mesh.IsTriangleLive(t)) continue;
+            if (!mesh.IsTriangleLive(t))
+            {
+                continue;
+            }
 
             int a = mesh.Vertex(t, 0), b = mesh.Vertex(t, 1), c = mesh.Vertex(t, 2);
             Assert.True(NavMesh.Orient(mesh.PointX(a), mesh.PointY(a), mesh.PointX(b), mesh.PointY(b),
@@ -271,7 +319,11 @@ public class NavMeshTests
             for (int i = 0; i < 3; i++)
             {
                 int u = mesh.Neighbour(t, i);
-                if (u == NavMesh.NoNeighbour) continue;
+                if (u == NavMesh.NoNeighbour)
+                {
+                    continue;
+                }
+
                 Assert.True(mesh.IsTriangleLive(u), $"triangle {t} edge {i} points at dead triangle {u}");
                 int from = mesh.Vertex(t, i), to = mesh.Vertex(t, (i + 1) % 3);
                 int j = mesh.EdgeIndexOf(u, to, from);

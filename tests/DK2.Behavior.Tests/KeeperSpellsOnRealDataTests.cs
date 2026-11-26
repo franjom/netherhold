@@ -39,10 +39,16 @@ public class KeeperSpellsOnRealDataTests
     private static IReadOnlyList<KeeperSpellDef>? Spells()
     {
         string install = Dk2InstallGate.Path;
-        if (install is null) return null; // skipped: no DK2 install
+        if (install is null)
+        {
+            return null; // skipped: no DK2 install
+        }
 
         string path = Path.Combine(install, "Data", "editor", "KeeperSpells.kwd");
-        if (!File.Exists(path)) return null;
+        if (!File.Exists(path))
+        {
+            return null;
+        }
 
         List<KwdChunk> chunks = KwdReader.ReadFile(path);
         KwdChunk chunk = chunks.Single();
@@ -70,7 +76,10 @@ public class KeeperSpellsOnRealDataTests
     [InstallFact]
     public void CreateImpCostsWhatTheSimulationChargesForIt()
     {
-        if (Database() is not { } database) return;
+        if (Database() is not { } database)
+        {
+            return;
+        }
 
         Assert.Equal(1500, ImpSupplyRules.CreateImpBaseCost(database));
     }
@@ -84,7 +93,10 @@ public class KeeperSpellsOnRealDataTests
     [InstallFact]
     public void EverySpellHasAPlausibleManaCostAtTheSameOffset()
     {
-        if (Spells() is not { } spells) return;
+        if (Spells() is not { } spells)
+        {
+            return;
+        }
 
         Assert.Equal(13, spells.Count);
 
@@ -105,7 +117,9 @@ public class KeeperSpellsOnRealDataTests
         };
 
         foreach ((string name, int cost) in expected)
+        {
             Assert.Equal(cost, spells.Single(s => s.Name == name).ManaCost);
+        }
     }
 
     /// <summary>
@@ -116,7 +130,10 @@ public class KeeperSpellsOnRealDataTests
     [InstallFact]
     public void TheManaCostIsThirtyTwoBitsWide_AndSummonHornyProvesIt()
     {
-        if (Spells() is not { } spells) return;
+        if (Spells() is not { } spells)
+        {
+            return;
+        }
 
         Assert.Equal(100_000, spells.Single(s => s.Name == "Summon Horny").ManaCost);
         Assert.True(spells.Single(s => s.Name == "Summon Horny").ManaCost > ushort.MaxValue);
@@ -132,7 +149,10 @@ public class KeeperSpellsOnRealDataTests
     [InstallFact]
     public void AnImpCostsSevenManaASecond_WhichIsWhatTheOwnerMeasured()
     {
-        if (Database() is not { } database) return;
+        if (Database() is not { } database)
+        {
+            return;
+        }
 
         Assert.Equal(7, ManaRules.ImpUpkeepPerSecond(database));
         Assert.Equal(28, 4 * ManaRules.ImpUpkeepPerSecond(database));
@@ -154,7 +174,10 @@ public class KeeperSpellsOnRealDataTests
     [InstallFact]
     public void OnlySpellsWithSomethingToKeepHaveAnUpkeep()
     {
-        if (Spells() is not { } spells) return;
+        if (Spells() is not { } spells)
+        {
+            return;
+        }
 
         var expected = new Dictionary<string, int>
         {
@@ -178,7 +201,9 @@ public class KeeperSpellsOnRealDataTests
 
         Assert.Equal(13, expected.Count);
         foreach ((string name, int upkeep) in expected)
+        {
             Assert.Equal(upkeep, spells.Single(s => s.Name == name).ManaUpkeepPerSecond);
+        }
 
         // Stated as the property rather than as thirteen numbers, so that the
         // claim being made is visible: eight zeroes and five non-zeroes, split
@@ -195,7 +220,10 @@ public class KeeperSpellsOnRealDataTests
     [InstallFact]
     public void TheUpkeepIsNotTheCastCostInDisguise()
     {
-        if (Spells() is not { } spells) return;
+        if (Spells() is not { } spells)
+        {
+            return;
+        }
 
         Assert.DoesNotContain(spells, s => s.ManaCost != 0 && s.ManaCost == s.ManaUpkeepPerSecond);
 

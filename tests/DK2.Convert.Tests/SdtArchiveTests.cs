@@ -109,10 +109,14 @@ public class SdtArchiveTests
                 rates.Add(entry.SampleRate);
                 if (entry.PayloadSampleRate is ushort payloadRate
                     && payloadRate != entry.SampleRate)
+                {
                     payloadRateDisagreements++;
+                }
             });
             if (archive.Entries.Select(entry => entry.SampleRate).Distinct().Count() > 1)
+            {
                 mixedRateBanks.Add(file);
+            }
         }
         Assert.Equal(8959, entries);
         Assert.Equal(999, codecs[SdtCodec.Empty]);
@@ -142,7 +146,10 @@ public class SdtArchiveTests
             var archive = SdtArchive.Open(file);
             foreach (SdtEntry entry in archive.Entries)
             {
-                if (entry.Codec is not (SdtCodec.MpegLayer1 or SdtCodec.MpegLayer2)) continue;
+                if (entry.Codec is not (SdtCodec.MpegLayer1 or SdtCodec.MpegLayer2))
+                {
+                    continue;
+                }
 
                 byte[] payload = archive.Extract(entry);
                 int walked = MpegFrameBytes(payload);
@@ -174,7 +181,10 @@ public class SdtArchiveTests
         while (at + 4 <= payload.Length)
         {
             uint header = BinaryPrimitives.ReadUInt32BigEndian(payload[at..]);
-            if ((header & 0xffe00000) != 0xffe00000) break;
+            if ((header & 0xffe00000) != 0xffe00000)
+            {
+                break;
+            }
 
             int version = (int)((header >> 19) & 3);
             int layer = (int)((header >> 17) & 3);
@@ -182,7 +192,10 @@ public class SdtArchiveTests
             int rateIndex = (int)((header >> 10) & 3);
             int padding = (int)((header >> 9) & 1);
             if (version == 1 || layer == 0 || rateIndex == 3
-                || bitrateIndex is 0 or 15) break;
+                || bitrateIndex is 0 or 15)
+            {
+                break;
+            }
 
             int baseRate = rates[rateIndex];
             int sampleRate = version switch { 3 => baseRate, 2 => baseRate / 2, _ => baseRate / 4 };
@@ -194,7 +207,11 @@ public class SdtArchiveTests
             int frame = layer == 3
                 ? ((12 * kbps * 1000 / sampleRate) + padding) * 4
                 : (144 * kbps * 1000 / sampleRate) + padding;
-            if (frame <= 0 || at + frame > payload.Length) break;
+            if (frame <= 0 || at + frame > payload.Length)
+            {
+                break;
+            }
+
             at += frame;
         }
 

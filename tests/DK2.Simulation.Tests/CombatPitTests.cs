@@ -29,16 +29,23 @@ public sealed class CombatPitTests
         GameDatabase db = Dk2TerrainFixture.Database();
         WorldState world = Dk2TerrainFixture.Sellable(WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]));
         for (int y = 1; y <= 8; y++)
-        for (int x = 1; x <= 12; x++)
+        {
+            for (int x = 1; x <= 12; x++)
         {
             ref TileState tile = ref world.Tile(x, y);
             tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
             tile.OwnerPlayerId = Keeper;
         }
+        }
 
         for (int y = 2; y <= 6; y++)
-        for (int x = 4; x <= 8; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.CombatPit), Keeper);
+        {
+            for (int x = 4; x <= 8; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.CombatPit), Keeper);
+            }
+        }
+
         return (db, world);
     }
 
@@ -59,7 +66,11 @@ public sealed class CombatPitTests
 
     private static void RunUntil(GameSimulation sim, Func<bool> done, int limit = 400)
     {
-        for (int i = 0; i < limit && !done(); i++) sim.Tick();
+        for (int i = 0; i < limit && !done(); i++)
+        {
+            sim.Tick();
+        }
+
         Assert.True(done(), "the condition was not reached");
     }
 
@@ -116,7 +127,10 @@ public sealed class CombatPitTests
         for (int i = 0; i < 200 && !(seen.Contains(CombatPitRules.PlacingState) && goblin.Dk2StateId == CreatureStateMachine.Idle); i++)
         {
             sim.Tick();
-            if (seen.Count == 0 || seen[^1] != goblin.Dk2StateId) seen.Add(goblin.Dk2StateId);
+            if (seen.Count == 0 || seen[^1] != goblin.Dk2StateId)
+            {
+                seen.Add(goblin.Dk2StateId);
+            }
         }
 
         Assert.Contains(sink.Events, e => e.Kind == "dropped_to_job" && e.Detail.Contains("job=CombatPit"));
@@ -301,7 +315,11 @@ public sealed class CombatPitTests
         CreatureState friend = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(6, 4));
         CreatureState enemy = world.SpawnCreature(db, GoblinId, Rival, new TilePos(7, 5));
         CreatureState rimEnemy = world.SpawnCreature(db, GoblinId, Rival, new TilePos(4, 4));
-        foreach (CreatureState c in new[] { friend, enemy, rimEnemy }) c.CombatPitFighter = true;
+        foreach (CreatureState c in new[] { friend, enemy, rimEnemy })
+        {
+            c.CombatPitFighter = true;
+        }
+
         RoomInstance pit = CombatPitRules.PitAt(world, db, (4 * world.Width) + 5)!;
 
         Assert.Same(enemy, CombatPitRules.Opponent(world, db, pit, seeker));

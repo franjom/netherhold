@@ -18,8 +18,11 @@ public class NonWorkerIdleActionTests
     {
         var slots = new CreatureAnimationTiming[CreatureDef.ArtSlotCount];
         if (artPresent)
+        {
             slots[20] = slots[31] = new CreatureAnimationTiming
             { ResourceType = 6, FrameCount = 100, FramesPerSecond = 20 };
+        }
+
         shapeArt?.Invoke(slots);
         CreatureDef goblin = Dk2TerrainFixture.Goblin() with { CreatureId = 54, ArtSlots = slots };
         GameDatabase db = Dk2TerrainFixture.Database(goblin);
@@ -28,13 +31,21 @@ public class NonWorkerIdleActionTests
         StatePlacement.Place(c, CreatureJobSystem.NeutralIdleState);
         c.WanderStamp = 1;
         uint seed = 1;
-        while (new Dk2Lcg(seed).NextInt(100) is var roll && (roll < lowerRoll || roll >= lowerRoll + 25)) seed++;
+        while (new Dk2Lcg(seed).NextInt(100) is var roll && (roll < lowerRoll || roll >= lowerRoll + 25))
+        {
+            seed++;
+        }
+
         var rng = new Dk2Lcg(seed);
         ISimulationSystem[] systems = orderedSteps is not null ? [new CreatureUpdateSystem(orderedSteps)] : separateHosts
             ? [new CreatureJobSystem(), new CreatureMovementSystem()]
             : observer is null ? [new CreatureJobSystem()]
                 : [new CreatureUpdateSystem(observer, new CreatureJobSystem())];
-        if (triggers is not null) systems = [.. systems, new ActionPointTriggerSystem(), new PlayerTriggerSystem()];
+        if (triggers is not null)
+        {
+            systems = [.. systems, new ActionPointTriggerSystem(), new PlayerTriggerSystem()];
+        }
+
         var sim = new GameSimulation(db, world, new SimRandom(rng), systems, triggers);
         rng.Reseed(seed);
         var sink = new ListEventSink();
@@ -194,7 +205,11 @@ public class NonWorkerIdleActionTests
         {
             BeforeObserve = (context, c) =>
             {
-                if (c.IdleAction == IdleActionId.None) return;
+                if (c.IdleAction == IdleActionId.None)
+                {
+                    return;
+                }
+
                 CreatureDef definition = context.Database.CreatureById(c.CreatureTypeId);
                 Assert.True(freeze ? StatusEffectRules.Freeze(context, c, definition, 40)
                     : StatusEffectRules.StunOnLanding(context, c, definition));

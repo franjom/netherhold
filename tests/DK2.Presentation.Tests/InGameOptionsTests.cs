@@ -61,7 +61,11 @@ public class InGameOptionsTests
     {
         (ClassicHudControls? hud, OptionsPagesController? settings, InGameOptionsController? model) = Open(); model.Navigate(InGameOptionsPage.Controls);
         foreach (ClassicHudAction action in new[] { ClassicHudAction.ToggleGui, ClassicHudAction.ToggleFullMap,
-            ClassicHudAction.NavigateHeart, ClassicHudAction.SelectSell, ClassicHudAction.ZoomIn }) hud.Apply(action);
+            ClassicHudAction.NavigateHeart, ClassicHudAction.SelectSell, ClassicHudAction.ZoomIn })
+        {
+            hud.Apply(action);
+        }
+
         Assert.True(hud.GameOptionsVisible); Assert.True(hud.GuiVisible); Assert.False(hud.FullMapVisible);
         Assert.False(model.Navigate(InGameOptionsPage.UserCameras));
     }

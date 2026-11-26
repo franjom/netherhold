@@ -87,9 +87,21 @@ public sealed class SightOfEvilCastTests
     {
         (GameDatabase? db, WorldState? world) = Setup(withShot: change != 3);
         CastSpellAtPlaceCommand cast = Cast();
-        if (change == 0) world.Player(Keeper).Mana = 4999;
-        if (change == 1) world.Player(Keeper).Availabilities.Clear();
-        if (change == 2) cast = cast with { Flags = 1 };
+        if (change == 0)
+        {
+            world.Player(Keeper).Mana = 4999;
+        }
+
+        if (change == 1)
+        {
+            world.Player(Keeper).Availabilities.Clear();
+        }
+
+        if (change == 2)
+        {
+            cast = cast with { Flags = 1 };
+        }
+
         KeeperSpellRefusal seen = KeeperSpellRefusal.None;
 
         new GameSimulation(db, world, 1, [new CallbackSystem(context => seen = KeeperSpellRules.CanCastAtPlace(context, cast)),

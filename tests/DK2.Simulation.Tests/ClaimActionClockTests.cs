@@ -37,8 +37,16 @@ public sealed class ClaimActionClockTests
         {
             int experience = imp.ExperiencePoints;
             sim.Tick();
-            if (imp.ExperiencePoints > experience) hits.Add(tick);
-            if (imp.Dk2StateId == ImpStates.For(kind).Work) continue;
+            if (imp.ExperiencePoints > experience)
+            {
+                hits.Add(tick);
+            }
+
+            if (imp.Dk2StateId == ImpStates.For(kind).Work)
+            {
+                continue;
+            }
+
             left = tick;
             break;
         }
@@ -63,9 +71,20 @@ public sealed class ClaimActionClockTests
             int experience = imp.ExperiencePoints;
             sim.Tick();
             if (terrain == Dk2TerrainFixture.ClaimedPath && sim.World.Tile(Target).TerrainId == Dk2TerrainFixture.DirtPath)
+            {
                 broken = tick;
-            if (terrain == Dk2TerrainFixture.DirtPath && imp.ExperiencePoints > experience) claims.Add(tick);
-            if (sim.World.Tile(Target).OwnerPlayerId != 3 || imp.Dk2StateId != 10) continue;
+            }
+
+            if (terrain == Dk2TerrainFixture.DirtPath && imp.ExperiencePoints > experience)
+            {
+                claims.Add(tick);
+            }
+
+            if (sim.World.Tile(Target).OwnerPlayerId != 3 || imp.Dk2StateId != 10)
+            {
+                continue;
+            }
+
             left = tick;
             break;
         }
@@ -275,8 +294,12 @@ public sealed class ClaimActionClockTests
         if (kind == TileWorkKind.ConvertRoom)
         {
             for (int y = 2; y <= 4; y++)
+            {
                 for (int x = 4; x <= 6; x++)
+                {
                     RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Lair), PlayerIds.Neutral);
+                }
+            }
         }
         else
         {

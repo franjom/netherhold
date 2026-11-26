@@ -183,7 +183,11 @@ public sealed class OneShotReaperTests
     public void CreaturePoolFailureStillSpendsTheOneUse_ConfirmedFromBinary()
     {
         (GameDatabase? db, WorldState? world, TilePos at) = Setup();
-        for (int i = 0; i < 448; i++) world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, at);
+        for (int i = 0; i < 448; i++)
+        {
+            world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, at);
+        }
+
         new GameSimulation(db, world, 1, [new KeeperSpellSystem(), new ShotSystem()]).Tick(InputFrame.Of(Cast(at)));
         Assert.Equal(448, world.Creatures.Count);
         Assert.True(world.Player(Keeper).OneShotReaperUsed);

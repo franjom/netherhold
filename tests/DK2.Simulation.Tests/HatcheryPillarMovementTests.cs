@@ -36,8 +36,12 @@ public class HatcheryPillarMovementTests
             original.Variables, objects: original.Objects.Values.Append(pillar).Append(substitute));
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 1; y <= 3; y++)
+        {
             for (int x = 1; x <= roomWidth; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Hatchery), PlayerIds.FirstKeeper);
+            }
+        }
         // Only the requested corner can be selected; otherwise the bird stays on its current slab.
         world.SpawnObject(db, Navigation.WorldSteering.DungeonHeartObstacleObjectId,
             PlayerIds.FirstKeeper, cornerY * world.Width + (4 - cornerX));
@@ -48,7 +52,10 @@ public class HatcheryPillarMovementTests
             ObjectState existing = world.SpawnObject(db, substitute.ObjectId,
                 PlayerIds.FirstKeeper, cornerY * world.Width + cornerX);
             existing.InHand = held;
-            if (carried) existing.CarriedByCreatureId = 17;
+            if (carried)
+            {
+                existing.CarriedByCreatureId = 17;
+            }
         }
         ObjectState bird = world.SpawnObject(db, HatcheryRules.ChickenObjectId,
             PlayerIds.FirstKeeper, cornerY * world.Width + 2);

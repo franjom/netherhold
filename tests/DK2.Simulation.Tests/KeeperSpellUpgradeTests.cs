@@ -92,8 +92,12 @@ public sealed class KeeperSpellUpgradeTests
             [(byte)0, PlayerIds.Neutral, Keeper]);
         world.Player(Keeper).Availabilities.Add(new AvailabilityState(SpellKind, spellId, Available));
         for (int y = 1; y <= 3; y++)
-        for (int x = 1; x <= 3; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Library), Keeper);
+        {
+            for (int x = 1; x <= 3; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Library), Keeper);
+            }
+        }
 
         var at = new TilePos(1, 1);
         CreatureState it = world.SpawnCreature(db, Dk2TerrainFixture.VampireCreatureId, Keeper, at);

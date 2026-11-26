@@ -159,12 +159,16 @@ public class DefeatTests
         var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
             {
                 ref TileState tile = ref world.Tile(new TilePos(x, y));
                 if (tile.TerrainId is Dk2TerrainFixture.Rock or Dk2TerrainFixture.Gold or Dk2TerrainFixture.Gems)
+                {
                     tile.TerrainId = Dk2TerrainFixture.DirtPath;
+                }
             }
+        }
 
         Paint(db, world, RoomTypeId.DungeonHeart, Keeper, 3, 3, 7, 7);
         Paint(db, world, RoomTypeId.Lair, Keeper, 9, 3, 10, 4);
@@ -188,8 +192,12 @@ public class DefeatTests
     {
         RoomDef room = db.Room(type);
         for (int y = y0; y <= y1; y++)
+        {
             for (int x = x0; x <= x1; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(new TilePos(x, y)), room, player);
+            }
+        }
     }
 
     private static void Claim(WorldState world, byte terrainId, byte player, int x, int y)

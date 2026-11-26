@@ -46,9 +46,16 @@ public sealed class TutorialNotificationsTests
     {
         (GameDatabase? db, WorldState? world) = LevelOneWorld();
         for (int y = 0; y < world.Height; y++)
+        {
             for (int x = 0; x < world.Width; x++)
+            {
                 if (world.Tile(x, y).TerrainId == db.Room(RoomTypeId.Portal).TerrainId)
+                {
                     world.Tile(x, y).OwnerPlayerId = PlayerIds.FirstKeeper;
+                }
+            }
+        }
+
         TriggerTree tree = PlayerTree(Action(28, new() { ["CreatureId"] = 7, ["Level"] = 1 }));
         var sim = new GameSimulation(db, world, 1, [], tree);
         var sink = new ListEventSink(); sim.ObserveWith(sink);
@@ -81,8 +88,16 @@ public sealed class TutorialNotificationsTests
     {
         (GameDatabase? db, WorldState? world) = LevelOneWorld();
         foreach (RoomInstance room in RoomIndex.Build(world, db))
+        {
             if (room.Definition.TypeId == RoomTypeId.Portal)
-                foreach (int tile in room.TileIndices) world.TileAtIndex(tile).OwnerPlayerId = PlayerIds.FirstKeeper;
+            {
+                foreach (int tile in room.TileIndices)
+                {
+                    world.TileAtIndex(tile).OwnerPlayerId = PlayerIds.FirstKeeper;
+                }
+            }
+        }
+
         List<ThingRecord> things = GameDatabaseLoader.LoadCampaignThings(Dk2InstallGate.Path, "Level1")!;
         ThingProjection.Place(world, db, things.OfType<ActionPointThing>());
         List<TriggerRecord> records = GameDatabaseLoader.LoadCampaignTriggers(Dk2InstallGate.Path, "Level1")!;

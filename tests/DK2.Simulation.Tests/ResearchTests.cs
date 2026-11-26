@@ -28,7 +28,11 @@ public sealed class ResearchTests
         GameDatabase db, WorldState world, ListEventSink? sink = null)
     {
         var sim = new GameSimulation(db, world, seed: 42, [new CreatureJobSystem()]);
-        if (sink is not null) sim.ObserveWith(sink);
+        if (sink is not null)
+        {
+            sim.ObserveWith(sink);
+        }
+
         return sim;
     }
 

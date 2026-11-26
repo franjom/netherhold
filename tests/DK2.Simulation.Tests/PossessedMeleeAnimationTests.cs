@@ -34,8 +34,16 @@ public sealed class PossessedMeleeAnimationTests
         CreatureState imp = world.SpawnCreature(db, impDef.CreatureId, PlayerIds.FirstKeeper, new TilePos(5, 5));
         imp.Possessed = true;
         var systems = new List<ISimulationSystem> { new Commands(c => run(c, imp)), new CreatureUpdateSystem() };
-        if (possession) systems.Insert(0, new PossessionSystem());
-        if (after is not null) systems.Add(new Commands(c => after(c, imp)));
+        if (possession)
+        {
+            systems.Insert(0, new PossessionSystem());
+        }
+
+        if (after is not null)
+        {
+            systems.Add(new Commands(c => after(c, imp)));
+        }
+
         var sim = new GameSimulation(db, world, new SimRandom(new Dk2Lcg(1)), systems.ToArray());
         ((Dk2Lcg)sim.Rng.Algorithm).Reseed(1);
         return (sim, imp);
@@ -47,7 +55,7 @@ public sealed class PossessedMeleeAnimationTests
     [Fact]
     public void PossessedMeleeInstallsTheClipAndConsumesTheFc00CoinWithoutAnAlternateFlag()
     {
-        (GameSimulation? sim, CreatureState? imp) = Setup((c, i) => { if (c.Tick.Value == 0) Begin(c, i); });
+        (GameSimulation? sim, CreatureState? imp) = Setup((c, i) => { if (c.Tick.Value == 0) { Begin(c, i); } });
         sim.Tick(InputFrame.Empty);
         Assert.Equal(1015568748u, ((Dk2Lcg)sim.Rng.Algorithm).Seed);
         Assert.Equal(5, imp.ActionArtSlot);
@@ -58,7 +66,7 @@ public sealed class PossessedMeleeAnimationTests
     [Fact]
     public void AnUnflaggedClipDoesNotDraw()
     {
-        (GameSimulation? sim, CreatureState _) = Setup((c, i) => { if (c.Tick.Value == 0) Begin(c, i); }, flags: 0);
+        (GameSimulation? sim, CreatureState _) = Setup((c, i) => { if (c.Tick.Value == 0) { Begin(c, i); } }, flags: 0);
         sim.Tick(InputFrame.Empty);
         Assert.Equal(1u, ((Dk2Lcg)sim.Rng.Algorithm).Seed);
     }
@@ -76,7 +84,7 @@ public sealed class PossessedMeleeAnimationTests
     [Fact]
     public void ImpactDoesNotReleaseTheActionUntilTheFollowingPollSeesAWrap()
     {
-        (GameSimulation? sim, CreatureState? imp) = Setup((c, i) => { if (c.Tick.Value == 0) Begin(c, i); });
+        (GameSimulation? sim, CreatureState? imp) = Setup((c, i) => { if (c.Tick.Value == 0) { Begin(c, i); } });
         int[] phases = [1365, 2730, 4095, 1364];
         foreach (int phase in phases)
         {
@@ -125,8 +133,14 @@ public sealed class PossessedMeleeAnimationTests
     {
         (GameSimulation? sim, CreatureState? imp) = Setup((c, i) =>
         {
-            if (c.Tick.Value == 0) Begin(c, i);
-            else i.FrozenTicks = 10;
+            if (c.Tick.Value == 0)
+            {
+                Begin(c, i);
+            }
+            else
+            {
+                i.FrozenTicks = 10;
+            }
         });
         sim.Tick(InputFrame.Empty);
         sim.Tick(InputFrame.Empty);
@@ -145,9 +159,16 @@ public sealed class PossessedMeleeAnimationTests
                 i.Possessed = false;
                 i.SwingStartTick = 100;
             }
-            if (c.Tick.Value == 5) i.SwingStartTick = -100;
+            if (c.Tick.Value == 5)
+            {
+                i.SwingStartTick = -100;
+            }
         });
-        for (int i = 0; i < 5; i++) sim.Tick(InputFrame.Empty);
+        for (int i = 0; i < 5; i++)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
+
         Assert.True(imp.PossessedMelee.Active);
         Assert.True(imp.PossessedMelee.AnimationComplete);
         Assert.True(imp.SwingInProgress);
@@ -182,7 +203,11 @@ public sealed class PossessedMeleeAnimationTests
     {
         (GameSimulation? sim, CreatureState _) = Setup((c, i) =>
         {
-            if (c.Tick.Value == 0) Begin(c, i);
+            if (c.Tick.Value == 0)
+            {
+                Begin(c, i);
+            }
+
             if (c.Tick.Value == 1)
             {
                 i.Possessed = false;
@@ -199,13 +224,16 @@ public sealed class PossessedMeleeAnimationTests
     [Fact]
     public void AnUntimedPossessedClaimReplacesTheMeleeTail()
     {
-        (GameSimulation? sim, CreatureState? imp) = Setup((c, i) => { if (c.Tick.Value == 0) Begin(c, i); }, possession: true);
+        (GameSimulation? sim, CreatureState? imp) = Setup((c, i) => { if (c.Tick.Value == 0) { Begin(c, i); } }, possession: true);
         for (int y = 4; y <= 6; y++)
-        for (int x = 4; x <= 6; x++)
+        {
+            for (int x = 4; x <= 6; x++)
         {
             sim.World.Tile(x, y).TerrainId = x == 5 && y == 5 ? Dk2TerrainFixture.DirtPath : Dk2TerrainFixture.ClaimedPath;
             sim.World.Tile(x, y).OwnerPlayerId = x == 5 && y == 5 ? PlayerIds.Neutral : PlayerIds.FirstKeeper;
         }
+        }
+
         sim.World.Player(PlayerIds.FirstKeeper).PossessedCreatureId = imp.Id;
         sim.Tick(InputFrame.Empty);
         Assert.True(imp.PossessedMelee.Active);
@@ -226,14 +254,22 @@ public sealed class PossessedMeleeAnimationTests
         CreatureState? target = null;
         (GameSimulation? sim, CreatureState? imp) = Setup((c, i) =>
         {
-            if (c.Tick.Value != 0) return;
+            if (c.Tick.Value != 0)
+            {
+                return;
+            }
+
             Begin(c, i);
             i.SwingTargetKind = FightTargetKind.Creature;
             i.SwingTargetId = target!.Id;
             i.TimeLastUsedMelee = c.Tick.Value;
         }, after: (c, i) =>
         {
-            if (c.Tick.Value != 4) return;
+            if (c.Tick.Value != 4)
+            {
+                return;
+            }
+
             Assert.False(CreatureCurrentAction.IsRunning(i, c.Tick));
             Assert.Equal(0, CreatureCurrentAction.IndexOf(i, c.Database.CreatureById(i.CreatureTypeId), c.Tick));
             Assert.False(FightRules.MeleeActionIsRunning(i, c.Database.CreatureById(i.CreatureTypeId), c.Tick));

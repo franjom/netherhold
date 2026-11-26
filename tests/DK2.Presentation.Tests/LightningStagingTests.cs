@@ -102,7 +102,10 @@ public sealed class LightningStagingTests
         public HashSet<CreatureId> Electrified { get; } = [];
         public void Emit(in SimEvent simEvent)
         {
-            if (simEvent.ElectrifiedCreature is CreatureId creature) Electrified.Add(creature);
+            if (simEvent.ElectrifiedCreature is CreatureId creature)
+            {
+                Electrified.Add(creature);
+            }
         }
     }
 }

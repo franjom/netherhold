@@ -80,7 +80,11 @@ internal static class SoundMapBytes
         {
             Header(writer, 0xE9612C01, 0xA00009B4);
             writer.Write((uint)archives.Length);
-            foreach (string _ in archives) writer.Write(new byte[11]);
+            foreach (string _ in archives)
+            {
+                writer.Write(new byte[11]);
+            }
+
             foreach (string archive in archives)
             {
                 writer.Write((uint)archive.Length);

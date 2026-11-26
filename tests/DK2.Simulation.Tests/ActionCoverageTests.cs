@@ -17,7 +17,9 @@ public class ActionCoverageTests
 
         Assert.Equal(Enumerable.Range(0, CreatureActionTable.Count), ids);
         for (int id = 0; id < CreatureActionTable.Count; id++)
+        {
             Assert.Equal(id, CreatureActionCoverage.Get(id).ActionId);
+        }
     }
 
     [Fact]
@@ -38,7 +40,9 @@ public class ActionCoverageTests
             // A constant is the action it names; a method that begins it is not checked.
             if (members[0] is FieldInfo { IsLiteral: true } constant
                 && constant.GetRawConstantValue() is int value && value != row.ActionId)
+            {
                 wrong.Add($"{row.ActionId}: {row.Beginner.Name}.{row.Detail} is {value}");
+            }
         }
 
         Assert.True(wrong.Count == 0, string.Join("\n", wrong));

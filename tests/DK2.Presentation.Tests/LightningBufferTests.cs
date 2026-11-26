@@ -29,7 +29,11 @@ public sealed class LightningBufferTests
                     Assert.Equal(expected[p].SubdivisionNodeCount, actual[p].SubdivisionNodeCount);
                     EqualBits(expected[p].SubdivisionMaximumSegmentLength, actual[p].SubdivisionMaximumSegmentLength);
                     Assert.Equal(expected[p].Nodes.Count, actual[p].Nodes.Count);
-                    for (int n = 0; n < expected[p].Nodes.Count; n++) EqualBits(expected[p].Nodes[n], actual[p].Nodes[n]);
+                    for (int n = 0; n < expected[p].Nodes.Count; n++)
+                    {
+                        EqualBits(expected[p].Nodes[n], actual[p].Nodes[n]);
+                    }
+
                     var ribbon = LightningRibbon.Build(expected[p].Nodes);
                     int firstVertex = vertices.Count, firstIndex = triangles.Count;
                     LightningRibbon.Append(actual[p].Nodes, vertices, uvs, triangles);
@@ -42,7 +46,9 @@ public sealed class LightningBufferTests
                     }
                     Assert.Equal(firstIndex + ribbon.Triangles.Count, triangles.Count);
                     for (int t = 0; t < ribbon.Triangles.Count; t++)
+                    {
                         Assert.Equal(firstVertex + ribbon.Triangles[t], triangles[firstIndex + t]);
+                    }
                 }
             }
         }
@@ -83,12 +89,24 @@ public sealed class LightningBufferTests
         {
             vertices.Clear(); uvs.Clear(); triangles.Clear();
             IReadOnlyList<LightningPathBuffer> paths = bolts.BuildInto(new(1, 3, -4), new(2, -1, 4));
-            for (int i = 0; i < paths.Count; i++) LightningRibbon.Append(paths[i].Nodes, vertices, uvs, triangles);
+            for (int i = 0; i < paths.Count; i++)
+            {
+                LightningRibbon.Append(paths[i].Nodes, vertices, uvs, triangles);
+            }
+
             pairs.ChooseInto(controls, segments);
         }
-        for (int i = 0; i < 4096; i++) Frame();
+        for (int i = 0; i < 4096; i++)
+        {
+            Frame();
+        }
+
         long before = GC.GetAllocatedBytesForCurrentThread();
-        for (int i = 0; i < 256; i++) Frame();
+        for (int i = 0; i < 256; i++)
+        {
+            Frame();
+        }
+
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
         Assert.Equal(0, allocated);
     }

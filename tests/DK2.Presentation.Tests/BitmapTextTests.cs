@@ -134,10 +134,16 @@ public class BitmapTextTests
         IReadOnlyList<BitmapTextLine> lines = BitmapTextLayout.Wrap(font, "aa bb cc", 50);
         var box = new HudRect(0, 0, 200, 100);
         float sum = 0;
-        foreach (PlacedBitmapGlyph glyph in BitmapTextPlacement.Place(font, box, lines, 1f)) sum += glyph.Rect.X;
+        foreach (PlacedBitmapGlyph glyph in BitmapTextPlacement.Place(font, box, lines, 1f))
+        {
+            sum += glyph.Rect.X;
+        }
 
         long before = GC.GetAllocatedBytesForCurrentThread();
-        foreach (PlacedBitmapGlyph glyph in BitmapTextPlacement.Place(font, box, lines, 1f)) sum += glyph.Rect.X;
+        foreach (PlacedBitmapGlyph glyph in BitmapTextPlacement.Place(font, box, lines, 1f))
+        {
+            sum += glyph.Rect.X;
+        }
 
         Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
         Assert.True(sum > 0);
@@ -173,7 +179,11 @@ public class BitmapTextTests
     private static PlacedBitmapGlyph[] Placed(BitmapFont font, HudRect box, IReadOnlyList<BitmapTextLine> lines, float scale, bool centred)
     {
         var placed = new List<PlacedBitmapGlyph>();
-        foreach (PlacedBitmapGlyph glyph in BitmapTextPlacement.Place(font, box, lines, scale, centred)) placed.Add(glyph);
+        foreach (PlacedBitmapGlyph glyph in BitmapTextPlacement.Place(font, box, lines, scale, centred))
+        {
+            placed.Add(glyph);
+        }
+
         return [.. placed];
     }
 
@@ -224,11 +234,17 @@ public class BitmapTextTests
         var block = new BitmapTextBlock();
         block.Update(font, "aa bb cc", box, 1f);
         float sum = 0;
-        foreach (PlacedBitmapGlyph glyph in block.Glyphs) sum += glyph.Rect.X;
+        foreach (PlacedBitmapGlyph glyph in block.Glyphs)
+        {
+            sum += glyph.Rect.X;
+        }
 
         long before = GC.GetAllocatedBytesForCurrentThread();
         bool changed = block.Update(font, "aa bb cc", box, 1f);
-        foreach (PlacedBitmapGlyph glyph in block.Glyphs) sum += glyph.Rect.X;
+        foreach (PlacedBitmapGlyph glyph in block.Glyphs)
+        {
+            sum += glyph.Rect.X;
+        }
 
         Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
         Assert.False(changed);
@@ -238,7 +254,11 @@ public class BitmapTextTests
     private static PlacedBitmapGlyph[] Placed(BitmapTextBlock block)
     {
         var placed = new List<PlacedBitmapGlyph>();
-        foreach (PlacedBitmapGlyph glyph in block.Glyphs) placed.Add(glyph);
+        foreach (PlacedBitmapGlyph glyph in block.Glyphs)
+        {
+            placed.Add(glyph);
+        }
+
         return [.. placed];
     }
 

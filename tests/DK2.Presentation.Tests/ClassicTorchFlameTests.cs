@@ -34,7 +34,10 @@ public sealed class ClassicTorchFlameTests
     {
         var animation = new ClassicTorchFlameAnimation();
         for (int frame = 1; frame <= framesPerSecond; frame++)
+        {
             animation.AdvanceTo(new EffectTime(frame * 1000 / framesPerSecond));
+        }
+
         Assert.Equal(4080, animation.Frame(4096));
         Assert.Equal(19, animation.Frame(20));
     }

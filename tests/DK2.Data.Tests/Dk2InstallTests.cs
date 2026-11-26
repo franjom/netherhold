@@ -19,8 +19,16 @@ public sealed class Dk2InstallTests : IDisposable
     {
         string dir = Path.Combine(_root, name);
         Directory.CreateDirectory(dir);
-        if (exe) File.WriteAllBytes(Path.Combine(dir, "DKII.EXE"), []);
-        if (data) Directory.CreateDirectory(Path.Combine(dir, "Data"));
+        if (exe)
+        {
+            File.WriteAllBytes(Path.Combine(dir, "DKII.EXE"), []);
+        }
+
+        if (data)
+        {
+            Directory.CreateDirectory(Path.Combine(dir, "Data"));
+        }
+
         return dir;
     }
 

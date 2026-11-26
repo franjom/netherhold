@@ -51,7 +51,13 @@ public class RoomMembershipRulesTests
     private static int StateIn(CreatureStateCategory category)
     {
         for (int id = 0; id < CreatureStateTable.Count; id++)
-            if (CreatureStateTable.Get(id).Category == category) return id;
+        {
+            if (CreatureStateTable.Get(id).Category == category)
+            {
+                return id;
+            }
+        }
+
         throw new InvalidOperationException($"no state in {category}");
     }
 }

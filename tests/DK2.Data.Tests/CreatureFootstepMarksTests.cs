@@ -56,8 +56,12 @@ public sealed class CreatureFootstepMarksTests
         Assert.Equal(new FootstepMarkPair(11, 22), reread.FootstepMarksOf(1));
         Assert.Equal(new FootstepMarkPair(0xABCD, 5), reread.FootstepMarksOf(40));
         for (int i = 0; i < edited.Length; i++)
+        {
             if (i < MarksOffset || i >= MarksOffset + (4 * CreatureDef.FootstepMarkCount))
+            {
                 Assert.Equal(source[i], edited[i]);
+            }
+        }
     }
 
     [Fact]

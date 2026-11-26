@@ -16,8 +16,13 @@ public sealed class SpeedModeTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         return (db, world, world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, PlayerIds.FirstKeeper, new TilePos(10, 10)));
     }
 
@@ -94,7 +99,11 @@ public sealed class SpeedModeTests
         var sim = new GameSimulation(db, world, 1, [new CombatSystem(), new CreatureMovementSystem()]);
 
         int turns = 0;
-        while (goblin.SpeedSetTick < 0 && turns++ < 20) sim.Tick();
+        while (goblin.SpeedSetTick < 0 && turns++ < 20)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(sim.CurrentTick.Value - 1, goblin.SpeedSetTick);
         Assert.Equal(CreatureSpeedMode.Run, goblin.SpeedMode);
         Assert.Equal(run, goblin.Body.MaxSpeed);

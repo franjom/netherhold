@@ -27,7 +27,10 @@ public class ImpKeepsItsGoldTests
 
         public void Ticks(int count)
         {
-            for (int i = 0; i < count; i++) Tick();
+            for (int i = 0; i < count; i++)
+            {
+                Tick();
+            }
         }
 
         public IEnumerable<SimEvent> Of(string kind) => Events.Events.Where(e => e.Kind == kind);

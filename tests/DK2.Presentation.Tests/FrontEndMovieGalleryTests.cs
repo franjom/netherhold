@@ -21,7 +21,9 @@ public sealed class FrontEndMovieGalleryTests
         {
             var gallery = new FrontEndMovieGallery(profile, _ => true);
             foreach (MovieGalleryEntry row in gallery.Entries)
+            {
                 Assert.InRange(index.Find(row.Thumbnail + ".png"), 0, archive.Entries.Count - 1);
+            }
         }
         Assert.InRange(index.Find("Mov_Shots/M-Hilight.png"), 0, archive.Entries.Count - 1);
     }

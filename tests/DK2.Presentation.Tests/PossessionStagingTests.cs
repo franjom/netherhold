@@ -94,7 +94,10 @@ public sealed class PossessionStagingTests
     public void AViewerWithNoCreaturePossessesNothing()
     {
         (_, WorldState world) = Level1();
-        foreach (CreatureState creature in world.OwnedCreatures(Viewer).ToArray()) world.RemoveCreature(creature.Id);
+        foreach (CreatureState creature in world.OwnedCreatures(Viewer).ToArray())
+        {
+            world.RemoveCreature(creature.Id);
+        }
 
         Assert.Null(PossessionStaging.PossessFirst(world, Viewer));
         Assert.Equal(0, world.Player(Viewer).PossessedCreatureId);

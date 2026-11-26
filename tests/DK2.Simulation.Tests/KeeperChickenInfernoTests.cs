@@ -122,11 +122,13 @@ public class KeeperChickenInfernoTests
         (GameDatabase? db, WorldState? world) = Setup((_, w) =>
         {
             for (int y = 9; y <= 11; y++)
+            {
                 for (int x = 14; x <= 16; x++)
                 {
                     w.Tile(x, y).TerrainId = Dk2TerrainFixture.HatcheryTerrain;
                     w.Tile(x, y).OwnerPlayerId = Rival;
                 }
+            }
         });
         CreatureState enemy = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(10, 10));
         Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), enemy, ChickenRules.ChickenState));
@@ -149,7 +151,11 @@ public class KeeperChickenInfernoTests
         CreatureState near = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(10, 10));
         near.PosX += 0x600;
         CreatureState far = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(12, 10));
-        foreach (CreatureState c in new[] { own, near, far }) c.Health = 1000;
+        foreach (CreatureState c in new[] { own, near, far })
+        {
+            c.Health = 1000;
+        }
+
         var sim = new GameSimulation(db, world, 1, [new KeeperSpellSystem(), new ShotSystem()]);
 
         sim.Tick(InputFrame.Of(new CastSpellAtPlaceCommand(Keeper, KeeperSpellRules.Inferno, own.PosX, own.PosY)));
@@ -240,7 +246,9 @@ public class KeeperChickenInfernoTests
         public void Execute(SimulationContext context)
         {
             foreach (CastSpellAtPlaceCommand command in context.Input.All.OfType<CastSpellAtPlaceCommand>())
+            {
                 KeeperSpellRules.CastAtPlace(context, command, out Refusal);
+            }
         }
     }
 
@@ -289,11 +297,14 @@ public class KeeperChickenInfernoTests
         world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, KeeperSpellRules.Inferno, 3));
         world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, KeeperSpellRules.Chicken, 3));
         for (int y = 8; y <= 12; y++)
+        {
             for (int x = 3; x <= 16; x++)
             {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
                 world.Tile(x, y).OwnerPlayerId = Keeper;
             }
+        }
+
         before?.Invoke(db, world);
         return (db, world);
     }

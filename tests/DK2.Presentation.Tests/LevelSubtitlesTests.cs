@@ -28,7 +28,11 @@ public sealed class LevelSubtitlesTests
             Assert.Null(LevelSubtitles.Open(install, 1, warnings.Add).Line(0));
             Assert.StartsWith("subtitles unavailable: ", Assert.Single(warnings));
         }
-        finally { if (Directory.Exists(install)) Directory.Delete(install, recursive: true); }
+        finally { if (Directory.Exists(install))
+            {
+                Directory.Delete(install, recursive: true);
+            }
+        }
     }
 
     [InstallFact]

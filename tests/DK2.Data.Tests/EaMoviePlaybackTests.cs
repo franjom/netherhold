@@ -86,7 +86,11 @@ public class EaMoviePlaybackTests
         float[] buffer = new float[2 * 1000];
         long read = 0;
         int got;
-        while ((got = stream.Read(buffer)) > 0) read += got;
+        while ((got = stream.Read(buffer)) > 0)
+        {
+            read += got;
+        }
+
         Assert.Equal(timeline.TotalAudioFrames, read);
     }
 
@@ -95,7 +99,10 @@ public class EaMoviePlaybackTests
         byte[] payload = new byte[4 + 2 * samples.Length];
         BinaryPrimitives.WriteInt32LittleEndian(payload, samples.Length);
         for (int i = 0; i < samples.Length; i++)
+        {
             BinaryPrimitives.WriteInt16LittleEndian(payload.AsSpan(4 + 2 * i), samples[i]);
+        }
+
         return payload;
     }
 

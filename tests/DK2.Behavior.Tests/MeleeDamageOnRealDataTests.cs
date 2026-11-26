@@ -33,7 +33,9 @@ public class MeleeDamageOnRealDataTests
 
         int[] shipped = [125, 150, 175, 200, 225, 250, 300, 400, 600];
         for (int level = 2; level <= 10; level++)
+        {
             Assert.Equal(shipped[level - 2], db.StatPercent(CreatureStatId.MeleeDamage, level));
+        }
 
         Assert.Equal(100, db.StatPercent(CreatureStatId.MeleeDamage, 1));
     }

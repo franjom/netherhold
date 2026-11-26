@@ -24,8 +24,10 @@ public class OriginalTableTests
     {
         var exe = OriginalExecutable.Load();
         for (int i = 0; i < 32; i++)
+        {
             Assert.True(exe.UInt16(0x0065FB14u + (uint)(2 * i)) == IntegerMath.SquareRootSeedEntry(i),
                 $"seed {i}: original {exe.UInt16(0x0065FB14u + (uint)(2 * i))}, ours {IntegerMath.SquareRootSeedEntry(i)}");
+        }
     }
 
     /// <summary>Math_Atan2's 257 unsigned 16-bit words at <c>0x0065FC94</c>.</summary>
@@ -34,8 +36,10 @@ public class OriginalTableTests
     {
         var exe = OriginalExecutable.Load();
         for (int i = 0; i <= 256; i++)
+        {
             Assert.True(exe.UInt16(0x0065FC94u + (uint)(2 * i)) == Bearing.ArctangentEntry(i),
                 $"atan {i}: original {exe.UInt16(0x0065FC94u + (uint)(2 * i))}, ours {Bearing.ArctangentEntry(i)}");
+        }
     }
 
     /// <summary>The 2560-dword sine table at <c>0x006C1488</c>, read through the two accessors

@@ -176,7 +176,10 @@ public sealed class ClassicSoundMixerTests
     public async Task ThePoolGrowsToItsCapThenTakesOverTheFirstSource()
     {
         (ClassicSoundMixer mixer, FakeOutput output) = await Mixer();
-        for (int i = 0; i < ClassicSoundMixer.MaxEffectSources + 1; i++) mixer.Play(new SoundRequest(Effects, new SoundId(HeadRelative)));
+        for (int i = 0; i < ClassicSoundMixer.MaxEffectSources + 1; i++)
+        {
+            mixer.Play(new SoundRequest(Effects, new SoundId(HeadRelative)));
+        }
 
         Assert.Equal(ClassicSoundMixer.MaxEffectSources, output.Effects.Count);
         Assert.Equal(2, output.Effects[0].Plays);
@@ -203,7 +206,11 @@ public sealed class ClassicSoundMixerTests
         WorldState world = EmptyWorld();
         var requests = new SoundRequests();
         mixer.ListenerFocus = Vector3.Zero;
-        for (int i = 0; i < 40; i++) requests.Add(new SoundRequest(Effects, new SoundId(Placed), new Vector3(i % 5, 0, 0)));
+        for (int i = 0; i < 40; i++)
+        {
+            requests.Add(new SoundRequest(Effects, new SoundId(Placed), new Vector3(i % 5, 0, 0)));
+        }
+
         mixer.Play(requests);
         mixer.FollowVoices(world);
         mixer.UpdateSpeech(0);
@@ -250,7 +257,11 @@ public sealed class ClassicSoundMixerTests
             Depth = new Fp32(0), NameStringId = 0, TooltipStringId = 0,
         };
         var variables = new GlobalVariables();
-        foreach (VariableTypeId id in Enum.GetValues<VariableTypeId>()) variables.Misc[id] = new MiscVariable(id, 0, 0, 0);
+        foreach (VariableTypeId id in Enum.GetValues<VariableTypeId>())
+        {
+            variables.Misc[id] = new MiscVariable(id, 0, 0, 0);
+        }
+
         var database = new GameDatabase([terrain], [], [], variables);
         var map = new LevelMap(4, 4, Enumerable.Repeat(new MapTile(2, PlayerIds.Unowned, 0, 0), 16).ToArray());
         return WorldState.FromMap(database, map, [PlayerIds.Good, PlayerIds.FirstKeeper]);
@@ -282,8 +293,15 @@ public sealed class ClassicSoundMixerTests
         public ISoundSource CreateSource(SoundSourceRole role)
         {
             var source = new FakeSource();
-            if (role == SoundSourceRole.Speech) Speech = source;
-            else Effects.Add(source);
+            if (role == SoundSourceRole.Speech)
+            {
+                Speech = source;
+            }
+            else
+            {
+                Effects.Add(source);
+            }
+
             return source;
         }
 

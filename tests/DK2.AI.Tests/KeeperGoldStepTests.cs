@@ -27,7 +27,10 @@ public class KeeperGoldStepTests
         WorldState world = KeeperWorld.World(Db);
         world.Tile(KeeperWorld.HeartAt).GoldHeld = 100;
         foreach (RoomTypeId room in new[] { RoomTypeId.Treasury, RoomTypeId.Lair, RoomTypeId.Hatchery })
+        {
             world.SetAvailability(Keeper, AvailabilityKind.Room, (byte)room, 1);
+        }
+
         world.SetAvailability(Keeper, AvailabilityKind.Spell, KeeperSpellRules.CreateGold, (byte)createGold);
         return world;
     }
@@ -35,8 +38,12 @@ public class KeeperGoldStepTests
     private static void AddSeam(WorldState world)
     {
         for (int y = 4; y <= 6; y++)
+        {
             for (int x = 14; x <= 16; x++)
+            {
                 KeeperWorld.Set(world, Db, new TilePos(x, y), KeeperWorld.Gold);
+            }
+        }
     }
 
     private static KeeperAI Keeper1(SimRandom? rng = null, byte speed = 1) =>
@@ -160,8 +167,13 @@ public class KeeperGoldStepTests
     {
         WorldState world = ShortOfGold();
         for (int y = KeeperWorld.HeartAt.Y - 2; y <= KeeperWorld.HeartAt.Y + 2; y++)
+        {
             for (int x = KeeperWorld.HeartAt.X - 2; x <= KeeperWorld.HeartAt.X + 2; x++)
+            {
                 KeeperWorld.Set(world, Db, new TilePos(x, y), KeeperWorld.HeartFloor, Keeper);
+            }
+        }
+
         world.Tile(KeeperWorld.HeartAt).GoldHeld = 100;
         int objects = world.Objects.Count;
         CastSpellAtPlaceCommand cast = Assert.Single(Keeper1().Think(Db, world).OfType<CastSpellAtPlaceCommand>());

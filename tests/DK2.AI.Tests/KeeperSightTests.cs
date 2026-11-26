@@ -29,7 +29,10 @@ public class KeeperSightTests
         WorldState world = KeeperWorld.World(Db);
         world.Tile(KeeperWorld.HeartAt).GoldHeld = 5000;
         foreach (RoomTypeId room in new[] { RoomTypeId.Treasury, RoomTypeId.Lair, RoomTypeId.Hatchery })
+        {
             world.SetAvailability(Keeper, AvailabilityKind.Room, (byte)room, 1);
+        }
+
         world.SetAvailability(Keeper, AvailabilityKind.Spell, KeeperSpellRules.SightOfEvil, (byte)sight);
         return world;
     }
@@ -46,21 +49,34 @@ public class KeeperSightTests
     private static (int X, int Y, int Roll) Draws(int seed)
     {
         var twin = new SimRandom((ulong)seed);
-        for (int i = 0; i < 3; i++) twin.NextInt(Tick[i]);
+        for (int i = 0; i < 3; i++)
+        {
+            twin.NextInt(Tick[i]);
+        }
+
         return (twin.NextInt(Side), twin.NextInt(Side), twin.NextInt(100));
     }
 
     private static int SeedWhere(Func<(int X, int Y, int Roll), bool> wanted)
     {
         for (int seed = 1; ; seed++)
-            if (wanted(Draws(seed))) return seed;
+        {
+            if (wanted(Draws(seed)))
+            {
+                return seed;
+            }
+        }
     }
 
     /// <summary>The next value after the tick's first <paramref name="draws"/> draws from a fresh stream.</summary>
     private static int After(int seed, int draws)
     {
         var twin = new SimRandom((ulong)seed);
-        for (int i = 0; i < draws; i++) twin.NextInt(Tick[i]);
+        for (int i = 0; i < draws; i++)
+        {
+            twin.NextInt(Tick[i]);
+        }
+
         return twin.NextInt(int.MaxValue);
     }
 
@@ -169,8 +185,13 @@ public class KeeperSightTests
     {
         WorldState world = Idle();
         for (int y = 13; y <= 17; y++)
+        {
             for (int x = 13; x <= 17; x++)
+            {
                 KeeperWorld.Set(world, Db, new TilePos(x, y), KeeperWorld.HeartFloor, Keeper);
+            }
+        }
+
         var view = new KeeperView(Db, world, Keeper);
         KeeperView restored = KeeperViewSnapshot.FromBytes(KeeperViewSnapshot.ToBytes(view), Db);
 
@@ -189,8 +210,12 @@ public class KeeperSightTests
     {
         WorldState world = Idle(2);
         for (int y = 13; y <= 17; y++)
+        {
             for (int x = 13; x <= 17; x++)
+            {
                 KeeperWorld.Set(world, Db, new TilePos(x, y), KeeperWorld.HeartFloor, Keeper);
+            }
+        }
 
         Assert.True(new KeeperView(Db, world, Keeper).SightPlaceAllowed(new TilePos(16, 16)));
     }

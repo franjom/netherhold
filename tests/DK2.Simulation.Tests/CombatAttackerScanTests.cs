@@ -56,7 +56,10 @@ public class CombatAttackerScanTests
     {
         (GameDatabase? db, WorldState? world) = OpenWorld();
         for (int y = 1; y < world.Height - 1; y++)
+        {
             world.Tile(new TilePos(10, y)).TerrainId = barrierTerrain;
+        }
+
         CreatureState giant = Spawn(db, world, GiantType, PlayerIds.Good, 13, 8);
         CreatureState imp = WorkingImp(db, world, 16);
         Assert.True(CombatRules.Register(imp, giant.Id, ranged: false));
@@ -75,7 +78,11 @@ public class CombatAttackerScanTests
         (GameDatabase? db, WorldState? world) = OpenWorld();
         CreatureState giant = Spawn(db, world, GiantType, PlayerIds.Good, 13, 8);
         CreatureState imp = WorkingImp(db, world, 16);
-        if (dead) giant.Health = 0;
+        if (dead)
+        {
+            giant.Health = 0;
+        }
+
         world.RefreshAttackability();
         imp.EngagedMelee[0] = dead ? giant.Id : 9999;
 
@@ -156,8 +163,13 @@ public class CombatAttackerScanTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(new TilePos(x, y)).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         return (db, world);
     }
 

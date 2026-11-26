@@ -122,17 +122,30 @@ public class TriggerExecutorOnRealDataTests
         foreach (string level in TriggerLevels(install))
         {
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
-            if (map is null) continue;
+            if (map is null)
+            {
+                continue;
+            }
 
             foreach (TriggerRecord record in
                 GameDatabaseLoader.LoadCampaignTriggers(install, level) ?? [])
             {
-                if (record.Tag != 214 || record.Type != 1) continue;
+                if (record.Tag != 214 || record.Type != 1)
+                {
+                    continue;
+                }
 
                 int x = (int)record.Parameters["PosX"], y = (int)record.Parameters["PosY"];
                 records++;
-                if (Solid(database, map, x, y)) solidAsWritten++;
-                if (Solid(database, map, x - 1, y - 1)) solidIfDecremented++;
+                if (Solid(database, map, x, y))
+                {
+                    solidAsWritten++;
+                }
+
+                if (Solid(database, map, x - 1, y - 1))
+                {
+                    solidIfDecremented++;
+                }
             }
         }
 
@@ -154,7 +167,9 @@ public class TriggerExecutorOnRealDataTests
     {
         string maps = Path.Combine(install, "Data", "editor", "maps");
         foreach (string file in Directory.EnumerateFiles(maps, "*Triggers.kld").OrderBy(f => f))
+        {
             yield return Path.GetFileName(file)[..^"Triggers.kld".Length];
+        }
     }
 
     /// <summary>The world tree is <b>not</b> where campaign level 1 keeps its script, and a
@@ -204,7 +219,11 @@ public class TriggerExecutorOnRealDataTests
             short signed = unchecked((short)id);
             TriggerRecord? record = records.FirstOrDefault(
                 r => r.TriggerId == id && r.Tag == (signed > 0 ? 213 : 214));
-            if (record is null) break;
+            if (record is null)
+            {
+                break;
+            }
+
             chain.Add(record);
             id = record.NextTriggerId;
         }
@@ -298,7 +317,11 @@ public class TriggerExecutorOnRealDataTests
             byte target = (byte)action.Parameters["FlagId"];
             byte source = unchecked((byte)action.Parameters["Value"]);
             state.Write(target, FlagWriteMode.Assign, 5);
-            if (source != target) state.Write(source, FlagWriteMode.Assign, 23);
+            if (source != target)
+            {
+                state.Write(source, FlagWriteMode.Assign, 23);
+            }
+
             int operand = state.Read(source);
             byte mode = (byte)action.Parameters["Flag"];
 
@@ -342,7 +365,10 @@ public class TriggerExecutorOnRealDataTests
         var executor = new TriggerExecutor(tree, state, world, db);
         ref TileState tile = ref world.Tile(14, 23);
         for (int attempt = 0; attempt < 100 && db.TerrainById(tile.TerrainId).IsSolid; attempt++)
+        {
             TileWorkRules.Apply(db, ref tile, TileWorkKind.Dig, 3);
+        }
+
         Assert.Equal((byte)3, tile.TerrainId);
         Assert.Equal(PlayerIds.Neutral, tile.OwnerPlayerId);
         tile.OwnerPlayerId = PlayerIds.Unowned;
@@ -365,7 +391,10 @@ public class TriggerExecutorOnRealDataTests
         simulation.ObserveWith(events);
         var keeper = new PlayerId(3);
         // Path 1 at turn 0, path 201 from turn 53: wait for a turn after both with none playing.
-        do simulation.Tick();
+        do
+        {
+            simulation.Tick();
+        }
         while ((simulation.CurrentTick.Value < 60
                 || CameraPathRules.Playing(simulation.World.Player(keeper), simulation.CurrentTick))
                && simulation.CurrentTick.Value < 4000);
@@ -390,7 +419,10 @@ public class TriggerExecutorOnRealDataTests
         var events = new ListEventSink();
         simulation.ObserveWith(events);
         var keeper = new PlayerId(3);
-        do simulation.Tick();
+        do
+        {
+            simulation.Tick();
+        }
         while ((simulation.CurrentTick.Value < 60
                 || CameraPathRules.Playing(simulation.World.Player(keeper), simulation.CurrentTick))
                && simulation.CurrentTick.Value < 4000);
@@ -417,7 +449,11 @@ public class TriggerExecutorOnRealDataTests
             .Select(p => p.PlayerId).ToArray();
         List<ThingRecord> things = GameDatabaseLoader.LoadCampaignThings(install, "level1")!;
         var world = WorldState.FromMap(database, map, players);
-        if (withThings) ThingProjection.Place(world, database, things);
+        if (withThings)
+        {
+            ThingProjection.Place(world, database, things);
+        }
+
         var tree = new TriggerTree(
             records, level.TriggerId, things.OfType<HeroPartyThing>(),
             GameDatabaseLoader.LoadCampaignPlayers(install, "level1")!

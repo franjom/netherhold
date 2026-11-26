@@ -107,7 +107,11 @@ public sealed class NavigationEntriesTests
             new TrapThing(new byte[16]) { X = 5, Y = 6, TrapId = 4, PlayerId = Keeper.Value, NumberOfShots = 1 },
         ]);
         // Both ring: the turn has not passed their recharge deadline.
-        foreach (TrapState trap in world.Traps) trap.RechargeAt = world.CurrentTick.Value + 100;
+        foreach (TrapState trap in world.Traps)
+        {
+            trap.RechargeAt = world.CurrentTick.Value + 100;
+        }
+
         var traps = new ThingNavigation(Keeper);
         var scratch = new List<ThingNavigationEntry>();
 

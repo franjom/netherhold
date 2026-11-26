@@ -39,8 +39,13 @@ public class TerrainPiecesTests
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(dir, "Level1")!;
         var patch = new Patch(db, WorldState.FromMap(db, map, [0, 1, 2, Keeper]), new WorldView(db));
         for (int y = Y0; y < Y0 + 7; y++)
+        {
             for (int x = X0; x < X0 + 7; x++)
+            {
                 patch.Set(x, y, fill);
+            }
+        }
+
         return patch;
     }
 
@@ -125,7 +130,10 @@ public class TerrainPiecesTests
         TerrainPieces claimed = patch.At(X0 + 3, Y0 + 3);
         Assert.Equal(QuarterKind.Floor, claimed.Quarters);
         Assert.Equal(Keeper - 1, claimed.QuarterSet);
-        for (int q = 0; q < 4; q++) Assert.Equal(1, claimed.QuarterPiece(q));
+        for (int q = 0; q < 4; q++)
+        {
+            Assert.Equal(1, claimed.QuarterPiece(q));
+        }
     }
 
     [InstallFact]
@@ -134,7 +142,10 @@ public class TerrainPiecesTests
         Patch patch = Block("Claimed Path");
 
         TerrainPieces claimed = patch.At(X0 + 3, Y0 + 3);
-        for (int q = 0; q < 4; q++) Assert.Equal(3, claimed.QuarterPiece(q));
+        for (int q = 0; q < 4; q++)
+        {
+            Assert.Equal(3, claimed.QuarterPiece(q));
+        }
     }
 
     /// <summary>An east-west corridor's middle tile: each quadrant has one edge side (N or S) and
@@ -143,7 +154,10 @@ public class TerrainPiecesTests
     public void AnEastWestClaimedCorridorAlternatesItsTwoStraightEdges()
     {
         Patch patch = Block("Dirt Path");
-        for (int x = X0 + 2; x <= X0 + 4; x++) patch.Set(x, Y0 + 3, "Claimed Path", Keeper);
+        for (int x = X0 + 2; x <= X0 + 4; x++)
+        {
+            patch.Set(x, Y0 + 3, "Claimed Path", Keeper);
+        }
 
         TerrainPieces claimed = patch.At(X0 + 3, Y0 + 3);
         Assert.Equal([0, 4, 0, 4], Enumerable.Range(0, 4).Select(claimed.QuarterPiece));
@@ -182,12 +196,15 @@ public class TerrainPiecesTests
         var patch = new Patch(db, world, new WorldView(db, new PlayerId(Keeper)));
         string lair = db.Room(RoomTypeId.Lair).Name;
         for (int y = Y0; y < Y0 + 7; y++)
+        {
             for (int x = X0; x < X0 + 7; x++)
             {
                 patch.Set(x, y, "Impenetrable Rock");
                 world.Tile(x, y).ClearExploredBy(Keeper);
                 world.Tile(x, y).DiscoveredBy = default;
             }
+        }
+
         patch.Set(X0 + 4, Y0 + 3, lair, Keeper);
         world.Tile(X0 + 4, Y0 + 3).SetExploredBy(Keeper);
         world.Tile(X0 + 3, Y0 + 3).SetDiscoveredBy(Keeper);
@@ -268,12 +285,19 @@ public class TerrainPiecesTests
     {
         Patch patch = Block("Dirt Path");
         patch.Set(X0 + 3, Y0 + 3, "Hero Lair", Keeper);
-        for (int x = X0 + 1; x <= X0 + 5; x++) patch.Set(x, Y0 + 1, "Hero Lair", 1);
+        for (int x = X0 + 1; x <= X0 + 5; x++)
+        {
+            patch.Set(x, Y0 + 1, "Hero Lair", 1);
+        }
 
         TileView isolated = patch.View.TileAt(patch.World, X0 + 3, Y0 + 3);
         Assert.Equal(QuarterKind.HeroLair, isolated.Pieces.Quarters);
         Assert.Equal(0, isolated.Pieces.QuarterSet);
-        for (int q = 0; q < 4; q++) Assert.Equal(1, isolated.Pieces.QuarterPiece(q));
+        for (int q = 0; q < 4; q++)
+        {
+            Assert.Equal(1, isolated.Pieces.QuarterPiece(q));
+        }
+
         Assert.Equal(AssetCatalogue.HeroLairPiece("Hero Lair", 1), isolated.PieceKeys!.HeroLairQuarter(1));
         Assert.True(TerrainTileBuilder.Draws(isolated));
 

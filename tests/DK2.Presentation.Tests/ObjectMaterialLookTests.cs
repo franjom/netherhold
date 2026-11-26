@@ -98,7 +98,10 @@ public sealed class ObjectMaterialLookTests
     public void EveryLookThatFadesHasAWholeAlpha()
     {
         foreach (KmfBlend blend in new[] { KmfBlend.Opaque, KmfBlend.AlphaBlend, KmfBlend.Additive })
+        {
             Assert.Equal(1f, ObjectMaterialLook.Own(new ClassicMaterialRecipe("T", blend, 0.5f)).Colour.W);
+        }
+
         Assert.Equal(1f, ObjectMaterialLook.Blueprint(true).Colour.W);
         Assert.Equal(1f, ObjectMaterialLook.Blueprint(false).Colour.W);
         Assert.Equal(1f, ObjectMaterialLook.HoverTwin(Material(KmfMaterial.TranslucentFlags, 0.25f, 0, "", "G0", "G1"))!.Value.Colour.W);
@@ -120,12 +123,19 @@ public sealed class ObjectMaterialLookTests
     {
         foreach (TerrainLightColour tint in new[] { default, new TerrainLightColour(300, 40, 0), new TerrainLightColour(256, 512, 0),
                      new TerrainLightColour(1000, 700, 90) })
+        {
             foreach (ObjectMaterialLook look in new[] { Opaque, Alpha })
+            {
                 Assert.Equal(look.Tinted(tint).AddedLight, look.AddedLight + ObjectMaterialLook.TintLight(tint));
+            }
+        }
+
         Assert.Equal(Vector3.Zero, ObjectMaterialLook.TintLight(new TerrainLightColour(256, 512, 0)));
         for (int v = 0; v < 256; v += 17)
+        {
             Assert.Equal(Opaque.InstanceTinted((byte)v, 0, (byte)(255 - v)).AddedLight,
                 Opaque.AddedLight + ObjectMaterialLook.InstanceTintLight((byte)v, 0, (byte)(255 - v)));
+        }
     }
 
     /// <summary>The old ElementTinted and InstanceTinted: the RenderInfo tint over 255 added to the own light; an

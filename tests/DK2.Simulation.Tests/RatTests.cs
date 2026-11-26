@@ -22,8 +22,13 @@ public class RatTests
             basis.Variables, objects: basis.Objects.Values.Append(rat));
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 1; y <= 3; y++)
+        {
             for (int x = 1; x <= 3; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Prison), PlayerIds.FirstKeeper);
+            }
+        }
+
         return (db, world);
     }
 
@@ -32,7 +37,11 @@ public class RatTests
     {
         (GameDatabase? db, WorldState? world) = Prison();
         var simulation = new GameSimulation(db, world, 42, [new RatSpawnSystem()]);
-        for (int i = 0; i < 1000; i++) simulation.Tick();
+        for (int i = 0; i < 1000; i++)
+        {
+            simulation.Tick();
+        }
+
         ObjectState rat = Assert.Single(world.Objects, o => o.ObjectTypeId == 11);
         Assert.Equal(PlayerIds.FirstKeeper, rat.OwnerPlayerId);
         Assert.Equal(0x1000, rat.PosZ);
@@ -51,7 +60,11 @@ public class RatTests
         player.HeartHealth = 0;
         player.Status = status;
         var simulation = new GameSimulation(db, world, 42, [new RatSpawnSystem()]);
-        for (int i = 0; i < 1000; i++) simulation.Tick();
+        for (int i = 0; i < 1000; i++)
+        {
+            simulation.Tick();
+        }
+
         Assert.Single(world.Objects, rat => rat.ObjectTypeId == RatRules.RatObjectId);
     }
 
@@ -60,10 +73,19 @@ public class RatTests
     {
         (GameDatabase? db, WorldState? world) = Prison();
         for (int y = 1; y <= 3; y++)
+        {
             for (int x = 5; x <= 10; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.TortureChamber), PlayerIds.FirstKeeper);
+            }
+        }
+
         var simulation = new GameSimulation(db, world, 42, [new RatSpawnSystem()]);
-        for (int i = 0; i < 1000; i++) simulation.Tick();
+        for (int i = 0; i < 1000; i++)
+        {
+            simulation.Tick();
+        }
+
         Assert.Equal(3, world.Objects.Count(o => o.ObjectTypeId == 11));
         Assert.All(world.Objects, rat => Assert.Equal(Dk2TerrainFixture.PrisonTerrain, world.TileAtIndex(rat.TileIndex).TerrainId));
     }
@@ -73,8 +95,13 @@ public class RatTests
     {
         (GameDatabase? db, WorldState? world) = Prison();
         for (int y = 1; y <= 3; y++)
+        {
             for (int x = 1; x <= 3; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.TortureChamber), PlayerIds.FirstKeeper);
+            }
+        }
+
         var simulation = new GameSimulation(db, world, 42, [new RatSpawnSystem()]);
         var expected = new SimRandom(42);
         expected.NextInt(100);
@@ -89,10 +116,19 @@ public class RatTests
         (GameDatabase? db, WorldState _) = Prison();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [0, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 1; y <= 18; y++)
+        {
             for (int x = 1; x <= 18; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Prison), PlayerIds.FirstKeeper);
+            }
+        }
+
         var simulation = new GameSimulation(db, world, 42, [new RatSpawnSystem()]);
-        for (int i = 0; i < 1000; i++) simulation.Tick();
+        for (int i = 0; i < 1000; i++)
+        {
+            simulation.Tick();
+        }
+
         Assert.Equal(16, world.Objects.Count(o => o.ObjectTypeId == 11));
     }
 
@@ -101,7 +137,11 @@ public class RatTests
     {
         (GameDatabase? db, WorldState? world) = Prison();
         var simulation = new GameSimulation(db, world, 42, [new RatSystem(), new RatSpawnSystem()]);
-        for (int i = 0; i < 1000 && world.Objects.Count == 0; i++) simulation.Tick();
+        for (int i = 0; i < 1000 && world.Objects.Count == 0; i++)
+        {
+            simulation.Tick();
+        }
+
         ObjectState rat = Assert.Single(world.Objects);
         Assert.Equal(300, rat.Health);
         simulation.Tick();
@@ -115,7 +155,11 @@ public class RatTests
         world.Tile(1, 1).TerrainId = Dk2TerrainFixture.ClaimedPath;
         var simulation = new GameSimulation(db, world, 42, [new RatSpawnSystem()]);
         (ulong S0, ulong S1, ulong S2, ulong S3) expected = simulation.Rng.SaveState();
-        for (int i = 0; i < 1000; i++) simulation.Tick();
+        for (int i = 0; i < 1000; i++)
+        {
+            simulation.Tick();
+        }
+
         Assert.DoesNotContain(world.Objects, o => o.ObjectTypeId == 11);
         Assert.Equal(expected, simulation.Rng.SaveState());
     }
@@ -201,11 +245,14 @@ public class RatTests
     {
         (GameDatabase? db, WorldState? world) = Prison();
         for (int y = 3; y <= 6; y++)
+        {
             for (int x = 3; x <= 6; x++)
             {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
                 world.Tile(x, y).OwnerPlayerId = PlayerIds.FirstKeeper;
             }
+        }
+
         ObjectState rat = world.SpawnObject(db, 11, PlayerIds.FirstKeeper, 4 * world.Width + 4);
         rat.PosX = rat.PosY = CreatureState.CentreOf(4);
         rat.ProcessState = 11;
@@ -214,7 +261,11 @@ public class RatTests
         Assert.Equal((byte)9, rat.ProcessState);
         Assert.Equal((byte)11, rat.MoveResumeState);
         Assert.InRange(rat.MoveDestinationX, 3 << 12, (6 << 12) - 1);
-        for (int i = 0; i < 50; i++) simulation.Tick();
+        for (int i = 0; i < 50; i++)
+        {
+            simulation.Tick();
+        }
+
         Assert.NotEqual(CreatureState.CentreOf(4), rat.PosX);
     }
 
@@ -251,7 +302,11 @@ public class RatTests
         var simulation = new GameSimulation(db, world, 42, [new RatSystem()]);
         simulation.Tick();
         Assert.Equal(299, rat.Health);
-        for (int i = 1; i < 300; i++) simulation.Tick();
+        for (int i = 1; i < 300; i++)
+        {
+            simulation.Tick();
+        }
+
         Assert.DoesNotContain(rat, world.Objects);
     }
 }

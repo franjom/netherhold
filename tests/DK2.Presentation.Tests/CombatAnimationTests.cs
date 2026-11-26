@@ -27,7 +27,11 @@ public class CombatAnimationTests
         CreatureDef definition = database.CreatureById(attacker.CreatureTypeId);
         var simulation = new GameSimulation(database, world, 7, [new CombatSystem()]);
         var view = new WorldView(database);
-        for (int i = 0; i < 20 && !attacker.SwingInProgress; i++) simulation.Tick();
+        for (int i = 0; i < 20 && !attacker.SwingInProgress; i++)
+        {
+            simulation.Tick();
+        }
+
         Assert.True(attacker.SwingInProgress);
         long started = attacker.SwingStartTick;
         int hold = AnimationTimingRules.ActionHoldTicks(definition.ArtSlot(5));
@@ -74,8 +78,15 @@ public class CombatAnimationTests
             int left = Bearing.TurnToward(ref expected, 0x200, SimulationTiming.TurnRatePerTick(definition));
             simulation.Tick();
             Assert.Equal(expected, attacker.Heading);
-            if (left != 0) Assert.False(attacker.SwingInProgress);
-            if (attacker.SwingInProgress) break;
+            if (left != 0)
+            {
+                Assert.False(attacker.SwingInProgress);
+            }
+
+            if (attacker.SwingInProgress)
+            {
+                break;
+            }
         }
         Assert.True(attacker.SwingInProgress);
         Assert.Equal(0x200, attacker.Heading);

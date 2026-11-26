@@ -20,6 +20,7 @@ public class FrontEndSceneryTests
         var view = new WorldView(database);
         var pieces = new List<int>();
         for (int y = 7; y < 12; y++)
+        {
             for (int x = 2; x <= 4; x++)
             {
                 TileView tile = view.TileAt(world, x, y);
@@ -29,6 +30,8 @@ public class FrontEndSceneryTests
                 Assert.False(tile.RoomKeys!.Piece(tile.RoomFloor.WholePiece).IsEmpty);
                 pieces.Add(tile.RoomFloor.WholePiece);
             }
+        }
+
         Assert.Equal(15, view.TileAt(world, 3, 12).RoomFloor.WholePiece);
         Assert.Equal(FrontEndAssets.EntranceCap(database.Room(RoomTypeId.HeroGateFrontEnd).Name),
             view.TileAt(world, 3, 12).ExtraRoomPiece);

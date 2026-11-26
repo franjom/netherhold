@@ -147,13 +147,20 @@ public class KeeperHealTests
         byte roomOwner = foreign ? Keeper : Rival;
         byte prison = db.Rooms.Values.Single(r => r.TypeId == RoomTypeId.Prison).TerrainId;
         for (int y = 9; y <= 11; y++)
+        {
             for (int x = 9; x <= 11; x++)
             {
                 world.Tile(x, y).TerrainId = prison;
                 world.Tile(x, y).OwnerPlayerId = roomOwner;
             }
+        }
+
         target.OwnerPlayerId = foreign ? Rival : Keeper;
-        if (attached) Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), target, PrisonRules.DecidingState));
+        if (attached)
+        {
+            Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), target, PrisonRules.DecidingState));
+        }
+
         target.CombatPitFighter = pitFighter;
         var boundary = new Boundary();
 
@@ -263,7 +270,14 @@ public class KeeperHealTests
     {
         (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         Walk(target, 16);
-        if (which == 0) target.FrozenTicks = 100; else target.CombatPitFighter = true;
+        if (which == 0)
+        {
+            target.FrozenTicks = 100;
+        }
+        else
+        {
+            target.CombatPitFighter = true;
+        }
 
         var sim = new GameSimulation(db, world, 1, [new KeeperSpellSystem(), new CreatureMovementSystem(), new ShotSystem()]);
         sim.Tick(InputFrame.Of(new CastSpellOnCreatureCommand(Keeper, KeeperSpellRules.Heal, target.Id)));
@@ -361,7 +375,9 @@ public class KeeperHealTests
         public void Execute(SimulationContext context)
         {
             foreach (CastSpellOnCreatureCommand command in context.Input.All.OfType<CastSpellOnCreatureCommand>())
+            {
                 Result = KeeperSpellRules.CastOnCreature(context, command, out Refusal);
+            }
         }
     }
 
@@ -374,8 +390,13 @@ public class KeeperHealTests
         target.OwnerPlayerId = PlayerIds.Good;
         target.TriggerId = EventCounterTree.Root;
         for (int y = 9; y <= 11; y++)
-        for (int x = 9; x <= 11; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.TortureChamber), Keeper);
+        {
+            for (int x = 9; x <= 11; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.TortureChamber), Keeper);
+            }
+        }
+
         int tile = 10 * world.Width + 10;
         ObjectState wheel = world.SpawnObject(db, TortureRules.WheelObjectId, Keeper, tile);
         wheel.AutoPlaced = true;
@@ -442,11 +463,14 @@ public class KeeperHealTests
         world.Player(Keeper).Mana = 12000;
         world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, KeeperSpellRules.Heal, 3));
         for (int y = 8; y <= 12; y++)
+        {
             for (int x = 8; x <= 12; x++)
             {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
                 world.Tile(x, y).OwnerPlayerId = Keeper;
             }
+        }
+
         before?.Invoke(db, world);
         CreatureState target = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(10, 10));
         target.Health = 300;

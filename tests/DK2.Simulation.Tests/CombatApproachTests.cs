@@ -228,8 +228,7 @@ public class CombatApproachTests
         {
             context.Navigation.Refresh();
             Assert.True(ApproachRules.Enter(context, fighter, target.PosX, target.PosY));
-            if (targetGone) fighter.FightTargetId = 999;
-            Assert.False(ApproachRules.Tick(context, new WorldSight(context.Navigation, world, db),
+            if (targetGone) { fighter.FightTargetId = 999; } Assert.False(ApproachRules.Tick(context, new WorldSight(context.Navigation, world, db),
                 new HeartSites(), new RoomCache(), fighter, db.CreatureById(fighter.CreatureTypeId), []));
         })]).Tick();
         Assert.Equal(199, fighter.Dk2StateId);
@@ -282,9 +281,7 @@ public class CombatApproachTests
         {
             context.Navigation.Refresh();
             Assert.True(ApproachRules.Enter(context, fighter, target.PosX, target.PosY));
-            for (int y = 1; y < world.Height - 1; y++)
-                world.Tile(new TilePos(5, y)).TerrainId = Dk2TerrainFixture.Rock;
-            context.Navigation.Refresh();
+            for (int y = 1; y < world.Height - 1; y++) { world.Tile(new TilePos(5, y)).TerrainId = Dk2TerrainFixture.Rock; } context.Navigation.Refresh();
             Assert.True(ApproachRules.Tick(context, new WorldSight(context.Navigation, world, db),
                 new HeartSites(), new RoomCache(), fighter, db.CreatureById(fighter.CreatureTypeId), []));
         })]).Tick();
@@ -373,7 +370,11 @@ public class CombatApproachTests
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
 
-        for (int i = 0; i < 60 && !CreatureDeathRules.IsDown(goblin); i++) sim.Run(1);
+        for (int i = 0; i < 60 && !CreatureDeathRules.IsDown(goblin); i++)
+        {
+            sim.Run(1);
+        }
+
         Assert.True(CreatureDeathRules.IsDown(goblin));
 
         // The blow lands before spFighting runs on the same tick, so the unlink is already made.
@@ -419,7 +420,11 @@ public class CombatApproachTests
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
 
-        for (int i = 0; i < 60 && !CreatureDeathRules.IsDown(goblin); i++) sim.Run(1);
+        for (int i = 0; i < 60 && !CreatureDeathRules.IsDown(goblin); i++)
+        {
+            sim.Run(1);
+        }
+
         Assert.Contains(sink.Events, e => e.Kind == "target_died" && e.Detail.Contains("victim=" + goblin.Id));
         Assert.Equal(CombatRules.AttackMode.Victorious, demon.AttackType);
 
@@ -453,7 +458,10 @@ public class CombatApproachTests
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
 
-        for (int i = 0; i < 40 && !CreatureDeathRules.IsDown(victim); i++) sim.Run(1);
+        for (int i = 0; i < 40 && !CreatureDeathRules.IsDown(victim); i++)
+        {
+            sim.Run(1);
+        }
         // A death on the health step's tick leaves the victim's own body beside the killer; it is
         // carried off so the placed corpse is the only one the victory arm can weigh.
         (victim.PosX, victim.PosY) = (CreatureState.CentreOf(12), CreatureState.CentreOf(12));
@@ -465,7 +473,11 @@ public class CombatApproachTests
         Assert.Equal(corpse.Id, killer.BodyTargetId);
         Assert.Contains(sink.Events, e => e.Kind == "seeks_body" && e.Detail.Contains("body=" + corpse.Id));
 
-        for (int i = 0; i < 40 && killer.Activity == CreatureActivity.GoingToBody; i++) sim.Run(1);
+        for (int i = 0; i < 40 && killer.Activity == CreatureActivity.GoingToBody; i++)
+        {
+            sim.Run(1);
+        }
+
         Assert.Equal(CreatureActivity.Celebrating, killer.Activity);
         Assert.Equal(CreatureActivity.Dead, corpse.Activity);
         Assert.True(CombatRules.DistanceSquared(killer.PosX, killer.PosY, corpse.PosX, corpse.PosY) < Fp32.One * Fp32.One >> 12,
@@ -524,7 +536,10 @@ public class CombatApproachTests
         far.Health = 0;
         GameSimulation sim = new(db, world, 1, [new CombatSystem(), new CreatureHealthSystem()]);
 
-        for (int i = 0; i < 40 && !CreatureDeathRules.IsDown(victim); i++) sim.Run(1);
+        for (int i = 0; i < 40 && !CreatureDeathRules.IsDown(victim); i++)
+        {
+            sim.Run(1);
+        }
         // A death on the health step's tick leaves the victim's own body beside the killer; it is
         // carried off so the placed corpse is the only one the victory arm can weigh.
         (victim.PosX, victim.PosY) = (CreatureState.CentreOf(12), CreatureState.CentreOf(12));
@@ -568,8 +583,7 @@ public class CombatApproachTests
         int calls = 0;
         var sim = new GameSimulation(db, world, 1, [new Probe(context =>
         {
-            if (killer.Activity == CreatureActivity.Celebrating) return;
-            calls++;
+            if (killer.Activity == CreatureActivity.Celebrating) { return; } calls++;
             VictoryRules.GoingToBody(context, killer);
         })]);
 
@@ -647,7 +661,9 @@ public class CombatApproachTests
                 ref TileState tile = ref world.Tile(new TilePos(x, y));
                 if (tile.TerrainId == Dk2TerrainFixture.Rock || tile.TerrainId == Dk2TerrainFixture.Gold
                     || tile.TerrainId == Dk2TerrainFixture.Gems)
+                {
                     tile.TerrainId = Dk2TerrainFixture.DirtPath;
+                }
             }
         }
         return world;

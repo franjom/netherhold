@@ -33,14 +33,29 @@ public class HeroGatesOnRealDataTests(ITestOutputHelper output)
             List<TriggerRecord>? triggers = GameDatabaseLoader.LoadCampaignTriggers(install, level);
             List<ThingRecord>? things = GameDatabaseLoader.LoadCampaignThings(install, level);
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
-            if (triggers is null || things is null || map is null) continue;
+            if (triggers is null || things is null || map is null)
+            {
+                continue;
+            }
+
             var points = things.OfType<ActionPointThing>().GroupBy(a => (int)a.ActionPointId).ToDictionary(g => g.Key, g => g.First());
             foreach (ActionTriggerRecord action in triggers.OfType<ActionTriggerRecord>().Where(a => a.Type == 14))
             {
-                if (!points.TryGetValue((int)action.Parameters["ActionPointId"], out ActionPointThing? ap) || ap is null) continue;
+                if (!points.TryGetValue((int)action.Parameters["ActionPointId"], out ActionPointThing? ap) || ap is null)
+                {
+                    continue;
+                }
+
                 int x = (ap.StartX + ap.EndX) / 2, y = (ap.StartY + ap.EndY) / 2;
-                if (!map.Contains(x, y) || db.RoomByTerrain(map[x, y].TerrainId) is not { } room) continue;
-                if ((RoomTypeId)room.RoomId is not (RoomTypeId.HeroGate2By2 or RoomTypeId.HeroGate3By1)) continue;
+                if (!map.Contains(x, y) || db.RoomByTerrain(map[x, y].TerrainId) is not { } room)
+                {
+                    continue;
+                }
+
+                if ((RoomTypeId)room.RoomId is not (RoomTypeId.HeroGate2By2 or RoomTypeId.HeroGate3By1))
+                {
+                    continue;
+                }
                 // Action 14's own 2x2 adjustment, then the step-off: does it move the spawn?
                 var world = WorldState.FromMap(db, map, [PlayerIds.Unowned, PlayerIds.Good, PlayerIds.Neutral]);
                 TilePos spawn = (RoomTypeId)room.RoomId == RoomTypeId.HeroGate2By2 ? new TilePos(x + 1, y + 1) : new TilePos(x, y);
@@ -51,7 +66,11 @@ public class HeroGatesOnRealDataTests(ITestOutputHelper output)
                 gateLevels.Add(level);
             }
         }
-        foreach (KeyValuePair<string, int> pair in onGate) output.WriteLine($"{pair.Key}: {pair.Value}");
+        foreach (KeyValuePair<string, int> pair in onGate)
+        {
+            output.WriteLine($"{pair.Key}: {pair.Value}");
+        }
+
         Assert.Equal(35, gateLevels.Count);
         Assert.DoesNotContain(onGate.Keys, k => k.Contains(" moved "));
     }
@@ -71,7 +90,11 @@ public class HeroGatesOnRealDataTests(ITestOutputHelper output)
             string level = Path.GetFileName(file)[..^"Triggers.kld".Length];
             List<TriggerRecord>? triggers = GameDatabaseLoader.LoadCampaignTriggers(install, level);
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
-            if (triggers is null || map is null) continue;
+            if (triggers is null || map is null)
+            {
+                continue;
+            }
+
             var world = WorldState.FromMap(db, map,
                 [PlayerIds.Unowned, PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper, (byte)(PlayerIds.FirstKeeper + 1)]);
             foreach (ActionTriggerRecord action in triggers.OfType<ActionTriggerRecord>().Where(a => a.Type == 32))
@@ -87,7 +110,11 @@ public class HeroGatesOnRealDataTests(ITestOutputHelper output)
                         world.TileAtIndex(tile).RoomRuined = true;
                         Assert.True(TileWorkRules.Applies(world, db, world.TileAtIndex(tile), TileWorkKind.ConvertRoom, PlayerIds.FirstKeeper));
                     }
-                    foreach (int tile in gate.TileIndices) world.TileAtIndex(tile).RoomRuined = false;
+                    foreach (int tile in gate.TileIndices)
+                    {
+                        world.TileAtIndex(tile).RoomRuined = false;
+                    }
+
                     gatesRuined++;
                 }
                 int x = (int)action.Parameters["PosX"] - 1, y = (int)action.Parameters["PosY"] - 1;
@@ -103,7 +130,11 @@ public class HeroGatesOnRealDataTests(ITestOutputHelper output)
         }
 
         output.WriteLine($"{hits.Count} records on {levels.Count} levels");
-        foreach (string hit in hits) output.WriteLine(hit);
+        foreach (string hit in hits)
+        {
+            output.WriteLine(hit);
+        }
+
         var tiles = hits.Distinct().ToList();
         output.WriteLine($"distinct {tiles.Count} gate2x2 {tiles.Count(t => t.EndsWith("20 Hero Gate [ 2x2 ]"))} gate3x1 {tiles.Count(t => t.EndsWith("23 Hero Gate [ 3x1 ]"))} other {string.Join("; ", tiles.Where(t => t.Contains("terrain") || t.Contains("off-map")))}");
         Assert.Equal(67, hits.Count);

@@ -44,22 +44,36 @@ public class HumanCommandPolicyTests
                 string relative = Path.GetRelativePath(dir, path);
                 if (relative.StartsWith(".godot" + Path.DirectorySeparatorChar, StringComparison.Ordinal) ||
                     relative.StartsWith("addons" + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+                {
                     continue;
+                }
                 // Any mention outside a comment line: commands are built as `new X(`, `X.Rect(`, and
                 // target-typed `new(` behind a method that returns X.
                 string code = string.Join('\n', File.ReadLines(path).Where(l => !l.TrimStart().StartsWith("//", StringComparison.Ordinal)));
                 foreach (Match m in Regex.Matches(code, @"\b([A-Z][A-Za-z]+Command)\b"))
-                    if (byName.ContainsKey(m.Groups[1].Value)) built.Add(m.Groups[1].Value);
+                {
+                    if (byName.ContainsKey(m.Groups[1].Value))
+                    {
+                        built.Add(m.Groups[1].Value);
+                    }
+                }
             }
         }
 
         Assert.NotEmpty(built);
         foreach (string name in built)
+        {
             Assert.True(HumanCommandPolicy.Classes[byName[name]] is HumanCommandClass.Play or HumanCommandClass.OutsidePlay,
                 $"{name} is named by a human input file but classified {HumanCommandPolicy.Classes[byName[name]]}");
+        }
+
         foreach ((Type type, HumanCommandClass c) in HumanCommandPolicy.Classes)
+        {
             if (c == HumanCommandClass.Play)
+            {
                 Assert.True(built.Contains(type.Name), $"{type.Name} is Play but no human input file names it");
+            }
+        }
     }
 
     [Fact]

@@ -212,9 +212,16 @@ public class TriggerEventTests
         var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, (byte)(Keeper + 1)]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 if (world.Tile(x, y).TerrainId != Dk2TerrainFixture.ClaimedPath)
+                {
                     world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+                }
+            }
+        }
+
         world.SpawnArrived(db, Dk2TerrainFixture.BileDemonCreatureId, Keeper, new TilePos(5, 5));
         CreatureState goblin = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, (byte)(Keeper + 1), new TilePos(7, 5));
         goblin.TriggerId = 5;

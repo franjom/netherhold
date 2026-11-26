@@ -65,7 +65,11 @@ public sealed class HandSoundTests
 
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
         List<HandItem> hand = world.Player(Keeper).Hand;
-        while (hand.Count < HandRules.Capacity(db)) hand.Add(HandItem.Of(imp));
+        while (hand.Count < HandRules.Capacity(db))
+        {
+            hand.Add(HandItem.Of(imp));
+        }
+
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id)));
         Assert.False(imp.InHand);
         Assert.Equal(ThingSoundEvent.PickedUp, Assert.Single(Sounds(events)).Event);
@@ -153,7 +157,11 @@ public sealed class HandSoundTests
             CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Floor);
             ObjectState gold = FloorGold.Drop(world, db, (Floor.Y * world.Width) + Floor.X, 100)!;
             var sim = new GameSimulation(db, world, seed: 42, [new HandSystem()]);
-            if (sink is not null) sim.ObserveWith(sink);
+            if (sink is not null)
+            {
+                sim.ObserveWith(sink);
+            }
+
             sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, imp.Id), new PickUpObjectCommand(Keeper, gold.Id)));
             sim.Tick(InputFrame.Of(new DropCommand(Keeper, Elsewhere), new DropCommand(Keeper, Elsewhere)));
             return sim;

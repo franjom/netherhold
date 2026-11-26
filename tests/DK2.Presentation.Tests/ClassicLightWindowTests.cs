@@ -162,7 +162,11 @@ public class ClassicLightWindowTests
         ClassicLightCacheCell cell = cache.Cells[table.Tile];
         for (uint i = 1; i <= 100; i++)
         {
-            if (refreshStatic) cache.Cells[table.Tile] = cell with { BuildFrame = new(i) };
+            if (refreshStatic)
+            {
+                cache.Cells[table.Tile] = cell with { BuildFrame = new(i) };
+            }
+
             window.Gather(table, cache, new ClassicLightFrame(i));
         }
         // A real allocation repeats on every pass; a stray one under a loaded test host does not.
@@ -174,7 +178,11 @@ public class ClassicLightWindowTests
             for (int n = 0; n < 100; n++)
             {
                 frame++;
-                if (refreshStatic) cache.Cells[table.Tile] = cell with { BuildFrame = new(frame) };
+                if (refreshStatic)
+                {
+                    cache.Cells[table.Tile] = cell with { BuildFrame = new(frame) };
+                }
+
                 window.Gather(table, cache, new ClassicLightFrame(frame));
             }
             fewest = Math.Min(fewest, GC.GetAllocatedBytesForCurrentThread() - before);
@@ -186,11 +194,13 @@ public class ClassicLightWindowTests
     private static void Fill(PreparedCache cache, TilePos target, int width, TilePos? sourcePosition = null)
     {
         for (int y = 0; y < 7; y++)
-        for (int x = 0; x < width; x++)
+        {
+            for (int x = 0; x < width; x++)
         {
             int id = y * width + x + 1;
             cache.Cells[new TilePos(target.X - 3 + x, target.Y - 3 + y)] =
                 new(new[] { Source(id, sourcePosition ?? target) }, new[] { Source(100 + id, sourcePosition ?? target) }, new(1));
+        }
         }
     }
 
@@ -208,7 +218,11 @@ public class ClassicLightWindowTests
 
         public ClassicLightCacheCell GetCell(TilePos tile)
         {
-            if (TrackReads) Reads.Add(tile);
+            if (TrackReads)
+            {
+                Reads.Add(tile);
+            }
+
             return Cells.TryGetValue(tile, out ClassicLightCacheCell cell) ? cell : default;
         }
     }

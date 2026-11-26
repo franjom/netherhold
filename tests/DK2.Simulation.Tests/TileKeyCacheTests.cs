@@ -140,11 +140,20 @@ public sealed class TileKeyCacheTests
         Assert.False(StructureBlocks.For(world, db).Blocks(centre));
 
         for (int y = 5; y <= 7; y++)
-            for (int x = 5; x <= 7; x++) RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Portal), Keeper);
+        {
+            for (int x = 5; x <= 7; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Portal), Keeper);
+            }
+        }
+
         Assert.True(StructureBlocks.For(world, db).Blocks(centre));
         Assert.True(StructureBlocks.For(world, db).Blocks(centre));
 
-        for (int x = 5; x <= 7; x++) world.Tile(x, 7).TerrainId = Dk2TerrainFixture.ClaimedPath;   // a 3x2 no more
+        for (int x = 5; x <= 7; x++)
+        {
+            world.Tile(x, 7).TerrainId = Dk2TerrainFixture.ClaimedPath;   // a 3x2 no more
+        }
 
         Assert.False(StructureBlocks.For(world, db).Blocks(centre));
     }
@@ -155,13 +164,24 @@ public sealed class TileKeyCacheTests
         GameDatabase db = Db;
         WorldState world = World(db);
         for (int y = 5; y <= 9; y++)
-            for (int x = 5; x <= 9; x++) RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.DungeonHeart), Keeper);
+        {
+            for (int x = 5; x <= 9; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.DungeonHeart), Keeper);
+            }
+        }
+
         var standing = StructureBlocks.For(world, db);
         Assert.NotEqual(0, standing.Count);
         Assert.Same(standing, StructureBlocks.For(world, db));
 
         for (int y = 5; y <= 9; y++)
-            for (int x = 5; x <= 9; x++) world.Tile(x, y).RoomRuined = true;
+        {
+            for (int x = 5; x <= 9; x++)
+            {
+                world.Tile(x, y).RoomRuined = true;
+            }
+        }
 
         Assert.Equal(0, StructureBlocks.For(world, db).Count);
     }
@@ -198,7 +218,13 @@ public sealed class TileKeyCacheTests
         GameDatabase db = Db;
         WorldState world = World(db);
         for (int y = 5; y <= 7; y++)
-            for (int x = 5; x <= 7; x++) RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Portal), Keeper);
+        {
+            for (int x = 5; x <= 7; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Portal), Keeper);
+            }
+        }
+
         var steering = new WorldSteering(db, world);
         steering.Refresh();
         Assert.Equal(NavBytes.PortalHole, steering.NavByte(6, 6));
@@ -206,7 +232,11 @@ public sealed class TileKeyCacheTests
         steering.Refresh();
         Assert.Equal(rebuilds, steering.Rebuilds);
 
-        for (int x = 5; x <= 7; x++) world.Tile(x, 7).OwnerPlayerId = 4;   // a 3x2 portal no more
+        for (int x = 5; x <= 7; x++)
+        {
+            world.Tile(x, 7).OwnerPlayerId = 4;   // a 3x2 portal no more
+        }
+
         steering.Refresh();
 
         Assert.Equal(NavBytes.Floor, steering.NavByte(6, 6));
@@ -219,7 +249,13 @@ public sealed class TileKeyCacheTests
         GameDatabase db = Db;
         WorldState world = World(db);
         for (int y = 5; y <= 9; y++)
-            for (int x = 5; x <= 9; x++) RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.DungeonHeart), Keeper);
+        {
+            for (int x = 5; x <= 9; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.DungeonHeart), Keeper);
+            }
+        }
+
         var steering = new WorldSteering(db, world);
         steering.Refresh();
         // A standing heart's core keeps a body outside it from walking in; a ruined one does not (HeartPlatformMovementTests).
@@ -227,7 +263,13 @@ public sealed class TileKeyCacheTests
         Assert.False(steering.CanMove(outside, core));
 
         for (int y = 5; y <= 9; y++)
-            for (int x = 5; x <= 9; x++) world.Tile(x, y).RoomRuined = true;
+        {
+            for (int x = 5; x <= 9; x++)
+            {
+                world.Tile(x, y).RoomRuined = true;
+            }
+        }
+
         steering.Refresh();
 
         Assert.True(steering.CanMove(outside, core));

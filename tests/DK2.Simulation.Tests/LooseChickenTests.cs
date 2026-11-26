@@ -61,7 +61,10 @@ public class LooseChickenTests
     {
         (GameSimulation? sim, ObjectState? chicken, ListEventSink _) = Start(1, (db, world) =>
         {
-            foreach (TilePos side in Sides) Rock(db, world, new TilePos(2 + side.X, 2 + side.Y));
+            foreach (TilePos side in Sides)
+            {
+                Rock(db, world, new TilePos(2 + side.X, 2 + side.Y));
+            }
         });
         var expected = new Dk2Lcg(SeedOf(sim));
         sim.Tick();
@@ -85,8 +88,14 @@ public class LooseChickenTests
             for (int i = 0; i < 4; i++)
             {
                 var at = new TilePos(2 + Sides[i].X, 2 + Sides[i].Y);
-                if (i == roomSide) RoomRules.Place(db, ref world.Tile(at), db.Room(RoomTypeId.Lair), Keeper);
-                else Rock(db, world, at);
+                if (i == roomSide)
+                {
+                    RoomRules.Place(db, ref world.Tile(at), db.Room(RoomTypeId.Lair), Keeper);
+                }
+                else
+                {
+                    Rock(db, world, at);
+                }
             }
         });
         sim.Tick();
@@ -137,7 +146,10 @@ public class LooseChickenTests
     {
         (GameSimulation? sim, ObjectState? chicken, ListEventSink _) = Start(1, (db, world) =>
         {
-            foreach (TilePos side in Sides) world.Tile(new TilePos(2 + side.X, 2 + side.Y)).OwnerPlayerId = PlayerIds.Neutral;
+            foreach (TilePos side in Sides)
+            {
+                world.Tile(new TilePos(2 + side.X, 2 + side.Y)).OwnerPlayerId = PlayerIds.Neutral;
+            }
         });
         sim.Tick();
         Assert.Equal((byte)ChickenProcess.None, chicken.ProcessState);
@@ -166,8 +178,13 @@ public class LooseChickenTests
             original.Variables, objects: original.Objects.Values.Append(pillar));
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, Keeper]);
         for (int y = 2; y <= 6; y++)
+        {
             for (int x = 2; x <= 6; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.DungeonHeart), Keeper);
+            }
+        }
+
         ObjectState bird = world.SpawnObject(db, HatcheryRules.ChickenObjectId, Keeper,
             sideY * world.Width + sideX - 1);
         bird.ChickenCanEscape = true;
@@ -185,7 +202,10 @@ public class LooseChickenTests
 
         Assert.Equal(expected.Seed, SeedOf(sim));
         Assert.Equal(blocked ? (byte)ChickenProcess.None : (byte)ChickenProcess.Moving, bird.ProcessState);
-        if (!blocked) Assert.Equal(sideX, bird.MoveDestinationX >> 12);
+        if (!blocked)
+        {
+            Assert.Equal(sideX, bird.MoveDestinationX >> 12);
+        }
     }
 
     /// <summary>The one side left open holds a door, a trap or an obstacle, or is water (another nav
@@ -201,7 +221,11 @@ public class LooseChickenTests
         var open = new TilePos(2, 1);
         (GameSimulation? sim, ObjectState? chicken, ListEventSink _) = Start(1, (db, world) =>
         {
-            for (int i = 1; i < 4; i++) Rock(db, world, new TilePos(2 + Sides[i].X, 2 + Sides[i].Y));
+            for (int i = 1; i < 4; i++)
+            {
+                Rock(db, world, new TilePos(2 + Sides[i].X, 2 + Sides[i].Y));
+            }
+
             switch (blocker)
             {
                 case Blocker.Door:

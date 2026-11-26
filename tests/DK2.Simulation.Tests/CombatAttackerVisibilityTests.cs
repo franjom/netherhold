@@ -21,8 +21,13 @@ public class CombatAttackerVisibilityTests
     {
         (GameDatabase? db, WorldState? world) = OpenWorld();
         if (detour)
+        {
             for (int y = 1; y <= 15; y++)
+            {
                 world.Tile(new TilePos(10, y)).TerrainId = Dk2TerrainFixture.Lava;
+            }
+        }
+
         CreatureState fighter = world.SpawnCreature(db, FighterType, Keeper, new TilePos(8, 8));
         CreatureState attacker = world.SpawnCreature(db, AttackerType, Keeper, new TilePos(11, 8));
         Assert.True(CombatRules.Register(fighter, attacker.Id, ranged: false));
@@ -50,7 +55,11 @@ public class CombatAttackerVisibilityTests
     public void AnImpRequiresSightOfARegisteredAttackerEvenWhenItCanRouteAroundTheWall(bool wall)
     {
         (GameDatabase? db, WorldState? world) = OpenWorld();
-        if (wall) world.Tile(new TilePos(10, 8)).TerrainId = Dk2TerrainFixture.Rock;
+        if (wall)
+        {
+            world.Tile(new TilePos(10, 8)).TerrainId = Dk2TerrainFixture.Rock;
+        }
+
         CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(8, 8));
         CreatureState attacker = world.SpawnCreature(db, AttackerType, PlayerIds.Good, new TilePos(13, 8));
         Assert.True(CombatRules.Register(imp, attacker.Id, ranged: false));
@@ -83,8 +92,13 @@ public class CombatAttackerVisibilityTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(new TilePos(x, y)).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         return (db, world);
     }
 

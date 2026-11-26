@@ -299,7 +299,11 @@ public class BridgeTests
         Assert.True(life > 1);
 
         // Still there just before the clock runs out...
-        for (int i = 0; i < life - 2; i++) run.Tick();
+        for (int i = 0; i < life - 2; i++)
+        {
+            run.Tick();
+        }
+
         Assert.Equal(Dk2TerrainFixture.WoodenBridgeTerrain, run.World.Tile(span).TerrainId);
 
         // ...and gone, back to the lava it spanned, once it does.
@@ -329,7 +333,10 @@ public class BridgeTests
 
         int life = SimulationTiming.TicksFromSeconds(
             database[VariableTypeId.WoodBridgeLifeOnLavaSeconds]);
-        for (int i = 0; i < life * 2; i++) run.Tick();
+        for (int i = 0; i < life * 2; i++)
+        {
+            run.Tick();
+        }
 
         Assert.Equal(Dk2TerrainFixture.WoodenBridgeTerrain, run.World.Tile(span).TerrainId);
         Assert.Empty(run.Of("bridge_burnt"));
@@ -429,7 +436,10 @@ public class BridgeTests
         run.World.SpawnCreature(run.Sim.Database, Dk2TerrainFixture.ImpCreatureId, Keeper, span);
         int life = SimulationTiming.TicksFromSeconds(
             database[VariableTypeId.WoodBridgeLifeOnLavaSeconds]);
-        for (int i = 0; i < life + 2; i++) run.Tick();
+        for (int i = 0; i < life + 2; i++)
+        {
+            run.Tick();
+        }
 
         Assert.Equal(Dk2TerrainFixture.Lava, run.World.Tile(span).TerrainId);
 
@@ -492,7 +502,9 @@ public class BridgeTests
 
         ref TileState tile = ref run.World.Tile(span);
         for (int i = 0; i < 5000 && tile.OwnerPlayerId != Rival; i++)
+        {
             RoomHealthRules.Convert(run.World, database, span, Rival);
+        }
 
         Assert.Equal(Rival, tile.OwnerPlayerId);
         Assert.Equal(Dk2TerrainFixture.WoodenBridgeTerrain, tile.TerrainId);
@@ -521,7 +533,9 @@ public class BridgeTests
         Assert.True(burningBefore > 0);
 
         for (int i = 0; i < 5000 && tile.OwnerPlayerId != Rival; i++)
+        {
             RoomHealthRules.Convert(run.World, database, span, Rival);
+        }
 
         Assert.Equal(Rival, tile.OwnerPlayerId);
         Assert.Equal(burningBefore, tile.BurnTicksRemaining);

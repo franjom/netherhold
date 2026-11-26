@@ -18,11 +18,14 @@ public sealed class GuardMemoryTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 8; y++)
-        for (int x = 1; x <= 12; x++)
+        {
+            for (int x = 1; x <= 12; x++)
         {
             world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
             world.Tile(x, y).OwnerPlayerId = Keeper;
         }
+        }
+
         PaintGuard(db, world, small);
         RoomRules.Place(db, ref world.Tile(1, 1), db.Room(RoomTypeId.Lair), Keeper);
         RoomRules.Place(db, ref world.Tile(2, 6), db.Room(RoomTypeId.TrainingRoom), Keeper);
@@ -44,8 +47,12 @@ public sealed class GuardMemoryTests
     private static void PaintGuard(GameDatabase db, WorldState world, bool small = false)
     {
         for (int y = small ? 4 : 3; y <= (small ? 4 : 5); y++)
-        for (int x = small ? 6 : 5; x <= (small ? 6 : 7); x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.GuardRoom), Keeper);
+        {
+            for (int x = small ? 6 : 5; x <= (small ? 6 : 7); x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.GuardRoom), Keeper);
+            }
+        }
     }
 
     private static void Interrupt(CreatureState guard, JobType dropped = JobType.None)
@@ -82,8 +89,13 @@ public sealed class GuardMemoryTests
     {
         (GameDatabase? db, WorldState? world, CreatureState? guard, GameSimulation? sim, ListEventSink _) = Setup();
         for (int y = 3; y <= 5; y++)
-        for (int x = 10; x <= 12; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.GuardRoom), Keeper);
+        {
+            for (int x = 10; x <= 12; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.GuardRoom), Keeper);
+            }
+        }
+
         guard.PosX = CreatureState.CentreOf(11);
         guard.PosY = CreatureState.CentreOf(4);
         Interrupt(guard, JobType.Guard);
@@ -97,7 +109,13 @@ public sealed class GuardMemoryTests
     {
         (GameDatabase? db, WorldState? world, CreatureState? guard, GameSimulation? sim, ListEventSink? events) = Setup();
         for (int y = 3; y <= 5; y++)
-        for (int x = 5; x <= 7; x++) world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
+        {
+            for (int x = 5; x <= 7; x++)
+            {
+                world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
+            }
+        }
+
         Interrupt(guard);
         sim.Tick();
         Assert.DoesNotContain(events.Events, e => e.Kind == "job_taken" && e.Detail.Contains("how=remembered"));
@@ -190,12 +208,20 @@ public sealed class GuardMemoryTests
     {
         (GameDatabase? db, WorldState? world, CreatureState? guard, GameSimulation? sim, ListEventSink _) = Setup();
         for (int y = 3; y <= 5; y++)
-        for (int x = 10; x <= 12; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.GuardRoom), Keeper);
+        {
+            for (int x = 10; x <= 12; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.GuardRoom), Keeper);
+            }
+        }
+
         Interrupt(guard, JobType.Guard);
         int tile = world.TileIndex(new TilePos(6, 4));
         for (int i = 0; i < 8; i++)
+        {
             world.SpawnCreature(db, 7, Keeper, new TilePos(6, 4)).HeldPlace = new RoomPlace(tile, 1);
+        }
+
         sim.Tick();
         RoomInstance target = RoomIndex.RoomAt(world, db, guard.JobTileIndex)!;
         Assert.Contains(world.TileIndex(new TilePos(11, 4)), target.TileIndices);
@@ -207,7 +233,13 @@ public sealed class GuardMemoryTests
     {
         (GameDatabase? db, WorldState? world, CreatureState _, GameSimulation _, ListEventSink _) = Setup();
         for (int y = 3; y <= 5; y++)
-        for (int x = 5; x <= 7; x++) world.Tile(x, y).RoomListPosition = new RoomListPosition(100);
+        {
+            for (int x = 5; x <= 7; x++)
+            {
+                world.Tile(x, y).RoomListPosition = new RoomListPosition(100);
+            }
+        }
+
         RoomInstance room = RoomIndex.RoomAt(world, db, world.TileIndex(new TilePos(6, 4)))!;
         var reference = RoomReference.Capture(world, room);
         world.Tile(reference.Tile.X, reference.Tile.Y).TerrainId = Dk2TerrainFixture.ClaimedPath;
@@ -219,9 +251,17 @@ public sealed class GuardMemoryTests
     {
         (GameDatabase? db, WorldState? world, CreatureState _, GameSimulation _, ListEventSink _) = Setup();
         RoomInstance room = RoomIndex.RoomAt(world, db, world.TileIndex(new TilePos(6, 4)))!;
-        foreach (int tile in room.TileIndices) world.TileAtIndex(tile).RoomListPosition = new RoomListPosition(100);
+        foreach (int tile in room.TileIndices)
+        {
+            world.TileAtIndex(tile).RoomListPosition = new RoomListPosition(100);
+        }
+
         var reference = RoomReference.Capture(world, room);
-        foreach (int tile in room.TileIndices) world.TileAtIndex(tile).RoomListPosition = new RoomListPosition(101);
+        foreach (int tile in room.TileIndices)
+        {
+            world.TileAtIndex(tile).RoomListPosition = new RoomListPosition(101);
+        }
+
         Assert.Null(reference.Resolve(world, db, Keeper, RoomTypeId.GuardRoom));
     }
 
@@ -232,8 +272,15 @@ public sealed class GuardMemoryTests
     {
         (GameDatabase? db, WorldState? world, CreatureState? guard, GameSimulation _, ListEventSink _) = Setup(small: true);
         Interrupt(guard);
-        if (corpse) CreatureStateMachine.Release(guard);
-        else StatePlacement.Place(guard, 217);
+        if (corpse)
+        {
+            CreatureStateMachine.Release(guard);
+        }
+        else
+        {
+            StatePlacement.Place(guard, 217);
+        }
+
         RoomInstance room = RoomIndex.RoomAt(world, db, world.TileIndex(new TilePos(6, 4)))!;
         Assert.Equal(corpse, RoomCapacityRules.HasRoom(world, db, room));
     }
@@ -314,11 +361,24 @@ public sealed class GuardMemoryTests
     {
         (GameDatabase? db, WorldState? world, CreatureState? guard, GameSimulation? sim, ListEventSink _) = Setup();
         for (int y = 2; y <= 6; y++)
-        for (int x = 4; x <= 8; x++)
-            if (x is 4 or 8 || y is 2 or 6) world.Tile(x, y).TerrainId = Dk2TerrainFixture.ImpenetrableRock;
+        {
+            for (int x = 4; x <= 8; x++)
+            {
+                if (x is 4 or 8 || y is 2 or 6)
+                {
+                    world.Tile(x, y).TerrainId = Dk2TerrainFixture.ImpenetrableRock;
+                }
+            }
+        }
+
         for (int y = 3; y <= 5; y++)
-        for (int x = 10; x <= 12; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.GuardRoom), Keeper);
+        {
+            for (int x = 10; x <= 12; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.GuardRoom), Keeper);
+            }
+        }
+
         guard.PosX = CreatureState.CentreOf(11);
         guard.PosY = CreatureState.CentreOf(4);
         Interrupt(guard, JobType.Guard);

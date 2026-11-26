@@ -157,7 +157,9 @@ public class LicenseHeaderTests
         string cache = $"{Path.DirectorySeparatorChar}.godot{Path.DirectorySeparatorChar}";
         string addons = $"{Path.DirectorySeparatorChar}addons{Path.DirectorySeparatorChar}";
         foreach (string directory in roots)
+        {
             Assert.True(Directory.Exists(directory), $"Missing source root {directory}");
+        }
 
         return roots
             .SelectMany(d => Directory.EnumerateFiles(d, "*.cs", SearchOption.AllDirectories))
@@ -171,7 +173,9 @@ public class LicenseHeaderTests
     {
         DirectoryInfo? dir = new(AppContext.BaseDirectory);
         while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "DK2.slnx")))
+        {
             dir = dir.Parent;
+        }
 
         return dir?.FullName ?? throw new DirectoryNotFoundException(
             "Could not locate the repository root (no DK2.slnx above the test binaries).");

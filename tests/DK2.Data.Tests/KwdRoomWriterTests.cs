@@ -46,7 +46,9 @@ public class KwdRoomWriterTests
         Assert.Equal(((ushort)50, (ushort)51, (ushort)93),
             (workshop.RoomEffect425Id, workshop.RoomEffect427Id, workshop.RoomEffect429Id));
         for (int i = 0; i < records.Count; i++)
+        {
             Assert.Equal(images[i].ToBytes(), KwdTerrainRooms.WriteRoomRecord(records[i], images[i]));
+        }
     }
 
     private static RoomDef Read(byte[] source) => KwdTerrainRooms.ParseRooms([

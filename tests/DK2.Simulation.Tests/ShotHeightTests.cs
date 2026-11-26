@@ -17,8 +17,13 @@ public sealed class ShotHeightTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(40, 40),
             [PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         return (db, world, db.Shots[Dk2TerrainFixture.FireballShotId] with { Speed = 3686, Mass = 0, Flags = 0, AirFriction = 0 });
     }
 
@@ -88,7 +93,15 @@ public sealed class ShotHeightTests
         shot.Health = 100;
         var sim = new GameSimulation(db, world, 1, []);
         ulong before = sim.StateHash();
-        if (velocity) shot.VelZ = -77; else shot.PosZ = 1310;
+        if (velocity)
+        {
+            shot.VelZ = -77;
+        }
+        else
+        {
+            shot.PosZ = 1310;
+        }
+
         Assert.NotEqual(before, sim.StateHash());
         GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db);
         ShotState loaded = Assert.Single(restored.World.Shots);

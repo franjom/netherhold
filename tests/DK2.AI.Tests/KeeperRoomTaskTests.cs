@@ -165,7 +165,9 @@ public class KeeperRoomTaskTests
         WorldState world = World();
         KeeperAI keeper = AtTask(KeeperTask.PlaceRoom, speed: 5);
         foreach (TilePos t in new RoomSite(new TilePos(14, 9), 3, 3).Tiles())
+        {
             KeeperWorld.Set(world, Db, t, KeeperWorld.LairFloor, Keeper);
+        }
 
         keeper.Think(Db, world);
 

@@ -14,7 +14,11 @@ public sealed class BottomPanelTabsTests
     private static BottomPanelOpenSet Set(params BottomPanelCategory[] categories)
     {
         BottomPanelOpenSet set = BottomPanelOpenSet.None;
-        foreach (BottomPanelCategory category in categories) set = set.With(category);
+        foreach (BottomPanelCategory category in categories)
+        {
+            set = set.With(category);
+        }
+
         return set;
     }
 

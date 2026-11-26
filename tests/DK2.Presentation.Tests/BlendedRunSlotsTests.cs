@@ -24,12 +24,23 @@ public sealed class BlendedRunSlotsTests
         {
             int at = vertices.Count;
             foreach (Vector3 corner in new Vector3[] { new(x, 0, z), new(x + 1, 0, z), new(x + 1, 1, z), new(x, 1, z) })
+            {
                 vertices.Add(new BlendedVertex(corner, Vector3.UnitY, default, default, VertexColour.White));
-            if (!byMaterial.TryGetValue(material, out List<int>? list)) byMaterial[material] = list = new List<int>();
+            }
+
+            if (!byMaterial.TryGetValue(material, out List<int>? list))
+            {
+                byMaterial[material] = list = new List<int>();
+            }
+
             list.AddRange([at, at + 1, at + 2, at, at + 2, at + 3]);
         }
         stream.BeginChunk(0, vertices);
-        foreach (KeyValuePair<TestMaterial, List<int>> entry in byMaterial) stream.AddChunkTriangles(entry.Key, entry.Value);
+        foreach (KeyValuePair<TestMaterial, List<int>> entry in byMaterial)
+        {
+            stream.AddChunkTriangles(entry.Key, entry.Value);
+        }
+
         stream.EndChunk();
         return stream;
     }
@@ -70,7 +81,11 @@ public sealed class BlendedRunSlotsTests
         slots.Update(stream, eye);
         AssertDraws(stream, slots);
         Assert.Equal(3, slots.Drawn.Count);
-        for (int i = 0; i < 3; i++) Assert.Equal(NearestCentroid(stream, i, eye), slots.Drawn[i].Distance);
+        for (int i = 0; i < 3; i++)
+        {
+            Assert.Equal(NearestCentroid(stream, i, eye), slots.Drawn[i].Distance);
+        }
+
         Assert.True(slots.Drawn[0].Distance > slots.Drawn[1].Distance && slots.Drawn[1].Distance > slots.Drawn[2].Distance);
     }
 
@@ -98,7 +113,11 @@ public sealed class BlendedRunSlotsTests
         slots.Update(stream, eye);
         Assert.Equal([Water, Dig, Glass], slots.Drawn.Select(slot => slot.Material).ToArray());
         Assert.Equal([false, true, false], slots.Drawn.Select(slot => slot.TagOverlay).ToArray());
-        for (int i = 0; i < 3; i++) Assert.Equal(NearestCentroid(stream, i, eye), slots.Drawn[i].Distance);
+        for (int i = 0; i < 3; i++)
+        {
+            Assert.Equal(NearestCentroid(stream, i, eye), slots.Drawn[i].Distance);
+        }
+
         Assert.True(slots.Drawn[2].Distance > slots.Drawn[1].Distance);
         Assert.True(slots.Drawn[2].Distance < slots.Drawn[0].Distance);
     }
@@ -163,7 +182,10 @@ public sealed class BlendedRunSlotsTests
         slots.Update(stream, FrontEye);
         Assert.Equal(8, slots.Drawn.Count);
         var before = new Dictionary<int, int>();
-        foreach (BlendedRunSlot<TestMaterial> slot in slots.Drawn) before[slot.Vertices[slot.Indices[0]]] = slot.Id;
+        foreach (BlendedRunSlot<TestMaterial> slot in slots.Drawn)
+        {
+            before[slot.Vertices[slot.Indices[0]]] = slot.Id;
+        }
 
         // A deeper far plane brings the two farthest quads in ahead of every run of both materials.
         ClassicCameraPose deep = shallow with { FarClipDistance = 50f };
@@ -173,12 +195,15 @@ public sealed class BlendedRunSlotsTests
         Assert.Equal(10, slots.Drawn.Count);
         int kept = 0;
         foreach (BlendedRunSlot<TestMaterial> slot in slots.Drawn)
+        {
             if (before.TryGetValue(slot.Vertices[slot.Indices[0]], out int id))
             {
                 Assert.Equal(id, slot.Id);
                 Assert.Equal(slot.VertexCount, slot.FirstNewVertex);
                 kept++;
             }
+        }
+
         Assert.Equal(8, kept);
     }
 
@@ -223,11 +248,18 @@ public sealed class BlendedRunSlotsTests
                 float x = (chunk * 10) + random.Next(10) + shift, z = random.Next(4, 30);
                 int at = vertices.Count;
                 foreach (Vector3 corner in new Vector3[] { new(x, 0, z), new(x + 1, 0, z), new(x + 1, 1, z + .5f), new(x, 1, z + .5f) })
+                {
                     vertices.Add(new BlendedVertex(corner, Vector3.UnitY, new Vector2(q, chunk), default, VertexColour.White));
+                }
+
                 byMaterial[palette[random.Next(palette.Length)]].AddRange([at, at + 1, at + 2, at, at + 2, at + 3]);
             }
             stream.BeginChunk(chunk, vertices);
-            foreach (KeyValuePair<TestMaterial, List<int>> entry in byMaterial) stream.AddChunkTriangles(entry.Key, entry.Value);
+            foreach (KeyValuePair<TestMaterial, List<int>> entry in byMaterial)
+            {
+                stream.AddChunkTriangles(entry.Key, entry.Value);
+            }
+
             stream.EndChunk();
         }
         Build(0, 0);
@@ -251,7 +283,11 @@ public sealed class BlendedRunSlotsTests
             var forward = Vector3.Normalize(new Vector3(MathF.Sin(r) * .7f, -.7f, MathF.Cos(r) * .7f));
             var pose = new ClassicCameraPose(focus - forward * distance, forward, Vector3.UnitY, 60f, 20f + (float)(random.NextDouble() * 40),
                 45f, yaw);
-            if (!stream.Refresh(forward, Matrix4x4.Identity, ViewFrustum.FromPose(pose, 16f / 9f, .3f))) continue;
+            if (!stream.Refresh(forward, Matrix4x4.Identity, ViewFrustum.FromPose(pose, 16f / 9f, .3f)))
+            {
+                continue;
+            }
+
             bool forgot = stream.GeometryRevision != revision;
             revision = stream.GeometryRevision;
             slots.Update(stream, pose.Position);
@@ -260,16 +296,40 @@ public sealed class BlendedRunSlotsTests
             for (int i = 0; i < slots.Drawn.Count; i++)
             {
                 BlendedRunSlot<TestMaterial> slot = slots.Drawn[i];
-                if (!held.TryGetValue(slot.Id, out List<BlendedVertex>? buffer)) held[slot.Id] = buffer = new List<BlendedVertex>();
-                if (slot.FirstNewVertex == 0 && buffer.Count > 0 && !forgot) restarts++;
+                if (!held.TryGetValue(slot.Id, out List<BlendedVertex>? buffer))
+                {
+                    held[slot.Id] = buffer = new List<BlendedVertex>();
+                }
+
+                if (slot.FirstNewVertex == 0 && buffer.Count > 0 && !forgot)
+                {
+                    restarts++;
+                }
+
                 int first = stream.Runs[i].Triangles[0].A;
-                if (lastFirst.TryGetValue(slot.Id, out int previous) && previous != first) taken++;
+                if (lastFirst.TryGetValue(slot.Id, out int previous) && previous != first)
+                {
+                    taken++;
+                }
+
                 lastFirst[slot.Id] = first;
                 // The renderer's buffer keeps what it was given before; only the new range is written.
-                if (buffer.Count > slot.FirstNewVertex) buffer.RemoveRange(slot.FirstNewVertex, buffer.Count - slot.FirstNewVertex);
+                if (buffer.Count > slot.FirstNewVertex)
+                {
+                    buffer.RemoveRange(slot.FirstNewVertex, buffer.Count - slot.FirstNewVertex);
+                }
+
                 Assert.Equal(slot.FirstNewVertex, buffer.Count);
-                for (int v = slot.FirstNewVertex; v < slot.VertexCount; v++) buffer.Add(vertices[slot.Vertices[v]]);
-                if (slot.IndicesChanged || !indices.ContainsKey(slot.Id)) indices[slot.Id] = slot.Indices.ToArray();
+                for (int v = slot.FirstNewVertex; v < slot.VertexCount; v++)
+                {
+                    buffer.Add(vertices[slot.Vertices[v]]);
+                }
+
+                if (slot.IndicesChanged || !indices.ContainsKey(slot.Id))
+                {
+                    indices[slot.Id] = slot.Indices.ToArray();
+                }
+
                 BlendedVertex[] drawn = indices[slot.Id].Select(index => buffer[index]).ToArray();
                 BlendedVertex[] expected = stream.Runs[i].Triangles.SelectMany(t => new[] { t.A, t.B, t.C }).Select(v => stream.Vertices[v]).ToArray();
                 Assert.Equal(expected, drawn);

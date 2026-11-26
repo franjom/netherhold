@@ -25,7 +25,11 @@ public sealed class TrainingTargetRebuildTests
         GameDatabase basis = Dk2TerrainFixture.Database();
         TerrainDef wall = basis.TerrainById(Dk2TerrainFixture.ReinforcedWall);
         RoomDef training = basis.Room(RoomTypeId.TrainingRoom);
-        if (!specialWalls) training = training with { Flags = training.Flags & ~RoomFlags.SpecialWalls };
+        if (!specialWalls)
+        {
+            training = training with { Flags = training.Flags & ~RoomFlags.SpecialWalls };
+        }
+
         return new GameDatabase(basis.Terrain.Values.Select(t => t.TerrainId == wall.TerrainId ? t with { Flags = t.Flags | TerrainFlags.AllowRoomWalls } : t),
             basis.Rooms.Values.Select(r => r.RoomId == training.RoomId ? training : r), basis.Creatures.Values,
             basis.Variables, objects: basis.Objects.Values);
@@ -34,8 +38,12 @@ public sealed class TrainingTargetRebuildTests
     private static void Paint(GameDatabase db, WorldState world, RoomTypeId type, int left, int top)
     {
         for (int y = top; y < top + 3; y++)
-        for (int x = left; x < left + 3; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(type), Keeper);
+        {
+            for (int x = left; x < left + 3; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(type), Keeper);
+            }
+        }
     }
 
     private static (GameDatabase Db, WorldState World, Draws Draws, GameSimulation Sim) Setup(bool specialWalls = true, bool targetWall = true)
@@ -44,7 +52,10 @@ public sealed class TrainingTargetRebuildTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, Keeper]);
         Paint(db, world, RoomTypeId.TrainingRoom, 4, 4);
         for (int y = 4; y <= 6; y++)
+        {
             world.Tile(7, y).TerrainId = targetWall ? Dk2TerrainFixture.ReinforcedWall : Dk2TerrainFixture.Rock;
+        }
+
         Dk2TerrainFixture.FurnishRooms(db, world);
         var draws = new Draws();
         var sim = new GameSimulation(db, world, new SimRandom(draws), [new TileWorkSystem(), new AutoFurnitureSystem()]);

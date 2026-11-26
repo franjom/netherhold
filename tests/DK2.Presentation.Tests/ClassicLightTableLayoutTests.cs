@@ -54,8 +54,10 @@ public class ClassicLightTableLayoutTests
         int layerFloats = width * height * 4;
         var seen = new HashSet<int>();
         for (int y = 0; y < 3; y++)
-        for (int x = 0; x < mapWidth; x++)
-        for (int texel = 0; texel < ClassicLightTableLayout.TexelsPerTile; texel++)
+        {
+            for (int x = 0; x < mapWidth; x++)
+            {
+                for (int texel = 0; texel < ClassicLightTableLayout.TexelsPerTile; texel++)
         {
             int index = ClassicLightTableLayout.FloatIndex(new TilePos(x, y), texel, mapWidth);
             Assert.Equal(0, index % 4);
@@ -64,7 +66,12 @@ public class ClassicLightTableLayoutTests
             (int column, int row, int layer) = ClassicLightTableLayout.Texel(new TilePos(x, y), texel);
             Assert.Equal(((layer * height + row) * width + column) * 4, index);
             // A tile's texels follow one another, as LightTables writes a source's eight floats after its count's.
-            if (texel > 0) Assert.Equal(ClassicLightTableLayout.FloatIndex(new TilePos(x, y), texel - 1, mapWidth) + 4, index);
+            if (texel > 0)
+                    {
+                        Assert.Equal(ClassicLightTableLayout.FloatIndex(new TilePos(x, y), texel - 1, mapWidth) + 4, index);
+                    }
+                }
+            }
         }
     }
 

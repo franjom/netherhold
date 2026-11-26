@@ -43,7 +43,10 @@ public sealed class CounterGoldTests
         world.Tile(2, 2).GoldHeld = 350;
         ObjectState pile = world.SpawnObject(database, FloorGold.FloorGoldObjectId, PlayerIds.Neutral, 0);
         for (int i = 0; i < HandRules.Capacity(database); i++)
+        {
             world.Player(PlayerIds.FirstKeeper).Hand.Add(HandItem.Of(pile));
+        }
+
         int before = GoldStore.Total(world, PlayerIds.FirstKeeper), objects = world.Objects.Count;
         var simulation = new GameSimulation(database, world, seed: 1, [new HandSystem()]);
         simulation.Tick(InputFrame.Of(new WithdrawCounterGoldCommand(PlayerIds.FirstKeeper, new(100))));

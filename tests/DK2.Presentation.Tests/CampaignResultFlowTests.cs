@@ -38,7 +38,11 @@ public sealed class CampaignResultFlowTests : IDisposable
             Depth = new Fp32(0), NameStringId = 0, TooltipStringId = 0,
         };
         var variables = new GlobalVariables();
-        foreach (VariableTypeId id in Enum.GetValues<VariableTypeId>()) variables.Misc[id] = new MiscVariable(id, 0, 0, 0);
+        foreach (VariableTypeId id in Enum.GetValues<VariableTypeId>())
+        {
+            variables.Misc[id] = new MiscVariable(id, 0, 0, 0);
+        }
+
         variables.Misc[VariableTypeId.AverageTime] = new MiscVariable(VariableTypeId.AverageTime, 30, 0, 0);
         variables.Misc[VariableTypeId.LevelRating] = new MiscVariable(VariableTypeId.LevelRating, 4096, 0, 0);
         var database = new GameDatabase([terrain], [], [], variables);
@@ -373,7 +377,11 @@ public sealed class CampaignResultFlowTests : IDisposable
 
     private string? Prompt(Rig rig, bool firstFrame)
     {
-        if (firstFrame) Frame(rig);
+        if (firstFrame)
+        {
+            Frame(rig);
+        }
+
         return rig.Flow.Prompt(rig.Simulation.World, Viewer, pathPlaying: false);
     }
 }

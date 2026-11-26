@@ -24,8 +24,13 @@ public sealed class PossessionFollowerTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(30, 20),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         return (db, world);
     }
 
@@ -50,8 +55,7 @@ public sealed class PossessionFollowerTests
     {
         var sim = new GameSimulation(db, world, 1, [new Probe(context =>
         {
-            foreach (CreatureState c in followers) Assert.True(PossessionRules.StartFollowing(context, c, leader.Id));
-        })]);
+            foreach (CreatureState c in followers) { Assert.True(PossessionRules.StartFollowing(context, c, leader.Id)); } })]);
         sim.Tick();
     }
 
@@ -161,7 +165,11 @@ public sealed class PossessionFollowerTests
         sim.Tick(InputFrame.Of(new LeavePossessionCommand(Keeper)));
         Assert.Equal(0, me.FollowerCount);
         follower.StopMoving();
-        if (follower.Dk2StateId == 6) sim.Tick();
+        if (follower.Dk2StateId == 6)
+        {
+            sim.Tick();
+        }
+
         sim.Tick();
 
         Assert.Equal(0, follower.FollowLeaderId);
@@ -221,7 +229,11 @@ public sealed class PossessionFollowerTests
         Assert.Equal(now, me.PossessedTargetTick);
         Assert.Same(enemy, PossessionRules.LeaderTarget(world, follower));
 
-        for (int i = 0; i <= PossessionRules.PossessedTargetTicks; i++) sim.Tick();
+        for (int i = 0; i <= PossessionRules.PossessedTargetTicks; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(FightTargetKind.None, me.PossessedTargetKind);
         Assert.Null(PossessionRules.LeaderTarget(world, follower));
     }

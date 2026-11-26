@@ -53,7 +53,11 @@ public sealed class ImpSecretDoorTests
     {
         (GameSimulation? sim, CreatureState? imp, DoorState _, ListEventSink? events) = Start();
         sim.Tick(InputFrame.Of(TagTilesCommand.Tag(Keeper, DoorTile)));
-        for (int i = 0; i < 4 && !events.Events.Any(e => e.Kind == "job_taken"); i++) sim.Tick();
+        for (int i = 0; i < 4 && !events.Events.Any(e => e.Kind == "job_taken"); i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Contains(events.Events, e => e.Kind == "job_taken" && e.Detail.Contains("SecretDoor"));
         Assert.True(sim.World.Tile(DoorTile).SecretDoorTasks.Contains(Keeper));
         Assert.Equal(ImpTaskKind.Excavate, imp.LastTaskKind);
@@ -67,7 +71,11 @@ public sealed class ImpSecretDoorTests
         int health = sim.World.Tile(DoorTile).Health;
         sim.World.Tile(DoorTile).SecretDoorTasks = PlayerMask.None.With(Rival);
         sim.Tick(InputFrame.Of(TagTilesCommand.Tag(Keeper, DoorTile)));
-        for (int i = 0; i < 120 && !events.Events.Any(e => e.Kind == "secret_door_revealed"); i++) sim.Tick();
+        for (int i = 0; i < 120 && !events.Events.Any(e => e.Kind == "secret_door_revealed"); i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Contains(events.Events, e => e.Kind == "secret_door_revealed");
         Assert.False(sim.World.Tile(DoorTile).SecretDoor);
         Assert.False(sim.World.Tile(DoorTile).SecretDoorTasks.Contains(Keeper));
@@ -132,7 +140,11 @@ public sealed class ImpSecretDoorTests
         imp.SecretDoorTask = true;
         imp.Dk2StateId = ImpStates.SecretDoorApproach;
         imp.Heading = 512;
-        for (int i = 0; i < 8 && imp.Dk2StateId == ImpStates.SecretDoorApproach; i++) sim.Tick();
+        for (int i = 0; i < 8 && imp.Dk2StateId == ImpStates.SecretDoorApproach; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(CreatureStateMachine.Idle, imp.Dk2StateId);
         Assert.True(sim.World.Tile(DoorTile).SecretDoor);
         Assert.True(sim.World.Tile(DoorTile).SecretDoorTasks.Contains(Keeper));
@@ -148,13 +160,21 @@ public sealed class ImpSecretDoorTests
         imp.SecretDoorTask = true;
         imp.Dk2StateId = ImpStates.SecretDoorApproach;
         imp.Heading = 512;
-        for (int i = 0; i < 8 && imp.Dk2StateId == ImpStates.SecretDoorApproach; i++) sim.Tick();
+        for (int i = 0; i < 8 && imp.Dk2StateId == ImpStates.SecretDoorApproach; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(ImpStates.SecretDoorWork, imp.Dk2StateId);
         Assert.Equal((byte)5, imp.ActionArtSlot);
         Assert.True(sim.World.Tile(DoorTile).SecretDoor);
         sim.Tick();
         Assert.True(sim.World.Tile(DoorTile).SecretDoor);
-        for (int i = 0; i < 20 && !events.Events.Any(e => e.Kind == "secret_door_revealed"); i++) sim.Tick();
+        for (int i = 0; i < 20 && !events.Events.Any(e => e.Kind == "secret_door_revealed"); i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Contains(events.Events, e => e.Kind == "secret_door_revealed");
     }
 
@@ -175,7 +195,10 @@ public sealed class ImpSecretDoorTests
         sim.Tick();
         SimEvent taken = Assert.Single(events.Events, e => e.Kind == "job_taken");
         Assert.Contains(dropped ? "SecretDoor" : "(5,2) Dig", taken.Detail);
-        if (dropped) Assert.Equal(ImpTaskKind.Excavate, imp.DroppedTask);
+        if (dropped)
+        {
+            Assert.Equal(ImpTaskKind.Excavate, imp.DroppedTask);
+        }
     }
 
     [Fact]
@@ -303,11 +326,19 @@ public sealed class ImpSecretDoorTests
         imp.SecretDoorTask = true;
         imp.Dk2StateId = ImpStates.SecretDoorApproach;
         imp.Heading = 512;
-        for (int i = 0; i < 8 && imp.Dk2StateId == ImpStates.SecretDoorApproach; i++) sim.Tick();
+        for (int i = 0; i < 8 && imp.Dk2StateId == ImpStates.SecretDoorApproach; i++)
+        {
+            sim.Tick();
+        }
+
         sim.Tick();
         int afterStrike = sim.World.Tile(DoorTile).Health;
         Assert.InRange(afterStrike, 1, 29999);
-        for (int i = 0; i < 20 && !events.Events.Any(e => e.Kind == "secret_door_revealed"); i++) sim.Tick();
+        for (int i = 0; i < 20 && !events.Events.Any(e => e.Kind == "secret_door_revealed"); i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Contains(events.Events, e => e.Kind == "secret_door_revealed");
         Assert.Equal(afterStrike, sim.World.Tile(DoorTile).Health);
     }

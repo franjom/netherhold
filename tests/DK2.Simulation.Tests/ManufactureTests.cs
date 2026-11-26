@@ -25,8 +25,13 @@ public class ManufactureTests
     {
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int y = 2; y <= 4; y++)
-        for (int x = 2; x <= 4; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Workshop), Keeper);
+        {
+            for (int x = 2; x <= 4; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Workshop), Keeper);
+            }
+        }
+
         return world;
     }
 
@@ -89,7 +94,10 @@ public class ManufactureTests
     {
         var keeper = new PlayerState { ManufactureQueue = [] };
         for (int i = 0; i < ManufactureRules.QueueCapacity; i++)
+        {
             ManufactureRules.Enqueue(ref keeper, new ManufactureOrder(ManufactureRules.DoorKind, 1, i == 0 ? 3000 : 1500));
+        }
+
         keeper.ManufactureQueue.Clear();   // all paid: the head has moved past every slot
         Assert.Equal(0, keeper.ManufactureRingTail);
         Assert.Equal(3000, keeper.ManufactureSlotZeroCost);

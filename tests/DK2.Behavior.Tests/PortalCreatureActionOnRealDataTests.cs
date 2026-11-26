@@ -22,8 +22,12 @@ public class PortalCreatureActionOnRealDataTests
         {
             string level = Path.GetFileName(path)[..^"Triggers.kld".Length];
             foreach (TriggerRecord record in GameDatabaseLoader.LoadCampaignTriggers(install, level) ?? [])
+            {
                 if (record.Tag == 214 && record.Type == 28)
+                {
                     rows.Add($"{level.ToLowerInvariant()}:{record.TriggerId}:{record.Parameters["CreatureId"]}:{record.Parameters["Level"]}");
+                }
+            }
         }
         rows.Sort(StringComparer.Ordinal);
         Assert.Equal(
@@ -58,8 +62,13 @@ public class PortalCreatureActionOnRealDataTests
         var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(install, "level2")!, [0, 1, 2, 3]);
         RoomDef library = db.Room(RoomTypeId.Library);
         for (int y = 5; y < 9; y++)
+        {
             for (int x = 5; x < 9; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), library, 3);
+            }
+        }
+
         var simulation = new GameSimulation(db, world, 99, [new AutoFurnitureSystem()]);
         simulation.Run(635);
         RoomInstance[] owned = RoomIndex.Build(world, db).Where(r => r.OwnerPlayerId == 3).ToArray();
@@ -71,7 +80,11 @@ public class PortalCreatureActionOnRealDataTests
         int budget = owned.Where(r => r.Definition.TypeId == RoomTypeId.Library)
             .Sum(r => AttractionBudget.Contribution(world, r));
         Assert.True(budget > 0);
-        for (int i = 0; i < budget; i++) world.SpawnCreature(db, 5, 3, new TilePos(6, 6));
+        for (int i = 0; i < budget; i++)
+        {
+            world.SpawnCreature(db, 5, 3, new TilePos(6, 6));
+        }
+
         Assert.False(AttractionBudget.Admits(world, warlock, owned, 3));
     }
 }

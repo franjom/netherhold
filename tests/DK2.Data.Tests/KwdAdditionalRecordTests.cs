@@ -42,7 +42,9 @@ public class KwdAdditionalRecordTests
 
         Assert.Equal(expected.Count, audit.RecordCounts.Count);
         foreach ((KwdRecordType type, int count) in expected)
+        {
             Assert.Equal(count, audit.RecordCounts[type]);
+        }
     }
 
     [InstallFact]
@@ -193,7 +195,10 @@ public class KwdAdditionalRecordTests
     {
         var data = new TheoryData<int, int>();
         foreach ((int tag, (string _, int size, bool _)) in KwdTaggedRecords.ThingPayloadSizes)
+        {
             data.Add(tag, size);
+        }
+
         return data;
     }
 

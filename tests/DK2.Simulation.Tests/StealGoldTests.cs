@@ -167,7 +167,10 @@ public class StealGoldTests
         for (int t = 0; t < 3000 && world.CreatureById(follower.Id) is not null; t++)
         {
             sim.Tick();
-            if (world.CreatureById(follower.Id) is not null) seen.Add(follower.Dk2StateId);
+            if (world.CreatureById(follower.Id) is not null)
+            {
+                seen.Add(follower.Dk2StateId);
+            }
         }
 
         Assert.Contains(StealGoldRules.RunTheJobState, seen);
@@ -228,7 +231,11 @@ public class StealGoldTests
 
     private static void RunUntilGone(GameSimulation sim, WorldState world, CreatureState creature)
     {
-        for (int t = 0; t < 3000 && world.CreatureById(creature.Id) is not null; t++) sim.Tick();
+        for (int t = 0; t < 3000 && world.CreatureById(creature.Id) is not null; t++)
+        {
+            sim.Tick();
+        }
+
         Assert.Null(world.CreatureById(creature.Id));
     }
 
@@ -246,8 +253,15 @@ public class StealGoldTests
     private static void WallWithDoor(GameDatabase db, WorldState world, int x, TilePos? gap, byte owner)
     {
         for (int y = 1; y < world.Height - 1; y++)
+        {
             world.Tile(x, y).TerrainId = Dk2TerrainFixture.Rock;
-        if (gap is not TilePos door) return;
+        }
+
+        if (gap is not TilePos door)
+        {
+            return;
+        }
+
         ref TileState tile = ref world.Tile(door);
         tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
         tile.OwnerPlayerId = owner;
@@ -260,6 +274,7 @@ public class StealGoldTests
     {
         int k = 0;
         for (int dy = 0; dy < 2; dy++)
+        {
             for (int dx = 0; dx < 2; dx++)
             {
                 ref TileState tile = ref world.Tile(x + dx, y + dy);
@@ -267,6 +282,7 @@ public class StealGoldTests
                 tile.OwnerPlayerId = owner;
                 tile.GoldHeld = gold[k++];
             }
+        }
     }
 
     private static int GoldIn(WorldState world, int x, int y) =>
@@ -286,9 +302,16 @@ public class StealGoldTests
         var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 if (world.Tile(x, y).TerrainId != Dk2TerrainFixture.ClaimedPath)
+                {
                     world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+                }
+            }
+        }
+
         return (db, world);
     }
 }

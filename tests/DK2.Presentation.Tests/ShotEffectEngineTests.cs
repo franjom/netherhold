@@ -25,11 +25,19 @@ public class ShotEffectEngineTests
         Assert.Equal(-819, element.Mass);
         var model = new RoomConstructionParticles(database, 7, () => default, floorHeight: _ => new(Fp32.One));
         model.Request(Request() with { EffectId = new(102), Position = Point(10000, 12000, Fp32.One) });
-        for (int step = 1; step <= 20; step++) model.AdvanceTo(new(step * 50 + 1));
+        for (int step = 1; step <= 20; step++)
+        {
+            model.AdvanceTo(new(step * 50 + 1));
+        }
+
         Assert.All(model.Particles, star => Assert.Equal((ushort)243, star.Definition.EffectElementId));
         Assert.Contains(model.Particles, star => star.HeightRaw >= Fp32.One + 2048);
         Assert.Contains(model.Particles, star => star.HeightRaw == Fp32.One);
-        for (int step = 21; step <= 54; step++) model.AdvanceTo(new(step * 50 + 1));
+        for (int step = 21; step <= 54; step++)
+        {
+            model.AdvanceTo(new(step * 50 + 1));
+        }
+
         Assert.Empty(model.Particles);
     }
 
@@ -74,7 +82,11 @@ public class ShotEffectEngineTests
             Assert.True(star.XRaw != 10000 || star.YRaw != 12000);
             Assert.True(star.HeightRaw > Fp32.One);
         });
-        for (int step = 3; step <= 54; step++) model.AdvanceTo(new(step * 50 + 1));
+        for (int step = 3; step <= 54; step++)
+        {
+            model.AdvanceTo(new(step * 50 + 1));
+        }
+
         Assert.Empty(model.Particles);
     }
 
@@ -235,7 +247,11 @@ public class ShotEffectEngineTests
         RoomConstructionParticles model = Model([Effect(), Effect() with { EffectId = 11, GenerateIds = [21] }],
             [Element() with { NextEffectId = 11 }, Element() with { EffectElementId = 21 }]);
         model.Request(Request());
-        for (int step = 1; step <= 4; step++) model.AdvanceTo(new(step * 50 + 1));
+        for (int step = 1; step <= 4; step++)
+        {
+            model.AdvanceTo(new(step * 50 + 1));
+        }
+
         Assert.Equal(2, model.Particles.Count(p => p.Definition.EffectElementId == 21));
     }
 
@@ -296,11 +312,19 @@ public class ShotEffectEngineTests
         RoomConstructionParticles model = Model([Effect() with { GenerationType = 6, GenerateIds = [20], ElementsPerTurn = 0,
             OuterOriginRange = 11, MinHp = 10, MaxHp = 10 }, Effect() with { EffectId = 11 }]);
         model.Request(Request());
-        for (int step = 1; step <= 3; step++) model.AdvanceTo(new(step * 50 + 1));
+        for (int step = 1; step <= 3; step++)
+        {
+            model.AdvanceTo(new(step * 50 + 1));
+        }
+
         Assert.Empty(model.Particles);
         model.AdvanceTo(new(201));
         Assert.Single(model.Particles);
-        for (int step = 5; step <= 7; step++) model.AdvanceTo(new(step * 50 + 1));
+        for (int step = 5; step <= 7; step++)
+        {
+            model.AdvanceTo(new(step * 50 + 1));
+        }
+
         Assert.Equal(2, model.Particles.Count);
     }
 
@@ -318,7 +342,11 @@ public class ShotEffectEngineTests
             floorHeight: _ => default, effectVisible: _ => visible, cameraVisible: _ => visible);
         model.Request(Request());
         visible = false;
-        for (int step = 1; step <= 4; step++) model.AdvanceTo(new(step * 50 + 1));
+        for (int step = 1; step <= 4; step++)
+        {
+            model.AdvanceTo(new(step * 50 + 1));
+        }
+
         Assert.NotEmpty(model.Particles);
     }
 
@@ -392,7 +420,10 @@ public class ShotEffectEngineTests
         for (int step = 1; step <= 112; step++)
         {
             model.AdvanceTo(new(step * 50 + 1));
-            if (model.Particles.Any(p => p.VisualUpdates == 0 && ids.Contains(p.Definition.EffectElementId))) waves++;
+            if (model.Particles.Any(p => p.VisualUpdates == 0 && ids.Contains(p.Definition.EffectElementId)))
+            {
+                waves++;
+            }
         }
         Assert.InRange(waves, 15, 45);
     }
@@ -409,18 +440,36 @@ public class ShotEffectEngineTests
             .Concat(database.Doors.Values).Concat(database.KeeperSpells.Values).Concat(database.Effects.Values)
             .Concat(database.EffectElements.Values);
         foreach (object record in records)
+        {
             foreach (PropertyInfo property in record.GetType().GetProperties())
             {
-                if (!property.Name.EndsWith("EffectId", StringComparison.Ordinal) || property.Name == "EffectId") continue;
+                if (!property.Name.EndsWith("EffectId", StringComparison.Ordinal) || property.Name == "EffectId")
+                {
+                    continue;
+                }
+
                 object? value = property.GetValue(record);
-                if (value is not ushort && value is not byte) continue;
+                if (value is not ushort && value is not byte)
+                {
+                    continue;
+                }
+
                 int id = Convert.ToInt32(value);
                 if (id is 27 or 182)
+                {
                     sources.Add($"{record.GetType().Name} {record.GetType().GetProperty("Name")?.GetValue(record)} {property.Name} -> {id}");
+                }
             }
+        }
+
         foreach (EffectDef effect in database.Effects.Values)
+        {
             if ((effect.Flags & 0x40) != 0 && effect.GenerateIds.Any(id => id is 27 or 182))
+            {
                 sources.Add($"Effect {effect.EffectId} {effect.Name}: generates {string.Join(",", effect.GenerateIds)}");
+            }
+        }
+
         Assert.Empty(sources);
     }
 

@@ -80,7 +80,11 @@ public sealed class LairDropTests
     {
         (GameSimulation? sim, CreatureState? creature, ObjectState? oldBed) = Start();
         Drop(sim, creature, NewTile);
-        for (int i = 0; i < 120 && LairRules.BedOf(sim.World, sim.Database, creature) is not null; i++) sim.Tick();
+        for (int i = 0; i < 120 && LairRules.BedOf(sim.World, sim.Database, creature) is not null; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Null(LairRules.BedOf(sim.World, sim.Database, creature));
         Assert.DoesNotContain(sim.World.Objects, o => o.Id == oldBed.Id);
         Assert.True(creature.HasRoute);
@@ -220,7 +224,10 @@ public sealed class LairDropTests
         var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
             [PlayerIds.Unowned, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         foreach (TilePos at in new[] { OldTile, NewTile })
+        {
             RoomRules.Place(database, ref world.Tile(at), database.Room(RoomTypeId.Lair), PlayerIds.FirstKeeper);
+        }
+
         CreatureState creature = world.SpawnCreature(database,
             definition?.CreatureId ?? Dk2TerrainFixture.GoblinCreatureId, PlayerIds.FirstKeeper, OldTile);
         ObjectState bed = LairRules.PlaceBed(world, database, creature, world.TileIndex(OldTile));

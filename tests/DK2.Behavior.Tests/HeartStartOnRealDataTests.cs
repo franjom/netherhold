@@ -34,7 +34,10 @@ public class HeartStartOnRealDataTests(ITestOutputHelper output)
 
         foreach (SimEvent entry in events.Events.Where(e =>
                      e.Kind is "imp_generated" or "heart_destroyed" or "heart_ruined"))
+        {
             output.WriteLine($"tick {entry.Tick.Value}: {entry.Kind} {entry.Detail}");
+        }
+
         Assert.Equal(0, simulation.World.Player(4).HeartHealth);
         Assert.NotEqual(0, simulation.World.Player(4).KilledByPlayerId);
         Assert.Equal(0, ImpSupplyRules.ImpCount(simulation.World, db, new PlayerId(4)));
@@ -88,7 +91,10 @@ public class HeartStartOnRealDataTests(ITestOutputHelper output)
             string level = Path.GetFileName(file)[..^"Things.kld".Length];
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
             List<ThingRecord>? things = GameDatabaseLoader.LoadCampaignThings(install, level);
-            if (map is null || things is null) continue;
+            if (map is null || things is null)
+            {
+                continue;
+            }
 
             var world = WorldState.FromMap(
                 db, map, [PlayerIds.Unowned, PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper,
@@ -99,7 +105,11 @@ public class HeartStartOnRealDataTests(ITestOutputHelper output)
                          .Where(r => db.RoomByTerrain(r.RoomType)?.TypeId == RoomTypeId.DungeonHeart))
             {
                 RoomInstance? room = RoomIndex.RoomAt(world, db, (heart.Y * world.Width) + heart.X);
-                if (room is null || !world.HasPlayer(room.OwnerPlayerId)) continue;
+                if (room is null || !world.HasPlayer(room.OwnerPlayerId))
+                {
+                    continue;
+                }
+
                 PlayerState owner = world.Player(room.OwnerPlayerId);
                 int pct = heart.InitialHealth;
                 if (pct == 0)
@@ -112,11 +122,18 @@ public class HeartStartOnRealDataTests(ITestOutputHelper output)
                     Assert.False(owner.HeartRuined);
                     Assert.Equal(full - (int)((long)full * (100 - pct) / 100), owner.HeartHealth);
                 }
-                if (pct != 100) notFull.Add($"{level} player {room.OwnerPlayerId}: {pct}% -> {owner.HeartHealth}");
+                if (pct != 100)
+                {
+                    notFull.Add($"{level} player {room.OwnerPlayerId}: {pct}% -> {owner.HeartHealth}");
+                }
             }
         }
 
-        foreach (string line in notFull) output.WriteLine(line);
+        foreach (string line in notFull)
+        {
+            output.WriteLine(line);
+        }
+
         Assert.Contains(notFull, l => l.EndsWith(": 0% -> 0", StringComparison.Ordinal));
         Assert.Contains(notFull, l => l.EndsWith(": 1% -> 1000", StringComparison.Ordinal));
     }
@@ -135,7 +152,11 @@ public class HeartStartOnRealDataTests(ITestOutputHelper output)
             string level = Path.GetFileName(file)[..^"Things.kld".Length];
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
             List<ThingRecord>? things = GameDatabaseLoader.LoadCampaignThings(install, level);
-            if (map is null || things is null) continue;
+            if (map is null || things is null)
+            {
+                continue;
+            }
+
             var world = WorldState.FromMap(
                 db, map, [PlayerIds.Unowned, PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper,
                     (byte)(PlayerIds.FirstKeeper + 1), (byte)(PlayerIds.FirstKeeper + 2), (byte)(PlayerIds.FirstKeeper + 3), (byte)(PlayerIds.FirstKeeper + 4)]);

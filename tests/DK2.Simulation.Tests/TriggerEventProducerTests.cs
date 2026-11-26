@@ -143,7 +143,11 @@ public sealed class TriggerEventProducerTests
 
         public void Execute(SimulationContext context)
         {
-            if (_done) return;
+            if (_done)
+            {
+                return;
+            }
+
             _done = true;
             rule(context);
         }

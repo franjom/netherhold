@@ -34,12 +34,14 @@ public sealed class RoomTickOrderTests
     private static void Build(GameDatabase db, WorldState world, RoomTypeId type, TilePos at, int size = 1)
     {
         for (int y = at.Y; y < at.Y + size; y++)
-        for (int x = at.X; x < at.X + size; x++)
+        {
+            for (int x = at.X; x < at.X + size; x++)
         {
             ref TileState tile = ref world.Tile(x, y);
             byte terrainBefore = tile.TerrainId, ownerBefore = tile.OwnerPlayerId;
             RoomRules.Place(db, ref tile, db.Room(type), Keeper);
             SlabChain.Changed(world, db, world.TileIndex(new TilePos(x, y)), terrainBefore, ownerBefore);
+        }
         }
     }
 
@@ -79,10 +81,21 @@ public sealed class RoomTickOrderTests
 
         ZeroTimers(world, workshopAt);
         var oracle = new Oracle(SeedOf(sim));
-        if (treasuryNewer) oracle.Next(100);   // 0x004F3A20, the sparkle's room roll, before the Workshop's
+        if (treasuryNewer)
+        {
+            oracle.Next(100);   // 0x004F3A20, the sparkle's room roll, before the Workshop's
+        }
+
         int steam = Reload(oracle);
-        for (int i = 0; i < 3; i++) oracle.Next(16 * Ticks);
-        if (!treasuryNewer) oracle.Next(100);
+        for (int i = 0; i < 3; i++)
+        {
+            oracle.Next(16 * Ticks);
+        }
+
+        if (!treasuryNewer)
+        {
+            oracle.Next(100);
+        }
 
         sim.Tick();
 
@@ -106,10 +119,17 @@ public sealed class RoomTickOrderTests
         ZeroTimers(world, newWorkshop);
         var oracle = new Oracle(SeedOf(sim));
         int newSteam = Reload(oracle);
-        for (int i = 0; i < 3; i++) oracle.Next(16 * Ticks);
+        for (int i = 0; i < 3; i++)
+        {
+            oracle.Next(16 * Ticks);
+        }
+
         oracle.Next(100);   // the Treasury, between the two Workshops
         int oldSteam = Reload(oracle);
-        for (int i = 0; i < 3; i++) oracle.Next(16 * Ticks);
+        for (int i = 0; i < 3; i++)
+        {
+            oracle.Next(16 * Ticks);
+        }
 
         sim.Tick();
 
@@ -137,14 +157,22 @@ public sealed class RoomTickOrderTests
                 (t.WorkshopSteamTimer, t.WorkshopLavaSpillTimer, t.WorkshopSmokeTimer, t.WorkshopLavaBubblingTimer) = (50, 50, 50, 50);
                 ((Dk2Lcg)sim.Rng.Algorithm).Reseed(reseed!.Value);
             }
-            else ZeroTimers(world, new TilePos(16, 8));
+            else
+            {
+                ZeroTimers(world, new TilePos(16, 8));
+            }
+
             return (sim, world);
         }
 
         (GameSimulation walked, WorldState world) = Make(control: false);
         var oracle = new Oracle(SeedOf(walked));
         int steam = Reload(oracle);
-        for (int i = 0; i < 3; i++) oracle.Next(16 * Ticks);
+        for (int i = 0; i < 3; i++)
+        {
+            oracle.Next(16 * Ticks);
+        }
+
         (GameSimulation control, WorldState controlWorld) = Make(control: true, oracle.Seed);
 
         walked.Tick();
@@ -223,7 +251,11 @@ public sealed class RoomTickOrderTests
         ZeroTimers(world, workshop);
         var oracle = new Oracle(SeedOf(sim));
         int steam = Reload(oracle);
-        for (int i = 0; i < 3; i++) oracle.Next(16 * Ticks);
+        for (int i = 0; i < 3; i++)
+        {
+            oracle.Next(16 * Ticks);
+        }
+
         oracle.Next(100);   // the Heart's sparkle (0x004F3A20), once the newer room is done
 
         sim.Tick();
@@ -256,7 +288,11 @@ public sealed class RoomTickOrderTests
         ZeroTimers(world, workshop);
         var oracle = new Oracle(before);
         int steam = Reload(oracle);
-        for (int i = 0; i < 3; i++) oracle.Next(16 * Ticks);
+        for (int i = 0; i < 3; i++)
+        {
+            oracle.Next(16 * Ticks);
+        }
+
         oracle.Next(1);   // the Casino's effect tile, one tile to pick
 
         sim.Tick();
@@ -290,14 +326,22 @@ public sealed class RoomTickOrderTests
                 (t.WorkshopSteamTimer, t.WorkshopLavaSpillTimer, t.WorkshopSmokeTimer, t.WorkshopLavaBubblingTimer) = (50, 50, 50, 50);
                 ((Dk2Lcg)sim.Rng.Algorithm).Reseed(reseed!.Value);
             }
-            else ZeroTimers(world, new TilePos(16, 8));
+            else
+            {
+                ZeroTimers(world, new TilePos(16, 8));
+            }
+
             return (sim, world);
         }
 
         (GameSimulation walked, WorldState world) = Make(control: false);
         var oracle = new Oracle(SeedOf(walked));
         int steam = Reload(oracle);
-        for (int i = 0; i < 3; i++) oracle.Next(16 * Ticks);
+        for (int i = 0; i < 3; i++)
+        {
+            oracle.Next(16 * Ticks);
+        }
+
         (GameSimulation control, WorldState controlWorld) = Make(control: true, oracle.Seed);
 
         walked.Tick();

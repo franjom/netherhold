@@ -85,7 +85,11 @@ public sealed class StateCopyTests
             SimRandom.Restore(live.Rng.SaveState()), [new ChaosSystem()]);
         using (var stream = new MemoryStream())
         {
-            using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true)) live.Navigation.Write(writer);
+            using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true))
+            {
+                live.Navigation.Write(writer);
+            }
+
             stream.Position = 0;
             using var reader = new BinaryReader(stream);
             twin.Navigation.Read(reader);

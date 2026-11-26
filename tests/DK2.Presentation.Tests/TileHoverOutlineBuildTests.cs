@@ -70,12 +70,18 @@ public sealed class TileHoverOutlineBuildTests
         Span<int> scratch = stackalloc int[48];
         int expected = 0;
         for (int y = 0; y < 3; y++)
+        {
             for (int x = 0; x < 3; x++)
             {
                 TileHoverEdges mask = TileHoverEdges.Lower | (y == 0 ? TileHoverEdges.North : 0) | (y == 2 ? TileHoverEdges.South : 0)
                     | (x == 0 ? TileHoverEdges.West : 0) | (x == 2 ? TileHoverEdges.East : 0);
-                if (mask != TileHoverEdges.Lower) expected += TileHoverOutline.Indices(mask, scratch) / 2;
+                if (mask != TileHoverEdges.Lower)
+                {
+                    expected += TileHoverOutline.Indices(mask, scratch) / 2;
+                }
             }
+        }
+
         Assert.Equal(expected * 4, ribbon.VertexCount);
         Assert.Equal(new[] { 0, 1, 2, 2, 1, 3 }, ribbon.Indices[..6].ToArray());
         Assert.Equal(new[] { new Vector2(0, 0), new Vector2(0, 1), new Vector2(1, 0), new Vector2(1, 1) }, ribbon.Uvs[..4].ToArray());
@@ -110,7 +116,10 @@ public sealed class TileHoverOutlineBuildTests
         // The west post of tile (0, 0): its first segment runs from (0, 2.05, 0) to (0, 1.55, 0) in the renderers' frame,
         // its second on to (0, 1.05, 0); an eye on their line.
         TileHoverOutline.Build(ribbon, new TileRectangle(0, 0, 1, 1), false, new Vector3(0, 9, 0), null, 0);
-        foreach (Vector3 p in ribbon.Positions) Assert.False(float.IsNaN(p.X) || float.IsNaN(p.Y) || float.IsNaN(p.Z));
+        foreach (Vector3 p in ribbon.Positions)
+        {
+            Assert.False(float.IsNaN(p.X) || float.IsNaN(p.Y) || float.IsNaN(p.Z));
+        }
     }
 
     [Theory]
@@ -135,7 +144,11 @@ public sealed class TileHoverOutlineBuildTests
         var eye = new Vector3(6, 8, -14);
         TileHoverOutline.Build(ribbon, area, true, eye, null, 1);
         long before = GC.GetAllocatedBytesForCurrentThread();
-        for (int i = 0; i < 50; i++) TileHoverOutline.Build(ribbon, area, i % 2 == 0, eye, null, 2 + i);
+        for (int i = 0; i < 50; i++)
+        {
+            TileHoverOutline.Build(ribbon, area, i % 2 == 0, eye, null, 2 + i);
+        }
+
         Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
     }
 
@@ -174,14 +187,21 @@ public sealed class TileHoverOutlineBuildTests
             _pulse.Advance(delta);
             Vertices.Clear(); Uvs.Clear(); Triangles.Clear();
             for (int y = rect.Y0; y < rect.Y1; y++)
+            {
                 for (int x = rect.X0; x < rect.X1; x++)
                 {
                     TileHoverEdges mask = TileHoverEdges.Lower
                         | (y == rect.Y0 ? TileHoverEdges.North : 0) | (y == rect.Y1 - 1 ? TileHoverEdges.South : 0)
                         | (x == rect.X0 ? TileHoverEdges.West : 0) | (x == rect.X1 - 1 ? TileHoverEdges.East : 0);
-                    if (mask == TileHoverEdges.Lower) continue;
+                    if (mask == TileHoverEdges.Lower)
+                    {
+                        continue;
+                    }
+
                     AddTile(new TilePos(x, y), mask, eye);
                 }
+            }
+
             Colour = blue ? new Vector3(0, 0, level * TileHoverOutline.BluePeak) : new Vector3(level, 0, 0);
         }
 

@@ -70,7 +70,11 @@ public class HeartManaParticleTests
         model.Request(mana with { Owner = new PlayerId(2) });
         model.AdvanceTo(now = new(151));
         Assert.NotEmpty(model.Particles);
-        for (int ms = 201; ms <= 1501; ms += 50) model.AdvanceTo(now = new(ms));
+        for (int ms = 201; ms <= 1501; ms += 50)
+        {
+            model.AdvanceTo(now = new(ms));
+        }
+
         model.AdvanceTo(now = new(8951));
         model.Request(mana);
         model.AdvanceTo(now = new(9001));
@@ -133,7 +137,11 @@ public class HeartManaParticleTests
         int x = particle.XRaw, y = particle.YRaw;
         model.AdvanceTo(new EffectTime(151));
         Assert.NotEqual((x, y), (particle.XRaw, particle.YRaw));
-        for (int call = 4; call <= 20; call++) model.AdvanceTo(new EffectTime(call * 50 + 1));
+        for (int call = 4; call <= 20; call++)
+        {
+            model.AdvanceTo(new EffectTime(call * 50 + 1));
+        }
+
         Assert.Equal(4096, particle.HeightRaw);
         x = particle.XRaw; y = particle.YRaw;
         model.AdvanceTo(new EffectTime(1051));
@@ -161,11 +169,13 @@ public class HeartManaParticleTests
         {
             model.AdvanceTo(new EffectTime(call * 50 + 1));
             foreach (ConstructionParticle p in model.Particles)
+            {
                 if (p.Definition.EffectElementId == 98)
                 {
                     peak = Math.Max(peak, p.HeightRaw);
                     lowest = Math.Min(lowest, p.HeightRaw);
                 }
+            }
         }
         Assert.InRange(peak, lowestPeak, highestPeak);
         Assert.Equal(style == HeartSparkleStyle.Native ? 3200 : 1024, lowest);

@@ -43,8 +43,13 @@ public sealed class WorkshopSoundTests
         GameDatabase db = Db(steam);
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(24, 24), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int y = 3; y < 8; y++)
+        {
             for (int x = 3; x < 8; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Workshop), Keeper);
+            }
+        }
+
         Dk2TerrainFixture.FurnishRooms(db, world);
         RoomInstance room = RoomIndex.RoomAt(world, db, (3 * world.Width) + 3)!;
         var sim = new GameSimulation(db, world, new SimRandom(new Dk2Lcg(1)), [new WorkshopTimerSystem()]);

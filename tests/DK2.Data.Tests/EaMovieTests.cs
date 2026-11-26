@@ -66,7 +66,9 @@ public class EaMovieTests
         new TqiDecoder().Decode(Frame(16, 16, 107, bits), rgba);
 
         for (int i = 0; i < 256; i++)
+        {
             Assert.Equal(new byte[] { 115, 113, 115, 255 }, rgba.AsSpan(i * 4, 4).ToArray());
+        }
     }
 
     [Fact]
@@ -93,7 +95,9 @@ public class EaMovieTests
 
         Assert.Equal(bits.Count, used);
         for (int i = 0; i < 256; i++)
+        {
             Assert.Equal(new byte[] { 115, 113, 115, 255 }, rgba.AsSpan(i * 4, 4).ToArray());
+        }
     }
 
     [Fact]
@@ -109,7 +113,9 @@ public class EaMovieTests
         new TqiDecoder().Decode(Frame(16, 16, 100, bits), rgba);
 
         for (int y = 0; y < 8; y++)
+        {
             Assert.True(rgba[(y * 16) * 4] > rgba[(y * 16 + 7) * 4], $"row {y} should fall left to right");
+        }
     }
 
     [Fact]
@@ -206,7 +212,10 @@ public class EaMovieTests
             string all = _bits.ToString().PadRight((_bits.Length + 31) / 32 * 32, '0');
             byte[] bytes = new byte[all.Length / 8];
             for (int w = 0; w < all.Length / 32; w++)
+            {
                 BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(w * 4), Convert.ToUInt32(all.Substring(w * 32, 32), 2));
+            }
+
             return bytes;
         }
     }

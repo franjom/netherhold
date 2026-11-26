@@ -35,7 +35,10 @@ public sealed class PossessionUpkeepTests
         GameDatabase basis = Dk2TerrainFixture.Database();
         GlobalVariables vars = Dk2TerrainFixture.Variables();
         for (int i = 0; i < Stat27Row.Length; i++)
+        {
             vars.CreatureStats.Add(new CreatureStatEntry((int)CreatureStatId.PossessionManaCost, Stat27Row[i], i + 2, false));
+        }
+
         var spell = new KeeperSpellDef
         {
             Name = "Possession", KeeperSpellId = SpellId, ManaCost = 500, ManaUpkeepPerSecond = 25,
@@ -60,7 +63,12 @@ public sealed class PossessionUpkeepTests
     private static int IndexOf(WorldState world)
     {
         for (int i = 0; ; i++)
-            if (world.PlayerAtIndex(i).PlayerId == Keeper) return i;
+        {
+            if (world.PlayerAtIndex(i).PlayerId == Keeper)
+            {
+                return i;
+            }
+        }
     }
 
     private static int Charge(GameDatabase db, WorldState world) =>

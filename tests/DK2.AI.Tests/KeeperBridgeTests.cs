@@ -28,7 +28,11 @@ public class KeeperBridgeTests
     {
         WorldState world = KeeperWorld.World(Db);
         world.Tile(KeeperWorld.HeartAt).GoldHeld = 5000;
-        for (int i = 1; i <= length; i++) KeeperWorld.Set(world, Db, North(i), hazard);
+        for (int i = 1; i <= length; i++)
+        {
+            KeeperWorld.Set(world, Db, North(i), hazard);
+        }
+
         world.SetAvailability(Keeper, AvailabilityKind.Room, (int)RoomTypeId.WoodenBridge, wood);
         world.SetAvailability(Keeper, AvailabilityKind.Room, (int)RoomTypeId.StoneBridge, stone);
         return world;
@@ -141,8 +145,16 @@ public class KeeperBridgeTests
         {
             IReadOnlyList<PlayerCommand> commands = keeper.Think(Db, world);
             Assert.True(commands.OfType<BuildRoomCommand>().Count() <= 1);
-            foreach (BuildRoomCommand b in commands.OfType<BuildRoomCommand>()) spans.Add((tick, b.Tiles[0]));
-            foreach (TagTilesCommand t in commands.OfType<TagTilesCommand>()) tags.AddRange(t.Tiles);
+            foreach (BuildRoomCommand b in commands.OfType<BuildRoomCommand>())
+            {
+                spans.Add((tick, b.Tiles[0]));
+            }
+
+            foreach (TagTilesCommand t in commands.OfType<TagTilesCommand>())
+            {
+                tags.AddRange(t.Tiles);
+            }
+
             sim.Tick(new InputFrame(commands));
             KeeperWorld.DigWhatIsTagged(world, Db, Keeper);
         }

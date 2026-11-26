@@ -31,9 +31,15 @@ public sealed class FinaleTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [PlayerIds.Good, PlayerIds.Neutral, Keeper], gameMode: mode);
         RoomDef heart = db.Room(RoomTypeId.DungeonHeart);
         for (int y = 3; y < 8; y++)
+        {
             for (int x = 3; x < 8; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), heart, Keeper);
+            }
+        }
+
         for (int y = 1; y < 19; y++)
+        {
             for (int x = 1; x < 19; x++)
             {
                 if (world.Tile(x, y).TerrainId != heart.TerrainId)
@@ -43,10 +49,16 @@ public sealed class FinaleTests
                 }
                 world.Tile(x, y).SetExploredBy(Keeper);
             }
+        }
+
         ObjectState gem = withGem
             ? world.SpawnObject(db, TriggerExecutor.PortalGemObjectId, PlayerIds.Good, 12 * world.Width + 12)
             : null!;
-        if (withGem) (gem.PosX, gem.PosY) = (CreatureState.CentreOf(12), CreatureState.CentreOf(12));
+        if (withGem)
+        {
+            (gem.PosX, gem.PosY) = (CreatureState.CentreOf(12), CreatureState.CentreOf(12));
+        }
+
         var sim = new GameSimulation(db, world, 11, SimulationSystems.Default());
         var events = new ListEventSink();
         sim.ObserveWith(events);
@@ -90,7 +102,10 @@ public sealed class FinaleTests
         for (int t = 0; t < 600 && !events.Events.Any(e => e.ScriptedView?.Kind == ScriptedViewKind.WinScreen); t++)
         {
             sim.Tick(InputFrame.Empty);
-            if (seen.Count == 0 || seen[^1] != reaper.Dk2StateId) seen.Add(reaper.Dk2StateId);
+            if (seen.Count == 0 || seen[^1] != reaper.Dk2StateId)
+            {
+                seen.Add(reaper.Dk2StateId);
+            }
         }
 
         Assert.Equal(new[] { 228, 229, 230, 231, 232, 234, 233 }, seen);
@@ -126,7 +141,11 @@ public sealed class FinaleTests
         carrier.PosX = CreatureState.CentreOf(14) + 0x345;
         carrier.PosY = CreatureState.CentreOf(11) - 0x456;
         carrier.Health = 0;
-        for (int t = 0; t < 2000 && gem.CarriedByCreatureId >= 0; t++) sim.Tick(InputFrame.Empty);
+        for (int t = 0; t < 2000 && gem.CarriedByCreatureId >= 0; t++)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
+
         Assert.Equal(-1, gem.CarriedByCreatureId);
         Assert.Equal((CreatureState.CentreOf(14), CreatureState.CentreOf(11), 0), (gem.PosX, gem.PosY, gem.PosZ));
 
@@ -134,7 +153,10 @@ public sealed class FinaleTests
         ref PlayerState player = ref world.Player(Keeper);
         Assert.Equal((14, 11, gem.Id), (player.Finale.GemTileX, player.Finale.GemTileY, player.Finale.GemObjectId));
         CreatureState reaper = Reaper(sim);
-        for (int t = 0; t < 600 && player.Finale.PickupTick == 0; t++) sim.Tick(InputFrame.Empty);
+        for (int t = 0; t < 600 && player.Finale.PickupTick == 0; t++)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
 
         Assert.NotEqual(0, player.Finale.PickupTick);
         Assert.Equal(new TilePos(14, 11), reaper.Tile);
@@ -179,7 +201,11 @@ public sealed class FinaleTests
         CreatureState prisoner = sim.World.SpawnCreature(sim.Database, Dk2TerrainFixture.GoblinCreatureId, keeper, new TilePos(15, 14));
         CreatureState possessed = sim.World.SpawnCreature(sim.Database, Dk2TerrainFixture.GoblinCreatureId, keeper, new TilePos(16, 14));
         Win(sim);
-        foreach (CreatureState c in new[] { free, prisoner, possessed }) c.Dk2StateId = FinaleRules.CelebrateState;
+        foreach (CreatureState c in new[] { free, prisoner, possessed })
+        {
+            c.Dk2StateId = FinaleRules.CelebrateState;
+        }
+
         prisoner.PrisonOwnerPlayerId = PlayerIds.Good;
         sim.World.Player(Keeper).PossessedCreatureId = possessed.Id;
         // The kick lands before the turn's systems, which may move a kicked creature on from 1.
@@ -214,7 +240,11 @@ public sealed class FinaleTests
         Assert.Equal(FinaleRules.SequenceStarted, sim.World.Player(Keeper).Finale.Flags);
         Assert.Equal(won + 6, sim.World.Player(Keeper).Finale.FireworksTick);
         Assert.Contains(events.Events, e => e.ScriptedView?.Kind == ScriptedViewKind.HideGui);
-        for (int t = 0; t < 8; t++) sim.Tick(InputFrame.Empty);
+        for (int t = 0; t < 8; t++)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
+
         Assert.Single(events.Events, e => e.EffectRequest?.EffectId == new EffectId(320));
         Assert.Equal(0, sim.World.Player(Keeper).Finale.FireworksTick);
     }
@@ -262,7 +292,11 @@ public sealed class FinaleTests
     {
         (GameSimulation sim, _, _) = Setup();
         Win(sim);
-        for (int t = 0; t < 3; t++) sim.Tick(InputFrame.Empty);
+        for (int t = 0; t < 3; t++)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
+
         ulong before = sim.StateHash();
         GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), sim.Database, SimulationSystems.Default());
         Assert.Equal(sim.World.Player(Keeper).Finale, restored.World.Player(Keeper).Finale);
@@ -326,13 +360,20 @@ public sealed class FinaleTests
         IEnumerable<DoorDef> doors = Dk2TerrainFixture.Doors().Select(d => d with { SoundCategory = "DOOR_WOOD" });
         (GameSimulation sim, _, ListEventSink events) = Setup(doors: doors);
         var gate = new TilePos(14, 11);   // beside the Reaper's walk along row 12, from column 17 to the gem at 12
-        foreach (int x in new[] { 13, 15 }) sim.World.Tile(x, 11).TerrainId = Dk2TerrainFixture.Rock;   // the walls a door needs
+        foreach (int x in new[] { 13, 15 })
+        {
+            sim.World.Tile(x, 11).TerrainId = Dk2TerrainFixture.Rock;   // the walls a door needs
+        }
+
         ThingProjection.Place(sim.World, sim.Database, [new DoorThing(new byte[20]) { X = gate.X, Y = gate.Y, PlayerId = Keeper, Flags = 1, DoorId = 1, Unknown_0011 = new byte[3] }]);
         DoorState door = sim.World.Doors.Single();
         Assert.Equal(3, door.LockMode);
         Win(sim);
 
-        for (int t = 0; t < 600 && !events.Events.Any(e => e.ScriptedView?.Kind == ScriptedViewKind.WinScreen); t++) sim.Tick(InputFrame.Empty);
+        for (int t = 0; t < 600 && !events.Events.Any(e => e.ScriptedView?.Kind == ScriptedViewKind.WinScreen); t++)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
 
         Assert.Equal(0, door.LockMode);
         ThingSoundRequest sound = Assert.Single(events.Events.Where(e => e.ThingSound.HasValue && e.ThingSound!.Value.Event == ThingSoundEvent.DoorUnlocked)

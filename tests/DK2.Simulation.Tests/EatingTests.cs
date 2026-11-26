@@ -33,7 +33,11 @@ public class EatingTests
         var sim = new GameSimulation(
             db, world, seed: 42,
             [new CreatureMovementSystem(), new CreatureEatSystem(), new ChickenTailSystem()]);
-        if (sink is not null) sim.ObserveWith(sink);
+        if (sink is not null)
+        {
+            sim.ObserveWith(sink);
+        }
+
         return sim;
     }
 
@@ -141,8 +145,11 @@ public class EatingTests
         GameDatabase basis = Db;
         var slots = new CreatureAnimationTiming[CreatureDef.ArtSlotCount];
         if (artSlot != 0)
+        {
             slots[artSlot] = new CreatureAnimationTiming
                 { ResourceType = 6, FrameCount = 8, FramesPerSecond = 8 };
+        }
+
         var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values,
             basis.Creatures.Values.Select(c => c.CreatureId == GoblinId ? c with { ArtSlots = slots } : c),
             basis.Variables, objects: basis.Objects.Values);
@@ -176,7 +183,11 @@ public class EatingTests
         Assert.Equal(EatingRules.EatState, goblin.UtilityNewState);
         Assert.Equal((byte)ChickenProcess.Reaction, nextBird.ProcessState);
         Assert.True(nextBird.ChickenScared);
-        for (int t = 0; t < 40 && world.ObjectById(nextBird.Id) is not null; t++) sim.Tick();
+        for (int t = 0; t < 40 && world.ObjectById(nextBird.Id) is not null; t++)
+        {
+            sim.Tick();
+        }
+
         Assert.Null(world.ObjectById(nextBird.Id));
         Assert.Equal(EatingRules.AfterMealState, goblin.Dk2StateId);
     }
@@ -224,7 +235,11 @@ public class EatingTests
         sim.Tick();
         Assert.Equal(EatingRules.EatState, goblin.Dk2StateId);
         Assert.NotNull(world.ObjectById(bird.Id));
-        for (int t = 0; t < 20 && world.ObjectById(bird.Id) is not null; t++) sim.Tick();
+        for (int t = 0; t < 20 && world.ObjectById(bird.Id) is not null; t++)
+        {
+            sim.Tick();
+        }
+
         Assert.Null(world.ObjectById(bird.Id));
     }
 
@@ -295,7 +310,10 @@ public class EatingTests
         var sim = new GameSimulation(db, world, seed: 42, [new CreatureMovementSystem(), new CreatureEatSystem()]);
         sim.ObserveWith(sink);
 
-        for (int i = 0; i < Second * 40 && !sink.Events.Any(e => e.Kind == "chicken_eaten"); i++) sim.Tick();
+        for (int i = 0; i < Second * 40 && !sink.Events.Any(e => e.Kind == "chicken_eaten"); i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Contains(sink.Events, e => e.Kind == "chicken_eaten");
         ObjectState bird = first.Health == 0 ? first : second, other = ReferenceEquals(bird, first) ? second : first;
@@ -334,10 +352,18 @@ public class EatingTests
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
 
-        for (int i = 0; i < Second * 40 && !sink.Events.Any(e => e.Kind == "chicken_chosen"); i++) sim.Tick();
+        for (int i = 0; i < Second * 40 && !sink.Events.Any(e => e.Kind == "chicken_chosen"); i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal((0x5800, (bird.Id & 0xFFFF) << 16), (goblin.StateTargetX, goblin.StateTargetY));
 
-        for (int i = 0; i < Second * 40 && !sink.Events.Any(e => e.Kind == "chicken_eaten"); i++) sim.Tick();
+        for (int i = 0; i < Second * 40 && !sink.Events.Any(e => e.Kind == "chicken_eaten"); i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Contains(sink.Events, e => e.Kind == "chicken_eaten");
         Assert.Equal((0x5800 | ((goblin.FoodOwedAfterMeal ? 1 : 0) << 16), 0), (goblin.StateTargetX, goblin.StateTargetY));
     }
@@ -429,7 +455,11 @@ public class EatingTests
         for (int t = 0; t < Second * 40; t++)
         {
             sim.Run(1);
-            if (goblin.Dk2StateId == last) continue;
+            if (goblin.Dk2StateId == last)
+            {
+                continue;
+            }
+
             seen.Add((goblin.Dk2StateId, goblin.StateBeforeUtilityState));
             last = goblin.Dk2StateId;
         }
@@ -696,8 +726,7 @@ public class EatingTests
         {
             var sim = new GameSimulation(db, world, seed, [new Probe(context =>
             {
-                if (RoomWalkRules.ArrivalTile(context, room) is int tile) points.Add(tile);
-            })]);
+                if (RoomWalkRules.ArrivalTile(context, room) is int tile) { points.Add(tile); } })]);
             sim.Tick();
         }
 
@@ -833,7 +862,10 @@ public class EatingTests
         WorldState world = World(db);
         Floor(world, 1, 1, 10, 10);
         Hatchery(db, world, 4, 4, 5, 5, Keeper);
-        for (int i = 0; i < 5; i++) Chicken(db, world, 4 + i, 6);
+        for (int i = 0; i < 5; i++)
+        {
+            Chicken(db, world, 4 + i, 6);
+        }
 
         CreatureDef demon = db.CreatureById(Dk2TerrainFixture.BileDemonCreatureId);
         Assert.Equal(5, demon.HungerFill);
@@ -1000,7 +1032,10 @@ public class EatingTests
 
         ObjectDef? pendulum = db.Objects.Values.FirstOrDefault(
             o => o.IsFood && o.ObjectId != HatcheryRules.ChickenObjectId);
-        if (pendulum is null) return;   // a fixture without one has nothing to say
+        if (pendulum is null)
+        {
+            return;   // a fixture without one has nothing to say
+        }
 
         ObjectState thing = world.SpawnObject(
             db, pendulum.ObjectId, Keeper, (7 * world.Width) + 7);

@@ -30,8 +30,13 @@ public sealed class CasinoPartyMusicTests
     {
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 3; y++)
+        {
             for (int x = 1; x <= 3; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Casino), Keeper);
+            }
+        }
+
         RoomInstance room = RoomIndex.Build(world, db).Single(r => r.Definition.TypeId == RoomTypeId.Casino);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(1, 1));
         goblin.CurrentJob = JobType.Drink;

@@ -33,8 +33,13 @@ public class DroppedToDoJobTests
     {
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, (byte)1, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 3; y++)
-        for (int x = 1; x <= 3; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Workshop), Keeper);
+        {
+            for (int x = 1; x <= 3; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Workshop), Keeper);
+            }
+        }
+
         for (int x = 4; x <= 8; x++)
         {
             world.Tile(x, 2).TerrainId = Dk2TerrainFixture.ClaimedPath;
@@ -62,7 +67,10 @@ public class DroppedToDoJobTests
         sim.Tick(InputFrame.Of(new DropCommand(Keeper, Bench)));
         sim.Tick();
         Assert.Equal(255, creature.Dk2StateId);
-        for (int t = 0; t < 400 && creature.Dk2StateId is 255 or 257; t++) sim.Tick();
+        for (int t = 0; t < 400 && creature.Dk2StateId is 255 or 257; t++)
+        {
+            sim.Tick();
+        }
     }
 
     [Fact]
@@ -110,7 +118,10 @@ public class DroppedToDoJobTests
             sim.Tick();
             Assert.Equal(0, world.Player(Keeper).ManufacturePoints);
             Assert.InRange(world.Player(Keeper).ManufacturingCreatures, 0, 1);
-            if (idler.CurrentJob == JobType.None) idleTurns++;
+            if (idler.CurrentJob == JobType.None)
+            {
+                idleTurns++;
+            }
         }
 
         Assert.Contains(sink.Events, e => e.Kind == "dropped_to_job");
@@ -135,8 +146,13 @@ public class DroppedToDoJobTests
         }).ForLevel(level);
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, (byte)1, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 3; y++)
-        for (int x = 1; x <= 3; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Library), Keeper);
+        {
+            for (int x = 1; x <= 3; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Library), Keeper);
+            }
+        }
+
         world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, Dk2TerrainFixture.CreateImpSpellId, 3));
         world.Player(Keeper).ResearchTarget = 1;
         Dk2TerrainFixture.FurnishRooms(db, world);

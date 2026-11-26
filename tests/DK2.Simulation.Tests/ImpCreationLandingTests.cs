@@ -145,7 +145,10 @@ public class ImpCreationLandingTests
         CreatureState imp = sim.World.Creatures[^1];
         Assert.Equal((ImpCreationRules.FallingState, ImpCreationRules.BirthHeightAboveFloor), (imp.Dk2StateId, imp.PosZ));
         Assert.Equal((CreatureState.CentreOf(imp.Tile.X), CreatureState.CentreOf(imp.Tile.Y)), (imp.PosX, imp.PosY));
-        if (tileCast) Assert.Equal(new TilePos(2, 3), imp.Tile);
+        if (tileCast)
+        {
+            Assert.Equal(new TilePos(2, 3), imp.Tile);
+        }
     }
 
     [Theory]

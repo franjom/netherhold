@@ -21,8 +21,13 @@ public sealed class TrapShotTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         world.Player(Keeper).Mana = 1000;
         return (db, world);
     }
@@ -59,7 +64,11 @@ public sealed class TrapShotTests
         Place(db, world, Dk2TerrainFixture.AlarmTrapId, 5, 5);
         Enemy(db, world, 7, 5);
         GameSimulation sim = Sim(db, world, new ListEventSink());
-        for (int i = 0; i < 10 && world.Shots.Count == 0; i++) sim.Tick();
+        for (int i = 0; i < 10 && world.Shots.Count == 0; i++)
+        {
+            sim.Tick();
+        }
+
         ShotState shot = Assert.Single(world.Shots);
         Assert.Equal(0, shot.Age);
         sim.Tick();
@@ -137,6 +146,8 @@ public sealed class TrapShotTests
     {
         GameDatabase db = Dk2TerrainFixture.Database();
         foreach (byte id in new[] { Dk2TerrainFixture.AlarmTrapId, Dk2TerrainFixture.FearTrapId, Dk2TerrainFixture.SpikeTrapId, Dk2TerrainFixture.GasTrapId })
+        {
             Assert.True(TrapRules.FiringBuilt(db, db.Traps[id]), db.Traps[id].Name);
+        }
     }
 }

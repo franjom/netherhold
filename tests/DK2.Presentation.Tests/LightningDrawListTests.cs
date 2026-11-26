@@ -36,9 +36,16 @@ public class LightningDrawListTests
                     {
                         var ribbon = LightningRibbon.Build(path.Nodes);
                         int offset = vertices.Count;
-                        foreach (Vector3 vertex in ribbon.Vertices) vertices.Add(Transform(vertex, camera));
+                        foreach (Vector3 vertex in ribbon.Vertices)
+                        {
+                            vertices.Add(Transform(vertex, camera));
+                        }
+
                         uvs.AddRange(ribbon.Uvs);
-                        foreach (int index in ribbon.Triangles) indices.Add(offset + index);
+                        foreach (int index in ribbon.Triangles)
+                        {
+                            indices.Add(offset + index);
+                        }
                     }
                 }
                 draws.BeginFrame(view, camera);

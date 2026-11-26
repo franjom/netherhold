@@ -25,8 +25,15 @@ public class SimMatrixTests
         foreach (ISimulationSystem system in SimulationSystems.Default())
         {
             expected.Add(Name(system));
-            if (system is CreatureUpdateSystem creatures) expected.AddRange(creatures.Steps.Select(Name));
-            if (system is RoomTickSystem rooms) expected.AddRange(rooms.Steps.Select(Name));
+            if (system is CreatureUpdateSystem creatures)
+            {
+                expected.AddRange(creatures.Steps.Select(Name));
+            }
+
+            if (system is RoomTickSystem rooms)
+            {
+                expected.AddRange(rooms.Steps.Select(Name));
+            }
         }
 
         string[] rows = Repository.Value.Rows.Select(r => r.Row.Type.ToDisplayString()).ToArray();

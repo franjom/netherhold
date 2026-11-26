@@ -61,17 +61,30 @@ public sealed class ImpSelectionCapTests
         var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
             {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
                 world.Tile(x, y).OwnerPlayerId = x < 8 ? Keeper : Rival;
             }
+        }
+
         var imps = new CreatureState[6];
         for (int i = 0; i < imps.Length; i++)
+        {
             imps[i] = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2 + i % 3, 2 + i / 3));
-        if (dropped >= 0) imps[dropped].JustDropped = true;
+        }
+
+        if (dropped >= 0)
+        {
+            imps[dropped].JustDropped = true;
+        }
+
         for (int i = 0; i < rivals; i++)
+        {
             world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Rival, new TilePos(10 + i % 2, 2 + i / 2));
+        }
+
         var sim = new GameSimulation(db, world, 11, [new ImpTaskSystem()]);
         var sink = new ListEventSink();
         sim.ObserveWith(sink);

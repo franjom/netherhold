@@ -33,7 +33,10 @@ public class TrapsFireOnRealDataTests(ITestOutputHelper output)
             string level = Path.GetFileName(file)[..^"Things.kld".Length];
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
             List<ThingRecord>? things = GameDatabaseLoader.LoadCampaignThings(install, level);
-            if (map is null || things is null || !things.OfType<TrapThing>().Any()) continue;
+            if (map is null || things is null || !things.OfType<TrapThing>().Any())
+            {
+                continue;
+            }
 
             var world = WorldState.FromMap(
                 db, map, [PlayerIds.Unowned, PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper,
@@ -46,8 +49,16 @@ public class TrapsFireOnRealDataTests(ITestOutputHelper output)
                 traps++;
                 TrapDef def = db.Traps[trap.TrapId];
                 bool firing = TrapRules.FiringBuilt(db, def);
-                if (firing) built++;
-                if (!trap.UnderConstruction) completed++;
+                if (firing)
+                {
+                    built++;
+                }
+
+                if (!trap.UnderConstruction)
+                {
+                    completed++;
+                }
+
                 string key = $"{def.Name}{(firing ? "" : " (not built)")}";
                 byType[key] = byType.GetValueOrDefault(key) + 1;
                 Assert.Equal(def.Health, trap.Health);
@@ -60,16 +71,28 @@ public class TrapsFireOnRealDataTests(ITestOutputHelper output)
                         && Math.Abs(t.X - trap.X) + Math.Abs(t.Y - trap.Y) == 1);
                 Assert.True(trap.UnderConstruction || trap.TriggerCount == expected, $"{level} ({trap.X},{trap.Y}) {def.Name}");
                 if ((def.Flags & TrapRules.GuardPostBranch) != 0)
+                {
                     guardPosts.Add($"{level} ({trap.X},{trap.Y}) p{trap.PlayerId} room {(trap.GuardRoomTile < 0 ? "none" : $"({trap.GuardRoomTile % world.Width},{trap.GuardRoomTile / world.Width})")}");
-                if (trap.TriggerCount != 0) triggerNeighbours.Add($"{level} ({trap.X},{trap.Y}) {def.Name} x{trap.TriggerCount}");
+                }
+
+                if (trap.TriggerCount != 0)
+                {
+                    triggerNeighbours.Add($"{level} ({trap.X},{trap.Y}) {def.Name} x{trap.TriggerCount}");
+                }
 
                 if (world.Tile(trap.X, trap.Y).OwnerPlayerId != trap.PlayerId)
+                {
                     ownerKills.Add($"{level} ({trap.X},{trap.Y}) {def.Name} p{trap.PlayerId} tile p{world.Tile(trap.X, trap.Y).OwnerPlayerId}");
+                }
             }
         }
 
         output.WriteLine($"levels {levels}, traps {traps}, firing built {built}, completed {completed}");
-        foreach (KeyValuePair<string, int> pair in byType) output.WriteLine($"  {pair.Key}: {pair.Value}");
+        foreach (KeyValuePair<string, int> pair in byType)
+        {
+            output.WriteLine($"  {pair.Key}: {pair.Value}");
+        }
+
         output.WriteLine($"beside a Trigger {triggerNeighbours.Count}: {string.Join("; ", triggerNeighbours.Take(40))}");
         output.WriteLine($"guard posts: {string.Join("; ", guardPosts)}");
         output.WriteLine($"owner kills {ownerKills.Count}: {string.Join("; ", ownerKills.Take(40))}");

@@ -17,7 +17,11 @@ public class RewardTabletTests
         tablet.DrawFrame(0, [], random);
         Assert.Equal(0.75f / 32, tablet.Scale, 6);                 // 1/32 of the gap
         Assert.Equal(0, tablet.Angle);
-        for (int i = 1; i < 32; i++) tablet.DrawFrame(0, [], random);
+        for (int i = 1; i < 32; i++)
+        {
+            tablet.DrawFrame(0, [], random);
+        }
+
         Assert.Equal(31 * 64, tablet.Angle);                        // frame 31: 1984 of 2048
         Assert.Equal(0.75f, tablet.Scale, 5);
         tablet.DrawFrame(0, [], random);
@@ -33,7 +37,11 @@ public class RewardTabletTests
         var tablet = new RewardTablet();
         tablet.Restart();
         var random = new Random(1);
-        for (int i = 0; i < 35; i++) tablet.DrawFrame(1000, [], random);
+        for (int i = 0; i < 35; i++)
+        {
+            tablet.DrawFrame(1000, [], random);
+        }
+
         Assert.False(tablet.Done);                                  // frame 35 arms the hold at 3000
         tablet.DrawFrame(2999, [], random);
         Assert.False(tablet.Done);
@@ -59,13 +67,25 @@ public class RewardTabletTests
             Assert.InRange(s.VelocityX, -2f, 2f);
             Assert.InRange(s.VelocityY, -2f, 2f);
         }
-        for (int i = 1; i < 32; i++) tablet.DrawFrame(0, points, random);
-        for (int i = 0; i < 4; i++) tablet.DrawFrame(10_000 + i * 5_000, points, random);
+        for (int i = 1; i < 32; i++)
+        {
+            tablet.DrawFrame(0, points, random);
+        }
+
+        for (int i = 0; i < 4; i++)
+        {
+            tablet.DrawFrame(10_000 + i * 5_000, points, random);
+        }
+
         Assert.Equal(36, tablet.Frame);
         Assert.NotEqual(0, tablet.Sparkles.Length);                 // frame 31's still live:
         Assert.False(tablet.Done);                                  // no hold is armed, however late
         double now = 30_000;
-        while (tablet.Sparkles.Length != 0) tablet.DrawFrame(now, points, random);
+        while (tablet.Sparkles.Length != 0)
+        {
+            tablet.DrawFrame(now, points, random);
+        }
+
         Assert.False(tablet.Done);                                  // the last one gone arms the hold
         tablet.DrawFrame(now + 1_999, points, random);
         Assert.False(tablet.Done);

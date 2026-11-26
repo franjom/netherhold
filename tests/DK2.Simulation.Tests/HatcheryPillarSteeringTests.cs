@@ -25,8 +25,13 @@ public class HatcheryPillarSteeringTests
             basis.Variables, objects: basis.Objects.Values.Append(pillar).Append(substitute));
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 1; y <= 3; y++)
-        for (int x = 1; x <= roomWidth; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Hatchery), PlayerIds.FirstKeeper);
+        {
+            for (int x = 1; x <= roomWidth; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Hatchery), PlayerIds.FirstKeeper);
+            }
+        }
+
         return (db, world, new WorldSteering(db, world));
     }
 
@@ -73,7 +78,11 @@ public class HatcheryPillarSteeringTests
         (GameDatabase? db, WorldState? world, WorldSteering? steering) = Setup();
         ObjectState substitute = world.SpawnObject(db, 200, PlayerIds.FirstKeeper, world.Width + 1);
         substitute.InHand = held;
-        if (carried) substitute.CarriedByCreatureId = 17;
+        if (carried)
+        {
+            substitute.CarriedByCreatureId = 17;
+        }
+
         Assert.Equal(expected ? 1 : 0, Query(steering, 1, 1).Count);
     }
 

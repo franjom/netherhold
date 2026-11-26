@@ -61,7 +61,11 @@ public static class StateGraph
                 Assert.True(a.Equals(b), $"{path}: {a} against {b}");
                 return;
             }
-            if (a is Delegate) return;
+            if (a is Delegate)
+            {
+                return;
+            }
+
             if (type.IsValueType)
             {
                 VisitFields(a, b, type, path);
@@ -71,13 +75,21 @@ public static class StateGraph
             {
                 Assert.Fail($"{path}: the copy shares the original's {type.Name}");
             }
-            if (!_seen.Add((a, b))) return;
+            if (!_seen.Add((a, b)))
+            {
+                return;
+            }
+
             switch (a)
             {
                 case Array arrayA:
                     var arrayB = (Array)b;
                     Assert.True(arrayA.Length == arrayB.Length, $"{path}: {arrayA.Length} elements against {arrayB.Length}");
-                    for (int i = 0; i < arrayA.Length; i++) Visit(arrayA.GetValue(i), arrayB.GetValue(i), $"{path}[{i}]");
+                    for (int i = 0; i < arrayA.Length; i++)
+                    {
+                        Visit(arrayA.GetValue(i), arrayB.GetValue(i), $"{path}[{i}]");
+                    }
+
                     return;
                 case IDictionary dictionaryA:
                     var dictionaryB = (IDictionary)b;
@@ -92,7 +104,11 @@ public static class StateGraph
                     object[] itemsA = [.. enumerableA.Cast<object>()];
                     object[] itemsB = [.. ((IEnumerable)b).Cast<object>()];
                     Assert.True(itemsA.Length == itemsB.Length, $"{path}: {itemsA.Length} items against {itemsB.Length}");
-                    for (int i = 0; i < itemsA.Length; i++) Visit(itemsA[i], itemsB[i], $"{path}[{i}]");
+                    for (int i = 0; i < itemsA.Length; i++)
+                    {
+                        Visit(itemsA[i], itemsB[i], $"{path}[{i}]");
+                    }
+
                     return;
                 default:
                     VisitFields(a, b, type, path);
@@ -107,7 +123,11 @@ public static class StateGraph
                 foreach (FieldInfo field in t.GetFields(Instance | BindingFlags.DeclaredOnly))
                 {
                     string name = MemberName(field);
-                    if (ignored.Contains(name)) continue;
+                    if (ignored.Contains(name))
+                    {
+                        continue;
+                    }
+
                     object? valueA = field.GetValue(a), valueB = field.GetValue(b);
                     string here = $"{path}.{name}";
                     if (name == "LinkWorld")
@@ -116,8 +136,16 @@ public static class StateGraph
                             $"{here}: each thing links its own world");
                         continue;
                     }
-                    if (shared.Contains(name) && (ReferenceEquals(valueA, valueB) || field.FieldType.IsValueType)) continue;
-                    if (valueA is Array { Length: 0 } && ReferenceEquals(valueA, valueB)) continue;
+                    if (shared.Contains(name) && (ReferenceEquals(valueA, valueB) || field.FieldType.IsValueType))
+                    {
+                        continue;
+                    }
+
+                    if (valueA is Array { Length: 0 } && ReferenceEquals(valueA, valueB))
+                    {
+                        continue;
+                    }
+
                     Visit(valueA, valueB, here);
                 }
             }
@@ -127,7 +155,10 @@ public static class StateGraph
         {
             string name = field.Name;
             if (name.StartsWith('<') && name.EndsWith(">k__BackingField", StringComparison.Ordinal))
+            {
                 return name[1..name.IndexOf('>')];
+            }
+
             return name;
         }
     }

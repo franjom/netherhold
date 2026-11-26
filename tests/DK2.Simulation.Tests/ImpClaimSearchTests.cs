@@ -23,7 +23,11 @@ public class ImpClaimSearchTests
         GameDatabase database = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
-        if (impAt is TilePos at) world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, at);
+        if (impAt is TilePos at)
+        {
+            world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, at);
+        }
+
         var sim = new GameSimulation(database, world, 99, Dk2TerrainFixture.DefaultSystems());
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
@@ -40,7 +44,11 @@ public class ImpClaimSearchTests
 
     private static SimEvent FirstJob(ListEventSink events, GameSimulation sim)
     {
-        for (int i = 0; i < 4 && !events.Events.Any(e => e.Kind == "job_taken"); i++) sim.Tick(InputFrame.Empty);
+        for (int i = 0; i < 4 && !events.Events.Any(e => e.Kind == "job_taken"); i++)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
+
         return events.Events.First(e => e.Kind == "job_taken");
     }
 
@@ -84,12 +92,20 @@ public class ImpClaimSearchTests
     {
         (GameSimulation sim, ListEventSink events) = Start(null);
         for (int y = 1; y <= 3; y++)
+        {
             for (int x = 1; x <= 3; x++)
+            {
                 Set(sim, x, y, Dk2TerrainFixture.TreasuryTerrain, Keeper);
+            }
+        }
+
         int centre = (2 * sim.World.Width) + 2;
         ObjectState pile = FloorGold.Drop(sim.World, sim.Database, centre, 30000)!;
 
-        for (int i = 0; i < StoreSweepSystem.SweepTurns + 1; i++) sim.Tick(InputFrame.Empty);
+        for (int i = 0; i < StoreSweepSystem.SweepTurns + 1; i++)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
 
         SimEvent swept = Assert.Single(events.Events, e => e.Kind == "swept");
         Assert.Equal(0, (swept.Tick.Value + 1) % StoreSweepSystem.SweepTurns);   // DK2 turn & 0xF == 0

@@ -80,7 +80,10 @@ public sealed class HeartPlatformMovementTests
             long dx = goblin.PosX - CreatureState.CentreOf(6);
             long dy = goblin.PosY - CreatureState.CentreOf(6);
             crossedCore |= dx * dx + dy * dy < (Fp32.One / 2L) * (Fp32.One / 2L);
-            if (!ruined) Assert.False(crossedCore);
+            if (!ruined)
+            {
+                Assert.False(crossedCore);
+            }
         }
         Assert.Equal(new TilePos(10, 6), goblin.Tile);
         Assert.Equal(ruined, crossedCore);
@@ -122,7 +125,11 @@ public sealed class HeartPlatformMovementTests
         Assert.True(steering.TryRoute(goblin, new TilePos(10, 6), MoveOptions.Loose));
         (goblin.Dk2StateId, goblin.UtilityNewState) = (6, 1); // walking (6), resuming idle
         var sim = new GameSimulation(db, world, 5, [new CreatureMovementSystem()]);
-        for (int tick = 0; tick < 400 && goblin.Tile != new TilePos(10, 6); tick++) sim.Tick(InputFrame.Empty);
+        for (int tick = 0; tick < 400 && goblin.Tile != new TilePos(10, 6); tick++)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
+
         Assert.Equal(new TilePos(10, 6), goblin.Tile);
     }
 
@@ -143,7 +150,11 @@ public sealed class HeartPlatformMovementTests
 
         Assert.True(steering.TryRoute(imp, new TilePos(10, 6), MoveOptions.Loose));
         var sim = new GameSimulation(db, world, 5, [new CreatureMovementSystem()]);
-        for (int tick = 0; tick < 400 && imp.Tile != new TilePos(10, 6); tick++) sim.Tick(InputFrame.Empty);
+        for (int tick = 0; tick < 400 && imp.Tile != new TilePos(10, 6); tick++)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
+
         Assert.Equal(new TilePos(10, 6), imp.Tile);
     }
 
@@ -165,7 +176,11 @@ public sealed class HeartPlatformMovementTests
         (goblin.Dk2StateId, goblin.UtilityNewState) = (6, 1); // walking (6), resuming idle
         Assert.Equal(Point(0, 0), goblin.Body.PathTargetPos);
         var sim = new GameSimulation(db, world, 5, [new CreatureMovementSystem()]);
-        for (int tick = 0; tick < 400 && !goblin.Body.PathFinished; tick++) sim.Tick(InputFrame.Empty);
+        for (int tick = 0; tick < 400 && !goblin.Body.PathFinished; tick++)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
+
         Assert.Equal(new TilePos(6, 6), goblin.Tile);
     }
 
@@ -175,14 +190,19 @@ public sealed class HeartPlatformMovementTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
             [(byte)0, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 2; y <= 10; y++)
+        {
             for (int x = 2; x <= 10; x++)
             {
                 ref TileState tile = ref world.Tile(x, y);
                 tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
                 tile.OwnerPlayerId = PlayerIds.FirstKeeper;
                 if (x >= 4 && x <= 8 && y >= 4 && y <= 8)
+                {
                     RoomRules.Place(db, ref tile, db.Room(RoomTypeId.DungeonHeart), PlayerIds.FirstKeeper);
+                }
             }
+        }
+
         var steering = new WorldSteering(db, world);
         steering.Refresh();
         CreatureState goblin = world.SpawnCreature(db, 7, PlayerIds.FirstKeeper, from);

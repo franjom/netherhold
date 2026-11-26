@@ -27,14 +27,20 @@ public class TriggerStateOnRealDataTests
         Assert.True(Directory.Exists(maps), $"'{maps}' is missing from the installation.");
 
         foreach (string file in Directory.EnumerateFiles(maps, "*Triggers.kld").OrderBy(f => f))
+        {
             yield return Path.GetFileName(file)[..^"Triggers.kld".Length];
+        }
     }
 
     private static IEnumerable<TriggerRecord> AllTriggers(string install)
     {
         foreach (string level in LevelNames(install))
+        {
             foreach (TriggerRecord record in GameDatabaseLoader.LoadCampaignTriggers(install, level) ?? [])
+            {
                 yield return record;
+            }
+        }
     }
 
     /// <summary>
@@ -60,7 +66,10 @@ public class TriggerStateOnRealDataTests
 
         foreach (TriggerRecord record in AllTriggers(install))
         {
-            if (record.Parameters.TryGetValue("FlagId", out long flag)) flagIds.Add(flag);
+            if (record.Parameters.TryGetValue("FlagId", out long flag))
+            {
+                flagIds.Add(flag);
+            }
 
             // WHICH BYTE IS THE TIMER INDEX MATTERS, and the external names had
             // it on the wrong one. The condition's index is byte 01 - which the
@@ -72,15 +81,21 @@ public class TriggerStateOnRealDataTests
             // FLAG mode is used - exactly once, see below.)
             if (record.Tag == 213 && record.Type == 2
                 && record.Parameters.TryGetValue("TimerId", out long tested))
+            {
                 testedTimers.Add(tested);
+            }
 
             if (record.Tag == 214 && record.Type == 8
                 && record.Parameters.TryGetValue("TimerId", out long started))
+            {
                 startedTimers.Add(started);
+            }
 
             if (record.Tag == 214 && record.Type == 23
                 && record.Parameters.TryGetValue("TimerId", out long set))
+            {
                 type23Timers.Add(set);
+            }
         }
 
         Assert.NotEmpty(flagIds);
@@ -136,10 +151,21 @@ public class TriggerStateOnRealDataTests
 
         foreach (TriggerRecord record in AllTriggers(install))
         {
-            if (record.Tag != 213 || record.Type != 1) continue;
+            if (record.Tag != 213 || record.Type != 1)
+            {
+                continue;
+            }
+
             records++;
-            if (record.Parameters.TryGetValue("FlagId", out long f)) read.Add(f);
-            if (record.Parameters.TryGetValue("IndirectFlagId", out long i)) indirect.Add(i);
+            if (record.Parameters.TryGetValue("FlagId", out long f))
+            {
+                read.Add(f);
+            }
+
+            if (record.Parameters.TryGetValue("IndirectFlagId", out long i))
+            {
+                indirect.Add(i);
+            }
         }
 
         Assert.Equal(1375, records);
@@ -188,9 +214,20 @@ public class TriggerStateOnRealDataTests
             foreach (TriggerRecord record in
                      GameDatabaseLoader.LoadCampaignTriggers(install, level) ?? [])
             {
-                if (record.Tag != 213 || record.Type != 1) continue;
-                if (!record.Parameters.TryGetValue("Flag", out long mode)) continue;
-                if ((mode & 1) == 0) indirectRecords.Add((level, record));
+                if (record.Tag != 213 || record.Type != 1)
+                {
+                    continue;
+                }
+
+                if (!record.Parameters.TryGetValue("Flag", out long mode))
+                {
+                    continue;
+                }
+
+                if ((mode & 1) == 0)
+                {
+                    indirectRecords.Add((level, record));
+                }
             }
         }
 
@@ -224,7 +261,9 @@ public class TriggerStateOnRealDataTests
         {
             total++;
             if (record.Parameters.ContainsKey("FlagId") || record.Parameters.ContainsKey("TimerId"))
+            {
                 flagOrTimer++;
+            }
         }
 
         Assert.Equal(9161, total);
@@ -245,12 +284,18 @@ public class TriggerStateOnRealDataTests
 
         var codes = new SortedSet<long>();
         foreach (TriggerRecord record in AllTriggers(install))
+        {
             if (record.Parameters.TryGetValue("Comparison", out long code))
+            {
                 codes.Add(code);
+            }
+        }
 
         Assert.NotEmpty(codes);
         foreach (long code in codes)
+        {
             Assert.InRange(code, 1, 6);
+        }
 
         // Every code the campaign actually uses, exercised against the mapping
         // rather than only range-checked. `Compare(code, 1, 2) || true` was
@@ -266,7 +311,9 @@ public class TriggerStateOnRealDataTests
         };
 
         foreach (long code in codes)
+        {
             Assert.Equal(expected[code], TriggerState.Compare((byte)code, 1, 2));
+        }
     }
 
     [InstallFact]
@@ -278,7 +325,10 @@ public class TriggerStateOnRealDataTests
 
         foreach (TriggerRecord record in AllTriggers(install))
         {
-            if (record.Tag != 213 || record.Type is not (1 or 2)) continue;
+            if (record.Tag != 213 || record.Type is not (1 or 2))
+            {
+                continue;
+            }
 
             TriggerConditionResult result =
                 TriggerConditionEvaluator.Evaluate(record, state, currentTick: 1);

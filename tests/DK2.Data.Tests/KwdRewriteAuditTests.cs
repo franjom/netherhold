@@ -97,7 +97,11 @@ public class KwdRewriteAuditTests
                 Assert.Equal(File.ReadAllBytes(Path.Combine(input,file.RelativePath)),File.ReadAllBytes(Path.Combine(output,file.RelativePath)));
             }
         }
-        finally { if(Directory.Exists(output)) Directory.Delete(output,true); }
+        finally { if(Directory.Exists(output))
+            {
+                Directory.Delete(output,true);
+            }
+        }
     }
 
     [Theory]
@@ -120,7 +124,11 @@ public class KwdRewriteAuditTests
                 Directory.CreateDirectory(output); File.WriteAllBytes(Path.Combine(output,"extra.kwd"),bytes);
                 DirectoryAlias(Path.Combine(input,"linked"),output);
             }
-            else DirectoryAlias(alias,input);
+            else
+            {
+                DirectoryAlias(alias,input);
+            }
+
             string sourceArgument=mode==2 ? alias : mode==4 ? Path.Combine(alias,"doors.kwd") : input;
             string outputArgument=mode==0 ? alias : mode==1 ? Path.Combine(alias,"child") : output;
             Assert.Throws<InvalidDataException>(()=>KwdRewriteAudit.Run(sourceArgument,outputArgument));
@@ -132,7 +140,11 @@ public class KwdRewriteAuditTests
         finally
         {
             string link=mode==3 ? Path.Combine(root,"input","linked") : Path.Combine(root,"alias");
-            if(Directory.Exists(link)) Directory.Delete(link);
+            if(Directory.Exists(link))
+            {
+                Directory.Delete(link);
+            }
+
             Directory.Delete(root,true);
         }
     }

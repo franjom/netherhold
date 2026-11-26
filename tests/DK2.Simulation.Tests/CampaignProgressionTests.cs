@@ -28,7 +28,10 @@ public class CampaignProgressionTests
         {
             CampaignProfile branch = CampaignProgression.CompleteMap(new CampaignProfile(), new CampaignSlot(winner));
             Assert.Equal(CampaignLevelStatus.Open, branch.PlayerLevelStatus[next - 1]);
-            foreach (int sibling in siblings) Assert.Equal(CampaignLevelStatus.ClosedBranch, branch.PlayerLevelStatus[sibling - 1]);
+            foreach (int sibling in siblings)
+            {
+                Assert.Equal(CampaignLevelStatus.ClosedBranch, branch.PlayerLevelStatus[sibling - 1]);
+            }
         }
     }
 
@@ -93,7 +96,11 @@ public class CampaignProgressionTests
     public void HiddenLandSpecialUsesTheNativeCampaignSlotsAndNeverUnlocksMoonSecret()
     {
         var profile = new CampaignProfile();
-        foreach (int slot in new[] { 5, 8, 11, 16 }) profile = CampaignProgression.LocateHiddenLand(profile, new CampaignSlot(slot));
+        foreach (int slot in new[] { 5, 8, 11, 16 })
+        {
+            profile = CampaignProgression.LocateHiddenLand(profile, new CampaignSlot(slot));
+        }
+
         Assert.All(profile.SecretLevels.Take(4), n => Assert.Equal(1u, n));
         Assert.All(profile.SecretLevels.Skip(4), n => Assert.Equal(0u, n));
         Assert.Same(profile, CampaignProgression.LocateHiddenLand(profile, new CampaignSlot(6)));

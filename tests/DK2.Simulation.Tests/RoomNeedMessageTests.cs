@@ -25,7 +25,10 @@ public class RoomNeedMessageTests
     {
         List<AvailabilityState> rows = world.Player(Keeper).Availabilities;
         rows.RemoveAll(a => a.Kind == AvailabilityKind.Room && a.TypeId == (int)room);
-        if (value != 1) rows.Add(new AvailabilityState(AvailabilityKind.Room, (int)room, value));
+        if (value != 1)
+        {
+            rows.Add(new AvailabilityState(AvailabilityKind.Room, (int)room, value));
+        }
     }
 
     private static void Room(WorldState world, RoomTypeId room, int x, int y, int gold = 0)
@@ -232,8 +235,7 @@ public class RoomNeedMessageTests
         PlayerMessage? posted = null;
         var sim = new GameSimulation(Db, world, 1, [new Probe(c =>
         {
-            if (c.Tick.Value == ticksBefore) posted = RoomNeedRules.NoLairFor(c, goblin, definition);
-        })]);
+            if (c.Tick.Value == ticksBefore) { posted = RoomNeedRules.NoLairFor(c, goblin, definition); } })]);
         sim.Run(ticksBefore + 1);
         return posted;
     }
@@ -298,8 +300,7 @@ public class RoomNeedMessageTests
         PlayerMessage? posted = null;
         var sim = new GameSimulation(Db, world, 1, [new Probe(c =>
         {
-            if (c.Tick.Value == ticksBefore) posted = RoomNeedRules.NoHatcheryFor(c, goblin, definition);
-        })]);
+            if (c.Tick.Value == ticksBefore) { posted = RoomNeedRules.NoHatcheryFor(c, goblin, definition); } })]);
         sim.Run(ticksBefore + 1);
         return posted;
     }
@@ -432,8 +433,7 @@ public class RoomNeedMessageTests
         Room(world, RoomTypeId.Lair, 1, 1);
         var sim = new GameSimulation(Db, world, 1, [new Probe(c =>
         {
-            if (c.Tick.Value != 7) return;
-            ref TileState tile = ref c.World.Tile(2, 1);
+            if (c.Tick.Value != 7) { return; } ref TileState tile = ref c.World.Tile(2, 1);
             byte terrain = tile.TerrainId, owner = tile.OwnerPlayerId;
             RoomRules.Place(Db, ref tile, Db.Room(RoomTypeId.Lair), Keeper);
             SlabChain.Changed(c.World, Db, (1 * c.World.Width) + 2, terrain, owner);

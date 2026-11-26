@@ -22,12 +22,15 @@ public class ClaimFailureMessageTests
     {
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(width: 20), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 8; y++)
+        {
             for (int x = 1; x <= 12; x++)
             {
                 ref TileState tile = ref world.Tile(x, y);
                 tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
                 tile.OwnerPlayerId = Keeper;
             }
+        }
+
         ref TileState treasury = ref world.Tile(12, 8);
         treasury.TerrainId = Dk2TerrainFixture.TreasuryTerrain;
         treasury.GoldHeld = 100_000;
@@ -37,8 +40,12 @@ public class ClaimFailureMessageTests
     private static void Room(GameDatabase db, WorldState world, RoomTypeId type, int x0, int y0)
     {
         for (int y = y0; y < y0 + 3; y++)
+        {
             for (int x = x0; x < x0 + 3; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(type), Keeper);
+            }
+        }
     }
 
     private static int TrainState => JobRules.StateFor(JobType.Train)!.Value;
@@ -96,7 +103,10 @@ public class ClaimFailureMessageTests
 
         public void Execute(SimulationContext context)
         {
-            foreach (CreatureState creature in creatures) CreatureStateMachine.TrySetState(context.Hooks, creature, TrainState);
+            foreach (CreatureState creature in creatures)
+            {
+                CreatureStateMachine.TrySetState(context.Hooks, creature, TrainState);
+            }
         }
     }
 

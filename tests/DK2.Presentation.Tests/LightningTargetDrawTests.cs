@@ -35,13 +35,23 @@ public sealed class LightningTargetDrawTests
             {
                 var ribbon = LightningRibbon.Build(path.Nodes);
                 int offset = expectedVertices.Count;
-                foreach (Vector3 vertex in ribbon.Vertices) expectedVertices.Add(Transform(vertex, camera));
+                foreach (Vector3 vertex in ribbon.Vertices)
+                {
+                    expectedVertices.Add(Transform(vertex, camera));
+                }
+
                 expectedUvs.AddRange(ribbon.Uvs);
-                foreach (int index in ribbon.Triangles) expectedIndices.Add(offset + index);
+                foreach (int index in ribbon.Triangles)
+                {
+                    expectedIndices.Add(offset + index);
+                }
             }
         }
         foreach (LightningSegment pair in originalPairs.Choose(controls))
+        {
             Append(pair.Start, pair.End, LightningAmplitude.Creature, viewA, cameraA);
+        }
+
         Assert.NotEmpty(expectedVertices);
         LightningDrawList draws = f.Draws(seed);
         draws.BeginFrame(viewA, cameraA);
@@ -84,11 +94,16 @@ public sealed class LightningTargetDrawTests
     {
         var f = new Fixture();
         FpPosition3 end = f.Target(kind);
-        if (kind == FightTargetKind.Body) f.Victim.Dk2StateId = CreatureStateMachine.NoState;
+        if (kind == FightTargetKind.Body)
+        {
+            f.Victim.Dk2StateId = CreatureStateMachine.NoState;
+        }
+
         f.Caster.LastPosX = f.Caster.PosX - 3073;
         f.Caster.LastPosY = f.Caster.PosY + 1537;
         foreach (float fraction in new[] { -.5f, 0, .25f, .75f, 1, 2 })
-        for (uint seed = 0; seed < 32; seed++)
+        {
+            for (uint seed = 0; seed < 32; seed++)
         {
                 LightningDrawList draws = f.Draws(seed);
             draws.BeginFrame(Matrix4x4.Identity, Matrix4x4.Identity);
@@ -98,6 +113,7 @@ public sealed class LightningTargetDrawTests
                 new((int)(f.Caster.LastPosX + (f.Caster.PosX - f.Caster.LastPosX) * clamped)),
                 new((int)(f.Caster.LastPosY + (f.Caster.PosY - f.Caster.LastPosY) * clamped)), f.Shot.ViewPosition.Z);
             EqualOriginal(draws, seed, start, end);
+        }
         }
     }
     [Theory]
@@ -262,12 +278,15 @@ public sealed class LightningTargetDrawTests
         for (int order = 0; order < 3; order++)
         {
             for (int i = 0; i < room.TileIndices.Count; i++)
+            {
                 f.World.TileAtIndex(room.TileIndices[i]).SlabOrder = order switch
                 {
                     0 => 0,
                     1 => room.TileIndices.Count - i,
                     _ => i % 4,
                 };
+            }
+
             int found = 0;
             for (int id = -1; id <= f.World.TileCount * 3; id++)
             {
@@ -279,7 +298,10 @@ public sealed class LightningTargetDrawTests
                 draws.DrawShots(f.World, f.Database, f.View, 1);
                 bool valid = HeartPillarRules.TryResolve(f.World, f.Database, PressFixture.Keeper,
                     new(id), out HeartPillarTarget pillar);
-                if (!valid) Assert.Empty(draws.Vertices);
+                if (!valid)
+                {
+                    Assert.Empty(draws.Vertices);
+                }
                 else
                 {
                     found++;
@@ -312,7 +334,13 @@ public sealed class LightningTargetDrawTests
             case 4: f.World.TileAtIndex(tile).OwnerPlayerId = PlayerIds.Neutral; break;
             case 5:
                 for (int i = 0; i < f.World.TileCount; i++)
-                    if (i != tile) f.World.TileAtIndex(i).TerrainId = 0;
+                {
+                    if (i != tile)
+                    {
+                        f.World.TileAtIndex(i).TerrainId = 0;
+                    }
+                }
+
                 break;
         }
         Assert.False(HeartPillarRules.TryResolve(f.World, f.Database, new(f.Shot.TargetPlayerId),
@@ -334,9 +362,17 @@ public sealed class LightningTargetDrawTests
             draws.BeginFrame(Matrix4x4.Identity, Matrix4x4.Identity);
             draws.DrawShots(f.World, f.Database, f.View, .5f);
         }
-        for (int i = 0; i < 4096; i++) Frame();
+        for (int i = 0; i < 4096; i++)
+        {
+            Frame();
+        }
+
         long before = GC.GetAllocatedBytesForCurrentThread();
-        for (int i = 0; i < 256; i++) Frame();
+        for (int i = 0; i < 256; i++)
+        {
+            Frame();
+        }
+
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
         Assert.NotEmpty(draws.Vertices);
         Assert.Equal(0, allocated);
@@ -350,13 +386,19 @@ public sealed class LightningTargetDrawTests
         var bolts = new LightningBolts(seed);
         Vector3 Render(FpPosition3 p) => new(p.X.Raw / 4096f, p.Z.Raw / 4096f, -p.Y.Raw / 4096f);
         for (int b = 0; b < boltCount; b++)
-        foreach (LightningPath path in bolts.Build(Render(start), Render(end)))
+        {
+            foreach (LightningPath path in bolts.Build(Render(start), Render(end)))
         {
             var ribbon = LightningRibbon.Build(path.Nodes);
             int offset = vertices.Count;
             vertices.AddRange(ribbon.Vertices); uvs.AddRange(ribbon.Uvs);
-            foreach (int index in ribbon.Triangles) triangles.Add(offset + index);
+            foreach (int index in ribbon.Triangles)
+                {
+                    triangles.Add(offset + index);
+                }
+            }
         }
+
         Assert.NotEmpty(vertices);
         Assert.Equal(vertices.Count, actual.Vertices.Count);
         for (int i = 0; i < vertices.Count; i++)
@@ -409,7 +451,13 @@ public sealed class LightningTargetDrawTests
                     { Name = "bolt", EffectId = (ushort)(i + 1), ArtResource = Art(i), Light = light, GenerateIds = [], MinHp = 20, MaxHp = 20 }));
             MapTile[] tiles = Enumerable.Repeat(new MapTile(0, 0, 0, 0), 81).ToArray();
             for (int y = 1; y <= 5; y++)
-            for (int x = 1; x <= 5; x++) tiles[y * 9 + x] = new(1, PressFixture.Keeper.Value, 0, 0);
+            {
+                for (int x = 1; x <= 5; x++)
+                {
+                    tiles[y * 9 + x] = new(1, PressFixture.Keeper.Value, 0, 0);
+                }
+            }
+
             World = WorldState.FromMap(Database, new(9, 9, tiles),
                 [PlayerIds.Good, PlayerIds.Neutral, PressFixture.Keeper.Value], fog);
             View = new(Database, PressFixture.Keeper);

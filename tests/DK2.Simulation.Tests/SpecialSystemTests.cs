@@ -65,8 +65,13 @@ public sealed class SpecialSystemTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, PlayerIds.Neutral, keeper]);
         RoomDef heart = db.Room(RoomTypeId.DungeonHeart);
         for (int y = 3; y < 8; y++)
+        {
             for (int x = 3; x < 8; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), heart, keeper);
+            }
+        }
+
         ObjectState special = world.SpawnObject(db, Dk2TerrainFixture.ReceiveImpsSpecialObjectId, PlayerIds.Neutral, 1 + world.Width);
         Assert.True(db.ObjectById(Dk2TerrainFixture.ReceiveImpsSpecialObjectId)!.IsSpecial);
         Assert.Equal(10, db[VariableTypeId.SpecialReceiveImpsAmount]);
@@ -156,8 +161,13 @@ public sealed class SpecialSystemTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, PlayerIds.Neutral, keeper]);
         RoomDef heart = db.Room(RoomTypeId.DungeonHeart);
         for (int y = 3; y < 8; y++)
+        {
             for (int x = 3; x < 8; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), heart, keeper);
+            }
+        }
+
         var sim = new GameSimulation(db, world, 7, [new SpecialSystem()]);
         CreatureState arrived = TransferCreatureRules.Arrive(sim, keeper, Dk2TerrainFixture.GoblinCreatureId, 4)!;
         Assert.Equal(new TilePos(5, 3), arrived.Tile);
@@ -211,7 +221,11 @@ public sealed class SpecialSystemTests
 
         Use(sim, world, db, Dk2TerrainFixture.MakeHappySpecialObjectId);
 
-        for (int b = 0; b < CreatureAnger.Count; b++) Assert.Equal(0, mine.Anger[(AngerBucket)b]);
+        for (int b = 0; b < CreatureAnger.Count; b++)
+        {
+            Assert.Equal(0, mine.Anger[(AngerBucket)b]);
+        }
+
         Assert.Equal(30000, theirs.Anger[AngerBucket.Treatment]);
     }
 
@@ -266,8 +280,13 @@ public sealed class SpecialSystemTests
         (GameDatabase? db, WorldState? world, GameSimulation? sim) = World();
         RoomDef heart = db.Room(RoomTypeId.DungeonHeart);
         for (int y = 3; y < 8; y++)
+        {
             for (int x = 3; x < 8; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), heart, PlayerIds.FirstKeeper);
+            }
+        }
+
         int before = GoldStore.Deposit(world, db, PlayerIds.FirstKeeper, 12000);
         Assert.Equal(12000, before);
         int box = 1 + world.Width;
@@ -276,7 +295,11 @@ public sealed class SpecialSystemTests
         sim.Tick(InputFrame.Of(new ActivateSpecialCommand(PlayerIds.FirstKeeper, special.Id)));
 
         int stored = 0;
-        for (int i = 0; i < world.TileCount; i++) stored += world.TileAtIndex(i).GoldHeld;
+        for (int i = 0; i < world.TileCount; i++)
+        {
+            stored += world.TileAtIndex(i).GoldHeld;
+        }
+
         int floor = world.Objects.Where(o => o.TileIndex == box && o.ObjectTypeId == FloorGold.FloorGoldObjectId).Sum(o => o.GoldHeld);
         Assert.Equal(16000, stored);
         Assert.Equal(6000, floor);
@@ -312,7 +335,9 @@ public sealed class SpecialSystemTests
         world.LocalPlayerId = new PlayerId(PlayerIds.FirstKeeper);
         Use(sim, world, db, Dk2TerrainFixture.RevealMapSpecialObjectId);
         for (int i = 0; i < world.TileCount; i++)
+        {
             Assert.True(world.TileAtIndex(i).IsExploredBy(PlayerIds.FirstKeeper));
+        }
 
         (GameDatabase? db2, WorldState? world2, GameSimulation? sim2) = World();
         world2.LocalPlayerId = new PlayerId(1);
@@ -379,7 +404,9 @@ public sealed class SpecialSystemTests
     {
         (GameDatabase? db, WorldState? world, GameSimulation? sim) = World();
         foreach (byte type in new byte[] { 118, 119, 120, 121, 122, 123, 125, 126, 127, 128 })
+        {
             Use(sim, world, db, type);
+        }
     }
 
     /// <summary>Stun Imps kicks through <c>SetState(209)</c>, whose hand guard (<c>0x00476D30</c>) refuses a

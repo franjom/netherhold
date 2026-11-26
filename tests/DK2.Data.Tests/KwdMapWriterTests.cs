@@ -23,7 +23,13 @@ public class KwdMapWriterTests
             byte[] written = MapGrid.WriteTile(changed[index], new KwdRecordImage(KwdRecordType.Map, source));
             Assert.Equal(changed[index], Read(written));
             Assert.NotEqual(source[index], written[index]);
-            for (int i = 0; i < 4; i++) if (i != index) Assert.Equal(source[i], written[i]);
+            for (int i = 0; i < 4; i++)
+            {
+                if (i != index)
+                {
+                    Assert.Equal(source[i], written[i]);
+                }
+            }
         }
     }
 
@@ -39,7 +45,10 @@ public class KwdMapWriterTests
             List<KwdRecordImage> images = KwdRecordRoundTrip.Split(chunk);
             Assert.Equal(map.Tiles.Count, images.Count);
             for (int i = 0; i < images.Count; i++)
+            {
                 Assert.Equal(images[i].ToBytes(), MapGrid.WriteTile(map.Tiles[i], images[i]));
+            }
+
             files++; tiles += images.Count;
         }
         Assert.Equal(66, files);

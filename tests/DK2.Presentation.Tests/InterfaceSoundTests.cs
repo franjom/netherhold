@@ -320,7 +320,11 @@ public sealed class CampaignMapSoundTests
         FrontEndSession session = Session();
         using CampaignMapController map = AtTheMap(session);
         map.Hover(new CampaignSlot(1));
-        for (int i = 1; i <= 20; i++) session.Update(TimeSpan.FromSeconds(2 + i * .05));
+        for (int i = 1; i <= 20; i++)
+        {
+            session.Update(TimeSpan.FromSeconds(2 + i * .05));
+        }
+
         Assert.Equal(72, map.LandVisual(new CampaignSlot(1)).Lift);
         map.Sounds.Clear();
         map.Hover(CampaignSlot.None);

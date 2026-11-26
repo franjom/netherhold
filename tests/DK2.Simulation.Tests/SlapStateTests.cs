@@ -32,11 +32,13 @@ public class SlapStateTests
     {
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y < 19; y++)
-        for (int x = 1; x < 19; x++)
+        {
+            for (int x = 1; x < 19; x++)
         {
             ref TileState tile = ref world.Tile(x, y);
             tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
             tile.OwnerPlayerId = Keeper;
+        }
         }
 
         return world;
@@ -45,8 +47,12 @@ public class SlapStateTests
     private static void Room(GameDatabase db, WorldState world, RoomTypeId type, int x0, int y0)
     {
         for (int y = y0; y < y0 + 3; y++)
-        for (int x = x0; x < x0 + 3; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(type), Keeper);
+        {
+            for (int x = x0; x < x0 + 3; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(type), Keeper);
+            }
+        }
     }
 
     private static GameSimulation Sim(GameDatabase db, WorldState world, ListEventSink sink)
@@ -60,7 +66,10 @@ public class SlapStateTests
     private static void SitOut(GameSimulation sim, CreatureState creature)
     {
         sim.Tick();   // Age 1: the action starts
-        while (sim.CurrentTick.Value <= creature.ActionUntilTick) sim.Tick();
+        while (sim.CurrentTick.Value <= creature.ActionUntilTick)
+        {
+            sim.Tick();
+        }
     }
 
     [Fact]
@@ -177,7 +186,11 @@ public class SlapStateTests
         bool routed = false;
         var walk = new Probe(context =>
         {
-            if (routed) return;
+            if (routed)
+            {
+                return;
+            }
+
             routed = context.Navigation.TryRoute(goblin, new TilePos(15, 9), Navigation.MoveOptions.Loose);
         });
         var sim = new GameSimulation(db, world, seed: 7, [walk, new HandSystem(), new CreatureStatusSystem(), new CreatureMovementSystem()]);
@@ -186,7 +199,10 @@ public class SlapStateTests
 
         sim.Tick(InputFrame.Of(new SlapCreatureCommand(Keeper, goblin.Id)));
         (int x, int y) = (goblin.PosX, goblin.PosY);
-        for (int i = 0; i < 5; i++) sim.Tick();
+        for (int i = 0; i < 5; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.False(goblin.HasRoute);
         Assert.Equal((x, y), (goblin.PosX, goblin.PosY));

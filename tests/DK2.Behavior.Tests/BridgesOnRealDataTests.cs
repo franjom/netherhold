@@ -36,10 +36,15 @@ public class BridgesOnRealDataTests
     private static IEnumerable<string> LevelNames(string install)
     {
         string maps = Path.Combine(install, "Data", "editor", "maps");
-        if (!Directory.Exists(maps)) yield break;
+        if (!Directory.Exists(maps))
+        {
+            yield break;
+        }
 
         foreach (string file in Directory.EnumerateFiles(maps, "*Map.kld").OrderBy(f => f))
+        {
             yield return Path.GetFileName(file)[..^"Map.kld".Length];
+        }
     }
 
     /// <summary>
@@ -69,7 +74,10 @@ public class BridgesOnRealDataTests
         {
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
             Assert.NotNull(map);
-            if (map is null) continue;
+            if (map is null)
+            {
+                continue;
+            }
 
             for (int y = 0; y < map.Height; y++)
             {
@@ -77,7 +85,10 @@ public class BridgesOnRealDataTests
                 {
                     MapTile tile = map[x, y];
                     RoomDef? room = db.RoomByTerrain(tile.TerrainId);
-                    if (room is null || !BridgeRules.IsBridge(room)) continue;
+                    if (room is null || !BridgeRules.IsBridge(room))
+                    {
+                        continue;
+                    }
 
                     bridgeTiles++;
                     bool spansLava = tile.Flags == BridgeRules.SpansLava;
@@ -85,18 +96,27 @@ public class BridgesOnRealDataTests
                     for (int i = 0; i < 4; i++)
                     {
                         int nx = x + NeighbourDx[i], ny = y + NeighbourDy[i];
-                        if (nx < 0 || ny < 0 || nx >= map.Width || ny >= map.Height) continue;
+                        if (nx < 0 || ny < 0 || nx >= map.Width || ny >= map.Height)
+                        {
+                            continue;
+                        }
 
                         byte beside = map[nx, ny].TerrainId;
                         if (beside == water)
                         {
                             besideWater++;
-                            if (spansLava) crossings.Add($"{level} ({x},{y}) marked lava, beside water");
+                            if (spansLava)
+                            {
+                                crossings.Add($"{level} ({x},{y}) marked lava, beside water");
+                            }
                         }
                         else if (beside == lava)
                         {
                             besideLava++;
-                            if (!spansLava) crossings.Add($"{level} ({x},{y}) marked water, beside lava");
+                            if (!spansLava)
+                            {
+                                crossings.Add($"{level} ({x},{y}) marked water, beside lava");
+                            }
                         }
                     }
                 }
@@ -131,16 +151,24 @@ public class BridgesOnRealDataTests
         {
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
             Assert.NotNull(map);
-            if (map is null) continue;
+            if (map is null)
+            {
+                continue;
+            }
 
             foreach (MapTile tile in map.Tiles)
             {
                 values.Add(tile.Flags);
-                if (tile.Flags != BridgeRules.SpansLava) continue;
+                if (tile.Flags != BridgeRules.SpansLava)
+                {
+                    continue;
+                }
 
                 RoomDef? room = db.RoomByTerrain(tile.TerrainId);
                 if (room is null || !BridgeRules.IsBridge(room))
+                {
                     nonBridgeTwos.Add($"{level} terrain {tile.TerrainId}");
+                }
             }
         }
 
@@ -166,12 +194,18 @@ public class BridgesOnRealDataTests
         {
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
             Assert.NotNull(map);
-            if (map is null) continue;
+            if (map is null)
+            {
+                continue;
+            }
 
             foreach (MapTile source in map.Tiles)
             {
                 RoomDef? room = db.RoomByTerrain(source.TerrainId);
-                if (room is null || !BridgeRules.IsBridge(room)) continue;
+                if (room is null || !BridgeRules.IsBridge(room))
+                {
+                    continue;
+                }
 
                 var tile = new TileState { TerrainId = source.TerrainId, Flags = source.Flags };
                 TerrainDef reverted = db.TerrainById(BridgeRules.RevertsTo(db, tile));

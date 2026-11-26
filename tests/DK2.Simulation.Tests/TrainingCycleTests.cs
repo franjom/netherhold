@@ -64,7 +64,11 @@ public class TrainingCycleTests
         GameDatabase basis = Dk2TerrainFixture.Database();
         var clip = new CreatureAnimationTiming { ResourceType = 6, FrameCount = 8, FramesPerSecond = 8 };
         var slots = new CreatureAnimationTiming[CreatureDef.ArtSlotCount];
-        foreach (int slot in new[] { 1, 5, 6, 20 }) slots[slot] = clip;
+        foreach (int slot in new[] { 1, 5, 6, 20 })
+        {
+            slots[slot] = clip;
+        }
+
         var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values,
             basis.Creatures.Values.Select(c => c.CreatureId == Vampire ? c with
             {
@@ -76,8 +80,13 @@ public class TrainingCycleTests
             creatureSpells: basis.CreatureSpells.Values, shots: basis.Shots.Values);
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 5; y++)
-        for (int x = 1; x <= 5; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.TrainingRoom), Keeper);
+        {
+            for (int x = 1; x <= 5; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.TrainingRoom), Keeper);
+            }
+        }
+
         Dk2TerrainFixture.FurnishRooms(db, world);
         world.Tile(1, 1).GoldHeld = 100_000;
         CreatureState trainee = world.SpawnCreature(db, Vampire, Keeper, new TilePos(3, 3));
@@ -93,7 +102,11 @@ public class TrainingCycleTests
     public void ATrainingDummyOnTheCurrentTileStillRequiresWalkingToItsStandOff()
     {
         (GameDatabase? db, WorldState? world, CreatureState? trainee) = Setup();
-        foreach (ObjectState item in world.Objects.ToArray()) world.RemoveObject(item.Id);
+        foreach (ObjectState item in world.Objects.ToArray())
+        {
+            world.RemoveObject(item.Id);
+        }
+
         world.SpawnObject(db, 14, Keeper, 63);
         var sim = new GameSimulation(db, world, 42, [new CreatureMovementSystem(), new CreatureJobSystem()]);
         sim.Run(2);
@@ -104,7 +117,11 @@ public class TrainingCycleTests
         long dx = (trainee.Body.PathTargetPos.X >> 4) - trainee.StateTargetX;
         long dy = (trainee.Body.PathTargetPos.Y >> 4) - trainee.StateTargetY;
         Assert.InRange(dx * dx + dy * dy, 2045L * 2045, 2049L * 2049);
-        for (int i = 0; i < 100 && trainee.Dk2StateId != 112; i++) sim.Tick();
+        for (int i = 0; i < 100 && trainee.Dk2StateId != 112; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(112, trainee.Dk2StateId);
         Assert.True(Math.Abs(trainee.PosX - trainee.StateTargetX) > 512 || Math.Abs(trainee.PosY - trainee.StateTargetY) > 512);
     }
@@ -133,7 +150,11 @@ public class TrainingCycleTests
     {
         (GameDatabase? db, WorldState? world, CreatureState? trainee) = Setup();
         var sim = new GameSimulation(db, world, 42, [new CreatureMovementSystem(), new CreatureJobSystem()]);
-        for (int i = 0; i < 100 && trainee.Dk2StateId != 112; i++) sim.Tick();
+        for (int i = 0; i < 100 && trainee.Dk2StateId != 112; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(112, trainee.Dk2StateId);
         sim.Tick();
         trainee.PosX += 32;
@@ -146,17 +167,29 @@ public class TrainingCycleTests
     public void TrainingSpellStartsItsCooldownAndLaunchesAfterTheShotDelay()
     {
         (GameDatabase? db, WorldState? world, CreatureState? trainee) = Setup(spell: true);
-        foreach (ObjectState item in world.Objects.ToArray()) world.RemoveObject(item.Id);
+        foreach (ObjectState item in world.Objects.ToArray())
+        {
+            world.RemoveObject(item.Id);
+        }
+
         world.SpawnObject(db, 29, Keeper, 63);
         var sim = new GameSimulation(db, world, 42, [new CreatureMovementSystem(), new CreatureJobSystem()]);
-        for (int i = 0; i < 100 && trainee.TrainingActionId != 31; i++) sim.Tick();
+        for (int i = 0; i < 100 && trainee.TrainingActionId != 31; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(31, trainee.TrainingActionId);
         Assert.Equal(112, trainee.Dk2StateId);
         Assert.Equal(trainee.TrainingActionStartedTick, trainee.SpellStamps[0]);
         Assert.Empty(world.Shots);
         sim.Tick();
         Assert.Empty(world.Shots);
-        for (int i = 0; i < 10 && world.Shots.Count == 0; i++) sim.Tick();
+        for (int i = 0; i < 10 && world.Shots.Count == 0; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Single(world.Shots);
     }
 
@@ -183,7 +216,11 @@ public class TrainingCycleTests
         trainee.TrainingTargetObjectId = target.Id;
         trainee.ActionUntilTick = 100;
         var sim = new GameSimulation(db, world, 42, TrainingPipeline());
-        for (int i = 0; i < 20 && target.ProcessState != 18; i++) sim.Tick();
+        for (int i = 0; i < 20 && target.ProcessState != 18; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(18, target.ProcessState);
         Assert.Equal(1, target.ProcessAgeTicks);
         Assert.Equal(0x200, target.TimerTicks);
@@ -199,7 +236,11 @@ public class TrainingCycleTests
         trainee.TrainingTargetObjectId = target.Id;
         trainee.ActionUntilTick = 100;
         var sim = new GameSimulation(db, world, 42, TrainingPipeline());
-        for (int i = 0; i < 20 && world.Shots.Count == 0; i++) sim.Tick();
+        for (int i = 0; i < 20 && world.Shots.Count == 0; i++)
+        {
+            sim.Tick();
+        }
+
         ShotState shot = Assert.Single(world.Shots);
         Assert.Equal(1, shot.Age);
         Assert.NotEqual((trainee.PosX, trainee.PosY), (shot.PosX, shot.PosY));

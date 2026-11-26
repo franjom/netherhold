@@ -213,7 +213,11 @@ public class ImpsOnRealDataTests
         // The first keeper's imp: level 1's first such edge is on the heroes' land, and a hero's imp
         // runs its standing job rather than the imp tasks (ADR-0216).
         const byte keeper = PlayerIds.FirstKeeper;
-        if (!world.HasPlayer(keeper)) return;
+        if (!world.HasPlayer(keeper))
+        {
+            return;
+        }
+
         (TilePos stand, TilePos rock) = FindDiggableEdge(db, world, keeper)
             ?? throw new InvalidOperationException("level1 has no floor tile adjacent to diggable rock.");
 
@@ -244,7 +248,10 @@ public class ImpsOnRealDataTests
         {
             for (int x = 1; x < world.Width - 1; x++)
             {
-                if (db.TerrainById(world.Tile(x, y).TerrainId).IsSolid) continue;
+                if (db.TerrainById(world.Tile(x, y).TerrainId).IsSolid)
+                {
+                    continue;
+                }
 
                 foreach ((int dx, int dy) in new[] { (0, -1), (-1, 0), (1, 0), (0, 1) })
                 {

@@ -30,7 +30,10 @@ public class PlayerSpellTests
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "level1")!;
         var world = WorldState.FromMap(database, map, map.Tiles.Select(t => t.PlayerId).Append(Keeper.Value).Distinct());
         foreach (byte spell in (byte[])[KeeperSpellRules.Heal, KeeperSpellRules.Thunderbolt, CallToArmsRules.SpellId, BottomPanelView.CreateImpSpellId])
+        {
             world.SetAvailability(Keeper.Value, AvailabilityKind.Spell, spell, 3);
+        }
+
         world.Player(Keeper).Mana = mana;
         int own = Enumerable.Range(0, map.Width * map.Height).First(i =>
             world.Tile(i % map.Width, i / map.Width).OwnerPlayerId == Keeper.Value && database.RoomByTerrain(world.Tile(i % map.Width, i / map.Width).TerrainId) is null

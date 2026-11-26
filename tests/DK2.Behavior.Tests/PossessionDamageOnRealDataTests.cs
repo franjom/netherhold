@@ -36,8 +36,10 @@ public class PossessionDamageOnRealDataTests
         Assert.True(levels.Length >= 60, $"found {levels.Length} level variable files");
 
         foreach (string level in levels)
+        {
             Assert.True(
                 MeleeDamageRules.PossessionIncreasePercent(GameDatabaseLoader.LoadForCampaignLevel(Dk2InstallGate.Path, level)) == 60,
                 level);
+        }
     }
 }

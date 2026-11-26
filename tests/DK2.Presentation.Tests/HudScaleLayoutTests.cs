@@ -32,7 +32,10 @@ public class HudScaleLayoutTests
         var gold = new Vector2(800 * 1440 / 1920f, 64 * 1440 / 1920f);
         Vector2 screen = layout.ToScreenTop(gold, bottomDocked: false);
         Assert.Equal(KeeperResourceKind.Gold, KeeperResourceInteraction.HitTest(layout.ToLocalTop(screen, false), 1440));
-        if (percent != 100) Assert.NotEqual(KeeperResourceKind.Gold, KeeperResourceInteraction.HitTest(layout.ToLocalTop(gold, false), 1440));
+        if (percent != 100)
+        {
+            Assert.NotEqual(KeeperResourceKind.Gold, KeeperResourceInteraction.HitTest(layout.ToLocalTop(gold, false), 1440));
+        }
     }
     [Fact]
     public void RequestedScaleIsRetainedWhileEffectiveScaleFitsTheNativeStrip()

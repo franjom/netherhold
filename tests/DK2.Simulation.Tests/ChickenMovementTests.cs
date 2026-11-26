@@ -16,8 +16,13 @@ public class ChickenMovementTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 1; y <= 3; y++)
+        {
             for (int x = 1; x <= 3; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Hatchery), PlayerIds.FirstKeeper);
+            }
+        }
+
         ObjectState egg = world.SpawnObject(db, HatcheryRules.EggObjectId, PlayerIds.FirstKeeper, 2 * world.Width + 2);
         egg.PosX = egg.PosY = CreatureState.CentreOf(2);
         return (db, world, HatcheryRules.Hatch(world, db, egg));
@@ -199,8 +204,15 @@ public class ChickenMovementTests
     public void AHeldOrCarriedChickenDoesNotRunItsProcess(bool carried)
     {
         (GameDatabase? db, WorldState? world, ObjectState? chicken) = HatchBird();
-        if (carried) chicken.CarriedByCreatureId = 17;
-        else chicken.InHand = true;
+        if (carried)
+        {
+            chicken.CarriedByCreatureId = 17;
+        }
+        else
+        {
+            chicken.InHand = true;
+        }
+
         var sim = new GameSimulation(db, world, 42, [new ChickenMovementSystem()]);
         int x = chicken.PosX, y = chicken.PosY;
         sim.Run(30);
@@ -216,7 +228,10 @@ public class ChickenMovementTests
     {
         (GameDatabase? db, WorldState? world, ObjectState? chicken) = HatchBird();
         foreach (TilePos tile in new[] { new TilePos(2, 1), new TilePos(3, 2), new TilePos(2, 3) })
+        {
             world.SpawnObject(db, HatcheryRules.CoopObjectId, PlayerIds.FirstKeeper, tile.Y * world.Width + tile.X);
+        }
+
         world.SpawnObject(db, HatcheryRules.ChickenObjectId, PlayerIds.FirstKeeper, 2 * world.Width + 1);
         var sim = new GameSimulation(db, world, 42, [new ChickenMovementSystem()]);
         sim.Tick();
@@ -235,7 +250,11 @@ public class ChickenMovementTests
         // The level start's rebuild draws once for each coop it places (ADR-0672) before the reaction draws.
         var expected = new SimRandom(42);
         int coops = world.Objects.Count(o => o.ObjectTypeId == HatcheryRules.CoopObjectId);
-        for (int i = 0; i < coops; i++) expected.NextInt(4);
+        for (int i = 0; i < coops; i++)
+        {
+            expected.NextInt(4);
+        }
+
         int countdown = expected.NextInt(16) + 8;
         sim.Tick();
         Assert.Equal(countdown - 1, chicken.ChickenReactionTicks);
@@ -319,9 +338,12 @@ public class ChickenMovementTests
         CreatureDef def = db.Creatures.Values.First(c => c.Flags.HasFlag(CreatureFlags.IsWorker) == worker
             && !c.Flags.HasFlag(CreatureFlags.CanFly));
         if (flies)
+        {
             db = new GameDatabase(db.Terrain.Values, db.Rooms.Values,
                 db.Creatures.Values.Select(c => c.CreatureId == def.CreatureId ? c with { Flags = c.Flags | CreatureFlags.CanFly } : c),
                 db.Variables, objects: db.Objects.Values);
+        }
+
         CreatureState creature = world.SpawnCreature(db, def.CreatureId, PlayerIds.FirstKeeper, new TilePos(2, 2));
         creature.PosX -= 256;
         creature.PosZ = FloorHeightRules.RelativeAt(world, db, creature.PosX, creature.PosY) + aboveFloor;

@@ -181,14 +181,21 @@ public sealed class WorldPointerInputTests
 
             Assert.Equal(["overview", "hud minimap", "resource", "minimap True", "tile", "over hud", "position", "hover"], rig.Host.Calls);
             FrameInputJournal read;
-            using (FileStream stream = File.OpenRead(Path.Combine(root, "s", FrameJournalSession.FramesFile))) read = FrameInputJournal.Read(stream);
+            using (FileStream stream = File.OpenRead(Path.Combine(root, "s", FrameJournalSession.FramesFile)))
+            {
+                read = FrameInputJournal.Read(stream);
+            }
+
             PlayerIntent intent = Assert.Single(Assert.Single(read.Frames).Intents);
             Assert.Equal(new PlayerIntent(Keeper, PlayerToolMode.Hand, Tile,
                 PointerButtonTransition.Pressed | PointerButtonTransition.Released, rig.Tools.SelectedRoomId), intent);
         }
         finally
         {
-            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
         }
     }
 

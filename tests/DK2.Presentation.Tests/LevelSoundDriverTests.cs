@@ -29,12 +29,21 @@ public sealed class LevelSoundDriverTests
             SoundCategory = "WATER_TEST",
         };
         var variables = new GlobalVariables();
-        foreach (VariableTypeId id in Enum.GetValues<VariableTypeId>()) variables.Misc[id] = new MiscVariable(id, 0, 0, 0);
+        foreach (VariableTypeId id in Enum.GetValues<VariableTypeId>())
+        {
+            variables.Misc[id] = new MiscVariable(id, 0, 0, 0);
+        }
+
         var database = new GameDatabase([water], [], [], variables);
         var map = new LevelMap(4, 4, Enumerable.Repeat(new MapTile(2, PlayerIds.Unowned, 0, 0), 16).ToArray());
         var world = WorldState.FromMap(database, map, [PlayerIds.Good, PlayerIds.FirstKeeper]);
         for (int y = 0; y < 4; y++)
-            for (int x = 0; x < 4; x++) world.Tile(x, y).SetExploredBy(Viewer);
+        {
+            for (int x = 0; x < 4; x++)
+            {
+                world.Tile(x, y).SetExploredBy(Viewer);
+            }
+        }
 
         var item = new SoundMapBytes.Item(20f, [(1, 1, 0)]);
         FakeAssets assets = new FakeAssets()

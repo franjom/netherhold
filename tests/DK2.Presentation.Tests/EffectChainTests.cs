@@ -64,12 +64,19 @@ public class EffectChainTests
         {
             int before = model.Particles.Count(p => p.VisualUpdates == 0);
             model.AdvanceTo(new EffectTime(call * 50 + 1));
-            if (model.Particles.Any(p => p.VisualUpdates == 0)) waves++;
+            if (model.Particles.Any(p => p.VisualUpdates == 0))
+            {
+                waves++;
+            }
         }
         Assert.InRange(waves, 12, 60);
         RoomConstructionParticles every = Model(out _);
         every.Request(new ViewEffectRequest(new EffectId(Next), PlayerIds.FirstKeeper, Point(8192)));
-        for (int call = 1; call <= 3; call++) every.AdvanceTo(new EffectTime(call * 50 + 1));
+        for (int call = 1; call <= 3; call++)
+        {
+            every.AdvanceTo(new EffectTime(call * 50 + 1));
+        }
+
         Assert.Equal(3, every.Particles.Count(p => p.Definition.EffectElementId == Flake));
     }
 
@@ -122,7 +129,11 @@ public class EffectChainTests
         var lights = new List<EffectLightView>();
         for (int update = 0; update < shownSteps.Length; update++)
         {
-            if (update > 0) model.AdvanceTo(new EffectTime(update * 50 + 1));
+            if (update > 0)
+            {
+                model.AdvanceTo(new EffectTime(update * 50 + 1));
+            }
+
             model.CollectLights(lights);
             EffectLightView light = Assert.Single(lights);
             Assert.Equal(shownSteps[update], light.RampStep);
@@ -156,7 +167,10 @@ public class EffectChainTests
     {
         GameDatabase database = DK2.Data.GameDatabaseLoader.Load(Dk2InstallGate.Path);
         foreach (ushort id in new ushort[] { 381, 383, 384, 408, 142, 143 })
+        {
             Assert.False(SpriteLighting.IsLit(database.EffectElements[id].ArtResource.Type), $"element {id}");
+        }
+
         Assert.True(SpriteLighting.IsLit(database.EffectElements[27].ArtResource.Type));
     }
 
@@ -199,23 +213,54 @@ public class EffectChainTests
             if (effects.Count != 0)
             {
                 EffectDef effect = effects.Dequeue();
-                if (!seenEffects.Add(new EffectId(effect.EffectId))) continue;
+                if (!seenEffects.Add(new EffectId(effect.EffectId)))
+                {
+                    continue;
+                }
+
                 foreach (ushort id in new[] { effect.NextEffectId, effect.DeathEffectId,
                     effect.HitSolidEffectId, effect.HitWaterEffectId, effect.HitLavaEffectId })
-                    if (id != 0) effects.Enqueue(database.Effects[id]);
+                {
+                    if (id != 0)
+                    {
+                        effects.Enqueue(database.Effects[id]);
+                    }
+                }
+
                 foreach (ushort id in effect.GenerateIds.Where(id => id != 0))
-                    if ((effect.Flags & 0x40) != 0) effects.Enqueue(database.Effects[id]);
-                    else elements.Enqueue(database.EffectElements[id]);
+                {
+                    if ((effect.Flags & 0x40) != 0)
+                    {
+                        effects.Enqueue(database.Effects[id]);
+                    }
+                    else
+                    {
+                        elements.Enqueue(database.EffectElements[id]);
+                    }
+                }
             }
             else
             {
                 EffectElementDef element = elements.Dequeue();
-                if (!seenElements.Add(element.EffectElementId)) continue;
+                if (!seenElements.Add(element.EffectElementId))
+                {
+                    continue;
+                }
+
                 Assert.Equal(0u, element.ArtResource.Flags & 0x2u);
                 foreach (ushort id in new[] { element.DeathElementId, element.HitSolidElementId,
                     element.HitWaterElementId, element.HitLavaElementId })
-                    if (id != 0) elements.Enqueue(database.EffectElements[id]);
-                if (element.NextEffectId != 0) effects.Enqueue(database.Effects[element.NextEffectId]);
+                {
+                    if (id != 0)
+                    {
+                        elements.Enqueue(database.EffectElements[id]);
+                    }
+                }
+
+                if (element.NextEffectId != 0)
+                {
+                    effects.Enqueue(database.Effects[element.NextEffectId]);
+                }
             }
         }
         Assert.Equal(11, seenEffects.Count);
@@ -263,10 +308,18 @@ public class EffectChainTests
         model.Request(new ViewEffectRequest(new EffectId(database.Objects[13].DeathEffectId),
             new PlayerId(4), Point(0)));
         // Child effects are generated on their first visual update, not at the request.
-        for (int update = 1; update <= 3; update++) model.AdvanceTo(new EffectTime(update * 50 + 1));
+        for (int update = 1; update <= 3; update++)
+        {
+            model.AdvanceTo(new EffectTime(update * 50 + 1));
+        }
+
         Assert.Contains(model.Particles, p => p.Definition.EffectElementId == 512 && p.MeshEntry != null);
         Assert.Contains(model.Particles, p => p.MeshEntry == null && p.Definition.EffectElementId is 183 or 506 or 507);
-        for (int update = 4; update <= 400; update++) model.AdvanceTo(new EffectTime(update * 50 + 1));
+        for (int update = 4; update <= 400; update++)
+        {
+            model.AdvanceTo(new EffectTime(update * 50 + 1));
+        }
+
         Assert.Empty(model.Particles);
     }
 

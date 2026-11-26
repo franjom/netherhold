@@ -44,7 +44,9 @@ public sealed class SeedOverrideTests : IDisposable
         Assert.True(HarnessCommandLine.SeedOverride(["run", "x"], out ulong? none));
         Assert.Null(none);
         foreach (string[] bad in new[] { new[] { "run", "x", "--seed", "x" }, ["run", "x", "--seed", "-1"], ["run", "x", "--seed"] })
+        {
             Assert.False(HarnessCommandLine.SeedOverride(bad, out _));
+        }
     }
 
     [Fact]
@@ -83,7 +85,10 @@ public sealed class SeedOverrideTests : IDisposable
         recorded.Seed = 12;
         var stream = new MemoryStream();
         using (var writer = new InputJournalWriter(stream, JournalHeader.For(recorded, [])))
+        {
             writer.WriteEnd(10, "completed");
+        }
+
         stream.Position = 0;
         var journal = InputJournal.Read(stream);
 
@@ -136,7 +141,10 @@ public sealed class SeedOverrideTests : IDisposable
         header.Remove("seed");
         var stream = new MemoryStream();
         using (var writer = new InputJournalWriter(stream, header))
+        {
             writer.WriteEnd(10, "completed");
+        }
+
         stream.Position = 0;
         JournalHeader.CheckReplayable(scenario, InputJournal.Read(stream));
     }
@@ -174,7 +182,10 @@ public sealed class SeedOverrideTests : IDisposable
         scenario.OverrideSeed(12);
         var stream = new MemoryStream();
         using (var writer = new InputJournalWriter(stream, JournalHeader.For(scenario, [])))
+        {
             writer.WriteEnd(3, "exception: probe");
+        }
+
         stream.Position = 0;
         string report = Watchdog.FailureReport(_scenarioPath, "seed-probe", "failed", 1, TimeSpan.FromSeconds(60),
             "journal", InputJournal.Read(stream), "");

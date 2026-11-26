@@ -16,10 +16,17 @@ public sealed class AllocationBudgetTests
         GameSimulation simulation = TestWorld.Simulation();
         simulation.Run(100);
         var copy = WorldState.CopyOf(simulation.World);
-        for (int i = 0; i < 100; i++) copy.CopyFrom(simulation.World);
+        for (int i = 0; i < 100; i++)
+        {
+            copy.CopyFrom(simulation.World);
+        }
 
         long before = GC.GetAllocatedBytesForCurrentThread();
-        for (int i = 0; i < 100; i++) copy.CopyFrom(simulation.World);
+        for (int i = 0; i < 100; i++)
+        {
+            copy.CopyFrom(simulation.World);
+        }
+
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 
         Assert.Equal(0, allocated);
@@ -32,11 +39,22 @@ public sealed class AllocationBudgetTests
         WorldState world = TestWorld.Simulation().World;
         int visited = 0;
         for (int i = 0; i < 100; i++)
-            foreach (CreatureState creature in world.Creatures) visited += creature.Id;
+        {
+            foreach (CreatureState creature in world.Creatures)
+            {
+                visited += creature.Id;
+            }
+        }
 
         long before = GC.GetAllocatedBytesForCurrentThread();
         for (int i = 0; i < 1000; i++)
-            foreach (CreatureState creature in world.Creatures) visited += creature.Id;
+        {
+            foreach (CreatureState creature in world.Creatures)
+            {
+                visited += creature.Id;
+            }
+        }
+
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 
         Assert.True(visited > 0);
@@ -52,11 +70,19 @@ public sealed class AllocationBudgetTests
         RoomRules.Place(database, ref world.Tile(2, 2), treasury, PlayerIds.FirstKeeper);
         int tileIndex = 2 * world.Width + 2;
         RoomInstance? found = null;
-        for (int i = 0; i < 100; i++) found = RoomIndex.RoomAt(world, database, tileIndex);
+        for (int i = 0; i < 100; i++)
+        {
+            found = RoomIndex.RoomAt(world, database, tileIndex);
+        }
+
         Assert.NotNull(found);
 
         long before = GC.GetAllocatedBytesForCurrentThread();
-        for (int i = 0; i < 1000; i++) found = RoomIndex.RoomAt(world, database, tileIndex);
+        for (int i = 0; i < 1000; i++)
+        {
+            found = RoomIndex.RoomAt(world, database, tileIndex);
+        }
+
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 
         Assert.Equal(RoomTypeId.Treasury, found!.Definition.TypeId);

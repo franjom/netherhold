@@ -76,7 +76,10 @@ public sealed class ReinforcementActionTests
         GameSimulation sim = Begin(ActionAnimationFlags.Loop);
         CreatureState imp = sim.World.Creatures[0];
         foreach (TilePos at in new[] { new TilePos(3, 3), new(5, 3), new(4, 2), new(4, 4) })
+        {
             sim.World.Tile(at).OwnerPlayerId = PlayerIds.Neutral;
+        }
+
         int before = sim.World.Tile(Face).Health;
         sim.Tick();
         Assert.Equal(before, sim.World.Tile(Face).Health);

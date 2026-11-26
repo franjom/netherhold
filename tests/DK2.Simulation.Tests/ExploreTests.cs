@@ -55,7 +55,10 @@ public sealed class ExploreTests
         for (int i = 0; i < ExploreRules.ArmTries; i++)
         {
             int x = expected.NextInt(world.Width), y = expected.NextInt(world.Height);
-            if (world.Tile(x, y).OwnerPlayerId == PlayerIds.Neutral) break;
+            if (world.Tile(x, y).OwnerPlayerId == PlayerIds.Neutral)
+            {
+                break;
+            }
         }
         Assert.True(armed);
         Assert.Equal(ExploreRules.Steps, c.ExploreStepsLeft);
@@ -83,7 +86,11 @@ public sealed class ExploreTests
         sim.Tick();
 
         var expected = new Dk2Lcg(before);
-        for (int i = 0; i < draws; i++) expected.NextInt(5);
+        for (int i = 0; i < draws; i++)
+        {
+            expected.NextInt(5);
+        }
+
         Assert.False(stepped);
         Assert.Equal(Math.Max(0, steps - 1), c.ExploreStepsLeft);
         Assert.Equal(expected.Seed, after);
@@ -118,20 +125,27 @@ public sealed class ExploreTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
             {
                 ref TileState tile = ref world.Tile(x, y);
                 tile.TerrainId = Dk2TerrainFixture.DirtPath;
                 tile.OwnerPlayerId = PlayerIds.Unowned;
             }
+        }
+
         return (db, world);
     }
 
     private static void Own(WorldState world, byte owner)
     {
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(x, y).OwnerPlayerId = owner;
+            }
+        }
     }
 
     private sealed class Probe(Action<SimulationContext> act) : ISimulationSystem

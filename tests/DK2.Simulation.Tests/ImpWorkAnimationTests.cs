@@ -137,7 +137,9 @@ public sealed class ImpWorkAnimationTests
             Assert.False((imp.ActionAnimationFlags & ActionAnimationFlags.Stop) != 0);
             sim.Tick();
             if (wrappedAfter < 0 && (imp.ActionAnimationFlags & ActionAnimationFlags.Wrapped) != 0)
+            {
                 wrappedAfter = sim.CurrentTick.Value;
+            }
         }
         Assert.Equal(wrappedAfter + 1, sim.CurrentTick.Value);
     }
@@ -246,6 +248,9 @@ public sealed class ImpWorkAnimationTests
         ref TileState tile = ref sim.World.Tile(Face);
         tile.TerrainId = Dk2TerrainFixture.DirtPath;
         tile.SetTaggedBy(Keeper, false);
-        if (kind == TileWorkKind.MineGold) tile.DigTaskOutlivesWallFor = tile.DigTaskOutlivesWallFor.With(Keeper);
+        if (kind == TileWorkKind.MineGold)
+        {
+            tile.DigTaskOutlivesWallFor = tile.DigTaskOutlivesWallFor.With(Keeper);
+        }
     }
 }

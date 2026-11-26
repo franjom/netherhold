@@ -186,7 +186,11 @@ public sealed class BottomPanelHudTests
     {
         Span<HudVertex> fan = stackalloc HudVertex[HudSector.MaxVertices];
         Assert.Equal(vertices, HudSector.Fan(new HudRect(0, 0, 128, 128), percent, fan));
-        if (vertices == 0) return;
+        if (vertices == 0)
+        {
+            return;
+        }
+
         Assert.Equal(new HudVertex(64, 64, .5f, .5f), fan[0]);
         Assert.Equal(new HudVertex(64, 0, .5f, 0), fan[1]);
     }

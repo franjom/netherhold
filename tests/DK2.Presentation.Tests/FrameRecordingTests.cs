@@ -26,7 +26,11 @@ public sealed class FrameRecordingTests
     public void PercentilesAreNearestRankOverThePhasesFrames()
     {
         var frames = new (double, bool)[100];
-        for (int i = 0; i < 100; i++) frames[i] = (i + 1, i % 2 == 1);
+        for (int i = 0; i < 100; i++)
+        {
+            frames[i] = (i + 1, i % 2 == 1);
+        }
+
         FrameRecording recording = Recorded(frames);
         Assert.Equal(new FrameStatistics(100, 50.5, 50, 95, 99, 100), recording.Statistics(FramePhase.All, FrameMetric.FrameMs));
         FrameStatistics moving = recording.Statistics(FramePhase.Moving, FrameMetric.FrameMs);
@@ -67,8 +71,13 @@ public sealed class FrameRecordingTests
         Assert.Equal(120, root.GetProperty("frames").GetProperty("warmUp").GetInt32());
         Assert.Equal(JsonValueKind.Null, root.GetProperty("counters").GetProperty("bad").ValueKind);
         foreach (string phase in new[] { "all", "still", "moving" })
+        {
             for (int m = 0; m < FrameRecording.MetricCount; m++)
+            {
                 Assert.True(root.GetProperty("phases").GetProperty(phase).TryGetProperty(FrameRecording.MetricName((FrameMetric)m), out _));
+            }
+        }
+
         Assert.Equal(12, root.GetProperty("phases").GetProperty("moving").GetProperty("frameMs").GetProperty("max").GetDouble());
         Assert.Contains("frameMs", recording.Table());
     }
@@ -80,7 +89,11 @@ public sealed class FrameRecordingTests
     public void NearestRankHoldsForTheSmallestCounts(double[] frames, double p50, double p95, double p99, double max)
     {
         var recording = new FrameRecording(frames.Length);
-        foreach (double ms in frames) recording.Add(false)[(int)FrameMetric.FrameMs] = ms;
+        foreach (double ms in frames)
+        {
+            recording.Add(false)[(int)FrameMetric.FrameMs] = ms;
+        }
+
         FrameStatistics s = recording.Statistics(FramePhase.All, FrameMetric.FrameMs);
         Assert.Equal((p50, p95, p99, max), (s.P50, s.P95, s.P99, s.Max));
     }
@@ -121,7 +134,10 @@ public sealed class FrameRecordingTests
             using var document = JsonDocument.Parse(json);
             JsonElement frame = document.RootElement.GetProperty("phases").GetProperty("all").GetProperty("frameMs");
             foreach (string stat in new[] { "mean", "p50", "p95", "p99", "max" })
+            {
                 Assert.True(double.IsFinite(frame.GetProperty(stat).GetDouble()));
+            }
+
             Assert.Equal(11.5, frame.GetProperty("mean").GetDouble(), 9);
             Assert.Equal(0.5, document.RootElement.GetProperty("counters").GetProperty("x").GetDouble());
             Assert.Contains("10.25", recording.Table());

@@ -22,14 +22,22 @@ public sealed class CombatPitCaptiveTests
         WorldState world = Dk2TerrainFixture.Sellable(WorldState.FromMap(database,
             Dk2TerrainFixture.Map(), [PlayerIds.Neutral, (byte)1, Keeper, Rival]));
         for (int y = 1; y <= 8; y++)
-        for (int x = 1; x <= 12; x++)
+        {
+            for (int x = 1; x <= 12; x++)
         {
             world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
             world.Tile(x, y).OwnerPlayerId = Keeper;
         }
+        }
+
         for (int y = 2; y <= 6; y++)
-        for (int x = 4; x <= 8; x++)
-            RoomRules.Place(database, ref world.Tile(x, y), database.Room(RoomTypeId.CombatPit), Keeper);
+        {
+            for (int x = 4; x <= 8; x++)
+            {
+                RoomRules.Place(database, ref world.Tile(x, y), database.Room(RoomTypeId.CombatPit), Keeper);
+            }
+        }
+
         return (database, world);
     }
 
@@ -165,8 +173,14 @@ public sealed class CombatPitCaptiveTests
         captive.PrisonOwnerPlayerId = Keeper;
         var simulation = new GameSimulation(database, world, 42, [new HandSystem()]);
 
-        if (worker) LandWorker(simulation, captive);
-        else Drop(simulation, captive);
+        if (worker)
+        {
+            LandWorker(simulation, captive);
+        }
+        else
+        {
+            Drop(simulation, captive);
+        }
 
         Assert.Equal(CombatPitRules.ArrivingState, captive.Dk2StateId);
         Assert.Equal(Keeper, captive.PrisonOwnerPlayerId);
@@ -180,8 +194,16 @@ public sealed class CombatPitCaptiveTests
     {
         (GameDatabase? database, WorldState? world) = Setup();
         if (owner == 1)
+        {
             for (int y = 2; y <= 6; y++)
-            for (int x = 4; x <= 8; x++) world.Tile(x, y).OwnerPlayerId = PlayerIds.Neutral;
+            {
+                for (int x = 4; x <= 8; x++)
+                {
+                    world.Tile(x, y).OwnerPlayerId = PlayerIds.Neutral;
+                }
+            }
+        }
+
         CreatureState worker = world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, owner, Outside);
         worker.PrisonOwnerPlayerId = Keeper;
         var simulation = new GameSimulation(database, world, 42, [new HandSystem()]);
@@ -200,8 +222,13 @@ public sealed class CombatPitCaptiveTests
         (GameDatabase? database, WorldState? world) = Setup();
         var centre = new TilePos(10, 4);
         for (int y = 3; y <= 5; y++)
-        for (int x = 9; x <= 11; x++)
-            RoomRules.Place(database, ref world.Tile(x, y), database.Room(RoomTypeId.Portal), Keeper);
+        {
+            for (int x = 9; x <= 11; x++)
+            {
+                RoomRules.Place(database, ref world.Tile(x, y), database.Room(RoomTypeId.Portal), Keeper);
+            }
+        }
+
         CreatureState fighter = world.SpawnCreature(database, Dk2TerrainFixture.GoblinCreatureId, Keeper, Floor);
         fighter.PrisonOwnerPlayerId = binding;
         fighter.CombatPitFighter = true;

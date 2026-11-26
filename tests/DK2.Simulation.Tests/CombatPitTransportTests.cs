@@ -21,14 +21,22 @@ public sealed class CombatPitTransportTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(16, 16), [PlayerIds.Neutral, Keeper]);
         for (int y = 1; y < 15; y++)
-        for (int x = 1; x < 15; x++)
+        {
+            for (int x = 1; x < 15; x++)
         {
             world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
             world.Tile(x, y).OwnerPlayerId = Keeper;
         }
+        }
+
         for (int y = 4; y <= 8; y++)
-        for (int x = 4; x <= 8; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.CombatPit), Keeper);
+        {
+            for (int x = 4; x <= 8; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.CombatPit), Keeper);
+            }
+        }
+
         CreatureState loser = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, Floor);
         loser.PosZ = loser.LastPosZ = -0xC00;
         loser.CombatPitFighter = true;
@@ -179,7 +187,11 @@ public sealed class CombatPitTransportTests
         var rescue = GameSimulation.Resume(sim.Database, sim.World, sim.Rng,
             [new CreatureStatusSystem(), new ImpTaskSystem(), new CreatureMovementSystem(), new CreatureHealthSystem()]);
         rescue.ObserveWith(events);
-        for (int tick = 0; tick < 200 && loser.Dk2StateId != LairRules.SleepingState; tick++) rescue.Tick();
+        for (int tick = 0; tick < 200 && loser.Dk2StateId != LairRules.SleepingState; tick++)
+        {
+            rescue.Tick();
+        }
+
         Assert.Equal(LairRules.SleepingState, loser.Dk2StateId);
         Assert.Equal(lair, loser.Tile);
         Assert.Contains(events.Events, e => e.Kind == "creature_rescued");

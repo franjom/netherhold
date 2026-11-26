@@ -91,21 +91,36 @@ public class CampaignProfileTests
     [InstallFact]
     public void InstalledRegistryImportMatchesManagedReadAndLeavesTheKeyUntouched()
     {
-        if (!OperatingSystem.IsWindows()) return;
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
         using RegistryKey? key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(InstalledCampaignRegistry.PlayerKeyPath, writable: false);
-        if (key is null) return;
+        if (key is null)
+        {
+            return;
+        }
+
         var before = new Dictionary<string, object>();
-        foreach (string name in key.GetValueNames()) before.Add(name, key.GetValue(name)!);
+        foreach (string name in key.GetValueNames())
+        {
+            before.Add(name, key.GetValue(name)!);
+        }
+
         var importValues = before.Where(pair => pair.Value is byte[] || pair.Value is int)
             .ToDictionary(pair => pair.Key, pair => pair.Value);
         // DK2 can leave binary bytes under a registry type that managed GetValue cannot decode.
         var rawValues = new Dictionary<string, byte[]>();
         foreach (string name in before.Keys)
+        {
             if (before[name] is null)
             {
                 byte[] raw = RawRegistryValue(name);
                 rawValues.Add(name, raw); importValues[name] = raw;
             }
+        }
+
         CampaignProfile expected = CampaignRegistryImport.Read(importValues);
         CampaignProfile actual = InstalledCampaignRegistry.ReadCurrentUser()!;
         Assert.Equal(CampaignProfileFile.Write(expected), CampaignProfileFile.Write(actual));
@@ -113,10 +128,19 @@ public class CampaignProfileTests
         foreach (string name in before.Keys)
         {
             object? after = key.GetValue(name);
-            if (before[name] is byte[] bytes) Assert.Equal(bytes, Assert.IsType<byte[]>(after));
-            else Assert.Equal(before[name], after);
+            if (before[name] is byte[] bytes)
+            {
+                Assert.Equal(bytes, Assert.IsType<byte[]>(after));
+            }
+            else
+            {
+                Assert.Equal(before[name], after);
+            }
         }
-        foreach (KeyValuePair<string, byte[]> pair in rawValues) Assert.Equal(pair.Value, RawRegistryValue(pair.Key));
+        foreach (KeyValuePair<string, byte[]> pair in rawValues)
+        {
+            Assert.Equal(pair.Value, RawRegistryValue(pair.Key));
+        }
     }
 
     private static byte[] RawRegistryValue(string name)
@@ -124,10 +148,18 @@ public class CampaignProfileTests
         uint size = 0;
         nint root = new IntPtr(unchecked((int)0x80000001));
         int error = RegGetValue(root, InstalledCampaignRegistry.PlayerKeyPath, name, 0xffff, out _, null, ref size);
-        if (error != 0) throw new Win32Exception(error);
+        if (error != 0)
+        {
+            throw new Win32Exception(error);
+        }
+
         byte[] bytes = new byte[size];
         error = RegGetValue(root, InstalledCampaignRegistry.PlayerKeyPath, name, 0xffff, out _, bytes, ref size);
-        if (error != 0) throw new Win32Exception(error);
+        if (error != 0)
+        {
+            throw new Win32Exception(error);
+        }
+
         return bytes;
     }
 

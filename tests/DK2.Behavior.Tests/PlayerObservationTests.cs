@@ -73,12 +73,22 @@ public class PlayerObservationTests
         GameDatabase database = Database();
         var tiles = new MapTile[width * height];
         for (int y = 0; y < height; y++)
+        {
             for (int x = 0; x < width; x++)
+            {
                 tiles[y * width + x] = new MapTile(DirtPath, x < Seen ? (byte)3 : (byte)4, 0, 0);
+            }
+        }
+
         var world = WorldState.FromMap(database, new LevelMap(width, height, tiles), [3, 4], fogOfWarEnabled: true);
         for (int y = 0; y < height; y++)
+        {
             for (int x = 0; x < Seen; x++)
+            {
                 world.Tile(x, y).SetExploredBy(3);
+            }
+        }
+
         return (database, world);
     }
 
@@ -163,6 +173,7 @@ public class PlayerObservationTests
         PlayerObservation observation = Observe(database, world);
 
         for (int y = 0; y < Height; y++)
+        {
             for (int x = Seen; x < Width; x++)
             {
                 var at = new TilePos(x, y);
@@ -172,6 +183,8 @@ public class PlayerObservationTests
                     : default;
                 Assert.Equal(expected, observation.Tiles[at]);
             }
+        }
+
         Assert.Equal(new PlayerTile(PlayerTileFlags.Known, Viewer, default), observation.Tiles[OwnFloor]);
         Assert.Equal(PlayerTileFlags.Known | PlayerTileFlags.Solid | PlayerTileFlags.Diggable, observation.Tiles[new TilePos(0, 0)].Flags);
         Assert.Equal(PlayerTileFlags.Known | PlayerTileFlags.Water, observation.Tiles[new TilePos(1, 0)].Flags);
@@ -462,7 +475,11 @@ public class PlayerObservationTests
 
         const int captures = 20;
         long before = GC.GetAllocatedBytesForCurrentThread();
-        for (int i = 0; i < captures; i++) builder.Capture(world, Stamp(world, 2 + i), []);
+        for (int i = 0; i < captures; i++)
+        {
+            builder.Capture(world, Stamp(world, 2 + i), []);
+        }
+
         long perCapture = (GC.GetAllocatedBytesForCurrentThread() - before) / captures;
 
         long tileCopy = 64 * 64 * System.Runtime.CompilerServices.Unsafe.SizeOf<PlayerTile>();
@@ -487,17 +504,49 @@ public class PlayerObservationTests
             .Append(o.Gold).Append('|').Append(o.Mana).Append('|').Append(o.HandCount).Append('\n');
         for (int y = 0; y < o.Tiles.Height; y++)
         {
-            for (int x = 0; x < o.Tiles.Width; x++) text.Append(o.Tiles[new TilePos(x, y)]).Append(';');
+            for (int x = 0; x < o.Tiles.Width; x++)
+            {
+                text.Append(o.Tiles[new TilePos(x, y)]).Append(';');
+            }
+
             text.Append('\n');
         }
-        foreach (PlayerRoomSummary r in o.Rooms) text.Append(r).Append('\n');
-        foreach (PlayerCreatureSummary c in o.Creatures) text.Append(c).Append('\n');
-        foreach (PlayerVisibleThing t in o.Things) text.Append(t).Append('\n');
-        foreach (PlayerNotice n in o.Notices) text.Append(n).Append('\n');
-        foreach (PlayerReceipt r in o.Receipts) text.Append(r).Append('\n');
+        foreach (PlayerRoomSummary r in o.Rooms)
+        {
+            text.Append(r).Append('\n');
+        }
+
+        foreach (PlayerCreatureSummary c in o.Creatures)
+        {
+            text.Append(c).Append('\n');
+        }
+
+        foreach (PlayerVisibleThing t in o.Things)
+        {
+            text.Append(t).Append('\n');
+        }
+
+        foreach (PlayerNotice n in o.Notices)
+        {
+            text.Append(n).Append('\n');
+        }
+
+        foreach (PlayerReceipt r in o.Receipts)
+        {
+            text.Append(r).Append('\n');
+        }
+
         text.Append(o.Offers.Actions).Append('|').Append(o.Offers.CreateImpCost).Append('\n');
-        foreach (PlayerRoomOffer r in o.Offers.Rooms) text.Append(r).Append('\n');
-        foreach (GuiButtonTarget p in o.Offers.Panels) text.Append(p).Append('\n');
+        foreach (PlayerRoomOffer r in o.Offers.Rooms)
+        {
+            text.Append(r).Append('\n');
+        }
+
+        foreach (GuiButtonTarget p in o.Offers.Panels)
+        {
+            text.Append(p).Append('\n');
+        }
+
         return text.ToString();
     }
 }

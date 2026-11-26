@@ -71,7 +71,11 @@ public class HeartIntroTests
     {
         RoomDef heart = database.Room(RoomTypeId.DungeonHeart);
         for (int y = top; y < top + 5; y++)
+        {
             for (int x = left; x < left + 5; x++)
+            {
                 RoomRules.Place(database, ref world.Tile(new TilePos(x, y)), heart, player);
+            }
+        }
     }
 }

@@ -219,10 +219,17 @@ public class WorldResyncTests
         RoomRules.Place(sim.Database, ref sim.World.Tile(4, 4), heart, Keeper);
         ResyncState state = WithPlayerState(sim.World, 0, 50000);
         WorldResync.Apply(sim, state, _ => null, ResyncParts.Players);
-        while (!HeartIntroRules.SequenceOver(HeartIntroRules.Turn(sim.CurrentTick), sim.Database)) sim.Tick();
+        while (!HeartIntroRules.SequenceOver(HeartIntroRules.Turn(sim.CurrentTick), sim.Database))
+        {
+            sim.Tick();
+        }
         // Opening ticks can also run the counter at their boundary; restore immediately before measuring.
         WorldResync.Apply(sim, state, _ => null, ResyncParts.Players);
-        for (int i = 0; i < 3; i++) sim.Tick();
+        for (int i = 0; i < 3; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(50000, sim.World.Player(Keeper).HeartHealth);
         sim.Tick();
         Assert.Equal(50025, sim.World.Player(Keeper).HeartHealth);
@@ -253,7 +260,10 @@ public class WorldResyncTests
         GameDatabase database = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int i = 0; i < imps; i++)
+        {
             world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
+        }
+
         return new GameSimulation(database, world, new SimRandom(new Dk2Lcg(7)), Dk2TerrainFixture.DefaultSystems());
     }
 
@@ -262,13 +272,16 @@ public class WorldResyncTests
     {
         int[] tiles = new int[3 * world.Width * world.Height];
         for (int y = 0; y < world.Height; y++)
-        for (int x = 0; x < world.Width; x++)
+        {
+            for (int x = 0; x < world.Width; x++)
         {
             ref TileState tile = ref world.Tile(x, y);
             int i = 3 * ((y * world.Width) + x);
             tiles[i] = tile.TerrainId;
             tiles[i + 1] = tile.OwnerPlayerId;
         }
+        }
+
         return tiles;
     }
 
@@ -396,8 +409,13 @@ public class WorldResyncTests
         GameDatabase database = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 3; y++)
-        for (int x = 1; x <= 3; x++)
-            RoomRules.Place(database, ref world.Tile(x, y), database.Room(RoomTypeId.Workshop), Keeper);
+        {
+            for (int x = 1; x <= 3; x++)
+            {
+                RoomRules.Place(database, ref world.Tile(x, y), database.Room(RoomTypeId.Workshop), Keeper);
+            }
+        }
+
         for (int x = 4; x <= 12; x++)
         {
             world.Tile(x, 2).TerrainId = Dk2TerrainFixture.ClaimedPath;
@@ -547,8 +565,13 @@ public class WorldResyncTests
         GameSimulation sim = Start(0);
         WorldState world = sim.World;
         for (int dy = 0; dy < 3; dy++)
+        {
             for (int dx = 0; dx < 3; dx++)
+            {
                 RoomRules.Place(sim.Database, ref world.Tile(4 + dx, 4 + dy), sim.Database.Room(RoomTypeId.Portal), Keeper);
+            }
+        }
+
         ref TileState centre = ref world.Tile(5, 5);
         centre.EntranceIdleTicks = 300;
         centre.EntranceCreaturesGenerated = 2;

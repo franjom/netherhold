@@ -20,7 +20,11 @@ public class TempleStateTests
         GameDatabase basis = Dk2TerrainFixture.Database();
         var clip = new CreatureAnimationTiming { ResourceType = 6, FrameCount = 20, FramesPerSecond = 20 };
         var slots = new CreatureAnimationTiming[CreatureDef.ArtSlotCount];
-        if (art) slots[TempleStep.PrayerArtSlot] = clip;
+        if (art)
+        {
+            slots[TempleStep.PrayerArtSlot] = clip;
+        }
+
         return new GameDatabase(basis.Terrain.Values, basis.Rooms.Values,
             basis.Creatures.Values.Select(c => c.CreatureId == Vampire ? c with { ArtSlots = slots, PrayerStepY = -1257, SoundCategory = "CREATURE_VAMPIRE" } : c),
             basis.Variables, basis.KeeperSpells.Values, objects: basis.Objects.Values, shots: basis.Shots.Values);
@@ -31,8 +35,13 @@ public class TempleStateTests
     {
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= size; y++)
-        for (int x = 1; x <= size; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Temple), Keeper);
+        {
+            for (int x = 1; x <= size; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Temple), Keeper);
+            }
+        }
+
         return world;
     }
 
@@ -83,7 +92,10 @@ public class TempleStateTests
         WorldState world = World(db, 5);
         CreatureState it = Worshipper(db, world, new TilePos(1, 3), TempleStep.ChoosingState);
         GameSimulation sim = Simulation(db, world);
-        for (int i = 0; i < 200 && it.Dk2StateId != TempleStep.PrayingState; i++) sim.Tick();
+        for (int i = 0; i < 200 && it.Dk2StateId != TempleStep.PrayingState; i++)
+        {
+            sim.Tick();
+        }
 
         // West of the centre (3,3), so it faces east. DK2 would first walk a quarter tile further
         // out; ours ends a walk to a point on its own tile at once (temple-states.md §8).
@@ -100,7 +112,11 @@ public class TempleStateTests
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world);
         sim.ObserveWith(sink);
-        for (int i = 0; i < 200 && it.Dk2StateId != TempleStep.PrayingState; i++) sim.Tick();
+        for (int i = 0; i < 200 && it.Dk2StateId != TempleStep.PrayingState; i++)
+        {
+            sim.Tick();
+        }
+
         CreatureDef vampire = db.CreatureById(Vampire);
         SimEvent pray = Assert.Single(sink.Events, e => e.Kind == "temple_pray");
         int count = int.Parse(pray.Detail.Split(' ')[1]["count=".Length..]);
@@ -114,7 +130,11 @@ public class TempleStateTests
         var sink2 = new ListEventSink();
         GameSimulation sim2 = Simulation(bare, world2);
         sim2.ObserveWith(sink2);
-        for (int i = 0; i < 200 && plain.Dk2StateId != TempleStep.PrayingState; i++) sim2.Tick();
+        for (int i = 0; i < 200 && plain.Dk2StateId != TempleStep.PrayingState; i++)
+        {
+            sim2.Tick();
+        }
+
         Assert.DoesNotContain(sink2.Events, e => e.Kind == "temple_pray");
     }
 
@@ -179,7 +199,10 @@ public class TempleStateTests
         CreatureState it = Worshipper(db, world, new TilePos(1, 3), TempleStep.ChoosingState);
         GameSimulation sim = Simulation(db, world);
 
-        for (int i = 0; i < 100 && it.Dk2StateId != TempleStep.FacingState; i++) sim.Tick();
+        for (int i = 0; i < 100 && it.Dk2StateId != TempleStep.FacingState; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Equal(TempleStep.FacingState, it.Dk2StateId);
         Assert.Contains(it.Tile, new[] { new TilePos(1, 2), new TilePos(1, 4) });   // never the pool at (2,3)
@@ -251,7 +274,10 @@ public class TempleStateTests
         Assert.Equal(TempleStep.SummonedState, it.Dk2StateId);
         Assert.True(it.HeldPlace.IsHeld);
 
-        for (int i = 0; i < 20 * SimulationTiming.TicksPerSecond && it.Dk2StateId != CreatureStateMachine.Idle; i++) sim.Tick();
+        for (int i = 0; i < 20 * SimulationTiming.TicksPerSecond && it.Dk2StateId != CreatureStateMachine.Idle; i++)
+        {
+            sim.Tick();
+        }
 
         // Off the pool, on a rim tile; the job ended when the walk began (its resume is 1).
         Assert.Equal(CreatureStateMachine.Idle, it.Dk2StateId);
@@ -266,7 +292,10 @@ public class TempleStateTests
         public string Name => "Probe";
         public void Execute(SimulationContext context)
         {
-            if (creature.Dk2StateId != TempleStep.SummonedState) TempleStep.Summon(context, Name, creature);
+            if (creature.Dk2StateId != TempleStep.SummonedState)
+            {
+                TempleStep.Summon(context, Name, creature);
+            }
         }
     }
 
@@ -298,7 +327,10 @@ public class TempleStateTests
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world);
         sim.ObserveWith(sink);
-        for (int i = 0; i < 200 && it.Dk2StateId != TempleStep.PrayingState; i++) sim.Tick();
+        for (int i = 0; i < 200 && it.Dk2StateId != TempleStep.PrayingState; i++)
+        {
+            sim.Tick();
+        }
 
         ThingSoundRequest sound = Assert.Single(Sounds(sink));
         Assert.Equal(ThingSoundEvent.Prayed, sound.Event);
@@ -314,7 +346,11 @@ public class TempleStateTests
         var sink2 = new ListEventSink();
         GameSimulation sim2 = Simulation(bare, world2);
         sim2.ObserveWith(sink2);
-        for (int i = 0; i < 200 && plain.Dk2StateId != TempleStep.PrayingState; i++) sim2.Tick();
+        for (int i = 0; i < 200 && plain.Dk2StateId != TempleStep.PrayingState; i++)
+        {
+            sim2.Tick();
+        }
+
         Assert.Empty(Sounds(sink2));
     }
 

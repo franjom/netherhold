@@ -30,15 +30,22 @@ public class SpellPlaceInRoomTests
             {
                 var view = new KeeperView(database, world, owner);
                 foreach (RoomInstance room in RoomIndex.Build(world, database).Where(r => r.OwnerPlayerId == owner))
+                {
                     foreach (int index in room.TileIndices)
+                    {
                         foreach (KeeperSpellDef spell in database.KeeperSpells.Values)
                         {
                             var at = new Core.TilePos(index % world.Width, index / world.Width);
                             bool plain = KeeperSpellRules.PlaceAllowed(world, database, view, owner, spell, at);
                             Assert.Equal(plain, KeeperSpellRules.PlaceAllowedInRoom(world, database, view, owner, spell, at, room));
                             compared++;
-                            if (!plain) refused++;
+                            if (!plain)
+                            {
+                                refused++;
+                            }
                         }
+                    }
+                }
             }
             Assert.True(compared > 0, $"{level} has no keeper room tiles to compare");
             Assert.True(refused > 0 && refused < compared, $"{level}: {refused} of {compared} refused, so nothing was told apart");

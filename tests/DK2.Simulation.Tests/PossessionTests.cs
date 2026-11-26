@@ -149,11 +149,14 @@ public sealed class PossessionTests
     {
         (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
             {
                 world.Tile(new TilePos(x, y)).TerrainId = Dk2TerrainFixture.ClaimedPath;
                 world.Tile(new TilePos(x, y)).OwnerPlayerId = Keeper;
             }
+        }
+
         CreatureState distant = world.SpawnCreature(db, target.CreatureTypeId, Keeper, new TilePos(1, 10));
         CreatureState enemy = world.SpawnCreature(db, target.CreatureTypeId, PlayerIds.Good, target.Tile);
         target.Possessed = true;
@@ -197,8 +200,13 @@ public sealed class PossessionTests
     {
         (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         for (int y = 9; y <= 11; y++)
+        {
             for (int x = 9; x <= 11; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.TrainingRoom), Keeper);
+            }
+        }
+
         Dk2TerrainFixture.FurnishRooms(db, world);
         world.Tile(12, 10).TerrainId = Dk2TerrainFixture.TreasuryTerrain;
         world.Tile(12, 10).OwnerPlayerId = Keeper;
@@ -232,7 +240,11 @@ public sealed class PossessionTests
         imp.LastAteTick = 17;
         world.Player(Keeper).PossessedCreatureId = imp.Id;
         int regen = CreatureHealthRules.OwnLandRegenPerTurn(world, db, db.CreatureById(imp.CreatureTypeId), imp);
-        if (creatureType == Dk2TerrainFixture.ImpCreatureId) Assert.True(regen > 0);
+        if (creatureType == Dk2TerrainFixture.ImpCreatureId)
+        {
+            Assert.True(regen > 0);
+        }
+
         var sim = new GameSimulation(db, world, 1, [new CreatureUpdateSystem(new CreatureStatusSystem()), new CreatureHealthSystem()]);
         const int Turns = SimulationTiming.TicksPerSecond;
         sim.Run(Turns);

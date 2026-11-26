@@ -19,11 +19,19 @@ public sealed class NeutralStopRouteTests
         {
             CreatureId = WalkerType, TurnRate = 1364,
         };
-        if (zeroSpeed) definition = definition with { Speed = new Fp32(0) };
+        if (zeroSpeed)
+        {
+            definition = definition with { Speed = new Fp32(0) };
+        }
+
         GameDatabase db = Dk2TerrainFixture.Database(definition);
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
             [(byte)0, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
-        for (int x = 1; x <= 12; x++) world.Tile(x, 3).TerrainId = Dk2TerrainFixture.DirtPath;
+        for (int x = 1; x <= 12; x++)
+        {
+            world.Tile(x, 3).TerrainId = Dk2TerrainFixture.DirtPath;
+        }
+
         CreatureState walker = world.SpawnCreature(db, WalkerType, PlayerIds.Neutral, new TilePos(5, 3));
         walker.Body.Pos = new Fixed16Vector(walker.PosX << 4, walker.PosY << 4);
         return (db, world, walker);
@@ -120,7 +128,13 @@ public sealed class NeutralStopRouteTests
 
         sim.Tick();
 
-        if (moves) Assert.True(walker.PosX > beforeX);
-        else Assert.Equal(beforeX, walker.PosX);
+        if (moves)
+        {
+            Assert.True(walker.PosX > beforeX);
+        }
+        else
+        {
+            Assert.Equal(beforeX, walker.PosX);
+        }
     }
 }

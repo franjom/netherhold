@@ -14,7 +14,11 @@ public sealed class TerrainCeilingSchedulerTests
     private static bool[] Map(params (int X, int Y)[] closed)
     {
         bool[] map = new bool[Size * Size];
-        foreach ((int x, int y) in closed) map[(y * Size) + x] = true;
+        foreach ((int x, int y) in closed)
+        {
+            map[(y * Size) + x] = true;
+        }
+
         return map;
     }
 
@@ -22,7 +26,13 @@ public sealed class TerrainCeilingSchedulerTests
     {
         var built = new List<int>();
         for (int chunk = 0; chunk < roof.ChunkCount; chunk++)
-            if (roof.TryBuild(chunk, geometry)) built.Add(chunk);
+        {
+            if (roof.TryBuild(chunk, geometry))
+            {
+                built.Add(chunk);
+            }
+        }
+
         return built;
     }
 
@@ -68,7 +78,10 @@ public sealed class TerrainCeilingSchedulerTests
             Assert.Equal(new Vector2(2, TerrainCeilingScheduler.RoofAnchor), geometry.LightAnchors[9 + i]);
         }
         byte[] order = TerrainCeiling.Triangles.ToArray();
-        for (int i = 0; i < order.Length; i++) Assert.Equal(9 + order[i], geometry.Triangles[24 + i]);
+        for (int i = 0; i < order.Length; i++)
+        {
+            Assert.Equal(9 + order[i], geometry.Triangles[24 + i]);
+        }
         // The roof faces down, and is over the floor (up is +Y here).
         Assert.All(geometry.Normals, n => Assert.True(n.Y < 0));
         Assert.All(geometry.Positions, p => Assert.True(p.Y >= 2f));
@@ -79,8 +92,13 @@ public sealed class TerrainCeilingSchedulerTests
     {
         bool[] map = Map();
         for (int y = 0; y < 16; y++)
+        {
             for (int x = 0; x < 16; x++)
+            {
                 map[(y * Size) + x] = true;
+            }
+        }
+
         var roof = new TerrainCeilingScheduler(Size, Size);
         var geometry = new TerrainCeilingGeometry();
         roof.Refresh(map);

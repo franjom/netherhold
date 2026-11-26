@@ -32,15 +32,20 @@ public class TerrainTileBuilderTests
             new(1, 1), new(6, -1), new(9, 9), new(4, 4), new(4, 4)];
         Assert.Equal(expected.Length, geometry.Pieces.Count);
         for (int p = 0; p < geometry.Pieces.Count; p++)
+        {
             for (int v = geometry.PieceStarts[p]; v < geometry.PieceStarts[p] + geometry.Pieces[p].Piece.Positions.Length; v++)
+            {
                 Assert.Equal(expected[p], geometry.StateSources[v]);
+            }
+        }
     }
 
     [Fact]
     public void TextureStateSourcesReconstructEveryLegacyPieceLookAndKeepGeometry()
     {
         foreach (TileView[] tiles in new[] { Grid(), EdgeGrid() })
-        for (int i = 0; i < tiles.Length; i++)
+        {
+            for (int i = 0; i < tiles.Length; i++)
         {
             var oldBuilder = new TerrainTileBuilder(new FakePieces(), Width, Height);
             var builder = new TerrainTileBuilder(new FakePieces(), Width, Height, null, true);
@@ -68,13 +73,18 @@ public class TerrainTileBuilderTests
                 int tintIndex = source.Y < -1 ? -(int)source.Y - 2 : (int)source.Y;
                 Vector4 tint = tintIndex < 0 ? default : TerrainTileState.Encode(tiles[tintIndex]);
                 if (key.IsOverlay)
-                    Assert.Equal(new Vector3(TerrainMaterialLook.For(key).Colour.X, TerrainMaterialLook.For(key).Colour.Y,
+                    {
+                        Assert.Equal(new Vector3(TerrainMaterialLook.For(key).Colour.X, TerrainMaterialLook.For(key).Colour.Y,
                         TerrainMaterialLook.For(key).Colour.Z), TerrainTileState.Overlay(own, tag));
-                else if (key.Variant != TerrainMaterialVariant.Fog)
-                    Assert.Equal(TerrainMaterialLook.For(key).AddedLight,
+                    }
+                    else if (key.Variant != TerrainMaterialVariant.Fog)
+                    {
+                        Assert.Equal(TerrainMaterialLook.For(key).AddedLight,
                         TerrainTileState.AddedLight(key.Recipe, own, tag, tint, source.Y < -1));
-            }
+                    }
+                }
             Assert.DoesNotContain(current.Keys.Take(current.KeyCount), key => key.IsOverlay);
+        }
         }
     }
     private const int Width = 4, Height = 3;
@@ -113,8 +123,12 @@ public class TerrainTileBuilderTests
     {
         TileView[] tiles = Grid();
         for (int y = 0; y < Height; y++)
+        {
             for (int x = 0; x < Width; x++)
+            {
                 AssertSameAsLegacy(tiles, x, y);
+            }
+        }
     }
 
     /// <summary>A room on each edge of the map with a wall facing off it: no neighbour lends its tag or tint, even where
@@ -125,8 +139,12 @@ public class TerrainTileBuilderTests
     {
         TileView[] tiles = EdgeGrid();
         for (int y = 0; y < Height; y++)
+        {
             for (int x = 0; x < Width; x++)
+            {
                 AssertSameAsLegacy(tiles, x, y);
+            }
+        }
     }
 
     /// <summary>A tile draws terrain when it has pieces and their keys, room keys, bed keys or a fog overlay.</summary>
@@ -161,8 +179,12 @@ public class TerrainTileBuilderTests
         Assert.False(lattice.IsBuilt(x, y));
         new TerrainTileBuilder(new FakePieces(), world.Width, world.Height, lattice).Prepare(x, y, tiles, new TerrainTileGeometry());
         for (int dy = -1; dy <= 1; dy++)
+        {
             for (int dx = -1; dx <= 1; dx++)
+            {
                 Assert.True(lattice.IsBuilt(x + dx, y + dy), $"cell ({x + dx}, {y + dy})");
+            }
+        }
     }
 
     /// <summary>The hero halves swap 4 and 5 and leave the run-on piece 6.</summary>
@@ -221,11 +243,14 @@ public class TerrainTileBuilderTests
         var builder = new TerrainTileBuilder(new FakePieces(), Width, Height);
         var geometry = new TerrainTileGeometry();
         for (int warm = 0; warm < 3; warm++)
+        {
             for (int i = 0; i < tiles.Length; i++)
             {
                 builder.Prepare(i % Width, i / Width, tiles, geometry);
                 builder.Build(geometry);
             }
+        }
+
         long before = GC.GetAllocatedBytesForCurrentThread();
         for (int i = 0; i < tiles.Length; i++)
         {
@@ -251,11 +276,19 @@ public class TerrainTileBuilderTests
             new TerrainLattice(db, world, PlayerIds.FirstKeeper));
         int compared = 0;
         for (int y = 0; y < world.Height; y++)
+        {
             for (int x = 0; x < world.Width; x++)
+            {
                 if (TerrainTileBuilder.Draws(tiles[(y * world.Width) + x]))
                 {
-                    if (Compare(builder, legacy, tiles, world.Width, x, y) > 0) compared++;
+                    if (Compare(builder, legacy, tiles, world.Width, x, y) > 0)
+                    {
+                        compared++;
+                    }
                 }
+            }
+        }
+
         Assert.True(compared > 1000, compared.ToString());
     }
 
@@ -368,8 +401,12 @@ public class TerrainTileBuilderTests
                 walls.IsEmpty ? rock : null, roomKeys: walls.IsEmpty ? null : room,
                 roomFloor: walls.IsEmpty ? default : default(PieceSet).WithWhole(1, 0), ambientTint: NeighbourTint);
         for (int y = 0; y < Height; y++)
+        {
             for (int x = 0; x < Width; x++)
+            {
                 tiles[(y * Width) + x] = At(x, y, pieces: default(TerrainPieces).WithFloor());
+            }
+        }
         // Untagged, so the walls facing it show its tint, or none where the gate bound says so.
         tiles[5] = At(1, 1, pieces: default(TerrainPieces).WithFloor(), tagged: false);
         tiles[1] = At(1, 0, default(RoomWalls).WithWhole(0).WithWholePiece(2, 6, 2).WithWholePiece(1, 7, 1));
@@ -391,10 +428,26 @@ public class TerrainTileBuilderTests
 
         public TerrainPiece? Piece(AssetRef key, int textureIndex = -1)
         {
-            if (key.IsEmpty) return null;
-            if (_fixed.TryGetValue(key, out TerrainPiece? fixedPiece)) return fixedPiece;
-            if (textureIndex < 0) textureIndex = 0;
-            if (_made.TryGetValue((key, textureIndex), out TerrainPiece? made)) return made;
+            if (key.IsEmpty)
+            {
+                return null;
+            }
+
+            if (_fixed.TryGetValue(key, out TerrainPiece? fixedPiece))
+            {
+                return fixedPiece;
+            }
+
+            if (textureIndex < 0)
+            {
+                textureIndex = 0;
+            }
+
+            if (_made.TryGetValue((key, textureIndex), out TerrainPiece? made))
+            {
+                return made;
+            }
+
             _made[(key, textureIndex)] = made = Make(key, textureIndex);
             return made;
         }
@@ -403,7 +456,11 @@ public class TerrainTileBuilderTests
         private static TerrainPiece Make(AssetRef key, int textureIndex)
         {
             uint h = 2166136261;
-            foreach (char c in key.ToString()) h = (h ^ c) * 16777619;
+            foreach (char c in key.ToString())
+            {
+                h = (h ^ c) * 16777619;
+            }
+
             h ^= (uint)textureIndex * 2654435761;
             float F(int shift) => ((h >> shift) & 0xFF) / 255f - 0.5f;
             Vector3[] positions =

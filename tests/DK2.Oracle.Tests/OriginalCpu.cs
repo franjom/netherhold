@@ -68,15 +68,26 @@ internal static class OriginalCpu
             RedirectStandardError = true,
             UseShellExecute = false,
         };
-        if (string.IsNullOrEmpty(python)) start.ArgumentList.Add("-3");
+        if (string.IsNullOrEmpty(python))
+        {
+            start.ArgumentList.Add("-3");
+        }
+
         start.ArgumentList.Add("-I");
         start.ArgumentList.Add(Script(script));
-        foreach (string arg in args) start.ArgumentList.Add(arg);
+        foreach (string arg in args)
+        {
+            start.ArgumentList.Add(arg);
+        }
 
         using Process process = Process.Start(start)!;
         Task<string> error = process.StandardError.ReadToEndAsync();
         Task<string> output = process.StandardOutput.ReadToEndAsync();
-        foreach (string line in input ?? []) process.StandardInput.WriteLine(line);
+        foreach (string line in input ?? [])
+        {
+            process.StandardInput.WriteLine(line);
+        }
+
         process.StandardInput.Close();
         process.WaitForExit();
 
@@ -89,7 +100,10 @@ internal static class OriginalCpu
         for (DirectoryInfo? dir = new(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
         {
             string candidate = System.IO.Path.Combine(dir.FullName, "tools", "oracle", name);
-            if (File.Exists(candidate)) return candidate;
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
         }
         throw new FileNotFoundException($"tools/oracle/{name} is not above the test assembly.");
     }
@@ -107,9 +121,21 @@ internal static class OriginalCpu
         {
             string line = $"{Function:x} " + string.Join(' ', Args.Select(Address));
             IEnumerable<string> writes = (Writes ?? []).Select(w => $"{Address(w.Address)}={w.Value:x}");
-            if (Ecx is { } ecx) writes = writes.Append($"ecx={Address(ecx)}");
-            if (writes.Any()) line += " | " + string.Join(' ', writes);
-            if (Reads is { Length: > 0 }) line += " @ " + string.Join(' ', Reads.Select(Address));
+            if (Ecx is { } ecx)
+            {
+                writes = writes.Append($"ecx={Address(ecx)}");
+            }
+
+            if (writes.Any())
+            {
+                line += " | " + string.Join(' ', writes);
+            }
+
+            if (Reads is { Length: > 0 })
+            {
+                line += " @ " + string.Join(' ', Reads.Select(Address));
+            }
+
             return line;
         }
 
@@ -122,7 +148,11 @@ internal static class OriginalCpu
     {
         public static Outcome Parse(string line)
         {
-            if (line.StartsWith("fault ", StringComparison.Ordinal)) return new Outcome(0, 0, [], line[6..].Trim());
+            if (line.StartsWith("fault ", StringComparison.Ordinal))
+            {
+                return new Outcome(0, 0, [], line[6..].Trim());
+            }
+
             uint[] words = [.. line.Split(' ', StringSplitOptions.RemoveEmptyEntries)
                 .Select(w => uint.Parse(w, NumberStyles.HexNumber, CultureInfo.InvariantCulture))];
             return new Outcome(words[0], words[1], words[2..], null);

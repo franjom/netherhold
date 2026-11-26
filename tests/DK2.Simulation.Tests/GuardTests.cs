@@ -22,16 +22,23 @@ public sealed class GuardTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 8; y++)
-        for (int x = 1; x <= 12; x++)
+        {
+            for (int x = 1; x <= 12; x++)
         {
             ref TileState tile = ref world.Tile(x, y);
             tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
             tile.OwnerPlayerId = Keeper;
         }
+        }
 
         for (int y = 3; y <= 5; y++)
-        for (int x = 5; x <= 7; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.GuardRoom), Keeper);
+        {
+            for (int x = 5; x <= 7; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.GuardRoom), Keeper);
+            }
+        }
+
         return (db, world);
     }
 
@@ -133,7 +140,10 @@ public sealed class GuardTests
         {
             int before = goblin.Dk2StateId;
             sim.Tick();
-            if (before == 6 && goblin.Dk2StateId == GuardRules.PatrolState) arrived = sim.CurrentTick.Value - 1;
+            if (before == 6 && goblin.Dk2StateId == GuardRules.PatrolState)
+            {
+                arrived = sim.CurrentTick.Value - 1;
+            }
         }
 
         Assert.True(arrived >= 0);

@@ -15,9 +15,20 @@ internal static class StatePlacement
     public static void Place(CreatureState creature, int stateId)
     {
         ref readonly CreatureStateDef state = ref CreatureStateTable.Get(stateId);
-        if (state.IsUtility) creature.StateBeforeUtilityState = creature.Dk2StateId;
-        else creature.HookCountdown = CreatureStateMachine.HookCountdownSeed;
-        if (!state.IsUtility && !RoomCapacityRules.Claims(state.Category)) creature.HeldPlace = RoomPlace.None;
+        if (state.IsUtility)
+        {
+            creature.StateBeforeUtilityState = creature.Dk2StateId;
+        }
+        else
+        {
+            creature.HookCountdown = CreatureStateMachine.HookCountdownSeed;
+        }
+
+        if (!state.IsUtility && !RoomCapacityRules.Claims(state.Category))
+        {
+            creature.HeldPlace = RoomPlace.None;
+        }
+
         creature.Dk2StateId = stateId;
     }
 

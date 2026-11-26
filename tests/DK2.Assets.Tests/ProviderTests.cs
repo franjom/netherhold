@@ -241,7 +241,9 @@ public class ProviderTests
 
         Assert.Single(chain.Providers);
         foreach (AssetKind kind in Enum.GetValues<AssetKind>())
+        {
             Assert.True(chain.Resolve(AssetRef.ForCreature("Imp", kind)).IsPlaceholder);
+        }
     }
 
     [Fact]

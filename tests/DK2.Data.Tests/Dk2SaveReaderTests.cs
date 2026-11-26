@@ -114,12 +114,21 @@ public class Dk2SaveReaderTests
     private static (string Install, string Save)? FirstSave()
     {
         string install = FindInstall();
-        if (install is null) return null;
+        if (install is null)
+        {
+            return null;
+        }
 
         // The newest save of a level the install holds: a save of a custom level whose map is elsewhere
         // (a test level made in the editor) cannot be read against a design map, and is not this file's subject.
         foreach (string save in Dk2SaveReader.EnumerateSaves(install))
-            if (HasInstalledLevel(install, save)) return (install, save);
+        {
+            if (HasInstalledLevel(install, save))
+            {
+                return (install, save);
+            }
+        }
+
         return null;
     }
 
@@ -168,7 +177,10 @@ public class Dk2SaveReaderTests
     [InstallFact]
     public void Header_NamesALevelTheInstallHas_AndTheSupportedBuild()
     {
-        if (FirstSave() is not var (install, save)) return; // skipped: no install or no saves
+        if (FirstSave() is not var (install, save))
+        {
+            return; // skipped: no install or no saves
+        }
 
         SavedGame? loaded = Dk2SaveReader.Load(install, save);
         Assert.NotNull(loaded);
@@ -192,7 +204,10 @@ public class Dk2SaveReaderTests
     [InstallFact]
     public void Grid_MatchesTheLevelsDesignMap_OnMostTiles()
     {
-        if (FirstSave() is not var (install, save)) return; // skipped
+        if (FirstSave() is not var (install, save))
+        {
+            return; // skipped
+        }
 
         SavedGame loaded = Dk2SaveReader.Load(install, save)!;
 
@@ -216,7 +231,10 @@ public class Dk2SaveReaderTests
     [InstallFact]
     public void Grid_ReadAtTheWrongOffset_DoesNotAgree()
     {
-        if (FirstSave() is not var (install, save)) return; // skipped
+        if (FirstSave() is not var (install, save))
+        {
+            return; // skipped
+        }
 
         SavedGame loaded = Dk2SaveReader.Load(install, save)!;
         LevelMap design = GameDatabaseLoader.LoadCampaignMap(install, loaded.Header.LevelName)!;
@@ -258,7 +276,10 @@ public class Dk2SaveReaderTests
     [InstallFact]
     public void Owner_IsAlwaysAReservedPlayerId()
     {
-        if (FirstSave() is not var (install, save)) return; // skipped
+        if (FirstSave() is not var (install, save))
+        {
+            return; // skipped
+        }
 
         SavedGame loaded = Dk2SaveReader.Load(install, save)!;
 
@@ -267,13 +288,18 @@ public class Dk2SaveReaderTests
         // something is that the lane never produces a value outside that range
         // — a misread lane would.
         foreach (MapTile tile in loaded.Map.Tiles)
+        {
             Assert.InRange(tile.PlayerId, PlayerIds.Unowned, (byte)7);
+        }
     }
 
     [InstallFact]
     public void Owner_WordsHaveHighFlagsButDecodeToPlayerIds()
     {
-        if (FirstSave() is not var (install, save)) return; // skipped
+        if (FirstSave() is not var (install, save))
+        {
+            return; // skipped
+        }
 
         SavedGame loaded = Dk2SaveReader.Load(install, save)!;
         LevelMap design = GameDatabaseLoader.LoadCampaignMap(install, loaded.Header.LevelName)!;
@@ -289,7 +315,10 @@ public class Dk2SaveReaderTests
     [InstallFact]
     public void EveryTerrainId_IsOneTheDatabaseDefines()
     {
-        if (FirstSave() is not var (install, save)) return; // skipped
+        if (FirstSave() is not var (install, save))
+        {
+            return; // skipped
+        }
 
         SavedGame loaded = Dk2SaveReader.Load(install, save)!;
         GameDatabase database = GameDatabaseLoader.Load(install);
@@ -297,7 +326,9 @@ public class Dk2SaveReaderTests
         // A wrong lane would produce ids the TERRAIN record has no row for.
         // This is a second, independent check on the same alignment claim.
         foreach (MapTile tile in loaded.Map.Tiles)
+        {
             Assert.NotNull(database.TerrainById(tile.TerrainId));
+        }
     }
 
     [InstallFact]
@@ -307,7 +338,11 @@ public class Dk2SaveReaderTests
 
         foreach (string save in Dk2SaveReader.EnumerateSaves(install))
         {
-            if (!HasInstalledLevel(install, save)) continue; // a custom level's save: no design map to read it against
+            if (!HasInstalledLevel(install, save))
+            {
+                continue; // a custom level's save: no design map to read it against
+            }
+
             SavedGame? loaded = Dk2SaveReader.Load(install, save);
             Assert.NotNull(loaded);
             Assert.True(
@@ -319,7 +354,10 @@ public class Dk2SaveReaderTests
     [InstallFact]
     public void Health_MatchesTheTerrainTablesStartingHealth_OnUndamagedTiles()
     {
-        if (FirstSave() is not var (install, save)) return; // skipped
+        if (FirstSave() is not var (install, save))
+        {
+            return; // skipped
+        }
 
         SavedGame loaded = Dk2SaveReader.Load(install, save)!;
         GameDatabase database = GameDatabaseLoader.Load(install);
@@ -331,10 +369,16 @@ public class Dk2SaveReaderTests
         {
             SavedTile tile = loaded.Tiles[i];
             TerrainDef? terrain = database.TerrainById(tile.TerrainId);
-            if (terrain is null) continue;
+            if (terrain is null)
+            {
+                continue;
+            }
 
             total++;
-            if (tile.Health == terrain.StartingHealth) matched++;
+            if (tile.Health == terrain.StartingHealth)
+            {
+                matched++;
+            }
         }
 
         Assert.True(total > 3000, $"expected a full grid, counted {total} tiles.");
@@ -347,7 +391,10 @@ public class Dk2SaveReaderTests
     [InstallFact]
     public void RoomId_GroupsTilesIntoContiguousRoomsOfTheRightSize()
     {
-        if (FirstSave() is not var (install, save)) return; // skipped
+        if (FirstSave() is not var (install, save))
+        {
+            return; // skipped
+        }
 
         SavedGame loaded = Dk2SaveReader.Load(install, save)!;
         int w = loaded.Map.Width;
@@ -357,10 +404,16 @@ public class Dk2SaveReaderTests
         for (int i = 0; i < loaded.Tiles.Length; i++)
         {
             ushort room = loaded.Tiles[i].RoomId;
-            if (room == 0) continue;
+            if (room == 0)
+            {
+                continue;
+            }
 
             if (!byRoom.TryGetValue(room, out List<(int, int)>? cells))
+            {
                 byRoom[room] = cells = [];
+            }
+
             cells.Add((i % w, i / w));
         }
 
@@ -377,11 +430,30 @@ public class Dk2SaveReaderTests
             while (pending.Count > 0)
             {
                 (int x, int y) = pending.Pop();
-                if (!reached.Add((x, y))) continue;
-                if (members.Contains((x + 1, y))) pending.Push((x + 1, y));
-                if (members.Contains((x - 1, y))) pending.Push((x - 1, y));
-                if (members.Contains((x, y + 1))) pending.Push((x, y + 1));
-                if (members.Contains((x, y - 1))) pending.Push((x, y - 1));
+                if (!reached.Add((x, y)))
+                {
+                    continue;
+                }
+
+                if (members.Contains((x + 1, y)))
+                {
+                    pending.Push((x + 1, y));
+                }
+
+                if (members.Contains((x - 1, y)))
+                {
+                    pending.Push((x - 1, y));
+                }
+
+                if (members.Contains((x, y + 1)))
+                {
+                    pending.Push((x, y + 1));
+                }
+
+                if (members.Contains((x, y - 1)))
+                {
+                    pending.Push((x, y - 1));
+                }
             }
 
             Assert.True(

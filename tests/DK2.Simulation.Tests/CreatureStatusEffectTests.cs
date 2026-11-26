@@ -214,6 +214,7 @@ public class CreatureStatusEffectTests
     {
         (GameDatabase db, WorldState world) = OpenWorld();
         for (int y = 10; y <= 14; y++)
+        {
             for (int x = 10; x <= 14; x++)
             {
                 ref TileState tile = ref world.Tile(new TilePos(x, y));
@@ -221,6 +222,8 @@ public class CreatureStatusEffectTests
                 tile.OwnerPlayerId = Rival;
                 RoomRules.Place(db, ref tile, db.Room(RoomTypeId.DungeonHeart), Rival);
             }
+        }
+
         CreatureState rim = Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Rival, 10, 12);
         CreatureState inner = Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Rival, 11, 11);
         world.Player(Rival).Mana = 0;
@@ -229,7 +232,10 @@ public class CreatureStatusEffectTests
             [new SpecialSystem(), new CreatureStatusSystem(), new CombatSystem(), new CreatureMovementSystem(), new ImpTaskSystem()]);
 
         sim.Tick(InputFrame.Of(new Commands.ActivateSpecialCommand(Keeper, box.Id)));
-        for (int i = 0; i < 40 && rim.Dk2StateId != DropLandingRules.HeartDropState; i++) sim.Tick();
+        for (int i = 0; i < 40 && rim.Dk2StateId != DropLandingRules.HeartDropState; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Equal(DropLandingRules.HeartDropState, rim.Dk2StateId);
         Assert.Equal(DropLandingRules.HeartDropState, inner.Dk2StateId);
@@ -276,8 +282,10 @@ public class CreatureStatusEffectTests
         GameSimulation sim = Sim(db, world);
         ShotDef lightning = db.Shots[Dk2TerrainFixture.LightningShotId];
         foreach (CreatureState target in new[] { dry, wet })
+        {
             ShotRules.Spawn(world, lightning, Keeper, CreatureState.CentreOf(5), CreatureState.CentreOf(10), 300, 0,
                 0, FightTargetKind.Creature, target.Id, 0, -1, target.PosX, target.PosY);
+        }
 
         sim.Run(1);
         Assert.Equal(1200, dry.Health);
@@ -540,7 +548,9 @@ public class CreatureStatusEffectTests
                 ref TileState tile = ref world.Tile(new TilePos(x, y));
                 if (tile.TerrainId == Dk2TerrainFixture.Rock || tile.TerrainId == Dk2TerrainFixture.Gold
                     || tile.TerrainId == Dk2TerrainFixture.Gems)
+                {
                     tile.TerrainId = Dk2TerrainFixture.DirtPath;
+                }
             }
         }
         return world;

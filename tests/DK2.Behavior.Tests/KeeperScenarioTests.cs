@@ -48,12 +48,16 @@ public class Level10KeeperScenarioTests(ITestOutputHelper output)
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "level10")!;
         byte training = ScenarioCorpus.Database.RoomById((byte)RoomTypeId.TrainingRoom).TerrainId;
         foreach (DropCommand put in moves.Select(e => e.Command).OfType<DropCommand>())
+        {
             for (int dy = -1; dy <= 1; dy++)
+            {
                 for (int dx = -1; dx <= 1; dx++)
                 {
                     MapTile around = map[put.Tile.X + dx, put.Tile.Y + dy];
                     Assert.Equal((training, (byte)4), (around.TerrainId, around.PlayerId));
                 }
+            }
+        }
     }
 
     [InstallFact]
@@ -122,8 +126,10 @@ public class Level11AKeeperScenarioTests(ITestOutputHelper output)
             // Every call is at an attacked enemy's Heart; only the first is sure to be answered inside
             // the run, as a later one may come too near its end (since ADR-0574, one at 1185 of 1200).
             if (callEmission == calls[0])
+            {
                 Assert.Contains(run.Events, e => e.Kind == "engaged"
                     && e.Detail.Contains($"type=Mistress player=5 heart={enemyHeart.OwnerPlayerId}"));
+            }
         }
         Assert.DoesNotContain(run.Unsupported, s => s.StartsWith("computer_keepers", StringComparison.Ordinal));
     }
@@ -152,14 +158,21 @@ public class Level17KeeperScenarioTests(ITestOutputHelper output)
             var casts = run.KeeperCommandLog
                 .Where(e => e.Command is CastSpellAtPlaceCommand { SpellId: CallToArmsRules.SpellId }).ToList();
             var removals = run.KeeperCommandLog.Where(e => e.Command is RemoveCallToArmsCommand).ToList();
-            if (casts.Count == 0) Assert.DoesNotContain(run.Events, e => e.Kind == "call_to_arms_raised");
+            if (casts.Count == 0)
+            {
+                Assert.DoesNotContain(run.Events, e => e.Kind == "call_to_arms_raised");
+            }
+
             Assert.Equal(casts.Count, removals.Count);
             for (int i = 0; i < casts.Count; i++)
             {
                 Assert.Equal(39, casts[i].InputTick % 40);
                 Assert.InRange(removals[i].InputTick, casts[i].InputTick + 1, casts[i].InputTick + 1 + KeeperBattleStep.CastGraceTurns);
             }
-            if (casts.Count == 0 || casts[0].InputTick != 39) continue;
+            if (casts.Count == 0 || casts[0].InputTick != 39)
+            {
+                continue;
+            }
             // A call at the first gate is the scenario's whole sequence: raised, heeded, the removal
             // refused, at the duel it places at (3,7)-(4,7), whose tile contact motion picks.
             Assert.True(run.ExpectationFailures.Count == 0, $"seed {seed}: {string.Join("; ", run.ExpectationFailures)}");
@@ -224,8 +237,13 @@ public class Level17KeeperScenarioTests(ITestOutputHelper output)
             if (i + 1 < moves.Count && moves[i + 1].Command is DropCommand put && moves[i + 1].InputTick == moves[i].InputTick)
             {
                 for (int dy = -1; dy <= 1; dy++)
+                {
                     for (int dx = -1; dx <= 1; dx++)
+                    {
                         Assert.True(IsHarkansTraining(new TilePos(put.Tile.X + dx, put.Tile.Y + dy)), $"training move to {put.Tile}");
+                    }
+                }
+
                 i++;
                 continue;
             }
@@ -310,7 +328,11 @@ public class Level17PrisonConstructionTests
         for (int tick = 0; tick < scenario.DurationTicks; tick++)
         {
             simulation.Tick(new InputFrame(pending));
-            if (tick + 1 == scenario.DurationTicks) break;
+            if (tick + 1 == scenario.DurationTicks)
+            {
+                break;
+            }
+
             pending = keeper.Think(database, world, staging);
             commands.AddRange(pending);
         }
@@ -398,20 +420,51 @@ public class Level18KeeperScenarioTests(ITestOutputHelper output)
             var frozenUntil = new Dictionary<string, long>();
             foreach (SimEvent e in run.Events)
             {
-                if (e.Kind == "creature_collapsed") down.Add(Field(e.Detail, "creature"));
-                if (e.Kind == "frozen") frozenUntil[Field(e.Detail, "creature")] = e.Tick.Value + long.Parse(Field(e.Detail, "ticks"));
-                if (e.Kind != "chickened") continue;
+                if (e.Kind == "creature_collapsed")
+                {
+                    down.Add(Field(e.Detail, "creature"));
+                }
+
+                if (e.Kind == "frozen")
+                {
+                    frozenUntil[Field(e.Detail, "creature")] = e.Tick.Value + long.Parse(Field(e.Detail, "ticks"));
+                }
+
+                if (e.Kind != "chickened")
+                {
+                    continue;
+                }
+
                 string target = Field(e.Detail, "target");
                 bool frozen = frozenUntil.TryGetValue(target, out long until) && e.Tick.Value < until;
                 string state = Field(e.Detail, "state");
                 Assert.True(state == "96" || (state == "refused" && (down.Contains(target) || frozen)),
                     $"seed {seed} t{e.Tick.Value}: {e.Detail}");
             }
-            if (run.Events.Any(e => e.Kind == "cast" && e.Detail.Contains("player=4 spell=9 "))) inferno++;
-            if (run.Events.Any(e => e.Kind == "inferno_hit" && e.Detail.Contains("owner=4"))) ownBurn++;
-            if (run.Events.Any(e => e.Kind == "cast" && e.Detail.Contains("player=4 spell=11 "))) chicken++;
-            if (run.Events.Any(e => e.Kind == "chickened" && e.Detail.Contains("state=96"))) chickened++;
-            if (run.ExpectationFailures.Count == 0) whole++;
+            if (run.Events.Any(e => e.Kind == "cast" && e.Detail.Contains("player=4 spell=9 ")))
+            {
+                inferno++;
+            }
+
+            if (run.Events.Any(e => e.Kind == "inferno_hit" && e.Detail.Contains("owner=4")))
+            {
+                ownBurn++;
+            }
+
+            if (run.Events.Any(e => e.Kind == "cast" && e.Detail.Contains("player=4 spell=11 ")))
+            {
+                chicken++;
+            }
+
+            if (run.Events.Any(e => e.Kind == "chickened" && e.Detail.Contains("state=96")))
+            {
+                chickened++;
+            }
+
+            if (run.ExpectationFailures.Count == 0)
+            {
+                whole++;
+            }
         }
         int quarter = seeds / 4;
         Assert.True(new[] { inferno, ownBurn, chicken, chickened, whole }.All(n => n >= quarter),
@@ -422,7 +475,13 @@ public class Level18KeeperScenarioTests(ITestOutputHelper output)
     {
         string key = name + "=";
         foreach (string part in detail.Split(' '))
-            if (part.StartsWith(key, StringComparison.Ordinal)) return part[key.Length..];
+        {
+            if (part.StartsWith(key, StringComparison.Ordinal))
+            {
+                return part[key.Length..];
+            }
+        }
+
         return "";
     }
 }

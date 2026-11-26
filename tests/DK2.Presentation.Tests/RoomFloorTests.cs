@@ -29,12 +29,15 @@ public class RoomFloorTests
         byte wall = db.Terrain.Values.Single(t => t.Name == "Reinforced Wall").TerrainId;
         byte floor = db.Room(type).TerrainId;
         for (int y = Y0; y <= Y0 + height + 1; y++)
+        {
             for (int x = X0; x <= X0 + width + 1; x++)
             {
                 bool ring = x == X0 || x == X0 + width + 1 || y == Y0 || y == Y0 + height + 1;
                 world.Tile(x, y).TerrainId = ring ? wall : floor;
                 world.Tile(x, y).OwnerPlayerId = 3;
             }
+        }
+
         return new Room(db, world, new WorldView(db));
     }
 
@@ -87,12 +90,17 @@ public class RoomFloorTests
         Room room = Carve(RoomTypeId.GuardRoom, 5, 5);
         int centres = 0;
         for (int y = Y0 + 2; y <= Y0 + 4; y++)
+        {
             for (int x = X0 + 2; x <= X0 + 4; x++)
             {
                 PieceSet floor = Floor(room, x, y);
                 if (floor.HasWhole) { centres++; continue; }
-                for (int q = 0; q < 4; q++) Assert.Equal((3, q), (floor.QuarterPiece(q), floor.QuarterRotation(q)));
+                for (int q = 0; q < 4; q++)
+                {
+                    Assert.Equal((3, q), (floor.QuarterPiece(q), floor.QuarterRotation(q)));
+                }
             }
+        }
 
         // The leftmost slot (X0 + 2, Y0 + 2) sets the parity: five of the nine.
         Assert.Equal(5, centres);
@@ -107,13 +115,26 @@ public class RoomFloorTests
         RoomDef shop = room.Database.Room(RoomTypeId.Workshop);
         int empty = 0, centres = 0;
         for (int y = Y0 + 2; y <= Y0 + 6; y++)
+        {
             for (int x = X0 + 2; x <= X0 + 6; x++)
             {
-                if (((x + y) & 1) != ((X0 + 2 + Y0 + 2) & 1)) continue;
+                if (((x + y) & 1) != ((X0 + 2 + Y0 + 2) & 1))
+                {
+                    continue;
+                }
+
                 bool isEmpty = shop.ObjectIds[AutoFurnitureRules.Choice(x, y, 3)] == 46;
                 Assert.Equal(!isEmpty, Floor(room, x, y).HasWhole);
-                if (isEmpty) empty++; else centres++;
+                if (isEmpty)
+                {
+                    empty++;
+                }
+                else
+                {
+                    centres++;
+                }
             }
+        }
 
         Assert.True(empty > 0 && centres > 0, $"{empty} empty, {centres} centres: the hash picked one kind only");
     }
@@ -137,12 +158,14 @@ public class RoomFloorTests
     {
         Room room = Carve(RoomTypeId.Portal, 3, 3);
         for (int dy = 0; dy < 3; dy++)
+        {
             for (int dx = 0; dx < 3; dx++)
             {
                 PieceSet floor = Floor(room, X0 + 1 + dx, Y0 + 1 + dy);
                 Assert.False(floor.HasQuarters);
                 Assert.Equal((dx + (3 * dy), 0), (floor.WholePiece, floor.WholeRotation));
             }
+        }
     }
 
     /// <summary>The Heart's 5×5 table (<c>0x0066DBC8</c>) from its first slab: the outer ring's
@@ -180,7 +203,10 @@ public class RoomFloorTests
         Assert.Equal((14, 0), (door.QuarterPiece(NW), door.QuarterRotation(NW)));
 
         PieceSet inside = Floor(room, X0 + 3, Y0 + 3);
-        for (int q = 0; q < 4; q++) Assert.Equal((13, q), (inside.QuarterPiece(q), inside.QuarterRotation(q)));
+        for (int q = 0; q < 4; q++)
+        {
+            Assert.Equal((13, q), (inside.QuarterPiece(q), inside.QuarterRotation(q)));
+        }
     }
 
     /// <summary>A DoubleQuad edge quarter with no interior neighbour takes the outer ring's piece
@@ -206,8 +232,12 @@ public class RoomFloorTests
         Room room = Carve(RoomTypeId.Treasury, 3, 3);
         TerrainDef water = room.Database.WaterTerrain!, lava = room.Database.LavaTerrain!;
         for (int y = Y0 + 1; y <= Y0 + 3; y++)
+        {
             for (int x = X0 + 1; x <= X0 + 3; x++)
+            {
                 room.World.Tile(x, y).TerrainId = water.TerrainId;
+            }
+        }
 
         TileView centre = room.View.TileAt(room.World, X0 + 2, Y0 + 2);
         Assert.True(centre.Bed.IsEmpty);
@@ -218,8 +248,13 @@ public class RoomFloorTests
         Assert.Equal((1, 1), (corner.WholePiece, corner.WholeRotation));
 
         for (int y = Y0 + 1; y <= Y0 + 3; y++)
+        {
             for (int x = X0 + 1; x <= X0 + 3; x++)
+            {
                 room.World.Tile(x, y).TerrainId = lava.TerrainId;
+            }
+        }
+
         PieceSet open = room.View.TileAt(room.World, X0 + 2, Y0 + 2).Bed;
         Assert.Equal((3, 0), (open.WholePiece, open.WholeRotation));
         Assert.Equal(LiquidSurface.Lava, room.View.TileAt(room.World, X0 + 2, Y0 + 2).Surface);
@@ -234,8 +269,13 @@ public class RoomFloorTests
         TerrainDef water = room.Database.WaterTerrain!;
         byte bridge = room.Database.Room(RoomTypeId.WoodenBridge).TerrainId;
         for (int y = Y0 + 1; y <= Y0 + 3; y++)
+        {
             for (int x = X0 + 1; x <= X0 + 3; x++)
+            {
                 room.World.Tile(x, y).TerrainId = water.TerrainId;
+            }
+        }
+
         room.World.Tile(X0 + 2, Y0 + 2).TerrainId = bridge;
         room.World.Tile(X0 + 2, Y0 + 2).Flags = BridgeRules.SpansWater;
 
@@ -264,9 +304,13 @@ public class RoomFloorTests
             TileView tile = view.TileAt(world, index % world.Width, index / world.Width);
             Assert.True(tile.RoomFloor.HasWhole);
             if (tile.RoomFloor.WholePiece != 5)
+            {
                 Assert.Contains("destroyedpiece", tile.RoomKeys!.Piece(tile.RoomFloor.WholePiece).Key);
+            }
             else
+            {
                 Assert.EndsWith(".piece0", tile.RoomKeys!.Piece(5).Key);
+            }
         }
         int first = heart.TileIndices[0];
         TileView centre = view.TileAt(world, first % world.Width + 2, first / world.Width + 2);
@@ -302,6 +346,7 @@ public class RoomFloorTests
     {
         (WorldState world, WorldView view) = Level("Level8");
         for (int dy = 0; dy < 2; dy++)
+        {
             for (int dx = 0; dx < 2; dx++)
             {
                 TileView tile = view.TileAt(world, 18 + dx, 14 + dy);
@@ -309,6 +354,7 @@ public class RoomFloorTests
                 Assert.Equal((dx + (2 * dy), 0), (tile.RoomFloor.WholePiece, tile.RoomFloor.WholeRotation));
                 Assert.EndsWith(".piece" + (dx + (2 * dy)), tile.RoomKeys!.Piece(tile.RoomFloor.WholePiece).Key);
             }
+        }
     }
 
     /// <summary>Level 8's 3×1 hero gate at (32..34, 3), whose record has direction 4 (o = 2, rock
@@ -338,7 +384,11 @@ public class RoomFloorTests
         {
             string level = Path.GetFileName(file)[..^"Things.kld".Length];
             List<ThingRecord>? things = GameDatabaseLoader.LoadCampaignThings(dir, level);
-            if (things is null || GameDatabaseLoader.LoadCampaignMap(dir, level) is null) continue;
+            if (things is null || GameDatabaseLoader.LoadCampaignMap(dir, level) is null)
+            {
+                continue;
+            }
+
             (WorldState world, WorldView view) = Level(level);
             GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(dir, level);
             byte gate = db.Room(RoomTypeId.HeroGate3By1).TerrainId;

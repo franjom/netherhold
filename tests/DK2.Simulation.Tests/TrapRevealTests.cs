@@ -28,8 +28,13 @@ public class TrapRevealTests
         GameDatabase db = Dk2TerrainFixture.Database(Revealer());
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 12), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         ref TileState tile = ref world.Tile(8, 5);
         tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
         tile.OwnerPlayerId = trapOwner;

@@ -23,7 +23,11 @@ public sealed class CampaignProfileStoreTests : IDisposable
     private static CampaignProfile WithStatuses(params (int Slot, CampaignLevelStatus Status)[] statuses)
     {
         var all = new CampaignLevelStatus[40];
-        foreach ((int slot, CampaignLevelStatus status) in statuses) all[slot - 1] = status;
+        foreach ((int slot, CampaignLevelStatus status) in statuses)
+        {
+            all[slot - 1] = status;
+        }
+
         return new CampaignProfile { PlayerLevelStatus = Array.AsReadOnly(all) };
     }
 
@@ -171,7 +175,11 @@ public sealed class CampaignProfileStoreTests : IDisposable
     private static DateTime Day(bool available)
     {
         var day = new DateTime(2026, 1, 1, 12, 0, 0);
-        while (CampaignMoon.IsSecretFiveAvailable(CampaignMoon.PhaseAt(day)) != available) day = day.AddDays(1);
+        while (CampaignMoon.IsSecretFiveAvailable(CampaignMoon.PhaseAt(day)) != available)
+        {
+            day = day.AddDays(1);
+        }
+
         return day;
     }
 

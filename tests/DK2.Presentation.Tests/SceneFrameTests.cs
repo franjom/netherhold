@@ -88,19 +88,37 @@ public class SceneFrameTests
             {
                 CreatureView pose = entry.Value;
                 DrawPoint drawn = PoseInterpolator.Position(pose, fraction);
-                if (!host.PlaceCreature(new CreatureId(entry.Key), pose, drawn)) continue;
+                if (!host.PlaceCreature(new CreatureId(entry.Key), pose, drawn))
+                {
+                    continue;
+                }
+
                 host.DrawCreatureClip(new CreatureId(entry.Key), pose, _renderSeconds);
-                if (entry.Key == HiddenCreatureId) host.HideCreatureModel(new CreatureId(entry.Key));
+                if (entry.Key == HiddenCreatureId)
+                {
+                    host.HideCreatureModel(new CreatureId(entry.Key));
+                }
+
                 int crossing = host.FootstepCrossing(new CreatureId(entry.Key));
-                if (crossing != 0) host.RequestFootstep(new CreatureId(entry.Key), pose, crossing);
-                if (pose.BurningRed) host.DrawBurningRed(new CreatureId(entry.Key), pose);
+                if (crossing != 0)
+                {
+                    host.RequestFootstep(new CreatureId(entry.Key), pose, crossing);
+                }
+
+                if (pose.BurningRed)
+                {
+                    host.DrawBurningRed(new CreatureId(entry.Key), pose);
+                }
+
                 host.DrawCrackle(new CreatureId(entry.Key), tick);
                 Heads.Set(new CreatureId(entry.Key), host.TryGetControlPoint(new CreatureId(entry.Key), KmfControlPoint.Head,
                     out Vector3 head) ? RenderWorld.ToNative(head) : null);
                 if (pose.GemCarrier && host.TakesGemSparkles
                     && host.TryGetControlPoint(new CreatureId(entry.Key), CreatureView.GemDustSparkle.ControlPoint, out Vector3 sparkle)
                     && _gemSparkles.TryPass(new CreatureId(entry.Key), host.EffectClock()))
+                {
                     host.RequestGemSparkle(RenderWorld.ToNative(sparkle));
+                }
             }
             host.DrawObjects(tick, fraction);
             host.RefreshTorches();
@@ -160,8 +178,10 @@ public class SceneFrameTests
         }
         Assert.Equal(legacyHost.Calls, host.Calls);
         foreach (CreatureView pose in Cast)
+        {
             Assert.Equal(legacy.Heads.Attachment(new CreatureId(pose.Id), KmfControlPoint.Head),
                 frame.Heads.Attachment(new CreatureId(pose.Id), KmfControlPoint.Head));
+        }
     }
 
     [Fact]
@@ -289,10 +309,18 @@ public class SceneFrameTests
     public void ADrawnFrameAllocatesNothing()
     {
         var frame = new SceneFrame(new QuietHost()) { HiddenCreature = new CreatureId(4) };
-        foreach (CreatureView pose in Cast) frame.Add(new CreatureId(pose.Id), pose);
+        foreach (CreatureView pose in Cast)
+        {
+            frame.Add(new CreatureId(pose.Id), pose);
+        }
+
         frame.Draw(new GameTick(1), .5f);
         long before = GC.GetAllocatedBytesForCurrentThread();
-        for (int i = 0; i < 10; i++) frame.Draw(new GameTick(2 + i), .5f);
+        for (int i = 0; i < 10; i++)
+        {
+            frame.Draw(new GameTick(2 + i), .5f);
+        }
+
         Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
     }
 }

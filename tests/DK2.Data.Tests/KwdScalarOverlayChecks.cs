@@ -48,19 +48,37 @@ internal static class KwdScalarOverlayChecks
             property.SetValue(changed, value);
             byte[] written = write(changed, template);
             object? reread = property.GetValue(read(written));
-            if (value is IEnumerable<byte> bytes) Assert.Equal(bytes, Assert.IsAssignableFrom<IEnumerable<byte>>(reread));
-            else if (value is IEnumerable<ushort> words) Assert.Equal(words, Assert.IsAssignableFrom<IEnumerable<ushort>>(reread));
-            else if (value is ReadOnlyMemory<byte> memory) Assert.Equal(memory.ToArray(), Assert.IsType<ReadOnlyMemory<byte>>(reread).ToArray());
+            if (value is IEnumerable<byte> bytes)
+            {
+                Assert.Equal(bytes, Assert.IsAssignableFrom<IEnumerable<byte>>(reread));
+            }
+            else if (value is IEnumerable<ushort> words)
+            {
+                Assert.Equal(words, Assert.IsAssignableFrom<IEnumerable<ushort>>(reread));
+            }
+            else if (value is ReadOnlyMemory<byte> memory)
+            {
+                Assert.Equal(memory.ToArray(), Assert.IsType<ReadOnlyMemory<byte>>(reread).ToArray());
+            }
             else if (value is KwdArtResource art)
             {
                 KwdArtResource actual = Assert.IsType<KwdArtResource>(reread);
                 Assert.Equal(art with { Unknown_0044 = ReadOnlyMemory<byte>.Empty }, actual with { Unknown_0044 = ReadOnlyMemory<byte>.Empty });
                 Assert.Equal(art.Unknown_0044.ToArray(), actual.Unknown_0044.ToArray());
             }
-            else Assert.Equal(value, reread);
+            else
+            {
+                Assert.Equal(value, reread);
+            }
+
             Assert.False(source.SequenceEqual(written));
             for (int i = 0; i < stride; i++)
-                if (i < field.Offset || i >= field.Offset + field.Width) Assert.Equal(source[i], written[i]);
+            {
+                if (i < field.Offset || i >= field.Offset + field.Width)
+                {
+                    Assert.Equal(source[i], written[i]);
+                }
+            }
         }
         Assert.Equal(source, template.ToBytes());
     }

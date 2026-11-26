@@ -51,13 +51,19 @@ internal sealed record CapturedState(
         int[] missing = [.. wanted.Where(t => !File.Exists(Path.Combine(folder, $"{t}.json")))];
         string[] dumpArgs = dump is null ? [] : ["--dump", Dk2CaptureGate.PathFor(dump)];
         if (missing.Length > 0)
+        {
             OriginalCpu.Python("capture_export.py", ["state", source, folder, .. missing.Select(t => t.ToString()), .. dumpArgs]);
+        }
 
         var states = new List<CapturedState>();
         foreach (int tick in wanted)
         {
             string json = Path.Combine(folder, $"{tick}.json");
-            if (!File.Exists(json)) continue;   // past the capture's end
+            if (!File.Exists(json))
+            {
+                continue;   // past the capture's end
+            }
+
             CapturedState state = JsonSerializer.Deserialize<CapturedState>(File.ReadAllText(json), Json)!;
             states.Add(string.IsNullOrEmpty(state.MemoryImage) ? state with { MemoryImage = Path.ChangeExtension(json, ".mem") } : state);
         }
@@ -82,11 +88,13 @@ internal sealed record CapturedState(
         Assert.True(world.Width == Width && world.Height == Height,
             $"the capture's map is {Width}x{Height}, ours {world.Width}x{world.Height}");
         for (int y = 0; y < Height; y++)
-        for (int x = 0; x < Width; x++)
+        {
+            for (int x = 0; x < Width; x++)
         {
             ref TileState tile = ref world.Tile(x, y);
             tile.TerrainId = (byte)Terrain(x, y);
             tile.OwnerPlayerId = (byte)Owner(x, y);
+        }
         }
     }
 

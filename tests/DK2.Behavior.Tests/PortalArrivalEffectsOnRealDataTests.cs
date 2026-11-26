@@ -21,7 +21,10 @@ public class PortalArrivalEffectsOnRealDataTests
             369, 369, 0, 0, 369, 369, 369, 179, 181, 165, 180, 178,
             177, 163, 172, 185, 164, 176, 184, 160, 366, 0,
         ];
-        for (int i = 0; i < effects.Length; i++) yield return [(byte)(i + 1), effects[i]];
+        for (int i = 0; i < effects.Length; i++)
+        {
+            yield return [(byte)(i + 1), effects[i]];
+        }
     }
 
     [InstallTheory]
@@ -85,7 +88,11 @@ public class PortalArrivalEffectsOnRealDataTests
         var world = WorldState.FromMap(db,
             GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, level)!, [0, 1, 2, 3]);
         RoomInstance portal = RoomIndex.Build(world, db).First(room => room.Definition.TypeId == RoomTypeId.Portal);
-        foreach (int tile in portal.TileIndices) world.TileAtIndex(tile).OwnerPlayerId = 3;
+        foreach (int tile in portal.TileIndices)
+        {
+            world.TileAtIndex(tile).OwnerPlayerId = 3;
+        }
+
         world.Player(new PlayerId(3)).PortalsClosed = true;
         var tree = new TriggerTree(actions, 0, playerRoots: [new TriggerPlayerRoot(3, actions[0].TriggerId)]);
         var sim = new GameSimulation(db, world, 1, [], tree);

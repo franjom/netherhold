@@ -46,7 +46,11 @@ public sealed class LauncherTests
             LauncherSettingsFile.Save(path, settings);
             Assert.Equal(settings, LauncherSettingsFile.Load(path));
         }
-        finally { if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true); }
+        finally { if (Directory.Exists(folder))
+            {
+                Directory.Delete(folder, recursive: true);
+            }
+        }
     }
 
     [Fact]
@@ -65,7 +69,11 @@ public sealed class LauncherTests
         Assert.DoesNotContain(new LauncherWindowSize(1920, 1080), sizes);
         Assert.Contains(new LauncherWindowSize(1600, 900), sizes);
         Assert.DoesNotContain(new LauncherWindowSize(1680, 1050), sizes);
-        for (int i = 1; i < sizes.Count; i++) Assert.True(sizes[i - 1].Width >= sizes[i].Width);
+        for (int i = 1; i < sizes.Count; i++)
+        {
+            Assert.True(sizes[i - 1].Width >= sizes[i].Width);
+        }
+
         Assert.Equal([new LauncherWindowSize(960, 540)], LauncherWindowSizes.Fitting(640, 480));
     }
 

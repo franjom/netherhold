@@ -120,7 +120,9 @@ public sealed class SceneRuleTests
         var writer = new Thread(() =>
         {
             for (int n = 1; DateTime.UtcNow < deadline; n++)
+            {
                 heads.Set(imp, n % 7 == 0 ? null : new FpPosition3(new Fp32(n), new Fp32(n), new Fp32(n)));
+            }
         });
         var reader = new Thread(() =>
         {
@@ -129,7 +131,10 @@ public sealed class SceneRuleTests
             {
                 EffectAttachment found = heads.Attachment(imp, KmfControlPoint.Head);
                 reads++;
-                if (found.Point is FpPosition3 p && (p.X != p.Y || p.Y != p.Z)) torn++;
+                if (found.Point is FpPosition3 p && (p.X != p.Y || p.Y != p.Z))
+                {
+                    torn++;
+                }
             }
             while (DateTime.UtcNow < deadline);
         });
@@ -148,7 +153,11 @@ public sealed class SceneRuleTests
         heads.Add(imp);
         heads.Set(imp, null);
         long before = GC.GetAllocatedBytesForCurrentThread();
-        for (int i = 0; i < 16; i++) heads.Set(imp, i % 2 == 0 ? new FpPosition3(new Fp32(i), new Fp32(2), new Fp32(3)) : null);
+        for (int i = 0; i < 16; i++)
+        {
+            heads.Set(imp, i % 2 == 0 ? new FpPosition3(new Fp32(i), new Fp32(2), new Fp32(3)) : null);
+        }
+
         Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
         Assert.Equal(EffectAttachment.NotFound, heads.Attachment(imp, KmfControlPoint.Head));
     }
@@ -220,13 +229,21 @@ public sealed class SceneRuleTests
         clock.Reset();
         clock.Advance();
         Assert.Equal(0f, clock.Phase(1f));
-        for (int i = 0; i < 5; i++) clock.Advance();
+        for (int i = 0; i < 5; i++)
+        {
+            clock.Advance();
+        }
+
         Assert.Equal(.25f, clock.Phase(1f));   // it loops
         Assert.Equal(180f, FlowerDollarClock.YawDegrees);
 
         var first = new FlowerDollarClock();
         first.Phase(0f);
-        for (int i = 0; i < 5; i++) first.Advance();
+        for (int i = 0; i < 5; i++)
+        {
+            first.Advance();
+        }
+
         Assert.Equal(.25f, first.Phase(1f));   // the first clock loops too
     }
 
@@ -235,7 +252,11 @@ public sealed class SceneRuleTests
     {
         var restarted = new FlowerDollarClock();
         restarted.Phase(0f);
-        for (int i = 0; i < 3; i++) restarted.Advance();
+        for (int i = 0; i < 3; i++)
+        {
+            restarted.Advance();
+        }
+
         restarted.Reset();
         var fresh = new RenderAnimationClock(FlowerDollarClock.Timing, loop: true);
         for (int i = 0; i < 9; i++)

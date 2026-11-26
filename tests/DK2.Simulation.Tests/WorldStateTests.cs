@@ -34,12 +34,14 @@ public class WorldStateTests
         var world = WorldState.FromMap(database, map, [(byte)0, (byte)1]);
 
         for (int y = 0; y < map.Height; y++)
+        {
             for (int x = 0; x < map.Width; x++)
             {
                 byte expected = database.TerrainById(map[x, y].TerrainId).IsOwnable ? map[x, y].PlayerId : PlayerIds.Neutral;
                 Assert.Equal(expected, world.Tile(x, y).OwnerPlayerId);
                 Assert.Equal(map[x, y].Flags, world.Tile(x, y).Flags);
             }
+        }
     }
 
     [Fact]

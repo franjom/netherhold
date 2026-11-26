@@ -59,7 +59,10 @@ public class DoorPushTests
         for (int turn = 1; turn <= limit; turn++)
         {
             sim.Run(1);
-            if (creature.Tile != DoorTile) return turn;
+            if (creature.Tile != DoorTile)
+            {
+                return turn;
+            }
         }
         return -1;
     }
@@ -207,14 +210,21 @@ public class DoorPushTests
         {
             for (int x = 1; x < world.Width - 1; x++)
             {
-                if (x != DoorTile.X || y != DoorTile.Y) world.Tile(new TilePos(x, y)).TerrainId = Dk2TerrainFixture.DirtPath;
+                if (x != DoorTile.X || y != DoorTile.Y)
+                {
+                    world.Tile(new TilePos(x, y)).TerrainId = Dk2TerrainFixture.DirtPath;
+                }
             }
         }
 
         (int X, int Y)[] sides = [(0, -1), (1, 0), (0, 1), (-1, 0)];
         for (int side = 0; side < 4; side++)
         {
-            if ((shutSides & (1 << side)) == 0) continue;
+            if ((shutSides & (1 << side)) == 0)
+            {
+                continue;
+            }
+
             world.Tile(new TilePos(DoorTile.X + sides[side].X, DoorTile.Y + sides[side].Y)).TerrainId = Dk2TerrainFixture.Rock;
         }
 

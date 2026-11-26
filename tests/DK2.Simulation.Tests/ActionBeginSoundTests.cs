@@ -133,7 +133,10 @@ public sealed class ActionBeginSoundTests
         for (int i = 0; i < SimulationTiming.TicksFromSeconds(6); i++)
         {
             sim.Tick();
-            if (entered < 0 && imp.Dk2StateId == ImpStates.For(TileWorkKind.RepairWall).Work) entered = imp.StateEnteredTick;
+            if (entered < 0 && imp.Dk2StateId == ImpStates.For(TileWorkKind.RepairWall).Work)
+            {
+                entered = imp.StateEnteredTick;
+            }
         }
 
         Assert.True(entered >= 0);
@@ -150,8 +153,13 @@ public sealed class ActionBeginSoundTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(new TilePos(x, y)).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         return (db, world);
     }
 
@@ -161,7 +169,11 @@ public sealed class ActionBeginSoundTests
         public string Name => nameof(Once);
         public void Execute(SimulationContext context)
         {
-            if (_done) return;
+            if (_done)
+            {
+                return;
+            }
+
             _done = true;
             rule(context);
         }

@@ -33,7 +33,12 @@ public class OneShotReaperLevelTests
         byte[] written = KwdLevel.WriteRecord(changed, chunk);
         Assert.Equal(metadata[0], KwdLevel.Parse([chunk with { Content = written }])!.OneShotReaperLevel);
         for (int i = 0; i < written.Length; i++)
-            if (i != 25603) Assert.Equal(chunk.Content[i], written[i]);
+        {
+            if (i != 25603)
+            {
+                Assert.Equal(chunk.Content[i], written[i]);
+            }
+        }
     }
 
     [Fact]

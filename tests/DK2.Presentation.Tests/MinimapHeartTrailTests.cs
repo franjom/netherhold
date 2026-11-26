@@ -70,7 +70,11 @@ public sealed class MinimapHeartTrailTests
             Assert.InRange(point.Y, 1, 127);
         }
         long before = GC.GetAllocatedBytesForCurrentThread();
-        for (int i = 0; i < 100; i++) MinimapHeartTrail.Build(new(1000, 20), Focus, new(4), new(i), points);
+        for (int i = 0; i < 100; i++)
+        {
+            MinimapHeartTrail.Build(new(1000, 20), Focus, new(4), new(i), points);
+        }
+
         Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
     }
 
@@ -83,6 +87,7 @@ public sealed class MinimapHeartTrailTests
     {
         var points = new MinimapRasterPoint[MinimapHeartTrail.MaximumDots];
         for (int zoom = 0; zoom <= 4; zoom++)
+        {
             for (int phase = 0; phase < 4; phase++)
             {
                 int vx = x << zoom, vy = y << zoom;
@@ -93,11 +98,16 @@ public sealed class MinimapHeartTrailTests
                 for (int i = 0; i < (length - 5) / 4; i++)
                 {
                     int px = 64 + ax / 256, py = 64 + ay / 256;
-                    if (px is > 0 and < 128 && py is > 0 and < 128) expected.Add(new(px, py));
+                    if (px is > 0 and < 128 && py is > 0 and < 128)
+                    {
+                        expected.Add(new(px, py));
+                    }
+
                     ax = unchecked(ax - nx * 4); ay = unchecked(ay - ny * 4);
                 }
                 int count = MinimapHeartTrail.Build(new(x, y), default, new(zoom), new(phase), points);
                 Assert.Equal(expected, points.Take(count));
             }
+        }
     }
 }

@@ -70,7 +70,13 @@ public class SpeedBudgetTests(ITestOutputHelper output)
     {
         var data = new TheoryData<string>();
         foreach (string file in ScenarioCorpus.Files())
-            if (ScenarioCorpus.Load(file).DurationTicks > WarmUpTicks) data.Add(file);
+        {
+            if (ScenarioCorpus.Load(file).DurationTicks > WarmUpTicks)
+            {
+                data.Add(file);
+            }
+        }
+
         return data;
     }
 
@@ -90,7 +96,13 @@ public class SpeedBudgetTests(ITestOutputHelper output)
     {
         (TimeSpan Time, int Tick) worst = (TimeSpan.Zero, -1);
         for (int t = WarmUpTicks; t < timings.TickTimes.Count; t++)
-            if (timings.TickTimes[t] > worst.Time) worst = (timings.TickTimes[t], t);
+        {
+            if (timings.TickTimes[t] > worst.Time)
+            {
+                worst = (timings.TickTimes[t], t);
+            }
+        }
+
         return worst;
     }
 

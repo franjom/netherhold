@@ -33,7 +33,11 @@ public class FrameOrderJournalEquivalenceTests
 
         byte[] rewritten = Rewrite(journal, replayed.Given);
         int differs = 0;
-        while (differs < Math.Min(recorded.Length, rewritten.Length) && recorded[differs] == rewritten[differs]) differs++;
+        while (differs < Math.Min(recorded.Length, rewritten.Length) && recorded[differs] == rewritten[differs])
+        {
+            differs++;
+        }
+
         Assert.True(recorded.AsSpan().SequenceEqual(rewritten),
             $"first difference at byte {differs} of {recorded.Length} (rewritten {rewritten.Length})");
         Assert.True(replayed.Frames.Count > journal.TicksRun, "the schedule must hold frames that run no tick");
@@ -52,15 +56,28 @@ public class FrameOrderJournalEquivalenceTests
             // The frame that ran this tick, and every frame since the previous hand-off.
             int handing = replayed.HandingFrame[tick];
             int first = handing;
-            while (first > 0 && replayed.Frames[first - 1].CommandsHandedToTick == 0) first--;
+            while (first > 0 && replayed.Frames[first - 1].CommandsHandedToTick == 0)
+            {
+                first--;
+            }
+
             var queued = new List<PlayerCommand>();
             for (int i = first; i <= handing; i++)
-                foreach (QueuedCommand command in replayed.Frames[i].Commands) queued.Add(command.Command);
+            {
+                foreach (QueuedCommand command in replayed.Frames[i].Commands)
+                {
+                    queued.Add(command.Command);
+                }
+            }
+
             Assert.Equal(Encoded(commands), Encoded(queued));
             Assert.Equal(commands.Count, replayed.Frames[handing].CommandsHandedToTick);
             Assert.Equal(new GameTick(tick), replayed.Frames[handing].TickAtStart);
             foreach (QueuedCommand command in replayed.Frames[handing].Commands)
+            {
                 Assert.NotEqual(CommandQueuedWhen.AfterHandOff, command.When);
+            }
+
             checkedFrames++;
         }
         Assert.Equal(164, checkedFrames);
@@ -89,7 +106,13 @@ public class FrameOrderJournalEquivalenceTests
     {
         var stream = new MemoryStream();
         using (var writer = new BinaryWriter(stream))
-            foreach (PlayerCommand command in commands) CommandCodec.Write(writer, command);
+        {
+            foreach (PlayerCommand command in commands)
+            {
+                CommandCodec.Write(writer, command);
+            }
+        }
+
         return stream.ToArray();
     }
 
@@ -159,7 +182,10 @@ public class FrameOrderJournalEquivalenceTests
                     yield return new Step(early, late, elapsed, 1f, false);
                     break;
             }
-            if (twoTicks) t++;
+            if (twoTicks)
+            {
+                t++;
+            }
         }
     }
 
@@ -200,8 +226,16 @@ public class FrameOrderJournalEquivalenceTests
                     TickPacer.DefaultMaxTicksPerFrame, poses: null);
                 long start = given.Count;
                 session.Ticks(new GameTick(start), ticks.Count);
-                for (int i = 0; i < ticks.Count; i++) given.Add(ticks.InputFor(i));
-                if (ticks.FirstInput.Commands != null) handing[start] = (int)frame;
+                for (int i = 0; i < ticks.Count; i++)
+                {
+                    given.Add(ticks.InputFor(i));
+                }
+
+                if (ticks.FirstInput.Commands != null)
+                {
+                    handing[start] = (int)frame;
+                }
+
                 driver.AfterTicks(world, frame);
                 session.EndFrame(pending, pacer.Debt);
                 frame++;
@@ -211,14 +245,20 @@ public class FrameOrderJournalEquivalenceTests
             Assert.Empty(warnings);
             FrameInputJournal frames;
             using (FileStream stream = File.OpenRead(Path.Combine(root, "harness", FrameJournalSession.FramesFile)))
+            {
                 frames = FrameInputJournal.Read(stream);
+            }
+
             Assert.Equal(frame, frames.FramesWritten);
             Assert.Equal(FrameJournalSession.GodotKeyTable, frames.Header[FrameJournalSession.KeyTableKey]);
             return new Replayed(given, frames.Frames.ToList(), handing);
         }
         finally
         {
-            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
         }
     }
 }

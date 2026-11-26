@@ -101,7 +101,9 @@ public class FollowPathTests
         body.Vel = new Fixed16Vector(0x100, 0);
 
         for (int tick = 0; tick < 3; tick++)
+        {
             Assert.Equal(-body.Vel, FollowPathRules.Compute(body, mover, world));
+        }
 
         Assert.True(FollowPathRules.Compute(body, mover, world).X > 0);
         Assert.Equal(FacingPlusX, mover.Heading);

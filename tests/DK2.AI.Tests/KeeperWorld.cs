@@ -268,8 +268,12 @@ internal static class KeeperWorld
         {
             AutoFurnitureRules.DesiredFurniture(world, database, room, pieces);
             foreach ((int tile, byte type) in pieces)
+            {
                 if (database.ObjectById(type) is not null)
+                {
                     world.SpawnObject(database, type, room.OwnerPlayerId, tile).AutoPlaced = true;
+                }
+            }
         }
     }
 
@@ -389,15 +393,22 @@ internal static class KeeperWorld
     {
         var tiles = new MapTile[width * height];
         for (int y = 0; y < height; y++)
+        {
             for (int x = 0; x < width; x++)
             {
                 bool border = x == 0 || y == 0 || x == width - 1 || y == height - 1;
                 tiles[(y * width) + x] = new MapTile(border ? Impenetrable : Rock, 0, 0, 0);
             }
+        }
 
         for (int y = HeartAt.Y - 2; y <= HeartAt.Y + 2; y++)
+        {
             for (int x = HeartAt.X - 2; x <= HeartAt.X + 2; x++)
+            {
                 tiles[(y * width) + x] = new MapTile(ClaimedPath, Keeper, 0, 0);
+            }
+        }
+
         tiles[(HeartAt.Y * width) + HeartAt.X] = new MapTile(HeartFloor, Keeper, 0, 0);
 
         var world = WorldState.FromMap(database, new LevelMap(width, height, tiles), [0, 1, 2, Keeper, .. morePlayers ?? []]);
@@ -426,8 +437,16 @@ internal static class KeeperWorld
         for (int i = 0; i < world.TileCount; i++)
         {
             ref TileState tile = ref world.TileAtIndex(i);
-            if (!tile.IsTaggedBy(playerId)) continue;
-            if (!database.TerrainById(tile.TerrainId).IsSolid) continue;
+            if (!tile.IsTaggedBy(playerId))
+            {
+                continue;
+            }
+
+            if (!database.TerrainById(tile.TerrainId).IsSolid)
+            {
+                continue;
+            }
+
             tile.TerrainId = ClaimedPath;
             tile.OwnerPlayerId = playerId;
             tile.Health = database.TerrainById(ClaimedPath).StartingHealth;
@@ -454,7 +473,10 @@ internal static class KeeperWorld
         vars.Availabilities.Add(new AvailabilityEntry(5, Keeper, 4, 3));
         // Rows for the battle spells, unavailable until a test says otherwise.
         foreach (int spell in new[] { KeeperSpellRules.SightOfEvil, 3, 6, 7, 9, 10, 11, KeeperSpellRules.CreateGold })
+        {
             vars.Availabilities.Add(new AvailabilityEntry(5, Keeper, spell, 1));
+        }
+
         vars.Misc[VariableTypeId.MaximumManaThreshold] = new MiscVariable(VariableTypeId.MaximumManaThreshold, 200000, 0, 0);
         vars.Misc[VariableTypeId.NumberOfRandomWallDeteriorationsPerSecond] = new MiscVariable(VariableTypeId.NumberOfRandomWallDeteriorationsPerSecond, 0, 0, 0);
         vars.Misc[VariableTypeId.WallDeteriorationDamage] = new MiscVariable(VariableTypeId.WallDeteriorationDamage, 0, 0, 0);

@@ -133,7 +133,11 @@ public class PlayerRunReportTests
                 using (FileStream stream = File.Create(Path.Combine(folder, "input.journal")))
                 using (var writer = new InputJournalWriter(stream, new Dictionary<string, string>()))
                 {
-                    for (long tick = 0; tick <= 3; tick++) writer.WriteHash(tick, 1);
+                    for (long tick = 0; tick <= 3; tick++)
+                    {
+                        writer.WriteHash(tick, 1);
+                    }
+
                     writer.WriteEnd(3, "completed");
                 }
                 return new System.Diagnostics.ProcessStartInfo("dotnet", "--version");
@@ -182,7 +186,11 @@ public class PlayerRunReportTests
     private static byte[] LegacyJournal()
     {
         using var stream = new MemoryStream();
-        using (var writer = new InputJournalWriter(stream, new Dictionary<string, string>())) writer.WriteEnd(0, "completed");
+        using (var writer = new InputJournalWriter(stream, new Dictionary<string, string>()))
+        {
+            writer.WriteEnd(0, "completed");
+        }
+
         return stream.ToArray();
     }
 
@@ -233,7 +241,9 @@ public class PlayerRunReportTests
             string journal = Path.Combine(root, "input.journal");
             ScenarioResult result;
             using (FileStream stream = File.Create(journal))
+            {
                 result = runner.Run(scenario, new RunOptions { Journal = stream });
+            }
 
             Assert.Null(PlayerRunCommand.ReplayGap(runner, scenario, result, journal, out int compared));
             Assert.Equal(result.HashPerTick.Count, compared);
@@ -270,7 +280,10 @@ public class PlayerRunReportTests
             Assert.Equal(1, PlayerRunCommand.Run(runner, database, null, scenario, template, Path.Combine(root, "out"), "first", output, error));
             string folder = Path.Combine(root, "out", "player-report-probe", "first");
             foreach (string file in new[] { "input.journal", PlayerRunManifest.FileName, PlayerRunReport.RunFile, PlayerRunReport.DecisionsFile, PlayerRunReport.ActionsFile })
+            {
                 Assert.True(File.Exists(Path.Combine(folder, file)), file);
+            }
+
             using (var report = JsonDocument.Parse(File.ReadAllText(Path.Combine(folder, PlayerRunReport.RunFile))))
             {
                 Assert.Equal("ControllerLimited", report.RootElement.GetProperty("outcome").GetString());
@@ -302,13 +315,17 @@ public class PlayerRunReportTests
             Assert.True(File.Exists(Path.Combine(broken, "input.journal")));
             Assert.True(File.Exists(Path.Combine(broken, PlayerRunManifest.FileName)));
             using (var failure = JsonDocument.Parse(File.ReadAllText(Path.Combine(broken, PlayerRunReport.RunFile))))
+            {
                 Assert.Equal("TechnicalFailure", failure.RootElement.GetProperty("outcome").GetString());
+            }
 
             // A refusal before any tick exits 2 with a Refused verdict, not a technical failure.
             RunTemplate absent = HarnessCommandLine.RunOptions(["run", "x", "--campaign-player", "5"])!;
             Assert.Equal(2, PlayerRunCommand.Run(runner, database, null, scenario, absent, Path.Combine(root, "out"), "absent", output, error));
             using (var refused = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "out", "player-report-probe", "absent", PlayerRunReport.RunFile))))
+            {
                 Assert.Equal("Refused", refused.RootElement.GetProperty("outcome").GetString());
+            }
 
             // The output budget and the wall clock stop a real run, as incomplete evidence (exit 2).
             var tight = new RunTemplate(null, false, 0, 0) { Player = new CampaignPlayerSpec(new PlayerId(3), FinaleTicks: 0, OutputMiB: 1) };
@@ -325,7 +342,11 @@ public class PlayerRunReportTests
 
             // Its journal replays only while its manifest still matches.
             InputJournal journal;
-            using (FileStream read = File.OpenRead(Path.Combine(folder, "input.journal"))) journal = InputJournal.Read(read);
+            using (FileStream read = File.OpenRead(Path.Combine(folder, "input.journal")))
+            {
+                journal = InputJournal.Read(read);
+            }
+
             string journalPath = Path.Combine(folder, "input.journal");
             Assert.Null(PlayerRunCommand.VerifyBeforeReplay(journalPath, scenario, null, journal, output, error));
             // A legacy journal needs no manifest; a player journal without one is refused.

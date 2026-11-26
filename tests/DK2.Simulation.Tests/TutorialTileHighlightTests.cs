@@ -54,7 +54,11 @@ public class TutorialTileHighlightTests
     public void FourSlotsChooseTheFirstFreeOrMatchingEntryAndClearOnlyOneMatch()
     {
         (GameDatabase? db, WorldState? world) = Setup();
-        for (byte id = 1; id <= 5; id++) Run(db, world, id, true, 0);
+        for (byte id = 1; id <= 5; id++)
+        {
+            Run(db, world, id, true, 0);
+        }
+
         Assert.Equal(new byte[] { 1, 2, 3, 4 }, world.TileHighlights.Slots.ToArray().Select(s => s.ActionPoint.Value));
         Run(db, world, 2, false, 0);
         Run(db, world, 4, true, 0);

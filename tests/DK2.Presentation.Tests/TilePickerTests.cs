@@ -115,8 +115,12 @@ public class TilePickerTests
         GameDatabase database = Database();
         var tiles = new MapTile[Width * Height];
         for (int y = 0; y < Height; y++)
+        {
             for (int x = 0; x < Width; x++)
+            {
                 tiles[(y * Width) + x] = new MapTile(y >= 8 ? Floor : Wall, 0, 0, 0);
+            }
+        }
 
         var world = WorldState.FromMap(database, new LevelMap(Width, Height, tiles), [0, 1]);
         return (new WorldView(database), world);

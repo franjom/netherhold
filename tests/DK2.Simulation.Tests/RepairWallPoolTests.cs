@@ -26,10 +26,15 @@ public class RepairWallPoolTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var tiles = new MapTile[49];
         for (int y = 0; y < 7; y++)
-        for (int x = 0; x < 7; x++)
-            tiles[(y * 7) + x] = x is >= 1 and <= 5 && y is >= 1 and <= 5
+        {
+            for (int x = 0; x < 7; x++)
+            {
+                tiles[(y * 7) + x] = x is >= 1 and <= 5 && y is >= 1 and <= 5
                 ? new MapTile(Dk2TerrainFixture.ClaimedPath, Keeper, 0, 0)
                 : new MapTile(Dk2TerrainFixture.ImpenetrableRock, 2, 0, 0);
+            }
+        }
+
         var world = WorldState.FromMap(db, new LevelMap(7, 7, tiles), [(byte)2, Keeper, (byte)4]);
         ref TileState wall = ref world.Tile(Wall);
         wall.TerrainId = Dk2TerrainFixture.ReinforcedWall;
@@ -50,7 +55,11 @@ public class RepairWallPoolTests
 
     private static void TickUntil(GameSimulation sim, Func<bool> done, int limit = 300)
     {
-        for (int i = 0; i < limit && !done(); i++) sim.Tick();
+        for (int i = 0; i < limit && !done(); i++)
+        {
+            sim.Tick();
+        }
+
         Assert.True(done(), "the condition was not reached");
     }
 
@@ -178,7 +187,11 @@ public class RepairWallPoolTests
 
         public void Update(SimulationContext context, CreatureState creature)
         {
-            if (!Armed || !ReferenceEquals(creature, Target)) return;
+            if (!Armed || !ReferenceEquals(creature, Target))
+            {
+                return;
+            }
+
             Armed = false;
             creature.ClearJob();
             creature.Dk2StateId = 203;
@@ -198,12 +211,19 @@ public class RepairWallPoolTests
         ISimulationSystem[] systems = Dk2TerrainFixture.DefaultSystems();
         for (int i = 0; i < systems.Length; i++)
         {
-            if (systems[i] is not Systems.CreatureUpdateSystem update) continue;
+            if (systems[i] is not Systems.CreatureUpdateSystem update)
+            {
+                continue;
+            }
+
             var steps = new List<Systems.ICreatureUpdateStep>();
             foreach (Systems.ICreatureUpdateStep step in update.Steps)
             {
                 steps.Add(step);
-                if (step is Systems.CombatSystem) steps.Add(knock);
+                if (step is Systems.CombatSystem)
+                {
+                    steps.Add(knock);
+                }
             }
             Assert.Contains(knock, steps);
             systems[i] = new Systems.CreatureUpdateSystem([.. steps]);

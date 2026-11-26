@@ -125,7 +125,10 @@ public class DeterminismTests
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, PlayerIds.FirstKeeper, new TilePos(2, 2));
         foreach (TilePos wall in new[] { new TilePos(4, 2), new TilePos(5, 2), new TilePos(1, 4) })
+        {
             world.Tile(wall).SetTaggedBy(PlayerIds.FirstKeeper, true);
+        }
+
         return new GameSimulation(database, world, 99, Dk2TerrainFixture.DefaultSystems());
     }
 

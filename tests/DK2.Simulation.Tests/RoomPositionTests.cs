@@ -110,12 +110,15 @@ public sealed class RoomPositionTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(40, 40), [(byte)0, (byte)1, (byte)2, (byte)3, (byte)4]);
         for (int y = 0; y < world.Height; y++)
-        for (int x = 0; x < world.Width; x++)
+        {
+            for (int x = 0; x < world.Width; x++)
         {
             ref TileState tile = ref world.Tile(new TilePos(x, y));
             tile.TerrainId = Dk2TerrainFixture.DirtPath;
             tile.OwnerPlayerId = 0;
         }
+        }
+
         Place(world, db.Room(kind), new PlayerId(3), points);
         return (db, world, Assert.Single(RoomIndex.Build(world, db)));
     }

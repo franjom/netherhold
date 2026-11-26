@@ -74,7 +74,10 @@ public class DoorCombatTests
         Assert.True(routes.TryRoute(goblin, East, MoveOptions.Plain));
         (goblin.Dk2StateId, goblin.UtilityNewState) = (6, 1); // walking (6), resuming idle
 
-        for (int i = 0; i < 400 && world.Doors.Count > 0; i++) sim.Run(1);
+        for (int i = 0; i < 400 && world.Doors.Count > 0; i++)
+        {
+            sim.Run(1);
+        }
 
         Assert.Contains(sink.Events, e => e.Kind == "meets_door" && e.Detail.Contains($"door={door.Id}"));
         Assert.Contains(sink.Events, e => e.Kind == "door_hit");
@@ -89,7 +92,11 @@ public class DoorCombatTests
         routes.Refresh();
         Assert.True(routes.TryRoute(goblin, East, MoveOptions.Loose));
         (goblin.Dk2StateId, goblin.UtilityNewState) = (6, 1); // walking (6), resuming idle
-        for (int i = 0; i < 200 && goblin.Tile != East; i++) sim.Run(1);
+        for (int i = 0; i < 200 && goblin.Tile != East; i++)
+        {
+            sim.Run(1);
+        }
+
         Assert.Equal(East, goblin.Tile);
     }
 
@@ -105,7 +112,10 @@ public class DoorCombatTests
         Assert.True(Routes(db, world).TryRoute(warlock, East, MoveOptions.Plain));
         (warlock.Dk2StateId, warlock.UtilityNewState) = (6, 1); // walking (6), resuming idle
 
-        for (int i = 0; i < 1200 && world.Doors.Count > 0; i++) sim.Run(1);
+        for (int i = 0; i < 1200 && world.Doors.Count > 0; i++)
+        {
+            sim.Run(1);
+        }
 
         Assert.Contains(sink.Events, e => e.Kind == "engaged" && e.Detail.Contains($"creature={warlock.Id}")
             && e.Detail.Contains($"attack={(byte)CombatRules.AttackMode.SpellAtThing}"));
@@ -167,7 +177,11 @@ public class DoorCombatTests
         Assert.True(Routes(db, world).TryRoute(goblin, East, MoveOptions.Plain));
         (goblin.Dk2StateId, goblin.UtilityNewState) = (6, 1); // walking (6), resuming idle
 
-        for (int i = 0; i < 60 && !sink.Events.Any(e => e.Kind == "meets_door"); i++) sim.Run(1);
+        for (int i = 0; i < 60 && !sink.Events.Any(e => e.Kind == "meets_door"); i++)
+        {
+            sim.Run(1);
+        }
+
         Assert.Contains(sink.Events, e => e.Kind == "meets_door");
     }
 
@@ -186,7 +200,11 @@ public class DoorCombatTests
         Assert.True(Routes(db, world).TryRoute(goblin, East, MoveOptions.Leaving));
         (goblin.Dk2StateId, goblin.UtilityNewState) = (6, 1); // walking (6), resuming idle
 
-        for (int i = 0; i < 60; i++) sim.Run(1);
+        for (int i = 0; i < 60; i++)
+        {
+            sim.Run(1);
+        }
+
         Assert.Equal(rebel, sink.Events.Any(e => e.Kind == "meets_door"));
     }
 
@@ -199,7 +217,11 @@ public class DoorCombatTests
         GameSimulation sim = Sim(db, world, sink);
         StatePlacement.Place(imp, 1); // idle: outside the states the mover holds an imp still in
         Assert.True(Routes(db, world).TryRoute(imp, East, MoveOptions.Plain));
-        for (int i = 0; i < 120 && imp.Tile != East; i++) sim.Run(1);
+        for (int i = 0; i < 120 && imp.Tile != East; i++)
+        {
+            sim.Run(1);
+        }
+
         Assert.DoesNotContain(sink.Events, e => e.Kind == "meets_door");
         Assert.True(imp.Tile.X > DoorTile.X, "the imp walked through");
     }

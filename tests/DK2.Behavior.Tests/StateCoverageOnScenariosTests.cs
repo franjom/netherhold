@@ -52,7 +52,9 @@ public class StateCoverageOnScenariosTests
 
         Assert.Empty(holders);
         foreach (int id in new[] { 160, 161, 162, 166, 167, 168, 170, 171, 172 })
+        {
             Assert.Equal(StateStatus.Unreachable, CreatureStateCoverage.Get(id).Status);
+        }
     }
 
     [InstallFact]

@@ -40,7 +40,9 @@ public class KwdHostileInputTests
     {
         byte[] file = SyntheticFile();
         for (int length = 0; length < file.Length; length++)
+        {
             AssertControlled(file[..length], MaxBytesPerSyntheticRead, $"cut at {length}");
+        }
     }
 
     [Fact]
@@ -52,7 +54,10 @@ public class KwdHostileInputTests
         {
             byte[] input = (byte[])file.Clone();
             for (int f = random.Next(1, 5); f > 0; f--)
+            {
                 input[random.Next(input.Length)] ^= (byte)(1 << random.Next(8));
+            }
+
             AssertControlled(input, MaxBytesPerSyntheticRead, $"case {i}");
         }
     }
@@ -148,7 +153,10 @@ public class KwdHostileInputTests
     {
         byte[] header = new byte[28];
         for (int i = 0; i < counts.Length; i++)
+        {
             BinaryPrimitives.WriteInt32LittleEndian(header.AsSpan(i * 4), counts[i]);
+        }
+
         return header;
     }
 
@@ -157,7 +165,11 @@ public class KwdHostileInputTests
         byte[] record = new byte[KwdTaggedRecords.RecordHeaderSize + size];
         BinaryPrimitives.WriteInt32LittleEndian(record, tag);
         BinaryPrimitives.WriteInt32LittleEndian(record.AsSpan(4), size);
-        for (int i = KwdTaggedRecords.RecordHeaderSize; i < record.Length; i++) record[i] = (byte)(i * 5);
+        for (int i = KwdTaggedRecords.RecordHeaderSize; i < record.Length; i++)
+        {
+            record[i] = (byte)(i * 5);
+        }
+
         return record;
     }
 

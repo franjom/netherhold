@@ -22,8 +22,13 @@ public class RoomOwnershipMessageTests
     private static RoomInstance Portal(GameDatabase db, WorldState world, byte owner)
     {
         for (int y = 2; y < 5; y++)
+        {
             for (int x = 2; x < 5; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Portal), owner);
+            }
+        }
+
         return RoomIndex.RoomAt(world, db, 3 * world.Width + 3)!;
     }
 

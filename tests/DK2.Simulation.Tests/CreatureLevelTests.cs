@@ -42,7 +42,9 @@ public class CreatureLevelTests
         GameDatabase db = Db;
 
         foreach (CreatureStatId stat in Enum.GetValues<CreatureStatId>())
+        {
             Assert.Equal(100, CreatureLevelRules.Percent(db, stat, 1));
+        }
     }
 
     [Fact]

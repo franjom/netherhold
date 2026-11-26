@@ -55,7 +55,10 @@ public class CombatExperienceTests
             me.FightTargetKind = FightTargetKind.Creature;
             me.FightTargetId = them.Id;
         }
-        if (deadTarget) StatePlacement.As(them, CreatureActivity.Dead);
+        if (deadTarget)
+        {
+            StatePlacement.As(them, CreatureActivity.Dead);
+        }
 
         return CreatureExperienceSystem.CombatExperiencePerOriginalTick(world, db, fighter, me);
     }

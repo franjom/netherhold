@@ -101,7 +101,10 @@ public sealed class HandCursorTests
     public void PointAnchorsOnTheRestingClawTipInEveryFrame()
     {
         for (int frame = 0; frame < 41; frame++)
+        {
             Assert.Equal(new Vector2(6, 33), HandCursor.Anchor(HandCursorKind.Point, frame));
+        }
+
         Assert.Throws<ArgumentOutOfRangeException>(() => HandCursor.Anchor(HandCursorKind.Point, 41));
     }
 
@@ -164,7 +167,9 @@ public sealed class HandCursorTests
     {
         HandCursorSprite sprite = HandCursor.Sprite(kind);
         for (int frame = 0; frame < sprite.FrameCount; frame++)
+        {
             Assert.Equal(sprite.Hotspot, HandCursor.Anchor(kind, frame));
+        }
     }
 
     // DK2's tooltip sits 98 = 82 - 2 + 18 right of the pointer; with the tip anchor the Point hand
@@ -183,9 +188,17 @@ public sealed class HandCursorTests
         var animation = new HandCursorAnimation();
         Assert.Equal(0, animation.Advance(HandCursorKind.Point, 0));
         int frame = 0;
-        for (long t = 10; t <= 1350; t += 10) frame = animation.Advance(HandCursorKind.Point, t);   // steady 100 fps
+        for (long t = 10; t <= 1350; t += 10)
+        {
+            frame = animation.Advance(HandCursorKind.Point, t);   // steady 100 fps
+        }
+
         Assert.Equal(40, frame);
-        for (long t = 1360; t <= 1370; t += 10) frame = animation.Advance(HandCursorKind.Point, t);
+        for (long t = 1360; t <= 1370; t += 10)
+        {
+            frame = animation.Advance(HandCursorKind.Point, t);
+        }
+
         Assert.Equal(0, frame);                     // 41 frames done: the loop restarts, the overshoot discarded
         Assert.Equal(0, animation.Advance(HandCursorKind.Dig, 1380));
         Assert.Equal(0, animation.Advance(HandCursorKind.Point, 1390));

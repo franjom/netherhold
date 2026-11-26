@@ -27,8 +27,16 @@ public class CampaignMoonTests
         {
             float phase = CampaignMoon.PhaseAt(day.AddDays(i));
             Assert.InRange(phase, -1, 1);
-            if (phase < previous) wraps++;
-            if (CampaignMoon.IsSecretFiveAvailable(phase)) openDays++;
+            if (phase < previous)
+            {
+                wraps++;
+            }
+
+            if (CampaignMoon.IsSecretFiveAvailable(phase))
+            {
+                openDays++;
+            }
+
             previous = phase;
         }
         Assert.Equal(2, wraps);

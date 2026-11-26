@@ -25,8 +25,13 @@ public class TerrainLatticeTests
         byte rock = db.Terrain.Values.Single(t => t.Name == "Rock").TerrainId;
         byte dirt = db.Terrain.Values.Single(t => t.Name == "Dirt Path").TerrainId;
         for (int y = Y0; y < Y0 + 9; y++)
+        {
             for (int x = X0; x < X0 + 9; x++)
+            {
                 world.Tile(x, y).TerrainId = x == X0 + 4 || y == Y0 + 4 ? dirt : rock;
+            }
+        }
+
         return (db, world);
     }
 

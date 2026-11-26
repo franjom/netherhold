@@ -104,7 +104,10 @@ public class CombatNonFighterTests
         CreatureState attacker = Spawn(db, world, Dk2TerrainFixture.KnightCreatureId, PlayerIds.Good, attackerX, 12);
         world.Player(Keeper).CallToArms = new(callToArms, 0, 0, 0, 0);
         if (alliedThreat == 120)
+        {
             Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, impX, 13);
+        }
+
         StatePlacement.Place(imp, 203);
         imp.FightTargetKind = FightTargetKind.Creature;
         imp.FightTargetId = attacker.Id;
@@ -401,8 +404,13 @@ public class CombatNonFighterTests
         List<(int State, int Saved, int Resume)> seen = StateTrace.Of(sim, imp, 45, observeTick: () =>
         {
             foreach (CreatureState g in goblins)
+            {
                 if (g.StateBeforeUtilityState == JobRules.StateFor(JobType.Sulk)
-                    && (g.UtilityNewState == 254 || g.Dk2StateId is 254 or 199)) responders.Add(g.Id);
+                    && (g.UtilityNewState == 254 || g.Dk2StateId is 254 or 199))
+                {
+                    responders.Add(g.Id);
+                }
+            }
         });
 
         Assert.Equal([(6, 199, 251), (251, 199, 1), (252, 199, 1), (CreatureStateMachine.Idle, 199, 1)], seen);
@@ -440,7 +448,11 @@ public class CombatNonFighterTests
         Assert.Equal(CreatureActivity.RaisingAlarm, imp.Activity);
         Assert.Equal(MoveOptions.Loose, imp.RouteOptions);
 
-        for (int i = 0; i < 40 && !sink.Events.Any(e => e.Kind == "alarm_raised"); i++) sim.Run(1);
+        for (int i = 0; i < 40 && !sink.Events.Any(e => e.Kind == "alarm_raised"); i++)
+        {
+            sim.Run(1);
+        }
+
         Assert.Single(sink.Events, e => e.Kind == "alarm_raised");
         Assert.All(goblins, g => Assert.Equal(CreatureActivity.Reporting, g.Activity));
         Assert.All(goblins, g => Assert.Equal(MoveOptions.Plain, g.RouteOptions));
@@ -518,7 +530,11 @@ public class CombatNonFighterTests
         Assert.True(withdrew.Voiced);
         Assert.DoesNotContain(Sounds(sink), s => s.Event == ThingSoundEvent.RespondedToThreat);
 
-        for (int i = 0; i < 40 && !sink.Events.Any(e => e.Kind == "alarm_raised"); i++) sim.Run(1);
+        for (int i = 0; i < 40 && !sink.Events.Any(e => e.Kind == "alarm_raised"); i++)
+        {
+            sim.Run(1);
+        }
+
         Assert.Single(sink.Events, e => e.Kind == "alarm_raised");
         ThingSoundRequest responded = Assert.Single(Sounds(sink), s => s.Event == ThingSoundEvent.RespondedToThreat);
         Assert.Equal((ushort)0x2FA, (ushort)responded.Event);
@@ -545,7 +561,9 @@ public class CombatNonFighterTests
                 ref TileState tile = ref world.Tile(new TilePos(x, y));
                 if (tile.TerrainId == Dk2TerrainFixture.Rock || tile.TerrainId == Dk2TerrainFixture.Gold
                     || tile.TerrainId == Dk2TerrainFixture.Gems)
+                {
                     tile.TerrainId = Dk2TerrainFixture.DirtPath;
+                }
             }
         }
         return (db, world);

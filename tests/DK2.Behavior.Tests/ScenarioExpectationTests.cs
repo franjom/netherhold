@@ -25,8 +25,13 @@ public class ScenarioExpectationTests(ITestOutputHelper output)
     {
         var data = new TheoryData<string>();
         foreach (string file in ScenarioCorpus.Files())
+        {
             if (!ScenarioCorpus.RunByTheirOwnTest.Contains(file) && ScenarioCorpus.Load(file).Expect.Count > 0)
+            {
                 data.Add(file);
+            }
+        }
+
         return data;
     }
 

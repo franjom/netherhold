@@ -21,11 +21,13 @@ public class RefusedStateTests
     {
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y < 19; y++)
-        for (int x = 1; x < 19; x++)
+        {
+            for (int x = 1; x < 19; x++)
         {
             ref TileState tile = ref world.Tile(x, y);
             tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
             tile.OwnerPlayerId = Keeper;
+        }
         }
 
         return world;
@@ -34,8 +36,12 @@ public class RefusedStateTests
     private static void Room(GameDatabase db, WorldState world, RoomTypeId type, int x0, int y0, int size)
     {
         for (int y = y0; y < y0 + size; y++)
-        for (int x = x0; x < x0 + size; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(type), Keeper);
+        {
+            for (int x = x0; x < x0 + size; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(type), Keeper);
+            }
+        }
     }
 
     /// <summary>A tile joins the room at (x, y), which stamps the rebuilt room (<c>0x004E4480</c>).</summary>

@@ -27,7 +27,9 @@ public partial class CampaignPlayerTests
     {
         var tiles = new PlayerTile[rows.Length * rows[0].Length];
         for (int y = 0; y < rows.Length; y++)
+        {
             for (int x = 0; x < rows[0].Length; x++)
+            {
                 tiles[y * rows[0].Length + x] = rows[y][x] switch
                 {
                     '.' => new PlayerTile(PlayerTileFlags.Known, Me, default),
@@ -55,6 +57,9 @@ public partial class CampaignPlayerTests
                     'l' => new PlayerTile(PlayerTileFlags.Known | PlayerTileFlags.Lava, default, default),
                     _ => default,
                 };
+            }
+        }
+
         return new PlayerTileGrid(rows[0].Length, rows.Length, tiles);
     }
 
@@ -93,8 +98,15 @@ public partial class CampaignPlayerTests
         };
         foreach (PlayerVisibleThing thing in things)
         {
-            if ((thing.Actions & PlayerThingActions.PickUp) != 0) actions |= PlayerActionKinds.PickUp;
-            if ((thing.Actions & PlayerThingActions.Activate) != 0) actions |= PlayerActionKinds.ActivateSpecial;
+            if ((thing.Actions & PlayerThingActions.PickUp) != 0)
+            {
+                actions |= PlayerActionKinds.PickUp;
+            }
+
+            if ((thing.Actions & PlayerThingActions.Activate) != 0)
+            {
+                actions |= PlayerActionKinds.ActivateSpecial;
+            }
         }
         return new PlayerObservation
         {
@@ -186,7 +198,10 @@ public partial class CampaignPlayerTests
         var build = (PlayerAction.BuildRoom)player.Decide(Observe(1)).Actions[1];
         string[] built = [.. Dungeon];
         for (int y = build.From.Y; y <= build.To.Y; y++)
+        {
             built[y] = built[y][..build.From.X] + "TTT" + built[y][(build.To.X + 1)..];
+        }
+
         PlayerDecision next = player.Decide(Observe(2, map: built, owned: [new PlayerRoomSummary(RoomTypeId.Treasury, 9)]));
         Assert.Equal(RoomTypeId.Lair, Assert.Single(next.Actions.OfType<PlayerAction.BuildRoom>()).Room);
     }
@@ -269,7 +284,9 @@ public partial class CampaignPlayerTests
         CampaignPlayer player = Player(o => o with { StallWindowTicks = 100, RecoveryAttempts = 2 });
         PlayerDecision? last = null;
         for (long tick = 0, revision = 1; tick <= 400 && last?.IsLimitation != true; tick += 50, revision++)
+        {
             last = player.Decide(Observe(revision, gold: 0, tick: tick));
+        }
 
         Assert.True(last!.IsLimitation);
         Assert.Contains("2 recoveries", last.Reason, StringComparison.Ordinal);
@@ -394,7 +411,11 @@ public partial class CampaignPlayerTests
     {
         // The controller boundary as code: nothing under DK2.AI/Players may reach engine state.
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "DK2.slnx"))) directory = directory.Parent;
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "DK2.slnx")))
+        {
+            directory = directory.Parent;
+        }
+
         string players = Path.Combine(directory!.FullName, "src", "DK2.AI", "Players");
         string[] files = Directory.GetFiles(players, "*.cs");
         Assert.Contains(files, f => f.EndsWith("CampaignPlayer.cs", StringComparison.Ordinal));

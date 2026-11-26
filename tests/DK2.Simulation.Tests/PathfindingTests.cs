@@ -356,20 +356,24 @@ public class PathfindingTests
         foreach (TextGrid grid in new[] { Rooms, OneDoor, Sealed, Open })
         {
             for (int fy = 0; fy < grid.Height; fy++)
-            for (int fx = 0; fx < grid.Width; fx++)
+            {
+                for (int fx = 0; fx < grid.Width; fx++)
             {
                 var from = new TilePos(fx, fy);
                 flood.Flood(grid, from);
                 Assert.True(flood.IsFor(grid, from));
 
                 for (int ty = -1; ty <= grid.Height; ty++)
-                for (int tx = -1; tx <= grid.Width; tx++)
+                    {
+                        for (int tx = -1; tx <= grid.Width; tx++)
                 {
                     var to = new TilePos(tx, ty);
                     bool found = search.TryFindNearest(grid, from, s => s == to, expected);
                     Assert.Equal(found, flood.Reaches(to));
                     Assert.Equal(found, flood.TryPathTo(to, actual));
                     Assert.Equal(expected, actual);
+                }
+                    }
                 }
             }
         }
@@ -393,14 +397,18 @@ public class PathfindingTests
             for (int i = grid.Width * grid.Height - 1; i >= 0; i -= 3)
             {
                 candidates.Add(new TilePos(i % grid.Width, i / grid.Width));
-                if (i % 2 == 0) candidates.Add(new TilePos(i % grid.Width, i / grid.Width));
+                if (i % 2 == 0)
+                {
+                    candidates.Add(new TilePos(i % grid.Width, i / grid.Width));
+                }
             }
             candidates.Add(new TilePos(-1, 3));
             var set = new HashSet<TilePos>(candidates);
             static bool Goal(TilePos p) => (p.X + p.Y) % 2 == 0;
 
             for (int fy = 0; fy < grid.Height; fy++)
-            for (int fx = 0; fx < grid.Width; fx++)
+            {
+                for (int fx = 0; fx < grid.Width; fx++)
             {
                 var from = new TilePos(fx, fy);
                 bool found = search.TryFindNearest(grid, from, p => set.Contains(p) && Goal(p), expected);
@@ -418,6 +426,7 @@ public class PathfindingTests
                     int a = flood.CostTo(asked[i - 1]), b = flood.CostTo(asked[i]);
                     Assert.True(a < b || (a == b && asked[i - 1].Y * grid.Width + asked[i - 1].X < asked[i].Y * grid.Width + asked[i].X));
                 }
+            }
             }
         }
     }

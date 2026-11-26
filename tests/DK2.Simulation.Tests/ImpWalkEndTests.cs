@@ -46,7 +46,11 @@ public class ImpWalkEndTests
         for (int t = 0; t < 120; t++)
         {
             sim.Tick(InputFrame.Empty);
-            if (imp.Dk2StateId == 15 && last != 15) starts.Add(sim.CurrentTick.Value);
+            if (imp.Dk2StateId == 15 && last != 15)
+            {
+                starts.Add(sim.CurrentTick.Value);
+            }
+
             last = imp.Dk2StateId;
         }
 
@@ -63,7 +67,10 @@ public class ImpWalkEndTests
     public void AClaimWalkEndsNearTheTilesCentre()
     {
         (GameSimulation sim, CreatureState imp) = Start(pathEndX: 4, new TilePos(2, 2));
-        for (int t = 0; t < 40 && imp.Dk2StateId != 15; t++) sim.Tick(InputFrame.Empty);
+        for (int t = 0; t < 40 && imp.Dk2StateId != 15; t++)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
 
         Assert.Equal(15, imp.Dk2StateId);
         long cx = 4 * 4096 + 2048, cy = 2 * 4096 + 2048;

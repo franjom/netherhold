@@ -21,11 +21,14 @@ public class GrantCreatureLevelTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 8; y <= 12; y++)
+        {
             for (int x = 8; x <= 12; x++)
             {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
                 world.Tile(x, y).OwnerPlayerId = Keeper;
             }
+        }
+
         CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(10, 10));
         return (db, world, goblin);
     }
@@ -58,7 +61,14 @@ public class GrantCreatureLevelTests
         (GameDatabase db, WorldState world, CreatureState goblin) = Setup();
         byte player = which == 0 ? Rival : Keeper;
         int id = which == 1 ? goblin.Id + 100 : goblin.Id;
-        if (which == 2) while (goblin.Level < CreatureLevelRules.MaxLevel) CreatureLevelRules.LevelUp(new StateHookContext(world, db), db.CreatureById(goblin.CreatureTypeId), goblin);
+        if (which == 2)
+        {
+            while (goblin.Level < CreatureLevelRules.MaxLevel)
+            {
+                CreatureLevelRules.LevelUp(new StateHookContext(world, db), db.CreatureById(goblin.CreatureTypeId), goblin);
+            }
+        }
+
         int level = goblin.Level, health = goblin.Health;
         var sink = new ListEventSink();
         var sim = new GameSimulation(db, world, 1, [new KeeperSpellSystem()]);

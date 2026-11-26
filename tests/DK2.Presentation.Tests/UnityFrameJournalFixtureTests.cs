@@ -41,10 +41,20 @@ public class UnityFrameJournalFixtureTests
                 {
                     Intents = [], Commands = [], CommandsHandedToTick = 0, TickAtStart = null, TicksRun = 0, TickDebtAfter = 0,
                 }, pending);
-                if (frame.TickAtStart is GameTick start) session.Ticks(start, frame.TicksRun);
-                if (!ReferenceEquals(frame, journal.Frames[^1])) session.EndFrame(pending, frame.TickDebtAfter);
+                if (frame.TickAtStart is GameTick start)
+                {
+                    session.Ticks(start, frame.TicksRun);
+                }
+
+                if (!ReferenceEquals(frame, journal.Frames[^1]))
+                {
+                    session.EndFrame(pending, frame.TickDebtAfter);
+                }
                 // The last frame is still open when the level is destroyed: Close writes it.
-                else session.Close(journal.EndReason!, pending, frame.TickDebtAfter, null);
+                else
+                {
+                    session.Close(journal.EndReason!, pending, frame.TickDebtAfter, null);
+                }
             }
 
             Assert.Empty(warnings);
@@ -52,7 +62,10 @@ public class UnityFrameJournalFixtureTests
         }
         finally
         {
-            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
         }
     }
 
@@ -61,17 +74,28 @@ public class UnityFrameJournalFixtureTests
     {
         FrameInputJournal frames = ReadFrames();
         InputJournal ticks;
-        using (FileStream stream = File.OpenRead(Dk2CaptureGate.PathFor(Folder + "input.journal"))) ticks = InputJournal.Read(stream);
+        using (FileStream stream = File.OpenRead(Dk2CaptureGate.PathFor(Folder + "input.journal")))
+        {
+            ticks = InputJournal.Read(stream);
+        }
 
         GameTick? next = null;
         int ran = 0;
         foreach (FrameInputRecord frame in frames.Frames)
         {
             Assert.NotNull(frame.TickAtStart);
-            if (next is GameTick expected) Assert.Equal(expected, frame.TickAtStart);
+            if (next is GameTick expected)
+            {
+                Assert.Equal(expected, frame.TickAtStart);
+            }
+
             Assert.InRange(frame.TicksRun, 0, TickPacer.DefaultMaxTicksPerFrame);
             // Take leaves less than a tick owed unless the cap held some back.
-            if (frame.TicksRun < TickPacer.DefaultMaxTicksPerFrame) Assert.InRange(frame.TickDebtAfter, 0, 1);
+            if (frame.TicksRun < TickPacer.DefaultMaxTicksPerFrame)
+            {
+                Assert.InRange(frame.TickDebtAfter, 0, 1);
+            }
+
             Assert.Equal(0, frame.CommandsHandedToTick);
             next = new GameTick(frame.TickAtStart!.Value.Value + frame.TicksRun);
             ran += frame.TicksRun;

@@ -25,7 +25,11 @@ public sealed class ForgeSoundTests
         GameDatabase basis = Dk2TerrainFixture.Database();
         var clip = new CreatureAnimationTiming { ResourceType = 6, FrameCount = 20, FramesPerSecond = 20 };
         var slots = new CreatureAnimationTiming[CreatureDef.ArtSlotCount];
-        foreach (int slot in new[] { 1, 20, WorkshopStep.WorkArtSlot }) slots[slot] = clip;
+        foreach (int slot in new[] { 1, 20, WorkshopStep.WorkArtSlot })
+        {
+            slots[slot] = clip;
+        }
+
         return new GameDatabase(basis.Terrain.Values, basis.Rooms.Values,
             basis.Creatures.Values.Select(c => c.CreatureId == Vampire
                 ? c with { ArtSlots = slots, ManufacturePerSecond = 40, MeleeHitDelay = new Fp32(DelaySeconds << 12) } : c),
@@ -38,8 +42,13 @@ public sealed class ForgeSoundTests
     {
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 5; y++)
+        {
             for (int x = 1; x <= 5; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Workshop), Keeper);
+            }
+        }
+
         Dk2TerrainFixture.FurnishRooms(db, world);
         ManufactureRules.Enqueue(ref world.Player(Keeper), new ManufactureOrder(ManufactureRules.DoorKind, 1, 60_000));
         ObjectState machine = world.Objects.First(o => o.ObjectTypeId == machineType);
@@ -65,8 +74,14 @@ public sealed class ForgeSoundTests
         for (int i = 0; i < 400 && it.CurrentJob == JobType.Manufacture; i++)
         {
             sim.Tick();
-            if (began < 0 && it.Dk2StateId == WorkshopStep.WorkingState) began = it.StateEnteredTick;
-            else if (began >= 0 && it.Dk2StateId != WorkshopStep.WorkingState) break;
+            if (began < 0 && it.Dk2StateId == WorkshopStep.WorkingState)
+            {
+                began = it.StateEnteredTick;
+            }
+            else if (began >= 0 && it.Dk2StateId != WorkshopStep.WorkingState)
+            {
+                break;
+            }
         }
         return (events, began);
     }

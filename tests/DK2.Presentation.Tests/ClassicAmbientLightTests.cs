@@ -50,12 +50,20 @@ public sealed class ClassicAmbientLightTests
         ambient.Decrease();
         Assert.Equal(0, ambient.Normalized);
         Assert.Equal(new ClassicAmbientSetting(0), ambient.StoredSetting);
-        for (int i = 0; i < 6; i++) ambient.Increase();
+        for (int i = 0; i < 6; i++)
+        {
+            ambient.Increase();
+        }
+
         Assert.Equal(.5f, ambient.Normalized);
         Assert.Equal(new ClassicAmbientSetting(2048 << 12), ambient.StoredSetting);
         ambient.Decrease();
         Assert.Equal(.375f, ambient.Normalized);
-        for (int i = 0; i < 6; i++) ambient.Decrease();
+        for (int i = 0; i < 6; i++)
+        {
+            ambient.Decrease();
+        }
+
         Assert.Equal(0, ambient.Normalized);
         Assert.Equal(new ClassicAmbientSetting(0), ambient.StoredSetting);
     }

@@ -48,7 +48,11 @@ public class ClassicRoomInitializationTests
     {
         (GameDatabase db, WorldState world) = LevelEight();
         new GameSimulation(db, world, 1, [new AutoFurnitureSystem()]).Run(1);
-        foreach (CreatureState creature in world.Creatures.ToArray()) world.RemoveCreature(creature.Id);
+        foreach (CreatureState creature in world.Creatures.ToArray())
+        {
+            world.RemoveCreature(creature.Id);
+        }
+
         CreatureState dwarf = world.SpawnCreature(db, 14, PlayerIds.Good, new TilePos(13, 13));
         var simulation = new GameSimulation(db, world, 1, [new CreatureMovementSystem()]);
         var navigation = new WorldSteering(db, world);
@@ -100,13 +104,19 @@ public class ClassicRoomInitializationTests
     {
         (GameDatabase db, WorldState world) = LevelEight();
         Assert.True(db.CreatureById(14).Flags.HasFlag(CreatureFlags.CanWalkOnWater));
-        foreach (CreatureState creature in world.Creatures.ToArray()) world.RemoveCreature(creature.Id);
+        foreach (CreatureState creature in world.Creatures.ToArray())
+        {
+            world.RemoveCreature(creature.Id);
+        }
+
         var navigation = new WorldSteering(db, world);
         navigation.Refresh();
         TilePos land = default, water = default;
         bool found = false;
         for (int y = 0; y < world.Height && !found; y++)
+        {
             for (int x = 1; x < world.Width && !found; x++)
+            {
                 if (navigation.NavByte(x - 1, y) == DK2.Pathfinding.NavBytes.Floor
                     && navigation.NavByte(x, y) == DK2.Pathfinding.NavBytes.Water)
                 {
@@ -114,6 +124,9 @@ public class ClassicRoomInitializationTests
                     water = new TilePos(x, y);
                     found = true;
                 }
+            }
+        }
+
         Assert.True(found);
         CreatureState dwarf = world.SpawnCreature(db, 14, PlayerIds.Good, land);
         Assert.True(navigation.TryRoute(dwarf, water, MoveOptions.Plain));
@@ -177,11 +190,16 @@ public class ClassicRoomInitializationTests
         new GameSimulation(db, world, 1, [new AutoFurnitureSystem()]).Run(1);
         int checkedMachines = 0;
         foreach (RoomInstance room in RoomIndex.Build(world, db).Where(r => r.Definition.TypeId == RoomTypeId.Workshop))
-        foreach (ObjectState machine in world.Objects.Where(o => room.Contains(o.TileIndex) && WorkshopStep.IsMachine(o.ObjectTypeId)))
+        {
+            foreach (ObjectState machine in world.Objects.Where(o => room.Contains(o.TileIndex) && WorkshopStep.IsMachine(o.ObjectTypeId)))
         {
             int side = AutoFurnitureRules.WallSide(world, db, room, machine.TileIndex);
-            if (side < 0) continue;
-            int x = CreatureState.CentreOf(machine.TileIndex % world.Width);
+            if (side < 0)
+                {
+                    continue;
+                }
+
+                int x = CreatureState.CentreOf(machine.TileIndex % world.Width);
             int y = CreatureState.CentreOf(machine.TileIndex / world.Width);
             (int expectedX, int expectedY) = side switch
             {
@@ -191,6 +209,8 @@ public class ClassicRoomInitializationTests
             Assert.Equal((expectedX, expectedY), AutoFurnitureRules.FurniturePosition(world, db, room, machine));
             checkedMachines++;
         }
+        }
+
         Assert.True(checkedMachines > 0);
     }
 

@@ -82,7 +82,10 @@ public class MeshRouterTests
 
         int entering = MeshRouter.TransitionCost(door, NavBytes.Floor, mover);
         Assert.Equal(passes, entering != 0);
-        if (passes) Assert.Equal(NavBytes.Category(door) + 1, entering);
+        if (passes)
+        {
+            Assert.Equal(NavBytes.Category(door) + 1, entering);
+        }
 
         // Leaving a door tile applies the same arms without the tag test.
         bool leaves = passes || (tagged && doorOwner != moverOwner && (options & 0x80) == 0 && !locked);
@@ -242,7 +245,10 @@ public class MeshRouterTests
                 int x = prev.X + ((p.X - prev.X) * s / 16), y = prev.Y + ((p.Y - prev.Y) * s / 16);
                 bool onFloor = false;
                 for (int t = 0; t < mesh.TriangleSlots && !onFloor; t++)
+                {
                     onFloor = mesh.IsTriangleLive(t) && !NavBytes.IsSolid(mesh.NavByte(t)) && mesh.Contains(t, x, y);
+                }
+
                 Assert.True(onFloor, $"route crosses solid at ({x},{y})");
             }
             prev = p;

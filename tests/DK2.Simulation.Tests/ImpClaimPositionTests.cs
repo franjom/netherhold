@@ -56,7 +56,11 @@ public class ImpClaimPositionTests
 
     private static void TakeJob(GameSimulation sim, CreatureState imp)
     {
-        for (int i = 0; i < 4 && imp.TargetTileIndex < 0; i++) sim.Tick(InputFrame.Empty);
+        for (int i = 0; i < 4 && imp.TargetTileIndex < 0; i++)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
+
         Assert.Equal(2 * sim.World.Width + 4, imp.TargetTileIndex);
     }
 
@@ -70,7 +74,9 @@ public class ImpClaimPositionTests
     private static void ReachFirstApplication(GameSimulation sim, CreatureState imp, int initialHealth)
     {
         for (int i = 0; i < 30 && TargetHealth(sim) == initialHealth; i++)
+        {
             sim.Tick(InputFrame.Empty);
+        }
 
         Assert.NotEqual(initialHealth, TargetHealth(sim));
         // Native travel progress permits a short landing; do not require a teleport to the point.

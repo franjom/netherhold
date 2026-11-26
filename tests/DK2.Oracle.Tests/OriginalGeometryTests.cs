@@ -81,7 +81,11 @@ public class OriginalGeometryTests(ITestOutputHelper log)
             int bearing = Bearing.Of(point.X - pose.X, point.Y - pose.Y) & Bearing.Mask;
             string unwrap = "as read";
             if (yaw - bearing > Bearing.HalfTurn) { bearing += Bearing.Turn; unwrap = "turn added"; }
-            if (bearing - yaw > Bearing.HalfTurn) unwrap = unwrap == "as read" ? "turn taken" : "added, then taken";
+            if (bearing - yaw > Bearing.HalfTurn)
+            {
+                unwrap = unwrap == "as read" ? "turn taken" : "added, then taken";
+            }
+
             return ($"{(theirs ? "inside" : "outside")}, {unwrap}", theirs.ToString(), ours.ToString());
         }, original, i => $"aimCone({inputs[i].Yaw}, {inputs[i].Pose}, {inputs[i].Point})",
             ["inside, as read", "inside, turn added", "inside, turn taken", "outside, as read", "outside, turn added", "outside, turn taken"]);
@@ -124,9 +128,16 @@ public class OriginalGeometryTests(ITestOutputHelper log)
         int[] edges = [0, 1, -1, 2047, -2047, 2048, -2048, 0x1FFFFF, -0x1FFFFF, 0x200000, -0x200000, 0x7FFFFFFF, -0x7FFFFFFF, int.MinValue];
         var inputs = new List<(int X, int Y, int Z)>();
         foreach (int x in edges)
-        foreach (int y in edges)
-        foreach (int z in edges)
-            inputs.Add((x, y, z));
+        {
+            foreach (int y in edges)
+            {
+                foreach (int z in edges)
+                {
+                    inputs.Add((x, y, z));
+                }
+            }
+        }
+
         var spread = new Random(20261019);
         for (int i = 0; i < 20000; i++)
         {
@@ -182,8 +193,13 @@ public class OriginalGeometryTests(ITestOutputHelper log)
     {
         var inputs = new List<(int Dx, int Dy)>();
         for (int dx = -4; dx <= 4; dx++)
-        for (int dy = -4; dy <= 4; dy++)
-            inputs.Add((dx, dy));
+        {
+            for (int dy = -4; dy <= 4; dy++)
+            {
+                inputs.Add((dx, dy));
+            }
+        }
+
         var spread = new Random(20261023);
         for (int i = 0; i < 5000; i++)
         {
@@ -210,8 +226,13 @@ public class OriginalGeometryTests(ITestOutputHelper log)
     {
         int[] edges = [0, 1, -1, 2, -2, 0x10000, -0x10000, 0x7FFFFFFF, -0x7FFFFFFF, int.MinValue];
         foreach (int x in edges)
-        foreach (int y in edges)
-            yield return (x, y);
+        {
+            foreach (int y in edges)
+            {
+                yield return (x, y);
+            }
+        }
+
         var spread = new Random(seed);
         for (int i = 0; i < 10000; i++)
         {
@@ -226,11 +247,18 @@ public class OriginalGeometryTests(ITestOutputHelper log)
     {
         int[] landmarks = [0, 1, 0x3FF, 0x400, 0x401, 0x7FF, 0x800, 0xBFF, 0xC00, 0xC01, 0xFFFF];
         for (int h = 0; h < 0x800; h++)
-        foreach (int t in landmarks)
-            yield return (h, t);
+        {
+            foreach (int t in landmarks)
+            {
+                yield return (h, t);
+            }
+        }
+
         var spread = new Random(20261020);
         for (int i = 0; i < 10000; i++)
+        {
             yield return spread.Next(4) == 0 ? (spread.Next(0, 0x10000), spread.Next(0, 0x10000)) : (spread.Next(0, 0x800), spread.Next(0, 0x800));
+        }
     }
 
     private void Check(string name, int count, Func<int, (string Arm, string Theirs, string Ours)> compare,
@@ -248,7 +276,10 @@ public class OriginalGeometryTests(ITestOutputHelper log)
 
             (string arm, string theirs, string ours) = compare(i);
             reached[arm] = reached.TryGetValue(arm, out int n) ? n + 1 : throw new InvalidOperationException($"unlisted arm {arm}");
-            if (theirs != ours) mismatches.Add($"{at(i)}: original {theirs}, ours {ours}");
+            if (theirs != ours)
+            {
+                mismatches.Add($"{at(i)}: original {theirs}, ours {ours}");
+            }
         }
         log.WriteLine($"{name}: {count} inputs; arms: " + string.Join(", ", reached.Select(kv => $"{kv.Key} {kv.Value}")));
         Assert.True(mismatches.Count == 0, $"{mismatches.Count} of {count} differ; first:\n" + string.Join("\n", mismatches.Take(15)));

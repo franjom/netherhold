@@ -27,11 +27,14 @@ public class KeeperRoomRequestTests
     {
         WorldState world = KeeperWorld.World(Db);
         for (int y = 14; y <= 16; y++)
+        {
             for (int x = 10; x <= 12; x++)
             {
                 KeeperWorld.Set(world, Db, new TilePos(x, y), KeeperWorld.TreasuryFloor, Keeper);
                 world.Tile(x, y).GoldHeld = goldPerTile;
             }
+        }
+
         return world;
     }
 
@@ -280,7 +283,11 @@ public class KeeperRoomRequestTests
     public void AnImpenetrableStripOrOneOpenGapTooManyRefusesThatSideAlone()
     {
         WorldState world = WithTreasury();
-        for (int x = 9; x <= 13; x++) KeeperWorld.Set(world, Db, new TilePos(x, 13), KeeperWorld.Impenetrable);
+        for (int x = 9; x <= 13; x++)
+        {
+            KeeperWorld.Set(world, Db, new TilePos(x, 13), KeeperWorld.Impenetrable);
+        }
+
         KeeperWorld.Set(world, Db, new TilePos(8, 14), KeeperWorld.ClaimedPath, Keeper); // one open gap: allowed
         var view = new KeeperView(Db, world, Keeper);
         RoomSite grown = RoomExpansion.Find(view, TreasuryView(view))!.Value;
@@ -297,8 +304,16 @@ public class KeeperRoomRequestTests
     {
         WorldState world = WithTreasury();
         for (int y = 13; y <= 17; y++)
+        {
             for (int x = 9; x <= 13; x++)
-                if (x is 9 or 13 || y is 13 or 17) KeeperWorld.Set(world, Db, new TilePos(x, y), KeeperWorld.Impenetrable);
+            {
+                if (x is 9 or 13 || y is 13 or 17)
+                {
+                    KeeperWorld.Set(world, Db, new TilePos(x, y), KeeperWorld.Impenetrable);
+                }
+            }
+        }
+
         var view = new KeeperView(Db, world, Keeper);
         Assert.Null(RoomExpansion.Find(view, TreasuryView(view)));
     }
@@ -307,7 +322,11 @@ public class KeeperRoomRequestTests
     public void AOneTileWideRoomAcceptsItsNorthAndSouthStripsUntestedAsTheBinaryScanIsEmpty()
     {
         WorldState world = KeeperWorld.World(Db);
-        for (int y = 5; y <= 7; y++) KeeperWorld.Set(world, Db, new TilePos(15, y), KeeperWorld.TreasuryFloor, Keeper);
+        for (int y = 5; y <= 7; y++)
+        {
+            KeeperWorld.Set(world, Db, new TilePos(15, y), KeeperWorld.TreasuryFloor, Keeper);
+        }
+
         KeeperWorld.Set(world, Db, new TilePos(15, 4), KeeperWorld.Impenetrable);
         var view = new KeeperView(Db, world, Keeper);
         RoomSite grown = RoomExpansion.Find(view, TreasuryView(view))!.Value;
@@ -370,8 +389,16 @@ public class KeeperRoomRequestTests
 
         WorldState walled = WithTreasury(goldPerTile: 3000);
         for (int y = 13; y <= 17; y++)
+        {
             for (int x = 9; x <= 13; x++)
-                if (x is 9 or 13 || y is 13 or 17) KeeperWorld.Set(walled, Db, new TilePos(x, y), KeeperWorld.Impenetrable);
+            {
+                if (x is 9 or 13 || y is 13 or 17)
+                {
+                    KeeperWorld.Set(walled, Db, new TilePos(x, y), KeeperWorld.Impenetrable);
+                }
+            }
+        }
+
         keeper = KeeperAsking(0x81);
         keeper.Think(Db, walled);
         Assert.Equal(Treasury, keeper.State.CurrentRoomToBuild);
@@ -490,8 +517,13 @@ public class KeeperRoomRequestTests
     {
         WorldState world = WithTreasury(goldPerTile: 3000);
         for (int y = 14; y <= 16; y++)
+        {
             for (int x = 18; x <= 20; x++)
+            {
                 KeeperWorld.Set(world, Db, new TilePos(x, y), KeeperWorld.HatcheryFloor, Keeper);
+            }
+        }
+
         world.Tile(18, 14).ChickensGenerated = 1;
         CreatureState eater = world.SpawnCreature(Db, KeeperWorld.EaterCreature, Keeper, new TilePos(14, 14));
         eater.HungerNeed = 1;

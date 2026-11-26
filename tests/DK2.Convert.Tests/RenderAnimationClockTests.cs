@@ -14,7 +14,11 @@ public class RenderAnimationClockTests
     public void ALoopBoundaryIsObservableEvenWhenItsPoseWraps()
     {
         var clock = new RenderAnimationClock(Timing(frames: 70, fps: 30), loop: true);
-        for (int i = 0; i < 9; i++) clock.Advance(phaseStepOverride: new Fp32(438));
+        for (int i = 0; i < 9; i++)
+        {
+            clock.Advance(phaseStepOverride: new Fp32(438));
+        }
+
         Assert.Equal(0, clock.CompletedLoops);
         clock.Advance(phaseStepOverride: new Fp32(438));
         Assert.Equal(1, clock.CompletedLoops);
@@ -31,7 +35,11 @@ public class RenderAnimationClockTests
     public void ALoopBlendsTheQuantizedPhaseAcrossItsWrap()
     {
         var clock = new RenderAnimationClock(Timing(), loop: true);
-        for (int i = 0; i < 4; i++) clock.Advance();
+        for (int i = 0; i < 4; i++)
+        {
+            clock.Advance();
+        }
+
         Assert.Equal(.75f, clock.Sample(0).Phase);
         Assert.Equal(.875f, clock.Sample(.5f).Phase);
         Assert.Equal(1f, clock.Sample(1).Phase);
@@ -43,7 +51,11 @@ public class RenderAnimationClockTests
     public void AOneShotKeepsTheLastPoseAfterItCompletes()
     {
         var clock = new RenderAnimationClock(Timing(), loop: false);
-        for (int i = 0; i < 20; i++) clock.Advance();
+        for (int i = 0; i < 20; i++)
+        {
+            clock.Advance();
+        }
+
         Assert.Equal(1f, clock.Sample(.5f).Phase);
     }
 
@@ -70,7 +82,11 @@ public class RenderAnimationClockTests
         Assert.Equal(AnimationSegment.Main, loop.Sample(1).Segment);
         once.Advance();
         Assert.Equal(AnimationSegment.End, once.Sample(1).Segment);
-        for (int i = 0; i < 3; i++) once.Advance();
+        for (int i = 0; i < 3; i++)
+        {
+            once.Advance();
+        }
+
         Assert.Equal(AnimationSegment.End, once.Sample(1).Segment);
         Assert.Equal(1f, once.Sample(1).Phase);
     }
@@ -153,7 +169,11 @@ public class RenderAnimationClockTests
         var clock = new RenderAnimationClock(outgoing, loop: true);
         clock.Advance();
         clock.Replace(Timing(frames: 16), loop: true, AnimationReplacement.Deferred);
-        for (int i = 0; i < 4; i++) clock.Advance();
+        for (int i = 0; i < 4; i++)
+        {
+            clock.Advance();
+        }
+
         Assert.Equal(0, clock.ResourceRevision);
         Assert.Equal(AnimationSegment.End, clock.Sample(1).Segment);
         clock.Advance();
@@ -170,7 +190,11 @@ public class RenderAnimationClockTests
         clock.Advance();
         clock.Replace(Timing(frames: 16), true, AnimationReplacement.Deferred);
         clock.Replace(Timing(frames: 32), true, AnimationReplacement.Deferred);
-        for (int i = 0; i < 3; i++) clock.Advance();
+        for (int i = 0; i < 3; i++)
+        {
+            clock.Advance();
+        }
+
         Assert.Equal(1, clock.ResourceRevision);
         Assert.Equal(0f, clock.Sample(1).Phase);
         clock.Advance();
@@ -186,7 +210,11 @@ public class RenderAnimationClockTests
         clock.Replace(Timing(frames: 32), true, AnimationReplacement.Immediate);
         Assert.Equal(1, clock.ResourceRevision);
         Assert.Equal(0f, clock.Sample(.5f).Phase);
-        for (int i = 0; i < 20; i++) clock.Advance();
+        for (int i = 0; i < 20; i++)
+        {
+            clock.Advance();
+        }
+
         Assert.Equal(1, clock.ResourceRevision);
     }
 
@@ -218,7 +246,11 @@ public class RenderAnimationClockTests
     public void TheAuthoredStopLoopFlagWinsOverTheRequestedLoop()
     {
         var clock = new RenderAnimationClock(Timing() with { Flags = (CreatureAnimationFlags)0x80 }, true);
-        for (int i = 0; i < 5; i++) clock.Advance();
+        for (int i = 0; i < 5; i++)
+        {
+            clock.Advance();
+        }
+
         Assert.Equal(1f, clock.Sample(1).Phase);
     }
 

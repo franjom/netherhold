@@ -81,7 +81,11 @@ public class CreatureAnimationPlayerTests
                 player.Draw(i * .031);
                 player.TryGetSample(out _);
             }
-            if (pass == 1) Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+            if (pass == 1)
+            {
+                Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+            }
+
             Assert.True(player.Clock!.CompletedLoops > 0);
         }
     }
@@ -263,7 +267,11 @@ public class CreatureAnimationPlayerTests
             player.Configure(Clips(), 1, Quarter, loop: true, start: 0, footstepMarks: new FootstepMarkPair(2, 6));
             player.Draw(.01, new Fp32(4096));
             long before = GC.GetAllocatedBytesForCurrentThread();
-            for (int i = 1; i < 200; i++) player.Draw(i * .03, new Fp32(4096));
+            for (int i = 1; i < 200; i++)
+            {
+                player.Draw(i * .03, new Fp32(4096));
+            }
+
             allocated = GC.GetAllocatedBytesForCurrentThread() - before;
         }
         Assert.Equal(0, allocated);
@@ -350,20 +358,29 @@ public class CreatureAnimationPlayerTests
         {
             Installs.Add(resources);
             Shown.Clear();
-            if (Logs) Events.Add($"install {resources}");
+            if (Logs)
+            {
+                Events.Add($"install {resources}");
+            }
         }
 
         public void Show(AnimationSegment segment)
         {
             Shown.Add(segment);
-            if (Logs) Events.Add($"show {segment}");
+            if (Logs)
+            {
+                Events.Add($"show {segment}");
+            }
         }
 
         public void Upload(AnimationSegment segment, Vector3[] vertices)
         {
             Uploads++;
             Last = vertices;
-            if (Logs) Events.Add($"upload {segment}");
+            if (Logs)
+            {
+                Events.Add($"upload {segment}");
+            }
         }
     }
 }

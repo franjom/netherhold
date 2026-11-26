@@ -90,13 +90,20 @@ public sealed class TriangleDepthOrderTests
         Vector3[] positions = [Vector3.Zero, Vector3.UnitZ, -Vector3.UnitZ];
         RenderTriangle[] triangles = [new(0, 0, 0, 0), new(1, 1, 1, 1), new(2, 2, 2, 0)];
         var buffer = new TriangleDepthOrderBuffer();
-        for (int i = 0; i < 100; i++) buffer.Sort(positions, triangles, i % 2 == 0 ? Vector3.UnitZ : -Vector3.UnitZ);
+        for (int i = 0; i < 100; i++)
+        {
+            buffer.Sort(positions, triangles, i % 2 == 0 ? Vector3.UnitZ : -Vector3.UnitZ);
+        }
         // A real allocation repeats on every pass; a stray one under a loaded test host does not.
         long fewest = long.MaxValue;
         for (int pass = 0; pass < 5 && fewest != 0; pass++)
         {
             long before = GC.GetAllocatedBytesForCurrentThread();
-            for (int i = 0; i < 100; i++) buffer.Sort(positions, triangles, i % 2 == 0 ? Vector3.UnitZ : -Vector3.UnitZ);
+            for (int i = 0; i < 100; i++)
+            {
+                buffer.Sort(positions, triangles, i % 2 == 0 ? Vector3.UnitZ : -Vector3.UnitZ);
+            }
+
             fewest = Math.Min(fewest, GC.GetAllocatedBytesForCurrentThread() - before);
         }
         Assert.Equal(0, fewest);
@@ -137,15 +144,24 @@ public sealed class TriangleDepthOrderTests
             foreach (KmfPrimitive primitive in model.Mesh!.Primitives)
             {
                 KmfMaterial material = model.Materials[(int)primitive.MaterialIndex];
-                if (material.Blend == KmfBlend.Opaque) continue;
+                if (material.Blend == KmfBlend.Opaque)
+                {
+                    continue;
+                }
+
                 if (!materials.TryGetValue(material.TextureNames[0], out int slot))
+                {
                     materials.Add(material.TextureNames[0], slot = materials.Count);
+                }
+
                 int start = positions.Count;
                 positions.AddRange(primitive.Vertices.Select(v => RenderMesh.ToRenderFrame(
                     v.Position + new Vector3(tile % 3 + 0.5f, tile / 3 + 0.5f, 0))));
                 IReadOnlyList<byte> indices = primitive.IndicesByDetailLevel[0];
                 for (int i = 0; i < indices.Count; i += 3)
+                {
                     triangles.Add(new(start + indices[i], start + indices[i + 1], start + indices[i + 2], slot));
+                }
             }
         }
         Assert.Equal(2, materials.Count);
@@ -155,7 +171,11 @@ public sealed class TriangleDepthOrderTests
         Assert.Equal(triangles.Count, sorted.Length);
         Assert.True(runs.Count > 2, "The crystal and chasm materials must interleave.");
         float Depth(RenderTriangle t) => Vector3.Dot(positions[t.A] + positions[t.B] + positions[t.C], forward);
-        for (int i = 1; i < sorted.Length; i++) Assert.True(Depth(sorted[i - 1]) >= Depth(sorted[i]));
+        for (int i = 1; i < sorted.Length; i++)
+        {
+            Assert.True(Depth(sorted[i - 1]) >= Depth(sorted[i]));
+        }
+
         Assert.Equal(triangles.OrderBy(t => t.A).ThenBy(t => t.B).ThenBy(t => t.C),
             sorted.OrderBy(t => t.A).ThenBy(t => t.B).ThenBy(t => t.C));
     }

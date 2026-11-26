@@ -128,7 +128,10 @@ public class Dk2StringTableTests
         "BFMU"u8.CopyTo(data);
         data[4] = 0;
         for (int i = 0; i < characters.Length; i++)
+        {
             BinaryPrimitives.WriteUInt16LittleEndian(data.AsSpan(8 + i * 2), characters[i]);
+        }
+
         return data;
     }
 

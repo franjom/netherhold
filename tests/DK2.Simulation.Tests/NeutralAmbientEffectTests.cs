@@ -17,9 +17,16 @@ public class NeutralAmbientEffectTests
         byte[] players = neutral ? [PlayerIds.Neutral, PlayerIds.FirstKeeper] : [PlayerIds.FirstKeeper];
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), players);
         if (lava)
+        {
             for (int y = 1; y < world.Height - 1; y++)
+            {
                 for (int x = 1; x < world.Width - 1; x++)
+                {
                     world.Tile(x, y).TerrainId = Dk2TerrainFixture.Lava;
+                }
+            }
+        }
+
         var sim = new GameSimulation(db, world, new SimRandom(new Dk2Lcg(seed)), [new NeutralAmbientEffectSystem()]);
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
@@ -69,7 +76,11 @@ public class NeutralAmbientEffectTests
             var probe = new Dk2Lcg(seed);
             probe.NextInt(14);
             probe.NextInt(10);
-            if (probe.NextInt(1000) == wanted) break;
+            if (probe.NextInt(1000) == wanted)
+            {
+                break;
+            }
+
             seed++;
         }
         (GameSimulation? sim, ListEventSink? sink) = Start(seed, lava: true);

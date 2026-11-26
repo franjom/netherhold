@@ -93,7 +93,9 @@ public class KmfMaterialTests(ITestOutputHelper output)
             }
             var mesh = RenderMesh.FromModel(model);
             for (int i = 0; i < model.Materials.Count; i++)
+            {
                 Assert.Equal(model.Materials[i].Blend, mesh.Blends[i]);
+            }
         }
 
         // The gold spill cards: flags 0x81, the "mask" bit, so alpha-blended by the texture's alpha.
@@ -118,10 +120,17 @@ public class KmfMaterialTests(ITestOutputHelper output)
         var counts = new SortedDictionary<uint, int>();
         foreach (WadEntry entry in wad.Entries.Where(entry =>
             entry.Name.EndsWith(".kmf", StringComparison.OrdinalIgnoreCase)))
+        {
             foreach (KmfMaterial material in KmfReader.Read(wad.Extract(entry)).Materials)
+            {
                 counts[material.Flags] = counts.GetValueOrDefault(material.Flags) + 1;
+            }
+        }
+
         foreach ((uint flags, int count) in counts)
+        {
             output.WriteLine($"0x{flags:X}: {count}");
+        }
         // Bits 0x01..0x100 only; the loader reads 0x01, 0x04, 0x08, 0x10, 0x20, 0x40.
         Assert.All(counts.Keys, flags => Assert.Equal(0u, flags & ~0x1FFu));
         // No shipped material has both the additive and an alpha bit.

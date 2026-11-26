@@ -21,10 +21,15 @@ public sealed class CreatureFootstepViewTests
         GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, "Level8");
         var world = WorldState.FromMap(database, GameDatabaseLoader.LoadCampaignMap(install, "Level8")!, [2, 3]);
         for (int y = 0; y < 3; y++)
+        {
             for (int x = 0; x < 3; x++)
+            {
                 world.Tile(x, y).TerrainId = water ? database.WaterTerrain!.TerrainId
                     : database.Terrain.Values.First(t => !t.IsSolid && !t.IsWater && !t.IsLava
                         && !database.RoomsByTerrain.ContainsKey(t.TerrainId)).TerrainId;
+            }
+        }
+
         CreatureState creature = world.SpawnCreature(database, database.CreatureByName(name)!.CreatureId, 2, new TilePos(1, 1));
         CreatureStateMachine.BeginTravel(new StateHookContext(world, database), creature, 6, ImpStates.For(TileWorkKind.Claim).Entry);
         creature.Body.PathTotalCount = 1;

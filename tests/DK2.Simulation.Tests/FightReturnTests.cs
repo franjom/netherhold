@@ -27,10 +27,18 @@ public class FightReturnTests
         Assert.Equal(CreatureStateMachine.Idle, goblin.UtilityNewState);
         Assert.Equal(new TilePos(9, 9), new TilePos(goblin.Body.PathTargetPos.X >> 16, goblin.Body.PathTargetPos.Y >> 16));
         Assert.Equal(0, goblin.OldFightTileX);
-        for (int t = 0; t < 200 && goblin.Tile != new TilePos(9, 9); t++) sim.Tick();
+        for (int t = 0; t < 200 && goblin.Tile != new TilePos(9, 9); t++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(new TilePos(9, 9), goblin.Tile);
         // The walk resumes 1: arrived, the creature is back in state 1, not left in the walk.
-        for (int t = 0; t < 40 && goblin.Dk2StateId != CreatureStateMachine.Idle; t++) sim.Tick();
+        for (int t = 0; t < 40 && goblin.Dk2StateId != CreatureStateMachine.Idle; t++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(CreatureStateMachine.Idle, goblin.Dk2StateId);
     }
 
@@ -73,8 +81,13 @@ public class FightReturnTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(3, 5));
         goblin.OldFightTileX = 9;
         goblin.OldFightTileY = 9;

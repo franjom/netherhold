@@ -36,8 +36,13 @@ public class KeeperBattleStepTests
     {
         WorldState world = KeeperWorld.World(Db);
         for (int y = 12; y <= 18; y++)
+        {
             for (int x = 8; x <= 12; x++)
+            {
                 KeeperWorld.Set(world, Db, new TilePos(x, y), KeeperWorld.DirtPath);
+            }
+        }
+
         world.Tile(KeeperWorld.HeartAt).GoldHeld = 5000;
         return world;
     }
@@ -66,7 +71,10 @@ public class KeeperBattleStepTests
     private static void AdvanceToTurn(WorldState world, int turn)
     {
         var clock = new GameSimulation(Db, world, 1, Array.Empty<ISimulationSystem>());
-        while (world.CurrentTick.Value + 1 < turn) clock.Tick(new InputFrame(Array.Empty<PlayerCommand>()));
+        while (world.CurrentTick.Value + 1 < turn)
+        {
+            clock.Tick(new InputFrame(Array.Empty<PlayerCommand>()));
+        }
     }
 
     private static CastSpellAtPlaceCommand? Call(IReadOnlyList<PlayerCommand> commands) =>
@@ -125,7 +133,11 @@ public class KeeperBattleStepTests
         CastSpellAtPlaceCommand? call = Call(commands);
         Assert.Equal(cast, call is not null);
         Assert.Equal(cast, keeper.State.CallToArmsInUse);
-        if (call is null) return;
+        if (call is null)
+        {
+            return;
+        }
+
         Assert.Equal((CallToArmsRules.SpellId, own.PosX, own.PosY), (call.SpellId, call.X, call.Y));
         Assert.Equal(250, keeper.State.CallToArmsCounter);
         Assert.Equal(turn, keeper.State.CallToArmsCastTurn);
@@ -188,8 +200,13 @@ public class KeeperBattleStepTests
         // An island of floor: the fighter fights there, but nothing walks to it from the heart.
         WorldState island = World();
         for (int y = 3; y <= 5; y++)
+        {
             for (int x = 3; x <= 5; x++)
+            {
                 KeeperWorld.Set(island, Db, new TilePos(x, y), KeeperWorld.DirtPath);
+            }
+        }
+
         CreatureState marooned = Fighter(island, Keeper, 4, 4);
         Engage(island, marooned, Fighter(island, Hero, 5, 4));
         island.Player(Keeper).Mana = 20000;
@@ -672,8 +689,16 @@ public class KeeperBattleStepTests
         for (int tick = 0; tick < 300; tick++)
         {
             IReadOnlyList<PlayerCommand> commands = keeper.Think(Db, world);
-            foreach (PlayerCommand command in commands) log.Add((world.CurrentTick.Value + 1, command));
-            if (world.Player(Keeper).CallToArms.On) seen.Add(world.CurrentTick.Value);
+            foreach (PlayerCommand command in commands)
+            {
+                log.Add((world.CurrentTick.Value + 1, command));
+            }
+
+            if (world.Player(Keeper).CallToArms.On)
+            {
+                seen.Add(world.CurrentTick.Value);
+            }
+
             sim.Tick(new InputFrame(commands));
         }
 

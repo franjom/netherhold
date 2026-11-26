@@ -76,11 +76,19 @@ public class LiquidSurfaceWaveTests
             Assert.True(LiquidSurfaceWave.Sines(kind).Length <= LiquidSurfaceWave.MaximumSines);
             Assert.Equal(LiquidSurfaceWave.PhaseMask(kind) + 1, LiquidSurfaceWave.Sines(kind).Length);
             foreach (int start in frames)
+            {
                 for (int frame = start; frame < start + 130 && frame >= start; frame++)
+                {
                     for (int tile = 0; tile < 4; tile++)
+                    {
                         for (int vertex = 0; vertex < 3; vertex++)
+                        {
                             Assert.Equal(BitConverter.SingleToInt32Bits(Legacy.Phase(kind, tile, vertex, frame)),
                                 BitConverter.SingleToInt32Bits(LiquidSurfaceWave.Phase(kind, tile, vertex, frame)));
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -90,10 +98,16 @@ public class LiquidSurfaceWaveTests
     public void TheSignedAmplitudeGivesTheHeights()
     {
         foreach (LiquidSurface kind in new[] { LiquidSurface.Water, LiquidSurface.Lava })
+        {
             foreach (float row in LiquidSurfaceWave.Sines(kind).ToArray())
+            {
                 foreach (float column in LiquidSurfaceWave.Sines(kind).ToArray())
+                {
                     Assert.Equal(BitConverter.SingleToInt32Bits(LiquidSurfaceWave.Height(kind, row, column)),
                         BitConverter.SingleToInt32Bits(LiquidSurfaceWave.Rest(kind) + (LiquidSurfaceWave.SignedAmplitude(kind) * (row + column))));
+                }
+            }
+        }
     }
 
     /// <summary>Each vertex waved on its own from its grid point and the frame, as the Godot shader waves it, is the
@@ -157,7 +171,11 @@ public class LiquidSurfaceWaveTests
         // Vertex 4, the first tile's centre, is in six of its eight triangles.
         for (int t = 0; t < LiquidSurfaceWave.IndicesPerTile; t += 3)
         {
-            if (wave.Triangles[t] != 4 && wave.Triangles[t + 1] != 4 && wave.Triangles[t + 2] != 4) continue;
+            if (wave.Triangles[t] != 4 && wave.Triangles[t + 1] != 4 && wave.Triangles[t + 2] != 4)
+            {
+                continue;
+            }
+
             Vector3 a = wave.Positions[wave.Triangles[t]], b = wave.Positions[wave.Triangles[t + 1]], c = wave.Positions[wave.Triangles[t + 2]];
             expected += Vector3.Normalize(Vector3.Cross(b - a, c - a));
             shared++;
@@ -181,7 +199,11 @@ public class LiquidSurfaceWaveTests
         Assert.Equal(version, field.Water.Version);
 
         long before = GC.GetAllocatedBytesForCurrentThread();
-        for (int i = 0; i < 10; i++) field.Animate(i / 30f);
+        for (int i = 0; i < 10; i++)
+        {
+            field.Animate(i / 30f);
+        }
+
         Assert.Equal(before, GC.GetAllocatedBytesForCurrentThread());
 
         int lavaVersion = field.Lava.Version;
@@ -207,7 +229,11 @@ public class LiquidSurfaceWaveTests
     private static LiquidSurface[] Kinds()
     {
         var kinds = new LiquidSurface[Width * Height];
-        for (int i = 0; i < kinds.Length; i++) kinds[i] = (LiquidSurface)((i * 5 + i / 3) % 3);
+        for (int i = 0; i < kinds.Length; i++)
+        {
+            kinds[i] = (LiquidSurface)((i * 5 + i / 3) % 3);
+        }
+
         return kinds;
     }
 
@@ -232,7 +258,13 @@ public class LiquidSurfaceWaveTests
         {
             var tiles = new List<int>();
             for (int i = 0; i < kinds.Length; i++)
-                if (kinds[i] == kind) tiles.Add(i);
+            {
+                if (kinds[i] == kind)
+                {
+                    tiles.Add(i);
+                }
+            }
+
             int count = tiles.Count;
             var layer = new Layer
             {
@@ -242,20 +274,25 @@ public class LiquidSurfaceWaveTests
             for (int k = 0; k < count; k++)
             {
                 for (int j = 0; j < 3; j++)
+                {
                     for (int i = 0; i < 3; i++)
                     {
                         int vertex = (k * 9) + (j * 3) + i;
                         layer.Uvs[vertex] = new Vector2(i * 0.5f, 1f - (j * 0.5f));
                         layer.LightAnchors[vertex] = new Vector2(tiles[k], 1);
                     }
+                }
+
                 int n = k * 24;
                 for (int j = 0; j < 2; j++)
+                {
                     for (int i = 0; i < 2; i++)
                     {
                         int a = (k * 9) + (j * 3) + i, b = a + 1, c = a + 3, d = a + 4;
                         layer.Triangles[n++] = a; layer.Triangles[n++] = b; layer.Triangles[n++] = d;
                         layer.Triangles[n++] = a; layer.Triangles[n++] = d; layer.Triangles[n++] = c;
                     }
+                }
             }
             return layer;
         }

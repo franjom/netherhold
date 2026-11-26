@@ -23,7 +23,11 @@ public class CasinoStateTests
         GameDatabase basis = Dk2TerrainFixture.Database();
         var clip = new CreatureAnimationTiming { ResourceType = 6, FrameCount = 20, FramesPerSecond = 20 };
         var slots = new CreatureAnimationTiming[CreatureDef.ArtSlotCount];
-        foreach (int slot in new[] { 1, 8, 9, 14, 19, 20, 28, 34, 37 }) slots[slot] = clip;
+        foreach (int slot in new[] { 1, 8, 9, 14, 19, 20, 28, 34, 37 })
+        {
+            slots[slot] = clip;
+        }
+
         TerrainDef wall = basis.TerrainById(Dk2TerrainFixture.ReinforcedWall);
         wall = wall with { Flags = wall.Flags | TerrainFlags.AllowRoomWalls };   // so a Casino gets wall furniture
         return new GameDatabase(basis.Terrain.Values.Select(t => t.TerrainId == wall.TerrainId ? wall : t), basis.Rooms.Values,
@@ -36,8 +40,13 @@ public class CasinoStateTests
     {
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= size; y++)
-        for (int x = 1; x <= size; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Casino), Keeper);
+        {
+            for (int x = 1; x <= size; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Casino), Keeper);
+            }
+        }
+
         return world;
     }
 
@@ -101,12 +110,19 @@ public class CasinoStateTests
         GameDatabase db = Db();
         WorldState world = World(db, 5);
         // A north wall: DK2 stands a drinker at 45-135 degrees, south of the alcove, so only there is it in the room.
-        for (int i = 1; i <= 5; i++) world.Tile(i, 0).TerrainId = Dk2TerrainFixture.ReinforcedWall;
+        for (int i = 1; i <= 5; i++)
+        {
+            world.Tile(i, 0).TerrainId = Dk2TerrainFixture.ReinforcedWall;
+        }
+
         GameSimulation sim = Simulation(db, world);
         sim.Run(1);
         RoomInstance room = Casino(db, world);
         foreach (ObjectState table in world.Objects.Where(o => o.ObjectTypeId is 87 or 59 or 67 or 68).ToList())
+        {
             world.RemoveObject(table.Id);
+        }
+
         int slot = room.TileIndices.First(t => AutoFurnitureRules.WallSide(world, db, room, t) == 0);
         ObjectState alcove = world.SpawnObject(db, CasinoStep.AlcoveObjectId, Keeper, slot);
         alcove.AutoPlaced = true;
@@ -129,11 +145,18 @@ public class CasinoStateTests
     {
         GameDatabase db = Db();
         WorldState world = World(db, 5);
-        for (int i = 1; i <= 5; i++) world.Tile(i, 6).TerrainId = Dk2TerrainFixture.ReinforcedWall;
+        for (int i = 1; i <= 5; i++)
+        {
+            world.Tile(i, 6).TerrainId = Dk2TerrainFixture.ReinforcedWall;
+        }
+
         new GameSimulation(db, world, seed: 42, [new AutoFurnitureSystem()]).Tick();
         RoomInstance room = Casino(db, world);
         foreach (ObjectState table in world.Objects.Where(o => o.ObjectTypeId is 87 or 59 or 67 or 68).ToList())
+        {
             world.RemoveObject(table.Id);
+        }
+
         world.SpawnObject(db, CasinoStep.AlcoveObjectId, Keeper,
             room.TileIndices.First(t => AutoFurnitureRules.WallSide(world, db, room, t) == 2)).AutoPlaced = true;
         CreatureState goblin = Gambler(db, world, new TilePos(3, 3));
@@ -242,7 +265,10 @@ public class CasinoStateTests
         CreatureDef bare = Db(art: false).CreatureById(GoblinId);
         Assert.Equal(fallback, AnimationTimingRules.ResolveArtSlot(bare, slot));
         CreatureDef dressed = Db().CreatureById(GoblinId);
-        if (AnimationTimingRules.HasArt(dressed, slot)) Assert.Equal(slot, AnimationTimingRules.ResolveArtSlot(dressed, slot));
+        if (AnimationTimingRules.HasArt(dressed, slot))
+        {
+            Assert.Equal(slot, AnimationTimingRules.ResolveArtSlot(dressed, slot));
+        }
     }
 
     [Fact]
@@ -269,8 +295,7 @@ public class CasinoStateTests
         bool rolled = false;
         var sim = new GameSimulation(db, world, seed: 1, [new Probe(context =>
         {
-            if (!rolled) CasinoJackpotRules.Jackpot(context, "Test", winner);
-            rolled = true;
+            if (!rolled) { CasinoJackpotRules.Jackpot(context, "Test", winner); } rolled = true;
         })]);
 
         sim.Tick();
@@ -299,8 +324,7 @@ public class CasinoStateTests
         bool rolled = false;
         var sim = new GameSimulation(db, world, seed: 1, [new Probe(context =>
         {
-            if (!rolled) CasinoJackpotRules.Jackpot(context, "Test", winner);
-            rolled = true;
+            if (!rolled) { CasinoJackpotRules.Jackpot(context, "Test", winner); } rolled = true;
         })]);
 
         sim.Tick();
@@ -320,12 +344,22 @@ public class CasinoStateTests
             world.Tile(x, Vault.Y).GoldHeld = 1500;
         }
         for (int x = 4; x < Vault.X; x++)
+        {
             world.Tile(x, Vault.Y).TerrainId = Dk2TerrainFixture.ClaimedPath;
-        for (int y = Vault.Y; y >= 1; y--) world.Tile(4, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
+        }
+
+        for (int y = Vault.Y; y >= 1; y--)
+        {
+            world.Tile(4, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
+        }
+
         CreatureState winner = Gambler(db, world, new TilePos(3, 2));
         GameSimulation sim = Simulation(db, world, new Probe(context =>
         {
-            if (context.Tick.Value == 1) CasinoJackpotRules.Jackpot(context, "Test", winner);
+            if (context.Tick.Value == 1)
+            {
+                CasinoJackpotRules.Jackpot(context, "Test", winner);
+            }
         }));
 
         HashSet<int> seen = Watch(sim, winner, 60 * SimulationTiming.TicksPerSecond);
@@ -426,7 +460,11 @@ public class CasinoStateTests
         StatePlacement.Place(dancer, CasinoStep.DancingState);
         RoomInstance casino = Casino(db, world);
         // A chain that runs backwards, so the nth tile of the chain is not the nth of the room's list.
-        for (int i = 0; i < casino.TileIndices.Count; i++) world.TileAtIndex(casino.TileIndices[i]).SlabOrder = 100 - i;
+        for (int i = 0; i < casino.TileIndices.Count; i++)
+        {
+            world.TileAtIndex(casino.TileIndices[i]).SlabOrder = 100 - i;
+        }
+
         world.TileAtIndex(casino.TileIndices[0]).CasinoParty = CasinoJackpotRules.PartyBit;
         world.Player(Keeper).CasinoParties = 1;
         var sim = new GameSimulation(db, world, new SimRandom(new Fixed(1)), [new CasinoSystem()]);
@@ -535,9 +573,7 @@ public class CasinoStateTests
         var drinkers = Enumerable.Range(0, 11).Select(i => Gambler(db, world, new TilePos(1 + (i % 5), 1 + (i / 5)))).ToList();
         var sim = new GameSimulation(db, world, seed: 1, [new Probe(context =>
         {
-            if (context.Tick.Value == 0) foreach (CreatureState c in drinkers.Take(3)) CasinoStep.GetDrunk(context, "Test", c);
-            if (context.Tick.Value == 1) foreach (CreatureState c in drinkers.Skip(3)) CasinoStep.GetDrunk(context, "Test", c);
-        })]);
+            if (context.Tick.Value == 0) { foreach (CreatureState c in drinkers.Take(3)) { CasinoStep.GetDrunk(context, "Test", c); } } if (context.Tick.Value == 1) { foreach (CreatureState c in drinkers.Skip(3)) { CasinoStep.GetDrunk(context, "Test", c); } } })]);
 
         sim.Tick();
         Assert.Contains(world.Messages.Entries, m => m.Kind == PlayerMessageKind.CasinoDrinking);
@@ -608,7 +644,10 @@ public class CasinoStateTests
         var sim = new GameSimulation(db, world, seed: 42, [new CreatureJobSystem()]);
         sim.ObserveWith(sink);
 
-        for (int i = 0; i < 100; i++) sim.Tick();
+        for (int i = 0; i < 100; i++)
+        {
+            sim.Tick();
+        }
 
         ThingSoundRequest[] heard = Sounds(sink);
         Assert.Equal(3, heard.Length);   // ages 32, 64 and 96
@@ -638,7 +677,10 @@ public class CasinoStateTests
         var sim = new GameSimulation(db, world, seed: 42, [new CreatureJobSystem()]);
         sim.ObserveWith(sink);
 
-        for (int i = 0; i < 40; i++) sim.Tick();
+        for (int i = 0; i < 40; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Empty(Sounds(sink));
     }
@@ -656,17 +698,30 @@ public class CasinoStateTests
             world.Tile(x, Vault.Y).GoldHeld = 1500;
         }
         for (int x = 4; x < Vault.X; x++)
+        {
             world.Tile(x, Vault.Y).TerrainId = Dk2TerrainFixture.ClaimedPath;
-        for (int y = Vault.Y; y >= 1; y--) world.Tile(4, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
+        }
+
+        for (int y = Vault.Y; y >= 1; y--)
+        {
+            world.Tile(4, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
+        }
+
         CreatureState winner = Gambler(db, world, new TilePos(3, 2));
         GameSimulation sim = Simulation(db, world, new Probe(context =>
         {
-            if (context.Tick.Value == 1) CasinoJackpotRules.Jackpot(context, "Test", winner);
+            if (context.Tick.Value == 1)
+            {
+                CasinoJackpotRules.Jackpot(context, "Test", winner);
+            }
         }));
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
 
-        for (int i = 0; i < 60 * SimulationTiming.TicksPerSecond && !sink.Events.Any(e => e.Kind == "jackpot_collected"); i++) sim.Tick();
+        for (int i = 0; i < 60 * SimulationTiming.TicksPerSecond && !sink.Events.Any(e => e.Kind == "jackpot_collected"); i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Contains(sink.Events, e => e.Kind == "jackpot_collected");
         ThingSoundRequest sound = Assert.Single(Sounds(sink));

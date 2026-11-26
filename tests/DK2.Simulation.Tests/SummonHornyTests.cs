@@ -321,7 +321,10 @@ public sealed class SummonHornyTests
     {
         (GameDatabase? db, WorldState? world, TilePos at) = Setup();
         for (int i = 0; i < existing; i++)
+        {
             world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, at);
+        }
+
         var sim = new GameSimulation(db, world, 1, [new KeeperSpellSystem(), new ShotSystem()]);
         sim.Tick(InputFrame.Of(new CastSpellAtPlaceCommand(Keeper, SpellId,
             CreatureState.CentreOf(at.X), CreatureState.CentreOf(at.Y))));

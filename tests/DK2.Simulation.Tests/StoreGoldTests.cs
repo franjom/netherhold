@@ -38,6 +38,7 @@ public sealed class StoreGoldTests
     {
         TerrainDef def = db.TerrainById(terrain);
         for (int y = y0; y <= y1; y++)
+        {
             for (int x = x0; x <= x1; x++)
             {
                 ref TileState tile = ref world.Tile(x, y);
@@ -45,6 +46,8 @@ public sealed class StoreGoldTests
                 tile.OwnerPlayerId = Keeper;
                 tile.Health = def.StartingHealth;
             }
+        }
+
         return RoomIndex.RoomAt(world, db, (y0 * world.Width) + x0)!;
     }
 
@@ -62,7 +65,10 @@ public sealed class StoreGoldTests
     {
         (GameDatabase db, WorldState world) = World();
         RoomInstance treasury = Room(db, world, Dk2TerrainFixture.TreasuryTerrain, 5, 5, 7, 5);
-        foreach (int tile in treasury.TileIndices) world.TileAtIndex(tile).GoldHeld = 500;
+        foreach (int tile in treasury.TileIndices)
+        {
+            world.TileAtIndex(tile).GoldHeld = 500;
+        }
 
         var high = new Scripted(30);
         Run(db, world, high);
@@ -155,7 +161,10 @@ public sealed class StoreGoldTests
         if (setup == 64)
         {
             ObjectState filler = world.SpawnObject(db, FloorGold.FloorGoldObjectId, PlayerIds.Neutral, 0);
-            for (int i = 0; i < HandRules.Capacity(db); i++) world.Player(Keeper).Hand.Add(HandItem.Of(filler));
+            for (int i = 0; i < HandRules.Capacity(db); i++)
+            {
+                world.Player(Keeper).Hand.Add(HandItem.Of(filler));
+            }
         }
         int held = world.Player(Keeper).Hand.Count, objects = world.Objects.Count;
 

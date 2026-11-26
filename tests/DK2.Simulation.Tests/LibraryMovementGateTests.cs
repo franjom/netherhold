@@ -29,7 +29,10 @@ public sealed class LibraryMovementGateTests
 
         sim.Tick();
 
-        if (moves) Assert.True(reader.Body.Pos.X > position.X);
+        if (moves)
+        {
+            Assert.True(reader.Body.Pos.X > position.X);
+        }
         else
         {
             Assert.Equal(position, reader.Body.Pos);
@@ -75,8 +78,13 @@ public sealed class LibraryMovementGateTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
             [PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 2; y <= 4; y++)
-        for (int x = 3; x <= 7; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Library), PlayerIds.FirstKeeper);
+        {
+            for (int x = 3; x <= 7; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Library), PlayerIds.FirstKeeper);
+            }
+        }
+
         CreatureState reader = world.SpawnCreature(db, Dk2TerrainFixture.VampireCreatureId,
             PlayerIds.FirstKeeper, new TilePos(4, 3));
         world.Player(PlayerIds.FirstKeeper).ResearchTarget = 1;

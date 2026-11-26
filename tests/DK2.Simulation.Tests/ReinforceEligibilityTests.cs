@@ -105,7 +105,11 @@ public class ReinforceEligibilityTests
         for (int i = 0; i < 30; i++)
         {
             sim.Tick();
-            if (imp.TargetWork != TileWorkKind.Reinforce || imp.TargetTileIndex != 12 || imp.Dk2StateId == 22) continue;
+            if (imp.TargetWork != TileWorkKind.Reinforce || imp.TargetTileIndex != 12 || imp.Dk2StateId == 22)
+            {
+                continue;
+            }
+
             selected = true;
             break;
         }

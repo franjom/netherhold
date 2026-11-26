@@ -118,7 +118,9 @@ public class WatchdogTests : IDisposable
                 $"Set-Content {Q(me + ".started")} ''; if (Test-Path {Q(other + ".done")}) {{ Set-Content {Q(me + ".after-other")} '' }}; " +
                 $"$t=[DateTime]::UtcNow.AddSeconds({waitSeconds}); while (-not (Test-Path {Q(other + ".started")}) -and [DateTime]::UtcNow -lt $t) {{ Start-Sleep -Milliseconds 50 }}; " +
                 $"if (Test-Path {Q(other + ".started")}) {{ Set-Content {Q(me + ".saw-other")} '' }}; Set-Content {Q(me + ".done")} ''" })
+            {
                 start.ArgumentList.Add(arg);
+            }
         }
         else
         {
@@ -126,7 +128,9 @@ public class WatchdogTests : IDisposable
                 "while [ ! -e \"$d/$3.started\" ] && [ $i -lt $(($4*20)) ]; do sleep 0.05; i=$((i+1)); done; " +
                 "[ -e \"$d/$3.started\" ] && : > \"$d/$2.saw-other\"; : > \"$d/$2.done\"";
             foreach (string arg in new[] { "-c", script, "dk2-watch", dir, me, other, waitSeconds.ToString() })
+            {
                 start.ArgumentList.Add(arg);
+            }
         }
         return start;
     }
@@ -206,7 +210,9 @@ public class WatchdogTests : IDisposable
         else
         {
             foreach (string arg in new[] { "-c", "echo $$ > \"$1\"; exec sleep \"$2\"", "dk2-watch", pidPath ?? "/dev/null", seconds.ToString() })
+            {
                 start.ArgumentList.Add(arg);
+            }
         }
         return start;
     }
@@ -228,8 +234,16 @@ public class WatchdogTests : IDisposable
         string pid = Path.Combine(_root, "survivor.pid");
         var watchdog = new Watchdog(Path.Combine(_root, "launch-failure"), WatchLimits.Default with { Jobs = 2 }, (job, _) =>
         {
-            if (job.Label == "first") return Sleep(30, pid);
-            if (!SpinWait.SpinUntil(() => HasPid(pid), ChildStart)) throw new TimeoutException("first child did not start");
+            if (job.Label == "first")
+            {
+                return Sleep(30, pid);
+            }
+
+            if (!SpinWait.SpinUntil(() => HasPid(pid), ChildStart))
+            {
+                throw new TimeoutException("first child did not start");
+            }
+
             throw new InvalidOperationException("launch failed");
         });
         Task<WatchSummary> watching = Task.Run(() => watchdog.Watch(

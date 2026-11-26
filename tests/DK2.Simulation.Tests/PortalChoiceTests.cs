@@ -34,8 +34,13 @@ public class PortalChoiceTests
     private static IReadOnlyList<RoomInstance> PrisonRooms(GameDatabase db, WorldState world)
     {
         for (int y = 2; y <= 4; y++)
+        {
             for (int x = 2; x <= 4; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Prison), Keeper);
+            }
+        }
+
         return RoomIndex.Build(world, db).Where(r => r.Definition.TypeId == RoomTypeId.Prison).ToList();
     }
 
@@ -43,7 +48,10 @@ public class PortalChoiceTests
     private static void AdvanceTo(GameDatabase db, WorldState world, long tick)
     {
         var sim = new GameSimulation(db, world, seed: 0, systems: []);
-        while (world.CurrentTick.Value < tick) sim.Tick();
+        while (world.CurrentTick.Value < tick)
+        {
+            sim.Tick();
+        }
     }
 
     [Theory]
@@ -225,7 +233,9 @@ public class PortalChoiceTests
             {
                 WorldState world = World(1);
                 if (ReferenceEquals(PortalChoiceRules.Pick(world, Dk2TerrainFixture.Database(), new SimRandom(seed), Keeper, admitted, []), a))
+                {
                     count++;
+                }
             }
             return count;
         }

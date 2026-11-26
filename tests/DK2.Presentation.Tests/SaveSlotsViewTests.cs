@@ -50,6 +50,9 @@ public sealed class SaveSlotsViewTests : IDisposable
 
     public void Dispose()
     {
-        if (Directory.Exists(_directory)) Directory.Delete(_directory, recursive: true);
+        if (Directory.Exists(_directory))
+        {
+            Directory.Delete(_directory, recursive: true);
+        }
     }
 }

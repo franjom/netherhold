@@ -75,7 +75,11 @@ public sealed class FootprintTests
             PlayerIds.Neutral, creature.Tile);
         CreatureDeathRules.BecomeCorpse(sim.World, sim.Database, corpse);
         corpse.InHand = held;
-        if (carried) corpse.CarriedByCreatureId = creature.Id;
+        if (carried)
+        {
+            corpse.CarriedByCreatureId = creature.Id;
+        }
+
         sim.Tick();
         Assert.DoesNotContain(events.Events, e => e.EffectRequest.HasValue);
     }
@@ -96,7 +100,11 @@ public sealed class FootprintTests
             sim = new GameSimulation(db, sim.World, 1, [new FootprintSystem()]);
             sim.ObserveWith(events);
         }
-        else creature.PosZ = 1;
+        else
+        {
+            creature.PosZ = 1;
+        }
+
         sim.Tick();
         Assert.Equal(0, creature.BloodFootprintTicks);
         Assert.Equal(0, creature.WaterFootprintTicks);
@@ -130,7 +138,11 @@ public sealed class FootprintTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
             [PlayerIds.Unowned, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
-        foreach (int x in new[] { 2, 3, 4 }) world.Tile(x, 2).TerrainId = Dk2TerrainFixture.ClaimedPath;
+        foreach (int x in new[] { 2, 3, 4 })
+        {
+            world.Tile(x, 2).TerrainId = Dk2TerrainFixture.ClaimedPath;
+        }
+
         CreatureState creature = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId,
             PlayerIds.FirstKeeper, new TilePos(2, 2));
         var events = new ListEventSink();

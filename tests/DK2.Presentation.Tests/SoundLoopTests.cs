@@ -152,8 +152,11 @@ public sealed class SoundLoopTests
         (GameDatabase database, WorldState world) = Dk2Fixture();
         foreach (SoundSourceKind kind in new[] { SoundSourceKind.Door, SoundSourceKind.Trap, SoundSourceKind.Room, SoundSourceKind.Terrain,
             SoundSourceKind.Player, SoundSourceKind.Tremor, SoundSourceKind.Corpse })
+        {
             Assert.Equal(VoiceLocator.Fate.Static,
                 VoiceLocator.Locate(world, new SoundVoiceId(0x80000000u | ((uint)kind << 24) | 5), out _, out _, out _));
+        }
+
         Assert.Equal(VoiceLocator.Fate.Static, VoiceLocator.Locate(world, SoundVoiceId.None, out _, out _, out _));
         Assert.Equal(VoiceLocator.Fate.Static, VoiceLocator.Locate(world, new SoundVoiceId(5), out _, out _, out _));
     }

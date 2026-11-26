@@ -35,7 +35,10 @@ public class ImpTests
 
         public void Ticks(int count)
         {
-            for (int i = 0; i < count; i++) Tick();
+            for (int i = 0; i < count; i++)
+            {
+                Tick();
+            }
         }
 
         public IEnumerable<SimEvent> Of(string kind) => Events.Events.Where(e => e.Kind == kind);
@@ -48,7 +51,9 @@ public class ImpTests
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
 
         for (int i = 0; i < imps; i++)
+        {
             world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, impAt);
+        }
 
         var sim = new GameSimulation(database, world, seed, Dk2TerrainFixture.DefaultSystems());
         var sink = new ListEventSink();
@@ -82,7 +87,10 @@ public class ImpTests
         GameDatabase database = Dk2TerrainFixture.Database();
 
         var pocket = new List<TilePos> { new(5, 2) };
-        for (int i = 0; i < extraTiles; i++) pocket.Add(new TilePos(5, 3 + i));
+        for (int i = 0; i < extraTiles; i++)
+        {
+            pocket.Add(new TilePos(5, 3 + i));
+        }
 
         Carve(run.World, database, [.. pocket]);
         return run;
@@ -166,7 +174,10 @@ public class ImpTests
             wall.OwnerPlayerId = Keeper;
             wall.Health = full;
         }
-        if (damaged) run.World.Tile(new TilePos(9, 5)).Health = (ushort)(full - 100);
+        if (damaged)
+        {
+            run.World.Tile(new TilePos(9, 5)).Health = (ushort)(full - 100);
+        }
 
         run.Ticks(SimulationTiming.TicksFromSeconds(3));
 
@@ -308,7 +319,9 @@ public class ImpTests
 
         // Run to the moment the claim lands, and look at where its feet are.
         for (int i = 0; i < 200 && run.World.Tile(4, 2).TerrainId != Dk2TerrainFixture.ClaimedPath; i++)
+        {
             run.Tick();
+        }
 
         Assert.Equal(Dk2TerrainFixture.ClaimedPath, run.World.Tile(4, 2).TerrainId);
         Assert.Equal(new TilePos(4, 2), run.Imp.Tile);
@@ -468,7 +481,10 @@ public class ImpTests
         // The walk does not look at its task (0x00470C80); the dig entry drops it on arrival.
         run.Tick(TagTilesCommand.Untag(Keeper, new TilePos(4, 2)));
         Assert.Empty(run.Of("job_abandoned"));
-        for (int i = 0; i < 60 && !run.Of("job_abandoned").Any(); i++) run.Tick();
+        for (int i = 0; i < 60 && !run.Of("job_abandoned").Any(); i++)
+        {
+            run.Tick();
+        }
 
         Assert.Single(run.Of("job_abandoned"));
         Assert.Equal(CreatureActivity.Idle, run.Imp.Activity);
@@ -533,8 +549,15 @@ public class ImpTests
         {
             int before = run.World.Tile(4, 2).Health;
             run.Tick();
-            if (entered < 0 && run.Imp.Dk2StateId == 14) entered = run.Sim.CurrentTick.Value - 1;
-            if (run.World.Tile(4, 2).Health < before) hits.Add(run.Sim.CurrentTick.Value - 1);
+            if (entered < 0 && run.Imp.Dk2StateId == 14)
+            {
+                entered = run.Sim.CurrentTick.Value - 1;
+            }
+
+            if (run.World.Tile(4, 2).Health < before)
+            {
+                hits.Add(run.Sim.CurrentTick.Value - 1);
+            }
         }
 
         // Per-worker hits, not the interleaved tile deltas of the Level2 wall.
@@ -569,7 +592,9 @@ public class ImpTests
         Assert.Equal(WorkCadence.SecondApplicationGap(TileWorkKind.MineGold), (int)(at[1] - at[0]));
         Assert.Equal(4, (int)(at[1] - at[0]));
         for (int i = 2; i < at.Count; i++)
+        {
             Assert.Equal(1, (int)(at[i] - at[i - 1]));
+        }
 
         // Mined out - and by ten seconds the imp has gone on to claim the floor
         // it opened, which is the priority order doing its job.
@@ -641,9 +666,14 @@ public class ImpTests
         floor.OwnerPlayerId = Keeper;
         floor.Health = database.TerrainById(floor.TerrainId).StartingHealth;
         foreach (TilePos other in new[] { new TilePos(7, 5), new TilePos(9, 5), new TilePos(8, 6) })
+        {
             world.Tile(other).TerrainId = Dk2TerrainFixture.ImpenetrableRock;
+        }
+
         for (int i = 0; i < 3; i++)
+        {
             world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, face);
+        }
 
         new GameSimulation(database, world, 99, Dk2TerrainFixture.DefaultSystems()).Run(4);
 
@@ -661,8 +691,13 @@ public class ImpTests
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         TilePos wall = new(8, 4);
         for (int y = 2; y <= 6; y++)
+        {
             for (int x = 6; x <= 10; x++)
+            {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.ImpenetrableRock;
+            }
+        }
+
         ref TileState target = ref world.Tile(wall);
         target.TerrainId = Dk2TerrainFixture.Rock;
         target.Health = database.TerrainById(target.TerrainId).StartingHealth;
@@ -833,7 +868,11 @@ public class ImpTests
         for (int i = 0; i < 8; i++)
         {
             run.Tick();
-            if (run.World.Tile(4, 3).TerrainId != Dk2TerrainFixture.Rock) break;
+            if (run.World.Tile(4, 3).TerrainId != Dk2TerrainFixture.Rock)
+            {
+                break;
+            }
+
             Assert.Equal(3, run.World.Creatures.Count(c => c.TargetTileIndex == marked));
         }
 
@@ -882,7 +921,10 @@ public class ImpTests
         CreatureState imp = world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(1, 1));
 
         // The fixture's room is (1,1)-(3,3); a chain of tiles on the bias leads out of its corner.
-        for (int i = 1; i <= 3; i++) Carve(world, database, new TilePos(3 + i, 3 + i));
+        for (int i = 1; i <= 3; i++)
+        {
+            Carve(world, database, new TilePos(3 + i, 3 + i));
+        }
 
         Assert.False(new Navigation.WorldSteering(database, world).TryRoute(imp, new TilePos(6, 6), Navigation.MoveOptions.Plain));
     }
@@ -900,7 +942,11 @@ public class ImpTests
         // A long straight route so nothing snaps to a waypoint mid-second, and
         // an open corridor to walk it down — a route over rock would be dropped
         // at the first solid waypoint (see WallsBlockMovementTests).
-        for (int x = 2; x <= 14; x++) Carve(world, database, new TilePos(x, 1));
+        for (int x = 2; x <= 14; x++)
+        {
+            Carve(world, database, new TilePos(x, 1));
+        }
+
         Assert.True(new Navigation.WorldSteering(database, world).TryRoute(imp, new TilePos(14, 1), Navigation.MoveOptions.Plain));
 
         var sim = new GameSimulation(database, world, 1, [new CreatureMovementSystem()]);
@@ -982,7 +1028,9 @@ public class ImpTests
         // And the other two did not queue: they went and found other work, which
         // is the half of Q43 that matters and holds here too.
         foreach (CreatureState other in run.World.Creatures.Where(c => c.TargetTileIndex != target))
+        {
             Assert.NotEqual(-1, other.TargetTileIndex);
+        }
     }
 
     /// <summary>
@@ -1035,7 +1083,9 @@ public class ImpTests
         Assert.True(TileWorkRules.Applies(database, theirs, TileWorkKind.AttackTile, Keeper));
 
         for (int i = 0; i < 5000 && theirs.TerrainId == Dk2TerrainFixture.ClaimedPath; i++)
+        {
             TileWorkRules.Apply(database, ref theirs, TileWorkKind.AttackTile, Keeper);
+        }
 
         Assert.Equal(Dk2TerrainFixture.DirtPath, theirs.TerrainId);
         Assert.Equal(PlayerIds.Neutral, theirs.OwnerPlayerId);
@@ -1060,10 +1110,12 @@ public class ImpTests
         theirs.OwnerPlayerId = 2;
         theirs.Health = database.TerrainById(Dk2TerrainFixture.ClaimedPath).StartingHealth;
         if (door)
+        {
             ThingProjection.Place(run.World, database, [new DoorThing(new byte[20])
             {
                 X = 4, Y = 2, DoorId = 1, PlayerId = 2, Flags = 0x01, Unknown_0011 = new byte[3],
             }]);
+        }
 
         run.Ticks(200);
 
@@ -1211,7 +1263,9 @@ public class ImpTests
             run.Tick();
             TileState now = run.World.Tile(4, 2);
             if (now.TerrainId == Dk2TerrainFixture.DirtPath && now.OwnerPlayerId == PlayerIds.Neutral)
+            {
                 wasDirt = true;
+            }
         }
 
         Assert.True(wasDirt, "the rival's floor never passed through unclaimed dirt");

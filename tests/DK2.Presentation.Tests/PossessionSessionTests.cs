@@ -154,7 +154,11 @@ public sealed class PossessionSessionTests
             PossessionUpdate update = Session.Update(World, Viewer,
                 new PossessionInput(allowed, Clock, milliseconds, pointer, primary, secondary, keys, 10, false),
                 Ordinary, Focus, Commands, Sounds);
-            if (update.OrdinaryFocus is Vector3 focus) Focus = focus;
+            if (update.OrdinaryFocus is Vector3 focus)
+            {
+                Focus = focus;
+            }
+
             return update;
         }
     }
@@ -167,12 +171,17 @@ public sealed class PossessionSessionTests
         // A plain open tile with plain open ground on all four sides.
         TilePos open = default;
         for (int y = 2; y < world.Height - 2 && open == default; y++)
+        {
             for (int x = 2; x < world.Width - 2; x++)
+            {
                 if (Plain(x, y) && Plain(x - 1, y) && Plain(x + 1, y) && Plain(x, y - 1) && Plain(x, y + 1))
                 {
                     open = new TilePos(x, y);
                     break;
                 }
+            }
+        }
+
         byte goblin = db.Creatures.Values.Single(c => c.Name == "Goblin").CreatureId;
         CreatureState me = world.SpawnCreature(db, goblin, Viewer, open);
         me.Body.Radius = SteeringMover.CrowdWordOf(db.CreatureById(goblin).FootprintRadius.Raw);

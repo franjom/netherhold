@@ -18,8 +18,13 @@ public class NavMeshLocateCacheTests
         int[] built = mesh.CaptureLocateCache();
         int[] saved = (int[])built.Clone();
         for (int y = 0; y < grid.Height; y += 3)
+        {
             for (int x = 0; x < grid.Width; x += 3)
+            {
                 mesh.Locate(x * U, y * U);
+            }
+        }
+
         int[] scrambled = mesh.CaptureLocateCache();
         Assert.True(built.Where((value, i) => value != scrambled[i]).Count() > 1);
 
@@ -27,7 +32,10 @@ public class NavMeshLocateCacheTests
 
         Assert.Equal(built, mesh.CaptureLocateCache());
         foreach ((int x, int y) in new[] { (4, 4), (8, 8), (66, 40), (66, 100), (64, 64), (128, 128) })
+        {
             Assert.Equal(fresh.Locate(x * U, y * U), mesh.Locate(x * U, y * U));
+        }
+
         Assert.Equal(saved, built);
     }
 

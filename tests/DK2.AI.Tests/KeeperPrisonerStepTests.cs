@@ -26,11 +26,31 @@ public class KeeperPrisonerStepTests
     private static WorldState World(bool prison = true, bool lair = true, bool temple = true, bool pit = true, bool torture = true)
     {
         WorldState world = KeeperWorld.World(Db, morePlayers: [Enemy]);
-        if (prison) Room(world, KeeperWorld.PrisonFloor, PrisonCell.X - 1, PrisonCell.Y - 1);
-        if (lair) Room(world, KeeperWorld.LairFloor, 8, 20);
-        if (temple) Room(world, KeeperWorld.TempleFloor, 20, 8);
-        if (pit) Room(world, KeeperWorld.CombatPitFloor, 8, 8);
-        if (torture) Room(world, KeeperWorld.TortureFloor, TortureSlot.X - 1, TortureSlot.Y - 1);
+        if (prison)
+        {
+            Room(world, KeeperWorld.PrisonFloor, PrisonCell.X - 1, PrisonCell.Y - 1);
+        }
+
+        if (lair)
+        {
+            Room(world, KeeperWorld.LairFloor, 8, 20);
+        }
+
+        if (temple)
+        {
+            Room(world, KeeperWorld.TempleFloor, 20, 8);
+        }
+
+        if (pit)
+        {
+            Room(world, KeeperWorld.CombatPitFloor, 8, 8);
+        }
+
+        if (torture)
+        {
+            Room(world, KeeperWorld.TortureFloor, TortureSlot.X - 1, TortureSlot.Y - 1);
+        }
+
         return world;
     }
 
@@ -38,6 +58,7 @@ public class KeeperPrisonerStepTests
     private static void Room(WorldState world, byte floor, int x, int y)
     {
         for (int dy = 0; dy < 3; dy++)
+        {
             for (int dx = 0; dx < 3; dx++)
             {
                 var at = new TilePos(x + dx, y + dy);
@@ -46,6 +67,7 @@ public class KeeperPrisonerStepTests
                 KeeperWorld.Set(world, Db, at, floor, Keeper);
                 SlabChain.Changed(world, Db, index, terrain, owner);
             }
+        }
     }
 
     /// <summary>A creature holding a place in the Prison, claimed as the <paramref name="serial"/>th.</summary>
@@ -74,7 +96,11 @@ public class KeeperPrisonerStepTests
     private static int NextAfter(ulong seed, params int[] draws)
     {
         var rng = new SimRandom(seed);
-        foreach (int range in draws) rng.NextInt(range);
+        foreach (int range in draws)
+        {
+            rng.NextInt(range);
+        }
+
         return rng.NextInt(1 << 30);
     }
 
@@ -82,7 +108,10 @@ public class KeeperPrisonerStepTests
     private static int WallTheTortureChamber(WorldState world)
     {
         for (int y = TortureSlot.Y - 2; y <= TortureSlot.Y + 2; y++)
+        {
             KeeperWorld.Set(world, Db, new TilePos(TortureSlot.X - 2, y), KeeperWorld.WallRock);
+        }
+
         return (TortureSlot.Y * world.Width) + TortureSlot.X - 1;
     }
 
@@ -101,8 +130,15 @@ public class KeeperPrisonerStepTests
             var rng = new SimRandom(seed);
             rng.NextInt(1);
             bool ok = true;
-            for (int i = 0; i < rolls && ok; i++) ok = rng.NextInt(100) >= KeeperPrisonerStep.EnemySelectPercent;
-            if (ok && (rng.NextInt(100) < KeeperPrisonerStep.EnemySelectPercent) == pass) return seed;
+            for (int i = 0; i < rolls && ok; i++)
+            {
+                ok = rng.NextInt(100) >= KeeperPrisonerStep.EnemySelectPercent;
+            }
+
+            if (ok && (rng.NextInt(100) < KeeperPrisonerStep.EnemySelectPercent) == pass)
+            {
+                return seed;
+            }
         }
     }
 
@@ -255,7 +291,11 @@ public class KeeperPrisonerStepTests
         {
             var rng = new SimRandom(seed);
             rng.NextInt(1);
-            if (rng.NextInt(100) >= KeeperPrisonerStep.EnemySelectPercent) continue;
+            if (rng.NextInt(100) >= KeeperPrisonerStep.EnemySelectPercent)
+            {
+                continue;
+            }
+
             rng.NextInt(1);
             TilePos expected = view.FromIndex(slots[rng.NextInt(slots.Length)]);
             Assert.Equal([expected], Drops(Run(world, action: 0, seed: seed).Commands));
@@ -336,7 +376,11 @@ public class KeeperPrisonerStepTests
     {
         WorldState world = World();
         var clock = new GameSimulation(Db, world, 1, Array.Empty<ISimulationSystem>());
-        while (world.CurrentTick.Value + 1 < turn) clock.Tick(new InputFrame(Array.Empty<PlayerCommand>()));
+        while (world.CurrentTick.Value + 1 < turn)
+        {
+            clock.Tick(new InputFrame(Array.Empty<PlayerCommand>()));
+        }
+
         CreatureState own = Occupant(world, Keeper, serial: 1);
         own.DroppedTick = world.CurrentTick.Value - counter;
 

@@ -208,7 +208,11 @@ public class ObjectsInWorldTests
         var simulation = new GameSimulation(db, world, 42, [
             new CreatureSleepSystem(), new CreatureHealthSystem(),
         ]);
-        for (int tick = 0; tick < Second * 5 && goblin.Dk2StateId != CreatureDeathRules.DyingState; tick++) simulation.Tick();
+        for (int tick = 0; tick < Second * 5 && goblin.Dk2StateId != CreatureDeathRules.DyingState; tick++)
+        {
+            simulation.Tick();
+        }
+
         Assert.Equal(CreatureDeathRules.DyingState, goblin.Dk2StateId);
         simulation.Run(CreatureDeathRules.DyingWindowTicks(db));
 

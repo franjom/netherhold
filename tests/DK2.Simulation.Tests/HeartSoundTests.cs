@@ -26,11 +26,21 @@ public sealed class HeartSoundTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         RoomDef heart = db.Room(RoomTypeId.DungeonHeart);
         for (int y = 3; y < 8; y++)
+        {
             for (int x = 3; x < 8; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(new TilePos(x, y)), heart, Keeper);
+            }
+        }
+
         for (int y = 10; y < 15; y++)
+        {
             for (int x = 10; x < 15; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(new TilePos(x, y)), heart, Rival);
+            }
+        }
+
         world.Player(Keeper).HeartHealth = 5000;
         world.Player(Rival).HeartHealth = 100;
         return (db, world);
@@ -147,8 +157,13 @@ public sealed class HeartSoundTests
     {
         (GameDatabase? db, WorldState? world) = NewWorld();
         for (int y = 10; y < 15; y++)
+        {
             for (int x = 10; x < 15; x++)
+            {
                 world.Tile(new TilePos(x, y)).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         var events = new ListEventSink();
         var sim = new GameSimulation(db, world, 1, [new Act(c => HeartSoundRules.Damage(c, "Act", Rival, 40, Keeper))]);
         sim.ObserveWith(events);
@@ -167,10 +182,12 @@ public sealed class HeartSoundTests
             (GameDatabase? db, WorldState? world) = NewWorld();
             var sim = new GameSimulation(db, world, 1, [new DungeonHeartSystem(), new Act(c =>
             {
-                if (c.Tick.Value == 40) HeartSoundRules.Damage(c, "Act", Rival, 1_000_000, Keeper);
-                if (c.Tick.Value == 41) DefeatRules.OnDeathTurn(c, Rival);
-            })]);
-            if (sink is not null) sim.ObserveWith(sink);
+                if (c.Tick.Value == 40) { HeartSoundRules.Damage(c, "Act", Rival, 1_000_000, Keeper); } if (c.Tick.Value == 41) { DefeatRules.OnDeathTurn(c, Rival); } })]);
+            if (sink is not null)
+            {
+                sim.ObserveWith(sink);
+            }
+
             sim.Run(45);
             return sim;
         }

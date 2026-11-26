@@ -40,7 +40,11 @@ public class SpeechQueueTests
     public void TheSeventeenthWaitingLineIsRejected()
     {
         var queue = new SpeechQueue();
-        for (uint i = 1; i <= 16; i++) Assert.True(queue.Enqueue(Line(i)));
+        for (uint i = 1; i <= 16; i++)
+        {
+            Assert.True(queue.Enqueue(Line(i)));
+        }
+
         Assert.False(queue.Enqueue(Line(17)));
     }
 }

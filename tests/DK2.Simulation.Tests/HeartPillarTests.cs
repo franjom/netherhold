@@ -168,11 +168,21 @@ public class HeartPillarTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper, PlayerIds.FirstKeeper + 1]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         for (int y = 3; y <= 7; y++)
+        {
             for (int x = 10; x <= 14; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(new TilePos(x, y)), db.Room(RoomTypeId.DungeonHeart), PlayerIds.FirstKeeper + 1);
+            }
+        }
+
         return (db, world);
     }
 }

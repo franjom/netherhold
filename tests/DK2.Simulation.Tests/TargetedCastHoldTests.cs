@@ -89,7 +89,11 @@ public sealed class TargetedCastHoldTests
         // and the state ends on the first turn with none.
         Assert.Equal(FightTargetKind.None, caster.FightTargetKind);
         Assert.Equal(199, caster.Dk2StateId);
-        for (int i = 0; i < 40 && caster.Dk2StateId == 199; i++) sim.Tick();
+        for (int i = 0; i < 40 && caster.Dk2StateId == 199; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(1, caster.Dk2StateId);
     }
 
@@ -111,13 +115,9 @@ public sealed class TargetedCastHoldTests
                 FightRules.StartSwing(context, new WorldSight(context.Navigation, world, db), caster,
                     db.CreatureById(caster.CreatureTypeId), []);
             }
-            else if (replacement == 1)
-                FightRules.BeginPossessedAction(context, caster, SpellRules.MeleeSwing,
-                    slot: 0, targetKind: FightTargetKind.Creature, targetId: target.Id);
-            else
-                FightRules.BeginFreeAim(context, caster, slot: 0,
-                    x: target.PosX, y: target.PosY, z: 0, pitch: 0, range: 16384);
-        })]).Tick();
+            else if (replacement == 1) { FightRules.BeginPossessedAction(context, caster, SpellRules.MeleeSwing,
+                    slot: 0, targetKind: FightTargetKind.Creature, targetId: target.Id); } else { FightRules.BeginFreeAim(context, caster, slot: 0,
+                    x: target.PosX, y: target.PosY, z: 0, pitch: 0, range: 16384); } })]).Tick();
         Assert.Equal(0, caster.ActionUntilTick);
     }
 
@@ -133,7 +133,11 @@ public sealed class TargetedCastHoldTests
         public string Name => nameof(StartOnce);
         public void Execute(SimulationContext context)
         {
-            if (_started) return;
+            if (_started)
+            {
+                return;
+            }
+
             _started = true;
             FightRules.StartCast(context, caster, context.Database.CreatureById(caster.CreatureTypeId), 0);
         }
@@ -153,8 +157,13 @@ public sealed class TargetedCastHoldTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(40, 40),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper, (byte)(PlayerIds.FirstKeeper + 1)]);
         foreach (int y in Enumerable.Range(0, world.Height))
-        foreach (int x in Enumerable.Range(0, world.Width))
-            world.Tile(new TilePos(x, y)).TerrainId = Dk2TerrainFixture.DirtPath;
+        {
+            foreach (int x in Enumerable.Range(0, world.Width))
+            {
+                world.Tile(new TilePos(x, y)).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         CreatureState caster = world.SpawnCreature(db, Dk2TerrainFixture.WarlockCreatureId,
             PlayerIds.FirstKeeper, new TilePos(5, 10));
         CreatureState target = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId,

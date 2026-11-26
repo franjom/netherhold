@@ -26,8 +26,13 @@ public sealed class PossessionSoundTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Keeper + 1]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         CreatureState me = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(10, 10));
         me.Possessed = true;
         me.Heading = East;
@@ -84,8 +89,13 @@ public sealed class PossessionSoundTests
             basis.CreatureSpells.Values, basis.Shots.Values, basis.Effects.Values, basis.EffectElements.Values, basis.Level, basis.CameraPathFrames);
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Keeper + 1]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         CreatureState me = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(10, 10));
         me.Possessed = true;
         me.Heading = East;
@@ -118,8 +128,13 @@ public sealed class PossessionSoundTests
         GameDatabase db = SoundFixture.Database(null);
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Keeper + 1]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         world.Tile(11, 10).TerrainId = Dk2TerrainFixture.ImpenetrableRock;
         CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(10, 10));
         imp.Possessed = true;

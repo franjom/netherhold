@@ -30,16 +30,28 @@ public class KeeperTrainingStepTests
     private static WorldState World(bool training = true, bool pit = true, GameDatabase? db = null)
     {
         WorldState world = KeeperWorld.World(db ?? Db);
-        if (training) Room(world, KeeperWorld.TrainingFloor, TrainingSlot.X - 1, TrainingSlot.Y - 1, 3, 3);
-        if (pit) Room(world, KeeperWorld.CombatPitFloor, PitSlot.X - 1, PitSlot.Y - 1, 3, 3);
+        if (training)
+        {
+            Room(world, KeeperWorld.TrainingFloor, TrainingSlot.X - 1, TrainingSlot.Y - 1, 3, 3);
+        }
+
+        if (pit)
+        {
+            Room(world, KeeperWorld.CombatPitFloor, PitSlot.X - 1, PitSlot.Y - 1, 3, 3);
+        }
+
         return world;
     }
 
     private static void Room(WorldState world, byte floor, int x, int y, int w, int h)
     {
         for (int dy = 0; dy < h; dy++)
+        {
             for (int dx = 0; dx < w; dx++)
+            {
                 Lay(world, floor, new TilePos(x + dx, y + dy));
+            }
+        }
     }
 
     /// <summary>Lays one room tile through the slab chain, so a chain built tile by tile keeps its order.</summary>
@@ -189,7 +201,11 @@ public class KeeperTrainingStepTests
     {
         WorldState world = World();
         var clock = new GameSimulation(Db, world, 1, Array.Empty<ISimulationSystem>());
-        while (world.CurrentTick.Value + 1 < turn) clock.Tick(new InputFrame(Array.Empty<PlayerCommand>()));
+        while (world.CurrentTick.Value + 1 < turn)
+        {
+            clock.Tick(new InputFrame(Array.Empty<PlayerCommand>()));
+        }
+
         CreatureState creature = Fighter(world);
         creature.DroppedTick = world.CurrentTick.Value - counter;
 
@@ -324,8 +340,12 @@ public class KeeperTrainingStepTests
         WorldState world = World(training: false, pit: false);
         // Laid from the bottom-right corner, the chain reaches the right-hand interior cell first.
         for (int y = 19; y >= 17; y--)
+        {
             for (int x = 14; x >= 11; x--)
+            {
                 Lay(world, KeeperWorld.TrainingFloor, new TilePos(x, y));
+            }
+        }
 
         KeeperRoomView room = Assert.Single(new KeeperView(Db, world, Keeper).OwnRooms,
             r => r.Definition.RoomId == (byte)RoomTypeId.TrainingRoom);
@@ -395,9 +415,16 @@ public class KeeperTrainingStepTests
         for (int tick = 0; tick < 600; tick++)
         {
             IReadOnlyList<PlayerCommand> commands = keeper.Think(Db, world);
-            foreach (PlayerCommand command in commands) log.Add((tick, command));
+            foreach (PlayerCommand command in commands)
+            {
+                log.Add((tick, command));
+            }
+
             sim.Tick(new InputFrame(commands));
-            if (log.Any(e => e.Command is DropCommand) && settled()) break;
+            if (log.Any(e => e.Command is DropCommand) && settled())
+            {
+                break;
+            }
         }
         return log;
     }
@@ -472,11 +499,18 @@ public class KeeperTrainingStepTests
     public void OnlyANotReadyArmyIsMoved(int fighters, bool moved)
     {
         WorldState world = World();
-        for (int i = 0; i < fighters; i++) Fighter(world, x: 13 + i);
+        for (int i = 0; i < fighters; i++)
+        {
+            Fighter(world, x: 13 + i);
+        }
+
         var keeper = new KeeperAI(Keeper, Parameters(skill: 1, speed: 4), new SimRandom(5));
 
         var commands = new List<PlayerCommand>();
-        for (int tick = 0; tick < 16; tick++) commands.AddRange(keeper.Think(Db, world));
+        for (int tick = 0; tick < 16; tick++)
+        {
+            commands.AddRange(keeper.Think(Db, world));
+        }
 
         Assert.Equal(moved, commands.Any(c => c is TakeCreatureCommand));
     }
@@ -499,7 +533,10 @@ public class KeeperTrainingStepTests
             foreach (int count in roomDraws) { without.NextInt(count); with.NextInt(count); }
             with.NextInt(slots);
             int a = without.NextInt(slots), b = with.NextInt(slots);
-            if (a != b) return (seed, a, b);
+            if (a != b)
+            {
+                return (seed, a, b);
+            }
         }
         throw new InvalidOperationException("no discriminating seed");
     }
@@ -541,12 +578,19 @@ public class KeeperTrainingStepTests
         int Slot(ulong seed, bool drawTraining)
         {
             var replay = new SimRandom(seed);
-            if (drawTraining) replay.NextInt(2);
+            if (drawTraining)
+            {
+                replay.NextInt(2);
+            }
+
             replay.NextInt(1);
             return replay.NextInt(2);
         }
         ulong seed = 1;
-        while (Slot(seed, true) == Slot(seed, false)) seed++;
+        while (Slot(seed, true) == Slot(seed, false))
+        {
+            seed++;
+        }
 
         // 0x004C6460 runs for both types before the +0x98 tests, so the Training draw is made
         // though building a Training Room turns that branch off.
@@ -600,7 +644,10 @@ public class KeeperTrainingStepTests
         // its old level 3 it would be sent to Training.
         int at = commands.FindIndex(c => c is TakeCreatureCommand pick && pick.CreatureId == levelled.Id);
         Assert.Equal(pit, at >= 0);
-        if (pit) Assert.Equal(PitSlot, ((DropCommand)commands[at + 1]).Tile);
+        if (pit)
+        {
+            Assert.Equal(PitSlot, ((DropCommand)commands[at + 1]).Tile);
+        }
     }
 
     [Fact]

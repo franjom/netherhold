@@ -48,8 +48,13 @@ public sealed class CombatPitRoomTests
             level: tickRate is { } rate ? Level(rate) : null);
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(16, 16), [PlayerIds.Neutral, Keeper]);
         for (int y = 4; y <= 8; y++)
-        for (int x = 4; x <= 8; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.CombatPit), Keeper);
+        {
+            for (int x = 4; x <= 8; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.CombatPit), Keeper);
+            }
+        }
+
         CreatureState first = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(6, 6));
         CreatureState second = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(6, 6));
         return (new GameSimulation(db, world, 42, [new CombatPitRoomStep()]), first, second);
@@ -87,7 +92,10 @@ public sealed class CombatPitRoomTests
         (GameSimulation sim, _, CreatureState second) = Setup();
         sim.Tick();
         if (rim) { second.PosX = CreatureState.CentreOf(4); second.PosY = CreatureState.CentreOf(4); }
-        else if (held) second.InHand = true;
+        else if (held)
+        {
+            second.InHand = true;
+        }
         else { second.PosX = CreatureState.CentreOf(1); second.PosY = CreatureState.CentreOf(1); }
         StatePlacement.Place(second, CreatureDeathRules.DyingState);
         sim.Tick();
@@ -202,7 +210,11 @@ public sealed class CombatPitRoomTests
     {
         (GameSimulation sim, _, _) = Setup();
         sim.Run(3);
-        foreach (int y in new[] { 4, 5, 7, 8 }) RemovePit(sim, new TilePos(6, y));
+        foreach (int y in new[] { 4, 5, 7, 8 })
+        {
+            RemovePit(sim, new TilePos(6, y));
+        }
+
         SeedRuntime(ref sim.World.Tile(4, 4), 17, 29, 3, 99);
         RemovePit(sim, new TilePos(6, 6));
         AssertRuntime(sim.World.Tile(4, 4), 0, 0, 0, sim.World.CurrentTick.Value);
@@ -230,7 +242,10 @@ public sealed class CombatPitRoomTests
         (GameSimulation source, CreatureState seeker, _) = Setup();
         WorldState world = source.World;
         foreach (TilePos at in new[] { new TilePos(7, 6), new TilePos(6, 7), new TilePos(5, 6) })
+        {
             world.SpawnCreature(source.Database, Dk2TerrainFixture.GoblinCreatureId, Keeper, at);
+        }
+
         ThingProjection.Place(world, source.Database, [new DoorThing(new byte[20])
             { X = 6, Y = 5, PlayerId = Keeper, Flags = 0, DoorId = 1, Unknown_0011 = new byte[3] }]);
         byte[] bytes = WorldSteering.CaptureNavigationBytes(source.Database, world);
@@ -318,8 +333,13 @@ public sealed class CombatPitRoomTests
     {
         (GameSimulation source, CreatureState fighter, _) = Setup(convertible: true);
         for (int y = 4; y <= 8; y++)
-        for (int x = 4; x <= 8; x++)
-            source.World.Tile(x, y).OwnerPlayerId = PlayerIds.Neutral;
+        {
+            for (int x = 4; x <= 8; x++)
+            {
+                source.World.Tile(x, y).OwnerPlayerId = PlayerIds.Neutral;
+            }
+        }
+
         AddPit(source, new TilePos(3, 4));
         fighter.PosX = CreatureState.CentreOf(3);
         fighter.PosY = CreatureState.CentreOf(4);
@@ -355,10 +375,16 @@ public sealed class CombatPitRoomTests
     {
         (GameSimulation sim, _, _) = Setup();
         for (int i = 2; i < standing; i++)
+        {
             sim.World.SpawnCreature(sim.Database, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(6, 6));
+        }
+
         sim.Tick();
         foreach (CreatureState creature in sim.World.Creatures.Skip(1))
+        {
             StatePlacement.Place(creature, CreatureDeathRules.DyingState);
+        }
+
         sim.Tick();
         Assert.Equal(announces, sim.World.Messages.Entries.Any(m => m.Kind == PlayerMessageKind.CombatPitFightOver));
     }
@@ -370,7 +396,10 @@ public sealed class CombatPitRoomTests
     {
         (GameSimulation sim, _, _) = Setup(tickRate: 3);
         if (overrides)
+        {
             sim.Database.Variables.Misc[VariableTypeId.TicksPerSecond] = new(VariableTypeId.TicksPerSecond, 7, 0, 0);
+        }
+
         var oracle = SimRandom.Restore(sim.Rng.SaveState());
         int rate = overrides ? 7 : 3;
         byte expectedShort = unchecked((byte)oracle.NextInt(rate * 4));

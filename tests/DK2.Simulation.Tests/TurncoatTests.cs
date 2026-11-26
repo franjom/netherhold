@@ -38,8 +38,13 @@ public sealed class TurncoatTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(new TilePos(x, y)).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         var at = new TilePos(10, 10);
         world.Tile(at).TerrainId = Dk2TerrainFixture.ClaimedPath;
         world.Tile(at).OwnerPlayerId = Keeper;
@@ -263,8 +268,15 @@ public sealed class TurncoatTests
         (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         var sim = new GameSimulation(db, world, 1, []);
         ulong before = sim.StateHash();
-        if (timer) target.TurncoatTicks = 1;
-        else target.TurncoatPlayerId = Keeper;
+        if (timer)
+        {
+            target.TurncoatTicks = 1;
+        }
+        else
+        {
+            target.TurncoatPlayerId = Keeper;
+        }
+
         Assert.NotEqual(before, sim.StateHash());
     }
 

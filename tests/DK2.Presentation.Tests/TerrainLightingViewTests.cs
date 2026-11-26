@@ -17,13 +17,21 @@ public class TerrainLightingViewTests
     public void ViewExposesOnlyEnabledAndVisibleAmbientColour(bool enabled, bool hidden, int red)
     {
         TerrainFlags flags = TerrainFlags.Ownable | TerrainFlags.AmbientColorRed;
-        if (enabled) flags |= TerrainFlags.AmbientLight;
+        if (enabled)
+        {
+            flags |= TerrainFlags.AmbientLight;
+        }
+
         TerrainDef terrain = Definition(1, "Path", flags) with { Lighting = new(1, 2, 3, 10, 20, 30) };
         var database = new GameDatabase([terrain, Definition(27, "Fog Of War", TerrainFlags.Solid)],
             [], [], new GlobalVariables());
         var world = WorldState.FromMap(database, new LevelMap(1, 1, [new MapTile(1, 1, 0, 0)]),
             [1], fogOfWarEnabled: hidden);
-        if (hidden) world.Tile(0, 0).ClearExploredBy(1);
+        if (hidden)
+        {
+            world.Tile(0, 0).ClearExploredBy(1);
+        }
+
         TileView tile = new WorldView(database, 1).TileAt(world, 0, 0);
         Assert.Equal(new TerrainLightColour(red, red == 0 ? 0 : 20, red == 0 ? 0 : 30), tile.AmbientTint);
     }

@@ -30,7 +30,10 @@ public class KwdEffectElementWriterTests
         KwdChunk chunk = KwdReader.ReadFile(Path.Combine(Dk2InstallGate.Path, "Data", "editor", "EffectElements.kwd")).Single();
         List<EffectElementDef> rows = KwdAdditionalRecords.ParseEffectElements([chunk]); List<KwdRecordImage> images = KwdRecordRoundTrip.Split(chunk);
         Assert.Equal(596, rows.Count);
-        for (int i = 0; i < rows.Count; i++) Assert.Equal(images[i].ToBytes(), KwdAdditionalRecords.WriteEffectElementRecord(rows[i], images[i]));
+        for (int i = 0; i < rows.Count; i++)
+        {
+            Assert.Equal(images[i].ToBytes(), KwdAdditionalRecords.WriteEffectElementRecord(rows[i], images[i]));
+        }
     }
 
     private static EffectElementDef Read(byte[] source) => KwdAdditionalRecords.ParseEffectElements([

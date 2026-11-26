@@ -37,7 +37,11 @@ public class PrisonImprisonedEventTests
         world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, Floor);
         GameSimulation sim = Simulation(db, world);
 
-        for (int i = 0; i < 30 * Second && !PrisonRules.IsImprisoned(enemy); i++) sim.Tick();
+        for (int i = 0; i < 30 * Second && !PrisonRules.IsImprisoned(enemy); i++)
+        {
+            sim.Tick();
+        }
+
         Assert.True(PrisonRules.IsImprisoned(enemy));
         Assert.Equal(1, world.Triggers.Read(1));
 
@@ -165,8 +169,13 @@ public class PrisonImprisonedEventTests
         }
 
         for (int y = 2; y <= 6; y++)
+        {
             for (int x = 3; x <= 7; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Prison), Keeper);
+            }
+        }
+
         return (db, world);
     }
 

@@ -34,7 +34,11 @@ public class WinScreenTests
         var screen = new WinScreen(new byte[] { 12, 42, 0, 0, 0 }, _ => "x");
         screen.SpeechRequested += spoken.Add;
         screen.Start(0);
-        for (double now = 0; now <= 5000; now += 10) screen.Update(now, false, false, speechPlaying: true);
+        for (double now = 0; now <= 5000; now += 10)
+        {
+            screen.Update(now, false, false, speechPlaying: true);
+        }
+
         Assert.Equal(12, screen.Current!.Value.Id);
         Assert.Equal(new uint[] { 1350 }, spoken);
         screen.Update(5010, false, false, speechPlaying: false);
@@ -48,12 +52,18 @@ public class WinScreenTests
         Assert.Equal(52, WinScreen.Items.Count);
         Assert.Equal(("Dark_Library", 1350u), (WinScreen.Items[12].Name, WinScreen.Items[12].SpeechTextId));
         Assert.Equal(("Training", 1351u), (WinScreen.Items[42].Name, WinScreen.Items[42].SpeechTextId));
-        for (int i = 0; i < WinScreen.Items.Count; i++) Assert.Equal(i, WinScreen.Items[i].Id);
+        for (int i = 0; i < WinScreen.Items.Count; i++)
+        {
+            Assert.Equal(i, WinScreen.Items[i].Id);
+        }
     }
 
     private static void Run(WinScreen screen, double from, double to, bool cameraOnPath = false)
     {
-        for (double t = from; t <= to; t += 10) screen.Update(t, cameraOnPath, continueRequested: false);
+        for (double t = from; t <= to; t += 10)
+        {
+            screen.Update(t, cameraOnPath, continueRequested: false);
+        }
     }
 
     [Fact]
@@ -72,7 +82,11 @@ public class WinScreenTests
         Assert.Equal(42, screen.Current!.Value.Id);               // a camera path holds the screen
         Assert.Equal(frame, screen.Tablet.Frame);                   // and its tablet
         double done = 20_010;
-        for (; !screen.Done; done += 10) screen.Update(done, false, false);
+        for (; !screen.Done; done += 10)
+        {
+            screen.Update(done, false, false);
+        }
+
         Assert.InRange(done, 23_000, 23_300);                       // the second tablet: ~3.1 s more
         Assert.Null(screen.Current);
         Assert.False(screen.Update(done + 10, false, true));        // the 500 ms deadline arms

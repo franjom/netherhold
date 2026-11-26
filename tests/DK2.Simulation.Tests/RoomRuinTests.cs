@@ -19,8 +19,13 @@ public sealed class RoomRuinTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, A, B, C]);
         for (int y = 5; y <= 7; y++)
+        {
             for (int x = 5; x <= 7; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.DungeonHeart), A);
+            }
+        }
+
         world.Player(A).HeartRuined = true;
         RoomRules.RuinHearts(world, db, A);
         return (db, world, Heart(db, world));
@@ -31,7 +36,10 @@ public sealed class RoomRuinTests
 
     private static void Capture(WorldState world, RoomInstance room, byte by)
     {
-        foreach (int index in room.TileIndices) world.TileAtIndex(index).OwnerPlayerId = by;
+        foreach (int index in room.TileIndices)
+        {
+            world.TileAtIndex(index).OwnerPlayerId = by;
+        }
     }
 
     [Fact]
@@ -62,7 +70,10 @@ public sealed class RoomRuinTests
     public void ALiveHeartIsNotClaimable()
     {
         (GameDatabase db, WorldState world, RoomInstance heart) = RuinedHeartOfA();
-        foreach (int index in heart.TileIndices) world.TileAtIndex(index).RoomRuined = false;
+        foreach (int index in heart.TileIndices)
+        {
+            world.TileAtIndex(index).RoomRuined = false;
+        }
 
         Assert.False(TileWorkRules.Applies(world, db, world.TileAtIndex(heart.TileIndices[0]), TileWorkKind.ConvertRoom, B));
     }

@@ -58,7 +58,11 @@ public class DungeonHeartTests
             world.Player(Keeper).HeartHealth = 0;
             HeartRuin.Set(world, Keeper, true);
         }
-        else world.DamageHeart(Keeper, 10, Rival);
+        else
+        {
+            world.DamageHeart(Keeper, 10, Rival);
+        }
+
         GameSimulation sim = Simulation(database, world);
         var events = new ListEventSink();
         sim.ObserveWith(events);
@@ -132,7 +136,11 @@ public class DungeonHeartTests
         GameSimulation sim = Simulation(database, world);
 
         // Nothing regenerates during the opening sequence (0x004D9BA5, heart-intro.md).
-        while (!HeartIntroRules.SequenceOver(HeartIntroRules.Turn(sim.CurrentTick), database)) sim.Tick();
+        while (!HeartIntroRules.SequenceOver(HeartIntroRules.Turn(sim.CurrentTick), database))
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(start, sim.World.Player(Keeper).HeartHealth);
 
         sim.Tick(); // the first ordinary frame finds the counter at 0
@@ -306,8 +314,13 @@ public class DungeonHeartTests
         // A real heart is 5x5 and only its inner 3x3, the centre platform, stores nothing.
         var heart = new List<TilePos>();
         for (int y = 3; y <= 7; y++)
+        {
             for (int x = 3; x <= 7; x++)
+            {
                 heart.Add(new TilePos(x, y));
+            }
+        }
+
         GiveHeart(world, database, Keeper, heart.ToArray());
         int corner = 3 * world.Width + 3;
         ref TileState tile = ref world.TileAtIndex(corner);
@@ -372,8 +385,13 @@ public class DungeonHeartTests
         GameDatabase db = Dk2TerrainFixture.Database();
         WorldState world = NewWorld(db);
         for (int y = 3; y <= 7; y++)
+        {
             for (int x = 3; x <= 7; x++)
+            {
                 GiveHeart(world, db, Keeper, new TilePos(x, y));
+            }
+        }
+
         CreatureState attacker = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(5, 5));
         attacker.SwingTargetKind = FightTargetKind.Heart;
         attacker.SwingTargetId = HeartPillarId.For(world, HeartPillarRules.At(new TilePos(5, 4), HeartPillar.First)).Value;
@@ -423,6 +441,8 @@ public class DungeonHeartTests
     {
         RoomDef heart = database.Room(RoomTypeId.DungeonHeart);
         foreach (TilePos p in tiles)
+        {
             RoomRules.Place(database, ref world.Tile(p), heart, player);
+        }
     }
 }

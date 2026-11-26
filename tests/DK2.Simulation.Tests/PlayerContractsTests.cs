@@ -222,7 +222,10 @@ public class PlayerContractsTests
         AuditType(typeof(PlayerObservation), seen, offenders, "PlayerObservation");
         AuditType(typeof(PlayerRequest), seen, offenders, "PlayerRequest");
         foreach (Type action in ActionTypes())
+        {
             AuditType(action, seen, offenders, action.Name);
+        }
+
         Assert.Empty(offenders);
 
         // Positive control: each branch of the audit flags its own leak.
@@ -278,7 +281,11 @@ public class PlayerContractsTests
     /// the engine-neutral id namespaces, and the protocol's own types (whose members are walked).</summary>
     private static void AuditType(Type type, HashSet<Type> seen, List<string> offenders, string path)
     {
-        if (type.IsPrimitive || type.IsEnum || type == typeof(string)) return;
+        if (type.IsPrimitive || type.IsEnum || type == typeof(string))
+        {
+            return;
+        }
+
         if (typeof(Delegate).IsAssignableFrom(type)) { offenders.Add($"{path}: delegate"); return; }
         if (type.IsArray) { offenders.Add($"{path}: array {type.Name}"); return; }
         if (type.IsGenericType)
@@ -294,22 +301,36 @@ public class PlayerContractsTests
         bool protocol = ns == "DK2.Simulation.Players";
         bool neutralValue = type.IsValueType && (ns is "DK2.Core" or "DK2.Data.Model" || type == typeof(GuiButtonTarget));
         if (!protocol && !neutralValue) { offenders.Add($"{path}: {type.FullName}"); return; }
-        if (seen.Add(type)) AuditMembers(type, seen, offenders, path);
+        if (seen.Add(type))
+        {
+            AuditMembers(type, seen, offenders, path);
+        }
     }
 
     private static void AuditMembers(Type type, HashSet<Type> seen, List<string> offenders, string path)
     {
         foreach (FieldInfo field in type.GetFields(BindingFlags.Instance | BindingFlags.Public))
+        {
             offenders.Add($"{path}.{field.Name}: public field");
+        }
+
         foreach (PropertyInfo property in type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
         {
-            if (property.GetIndexParameters().Length > 0 || property.Name == "EqualityContract") continue;
+            if (property.GetIndexParameters().Length > 0 || property.Name == "EqualityContract")
+            {
+                continue;
+            }
+
             MethodInfo? setter = property.SetMethod;
             if (setter is { IsPublic: true }
                 && !setter.ReturnParameter.GetRequiredCustomModifiers().Contains(typeof(IsExternalInit)))
+            {
                 offenders.Add($"{path}.{property.Name}: settable");
+            }
             else
+            {
                 AuditType(property.PropertyType, seen, offenders, $"{path}.{property.Name}");
+            }
         }
     }
 

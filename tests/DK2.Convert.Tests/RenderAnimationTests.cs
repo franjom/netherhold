@@ -23,7 +23,9 @@ public class RenderAnimationTests
         {
             clip.Sample(phase, false, full);
             for (int vertex = 0; vertex < full.Length; vertex++)
+            {
                 Assert.Equal(full[vertex], clip.SampleVertex(phase, vertex));
+            }
         }
         for (int frame = 0; frame < clip.FrameCount; frame++)
         {
@@ -52,7 +54,11 @@ public class RenderAnimationTests
         clock.Advance();
         Assert.Equal(0f, clock.Sample(0).Phase);
         Assert.InRange(clock.Sample(1).Phase, float.Epsilon, .1f);
-        for (int i = 0; i < 40; i++) clock.Advance();
+        for (int i = 0; i < 40; i++)
+        {
+            clock.Advance();
+        }
+
         Assert.Equal(1f, clock.Sample(.5f).Phase);
     }
 
@@ -71,7 +77,11 @@ public class RenderAnimationTests
         foreach (string standing in new[] { "idle", "eating" })
         {
             if (!provider.TryResolve(AssetRef.ForCreature(creature, AssetKind.Animation, standing), out ResolvedAsset asset)
-                || !provider.TryLoadModel(asset, out KmfModel? model)) continue;
+                || !provider.TryLoadModel(asset, out KmfModel? model))
+            {
+                continue;
+            }
+
             var clip = new RenderAnimation(model);
             Assert.True(clip.Mesh.ControlPoints.TryGetValue(KmfControlPoint.Head, out int head), standing);
             float top = clip.Mesh.Positions.Max(p => p.Y);

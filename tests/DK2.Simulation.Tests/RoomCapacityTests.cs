@@ -27,11 +27,13 @@ public sealed class RoomCapacityTests
         var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 8; y++)
-        for (int x = 1; x <= 12; x++)
+        {
+            for (int x = 1; x <= 12; x++)
         {
             ref TileState tile = ref world.Tile(x, y);
             tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
             tile.OwnerPlayerId = Keeper;
+        }
         }
 
         ref TileState treasury = ref world.Tile(12, 8);
@@ -43,8 +45,12 @@ public sealed class RoomCapacityTests
     private static void Room(GameDatabase db, WorldState world, RoomTypeId type, int x0, int y0, int size = 3)
     {
         for (int y = y0; y < y0 + size; y++)
-        for (int x = x0; x < x0 + size; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(type), Keeper);
+        {
+            for (int x = x0; x < x0 + size; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(type), Keeper);
+            }
+        }
     }
 
     private static GameSimulation Simulation(GameDatabase db, WorldState world, ListEventSink sink)
@@ -139,14 +145,22 @@ public sealed class RoomCapacityTests
         GameDatabase db = Dk2TerrainFixture.Database();
         WorldState world = World(db);
         Room(db, world, RoomTypeId.TrainingRoom, 5, 1);
-        if (anotherRoom) Room(db, world, RoomTypeId.TrainingRoom, 9, 5);
+        if (anotherRoom)
+        {
+            Room(db, world, RoomTypeId.TrainingRoom, 9, 5);
+        }
+
         Dk2TerrainFixture.FurnishRooms(db, world);
 
         CreatureState first = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(6, 2));
         CreatureState walker = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(1, 7));
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
-        for (int i = 0; i < Second * 10 && walker.Activity != CreatureActivity.GoingToJob; i++) sim.Tick();
+        for (int i = 0; i < Second * 10 && walker.Activity != CreatureActivity.GoingToJob; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.True(Training(first));
         Assert.Equal(CreatureActivity.GoingToJob, walker.Activity);
 
@@ -156,7 +170,10 @@ public sealed class RoomCapacityTests
         world.RemoveObject(world.Objects.Single(o => o.ObjectTypeId == Dk2TerrainFixture.TrainingDummyObjectId
             && EatingRules.Contains(RoomAt(db, world, 6, 2), o.TileIndex)).Id);
 
-        for (int i = 0; i < Second * 20 && walker.Activity == CreatureActivity.GoingToJob; i++) sim.Tick();
+        for (int i = 0; i < Second * 20 && walker.Activity == CreatureActivity.GoingToJob; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Contains(sink.Events, e => e.Kind == "job_lost" && e.Detail.Contains($"creature={walker.Id} ")
             && e.Detail.Contains("reason=room_full") && e.Detail.Contains(message));

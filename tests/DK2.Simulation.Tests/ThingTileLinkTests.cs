@@ -23,8 +23,13 @@ public sealed class ThingTileLinkTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         return (db, world);
     }
 
@@ -85,8 +90,15 @@ public sealed class ThingTileLinkTests
         (GameDatabase? db, WorldState? world) = Open();
         ShotState shot = world.SpawnShot(Dk2TerrainFixture.FireballShotId, Keeper, CreatureState.CentreOf(7), CreatureState.CentreOf(7));
         ObjectState pile = world.SpawnObject(db, FloorGold.FloorGoldObjectId, PlayerIds.Neutral, (7 * world.Width) + 7);
-        if (alongX) shot.PosX += 4096;
-        else shot.PosY += 4096;
+        if (alongX)
+        {
+            shot.PosX += 4096;
+        }
+        else
+        {
+            shot.PosY += 4096;
+        }
+
         Assert.Equal(alongX ? (7 * world.Width) + 8 : (8 * world.Width) + 7, shot.TileLink.TileIndex);
         Assert.True(shot.TileLink.Order > pile.TileLink.Order);
     }
@@ -187,7 +199,11 @@ public sealed class ThingTileLinkTests
             sim.Tick();
             AssertCurrent(world);
             int top = MaxOrder(world);
-            if (top != last) relinks++;
+            if (top != last)
+            {
+                relinks++;
+            }
+
             last = top;
         }
         Assert.True(relinks > 20, $"only {relinks} ticks moved anything");
@@ -201,14 +217,28 @@ public sealed class ThingTileLinkTests
     {
         int Tile(int x, int y) => world.Contains(x >> 12, y >> 12) ? ((y >> 12) * world.Width) + (x >> 12) : -1;
         foreach (CreatureState c in world.Creatures)
+        {
             Assert.Equal(c.InHand || c.CarriedByCreatureId >= 0 ? -1 : Tile(c.PosX, c.PosY), c.TileLink.TileIndex);
+        }
+
         foreach (ObjectState o in world.Objects)
+        {
             Assert.Equal(o.InHand || o.CarriedByCreatureId >= 0 ? -1 : o.TileIndex, o.TileLink.TileIndex);
+        }
+
         foreach (ShotState s in world.Shots)
+        {
             Assert.Equal(Tile(s.PosX, s.PosY), s.TileLink.TileIndex);
+        }
+
         foreach (TrapState t in world.Traps)
+        {
             Assert.Equal((t.Y * world.Width) + t.X, t.TileLink.TileIndex);
+        }
+
         foreach (DoorState d in world.Doors)
+        {
             Assert.Equal((d.Y * world.Width) + d.X, d.TileLink.TileIndex);
+        }
     }
 }

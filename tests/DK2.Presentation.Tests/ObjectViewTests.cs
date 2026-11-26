@@ -26,7 +26,11 @@ public class ObjectViewTests
     [InlineData(3, 16, 4, 0x600, 0x900)]
     public void GoldUsesItsRepresentedLandingPosition(byte type, byte process, byte cell, int offsetX, int offsetY)
     {
-        if (RealLevel() is not var (database, world)) return;
+        if (RealLevel() is not var (database, world))
+        {
+            return;
+        }
+
         const int index = 40;
         ObjectState pile = world.SpawnObject(database, type, PlayerIds.Neutral, index);
         pile.ProcessState = process;
@@ -45,7 +49,11 @@ public class ObjectViewTests
     [InlineData(RoomTypeId.Treasury)]
     public void StoreGoldRetainsItsCreationDrawAcrossRefillsAndRestoration(RoomTypeId type)
     {
-        if (RealLevel() is not var (database, _)) return;
+        if (RealLevel() is not var (database, _))
+        {
+            return;
+        }
+
         byte terrain = database.Room(type).TerrainId;
         var map = new LevelMap(5, 5, Enumerable.Repeat(
             new MapTile(terrain, PlayerIds.FirstKeeper, 0, 0), 25).ToArray());
@@ -72,7 +80,11 @@ public class ObjectViewTests
     [InstallFact]
     public void AnAirborneEggRetainsItsPreviousHeightAndTurnsForInterpolation()
     {
-        if (RealLevel() is not var (database, world)) return;
+        if (RealLevel() is not var (database, world))
+        {
+            return;
+        }
+
         ObjectState egg = world.SpawnObject(database, HatcheryRules.EggObjectId, 3, 40);
         egg.ProcessState = EggLaunchRules.LaunchProcess;
         egg.ProcessAgeTicks = EggLaunchRules.HiddenTicks;
@@ -97,7 +109,11 @@ public class ObjectViewTests
     {
         // Creature_UpdateCarriedThing (0x0048B5F0): the thing takes the carrier's position each update, so
         // it is never left on the tile centre a tile behind.
-        if (RealLevel() is not var (database, world)) return;
+        if (RealLevel() is not var (database, world))
+        {
+            return;
+        }
+
         CreatureState imp = world.SpawnCreature(database, database.CreatureByName("Imp")!.CreatureId, PlayerIds.FirstKeeper,
             new TilePos(40 % world.Width, 40 / world.Width));
         ObjectState book = world.SpawnObject(database, 4, PlayerIds.Unowned, 40);
@@ -126,7 +142,11 @@ public class ObjectViewTests
     {
         // Creature_DropDraggedThing (0x0048B500) leaves the thing at the carrier's point and DK2 draws a thing at
         // its own +0x1A (object-drawing.md section 4): a dropped book must not jump to the tile centre.
-        if (RealLevel() is not var (database, world)) return;
+        if (RealLevel() is not var (database, world))
+        {
+            return;
+        }
+
         CreatureState imp = world.SpawnCreature(database, database.CreatureByName("Imp")!.CreatureId, PlayerIds.FirstKeeper,
             new TilePos(40 % world.Width, 40 / world.Width));
         ObjectState book = world.SpawnObject(database, 4, PlayerIds.Unowned, 40);
@@ -152,7 +172,11 @@ public class ObjectViewTests
     public void APortalGemPickedUpThroughPickUpIsNotDrawnAtItsCarrier()
     {
         // 0x0048B350 (+0x3C3) is never attached by 0x0048B5F0: the gem stays off the tile chain, undrawn.
-        if (RealLevel() is not var (database, world)) return;
+        if (RealLevel() is not var (database, world))
+        {
+            return;
+        }
+
         CreatureState lord = world.SpawnCreature(database, database.CreatureByName("Imp")!.CreatureId, PlayerIds.FirstKeeper,
             new TilePos(40 % world.Width, 40 / world.Width));
         ObjectState gem = world.SpawnObject(database, TriggerExecutor.PortalGemObjectId, PlayerIds.Unowned, 40);
@@ -179,7 +203,11 @@ public class ObjectViewTests
     [InlineData(10, 19, 0, 6)]
     public void ObjectProcessSelectsItsArtAndRestartsAtItsSimulationStamp(byte type, byte process, byte artStage, int slot)
     {
-        if (RealLevel() is not var (database, world)) return;
+        if (RealLevel() is not var (database, world))
+        {
+            return;
+        }
+
         ObjectState thing = world.SpawnObject(database, type, 3, 40);
         thing.ProcessState = process;
         thing.ProcessAgeTicks = 1;
@@ -197,7 +225,11 @@ public class ObjectViewTests
     [InstallFact]
     public void ARepresentedDungeonHeartAlsoPlaysItsFloorAnimation()
     {
-        if (RealLevel() is not var (database, world)) return;
+        if (RealLevel() is not var (database, world))
+        {
+            return;
+        }
+
         ObjectState heart = world.SpawnObject(database, 13, 3, 40);
         ObjectView rendered = new WorldView(database).Objects(world).Single(o => o.Id == heart.Id);
         Assert.True(rendered.PlaysAnimation);
@@ -208,7 +240,11 @@ public class ObjectViewTests
     [InstallFact]
     public void ChickenInterpolationKeepsOnlyTheLastSimulationStepAndStopsAfterLift()
     {
-        if (RealLevel() is not var (database, world)) return;
+        if (RealLevel() is not var (database, world))
+        {
+            return;
+        }
+
         ObjectState chicken = world.SpawnObject(database, 9, 3, 40);
         var view = new WorldView(database);
         var simulation = new GameSimulation(database, world, 7, []);
@@ -240,7 +276,11 @@ public class ObjectViewTests
     [InlineData(true, 6)]
     public void AChickenReactionShowsItsAuthoredArt(bool scared, int slot)
     {
-        if (RealLevel() is not var (database, world)) return;
+        if (RealLevel() is not var (database, world))
+        {
+            return;
+        }
+
         ObjectState chicken = world.SpawnObject(database, 9, 3, 40);
         chicken.ProcessState = 8;
         chicken.ProcessAgeTicks = 1;
@@ -253,7 +293,10 @@ public class ObjectViewTests
     private static (GameDatabase Database, WorldState World)? RealLevel()
     {
         string dir = Dk2InstallGate.Path;
-        if (dir is null) return null;
+        if (dir is null)
+        {
+            return null;
+        }
 
         GameDatabase database = GameDatabaseLoader.Load(dir);
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(dir, "Level1")
@@ -266,7 +309,11 @@ public class ObjectViewTests
     [InstallFact]
     public void TheHandIsOfferedGoldOnlyOffTheKeepersOwnLand()
     {
-        if (RealLevel() is not var (database, world)) return;
+        if (RealLevel() is not var (database, world))
+        {
+            return;
+        }
+
         const byte Keeper = 3;
 
         ObjectState pile = world.SpawnObject(database, 1, PlayerIds.Neutral, 40);
@@ -282,7 +329,10 @@ public class ObjectViewTests
     [InstallFact]
     public void AnObjectInTheHandIsNotDrawnInTheDungeon()
     {
-        if (RealLevel() is not var (database, world)) return;
+        if (RealLevel() is not var (database, world))
+        {
+            return;
+        }
 
         ObjectState held = world.SpawnObject(database, 1, PlayerIds.Neutral, 40);
         held.InHand = true;
@@ -298,7 +348,10 @@ public class ObjectViewTests
     [InstallFact]
     public void EveryObjectAsksForAKeyTheCatalogueLists()
     {
-        if (RealLevel() is not var (database, world)) return;
+        if (RealLevel() is not var (database, world))
+        {
+            return;
+        }
 
         var catalogue = new HashSet<string>(
             AssetCatalogue.ForObjects(database).Select(k => k.Key), StringComparer.Ordinal);
@@ -332,7 +385,10 @@ public class ObjectViewTests
     [InstallFact]
     public void AKeyIsBuiltFromTheObjectsName()
     {
-        if (RealLevel() is not var (database, world)) return;
+        if (RealLevel() is not var (database, world))
+        {
+            return;
+        }
 
         world.SpawnObject(database, 1, PlayerIds.Neutral, 40);
         ObjectView pile = new WorldView(database).Objects(world).Single();
@@ -348,7 +404,10 @@ public class ObjectViewTests
     [InstallFact]
     public void OnlyGoldCrossesWithAnAmount()
     {
-        if (RealLevel() is not var (database, world)) return;
+        if (RealLevel() is not var (database, world))
+        {
+            return;
+        }
 
         FloorGold.Drop(world, database, 40, 1750);
         world.SpawnObject(database, 22, 3, 41);
@@ -365,7 +424,10 @@ public class ObjectViewTests
     [InstallFact]
     public void AnObjectReportsItsTile()
     {
-        if (RealLevel() is not var (database, world)) return;
+        if (RealLevel() is not var (database, world))
+        {
+            return;
+        }
 
         int index = (7 * world.Width) + 5;
         world.SpawnObject(database, 1, PlayerIds.Neutral, index);
@@ -380,7 +442,10 @@ public class ObjectViewTests
     [InstallFact]
     public void ObjectsComeOutInSpawnOrder()
     {
-        if (RealLevel() is not var (database, world)) return;
+        if (RealLevel() is not var (database, world))
+        {
+            return;
+        }
 
         world.SpawnObject(database, 1, PlayerIds.Neutral, 60);
         world.SpawnObject(database, 22, 3, 20);
@@ -400,7 +465,10 @@ public class ObjectViewTests
     [InstallFact]
     public void GoldDrawsAsGoldAndEverythingElseAsFurniture()
     {
-        if (RealLevel() is not var (database, world)) return;
+        if (RealLevel() is not var (database, world))
+        {
+            return;
+        }
 
         var view = new WorldView(database);
         var renderer = new TextRenderer(view, new PlaceholderProvider());
@@ -423,7 +491,10 @@ public class ObjectViewTests
     [InstallFact]
     public void AnObjectChangesTheCharacterDrawnForItsTile()
     {
-        if (RealLevel() is not var (database, world)) return;
+        if (RealLevel() is not var (database, world))
+        {
+            return;
+        }
 
         var view = new WorldView(database);
         var renderer = new TextRenderer(view, new PlaceholderProvider());
@@ -432,8 +503,16 @@ public class ObjectViewTests
         int x = -1, y = -1;
         for (int i = 0; i < world.TileCount && x < 0; i++)
         {
-            if (database.TerrainById(world.TileAtIndex(i).TerrainId).IsSolid) continue;
-            if (world.TileAtIndex(i).GoldHeld > 0) continue;
+            if (database.TerrainById(world.TileAtIndex(i).TerrainId).IsSolid)
+            {
+                continue;
+            }
+
+            if (world.TileAtIndex(i).GoldHeld > 0)
+            {
+                continue;
+            }
+
             x = i % world.Width;
             y = i / world.Width;
         }
@@ -456,14 +535,21 @@ public class ObjectViewTests
     [InstallFact]
     public void ACreatureStandingOnAnObjectHidesIt()
     {
-        if (RealLevel() is not var (database, world)) return;
+        if (RealLevel() is not var (database, world))
+        {
+            return;
+        }
 
         var renderer = new TextRenderer(new WorldView(database), new PlaceholderProvider());
 
         int x = -1, y = -1;
         for (int i = 0; i < world.TileCount && x < 0; i++)
         {
-            if (database.TerrainById(world.TileAtIndex(i).TerrainId).IsSolid) continue;
+            if (database.TerrainById(world.TileAtIndex(i).TerrainId).IsSolid)
+            {
+                continue;
+            }
+
             x = i % world.Width;
             y = i / world.Width;
         }

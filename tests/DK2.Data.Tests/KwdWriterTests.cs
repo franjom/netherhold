@@ -85,7 +85,10 @@ public class KwdWriterTests
         byte[] result = new byte[28 + header.Length + content.Length];
         uint[] words = [(uint)type, 4, (uint)result.Length, (uint)type + 1, (uint)header.Length];
         for (int i = 0; i < words.Length; i++)
+        {
             BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(i * 4), words[i]);
+        }
+
         header.CopyTo(result, 20);
         BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(20 + header.Length), (uint)type + checkDelta);
         BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(24 + header.Length), declaredSize ?? (uint)content.Length);

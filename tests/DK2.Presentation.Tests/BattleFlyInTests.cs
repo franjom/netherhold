@@ -40,7 +40,10 @@ public sealed class BattleFlyInTests
         flyIn.Start(0, 1000, 100, 900, 600);
         var random = new Random(3);
         for (int ms = 0; ms < 2000; ms += 33)
+        {
             Assert.True(Frame(flyIn, ms, random));
+        }
+
         Assert.Equal((1000f, 100f, BattleFlyIn.StartScale, 0), (flyIn.Tablet.X, flyIn.Tablet.Y, flyIn.Tablet.Scale, flyIn.Tablet.Frame));
         Assert.Equal(0, flyIn.Tablet.Sparkles.Length);
     }
@@ -58,7 +61,10 @@ public sealed class BattleFlyInTests
         for (int frame = 1; frame < 32; frame++)
         {
             Frame(flyIn, 2000 + frame * 33, random);
-            if (frame == 16) Assert.Equal(16 * 64, flyIn.Tablet.Angle);
+            if (frame == 16)
+            {
+                Assert.Equal(16 * 64, flyIn.Tablet.Angle);
+            }
         }
         Assert.Equal((900f, 600f), (flyIn.Tablet.X, flyIn.Tablet.Y));
         Assert.Equal(0, flyIn.Tablet.Scale, 6);
@@ -122,14 +128,21 @@ public sealed class BattleFlyInTests
         Assert.Equal(96f, flyIn.Tablet.Y, 3);
         var random = new Random(3);
         for (int frame = 0; frame < RewardTablet.GrowFrames; frame++)
+        {
             Frame(flyIn, BattleFlyIn.WaitMilliseconds + frame * 33, random);
+        }
+
         Assert.Equal(1280f, flyIn.Tablet.X, 3);
         Assert.Equal(704f, flyIn.Tablet.Y, 3);
     }
 
     private static bool Frame(BattleFlyIn flyIn, double now, Random random)
     {
-        if (!flyIn.BeginFrame(now, true, false, false, Ring, random)) return false;
+        if (!flyIn.BeginFrame(now, true, false, false, Ring, random))
+        {
+            return false;
+        }
+
         flyIn.EndFrame(now);
         return true;
     }
@@ -140,7 +153,11 @@ public sealed class BattleFlyInTests
         var tablet = new RewardTablet();
         tablet.Restart();
         var random = new Random(1);
-        for (int i = 0; i < 32; i++) tablet.DrawFrame(0, Ring, random);
+        for (int i = 0; i < 32; i++)
+        {
+            tablet.DrawFrame(0, Ring, random);
+        }
+
         Assert.Equal((0f, 0f), (tablet.X, tablet.Y));
         Assert.Equal(RewardTablet.FinalScale, tablet.Scale, 5);
     }

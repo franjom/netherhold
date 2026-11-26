@@ -27,7 +27,9 @@ public class OriginalFunctionTests
         {
             int ours = IntegerMath.SquareRoot(inputs[i]);
             if (original[i].Fault is not null || original[i].Eax != (uint)ours)
+            {
                 mismatches.Add($"isqrt({inputs[i]}): original {Describe(original[i])}, ours {ours}");
+            }
         }
         Assert.True(mismatches.Count == 0, Report(mismatches));
     }
@@ -55,7 +57,9 @@ public class OriginalFunctionTests
                 string f => $"fault ({f})",
             };
             if (theirs != ours)
+            {
                 mismatches.Add($"atan2({inputs[i].Dx}, {inputs[i].Dy}): original {theirs}, ours {ours}");
+            }
         }
         Assert.True(mismatches.Count == 0, Report(mismatches));
     }
@@ -69,7 +73,11 @@ public class OriginalFunctionTests
         uint[] ranges = [1, 2, 3, 4, 7, 10, 100, 1000, 65536, 0x7FFFFFFF];
         var spread = new Random(20261015);
         var seeds = new List<uint> { 0, 1, 0x7FFFFFFF, 0x80000000, 0xFFFFFFFF };
-        for (int i = 0; i < 1000; i++) seeds.Add((uint)spread.NextInt64(0, 1L << 32));
+        for (int i = 0; i < 1000; i++)
+        {
+            seeds.Add((uint)spread.NextInt64(0, 1L << 32));
+        }
+
         (uint Range, uint Seed)[] inputs = [.. ranges.SelectMany(r => seeds.Select(s => (r, s)))];
 
         IReadOnlyList<Outcome> original = Run([.. inputs.Select(x =>
@@ -82,15 +90,21 @@ public class OriginalFunctionTests
             int draw = ours.NextInt((int)inputs[i].Range);
             Outcome o = original[i];
             if (o.Fault is not null || o.Eax != (uint)draw || o.Reads[0] != ours.Seed)
+            {
                 mismatches.Add($"random({inputs[i].Range}) from seed 0x{inputs[i].Seed:X8}: original {Describe(o)} " +
                                $"seed 0x{(o.Reads.Length > 0 ? o.Reads[0] : 0):X8}, ours {draw} seed 0x{ours.Seed:X8}");
+            }
         }
         Assert.True(mismatches.Count == 0, Report(mismatches));
     }
 
     private static IEnumerable<uint> UnsignedSweep()
     {
-        for (uint v = 0; v <= 20000; v++) yield return v;
+        for (uint v = 0; v <= 20000; v++)
+        {
+            yield return v;
+        }
+
         for (int bit = 0; bit < 32; bit++)
         {
             uint p = 1u << bit;
@@ -101,20 +115,31 @@ public class OriginalFunctionTests
         yield return uint.MaxValue;
         yield return int.MaxValue;
         var spread = new Random(20261015);
-        for (int i = 0; i < 10000; i++) yield return (uint)spread.NextInt64(0, 1L << 32);
+        for (int i = 0; i < 10000; i++)
+        {
+            yield return (uint)spread.NextInt64(0, 1L << 32);
+        }
     }
 
     private static IEnumerable<(int, int)> PairSweep()
     {
         for (int dx = -100; dx <= 100; dx++)
-        for (int dy = -100; dy <= 100; dy++)
-            yield return (dx, dy);
+        {
+            for (int dy = -100; dy <= 100; dy++)
+            {
+                yield return (dx, dy);
+            }
+        }
 
         int[] edges = [int.MinValue, int.MinValue + 1, -(1 << 24) - 1, -(1 << 24), -(1 << 23), -65536, -1,
             0, 1, 65536, 1 << 23, (1 << 24) - 1, 1 << 24, int.MaxValue];
         foreach (int dx in edges)
-        foreach (int dy in edges)
-            yield return (dx, dy);
+        {
+            foreach (int dy in edges)
+            {
+                yield return (dx, dy);
+            }
+        }
 
         var spread = new Random(20261015);
         for (int i = 0; i < 10000; i++)

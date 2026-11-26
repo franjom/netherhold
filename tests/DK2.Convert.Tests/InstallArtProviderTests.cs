@@ -85,7 +85,11 @@ public sealed class InstallArtProviderTests
         foreach (AssetRef key in keys)
         {
             Assert.True(provider.TryResolve(key, out ResolvedAsset asset));
-            if (!provider.TryLoadModel(asset, out KmfModel model)) continue;
+            if (!provider.TryLoadModel(asset, out KmfModel model))
+            {
+                continue;
+            }
+
             foreach (KmfMaterial material in model.Materials.Where(material => material.TextureNames.Count > 0))
             {
                 provider.LoadTexture(material.TextureNames[0]);
@@ -110,8 +114,12 @@ public sealed class InstallArtProviderTests
             i => loaded[i] = provider.TryLoadModel(assets[i % assets.Length], out KmfModel model) ? model : null);
 
         for (int i = 0; i < assets.Length; i++)
+        {
             for (int copy = 1; copy < 8; copy++)
+            {
                 Assert.Same(loaded[i], loaded[i + (copy * assets.Length)]);
+            }
+        }
 
         // The locked reads keep each decode whole: the same as one thread's, model and texture.
         using var serial = InstallArtProvider.Open(install, database);
@@ -122,13 +130,19 @@ public sealed class InstallArtProviderTests
             i => images[i] = provider.LoadTexture(textures[i]));
         for (int i = 0; i < assets.Length; i++)
         {
-            if (loaded[i] is not KmfModel model) continue;
+            if (loaded[i] is not KmfModel model)
+            {
+                continue;
+            }
+
             Assert.True(serial.TryLoadModel(assets[i], out KmfModel alone));
             Assert.Equal(RenderMesh.FromModel(alone).Positions, RenderMesh.FromModel(model).Positions);
         }
         Assert.NotEmpty(textures);
         for (int i = 0; i < textures.Length; i++)
+        {
             Assert.Equal(serial.LoadTexture(textures[i]).Pixels, images[i].Pixels);
+        }
     }
 
     [InstallFact]
@@ -348,12 +362,24 @@ public sealed class InstallArtProviderTests
                 {
                     Assert.InRange(p.Y, minY - 0.001f, maxY + 0.001f);
                     Assert.InRange(p.X, -half - 0.001f, half + 0.001f);
-                    if (variant == AssetCatalogue.TerrainSide) Assert.Equal(0.5f, p.Z, 3);
+                    if (variant == AssetCatalogue.TerrainSide)
+                    {
+                        Assert.Equal(0.5f, p.Z, 3);
+                    }
                     // Measured: the halves lie on z 0.25 (Part6's relief reaches 0.313), the wholes
                     // on z 0.5 (Part8's recess goes back to 0.4005), so each meets the tile edge.
-                    else if (heroHalf) Assert.InRange(p.Z, 0.249f, 0.314f);
-                    else if (heroWhole) Assert.InRange(p.Z, 0.400f, 0.501f);
-                    else Assert.InRange(p.Z, -half - 0.001f, half + 0.001f);
+                    else if (heroHalf)
+                    {
+                        Assert.InRange(p.Z, 0.249f, 0.314f);
+                    }
+                    else if (heroWhole)
+                    {
+                        Assert.InRange(p.Z, 0.400f, 0.501f);
+                    }
+                    else
+                    {
+                        Assert.InRange(p.Z, -half - 0.001f, half + 0.001f);
+                    }
                 });
                 loaded++;
             }

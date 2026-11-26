@@ -53,11 +53,21 @@ public sealed class WorldHoverTextTests
         var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(install, "Level1")!,
             [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
         for (int y = 10; y <= 12; y++)
-        for (int x = 10; x <= 12; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Library), PlayerIds.FirstKeeper);
+        {
+            for (int x = 10; x <= 12; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Library), PlayerIds.FirstKeeper);
+            }
+        }
+
         for (int y = 10; y <= 12; y++)
-        for (int x = 20; x <= 22; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Workshop), PlayerIds.FirstKeeper);
+        {
+            for (int x = 20; x <= 22; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Workshop), PlayerIds.FirstKeeper);
+            }
+        }
+
         int libraryTile = world.TileIndex(new TilePos(11, 11));
         world.SpawnObject(db, 64, PlayerIds.FirstKeeper, libraryTile).AutoPlaced = true;
         world.SpawnObject(db, 4, PlayerIds.FirstKeeper, libraryTile);
@@ -129,7 +139,11 @@ public sealed class WorldHoverTextTests
         Assert.StartsWith("Dungeon Heart.  Health:", snapshot.TopStatus);
         Assert.DoesNotContain("%37", snapshot.TopStatus);
         RoomInstance portal = RoomIndex.Build(world, database).First(r => r.Definition.TypeId == RoomTypeId.Portal);
-        foreach (int tileIndex in portal.TileIndices) world.TileAtIndex(tileIndex).OwnerPlayerId = PlayerIds.FirstKeeper;
+        foreach (int tileIndex in portal.TileIndices)
+        {
+            world.TileAtIndex(tileIndex).OwnerPlayerId = PlayerIds.FirstKeeper;
+        }
+
         var portalCapture = new WorldHoverText(database, strings.Resolve, PlayerIds.FirstKeeper);
         HoverTextSnapshot portalText = portalCapture.Capture(world, new(WorldHoverKind.Tile, world.TilePosition(portal.TileIndices[0])));
         Assert.Equal("Portal", portalText.TooltipName);
@@ -204,11 +218,14 @@ public sealed class WorldHoverTextTests
         byte wall = db.Terrain.Values.Single(t => t.Name == "Reinforced Wall").TerrainId;
         byte path = db.Terrain.Values.Single(t => t.Name == "Claimed Path").TerrainId;
         for (int x = 9; x <= 19; x++)
+        {
             for (int y = 9; y <= 11; y++)
             {
                 world.Tile(x, y).TerrainId = y == 10 ? path : wall;
                 world.Tile(x, y).OwnerPlayerId = me.Value;
             }
+        }
+
         RoomRules.Place(db, ref world.Tile(20, 10), db.Room(RoomTypeId.Treasury), me);
         world.Tile(20, 10).GoldHeld = 1_000_000;
         byte wooden = db.Doors.Values.Single(d => d.Name == "Wooden Door").DoorId;
@@ -273,7 +290,10 @@ public sealed class WorldHoverTextTests
         Assert.Equal(("It's the dead body of  a level 3 Warlock.", "Warlock"), (dead.TopStatus, dead.TooltipName));
 
         for (int x = 20; x <= 22; x++)
+        {
             RoomRules.Place(db, ref world.Tile(x, 20), db.Room(RoomTypeId.Casino), PlayerIds.FirstKeeper);
+        }
+
         ObjectState lever = world.SpawnObject(db, AutoFurnitureRules.CasinoLeverObjectId, PlayerIds.FirstKeeper, world.TileIndex(new TilePos(21, 20)));
         var capture = new WorldHoverText(db, strings.Resolve, PlayerIds.FirstKeeper);
         Assert.Equal(strings.Resolve(2508), capture.Capture(world, new(WorldHoverKind.Object, new TilePos(21, 20), lever.Id)).TopStatus);

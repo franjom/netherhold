@@ -71,7 +71,9 @@ public sealed class HandPickupEffectTests
         (GameDatabase? db, WorldState? world, GameSimulation? sim, ListEventSink? events) = Setup();
         CreatureState creature = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, Floor);
         while (world.Player(Keeper).Hand.Count < HandRules.Capacity(db))
+        {
             world.Player(Keeper).Hand.Add(HandItem.Of(creature));
+        }
 
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, creature.Id)));
         Assert.Single(Effects(events));

@@ -43,14 +43,30 @@ public class KwdTriggerEditingTests
     public void ReferencedNodesCannotBeRemoved(string reference)
     {
         KwdChunk level=KwdLevelFileSetTests.Level(["triggers.kld","things.kld","players.kld"]);
-        if(reference=="level") BinaryPrimitives.WriteUInt16LittleEndian(level.Content.AsSpan(4480),13);
+        if(reference=="level")
+        {
+            BinaryPrimitives.WriteUInt16LittleEndian(level.Content.AsSpan(4480),13);
+        }
+
         byte[] linked=KwdThingEditingTests.Trigger(213,14,next:reference=="next"?(ushort)13:(ushort)0,child:reference=="child"?(ushort)13:(ushort)0);
         byte[] thing=reference=="member" ? new byte[555] : new byte[24];
-        if(reference=="member") BinaryPrimitives.WriteUInt16LittleEndian(thing.AsSpan(43+24),13);
-        if(reference=="thing") BinaryPrimitives.WriteUInt16LittleEndian(thing.AsSpan(20),13);
+        if(reference=="member")
+        {
+            BinaryPrimitives.WriteUInt16LittleEndian(thing.AsSpan(43+24),13);
+        }
+
+        if (reference=="thing")
+        {
+            BinaryPrimitives.WriteUInt16LittleEndian(thing.AsSpan(20),13);
+        }
+
         KwdChunk player=KwdLevelFileSetTests.Fixture(KwdRecordType.Players,new byte[205],1);
         PlayerDef playerRow=KwdPlayers.Parse([player]).Single();
-        if(reference=="player") player=player with { Content=KwdPlayers.WriteRecord(playerRow with { TriggerId=13 },new KwdRecordImage(KwdRecordType.Players,player.Content)) };
+        if(reference=="player")
+        {
+            player =player with { Content=KwdPlayers.WriteRecord(playerRow with { TriggerId=13 },new KwdRecordImage(KwdRecordType.Players,player.Content)) };
+        }
+
         var editor=KwdLevelFileSet.Create(new Dictionary<string,IReadOnlyList<KwdChunk>> {
             ["level.kwd"]=[level], ["triggers.kld"]=[TriggerChunk(KwdThingEditingTests.Trigger(213,13).Concat(linked).ToArray())],
             ["things.kld"]=[KwdLevelFileSetTests.Fixture(KwdRecordType.Things,KwdThingsWriterTests.Image(reference=="member"?201:194,thing).ToBytes(),1)],
@@ -67,8 +83,11 @@ public class KwdTriggerEditingTests
         byte[] original=editor.ToBytes("triggers.kld");
         foreach(byte[] bytes in new[]{KwdThingEditingTests.Trigger(213,13),KwdThingEditingTests.Trigger(213,0),
             KwdThingEditingTests.Trigger(213,14),KwdThingEditingTests.Trigger(214,15,next:13),KwdThingEditingTests.Trigger(213,15,child:13)})
+        {
             Assert.Throws<InvalidDataException>(()=>editor.InsertTrigger(new("triggers.kld",0,1),Read(bytes),
                 new KwdRecordImage(KwdRecordType.Triggers,bytes,BinaryPrimitives.ReadInt32LittleEndian(bytes))));
+        }
+
         Assert.Throws<InvalidDataException>(()=>editor.EditRecord<TriggerRecord>(new("triggers.kld",0,0),r=>r with { NextTriggerId=15 }));
         Assert.Equal(original,editor.ToBytes("triggers.kld"));
         var incomplete=KwdLevelFileSet.Create(new Dictionary<string,IReadOnlyList<KwdChunk>> { ["triggers.kld"]=[TriggerChunk(KwdThingEditingTests.Trigger(213,13))] });
@@ -84,7 +103,10 @@ public class KwdTriggerEditingTests
             .Concat(KwdThingEditingTests.Trigger(214,15)).ToArray()));
         byte[] original=editor.ToBytes("triggers.kld");
         foreach((ushort next,ushort child) in new (ushort,ushort)[]{(99,0),(0,99),(13,0),(14,14)})
+        {
             Assert.Throws<InvalidDataException>(()=>editor.LinkTrigger(new("triggers.kld",0,0),next,child));
+        }
+
         Assert.Equal(original,editor.ToBytes("triggers.kld"));
 
         editor.LinkTrigger(new("triggers.kld",0,0),0,14);
@@ -134,9 +156,18 @@ public class KwdTriggerEditingTests
 
     private static IEnumerable<ushort> ReferenceIds(object row)
     {
-        if(row.GetType().GetProperty("TriggerId")?.GetValue(row) is ushort id) yield return id;
-        if(row is TriggerRecord trigger) { yield return trigger.NextTriggerId; yield return trigger.ChildTriggerId; }
+        if(row.GetType().GetProperty("TriggerId")?.GetValue(row) is ushort id)
+        {
+            yield return id;
+        }
+
+        if (row is TriggerRecord trigger) { yield return trigger.NextTriggerId; yield return trigger.ChildTriggerId; }
         if(row is HeroPartyThing party)
-            foreach(GoodCreatureThing member in party.Members) yield return member.TriggerId;
+        {
+            foreach (GoodCreatureThing member in party.Members)
+            {
+                yield return member.TriggerId;
+            }
+        }
     }
 }

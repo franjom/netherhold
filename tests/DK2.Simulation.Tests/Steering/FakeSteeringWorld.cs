@@ -42,7 +42,11 @@ internal sealed class FakeSteeringWorld : ISteeringWorld, INavByteGrid
 
     public byte NavByte(int x, int y)
     {
-        if (x < 0 || y < 0 || x >= Width || y >= Height) return NavBytes.Solid;
+        if (x < 0 || y < 0 || x >= Width || y >= Height)
+        {
+            return NavBytes.Solid;
+        }
+
         return _rows[y][x] switch
         {
             '#' => NavBytes.Solid,
@@ -56,7 +60,10 @@ internal sealed class FakeSteeringWorld : ISteeringWorld, INavByteGrid
     {
         foreach (SteeringObstacle o in Obstacles)
         {
-            if ((o.Pos - centre).Octile() <= range + o.Size) into.Add(o);
+            if ((o.Pos - centre).Octile() <= range + o.Size)
+            {
+                into.Add(o);
+            }
         }
     }
 
@@ -72,7 +79,10 @@ internal sealed class FakeSteeringWorld : ISteeringWorld, INavByteGrid
     {
         foreach (SteeringNeighbour n in Neighbours)
         {
-            if ((n.Body.Pos - centre).Octile() <= range) into.Add(n);
+            if ((n.Body.Pos - centre).Octile() <= range)
+            {
+                into.Add(n);
+            }
         }
     }
 
@@ -94,8 +104,15 @@ internal sealed class FakeSteeringWorld : ISteeringWorld, INavByteGrid
         _router ??= new MeshRouter(NavMesh.Build(this));
         var waypoints = new List<NavPoint>();
         if (!_router.TryRoute(new NavPoint(from.X >> 8, from.Y >> 8), new NavPoint(to.X >> 8, to.Y >> 8), mover, waypoints))
+        {
             return false;
-        foreach (NavPoint p in waypoints) points.Add(new Fixed16Vector(p.X << 8, p.Y << 8));
+        }
+
+        foreach (NavPoint p in waypoints)
+        {
+            points.Add(new Fixed16Vector(p.X << 8, p.Y << 8));
+        }
+
         return true;
     }
 }

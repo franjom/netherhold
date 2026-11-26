@@ -19,7 +19,10 @@ public sealed class FrameJournalSessionTests : IDisposable
 
     public void Dispose()
     {
-        if (Directory.Exists(_root)) Directory.Delete(_root, recursive: true);
+        if (Directory.Exists(_root))
+        {
+            Directory.Delete(_root, recursive: true);
+        }
     }
 
     private FrameJournalSession Session() => new(_logs.Add, _warnings.Add);
@@ -128,7 +131,11 @@ public sealed class FrameJournalSessionTests : IDisposable
         session.Close("destroyed", [], 0, simulation);
 
         InputJournal ticks;
-        using (FileStream stream = File.OpenRead(Path.Combine(_root, "s", FrameJournalSession.TicksFile))) ticks = InputJournal.Read(stream);
+        using (FileStream stream = File.OpenRead(Path.Combine(_root, "s", FrameJournalSession.TicksFile)))
+        {
+            ticks = InputJournal.Read(stream);
+        }
+
         Assert.Equal("0", ticks.Header["world.start.tick"]);
         Assert.Equal("t", ticks.Header[FrameJournalSession.KeyTableKey]);
         Assert.Equal(start, ticks.Hashes[0]);
@@ -151,7 +158,11 @@ public sealed class FrameJournalSessionTests : IDisposable
         session.Close("destroyed", [], 0, simulation);
 
         InputJournal ticks;
-        using (FileStream stream = File.OpenRead(Path.Combine(_root, "s", FrameJournalSession.TicksFile))) ticks = InputJournal.Read(stream);
+        using (FileStream stream = File.OpenRead(Path.Combine(_root, "s", FrameJournalSession.TicksFile)))
+        {
+            ticks = InputJournal.Read(stream);
+        }
+
         Assert.Equal("exception at tick 0: System.InvalidOperationException: boom", ticks.EndReason);
         Assert.Equal([0L], ticks.Hashes.Keys);
         Assert.Equal("destroyed", Read().EndReason);

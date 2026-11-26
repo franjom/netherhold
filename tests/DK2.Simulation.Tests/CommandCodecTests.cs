@@ -91,9 +91,13 @@ public class CommandCodecTests
         // A default value round-trips even when the codec drops the field, so each field must
         // carry a distinctive value somewhere.
         foreach (IGrouping<Type, PlayerCommand> type in Samples().GroupBy(c => c.GetType()))
+        {
             foreach (PropertyInfo property in Properties(type.Key))
+            {
                 Assert.True(type.Any(c => !IsDefault(property.GetValue(c))),
                     $"{type.Key.Name}.{property.Name} is default in every sample");
+            }
+        }
     }
 
     [Theory]
@@ -104,8 +108,11 @@ public class CommandCodecTests
 
         Assert.Equal(command.GetType(), back.GetType());
         foreach (PropertyInfo property in Properties(command.GetType()))
+        {
             Assert.True(SameValue(property.GetValue(command), property.GetValue(back)),
                 $"{command.GetType().Name}.{property.Name} changed in the round trip");
+        }
+
         Assert.Equal(HashOf(command), HashOf(back));
     }
 
@@ -126,7 +133,11 @@ public class CommandCodecTests
     public static TheoryData<PlayerCommand> SampleRows()
     {
         var rows = new TheoryData<PlayerCommand>();
-        foreach (PlayerCommand c in Samples()) rows.Add(c);
+        foreach (PlayerCommand c in Samples())
+        {
+            rows.Add(c);
+        }
+
         return rows;
     }
 
@@ -138,7 +149,10 @@ public class CommandCodecTests
     {
         var stream = new MemoryStream();
         using (var w = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true))
+        {
             CommandCodec.Write(w, command);
+        }
+
         stream.Position = 0;
         PlayerCommand back = CommandCodec.Read(new BinaryReader(stream));
         Assert.Equal(stream.Length, stream.Position);

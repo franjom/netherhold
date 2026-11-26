@@ -178,7 +178,11 @@ public class CombatCategoryHooksTests
         (WorldState world, StateHookContext hooks) = OpenWorld(out GameDatabase db);
         CreatureState target = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 6, 5);
         CreatureState me = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 5, 5);
-        if (engaged) Engage(hooks, me, target);
+        if (engaged)
+        {
+            Engage(hooks, me, target);
+        }
+
         me.AttackAbnormalTargets = bit;
         me.AttackingId = forced ? target.Id : CombatRules.NoTarget;
 
@@ -247,7 +251,11 @@ public class CombatCategoryHooksTests
     /// <summary>Into 199 with a melee engagement on <paramref name="target"/>, registered there.</summary>
     private static void Engage(in StateHookContext hooks, CreatureState me, CreatureState target)
     {
-        if (me.Dk2StateId != Engaging) Assert.True(CreatureStateMachine.TrySetState(hooks, me, Engaging));
+        if (me.Dk2StateId != Engaging)
+        {
+            Assert.True(CreatureStateMachine.TrySetState(hooks, me, Engaging));
+        }
+
         me.FightTargetId = target.Id;
         me.FightTargetKind = FightTargetKind.Creature;
         me.AttackType = CombatRules.AttackMode.MeleeAtCreature;
@@ -274,7 +282,11 @@ public class CombatCategoryHooksTests
     {
         lock (InstallGate)
         {
-            if (original is not null) return;
+            if (original is not null)
+            {
+                return;
+            }
+
             var leaves = (Array)typeof(CategoryHooks).GetField("Leaves", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null)!;
             original = (Delegate)leaves.GetValue((int)CreatureStateCategory.Combat)!;
             MethodInfo counting = typeof(CombatCategoryHooksTests).GetMethod(nameof(Counting), BindingFlags.NonPublic | BindingFlags.Static)!;
@@ -284,7 +296,11 @@ public class CombatCategoryHooksTests
 
     private static void Counting(in StateHookContext hooks, CreatureState creature)
     {
-        if (Watched.TryGetValue(creature, out int n)) Watched[creature] = n + 1;
+        if (Watched.TryGetValue(creature, out int n))
+        {
+            Watched[creature] = n + 1;
+        }
+
         original!.DynamicInvoke(hooks, creature);
     }
 }

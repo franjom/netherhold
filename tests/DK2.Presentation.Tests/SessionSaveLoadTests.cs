@@ -376,15 +376,21 @@ public sealed class SessionSaveLoadTests : IDisposable
     {
         GameSimulation simulation = CampaignLevelData.Load(install, "Level1").CreateSimulation(1, fogOfWarEnabled: true);
         simulation.World.LocalPlayerId = keeper;
-        for (int i = 0; i < CampaignLevelData.TicksBeforeFirstFrame + 10; i++) simulation.Tick(InputFrame.Empty);
+        for (int i = 0; i < CampaignLevelData.TicksBeforeFirstFrame + 10; i++)
+        {
+            simulation.Tick(InputFrame.Empty);
+        }
+
         WorldState world = simulation.World;
         for (int y = PrisonY1; y <= PrisonY2; y++)
+        {
             for (int x = PrisonX1; x <= PrisonX2; x++)
             {
                 ref TileState tile = ref world.Tile(x, y);
                 tile.TerrainId = ClaimedPath;
                 tile.OwnerPlayerId = keeper.Value;
             }
+        }
 
         // Twenty tiles of Prison cost 15000 and the keeper starts with none.
         Assert.Equal(16000, GoldStore.Deposit(world, simulation.Database, keeper, 16000));
@@ -448,7 +454,11 @@ public sealed class SessionSaveLoadTests : IDisposable
         string install = Dk2InstallGate.Path;
         PlayerId keeper = PlayerIds.FirstKeeper;
         GameSimulation unsaved = LevelWithADraggedPrison(install, keeper);
-        for (int i = 0; i < 300; i++) unsaved.Tick(InputFrame.Empty);
+        for (int i = 0; i < 300; i++)
+        {
+            unsaved.Tick(InputFrame.Empty);
+        }
+
         ulong savedHash = unsaved.StateHash();
         CampaignProfileStore store = Store();
         string path = Saver(store).Save(unsaved, unsaved.World.Carry,
@@ -460,7 +470,10 @@ public sealed class SessionSaveLoadTests : IDisposable
 
         GameSimulation first = InstallLoader(store, install).Load(path).Resume!.Simulation;
         GameSimulation second = InstallLoader(store, install).Load(path).Resume!.Simulation;
-        foreach (GameSimulation sim in new[] { expected, first, second }) sim.World.LocalPlayerId = keeper;
+        foreach (GameSimulation sim in new[] { expected, first, second })
+        {
+            sim.World.LocalPlayerId = keeper;
+        }
 
         Assert.Equal(unsaved.World.CurrentTick, first.World.CurrentTick);
         Assert.Equal(expected.StateHash(), first.StateHash());

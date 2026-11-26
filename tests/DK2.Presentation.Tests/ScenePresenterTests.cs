@@ -202,7 +202,10 @@ public class ScenePresenterTests
     private static Rig? BuildRig()
     {
         string dir = Dk2InstallGate.Path;
-        if (dir is null) return null;
+        if (dir is null)
+        {
+            return null;
+        }
 
         GameDatabase database = GameDatabaseLoader.Load(dir);
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(dir, "Level1")
@@ -265,7 +268,11 @@ public class ScenePresenterTests
     [InstallFact]
     public void ARepeatedMealRestartsEvenWhenItsMeshAndPositionDoNotChange()
     {
-        if (BuildRig() is not { } rig) return;
+        if (BuildRig() is not { } rig)
+        {
+            return;
+        }
+
         CreatureState goblin = rig.Simulation.World.SpawnCreature(rig.Database,
             rig.Database.CreatureByName("Goblin")!.CreatureId, 1, new TilePos(2, 2));
         CreatureStateMachine.TrySetState(new StateHookContext(rig.Simulation.World, rig.Database),
@@ -287,7 +294,11 @@ public class ScenePresenterTests
     [InstallFact]
     public void TorchesArePushedAfterTheTiles_OnceEach_AndAgainAfterAResync()
     {
-        if (BuildRig() is not { } rig) return;
+        if (BuildRig() is not { } rig)
+        {
+            return;
+        }
+
         var target = new RecordingTarget();
         var presenter = new ScenePresenter(new WorldView(rig.Database), AssetProviderChain.Standard(),
             target, new TorchLayout(rig.Database));
@@ -318,7 +329,10 @@ public class ScenePresenterTests
     [InstallFact]
     public void TheFirstPresentCreatesEveryTileOnceInRowOrder()
     {
-        if (BuildRig() is not { } rig) return; // skipped: no install
+        if (BuildRig() is not { } rig)
+        {
+            return; // skipped: no install
+        }
 
         rig.Presenter.Present(rig.Simulation.World);
 
@@ -346,7 +360,11 @@ public class ScenePresenterTests
     [InstallFact]
     public void ATileWrittenBetweenPresentsIsStillPushed()
     {
-        if (BuildRig() is not { } rig) return;
+        if (BuildRig() is not { } rig)
+        {
+            return;
+        }
+
         WorldState world = rig.Simulation.World;
         rig.Presenter.Present(world);
         rig.Presenter.Present(world);
@@ -354,7 +372,11 @@ public class ScenePresenterTests
 
         ref TileState tile = ref world.Tile(3, 3);
         byte other = tile.TerrainId;
-        for (int i = 0; i < world.TileCount && other == tile.TerrainId; i++) other = world.TileAtIndex(i).TerrainId;
+        for (int i = 0; i < world.TileCount && other == tile.TerrainId; i++)
+        {
+            other = world.TileAtIndex(i).TerrainId;
+        }
+
         Assert.NotEqual(other, tile.TerrainId);
         tile.TerrainId = other;
         rig.Presenter.Present(world);
@@ -368,7 +390,11 @@ public class ScenePresenterTests
     [InstallFact]
     public void ATagPreviewIsPushedAsItStartsMovesAndEnds()
     {
-        if (BuildRig() is not { } rig) return;
+        if (BuildRig() is not { } rig)
+        {
+            return;
+        }
+
         WorldState world = rig.Simulation.World;
         var view = new WorldView(rig.Database);
         var target = new RecordingTarget();
@@ -380,8 +406,13 @@ public class ScenePresenterTests
         // Two taggable tiles, so the preview shows something and so growing it changes something.
         var taggable = new List<TilePos>();
         for (int i = 0; i < world.TileCount && taggable.Count < 2; i++)
+        {
             if (rig.Database.TerrainById(world.TileAtIndex(i).TerrainId).IsTaggable)
+            {
                 taggable.Add(new TilePos(i % world.Width, i / world.Width));
+            }
+        }
+
         Assert.Equal(2, taggable.Count);
 
         view.PreviewTags(taggable[0], taggable[0]);
@@ -406,7 +437,11 @@ public class ScenePresenterTests
     [InstallFact]
     public void ADoorPlacedBetweenPresentsIsStillPushed_WhenOneCanBePlaced()
     {
-        if (BuildRig() is not { } rig) return;
+        if (BuildRig() is not { } rig)
+        {
+            return;
+        }
+
         WorldState world = rig.Simulation.World;
         rig.Presenter.Present(world);
         rig.Presenter.Present(world);
@@ -419,7 +454,11 @@ public class ScenePresenterTests
             var at = new TilePos(i % world.Width, i / world.Width);
             placed = BlueprintPlacementRules.PlaceDoor(world, rig.Database, at, 1, doorId) == BlueprintPlacementRules.Verdict.Allowed;
         }
-        if (!placed) return;
+        if (!placed)
+        {
+            return;
+        }
+
         rig.Presenter.Present(world);
         Assert.True(rig.Presenter.TilesPushed >= 1);
     }
@@ -433,7 +472,10 @@ public class ScenePresenterTests
     [InstallFact]
     public void PresentingAnUnchangedWorldPushesNothing()
     {
-        if (BuildRig() is not { } rig) return;
+        if (BuildRig() is not { } rig)
+        {
+            return;
+        }
 
         rig.Presenter.Present(rig.Simulation.World);
         rig.Target.Clear();
@@ -459,7 +501,10 @@ public class ScenePresenterTests
     [InstallFact]
     public void ChangingOneTilePushesExactlyThatTile()
     {
-        if (BuildRig() is not { } rig) return;
+        if (BuildRig() is not { } rig)
+        {
+            return;
+        }
 
         rig.Presenter.Present(rig.Simulation.World);
         rig.Target.Clear();
@@ -468,7 +513,12 @@ public class ScenePresenterTests
         WorldState world = rig.Simulation.World;
         int marked = -1;
         for (int i = 0; i < world.TileCount && marked < 0; i++)
-            if (rig.Database.TerrainById(world.TileAtIndex(i).TerrainId).IsTaggable) marked = i;
+        {
+            if (rig.Database.TerrainById(world.TileAtIndex(i).TerrainId).IsTaggable)
+            {
+                marked = i;
+            }
+        }
 
         Assert.True(marked >= 0, "level 1 has no taggable tile.");
         world.TileAtIndex(marked).SetTaggedBy(1, true);
@@ -487,7 +537,10 @@ public class ScenePresenterTests
     [InstallFact]
     public void ACreatureIsCreatedThenUpdatedThenRemoved()
     {
-        if (BuildRig() is not { } rig) return;
+        if (BuildRig() is not { } rig)
+        {
+            return;
+        }
 
         WorldState world = rig.Simulation.World;
         rig.Presenter.Present(world);
@@ -532,7 +585,11 @@ public class ScenePresenterTests
     [InstallFact]
     public void ChangingOnlyThePreviousGroundHeightStillPushesTheCreature()
     {
-        if (BuildRig() is not { } rig) return;
+        if (BuildRig() is not { } rig)
+        {
+            return;
+        }
+
         WorldState world = rig.Simulation.World;
         TilePos before = new(1, 1), current = new(2, 1);
         world.Tile(before).TerrainId = rig.Database.WaterTerrain!.TerrainId;
@@ -551,7 +608,10 @@ public class ScenePresenterTests
     [InstallFact]
     public void ChangingOnlyTheActivityStillPushesTheCreature()
     {
-        if (BuildRig() is not { } rig) return;
+        if (BuildRig() is not { } rig)
+        {
+            return;
+        }
 
         WorldState world = rig.Simulation.World;
         CreatureDef imp = rig.Database.CreatureByName("Imp")!;
@@ -577,7 +637,10 @@ public class ScenePresenterTests
     [InstallFact]
     public void ResyncMakesTheNextPresentRebuildEverything()
     {
-        if (BuildRig() is not { } rig) return;
+        if (BuildRig() is not { } rig)
+        {
+            return;
+        }
 
         rig.Presenter.Present(rig.Simulation.World);
         rig.Target.Clear();
@@ -598,7 +661,10 @@ public class ScenePresenterTests
     [InstallFact]
     public void PresentingEveryTickOfARunChangesNothingAndPushesLittle()
     {
-        if (BuildRig() is not { } rig) return;
+        if (BuildRig() is not { } rig)
+        {
+            return;
+        }
 
         rig.Presenter.Present(rig.Simulation.World);
 
@@ -638,7 +704,10 @@ public class ScenePresenterTests
     [InstallFact]
     public void AChainWithoutAPlaceholderFailsLoudly()
     {
-        if (BuildRig() is not { } rig) return;
+        if (BuildRig() is not { } rig)
+        {
+            return;
+        }
 
         var presenter = new ScenePresenter(
             new WorldView(rig.Database),
@@ -651,7 +720,10 @@ public class ScenePresenterTests
     [InstallFact]
     public void ThePresenterRefusesNullsAtConstruction()
     {
-        if (BuildRig() is not { } rig) return;
+        if (BuildRig() is not { } rig)
+        {
+            return;
+        }
 
         var view = new WorldView(rig.Database);
         var chain = AssetProviderChain.Standard();
@@ -664,9 +736,15 @@ public class ScenePresenterTests
     private static TilePos FirstWalkable(GameDatabase database, WorldState world)
     {
         for (int y = 0; y < world.Height; y++)
+        {
             for (int x = 0; x < world.Width; x++)
+            {
                 if (!database.TerrainById(world.Tile(x, y).TerrainId).IsSolid)
+                {
                     return new TilePos(x, y);
+                }
+            }
+        }
 
         throw new InvalidOperationException("the level has no walkable tile.");
     }
@@ -680,7 +758,10 @@ public class ScenePresenterTests
     [InstallFact]
     public void AnObjectIsCreatedThenUpdatedThenRemoved()
     {
-        if (BuildRig() is not { } rig) return; // skipped: no install
+        if (BuildRig() is not { } rig)
+        {
+            return; // skipped: no install
+        }
 
         rig.Presenter.Present(rig.Simulation.World);
         rig.Target.Clear();
@@ -721,7 +802,10 @@ public class ScenePresenterTests
     [InstallFact]
     public void ObjectsArePushedBeforeCreatures()
     {
-        if (BuildRig() is not { } rig) return; // skipped: no install
+        if (BuildRig() is not { } rig)
+        {
+            return; // skipped: no install
+        }
 
         FloorGold.Drop(rig.Simulation.World, rig.Database, 40, 500);
         rig.Simulation.World.SpawnCreature(
@@ -745,7 +829,10 @@ public class ScenePresenterTests
     [InstallFact]
     public void AResyncCreatesTheObjectsAgain()
     {
-        if (BuildRig() is not { } rig) return; // skipped: no install
+        if (BuildRig() is not { } rig)
+        {
+            return; // skipped: no install
+        }
 
         FloorGold.Drop(rig.Simulation.World, rig.Database, 40, 500);
         rig.Target.Clear();

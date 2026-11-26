@@ -651,7 +651,9 @@ public class TriggerExecutorTests
         GameDatabase database = Dk2TerrainFixture.Database();
         WorldState world = CreatureWorld(database);
         for (int i = 0; i < 4; i++)
+        {
             world.SpawnCreature(database, GoblinId, PlayerIds.Neutral, new TilePos(6, 6));
+        }
 
         RunCreatureCondition(world, database, GoblinId, comparison: 3, threshold: 2);
 
@@ -672,7 +674,9 @@ public class TriggerExecutorTests
         WorldState world = CreatureWorld(database);
         CreatureDef goblin = database.CreatureById(GoblinId);
         foreach (CreatureState c in world.Creatures.Where(c => c.CreatureTypeId == GoblinId))
+        {
             c.Anger.Lair = angry ? CreatureAngerRules.AngryAt(goblin) + 1 : 0;
+        }
 
         TriggerRecord[] records =
         [
@@ -712,7 +716,9 @@ public class TriggerExecutorTests
         GameDatabase database = Dk2TerrainFixture.Database();
         WorldState world = CreatureWorld(database);
         foreach (CreatureState imp in world.Creatures.Where(c => c.CreatureTypeId == ImpId))
+        {
             imp.Level = 10;
+        }
 
         AssertLeveledCount(world, database, level: 1, expected: 2);
     }
@@ -898,7 +904,11 @@ public class TriggerExecutorTests
         {
             ["Comparison"] = comparison, ["Value"] = value,
         };
-        if (extra is { } e) parameters[e.Name] = e.Value;
+        if (extra is { } e)
+        {
+            parameters[e.Name] = e.Value;
+        }
+
         return new GenericTriggerRecord(new byte[16])
         {
             Body = new byte[8], TriggerId = id, Type = type, RepeatCount = 1,
@@ -916,9 +926,15 @@ public class TriggerExecutorTests
         var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int i = 0; i < 3; i++)
+        {
             world.SpawnCreature(database, ImpId, Keeper, new TilePos(2, 2));
+        }
+
         for (int i = 0; i < 2; i++)
+        {
             world.SpawnCreature(database, GoblinId, Keeper, new TilePos(3, 3));
+        }
+
         return world;
     }
 
@@ -1299,7 +1315,10 @@ public class TriggerExecutorTests
         TriggerRunResult result = RunChangeRoomOwner(world, database, Rival, x: 5, y: 4);
 
         foreach ((int x, int y) in HandoverRoomTiles)
+        {
             Assert.Equal(Rival, world.Tile(x, y).OwnerPlayerId);
+        }
+
         RoomInstance after = RoomIndex.RoomAt(world, database, (3 * world.Width) + 4)!;
         Assert.Equal(Rival, after.OwnerPlayerId);
         Assert.Equal(damaged, RoomHealthRules.Health(world, database, after));
@@ -1320,7 +1339,10 @@ public class TriggerExecutorTests
         TriggerRunResult result = RunChangeRoomOwner(world, database, player, x, y);
 
         foreach ((int tx, int ty) in HandoverRoomTiles)
+        {
             Assert.Equal(Keeper, world.Tile(tx, ty).OwnerPlayerId);
+        }
+
         Assert.Empty(result.Partial);
         Assert.Empty(result.Unhandled);
     }
@@ -2348,7 +2370,10 @@ public class TriggerExecutorTests
         var sim = new GameSimulation(database, world, 1, SimulationSystems.Default(), tree);
         sim.ObserveWith(sink);
 
-        for (int i = 0; i < 8 && world.Triggers.Read(3) == 0; i++) sim.Tick();
+        for (int i = 0; i < 8 && world.Triggers.Read(3) == 0; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Equal(1, world.Triggers.Read(3));
         Assert.DoesNotContain(world.Creatures, c => c.Id == creature.Id);

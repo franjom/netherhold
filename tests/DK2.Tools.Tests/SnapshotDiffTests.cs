@@ -269,10 +269,26 @@ public class SnapshotDiffTests
         }
         f.Write();
         byte[] bytes = File.ReadAllBytes(f.AfterPath);
-        if (fault == "bad magic") bytes[0] = 0;
-        if (fault == "old version") bytes[4] ^= 127;
-        if (fault == "truncated") bytes = bytes[..^1];
-        if (fault == "trailing bytes") bytes = [.. bytes, 0];
+        if (fault == "bad magic")
+        {
+            bytes[0] = 0;
+        }
+
+        if (fault == "old version")
+        {
+            bytes[4] ^= 127;
+        }
+
+        if (fault == "truncated")
+        {
+            bytes = bytes[..^1];
+        }
+
+        if (fault == "trailing bytes")
+        {
+            bytes = [.. bytes, 0];
+        }
+
         File.WriteAllBytes(f.AfterPath, bytes);
 
         Assert.Equal(2, f.Run());

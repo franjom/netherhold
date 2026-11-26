@@ -21,7 +21,11 @@ public class ReinforcementCornerTests
         imp.TargetTileIndex = 5 * sim.World.Width + 5;
         imp.TargetWork = TileWorkKind.Reinforce;
         imp.Dk2StateId = 22;
-        if (cancelled) sim.World.Tile(5, 5).TaggedBy = PlayerMask.None.With(3);
+        if (cancelled)
+        {
+            sim.World.Tile(5, 5).TaggedBy = PlayerMask.None.With(3);
+        }
+
         sim.Tick(InputFrame.Empty);
         Assert.Equal(cancelled ? Dk2TerrainFixture.Rock : Dk2TerrainFixture.ReinforcedWall,
             sim.World.Tile(run.Fill).TerrainId);
@@ -94,8 +98,16 @@ public class ReinforcementCornerTests
         fill.TerrainId = terrain;
         fill.OwnerPlayerId = owner;
         fill.Health = health;
-        if (blockedSide) run.Sim.World.Tile(6, 5).TerrainId = Dk2TerrainFixture.Rock;
-        if (damagedDiagonal) run.Sim.World.Tile(6, 6).Health--;
+        if (blockedSide)
+        {
+            run.Sim.World.Tile(6, 5).TerrainId = Dk2TerrainFixture.Rock;
+        }
+
+        if (damagedDiagonal)
+        {
+            run.Sim.World.Tile(6, 6).Health--;
+        }
+
         run.Sim.Tick(InputFrame.Empty);
         Assert.Equal(terrain, run.Sim.World.Tile(run.Fill).TerrainId);
         Assert.Equal(owner, run.Sim.World.Tile(run.Fill).OwnerPlayerId);

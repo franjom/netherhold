@@ -12,7 +12,11 @@ public class FrontEndGlowTests
     public void NativeExclusiveBlurBoundsDoNotNormalizeTheUnusedKernelTail()
     {
         byte[] pixels = new byte[20 * 20 * 4];
-        for (int i = 3; i < pixels.Length; i += 4) pixels[i] = 255;
+        for (int i = 3; i < pixels.Length; i += 4)
+        {
+            pixels[i] = 255;
+        }
+
         RgbaImage glow = FrontEndLabelGlow.Create(new RgbaImage(20, 20, pixels));
         int centre = (10 * 20 + 10) * 4;
         Assert.Equal(189, glow.Pixels[centre + 3]);

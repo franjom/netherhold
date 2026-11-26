@@ -71,23 +71,40 @@ public class NavigationBytesOnRealDataTests
         byte[] bytes = new byte[world.TileCount];
         var structures = StructureBlocks.For(world, database);
         for (int y = 0; y < world.Height; y++)
+        {
             for (int x = 0; x < world.Width; x++)
             {
                 int index = (y * world.Width) + x;
                 bytes[index] = WorldSteering.ByteOf(database.TerrainById(world.Tile(x, y).TerrainId), structures.IsPortalCentre(index));
             }
+        }
 
         foreach (RoomInstance room in RoomIndex.Build(world, database))
+        {
             if (room.Definition.Construction == TileConstruction.DoubleQuad)
-                foreach (int tile in AutoFurnitureRules.FloorSlotSet(world, room)) bytes[tile] = NavBytes.PortalHole;
+            {
+                foreach (int tile in AutoFurnitureRules.FloorSlotSet(world, room))
+                {
+                    bytes[tile] = NavBytes.PortalHole;
+                }
+            }
+        }
 
         foreach (NavStamp stamp in world.NavStamps)
+        {
             if (world.TileAtIndex(stamp.Tile).TerrainId == stamp.TerrainId)
+            {
                 bytes[stamp.Tile] = stamp.Byte;
+            }
+        }
 
         foreach (DoorState door in world.Doors)
         {
-            if (door.UnderConstruction || door.Open || !world.Contains(door.X, door.Y)) continue;
+            if (door.UnderConstruction || door.Open || !world.Contains(door.X, door.Y))
+            {
+                continue;
+            }
+
             bool barricade = database.Doors.TryGetValue(door.DoorId, out DoorDef? def) && def.Flags.HasFlag(DoorFlags.Barricade);
             bytes[(door.Y * world.Width) + door.X] =
                 NavBytes.Door(door.PlayerId, door.LockMode != 0 || barricade, world.Tile(door.X, door.Y).IsTaggedByAnyone);
@@ -97,7 +114,14 @@ public class NavigationBytesOnRealDataTests
 
     private static int FirstDifference(byte[] a, byte[] b)
     {
-        for (int i = 0; i < a.Length; i++) if (a[i] != b[i]) return i;
+        for (int i = 0; i < a.Length; i++)
+        {
+            if (a[i] != b[i])
+            {
+                return i;
+            }
+        }
+
         return -1;
     }
 

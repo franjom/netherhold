@@ -76,7 +76,9 @@ public class RepelObstacleTests
     {
         (SteeringBody body, FakeSteeringWorld world) = Setup();
         for (int i = 1; i <= 13; i++)
+        {
             world.Obstacles.Add(new SteeringObstacle(body.Pos - new Fixed16Vector(0x100 * i, 0), 0x1000, true, false));
+        }
 
         RepelObstacleRules.Compute(body, world);
 

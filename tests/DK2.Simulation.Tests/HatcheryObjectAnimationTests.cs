@@ -16,8 +16,13 @@ public class HatcheryObjectAnimationTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, 1, 3]);
         for (int y = 1; y <= 3; y++)
+        {
             for (int x = 1; x <= 3; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Hatchery), 3);
+            }
+        }
+
         RoomInstance room = RoomIndex.Build(world, db).Single(r => r.Definition.TypeId == RoomTypeId.Hatchery);
         HatcheryRules.PlaceCoops(world, db, room);
         foreach (int tile in room.TileIndices)
@@ -30,7 +35,11 @@ public class HatcheryObjectAnimationTests
         Assert.Equal((byte)24, egg.ProcessState);
         Assert.Contains(world.Objects, o => o.ObjectTypeId == 35 && o.ProcessState == 29);
         var simulation = new GameSimulation(db, world, 7, [new HatcherySystem()]);
-        for (int tick = 0; tick < 15; tick++) simulation.Tick();
+        for (int tick = 0; tick < 15; tick++)
+        {
+            simulation.Tick();
+        }
+
         Assert.Equal(0, egg.PhysicalVelocityX);
         Assert.Equal(0, egg.PhysicalVelocityY);
         simulation.Tick();
@@ -53,7 +62,11 @@ public class HatcheryObjectAnimationTests
         var simulation = new GameSimulation(database, world, 7, [new HatcherySystem()]);
         var events = new ListEventSink();
         simulation.ObserveWith(events);
-        for (int tick = 0; tick < 7; tick++) simulation.Tick();
+        for (int tick = 0; tick < 7; tick++)
+        {
+            simulation.Tick();
+        }
+
         Assert.Equal((byte)0, egg.ProcessCount);
         Assert.Contains(egg, world.Objects);
         simulation.Tick();
@@ -80,8 +93,13 @@ public class HatcheryObjectAnimationTests
             fixture.Variables, objects: fixture.Objects.Values.Select(o => o.ObjectId == HatcheryRules.EggObjectId ? o with { ArtSlots = art } : o));
         var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(), [0, 1, 3]);
         for (int y = 1; y <= 3; y++)
+        {
             for (int x = 1; x <= 3; x++)
+            {
                 RoomRules.Place(database, ref world.Tile(x, y), database.Room(RoomTypeId.Hatchery), 3);
+            }
+        }
+
         RoomInstance room = RoomIndex.Build(world, database).Single(r => r.Definition.TypeId == RoomTypeId.Hatchery);
         ObjectState egg = Assert.IsType<ObjectState>(HatcheryRules.TryLayEgg(world, database, room, new SimRandom(7)));
         Assert.Equal((byte)32, egg.ProcessState);
@@ -89,7 +107,11 @@ public class HatcheryObjectAnimationTests
         var simulation = new GameSimulation(database, world, 7, [new HatcherySystem(lays: false)]);
 
         // The same seven-turn hold as above, counted from the turn after the lay.
-        for (int tick = 0; tick < 8; tick++) simulation.Tick();
+        for (int tick = 0; tick < 8; tick++)
+        {
+            simulation.Tick();
+        }
+
         Assert.Equal((byte)0, egg.ProcessCount);
         simulation.Tick();
         Assert.Equal((byte)1, egg.ProcessCount);

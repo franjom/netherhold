@@ -63,7 +63,11 @@ public class MeleeDamageTests
     {
         GameDatabase db = Db();
         var bare = new GlobalVariables();
-        foreach (KeyValuePair<VariableTypeId, MiscVariable> entry in db.Variables.Misc) bare.Misc[entry.Key] = entry.Value;
+        foreach (KeyValuePair<VariableTypeId, MiscVariable> entry in db.Variables.Misc)
+        {
+            bare.Misc[entry.Key] = entry.Value;
+        }
+
         bare.CreatureStats.AddRange(db.Variables.CreatureStats.Where(e => !e.FirstPerson));
         var without = new GameDatabase(db.Terrain.Values, db.Rooms.Values, db.Creatures.Values, bare);
 

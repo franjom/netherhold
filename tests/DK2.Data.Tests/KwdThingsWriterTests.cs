@@ -49,7 +49,14 @@ public class KwdThingsWriterTests
                 GoodCreatureThing[] members = party.Members.ToArray(); members[slot] = (GoodCreatureThing)row;
                 byte[] result = KwdThings.WriteRecord(party with { Members = members }, Image(201,source));
                 Assert.Equal(Image(201,source).ToBytes()[..8],result[..8]);
-                for (int i=0;i<555;i++) if (i<at || i>=at+32) Assert.Equal(source[i],result[i+8]);
+                for (int i=0;i<555;i++)
+                {
+                    if (i<at || i>=at+32)
+                    {
+                        Assert.Equal(source[i],result[i+8]);
+                    }
+                }
+
                 return result[(at+8)..(at+40)];
             },fields);
         }
@@ -74,12 +81,19 @@ public class KwdThingsWriterTests
         int count=0;
         foreach(string file in Directory.EnumerateFiles(Path.Combine(Dk2InstallGate.Path,"Data"),"*",SearchOption.AllDirectories)
             .Where(p=>p.EndsWith(".kwd",StringComparison.OrdinalIgnoreCase)||p.EndsWith(".kld",StringComparison.OrdinalIgnoreCase)))
-        foreach(KwdChunk chunk in KwdReader.ReadFile(file).Where(c=>c.Type==KwdRecordType.Things))
+        {
+            foreach (KwdChunk chunk in KwdReader.ReadFile(file).Where(c=>c.Type==KwdRecordType.Things))
         {
                 List<ThingRecord> rows =KwdThings.Parse([chunk]); List<KwdRecordImage> images =KwdRecordRoundTrip.Split(chunk);
-            for(int i=0;i<rows.Count;i++) Assert.Equal(images[i].ToBytes(),KwdThings.WriteRecord(rows[i],images[i]));
-            count+=rows.Count;
+            for(int i=0;i<rows.Count;i++)
+                {
+                    Assert.Equal(images[i].ToBytes(),KwdThings.WriteRecord(rows[i],images[i]));
+                }
+
+                count +=rows.Count;
         }
+        }
+
         Assert.Equal(6318,count);
     }
 

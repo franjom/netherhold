@@ -26,8 +26,13 @@ public sealed class PossessionActTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         return (db, world);
     }
 
@@ -100,7 +105,11 @@ public sealed class PossessionActTests
         long now = sim.CurrentTick.Value;
         // The interval: the least gap at which the strict gate opens, minus one.
         int interval = 0;
-        while (!CombatRules.SwingMayBegin(db, Stamped(me, now - interval - 1), def, now)) interval++;
+        while (!CombatRules.SwingMayBegin(db, Stamped(me, now - interval - 1), def, now))
+        {
+            interval++;
+        }
+
         me.TimeLastUsedMelee = now - interval;
         Assert.False(CombatRules.SwingMayBegin(db, me, def, now));
         sim.Tick(InputFrame.Of(Act(me, melee: true)));
@@ -232,8 +241,15 @@ public sealed class PossessionActTests
     {
         (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.GoblinCreatureId, 10, 10);
-        if (trap) PlaceTrap(db, world, new TilePos(11, 10), Keeper);
-        else world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(11, 10));
+        if (trap)
+        {
+            PlaceTrap(db, world, new TilePos(11, 10), Keeper);
+        }
+        else
+        {
+            world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(11, 10));
+        }
+
         GameSimulation sim = Sim(db, world);
         long now = sim.CurrentTick.Value;
         sim.Tick(InputFrame.Of(Act(me, melee: true)));
@@ -332,7 +348,11 @@ public sealed class PossessionActTests
         // vtable +0x3C, unread, for which the footprint stands in.
         int bound = db.CreatureById(me.CreatureTypeId).FootprintRadius.Raw * 6 / 5;
         int edge = 0;
-        while (((long)(edge + 1) * (edge + 1) >> 12) <= bound) edge++;
+        while (((long)(edge + 1) * (edge + 1) >> 12) <= bound)
+        {
+            edge++;
+        }
+
         int pileX = CreatureState.CentreOf(11);
         me.PosX = pileX - (atTheEdge ? edge : edge + 1);
         ObjectState pile = world.SpawnObject(db, FloorGold.FloorGoldObjectId, PlayerIds.Neutral, (10 * world.Width) + 11);
@@ -411,7 +431,11 @@ public sealed class PossessionActTests
         (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.WarlockCreatureId, 5, 10);
         CreatureState enemy = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(8, 10));
-        if (down) enemy.Health = 0;
+        if (down)
+        {
+            enemy.Health = 0;
+        }
+
         GameSimulation sim = Sim(db, world);
         sim.Tick(InputFrame.Of(Act(me, melee: false, slot: 0)));
         Assert.Equal(down ? (SpellRules.FreeAimCast, FightTargetKind.None) : (SpellRules.SpellCast, FightTargetKind.Creature),
@@ -431,8 +455,15 @@ public sealed class PossessionActTests
         (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, Dk2TerrainFixture.WarlockCreatureId, 2, 10);
         var at = new TilePos(2 + tiles, 10);
-        if (door) PlaceDoor(db, world, at, Rival);
-        else PlaceTrap(db, world, at, Rival);
+        if (door)
+        {
+            PlaceDoor(db, world, at, Rival);
+        }
+        else
+        {
+            PlaceTrap(db, world, at, Rival);
+        }
+
         GameSimulation sim = Sim(db, world);
         sim.Tick(InputFrame.Of(Act(me, melee: false, slot: 0)));
         FightTargetKind kind = door ? FightTargetKind.Door : FightTargetKind.Trap;
@@ -489,7 +520,11 @@ public sealed class PossessionActTests
         while (true)
         {
             me.SpellStamps[0] = now - interval - 1;
-            if (SpellRules.CanCast(db, me, def, 0, now)) break;
+            if (SpellRules.CanCast(db, me, def, 0, now))
+            {
+                break;
+            }
+
             interval++;
         }
         me.SpellStamps[0] = now - interval;
@@ -558,12 +593,17 @@ public sealed class PossessionActTests
     {
         (GameDatabase? db, WorldState? world) = Open();
         if (heart)
+        {
             for (int y = 3; y <= 5; y++)
+            {
                 for (int x = 3; x <= 5; x++)
                 {
                     world.Tile(x, y).TerrainId = Dk2TerrainFixture.DungeonHeartTerrain;
                     world.Tile(x, y).OwnerPlayerId = Keeper;
                 }
+            }
+        }
+
         CreatureState me = Possess(db, world, Dk2TerrainFixture.PossessorCreatureId, 12, 12);
         GameSimulation sim = Sim(db, world);
         long now = sim.CurrentTick.Value;

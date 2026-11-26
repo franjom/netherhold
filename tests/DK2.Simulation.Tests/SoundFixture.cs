@@ -50,8 +50,14 @@ internal static class SoundFixture
         foreach ((byte id, string category) in objects ?? new Dictionary<byte, string>())
         {
             int at = objectDefs.FindIndex(o => o.ObjectId == id);
-            if (at >= 0) objectDefs[at] = objectDefs[at] with { SoundCategory = category };
-            else objectDefs.Add(Plain(id, category));
+            if (at >= 0)
+            {
+                objectDefs[at] = objectDefs[at] with { SoundCategory = category };
+            }
+            else
+            {
+                objectDefs.Add(Plain(id, category));
+            }
         }
         IEnumerable<DoorDef> doorDefs = basis.Doors.Values.Select(d =>
             doors && DoorCategories.TryGetValue(d.DoorId, out string? category) ? d with { SoundCategory = category, ImpactKind = ImpactOf(d.DoorId) } : d);

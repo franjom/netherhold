@@ -179,10 +179,16 @@ public sealed class WorldSteeringMeshTests
 
             steering.Refresh();
 
-            if (!navigational) Assert.Equal(before, steering.Rebuilds);
+            if (!navigational)
+            {
+                Assert.Equal(before, steering.Rebuilds);
+            }
+
             byte[] fresh = WorldSteering.CaptureNavigationBytes(db, world);
             for (int i = 0; i < fresh.Length; i++)
+            {
                 Assert.Equal(fresh[i], steering.NavByte(i % world.Width, i / world.Width));
+            }
         }
     }
 
@@ -199,7 +205,13 @@ public sealed class WorldSteeringMeshTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
             [(byte)0, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 2; y <= 10; y++)
-            for (int x = 2; x <= 10; x++) Claim(world, x, y);
+        {
+            for (int x = 2; x <= 10; x++)
+            {
+                Claim(world, x, y);
+            }
+        }
+
         var steering = new WorldSteering(db, world);
         steering.Refresh();
         CreatureState goblin = world.SpawnCreature(db, 7, PlayerIds.FirstKeeper, new TilePos(3, 6));

@@ -50,7 +50,11 @@ public class LairAcquisitionTests
         var sim = new GameSimulation(db, world, seed, [
             new CreatureMovementSystem(), new CreatureSleepSystem(), new RequestedLairAttempt(),
         ]);
-        if (sink is not null) sim.ObserveWith(sink);
+        if (sink is not null)
+        {
+            sim.ObserveWith(sink);
+        }
+
         return sim;
     }
 
@@ -63,8 +67,12 @@ public class LairAcquisitionTests
     private static void Lair(GameDatabase db, WorldState world, int x0, int y0, int x1, int y1)
     {
         for (int y = y0; y <= y1; y++)
+        {
             for (int x = x0; x <= x1; x++)
+            {
                 Lair(db, world, x, y);
+            }
+        }
     }
 
     /// <summary>Claimed floor along row <paramref name="y"/>, leaving lair tiles alone.</summary>
@@ -73,7 +81,11 @@ public class LairAcquisitionTests
         for (int x = x0; x <= x1; x++)
         {
             ref TileState tile = ref world.Tile(x, y);
-            if (tile.TerrainId == Dk2TerrainFixture.LairTerrain) continue;
+            if (tile.TerrainId == Dk2TerrainFixture.LairTerrain)
+            {
+                continue;
+            }
+
             tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
             tile.OwnerPlayerId = Keeper;
         }
@@ -83,13 +95,27 @@ public class LairAcquisitionTests
 
     private static int IndexOf(IReadOnlyList<SimEvent> events, Func<SimEvent, bool> match)
     {
-        for (int i = 0; i < events.Count; i++) if (match(events[i])) return i;
+        for (int i = 0; i < events.Count; i++)
+        {
+            if (match(events[i]))
+            {
+                return i;
+            }
+        }
+
         return -1;
     }
 
     private static int LastIndexOf(IReadOnlyList<SimEvent> events, Func<SimEvent, bool> match)
     {
-        for (int i = events.Count - 1; i >= 0; i--) if (match(events[i])) return i;
+        for (int i = events.Count - 1; i >= 0; i--)
+        {
+            if (match(events[i]))
+            {
+                return i;
+            }
+        }
+
         return -1;
     }
 
@@ -397,7 +423,9 @@ public class LairAcquisitionTests
         Lair(db, world, 4, 2, 10, 2);
         RoomInstance room = RoomIndex.RoomAt(world, db, Index(world, 7, 2))!;
         foreach (int x in new[] { 6, 7, 8 })
+        {
             world.SpawnObject(db, Dk2TerrainFixture.GoblinBedObjectId, Keeper, Index(world, x, 2));
+        }
 
         Assert.True(LairRules.TryFindFreeTile(
             world, db, room, new TilePos(7, 2), Keeper, new SimRandom(42),
@@ -578,7 +606,10 @@ public class LairAcquisitionTests
         GameSimulation sim = Walking(db, world, events);
 
         int waited = 0;
-        while (!LairRules.HasBed(world, db, goblin) && waited++ < Second * 20) sim.Run(1);
+        while (!LairRules.HasBed(world, db, goblin) && waited++ < Second * 20)
+        {
+            sim.Run(1);
+        }
 
         Assert.True(LairRules.HasBed(world, db, goblin));
         Assert.Equal(CreatureActivity.Sleeping, goblin.Activity);
@@ -624,7 +655,11 @@ public class LairAcquisitionTests
         for (int t = 0; t < ticks; t++)
         {
             sim.Run(1);
-            if (creature.Dk2StateId == last) continue;
+            if (creature.Dk2StateId == last)
+            {
+                continue;
+            }
+
             seen.Add((creature.Dk2StateId, creature.StateBeforeUtilityState, creature.UtilityNewState));
             last = creature.Dk2StateId;
         }
@@ -859,12 +894,20 @@ public class LairAcquisitionTests
         public bool Requested { get; set; } = true;
         public void Execute(SimulationContext context)
         {
-            if (!Requested) return;
+            if (!Requested)
+            {
+                return;
+            }
+
             Requested = false;
             foreach (CreatureState creature in context.World.Creatures.OrderByDescending(c => c.Id))
+            {
                 if (creature.Activity == CreatureActivity.Idle)
+                {
                     new LairSeeker(new DK2.Pathfinding.GridPathfinder()).TryGoForALair(context, Name,
                         creature, context.Database.CreatureById(creature.CreatureTypeId));
+                }
+            }
         }
     }
 

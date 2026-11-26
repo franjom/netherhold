@@ -34,7 +34,10 @@ public class ImpClaimsWhatItDugTests
 
         public void Ticks(int count)
         {
-            for (int i = 0; i < count; i++) Tick();
+            for (int i = 0; i < count; i++)
+            {
+                Tick();
+            }
         }
 
         public IEnumerable<SimEvent> Of(string kind) => Events.Events.Where(e => e.Kind == kind);
@@ -42,14 +45,22 @@ public class ImpClaimsWhatItDugTests
         /// <summary>Runs until the tile is no longer rock, or gives up.</summary>
         public void UntilDug(TilePos at, int limit = 400)
         {
-            for (int i = 0; i < limit && World.Tile(at).TerrainId == Dk2TerrainFixture.Rock; i++) Tick();
+            for (int i = 0; i < limit && World.Tile(at).TerrainId == Dk2TerrainFixture.Rock; i++)
+            {
+                Tick();
+            }
+
             Assert.NotEqual(Dk2TerrainFixture.Rock, World.Tile(at).TerrainId);
         }
 
         /// <summary>Runs until the digger's action ends and it raises kind 14 on the tile, or gives up.</summary>
         public void UntilRaised(TilePos at, int limit = 20)
         {
-            for (int i = 0; i < limit && !World.Tile(at).FreshlyDug; i++) Tick();
+            for (int i = 0; i < limit && !World.Tile(at).FreshlyDug; i++)
+            {
+                Tick();
+            }
+
             Assert.True(World.Tile(at).FreshlyDug);
         }
     }
@@ -69,7 +80,10 @@ public class ImpClaimsWhatItDugTests
 
     private static void Mark(Run run, params TilePos[] tiles)
     {
-        foreach (TilePos t in tiles) run.World.Tile(t).SetTaggedBy(Keeper, true);
+        foreach (TilePos t in tiles)
+        {
+            run.World.Tile(t).SetTaggedBy(Keeper, true);
+        }
     }
 
     /// <summary>
@@ -152,10 +166,19 @@ public class ImpClaimsWhatItDugTests
     {
         Run run = Start(new TilePos(7, 2));
         for (int y = 1; y <= 3; y++)
+        {
             for (int x = 1; x <= 3; x++)
+            {
                 SetTile(run, x, y, Dk2TerrainFixture.TreasuryTerrain, Keeper);
+            }
+        }
+
         SetTile(run, 4, 2, Dk2TerrainFixture.ClaimedPath, Keeper);
-        for (int x = 5; x <= 7; x++) SetTile(run, x, 2, Dk2TerrainFixture.DirtPath, PlayerIds.Unowned);
+        for (int x = 5; x <= 7; x++)
+        {
+            SetTile(run, x, 2, Dk2TerrainFixture.DirtPath, PlayerIds.Unowned);
+        }
+
         run.World.Tile(5, 2).FreshlyDug = true;
         run.Imp.GoldHeld = 500;
         run.Imp.LastTaskKind = ImpTaskKind.Excavate;
@@ -177,8 +200,16 @@ public class ImpClaimsWhatItDugTests
     public void AnImpWalkingToADigClaimsTheJustDugTileItStepsOnto()
     {
         Run run = Start(new TilePos(7, 2));
-        for (int x = 2; x <= 4; x++) SetTile(run, x, 2, Dk2TerrainFixture.ClaimedPath, Keeper);
-        for (int x = 5; x <= 7; x++) SetTile(run, x, 2, Dk2TerrainFixture.DirtPath, PlayerIds.Unowned);
+        for (int x = 2; x <= 4; x++)
+        {
+            SetTile(run, x, 2, Dk2TerrainFixture.ClaimedPath, Keeper);
+        }
+
+        for (int x = 5; x <= 7; x++)
+        {
+            SetTile(run, x, 2, Dk2TerrainFixture.DirtPath, PlayerIds.Unowned);
+        }
+
         SetTile(run, 1, 2, Dk2TerrainFixture.Rock, PlayerIds.Unowned);
         run.World.Tile(5, 2).FreshlyDug = true;
         Mark(run, new TilePos(1, 2));
@@ -200,8 +231,16 @@ public class ImpClaimsWhatItDugTests
     public void TheClaimOnTheWayComesBeforeThePickUpInPassing()
     {
         Run run = Start(new TilePos(7, 2));
-        for (int x = 2; x <= 4; x++) SetTile(run, x, 2, Dk2TerrainFixture.ClaimedPath, Keeper);
-        for (int x = 5; x <= 7; x++) SetTile(run, x, 2, Dk2TerrainFixture.DirtPath, PlayerIds.Unowned);
+        for (int x = 2; x <= 4; x++)
+        {
+            SetTile(run, x, 2, Dk2TerrainFixture.ClaimedPath, Keeper);
+        }
+
+        for (int x = 5; x <= 7; x++)
+        {
+            SetTile(run, x, 2, Dk2TerrainFixture.DirtPath, PlayerIds.Unowned);
+        }
+
         SetTile(run, 1, 2, Dk2TerrainFixture.Rock, PlayerIds.Unowned);
         run.World.Tile(5, 2).FreshlyDug = true;
         FloorGold.PutDown(run.World, run.Db, (2 * run.World.Width) + 5, 5, 100);

@@ -53,7 +53,9 @@ public class InputJournalTests
     {
         byte[] full = Written();
         for (int cut = 0; cut < HeaderLength(); cut++)
+        {
             Assert.Throws<InvalidDataException>(() => InputJournal.Read(new MemoryStream(full[..cut])));
+        }
     }
 
     [Fact]
@@ -88,7 +90,9 @@ public class InputJournalTests
     {
         var stream = new MemoryStream();
         using (var writer = new InputJournalWriter(stream, new Dictionary<string, string>()))
+        {
             writer.WriteFrame(0, InputFrame.Empty);
+        }
 
         Assert.Empty(InputJournal.Read(new MemoryStream(stream.ToArray())).FrameTicks);
     }
@@ -103,7 +107,10 @@ public class InputJournalTests
             for (long t = 1; t <= 4; t++)
             {
                 if (t == 3)
+                {
                     writer.WriteFrame(3, InputFrame.Of(new SlapCreatureCommand(P, 7), new CreateImpCommand(P)));
+                }
+
                 writer.WriteHash(t, 0xA0UL + (ulong)t);
             }
             writer.WriteEnd(4, "completed");

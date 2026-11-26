@@ -14,7 +14,11 @@ public sealed class PossessionVisibilityFieldTests
     public void TheScaledViewPolygonSuppliesTheWalkAndTheWallHidesTheTilesBehindIt()
     {
         bool[] solid = new bool[40 * 40];
-        for (int x = 0; x < 40; x++) solid[(17 * 40) + x] = true;
+        for (int x = 0; x < 40; x++)
+        {
+            solid[(17 * 40) + x] = true;
+        }
+
         var field = new PossessionVisibilityField(40, 40);
         field.Build(North, Screen, 12f, solid);
         Assert.True(field.Contains(new TilePos(20, 17)));
@@ -48,7 +52,11 @@ public sealed class PossessionVisibilityFieldTests
         Assert.False(field.Contains(new TilePos(20, 12)));
         Assert.True(field.Contains(new TilePos(20, 28)));
         long before = GC.GetAllocatedBytesForCurrentThread();
-        for (int i = 0; i < 100; i++) field.Build((i & 1) == 0 ? North : south, Screen, 12f, solid);
+        for (int i = 0; i < 100; i++)
+        {
+            field.Build((i & 1) == 0 ? North : south, Screen, 12f, solid);
+        }
+
         Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
     }
 }

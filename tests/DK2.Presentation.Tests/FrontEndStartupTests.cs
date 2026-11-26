@@ -48,7 +48,10 @@ public sealed class FrontEndStartupTests
         Assert.Null(attract.Update(TimeSpan.FromSeconds(180), FrontEndPage.Main, false));
         Assert.Null(attract.Update(TimeSpan.FromSeconds(340), FrontEndPage.Main, false, keyPressed: true));
         foreach (ushort page in new ushort[] { 10, 11, 32, 35, 39, 44 })
+        {
             Assert.Null(attract.Update(TimeSpan.FromSeconds(1000), (FrontEndPage)page, false));
+        }
+
         Assert.Null(attract.Update(TimeSpan.FromSeconds(1000), FrontEndPage.Main, false));
         Assert.Equal(FrontEndMovie.BullfrogIntro, attract.Update(TimeSpan.FromMilliseconds(1180001), FrontEndPage.Main, false));
     }

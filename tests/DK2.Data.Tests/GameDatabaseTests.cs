@@ -47,8 +47,10 @@ public class GameDatabaseTests
         // spawns skeletons is the Prison. Both facts already hold at the parser
         // level; asserting them here proves the database preserved them.
         foreach (RoomDef room in db.Rooms.Values)
+        {
             Assert.True(db.Terrain.ContainsKey(room.TerrainId),
                 $"{room.Name} lays unknown terrain id {room.TerrainId}");
+        }
 
         RoomDef prison = db.Room(RoomTypeId.Prison);
         Assert.Equal("Skeleton", db.CreatureById(prison.CreatedCreatureId).Name);

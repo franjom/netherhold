@@ -30,7 +30,9 @@ public class PlaybookTests
         Assert.Equal("spell:Call To Arms", new PlaybookItem(PlaybookItemKind.Spell, "Call To Arms").ToString());
         Assert.True(PlaybookItem.TryParse("spell:Call To Arms", out _));
         foreach (string bad in (string[])["Library", "Room:Library", "room:", ":Library", "room: Library", "chair:Throne"])
+        {
             Assert.False(PlaybookItem.TryParse(bad, out _), bad);
+        }
     }
 
     [Fact]
@@ -117,7 +119,11 @@ public class PlaybookTests
             "cap wall-seconds -1 is not positive",
             "cap output-mib 1 is not between 2 and 1048576",
         ];
-        foreach (string problem in expected) Assert.Contains(problem, problems);
+        foreach (string problem in expected)
+        {
+            Assert.Contains(problem, problems);
+        }
+
         Assert.Contains(problems, p => p.StartsWith("tunable 'strategy.colour' is not one of strategy.assault-party, ", StringComparison.Ordinal));
         Assert.Equal(expected.Length + 1, problems.Count);
     }

@@ -71,7 +71,10 @@ public class CasinoWinnerSlapTests
         Slap(sim, winner);
         Assert.Equal(remaining, winner.GoldHeld);
         Assert.Equal(spawned, sim.World.Objects.Sum(o => o.GoldHeld));
-        if (spawned == 0) Assert.Equal(before, sim.Rng.SaveState());
+        if (spawned == 0)
+        {
+            Assert.Equal(before, sim.Rng.SaveState());
+        }
     }
 
     [Fact]

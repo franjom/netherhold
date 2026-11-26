@@ -22,8 +22,13 @@ public sealed class CreatureBankHeightTests
     {
         (GameDatabase? database, WorldState? world, CreatureState? creature) = WaterPatch();
         for (int y = 0; y < 3; y++)
-        for (int x = 0; x < 3; x++)
-            world.Tile(x, y).TerrainId = database.Room(RoomTypeId.CombatPit).TerrainId;
+        {
+            for (int x = 0; x < 3; x++)
+            {
+                world.Tile(x, y).TerrainId = database.Room(RoomTypeId.CombatPit).TerrainId;
+            }
+        }
+
         creature.Dk2StateId = CreatureDeathRules.DyingState;
         creature.Health = 0;
         creature.LastPosZ = previousZ;
@@ -136,8 +141,13 @@ public sealed class CreatureBankHeightTests
         var world = WorldState.FromMap(database,
             GameDatabaseLoader.LoadCampaignMap(install, "Level8")!, [2, 3]);
         for (int y = 0; y < 3; y++)
+        {
             for (int x = 0; x < 3; x++)
+            {
                 world.Tile(x, y).TerrainId = database.WaterTerrain!.TerrainId;
+            }
+        }
+
         CreatureState creature = world.SpawnCreature(database,
             database.CreatureByName(creatureName)!.CreatureId, 2, new TilePos(1, 1));
         return (database, world, creature);

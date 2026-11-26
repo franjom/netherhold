@@ -36,8 +36,12 @@ public class HatcheryTests
         }
 
         foreach (RoomInstance room in RoomIndex.Build(world, db))
+        {
             if (room.Definition.RoomId == (byte)RoomTypeId.Hatchery)
+            {
                 return room;
+            }
+        }
 
         throw new InvalidOperationException("the painted hatchery was not found");
     }
@@ -188,7 +192,9 @@ public class HatcheryTests
         var tiles = new List<int>();
         HatcheryRules.CoopTiles(world, room, tiles);
         foreach (int index in tiles)
+        {
             Assert.True(HatcheryRules.HasCoop(world, index), $"no coop on tile {index}");
+        }
 
         foreach (ObjectState coop in world.Objects)
         {
@@ -313,7 +319,9 @@ public class HatcheryTests
 
         var rng = new SimRandom(7);
         for (int i = 0; i < 5; i++)
+        {
             Assert.NotNull(HatcheryRules.TryLayEgg(world, db, room, rng));
+        }
 
         Assert.NotNull(HatcheryRules.TryLayEgg(world, db, room, rng));
         Assert.Equal(6, world.Objects.Count);
@@ -337,7 +345,10 @@ public class HatcheryTests
             var rng = new SimRandom(1234);
             var where = new List<int>();
             for (int i = 0; i < 10; i++)
+            {
                 where.Add(HatcheryRules.TryLayEgg(world, db, room, rng)!.TileIndex);
+            }
+
             return where;
         }
 
@@ -443,7 +454,10 @@ public class HatcheryTests
         {
             ObjectState? egg = HatcheryRules.TryLayEgg(world, db, room, rng);
             // The bird joins the room's list in its first update (Room_AddObject); here, at once.
-            if (egg is not null) Admit(HatcheryRules.Hatch(world, db, egg), room);
+            if (egg is not null)
+            {
+                Admit(HatcheryRules.Hatch(world, db, egg), room);
+            }
         }
 
         Assert.Equal(9, HatcheryRules.Flock(world, room));
@@ -464,7 +478,9 @@ public class HatcheryTests
 
         var rng = new SimRandom(5);
         for (int i = 0; i < 9; i++)
+        {
             Assert.NotNull(HatcheryRules.TryLayEgg(world, db, room, rng));
+        }
 
         Assert.Equal(0, HatcheryRules.Flock(world, room));
         Assert.Equal(9, HatcheryRules.Birds(world, room));
@@ -518,7 +534,10 @@ public class HatcheryTests
         {
             ObjectState? laid = HatcheryRules.TryLayEgg(world, db, room, rng);
             // The bird joins the room's list in its first update (Room_AddObject); here, at once.
-            if (laid is not null) Admit(HatcheryRules.Hatch(world, db, laid), room);
+            if (laid is not null)
+            {
+                Admit(HatcheryRules.Hatch(world, db, laid), room);
+            }
         }
         Assert.Equal(9, HatcheryRules.Flock(world, room));
         Assert.Equal((byte)24, Assert.IsType<ObjectState>(HatcheryRules.TryLayEgg(world, db, room, rng)).ProcessState);

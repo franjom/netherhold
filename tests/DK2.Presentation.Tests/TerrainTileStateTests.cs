@@ -15,9 +15,12 @@ public class TerrainTileStateTests
     public void PackedStateMatchesMaterialReferenceForEveryChannelAndFlag()
     {
         foreach (KmfBlend blend in Enum.GetValues<KmfBlend>())
-        foreach (bool red in new[] { false, true })
-        foreach (bool tag in new[] { false, true })
-        for (int channel = 0; channel < 768; channel++)
+        {
+            foreach (bool red in new[] { false, true })
+            {
+                foreach (bool tag in new[] { false, true })
+                {
+                    for (int channel = 0; channel < 768; channel++)
         {
             var tint = new TerrainLightColour(channel, 767 - channel, channel * 3);
             var tile = new TileView(new TilePos(0, 0), default, default, default, tag, false, 0, 1000,
@@ -41,7 +44,13 @@ public class TerrainTileStateTests
             }
             Vector3 overlay = TerrainTileState.Overlay(packed, packed);
             Assert.Equal(red ? TerrainMaterialLook.HoverOverlayColour : tag ? TerrainMaterialLook.TagOverlayColour : Vector3.Zero, overlay);
-            if (blend == KmfBlend.Additive && (red || tag)) Assert.NotEqual(Vector3.Zero, overlay);
+            if (blend == KmfBlend.Additive && (red || tag))
+                        {
+                            Assert.NotEqual(Vector3.Zero, overlay);
+                        }
+                    }
+                }
+            }
         }
     }
 

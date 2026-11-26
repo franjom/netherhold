@@ -125,7 +125,10 @@ public class ThreatEvaluatorTests
         KeeperThreatResponse? response = ThreatEvaluator.Response(target, hasDrop ? drop : null,
             enemy, ally, 100, remove, room);
         Assert.Equal(expected, response.HasValue ? (int?)response.Value.RemainingThreat : null);
-        if (response.HasValue) Assert.Equal(hasDrop ? drop : target, response.Value.Position);
+        if (response.HasValue)
+        {
+            Assert.Equal(hasDrop ? drop : target, response.Value.Position);
+        }
     }
 
     [Fact]

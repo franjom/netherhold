@@ -72,7 +72,9 @@ public class KeeperRouteCacheTests
         // Ask every pair twice through the cache, so the second round runs on a router that has
         // already answered queries, and compare each answer with a router built for that query.
         for (int round = 0; round < 2; round++)
+        {
             foreach ((int X, int Y) from in ends)
+            {
                 foreach ((int X, int Y) to in ends)
                 {
                     var cached = new List<NavPoint>();
@@ -84,6 +86,9 @@ public class KeeperRouteCacheTests
                     Assert.Equal(freshRoutes, cachedRoutes);
                     Assert.Equal(fresh, cached);
                 }
+            }
+        }
+
         Assert.Equal(1, cache.Builds);
     }
 }

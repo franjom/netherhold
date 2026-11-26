@@ -21,11 +21,13 @@ public sealed class SlabChainTests
         GameDatabase db = definition ?? Dk2TerrainFixture.Database();
         WorldState world = Dk2TerrainFixture.Sellable(WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, Keeper]));
         for (int y = 1; y <= 10; y++)
-        for (int x = 1; x <= 14; x++)
+        {
+            for (int x = 1; x <= 14; x++)
         {
             ref TileState tile = ref world.Tile(x, y);
             tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
             tile.OwnerPlayerId = Keeper;
+        }
         }
 
         world.Tile(14, 10).GoldHeld = 1_000_000;
@@ -46,12 +48,17 @@ public sealed class SlabChainTests
     {
         sim.Tick(new InputFrame([command]));
         if (command is BuildRoomCommand { Mode: RoomBuildMode.PlayerWave } build)
+        {
             sim.Run(Math.Abs(build.Press.X - build.Release.X) + Math.Abs(build.Press.Y - build.Release.Y));
+        }
     }
 
     private static void Click(GameDatabase db, GameSimulation sim, params TilePos[] tiles)
     {
-        foreach (TilePos t in tiles) Run(sim, BuildRoomCommand.At(Keeper, Prison(db), t));
+        foreach (TilePos t in tiles)
+        {
+            Run(sim, BuildRoomCommand.At(Keeper, Prison(db), t));
+        }
     }
 
     private static RoomInstance RoomOn(GameDatabase db, WorldState world, TilePos at) =>
@@ -101,8 +108,13 @@ public sealed class SlabChainTests
             (GameDatabase db, WorldState world, GameSimulation sim) = World();
             var clicks = new List<TilePos>();
             for (int y = 6; y >= 2; y--)
+            {
                 for (int i = 0; i < 5; i++)
+                {
                     clicks.Add(new TilePos(eastFirst ? 8 - i : 4 + i, y));
+                }
+            }
+
             Click(db, sim, [.. clicks]);
 
             Assert.Equal(clicks, Chain(db, world, new TilePos(6, 4)));
@@ -203,7 +215,9 @@ public sealed class SlabChainTests
         (GameDatabase db, WorldState world, GameSimulation sim) = World();
         RoomInstance room = Drag(db, world, sim, RoomTypeId.Lair, 4, 4, 8, 4);
         foreach (int x in new[] { 5, 6, 7 })
+        {
             world.SpawnObject(db, Dk2TerrainFixture.GoblinBedObjectId, Keeper, 4 * world.Width + x);
+        }
 
         int[] chain = SlabChain.Order(world, room);
         for (ulong seed = 1; seed <= 20; seed++)
@@ -237,7 +251,11 @@ public sealed class SlabChainTests
             objects: basis.Objects.Values);
         (_, WorldState world, GameSimulation sim) = World(db);
         RoomInstance room = Drag(db, world, sim, RoomTypeId.Workshop, 4, 3, 7, 5);
-        for (int x = 4; x <= 7; x++) world.Tile(x, 2).TerrainId = Dk2TerrainFixture.ReinforcedWall;
+        for (int x = 4; x <= 7; x++)
+        {
+            world.Tile(x, 2).TerrainId = Dk2TerrainFixture.ReinforcedWall;
+        }
+
         var slots = new HashSet<int>();
         AutoFurnitureRules.FurnitureSlots(world, db, room, slots);
 
@@ -282,8 +300,13 @@ public sealed class SlabChainTests
         RoomInstance room = Drag(db, world, sim, RoomTypeId.Treasury, 4, 3, 6, 3);
         int[] chain = SlabChain.Order(world, room);
         if (obstructed)
+        {
             foreach (int tile in chain)
+            {
                 world.SpawnObject(db, Navigation.WorldSteering.DungeonHeartObstacleObjectId, Keeper, tile);
+            }
+        }
+
         CreatureState walker = world.SpawnCreature(db, Dk2TerrainFixture.KnightCreatureId, Keeper, new TilePos(8, 8));
 
         uint before = 0, after = 0;
@@ -298,8 +321,14 @@ public sealed class SlabChainTests
         var expected = new Dk2Lcg(before);
         int pick = expected.NextInt(chain.Length);
         Assert.Equal(expected.Seed, after);
-        if (obstructed) Assert.Null(point);
-        else Assert.Equal((chain[pick] % world.Width, chain[pick] / world.Width), point);
+        if (obstructed)
+        {
+            Assert.Null(point);
+        }
+        else
+        {
+            Assert.Equal((chain[pick] % world.Width, chain[pick] / world.Width), point);
+        }
     }
 
     private sealed class Probe(Action<SimulationContext> act) : ISimulationSystem

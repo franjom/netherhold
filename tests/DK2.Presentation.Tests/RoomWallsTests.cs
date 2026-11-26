@@ -31,8 +31,13 @@ public class RoomWallsTests
         byte wall = db.Terrain.Values.Single(t => t.Name == ring).TerrainId;
         byte floor = db.Room(type).TerrainId;
         for (int y = Y0; y <= Y0 + 5; y++)
+        {
             for (int x = X0; x <= X0 + 4; x++)
+            {
                 world.Tile(x, y).TerrainId = x == X0 || x == X0 + 4 || y == Y0 || y == Y0 + 5 ? wall : floor;
+            }
+        }
+
         return new Room(db, world, new WorldView(db));
     }
 
@@ -74,12 +79,21 @@ public class RoomWallsTests
         Room room = Treasury();
         byte wall = room.World.Tile(X0, Y0).TerrainId;
         for (int y = Y0 + 1; y <= Y0 + 4; y++)
+        {
             for (int x = X0 + 1; x <= X0 + 3; x++)
-                if (x != X0 + 2 || y != Y0 + 2) room.World.Tile(x, y).TerrainId = wall;
+            {
+                if (x != X0 + 2 || y != Y0 + 2)
+                {
+                    room.World.Tile(x, y).TerrainId = wall;
+                }
+            }
+        }
 
         RoomWalls walls = room.View.TileAt(room.World, X0 + 2, Y0 + 2).Walls;
         for (int side = 0; side < 4; side++)
+        {
             Assert.Equal((4, 5), (walls.HalfAPiece(side), walls.HalfBPiece(side)));
+        }
     }
 
     /// <summary>A DoubleQuad room (the Temple) takes the same general chooser.</summary>

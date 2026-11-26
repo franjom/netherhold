@@ -123,7 +123,10 @@ public class KwdCreaturesTests
 
         Assert.Equal(expected.Count, all.Count(c => c.Flags.HasFlag(CreatureFlags.IsUnique)));
         foreach ((string name, byte baseId) in expected)
+        {
             Assert.Equal(baseId, By(all, name).UniqueBaseCreatureId);
+        }
+
         Assert.All(all.Where(c => !c.Flags.HasFlag(CreatureFlags.IsUnique)),
             c => Assert.Equal(0, c.UniqueBaseCreatureId));
     }

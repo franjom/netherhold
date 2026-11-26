@@ -44,7 +44,11 @@ public class ThreatMessageTests
     public void AHeroBlowThatLeavesTheRoomStandingPosts34ToItsOwner()
     {
         WorldState world = World();
-        for (int x = 5; x < 8; x++) RoomRules.Place(Db, ref world.Tile(x, 5), Db.Room(RoomTypeId.Treasury), Keeper);
+        for (int x = 5; x < 8; x++)
+        {
+            RoomRules.Place(Db, ref world.Tile(x, 5), Db.Room(RoomTypeId.Treasury), Keeper);
+        }
+
         int tag = SlabChain.FirstSlab(world, RoomIndex.RoomAt(world, Db, (5 * world.Width) + 6)!);
 
         Work(world, 6, 5, TileWorkKind.AttackRoom, PlayerIds.Good);

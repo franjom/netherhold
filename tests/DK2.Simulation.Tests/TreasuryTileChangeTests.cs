@@ -45,7 +45,11 @@ public class TreasuryTileChangeTests
         // Room_RemoveTile frees the old room, whose slot +0x05 empties the store (0x004D9670); each
         // piece's slot +0x09 banks it back, one rand(0x800) per store pile it creates (line 0x14F).
         (GameDatabase db, WorldState world) = World();
-        for (int x = 2; x < 5; x++) Build(db, world, x, 3);
+        for (int x = 2; x < 5; x++)
+        {
+            Build(db, world, x, 3);
+        }
+
         world.Tile(2, 3).GoldHeld = 100;
         world.Tile(4, 3).GoldHeld = 200;
         var rng = new SimRandom(11);

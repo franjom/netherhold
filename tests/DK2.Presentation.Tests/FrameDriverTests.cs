@@ -45,7 +45,11 @@ public sealed class FrameDriverTests
             World = world ?? PressFixture.World(Database);
             View = new WorldView(Database, Keeper);
             Script = new ScriptedViewDirector(Keeper, paths ?? (_ => null), _ => null);
-            if (journal) Journal = new FrameJournalSession(_ => { }, _ => { });
+            if (journal)
+            {
+                Journal = new FrameJournalSession(_ => { }, _ => { });
+            }
+
             Driver = new FrameDriver(Pending, View, Pacer, Journal);
         }
 
@@ -137,7 +141,9 @@ public sealed class FrameDriverTests
 
             FrameInputRecord frame;
             using (FileStream stream = File.OpenRead(Path.Combine(root, "s", FrameJournalSession.FramesFile)))
+            {
                 frame = Assert.Single(FrameInputJournal.Read(stream).Frames);
+            }
             // The first before the frame, then the pose (inserted first, after the recorder had seen index 0), then the rest.
             Assert.Equal(3, frame.CommandsHandedToTick);
             Assert.Equal(new[] { CommandQueuedWhen.BeforeUpdate, CommandQueuedWhen.DuringFrame, CommandQueuedWhen.DuringFrame,
@@ -145,7 +151,10 @@ public sealed class FrameDriverTests
         }
         finally
         {
-            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
         }
     }
 

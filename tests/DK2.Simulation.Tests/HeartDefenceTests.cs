@@ -49,9 +49,19 @@ public class HeartDefenceTests
         defender.HeldPlace = new RoomPlace(14 * world.Width + 11, 1);
         Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Rival, 13, 8);
         if (!reachable)
+        {
             for (int dy = -1; dy <= 1; dy++)
+            {
                 for (int dx = -1; dx <= 1; dx++)
-                    if (dx != 0 || dy != 0) world.Tile(13 + dx, 8 + dy).TerrainId = Dk2TerrainFixture.Rock;
+                {
+                    if (dx != 0 || dy != 0)
+                    {
+                        world.Tile(13 + dx, 8 + dy).TerrainId = Dk2TerrainFixture.Rock;
+                    }
+                }
+            }
+        }
+
         Assert.Equal(voluntary && reachable ? 3 : -1, FirstSent(db, world, defender, 4));
         if (voluntary && reachable)
         {
@@ -109,8 +119,16 @@ public class HeartDefenceTests
         // Inside the reporting radius of (11,11), sealed in by rock on all eight sides.
         CreatureState intruder = Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Rival, 13, 8);
         for (int dy = -1; dy <= 1; dy++)
+        {
             for (int dx = -1; dx <= 1; dx++)
-                if (dx != 0 || dy != 0) world.Tile(13 + dx, 8 + dy).TerrainId = Dk2TerrainFixture.Rock;
+            {
+                if (dx != 0 || dy != 0)
+                {
+                    world.Tile(13 + dx, 8 + dy).TerrainId = Dk2TerrainFixture.Rock;
+                }
+            }
+        }
+
         Assert.True(new WorldSteering(db, world).TryRouteTo(
             walker, CreatureState.CentreOf(16), CreatureState.CentreOf(16), MoveOptions.Loose));
         Fixed16Vector goal = walker.Body.PathTargetPos;
@@ -215,7 +233,9 @@ public class HeartDefenceTests
             long tick = world.CurrentTick.Value;
             sim.Run(1);
             if (creature.Dk2StateId == TravelToPoint && creature.UtilityNewState == ReportingDanger)
+            {
                 return tick;
+            }
         }
         return -1;
     }
@@ -237,7 +257,9 @@ public class HeartDefenceTests
                 ref TileState tile = ref world.Tile(new TilePos(x, y));
                 if (tile.TerrainId == Dk2TerrainFixture.Rock || tile.TerrainId == Dk2TerrainFixture.Gold
                     || tile.TerrainId == Dk2TerrainFixture.Gems)
+                {
                     tile.TerrainId = Dk2TerrainFixture.DirtPath;
+                }
             }
         }
         for (int dy = -1; dy <= 1; dy++)

@@ -30,8 +30,13 @@ public class HeartPillarSteeringTests
             basis.Variables, objects: basis.Objects.Values.Append(pillar));
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, Owner]);
         for (int y = 3; y <= 7; y++)
-        for (int x = 10; x <= 14; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.DungeonHeart), Owner);
+        {
+            for (int x = 10; x <= 14; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.DungeonHeart), Owner);
+            }
+        }
+
         return (db, world, new WorldSteering(db, world));
     }
 
@@ -75,13 +80,20 @@ public class HeartPillarSteeringTests
         Assert.Equal(3, pillars.Length);
         int heartTiles = 0;
         for (int y = 3; y <= 7; y++)
-        for (int x = 10; x <= 14; x++)
+        {
+            for (int x = 10; x <= 14; x++)
         {
             var tile = new TilePos(x, y);
-            if (pillars.Any(p => p.Tile == tile)) continue;
-            heartTiles++;
+            if (pillars.Any(p => p.Tile == tile))
+                {
+                    continue;
+                }
+
+                heartTiles++;
             Assert.Empty(Query(steering, tile));
         }
+        }
+
         Assert.Equal(22, heartTiles);
     }
 

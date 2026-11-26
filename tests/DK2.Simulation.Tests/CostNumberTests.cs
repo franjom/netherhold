@@ -65,7 +65,10 @@ public sealed class CostNumberTests
         (GameSimulation? sim, ListEventSink? events) = Start();
         RoomDef treasury = sim.Database.Room(RoomTypeId.Treasury);
         foreach (int x in new[] { 1, 2 })
+        {
             RoomRules.Place(sim.Database, ref sim.World.Tile(new TilePos(x, 1)), treasury, Keeper);
+        }
+
         int refund = RoomRules.RefundPerTile(sim.Database, treasury);
         sim.Tick(InputFrame.Of(SellRoomCommand.Rect(Keeper, 1, 1, 3, 1)));
         Assert.Equal([new TilePos(3, 1)], Amounts(events).Select(a => a.Tile));

@@ -31,19 +31,26 @@ public class RescueTests
         var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, Hero, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 8; y++)
-        for (int x = 1; x <= 12; x++)
+        {
+            for (int x = 1; x <= 12; x++)
         {
             ref TileState tile = ref world.Tile(x, y);
             tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
             tile.OwnerPlayerId = Keeper;
         }
+        }
 
         for (int y = 2; y <= 4; y++)
         {
             for (int x = 2; x <= 4; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Prison), Keeper);
+            }
+
             for (int x = 7; x <= 9; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.TortureChamber), Keeper);
+            }
         }
 
         world.SpawnObject(db, TortureRules.WheelObjectId, Keeper, Index(world, Wheel)).AutoPlaced = true;
@@ -94,7 +101,10 @@ public class RescueTests
         sim.Tick();
         Assert.Equal((CreatureActivity.Rescuing, RescueRules.RescuingState), (hero.Activity, hero.Dk2StateId));
 
-        for (int i = 0; i < 200 && TortureRules.IsBeingTortured(victim); i++) sim.Tick();
+        for (int i = 0; i < 200 && TortureRules.IsBeingTortured(victim); i++)
+        {
+            sim.Tick();
+        }
 
         Assert.False(TortureRules.IsBeingTortured(victim));
         Assert.False(PrisonRules.IsImprisoned(victim));

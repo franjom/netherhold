@@ -13,7 +13,9 @@ public class KeeperResponseQueueTests
     {
         var queue = new KeeperResponseQueue();
         for (short i = 1; i <= 3; i++)
+        {
             Assert.True(queue.TryReceive(() => new KeeperThreatResponse(i, new TilePos(i, 10))));
+        }
 
         Assert.False(queue.TryReceive(() => throw new InvalidOperationException("Must not reroll")));
         Assert.Equal(3, queue.Count);

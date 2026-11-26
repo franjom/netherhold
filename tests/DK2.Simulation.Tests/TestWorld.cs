@@ -194,7 +194,10 @@ internal sealed class ChaosSystem : ISimulationSystem
         int index = context.Rng.NextInt(world.TileCount);
         ref TileState tile = ref world.TileAtIndex(index);
         tile.Health -= context.Rng.NextInt(1, 10);
-        if (tile.Health < 0) tile.Health = 0;
+        if (tile.Health < 0)
+        {
+            tile.Health = 0;
+        }
 
         // Move mana between two random players. Mana rather than gold because gold
         // is not a player-level number - it lives on tiles (GoldStore) - and a
@@ -219,8 +222,12 @@ internal sealed class ChaosSystem : ISimulationSystem
 
         // Commands are applied verbatim so input differences show up in state.
         foreach (PlayerCommand command in context.Input.All)
+        {
             if (command is AddManaCommand mana && world.HasPlayer(mana.PlayerId))
+            {
                 world.Player(mana.PlayerId).Mana += mana.Amount;
+            }
+        }
 
         context.Emit(Name, "tile-damaged", $"index={index} health={tile.Health}");
     }

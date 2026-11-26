@@ -18,8 +18,13 @@ public class WallSupportTests
     {
         var world = WorldState.FromMap(Db, Dk2TerrainFixture.Map(), [Keeper.Value, Rival.Value]);
         for (int y = 0; y < world.Height; y++)
+        {
             for (int x = 0; x < world.Width; x++)
+            {
                 Put(world, new TilePos(x, y), Dk2TerrainFixture.Rock, PlayerIds.Neutral);
+            }
+        }
+
         Put(world, Centre, Dk2TerrainFixture.ClaimedPath, Rival);
         world.Tile(Centre).Health = 1;
         return new GameSimulation(Db, world, 4242, [new TileWorkSystem()]);
@@ -186,7 +191,10 @@ public class WallSupportTests
     {
         GameSimulation sim = Simulation();
         for (int x = 7; x <= 9; x++)
+        {
             Put(sim.World, new TilePos(x, 6), Dk2TerrainFixture.TreasuryTerrain, Rival);
+        }
+
         Put(sim.World, new TilePos(6, 6), Dk2TerrainFixture.ReinforcedWall, Rival);
         Put(sim.World, new TilePos(10, 6), Dk2TerrainFixture.ReinforcedWall, Rival);
         RoomInstance room = RoomIndex.RoomAt(sim.World, Db, (6 * sim.World.Width) + 8)!;

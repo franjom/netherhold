@@ -29,7 +29,10 @@ public sealed class DoorTrapSoundTests
         GameDatabase db = SoundFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
         foreach (int x in new[] { 4, 5, 6, 7 })
+        {
             world.Tile(new TilePos(x, 2)).TerrainId = Dk2TerrainFixture.DirtPath;
+        }
+
         world.Tile(new TilePos(5, 2)).TerrainId = Dk2TerrainFixture.ClaimedPath;
         world.Tile(new TilePos(5, 2)).OwnerPlayerId = Keeper;
         ThingProjection.Place(world, db, [new DoorThing(new byte[20]) { X = 5, Y = 2, PlayerId = Keeper, Flags = 0, DoorId = doorId, Unknown_0011 = new byte[3] }]);
@@ -138,8 +141,13 @@ public sealed class DoorTrapSoundTests
         GameDatabase db = SoundFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         world.Player(Keeper).Mana = 1000;
         return (db, world);
     }
@@ -243,7 +251,11 @@ public sealed class DoorTrapSoundTests
             world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(8, 5)).Health = 100000;
             world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(12, 12));
             var sim = new GameSimulation(db, world, 1, [new DoorSystem(), new CreatureStatusSystem(), new ShotSystem(), new TrapSystem(), new TrapRemovalSystem()]);
-            if (sink is not null) sim.ObserveWith(sink);
+            if (sink is not null)
+            {
+                sim.ObserveWith(sink);
+            }
+
             sim.Tick(InputFrame.Of(new LockDoorCommand(Keeper, new TilePos(12, 12))));
             sim.Run(6);
             return sim;

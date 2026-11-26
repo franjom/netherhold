@@ -31,7 +31,11 @@ public class LavaMovementOnRealDataTests
             GameDatabaseLoader.LoadCampaignThings(install, level)!,
             GameDatabaseLoader.LoadCampaignTriggers(install, level)!, seed: 1);
         for (int t = 0; t < 2000 && !campaign.World.Creatures.Any(c =>
-            db.CreatureById(c.CreatureTypeId).Name == "Salamander"); t++) campaign.Tick();
+            db.CreatureById(c.CreatureTypeId).Name == "Salamander"); t++)
+        {
+            campaign.Tick();
+        }
+
         CreatureState[] salamanders = campaign.World.Creatures
             .Where(c => db.CreatureById(c.CreatureTypeId).Name == "Salamander").ToArray();
         Assert.NotEmpty(salamanders);
@@ -43,7 +47,10 @@ public class LavaMovementOnRealDataTests
             foreach (CreatureState c in salamanders)
             {
                 visited.Add(c.Tile);
-                if (c.HasRoute) targets.Add(new TilePos(c.Body.PathTargetPos.X >> 16, c.Body.PathTargetPos.Y >> 16));
+                if (c.HasRoute)
+                {
+                    targets.Add(new TilePos(c.Body.PathTargetPos.X >> 16, c.Body.PathTargetPos.Y >> 16));
+                }
             }
         }
         _output.WriteLine($"starting Salamanders={salamanders.Length}; visited={visited.Count}; lava visited={visited.Count(p => db.TerrainById(campaign.World.Tile(p).TerrainId).IsLava)}; targets={targets.Count}; lava targets={targets.Count(p => db.TerrainById(campaign.World.Tile(p).TerrainId).IsLava)}");
@@ -59,7 +66,11 @@ public class LavaMovementOnRealDataTests
         _output.WriteLine($"from={creature.Tile}; lava destination={lava}; creature owner={creature.OwnerPlayerId}; lava owner={world.Tile(lava).OwnerPlayerId}");
         (creature.Dk2StateId, creature.UtilityNewState) = (6, 1); // walking (6), resuming idle
         var movement = new GameSimulation(db, world, 1, [new CreatureMovementSystem()]);
-        for (int t = 0; t < 300 && creature.Tile != lava; t++) movement.Tick();
+        for (int t = 0; t < 300 && creature.Tile != lava; t++)
+        {
+            movement.Tick();
+        }
+
         Assert.Equal(lava, creature.Tile);
     }
 

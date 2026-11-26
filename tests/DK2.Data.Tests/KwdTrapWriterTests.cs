@@ -28,7 +28,9 @@ public class KwdTrapWriterTests
         List<KwdRecordImage> images = KwdRecordRoundTrip.Split(chunk);
         Assert.Equal(16, records.Count);
         for (int i = 0; i < records.Count; i++)
+        {
             Assert.Equal(images[i].ToBytes(), KwdTraps.WriteRecord(records[i], images[i]));
+        }
     }
 
     private static TrapDef Read(byte[] source) => KwdTraps.Parse([

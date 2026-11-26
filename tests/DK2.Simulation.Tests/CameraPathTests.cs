@@ -64,8 +64,15 @@ public class CameraPathTests
     public void ARefusedStartChangesNothingAndAsksTheViewForNothing(bool playing, bool possessing, int pathId)
     {
         (GameSimulation sim, ListEventSink events) = Simulation(PathAction(pathId, available: 0));
-        if (playing) sim.World.Player(Keeper).CameraPathEndTick = 5;
-        if (possessing) sim.World.Player(Keeper).PossessedCreatureId = 1;
+        if (playing)
+        {
+            sim.World.Player(Keeper).CameraPathEndTick = 5;
+        }
+
+        if (possessing)
+        {
+            sim.World.Player(Keeper).PossessedCreatureId = 1;
+        }
 
         sim.Tick();
 

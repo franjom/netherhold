@@ -38,8 +38,13 @@ public sealed class PossessionInputTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(30, 20),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         return (db, world);
     }
 
@@ -116,7 +121,11 @@ public sealed class PossessionInputTests
         (GameDatabase? db, WorldState? world) = Open();
         CreatureState me = Possess(db, world, 5, 10);
         CreatureState rival = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(7, 10));
-        if (disguised) me.SneakingAs = Rival;
+        if (disguised)
+        {
+            me.SneakingAs = Rival;
+        }
+
         Assert.Equal(disguised, PossessionRules.IsDisguisedFrom(rival, me));
 
         new GameSimulation(db, world, 1, [new CombatSystem()]).Run(1);
@@ -309,7 +318,10 @@ public sealed class PossessionInputTests
         CreatureState sneaker = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 10));
         CreatureState searcher = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(6, 10));
         Assert.True(CombatRules.Register(searcher, sneaker.Id, ranged: false));
-        if (disguised) sneaker.SneakingAs = Rival;
+        if (disguised)
+        {
+            sneaker.SneakingAs = Rival;
+        }
 
         new GameSimulation(db, world, 1, [new CombatSystem()]).Run(1);
 

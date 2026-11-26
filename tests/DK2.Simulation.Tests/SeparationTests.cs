@@ -139,7 +139,10 @@ public class SeparationTests
         for (int distance = 1000; distance >= 1; distance--)
         {
             int ratio = SeparationRules.Ratio(distance, 1000);
-            if (ratio <= SeparationRules.SaturationRatio) break;
+            if (ratio <= SeparationRules.SaturationRatio)
+            {
+                break;
+            }
 
             int magnitude = SeparationRules.Magnitude(ratio, 1 << 20, false, false);
             Assert.True(magnitude >= previous, $"fell from {previous} to {magnitude} at {distance}");

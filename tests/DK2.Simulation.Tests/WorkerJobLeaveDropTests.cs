@@ -39,8 +39,12 @@ public class WorkerJobLeaveDropTests
         }
 
         for (int y = 2; y <= 6; y++)
+        {
             for (int x = 3; x <= 7; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Prison), Keeper);
+            }
+        }
     }
 
     private static GameSimulation Simulation(GameDatabase db, WorldState world, ListEventSink sink)
@@ -84,7 +88,11 @@ public class WorkerJobLeaveDropTests
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
 
-        for (int i = 0; i < 20 * Second && imp.CarriedCreatureId < 0; i++) sim.Tick();
+        for (int i = 0; i < 20 * Second && imp.CarriedCreatureId < 0; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(body.Id, imp.CarriedCreatureId);
         sim.Run(Second);
         Assert.Equal(body.Id, imp.CarriedCreatureId);
@@ -122,21 +130,27 @@ public class WorkerJobLeaveDropTests
             new PrisonSystem(),
             new Probe(c =>
             {
-                if (!leave) return;
-                leave = false;
+                if (!leave) { return; } leave = false;
                 Assert.True(CreatureStateMachine.TrySetState(c.Hooks, imp, CreatureStateMachine.Idle));
             }),
         ]);
         sim.ObserveWith(sink);
 
-        for (int i = 0; i < 20 * Second && imp.CarriedCreatureId < 0; i++) sim.Tick();
+        for (int i = 0; i < 20 * Second && imp.CarriedCreatureId < 0; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(body.Id, imp.CarriedCreatureId);
         leave = true;
         sim.Tick();
         Assert.Equal(-1, imp.CarriedCreatureId);
         Assert.Contains(sink.Events, e => e.Kind == "body_dropped" && e.Detail.Contains("reason=left_worker_job"));
 
-        for (int i = 0; i < 60 * Second && !sink.Events.Any(e => e.Kind == "creature_imprisoned"); i++) sim.Tick();
+        for (int i = 0; i < 60 * Second && !sink.Events.Any(e => e.Kind == "creature_imprisoned"); i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Contains(sink.Events, e => e.Kind == "creature_imprisoned" && e.Detail.Contains($"body={body.Id}"));
         Assert.Equal(CreatureActivity.Imprisoned, body.Activity);

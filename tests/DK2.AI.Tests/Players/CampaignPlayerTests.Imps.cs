@@ -37,7 +37,10 @@ public partial class CampaignPlayerTests
         {
             char[] row = ImpMap[y].ToCharArray();
             for (int x = 0; x < row.Length && marks > 0; x++)
+            {
                 if (row[x] == '#') { row[x] = 'x'; marks--; }
+            }
+
             rows[y] = new string(row);
         }
         return rows;

@@ -131,7 +131,11 @@ public sealed class RoomSoundTests
         static GameSimulation Run(ListEventSink? sink)
         {
             (GameSimulation? sim, ListEventSink _) = Start();
-            if (sink is not null) sim.ObserveWith(sink);
+            if (sink is not null)
+            {
+                sim.ObserveWith(sink);
+            }
+
             sim.Tick(InputFrame.Of(BuildRoomCommand.Rect(Keeper, RoomTypeId.Lair, 1, 1, 2, 2)));
             sim.Run(3);
             sim.Tick(InputFrame.Of(SellRoomCommand.At(Keeper, new TilePos(1, 1))));

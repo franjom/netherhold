@@ -66,10 +66,18 @@ internal sealed class LegacyTransparentTerrain
 
     public void AddEffectMesh(Vector3[] positions, int[] indices, TestMaterial material, Matrix4x4 worldTransform)
     {
-        if (_effectCount == _effects.Count) _effects.Add(new EffectMesh());
+        if (_effectCount == _effects.Count)
+        {
+            _effects.Add(new EffectMesh());
+        }
+
         EffectMesh effect = _effects[_effectCount++];
         if (effect.Material == material && effect.Transform.Equals(worldTransform)
-            && positions.AsSpan().SequenceEqual(effect.Positions) && indices.AsSpan().SequenceEqual(effect.Indices)) return;
+            && positions.AsSpan().SequenceEqual(effect.Positions) && indices.AsSpan().SequenceEqual(effect.Indices))
+        {
+            return;
+        }
+
         effect.Material = material; effect.Transform = worldTransform;
         effect.Positions = positions.ToArray(); effect.Indices = indices.ToArray();
         _dirty = true;
@@ -77,7 +85,11 @@ internal sealed class LegacyTransparentTerrain
 
     public void EndEffectFrame()
     {
-        if (_effectCount == _effects.Count) return;
+        if (_effectCount == _effects.Count)
+        {
+            return;
+        }
+
         _effects.RemoveRange(_effectCount, _effects.Count - _effectCount);
         _dirty = true;
     }
@@ -89,6 +101,7 @@ internal sealed class LegacyTransparentTerrain
         var remap = new Dictionary<int, int>();
         var keptPositions = new List<Vector3>();
         foreach (KeyValuePair<TestMaterial, List<int>> entry in byMaterial)
+        {
             if (entry.Value.Count != 0 && entry.Key.Transparent)
             {
                 int[] kept = new int[entry.Value.Count];
@@ -106,14 +119,23 @@ internal sealed class LegacyTransparentTerrain
                 materials.Add(entry.Key);
                 triangles.Add(kept);
             }
+        }
+
         if (triangles.Count == 0)
         {
-            if (!_sources.Remove(chunk)) return;
+            if (!_sources.Remove(chunk))
+            {
+                return;
+            }
         }
-        else _sources[chunk] = new Source
+        else
+        {
+            _sources[chunk] = new Source
         {
             Positions = keptPositions.ToArray(), Materials = materials.ToArray(), Triangles = triangles.ToArray(),
         };
+        }
+
         _dirty = true;
     }
 
@@ -142,21 +164,29 @@ internal sealed class LegacyTransparentTerrain
                 }
                 int[] indices = source.Triangles[material];
                 for (int i = 0; i < indices.Length; i += 3)
+                {
                     _triangles.Add(new RenderTriangle(start + indices[i], start + indices[i + 1], start + indices[i + 2], slot));
+                }
             }
         }
         foreach (EffectMesh effect in _effects)
         {
             int start = _positions.Count;
             Matrix4x4 local = UnityMultiply(worldToLocal, effect.Transform);
-            for (int i = 0; i < effect.Positions.Length; i++) _positions.Add(MultiplyPoint3x4(local, effect.Positions[i]));
+            for (int i = 0; i < effect.Positions.Length; i++)
+            {
+                _positions.Add(MultiplyPoint3x4(local, effect.Positions[i]));
+            }
+
             if (!slots.TryGetValue(effect.Material!, out int slot))
             {
                 slot = _materials.Count; slots.Add(effect.Material!, slot); _materials.Add(effect.Material!);
             }
             for (int i = 0; i < effect.Indices.Length; i += 3)
+            {
                 _triangles.Add(new RenderTriangle(start + effect.Indices[i], start + effect.Indices[i + 1],
                     start + effect.Indices[i + 2], slot));
+            }
         }
     }
 
@@ -173,17 +203,28 @@ internal sealed class LegacyTransparentTerrain
         Array.Sort(_scratchBreaks, 0, count);
         Array.Reverse(_scratchBreaks, 0, count);
         bool same = count == _breakCount;
-        for (int i = 0; same && i < count; i++) same = _scratchBreaks[i] == _breaks[i];
+        for (int i = 0; same && i < count; i++)
+        {
+            same = _scratchBreaks[i] == _breaks[i];
+        }
+
         if (!same)
         {
-            if (_breaks.Length < count) _breaks = new float[_scratchBreaks.Length];
+            if (_breaks.Length < count)
+            {
+                _breaks = new float[_scratchBreaks.Length];
+            }
+
             Array.Copy(_scratchBreaks, _breaks, count);
             _breakCount = count;
             _breaksChanged = true;
         }
         Refresh(forward, matrix, worldToLocal, culling, frustum);
         orders.Clear();
-        for (int i = 0; i < count; i++) orders.Add(_sort.RunsBehind(_itemDepths[i]));
+        for (int i = 0; i < count; i++)
+        {
+            orders.Add(_sort.RunsBehind(_itemDepths[i]));
+        }
     }
 
     /// <summary>Unity's Refresh; <paramref name="matrix"/> is the stream's localToWorld and <paramref name="worldToLocal"/>
@@ -193,7 +234,11 @@ internal sealed class LegacyTransparentTerrain
         Uploaded = null;
         bool moved = _dirty || !Same(forward, _lastForward) || !ViewFrustum.ApproximatelyEqual(matrix, _lastMatrix)
             || !ViewFrustum.ApproximatelyEqual(culling, _lastCullingMatrix);
-        if (!moved && !_breaksChanged) return;
+        if (!moved && !_breaksChanged)
+        {
+            return;
+        }
+
         _breaksChanged = false;
         if (!moved)
         {
@@ -202,11 +247,18 @@ internal sealed class LegacyTransparentTerrain
         }
         bool matrixMoved = !ViewFrustum.ApproximatelyEqual(matrix, _lastMatrix);
         bool geometryChanged = _dirty || (_effects.Count != 0 && matrixMoved);
-        if (geometryChanged) Collect(worldToLocal);
+        if (geometryChanged)
+        {
+            Collect(worldToLocal);
+        }
+
         if (geometryChanged || matrixMoved)
         {
             _worldPositions.Clear();
-            foreach (Vector3 local in _positions) _worldPositions.Add(MultiplyPoint3x4(matrix, local));
+            foreach (Vector3 local in _positions)
+            {
+                _worldPositions.Add(MultiplyPoint3x4(matrix, local));
+            }
         }
         _visibleTriangles.Clear();
         foreach (RenderTriangle triangle in _triangles)
@@ -221,7 +273,10 @@ internal sealed class LegacyTransparentTerrain
                     && n.X * c.X + n.Y * c.Y + n.Z * c.Z + plane.D < -.0001f)
                 { outside = true; break; }
             }
-            if (!outside) _visibleTriangles.Add(triangle);
+            if (!outside)
+            {
+                _visibleTriangles.Add(triangle);
+            }
         }
         IReadOnlyList<TriangleDepthOrderBuffer.Run> ordered = _sort.Sort(_worldPositions, _visibleTriangles, forward,
             new ReadOnlySpan<float>(_breaks, 0, _breakCount));
@@ -261,9 +316,14 @@ internal sealed class LegacyTransparentTerrain
         Span<float> l = stackalloc float[16], r = stackalloc float[16], o = stackalloc float[16];
         Write(a, l); Write(b, r);
         for (int row = 0; row < 4; row++)
+        {
             for (int column = 0; column < 4; column++)
+            {
                 o[row * 4 + column] = l[row * 4] * r[column] + l[row * 4 + 1] * r[4 + column] + l[row * 4 + 2] * r[8 + column]
                     + l[row * 4 + 3] * r[12 + column];
+            }
+        }
+
         return new Matrix4x4(o[0], o[1], o[2], o[3], o[4], o[5], o[6], o[7], o[8], o[9], o[10], o[11], o[12], o[13], o[14], o[15]);
     }
 
@@ -278,7 +338,11 @@ internal sealed class LegacyTransparentTerrain
     private static int NextPowerOfTwo(int value)
     {
         int power = 1;
-        while (power < value) power <<= 1;
+        while (power < value)
+        {
+            power <<= 1;
+        }
+
         return power;
     }
 }

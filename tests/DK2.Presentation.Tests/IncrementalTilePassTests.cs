@@ -49,7 +49,11 @@ public class IncrementalTilePassTests
             fullPresenter.Present(world);
             Assert.True(full.Calls.SequenceEqual(incremental.Calls) && full.Pieces.SequenceEqual(incremental.Pieces),
                 $"{when}: the full pass pushed {full.Calls.Count} calls, the incremental {incremental.Calls.Count}");
-            if (incrementalPresenter.TilesAsked > 0 && incrementalPresenter.TilesAsked < world.TileCount) partial++;
+            if (incrementalPresenter.TilesAsked > 0 && incrementalPresenter.TilesAsked < world.TileCount)
+            {
+                partial++;
+            }
+
             full.Calls.Clear();
             incremental.Calls.Clear();
             full.Pieces.Clear();
@@ -60,8 +64,16 @@ public class IncrementalTilePassTests
         TilePos heart = Heart(world, database);
         var tagged = new List<TilePos>();
         for (int y = Math.Max(0, heart.Y - 10); y <= Math.Min(world.Height - 1, heart.Y + 10); y++)
+        {
             for (int x = Math.Max(0, heart.X - 10); x <= Math.Min(world.Width - 1, heart.X + 10); x++)
-                if (database.TerrainById(world.Tile(x, y).TerrainId).IsSolid) tagged.Add(new TilePos(x, y));
+            {
+                if (database.TerrainById(world.Tile(x, y).TerrainId).IsSolid)
+                {
+                    tagged.Add(new TilePos(x, y));
+                }
+            }
+        }
+
         int pushed = 0;
         for (int t = 0; t < 400; t++)
         {
@@ -87,8 +99,11 @@ public class IncrementalTilePassTests
             if (t == 200)
             {
                 foreach (WorldView view in new[] { incrementalView, fullView })
+                {
                     view.SetSightRegion(new SightRegion(world.CurrentTick, new TilePos(heart.X + 12, heart.Y), 40, 6,
                         world.Width, world.Height));
+                }
+
                 Present("a Sight region opens");
             }
         }
@@ -100,8 +115,13 @@ public class IncrementalTilePassTests
     {
         byte heart = database.Room(RoomTypeId.DungeonHeart).TerrainId;
         for (int i = 0; i < world.TileCount; i++)
+        {
             if (world.TileAtIndex(i).TerrainId == heart && world.TileAtIndex(i).OwnerPlayerId == PlayerIds.FirstKeeper)
+            {
                 return new TilePos((i % world.Width) + 2, (i / world.Width) + 2);
+            }
+        }
+
         throw new InvalidOperationException("no heart");
     }
 

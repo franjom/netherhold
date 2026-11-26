@@ -94,7 +94,11 @@ public class ShotTrailTests
         model.AdvanceTo(new EffectTime(51));
         Assert.Single(model.Particles);
         exists = false;
-        for (int step = 2; step <= 7; step++) model.AdvanceTo(new EffectTime(step * 50 + 1));
+        for (int step = 2; step <= 7; step++)
+        {
+            model.AdvanceTo(new EffectTime(step * 50 + 1));
+        }
+
         Assert.Empty(model.Particles);
     }
 

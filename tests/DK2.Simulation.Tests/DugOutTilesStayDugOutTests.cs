@@ -39,16 +39,22 @@ public class DugOutTilesStayDugOutTests
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
 
         for (int i = 0; i < 4; i++)
+        {
             world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
+        }
 
         var tiles = new List<TilePos>();
         for (int y = 0; y < world.Height; y++)
+        {
             for (int x = 0; x < world.Width; x++)
             {
                 TerrainDef terrain = database.TerrainById(world.Tile(x, y).TerrainId);
                 if (terrain.IsSolid && terrain.IsTaggable && !terrain.IsImpenetrable)
+                {
                     tiles.Add(new TilePos(x, y));
+                }
             }
+        }
 
         var sim = new GameSimulation(database, world, 2468, Dk2TerrainFixture.DefaultSystems());
         sim.Tick(InputFrame.Of(new TagTilesCommand(Keeper, tiles, true)));
@@ -59,6 +65,7 @@ public class DugOutTilesStayDugOutTests
             sim.Tick(InputFrame.Empty);
 
             for (int y = 0; y < world.Height; y++)
+            {
                 for (int x = 0; x < world.Width; x++)
                 {
                     int index = (y * world.Width) + x;
@@ -71,6 +78,7 @@ public class DugOutTilesStayDugOutTests
 
                     wasOpen[index] |= !solid;
                 }
+            }
         }
     }
 
@@ -143,7 +151,11 @@ public class DugOutTilesStayDugOutTests
 
         public void Emit(in SimEvent e)
         {
-            if (e.System != "ImpTask" || e.Kind != "job_taken") return;
+            if (e.System != "ImpTask" || e.Kind != "job_taken")
+            {
+                return;
+            }
+
             Assert.True(Enum.TryParse(e.Detail.Split(' ')[3], out TileWorkKind kind));
             Seen.Add(kind);
         }
@@ -165,23 +177,32 @@ public class DugOutTilesStayDugOutTests
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
 
         for (int i = 0; i < 4; i++)
+        {
             world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
+        }
 
         var tiles = new List<TilePos>();
         for (int y = 0; y < world.Height; y++)
+        {
             for (int x = 0; x < world.Width; x++)
             {
                 TerrainDef terrain = database.TerrainById(world.Tile(x, y).TerrainId);
                 if (terrain.IsSolid && terrain.IsTaggable && !terrain.IsImpenetrable)
+                {
                     tiles.Add(new TilePos(x, y));
+                }
             }
+        }
 
         var spy = new JobSpy();
         var sim = new GameSimulation(database, world, 1357, Dk2TerrainFixture.DefaultSystems());
         sim.ObserveWith(spy);
         sim.Tick(InputFrame.Of(new TagTilesCommand(Keeper, tiles, true)));
 
-        for (int tick = 0; tick < 4000; tick++) sim.Tick(InputFrame.Empty);
+        for (int tick = 0; tick < 4000; tick++)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
 
         Assert.True(spy.Seen.Count > 0, "no work was chosen at all, so this proved nothing");
 

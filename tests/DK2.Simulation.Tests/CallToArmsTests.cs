@@ -31,7 +31,11 @@ public sealed class CallToArmsTests
         ObjectState flag = world.SpawnObject(db, 10, Keeper, 168);
         flag.ProcessState = CallToArmsRules.Activating;
         var simulation = new GameSimulation(db, world, 1, [new CallToArmsSystem()]);
-        for (int i = 0; i < 4; i++) simulation.Tick();
+        for (int i = 0; i < 4; i++)
+        {
+            simulation.Tick();
+        }
+
         Assert.Equal(CallToArmsRules.Activating, flag.ProcessState);
         simulation.Tick();
         Assert.Equal(CallToArmsRules.Recalling, flag.ProcessState);
@@ -40,7 +44,11 @@ public sealed class CallToArmsTests
         simulation.Tick();
         Assert.Equal(CallToArmsRules.Faded, flag.ProcessState);
         Assert.Contains(flag, world.Objects);
-        for (int i = 0; i < 4; i++) simulation.Tick();
+        for (int i = 0; i < 4; i++)
+        {
+            simulation.Tick();
+        }
+
         Assert.DoesNotContain(flag, world.Objects);
     }
 
@@ -128,7 +136,10 @@ public sealed class CallToArmsTests
             long deadline = flag.ProcessDeadline;
             bool recalling = flag.ProcessState == CallToArmsRules.Recalling;
             sim.Tick();
-            if (recalling && flag.ProcessDeadline != deadline) recalls++;
+            if (recalling && flag.ProcessDeadline != deadline)
+            {
+                recalls++;
+            }
         }
 
         ViewEffectRequest[] effects = sink.Events

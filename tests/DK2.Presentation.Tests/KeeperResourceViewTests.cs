@@ -200,7 +200,11 @@ public sealed class KeeperResourceViewTests
         Assert.Equal(before, simulation.StateHash());
 
         long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
-        for (int i = 0; i < 100; i++) view.Capture(world);
+        for (int i = 0; i < 100; i++)
+        {
+            view.Capture(world);
+        }
+
         Assert.True(GC.GetAllocatedBytesForCurrentThread() - allocatedBefore < 1024,
             "Paused resource capture must reuse the settled snapshot.");
 
@@ -224,7 +228,11 @@ public sealed class KeeperResourceViewTests
         GameDatabase database = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!;
         var world = WorldState.FromMap(database, map, [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
-        for (int i = 0; i < world.TileCount; i++) world.TileAtIndex(i).OwnerPlayerId = PlayerIds.Neutral;
+        for (int i = 0; i < world.TileCount; i++)
+        {
+            world.TileAtIndex(i).OwnerPlayerId = PlayerIds.Neutral;
+        }
+
         Assert.True(world.Player(PlayerIds.FirstKeeper).HeartHealth > 0);
         Assert.Equal(0, new KeeperResourceView(database, PlayerIds.FirstKeeper).Capture(world).HeartHealth.Value);
     }

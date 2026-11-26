@@ -32,7 +32,10 @@ public sealed class Level6aTortureSpeechTests
             simulation.Tick();
             deferred.Replay();
             messages.Capture(simulation.World, tick * 250);
-            if (events.Events.Any(e => e.ScriptedView is { Kind: ScriptedViewKind.Speech, Value: 23 })) break;
+            if (events.Events.Any(e => e.ScriptedView is { Kind: ScriptedViewKind.Speech, Value: 23 }))
+            {
+                break;
+            }
         }
         TortureDeathMessage[] notices = events.Events.Where(e => e.TortureMessage.HasValue)
             .Select(e => e.TortureMessage!.Value).ToArray();

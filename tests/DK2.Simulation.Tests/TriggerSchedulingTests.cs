@@ -77,14 +77,33 @@ public class TriggerSchedulingTests
         var systems = new List<ISimulationSystem>();
         foreach (ISimulationSystem system in SimulationSystems.Default())
         {
-            if (system is RoomTickSystem) systems.Add(new FlagProbe("rooms begin", log));
+            if (system is RoomTickSystem)
+            {
+                systems.Add(new FlagProbe("rooms begin", log));
+            }
+
             systems.Add(system is CreatureUpdateSystem update
                 ? new CreatureUpdateSystem([.. update.Steps, new FlagProbe("update", log)])
                 : system);
-            if (system is CreatureUpdateSystem) systems.Add(new FlagProbe("creatures", log));
-            if (system is ActionPointTriggerSystem) systems.Add(new FlagProbe("areas", log));
-            if (system is RoomTickSystem) systems.Add(new FlagProbe("rooms end", log));
-            if (system is PlayerTriggerSystem) systems.Add(new FlagProbe("players", log));
+            if (system is CreatureUpdateSystem)
+            {
+                systems.Add(new FlagProbe("creatures", log));
+            }
+
+            if (system is ActionPointTriggerSystem)
+            {
+                systems.Add(new FlagProbe("areas", log));
+            }
+
+            if (system is RoomTickSystem)
+            {
+                systems.Add(new FlagProbe("rooms end", log));
+            }
+
+            if (system is PlayerTriggerSystem)
+            {
+                systems.Add(new FlagProbe("players", log));
+            }
         }
         var sim = new GameSimulation(db, world, 1, systems, tree);
 
@@ -179,8 +198,15 @@ public class TriggerSchedulingTests
         public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
         public void Update(SimulationContext context, CreatureState creature)
         {
-            if (creature.Id == newer) creature.Health = 0;
-            if (creature.Id == older) StampSeenByOlder = context.World.Triggers.ReadTimer(3);
+            if (creature.Id == newer)
+            {
+                creature.Health = 0;
+            }
+
+            if (creature.Id == older)
+            {
+                StampSeenByOlder = context.World.Triggers.ReadTimer(3);
+            }
         }
     }
 

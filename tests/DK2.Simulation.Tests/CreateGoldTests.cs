@@ -112,11 +112,14 @@ public sealed class CreateGoldTests
         (GameDatabase? db, WorldState? world) = Setup();
         byte terrain = db.Rooms.Values.Single(r => r.TypeId == kind).TerrainId;
         for (int y = 8; y <= 12; y++)
+        {
             for (int x = 8; x <= 12; x++)
             {
                 world.Tile(x, y).TerrainId = terrain;
                 world.Tile(x, y).OwnerPlayerId = Keeper;
             }
+        }
+
         var sink = new ListEventSink();
         var sim = new GameSimulation(db, world, 1, Systems());
         sim.ObserveWith(sink);
@@ -182,8 +185,13 @@ public sealed class CreateGoldTests
         world.Player(Keeper).Mana = db.KeeperSpellById(SpellId)!.ManaCost * 10;
         int[] centres = [0x2AA, 0x7FF, 0xD54];
         foreach (int y in centres)
+        {
             foreach (int x in centres)
+            {
                 sim.Tick(InputFrame.Of(CastAtOffsets(new Fp32(x), new Fp32(y))));
+            }
+        }
+
         Assert.Equal(9, world.Objects.Count);
         sim.Tick(InputFrame.Of(CastAtOffsets(new Fp32(0x800), new Fp32(0x800))));
         Assert.Equal(9, world.Objects.Count);

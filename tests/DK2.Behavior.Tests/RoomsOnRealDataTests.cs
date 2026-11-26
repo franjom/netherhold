@@ -193,7 +193,9 @@ public class RoomsOnRealDataTests
         GameDatabase db = RealDatabase();
 
         foreach (RoomDef room in db.Rooms.Values)
+        {
             Assert.True(db.TerrainById(room.TerrainId).IsRoom, $"{room.Name} terrain is not flagged Room");
+        }
     }
 
     [InstallFact]
@@ -214,7 +216,9 @@ public class RoomsOnRealDataTests
         Assert.Equal(["Hero Stone Bridge", "Stone Bridge", "Wooden Bridge"], overWater);
 
         foreach (RoomDef bridge in db.Rooms.Values.Where(r => r.PlaceableOnWater))
+        {
             Assert.False(bridge.PlaceableOnLand, $"{bridge.Name} is placeable on land as well as water");
+        }
     }
 
     [InstallFact]
@@ -341,7 +345,9 @@ public class RoomsOnRealDataTests
             ref TileState tile = ref world.TileAtIndex(i);
             TerrainDef terrain = db.TerrainById(tile.TerrainId);
             if (terrain.IsOwnable && !terrain.IsSolid && !terrain.IsRoom && tile.OwnerPlayerId != 0)
+            {
                 return (i, tile.OwnerPlayerId);
+            }
         }
         return (-1, 0);
     }

@@ -271,7 +271,9 @@ public class ObjectsOnRealDataTests
         foreach (RoomDef room in db.Rooms.Values)
         {
             foreach (byte id in room.ObjectIds.Where(o => o != 0))
+            {
                 Assert.Equal((ObjectFlags)0, db.ObjectById(id)!.Flags & carried);
+            }
         }
     }
 
@@ -301,7 +303,9 @@ public class ObjectsOnRealDataTests
         foreach (RoomDef room in db.Rooms.Values)
         {
             foreach (byte id in room.ObjectIds.Where(o => o != 0))
+            {
                 Assert.NotNull(db.ObjectById(id));
+            }
         }
     }
 
@@ -404,7 +408,9 @@ public class ObjectsOnRealDataTests
         };
 
         foreach ((byte id, string name) in branches)
+        {
             Assert.Equal(name, db.ObjectById(id)?.Name);
+        }
     }
 
     [InstallFact]

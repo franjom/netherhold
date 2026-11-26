@@ -108,8 +108,10 @@ public class TileWorkOnRealDataTests
         // run 15's health trace (ADR-0133) — asserted rather than looped, so that
         // a change to the application rate shows up here too.
         for (int i = 0; i < 4; i++)
+        {
             Assert.Equal(TileWorkOutcome.Progressed,
                 TileWorkRules.Apply(db, ref tile, TileWorkKind.Claim, 1).Outcome);
+        }
 
         Assert.Equal(TileWorkOutcome.Transformed,
             TileWorkRules.Apply(db, ref tile, TileWorkKind.Claim, 1).Outcome);
@@ -216,7 +218,10 @@ public class TileWorkOnRealDataTests
                 {
                     // Gem faces are inexhaustible by design; mining one forever
                     // is correct behaviour, not a failure to converge.
-                    if (db.TerrainById(tile.TerrainId).IsImpenetrable) continue;
+                    if (db.TerrainById(tile.TerrainId).IsImpenetrable)
+                    {
+                        continue;
+                    }
 
                     if (TileWorkRules.Applies(db, tile, kind, 1))
                     {
@@ -287,9 +292,11 @@ public class TileWorkOnRealDataTests
         // internal markers, which no map places as ground.
         string[] internalMarkers = ["Fog Of War", "Claim Scan"];
         foreach (TerrainDef t in db.Terrain.Values.Where(t => t.IsTaggable && t.IsImpenetrable))
+        {
             Assert.True(
                 t.Name == "Gems" || internalMarkers.Contains(t.Name),
                 $"{t.Name} is taggable and impenetrable and is neither Gems nor an internal marker");
+        }
     }
 
     /// <summary>

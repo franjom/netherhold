@@ -40,7 +40,12 @@ public sealed class IdleActionClockTests
     private static SimRandom RngWhoseFirstCoinIs(int side)
     {
         for (ulong seed = 1; ; seed++)
-            if (new SimRandom(seed).NextInt(2) == side) return new SimRandom(seed);
+        {
+            if (new SimRandom(seed).NextInt(2) == side)
+            {
+                return new SimRandom(seed);
+            }
+        }
     }
 
     /// <summary>Plays a counted action as the runner and chooser do: begin and advance on turn 0,
@@ -52,7 +57,11 @@ public sealed class IdleActionClockTests
         ActionAnimationClock.Advance(creature, imp);
         for (int turn = 1; turn < 100; turn++)
         {
-            if (ActionAnimationClock.CountedActionEnded(creature)) return turn;
+            if (ActionAnimationClock.CountedActionEnded(creature))
+            {
+                return turn;
+            }
+
             ActionAnimationClock.Advance(creature, imp);
         }
         throw new InvalidOperationException("never ended");

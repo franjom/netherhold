@@ -57,14 +57,19 @@ internal static class ScenarioCorpus
 
     public static void Report(Scenario scenario, ScenarioResult result, ITestOutputHelper output)
     {
-        if (result.Timings is { } timings) output.WriteLine($"{scenario.Id}: {timings.Summarise()}");
+        if (result.Timings is { } timings)
+        {
+            output.WriteLine($"{scenario.Id}: {timings.Summarise()}");
+        }
     }
 
     public static string RepositoryRoot()
     {
         DirectoryInfo? dir = new(AppContext.BaseDirectory);
         while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "DK2.slnx")))
+        {
             dir = dir.Parent;
+        }
 
         return dir?.FullName ?? throw new DirectoryNotFoundException(
             "Could not locate the repository root (no DK2.slnx above the test binaries).");

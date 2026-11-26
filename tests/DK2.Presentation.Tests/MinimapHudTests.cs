@@ -240,7 +240,10 @@ public sealed class MinimapHudTests
         ReadOnlySpan<HudVertex> cut = frame.Vertices(frame.Draws[0]);
         Assert.NotEqual(MinimapCameraFootprint.TriangleVertices, cut.Length);
         float reach = 212 / MathF.Cos(MathF.PI / HudTriangles.CircleSides) + 1e-3f;
-        foreach (HudVertex v in cut) Assert.True(Vector2.Distance(new Vector2(v.X, v.Y), new Vector2(244, 1680)) <= reach);
+        foreach (HudVertex v in cut)
+        {
+            Assert.True(Vector2.Distance(new Vector2(v.X, v.Y), new Vector2(244, 1680)) <= reach);
+        }
     }
 
     [Fact]

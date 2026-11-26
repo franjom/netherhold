@@ -483,7 +483,11 @@ public class RoomTests
             GoldStore.Deposit(run.World, Dk2TerrainFixture.Database(), Keeper, 5000);
 
             run.Tick(BuildRoomCommand.Rect(Keeper, LairId, 1, 2, 3, 3));
-            for (int i = 0; i < 20; i++) run.Tick();
+            for (int i = 0; i < 20; i++)
+            {
+                run.Tick();
+            }
+
             return run.Sim.StateHash();
         }
 

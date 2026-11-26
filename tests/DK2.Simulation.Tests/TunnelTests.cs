@@ -28,7 +28,9 @@ public class TunnelTests
         Assert.True(arrived, "the worker never reached the heart");
         Assert.Contains(sink.Events, e => e.Kind == "tunnel_started" && e.Detail.Contains($"creature={dwarf.Id} "));
         for (int x = 4; x <= 9; x++)
+        {
             Assert.False(db.TerrainById(world.Tile(x, 6).TerrainId).IsSolid, $"({x},6) is still solid");
+        }
     }
 
     /// <summary>An impenetrable column across the line, reaching the border above: the planner follows
@@ -38,14 +40,22 @@ public class TunnelTests
     public void AnImpenetrableColumnIsTunnelledRound_OnTheOpenHand_NeverThrough()
     {
         (GameDatabase db, WorldState world) = Walled();
-        for (int y = 1; y <= 7; y++) world.Tile(7, y).TerrainId = Dk2TerrainFixture.ImpenetrableRock;
+        for (int y = 1; y <= 7; y++)
+        {
+            world.Tile(7, y).TerrainId = Dk2TerrainFixture.ImpenetrableRock;
+        }
+
         CreatureState dwarf = Hero(db, world, Worker, new TilePos(3, 6));
         (GameSimulation sim, _) = Simulation(db, world);
 
         bool arrived = RunUntil(sim, () => dwarf.Dk2StateId == HeroJobRules.AtTheHeartState, 12000);
 
         Assert.True(arrived, "the worker never reached the heart");
-        for (int y = 1; y <= 7; y++) Assert.Equal(Dk2TerrainFixture.ImpenetrableRock, world.Tile(7, y).TerrainId);
+        for (int y = 1; y <= 7; y++)
+        {
+            Assert.Equal(Dk2TerrainFixture.ImpenetrableRock, world.Tile(7, y).TerrainId);
+        }
+
         Assert.False(db.TerrainById(world.Tile(7, 8).TerrainId).IsSolid, "the way round below was not dug");
     }
 
@@ -128,8 +138,16 @@ public class TunnelTests
     {
         (GameDatabase db, WorldState world) = Walled();
         for (int y = 4; y <= 8; y++)
+        {
             for (int x = 9; x <= 13; x++)
-                if (x is 9 or 13 || y is 4 or 8) world.Tile(x, y).TerrainId = Dk2TerrainFixture.ImpenetrableRock;
+            {
+                if (x is 9 or 13 || y is 4 or 8)
+                {
+                    world.Tile(x, y).TerrainId = Dk2TerrainFixture.ImpenetrableRock;
+                }
+            }
+        }
+
         CreatureState dwarf = Hero(db, world, Worker, new TilePos(3, 6));
         (GameSimulation sim, ListEventSink _) = Simulation(db, world);
 
@@ -194,7 +212,11 @@ public class TunnelTests
         for (int t = 0; t < limit && strikes.Count < count; t++)
         {
             sim.Tick();
-            if (world.Tile(at.X, at.Y).Health < health) strikes.Add(sim.World.CurrentTick.Value);
+            if (world.Tile(at.X, at.Y).Health < health)
+            {
+                strikes.Add(sim.World.CurrentTick.Value);
+            }
+
             health = world.Tile(at.X, at.Y).Health;
         }
         return strikes;
@@ -214,7 +236,10 @@ public class TunnelTests
         for (int t = 0; t < limit; t++)
         {
             sim.Tick();
-            if (done()) return true;
+            if (done())
+            {
+                return true;
+            }
         }
         return false;
     }
@@ -236,11 +261,14 @@ public class TunnelTests
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         world.Tile(3, 6).TerrainId = Dk2TerrainFixture.DirtPath;
         for (int y = 5; y <= 7; y++)
+        {
             for (int x = 10; x <= 12; x++)
             {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DungeonHeartTerrain;
                 world.Tile(x, y).OwnerPlayerId = Keeper;
             }
+        }
+
         return (db, world);
     }
 

@@ -48,9 +48,20 @@ public class CategoryHooksTests
         var expected = new HashSet<(Cat, HookKind, uint)>();
         foreach ((Cat category, uint enter, uint update, uint leave) in Dk2Table)
         {
-            if (enter != 0) expected.Add((category, HookKind.Enter, enter));
-            if (update != 0) expected.Add((category, HookKind.Update, update));
-            if (leave != 0) expected.Add((category, HookKind.Leave, leave));
+            if (enter != 0)
+            {
+                expected.Add((category, HookKind.Enter, enter));
+            }
+
+            if (update != 0)
+            {
+                expected.Add((category, HookKind.Update, update));
+            }
+
+            if (leave != 0)
+            {
+                expected.Add((category, HookKind.Leave, leave));
+            }
         }
 
         var actual = CategoryHooks.Slots.Select(s => (s.Category, s.Kind, s.Address)).ToList();
@@ -222,10 +233,12 @@ public class CategoryHooksTests
         // DK2 asks the rule for the recursion's move to 1; ours does not, which is safe only
         // because no travel state with any resume is refused it.
         foreach (int travel in new[] { 6, 7, 8, 9 })
-        for (int resume = 0; resume < CreatureStateTable.Count; resume++)
+        {
+            for (int resume = 0; resume < CreatureStateTable.Count; resume++)
         {
             Assert.Equal(StateTransition.Allowed,
                 CreatureStateTransitions.Classify(travel, CreatureStateMachine.Idle, resume));
+        }
         }
     }
 
@@ -250,7 +263,11 @@ public class CategoryHooksTests
         Cycle(hooks, creature);
 
         long before = GC.GetAllocatedBytesForCurrentThread();
-        for (int i = 0; i < 1000; i++) Cycle(hooks, creature);
+        for (int i = 0; i < 1000; i++)
+        {
+            Cycle(hooks, creature);
+        }
+
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 
         Assert.Equal(0, allocated);

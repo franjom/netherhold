@@ -15,7 +15,11 @@ public sealed class TerrainCeilingTests
     private static bool[] Map(params (int X, int Y)[] closed)
     {
         bool[] map = new bool[Size * Size];
-        foreach ((int x, int y) in closed) map[(y * Size) + x] = true;
+        foreach ((int x, int y) in closed)
+        {
+            map[(y * Size) + x] = true;
+        }
+
         return map;
     }
 
@@ -107,7 +111,10 @@ public sealed class TerrainCeilingTests
         float[] z = Heights(map, 12, 12);
 
         for (int i = 0; i < 9; i++)
+        {
             Assert.Equal(i == 4 ? TerrainCeiling.OpenLimit : -2f, z[i]);
+        }
+
         Assert.True(TerrainCeiling.Has(Size, Size, map, 12, 12));
         Assert.False(TerrainCeiling.Has(Size, Size, map, 12, 11));
         Assert.False(TerrainCeiling.Has(Size, Size, map, -1, 12));
@@ -153,7 +160,11 @@ public sealed class TerrainCeilingTests
     {
         var random = new Random(679);
         bool[] map = new bool[Size * Size];
-        for (int i = 0; i < map.Length; i++) map[i] = random.Next(5) == 0;
+        for (int i = 0; i < map.Length; i++)
+        {
+            map[i] = random.Next(5) == 0;
+        }
+
         return map;
     }
 
@@ -164,15 +175,23 @@ public sealed class TerrainCeilingTests
         TerrainCeilingField field = Field(map);
 
         for (int y = 0; y < Size; y++)
+        {
             for (int x = 0; x < Size; x++)
             {
                 Assert.Equal(!map[(y * Size) + x], field.Has(x, y));
-                if (!field.Has(x, y)) continue;
+                if (!field.Has(x, y))
+                {
+                    continue;
+                }
+
                 float[] z = Heights(map, x, y);
                 Vector3[] positions = Piece(field, x, y).Positions;
                 for (int i = 0; i < TerrainCeiling.Vertices; i++)
+                {
                     Assert.Equal(new Vector3(x + (i % 3 * 0.5f), y + (i / 3 * 0.5f), z[i]), positions[i]);
+                }
             }
+        }
     }
 
     /// <summary>In DK2's frame (z down) every triangle's cross product of its first two edges points
@@ -213,8 +232,12 @@ public sealed class TerrainCeilingTests
         Assert.Equal([(3 * Size) + 20, (12 * Size) + 12], changed);
         TerrainCeilingField fresh = Field(map);
         for (int y = 0; y < Size; y++)
+        {
             for (int x = 0; x < Size; x++)
+            {
                 AssertSame(Piece(fresh, x, y), Piece(field, x, y));
+            }
+        }
     }
 
     [Fact]
@@ -223,9 +246,16 @@ public sealed class TerrainCeilingTests
         TerrainCeilingField open = Field(Map()), closed = Field(Map((12, 12)));
 
         for (int y = 0; y < Size; y++)
+        {
             for (int x = 0; x < Size; x++)
+            {
                 if (Math.Max(Math.Abs(x - 12), Math.Abs(y - 12)) > TerrainCeiling.ChangeReach)
+                {
                     AssertSame(Piece(open, x, y), Piece(closed, x, y));
+                }
+            }
+        }
+
         Assert.NotEqual(Piece(open, 12 - TerrainCeiling.ChangeReach, 12).Normals, Piece(closed, 12 - TerrainCeiling.ChangeReach, 12).Normals);
         Assert.NotEqual(Piece(open, 12 + TerrainCeiling.ChangeReach, 12).Normals, Piece(closed, 12 + TerrainCeiling.ChangeReach, 12).Normals);
     }

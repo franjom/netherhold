@@ -41,7 +41,10 @@ public class KwdCreatureSpellWriterTests
         KwdChunk chunk = KwdReader.ReadFile(Path.Combine(Dk2InstallGate.Path, "Data", "editor", "CreatureSpells.kwd")).Single();
         List<CreatureSpellDef> rows = KwdAdditionalRecords.ParseCreatureSpells([chunk]); List<KwdRecordImage> images = KwdRecordRoundTrip.Split(chunk);
         Assert.Equal(41, rows.Count);
-        for (int i = 0; i < rows.Count; i++) Assert.Equal(images[i].ToBytes(), KwdAdditionalRecords.WriteCreatureSpellRecord(rows[i], images[i]));
+        for (int i = 0; i < rows.Count; i++)
+        {
+            Assert.Equal(images[i].ToBytes(), KwdAdditionalRecords.WriteCreatureSpellRecord(rows[i], images[i]));
+        }
     }
 
     private static CreatureSpellDef Read(byte[] source) => KwdAdditionalRecords.ParseCreatureSpells([

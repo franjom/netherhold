@@ -52,8 +52,13 @@ public class PreviousPositionStepTests
         var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(12, 12), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(new TilePos(x, y)).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         CreatureState goblin = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 5));
         goblin.LastPosX = goblin.LastPosY = 0;
         return (db, world, goblin);

@@ -235,7 +235,11 @@ public class KwdTerrainRoomsTests
         {
             LevelMap? grid = MapGrid.Parse(KwdReader.ReadFile(file));
             Assert.NotNull(grid);
-            if (grid is null) continue;
+            if (grid is null)
+            {
+                continue;
+            }
+
             gridsFound++;
 
             Assert.InRange(grid.Width, 1, 512);
@@ -244,7 +248,9 @@ public class KwdTerrainRoomsTests
 
             // Every tile must reference a terrain type that actually exists.
             foreach (MapTile t in grid.Tiles)
+            {
                 Assert.Contains(t.TerrainId, validTerrainIds);
+            }
         }
 
         Assert.True(gridsFound > 50, $"expected many map grids, found {gridsFound}");

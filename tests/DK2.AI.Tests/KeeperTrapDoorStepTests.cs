@@ -25,8 +25,13 @@ public class KeeperTrapDoorStepTests
     {
         WorldState world = KeeperWorld.World(Db);
         for (int y = 9; y <= 11; y++)
+        {
             for (int x = 13; x <= 15; x++)
+            {
                 KeeperWorld.Set(world, Db, new TilePos(x, y), KeeperWorld.WorkshopFloor, Keeper);
+            }
+        }
+
         world.Tile(KeeperWorld.HeartAt).GoldHeld = 5000;
         return world;
     }
@@ -212,7 +217,10 @@ public class KeeperTrapDoorStepTests
         Assert.Equal(1, left);
 
         for (int i = 1; i <= 4; i++)
+        {
             KeeperWorld.Set(world, Db, new TilePos(at.X, at.Y + i), KeeperWorld.ClaimedPath, Keeper);
+        }
+
         (left, commands) = Run(world, Params(boulderOnLong: true));
         PlaceTrapCommand boulder = Assert.IsType<PlaceTrapCommand>(Assert.Single(commands));
         Assert.Equal(KeeperWorld.BoulderTrapId, boulder.TrapId);

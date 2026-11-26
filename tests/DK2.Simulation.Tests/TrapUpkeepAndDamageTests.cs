@@ -21,8 +21,13 @@ public sealed class TrapUpkeepAndDamageTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 ManaRules.SetTerrain(world, db, ref world.Tile(x, y), Dk2TerrainFixture.DirtPath);
+            }
+        }
+
         return (db, world);
     }
 
@@ -39,7 +44,13 @@ public sealed class TrapUpkeepAndDamageTests
     {
         int[] all = ManaRules.UpkeepPerSecondByPlayerIndex(world, db);
         for (int i = 0; i < world.PlayerCount; i++)
-            if (world.PlayerAtIndex(i).PlayerId == player) return all[i];
+        {
+            if (world.PlayerAtIndex(i).PlayerId == player)
+            {
+                return all[i];
+            }
+        }
+
         throw new InvalidOperationException();
     }
 

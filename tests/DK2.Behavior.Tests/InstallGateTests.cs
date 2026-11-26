@@ -44,7 +44,9 @@ public class InstallGateTests
     {
         DirectoryInfo? dir = new(AppContext.BaseDirectory);
         while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "DK2.slnx")))
+        {
             dir = dir.Parent;
+        }
 
         Assert.NotNull(dir);
         return dir;

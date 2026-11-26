@@ -36,7 +36,11 @@ public class PlayerWorkshopTests
         List<TilePos> floors = [.. Enumerable.Range(0, map.Width * map.Height).Select(i => new TilePos(i % map.Width, i / map.Width))
             .Where(t => world.Tile(t).OwnerPlayerId == Keeper.Value && database.RoomByTerrain(world.Tile(t).TerrainId) is null
                 && (database.TerrainById(world.Tile(t).TerrainId).Flags & TerrainFlags.Solid) == 0)];
-        if (workshop) world.Tile(floors[1]).TerrainId = database.Room(RoomTypeId.Workshop).TerrainId;
+        if (workshop)
+        {
+            world.Tile(floors[1]).TerrainId = database.Room(RoomTypeId.Workshop).TerrainId;
+        }
+
         return new Setup(database, world, floors[0], door, trap);
     }
 
@@ -85,7 +89,10 @@ public class PlayerWorkshopTests
         var player = (DK2.AI.Players.CampaignPlayer)DK2.Harness.PlayerRunCommand.PlayerRunFor(
             ScenarioCorpus.Database, spec, new PlayerRunId("styles"), null).Controller;
         foreach (CreatureDef creature in ScenarioCorpus.Database.Creatures.Values)
+        {
             Assert.Equal(creature.FightStyle, player.Options.StyleOf(new CreatureTypeId(creature.CreatureId)));
+        }
+
         Assert.Contains(ScenarioCorpus.Database.Creatures.Values, c => c.FightStyle == FightStyle.Flanker);
         Assert.Contains(ScenarioCorpus.Database.Creatures.Values, c => c.FightStyle == FightStyle.Blocker);
     }
@@ -96,10 +103,18 @@ public class PlayerWorkshopTests
         Setup s = Level1(workshop: true);
         s.World.SetAvailability(Keeper.Value, AvailabilityKind.Door, s.Door, 2);                       // researchable: an unknown slot
         TrapDef? hidden = s.Database.Traps.Values.FirstOrDefault(t => !BottomPanelView.IsOnPanel(t));   // definition flag 0x2000
-        if (hidden is not null) s.World.SetAvailability(Keeper.Value, AvailabilityKind.Trap, hidden.TrapId, 3);
+        if (hidden is not null)
+        {
+            s.World.SetAvailability(Keeper.Value, AvailabilityKind.Trap, hidden.TrapId, 3);
+        }
+
         IReadOnlyList<PlayerWorkshopOffer> offers = Capture(s).Observation.Offers.Workshop;
         Assert.DoesNotContain(offers, o => o.Kind == PlayerWorkshopKind.Door && o.Id == s.Door);
-        if (hidden is not null) Assert.DoesNotContain(offers, o => o.Kind == PlayerWorkshopKind.Trap && o.Id == hidden.TrapId);
+        if (hidden is not null)
+        {
+            Assert.DoesNotContain(offers, o => o.Kind == PlayerWorkshopKind.Trap && o.Id == hidden.TrapId);
+        }
+
         Assert.Contains(offers, o => o.Kind == PlayerWorkshopKind.Trap && o.Id == s.Trap);
     }
 

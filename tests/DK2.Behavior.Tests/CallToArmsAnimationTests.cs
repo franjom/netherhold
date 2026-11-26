@@ -31,7 +31,11 @@ public class CallToArmsAnimationTests
         flag.AnimationStartedTick = 0;
         world.Player(3).CallToArms = new CallToArmsState(true, flag.Id, 8, 8, 1);
         var simulation = new GameSimulation(db, world, 1, [new CallToArmsSystem()]);
-        for (int i = 0; i < duration + 100; i++) simulation.Tick();
+        for (int i = 0; i < duration + 100; i++)
+        {
+            simulation.Tick();
+        }
+
         long cancelledAt = world.CurrentTick.Value;
         flag.ProcessState = process;
         flag.ProcessEnding = true;
@@ -39,7 +43,11 @@ public class CallToArmsAnimationTests
         Assert.Contains(flag, world.Objects);
         Assert.Equal(CallToArmsRules.Releasing, flag.ProcessState);
         Assert.Equal(cancelledAt, flag.AnimationStartedTick);
-        for (int i = 1; i < duration; i++) simulation.Tick();
+        for (int i = 1; i < duration; i++)
+        {
+            simulation.Tick();
+        }
+
         Assert.Contains(flag, world.Objects);
         Assert.True(world.Player(3).CallToArms.On);
         simulation.Tick();

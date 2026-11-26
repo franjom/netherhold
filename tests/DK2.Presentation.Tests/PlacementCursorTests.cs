@@ -76,8 +76,16 @@ public sealed class PlacementCursorTests
         int placeable = 0;
         TileRectangle area = dragged.Cage!.Value;
         for (int y = area.Y0; y < area.Y1; y++)
+        {
             for (int x = area.X0; x < area.X1; x++)
-                if (RoomRules.CanBuild(db, world, new TilePos(x, y), treasury, keeper) == RoomPlacement.Allowed) placeable++;
+            {
+                if (RoomRules.CanBuild(db, world, new TilePos(x, y), treasury, keeper) == RoomPlacement.Allowed)
+                {
+                    placeable++;
+                }
+            }
+        }
+
         Assert.Equal(-cost * placeable, dragged.Price);
     }
 
@@ -232,7 +240,11 @@ public sealed class PlacementCursorTests
         var stack = new HeldItemStack();
         stack.Refresh(world, keeper);
         Assert.Empty(stack.Icons);
-        for (int i = 0; i < 8; i++) Hold(world, world.SpawnCreature(db, ImpType, keeper, at));
+        for (int i = 0; i < 8; i++)
+        {
+            Hold(world, world.SpawnCreature(db, ImpType, keeper, at));
+        }
+
         Hold(world, world.SpawnCreature(db, GoblinType, keeper, at));
         stack.Refresh(world, keeper);
         Assert.Equal(HeldItemStack.MaxIcons, stack.Icons.Count);
@@ -246,7 +258,11 @@ public sealed class PlacementCursorTests
     {
         (GameDatabase db, WorldState world, PlayerId keeper) = Level1();
         TilePos at = Claimed(world, db, keeper, 0);
-        for (int i = 0; i < 7; i++) Hold(world, world.SpawnCreature(db, ImpType, keeper, at));
+        for (int i = 0; i < 7; i++)
+        {
+            Hold(world, world.SpawnCreature(db, ImpType, keeper, at));
+        }
+
         HoldObject(world, keeper, world.SpawnObject(db, HatcheryRules.ChickenObjectId, keeper, world.TileIndex(at)));
         var stack = new HeldItemStack();
         stack.Refresh(world, keeper);
@@ -367,8 +383,16 @@ public sealed class PlacementCursorTests
     private static TilePos HeartCentre(WorldState world, GameDatabase db, PlayerId keeper)
     {
         for (int y = 0; y < world.Height; y++)
+        {
             for (int x = 0; x < world.Width; x++)
-                if (DisposalRules.IsHeartCentreTile(world, db, new TilePos(x, y), keeper)) return new TilePos(x, y);
+            {
+                if (DisposalRules.IsHeartCentreTile(world, db, new TilePos(x, y), keeper))
+                {
+                    return new TilePos(x, y);
+                }
+            }
+        }
+
         throw new InvalidOperationException("No Heart.");
     }
 
@@ -378,6 +402,7 @@ public sealed class PlacementCursorTests
         byte claimed = world.Tile(Claimed(world, db, keeper, 0)).TerrainId;
         int x0 = HeartCentre(world, db, keeper).X > world.Width / 2 ? 2 : world.Width - 5;
         for (int y = 2; y < 5; y++)
+        {
             for (int x = x0; x < x0 + 3; x++)
             {
                 ref TileState tile = ref world.Tile(x, y);
@@ -385,6 +410,8 @@ public sealed class PlacementCursorTests
                 tile.OwnerPlayerId = keeper.Value;
                 RoomRules.Place(db, ref tile, db.Room(type), keeper);
             }
+        }
+
         return new TilePos(x0 + 1, 3);
     }
 
@@ -402,9 +429,16 @@ public sealed class PlacementCursorTests
     {
         RoomDef treasury = db.Rooms[RoomTypeId.Treasury];
         for (int y = 0; y < world.Height; y++)
+        {
             for (int x = 0; x < world.Width; x++)
+            {
                 if (RoomRules.CanBuild(db, world, new TilePos(x, y), treasury, keeper) == RoomPlacement.Allowed && skip-- == 0)
+                {
                     return new TilePos(x, y);
+                }
+            }
+        }
+
         throw new InvalidOperationException("No buildable tile.");
     }
 }

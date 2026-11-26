@@ -21,7 +21,10 @@ public sealed class MessageTextTablesTests
         try
         {
             foreach (string file in new[] { "Text.str", "MBToUni.dat" })
+            {
                 File.Copy(Path.Combine(Dk2InstallGate.Path, "Data", "Text", "Default", file), Path.Combine(text, file));
+            }
+
             File.WriteAllBytes(Path.Combine(text, "Speech.str"), [1, 2, 3]);
             using var sources = new InstallHudSources(install);
             var warnings = new List<string>();

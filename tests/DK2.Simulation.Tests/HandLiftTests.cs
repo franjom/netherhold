@@ -125,7 +125,11 @@ public class HandLiftTests
         Assert.Equal(sim.CurrentTick.Value - 1, goblin.PickupTick);
 
         List<HandItem> hand = world.Player(Keeper).Hand;
-        while (hand.Count < HandRules.Capacity(db)) hand.Add(HandItem.Of(goblin));
+        while (hand.Count < HandRules.Capacity(db))
+        {
+            hand.Add(HandItem.Of(goblin));
+        }
+
         sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, other.Id)));
         Assert.False(other.InHand);
         Assert.Equal(HandRules.PreparationState, other.Dk2StateId);

@@ -133,7 +133,11 @@ public class CostNumberEffectTests
         ConstructionParticle digit = Assert.Single(model.Particles);
         int born = digit.HeightRaw;
         // One 50 ms update at a time: an update moves once whatever quanta it covers (0x00436430).
-        for (int update = 1; update <= 47; update++) model.AdvanceTo(new(51 + update * 50));
+        for (int update = 1; update <= 47; update++)
+        {
+            model.AdvanceTo(new(51 + update * 50));
+        }
+
         Assert.Same(digit, Assert.Single(model.Particles));
         Assert.InRange(digit.HeightRaw - born, (int)(1.3 * 4096), (int)(1.45 * 4096));
         model.AdvanceTo(new(51 + 48 * 50));

@@ -53,9 +53,15 @@ public class RoomConversionTests
         for (int i = 1; i <= 500; i++)
         {
             TileWorkResult result = RoomHealthRules.Convert(world, Db, at, playerId);
-            if (result.Outcome == TileWorkOutcome.Transformed) return i;
+            if (result.Outcome == TileWorkOutcome.Transformed)
+            {
+                return i;
+            }
+
             if (result.Outcome == TileWorkOutcome.Rejected)
+            {
                 throw new InvalidOperationException($"ConvertRoom rejected at {at}");
+            }
         }
         throw new InvalidOperationException($"ConvertRoom never completed at {at}");
     }
@@ -312,8 +318,12 @@ public class RoomConversionTests
 
         Assert.Equal(applications, WorkUntilTaken(world, new TilePos(5, 5), Keeper));
         for (int y = 5; y < 5 + height; y++)
+        {
             for (int x = 5; x < 5 + width; x++)
+            {
                 Assert.Equal(Keeper, world.Tile(x, y).OwnerPlayerId);
+            }
+        }
     }
 
     [Fact]
@@ -347,7 +357,10 @@ public class RoomConversionTests
     {
         WorldState world = World();
         Paint(world, RoomTypeId.Treasury, 5, 5, 2, 1, Rival);
-        for (int i = 0; i < 10; i++) RoomHealthRules.Convert(world, Db, new TilePos(5, 5), Keeper);
+        for (int i = 0; i < 10; i++)
+        {
+            RoomHealthRules.Convert(world, Db, new TilePos(5, 5), Keeper);
+        }
 
         Assert.Equal(20000 - (10 * 800), RoomHealthRules.Health(world, Db, RoomAt(world, 5, 5)));
         Assert.Equal(Rival, world.Tile(6, 5).OwnerPlayerId);
@@ -402,7 +415,9 @@ public class RoomConversionTests
             world.QueueWork(5, 9, TileWorkKind.ConvertRoom, Keeper);
             sim.Tick(InputFrame.Empty);
             for (int x = 5; x <= 8; x++)
+            {
                 Assert.Equal(owner, world.Tile(x, 9).OwnerPlayerId);
+            }
         }
 
         world.QueueWork(5, 9, TileWorkKind.ConvertRoom, Keeper);
@@ -446,11 +461,18 @@ public class RoomConversionTests
         var sim = new GameSimulation(Db, world, seed: 7, Dk2TerrainFixture.DefaultSystems());
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
-        for (int i = 0; i < 400; i++) sim.Tick(InputFrame.Empty);
+        for (int i = 0; i < 400; i++)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
 
         for (int y = 1; y <= 3; y++)
+        {
             for (int x = 5; x <= 7; x++)
+            {
                 Assert.Equal(Keeper, world.Tile(x, y).OwnerPlayerId);
+            }
+        }
 
         Assert.Contains(sink.Events, e => e.Kind == "room_converted");
     }

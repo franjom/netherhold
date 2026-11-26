@@ -202,7 +202,11 @@ public sealed class StructureViewTests
     {
         (GameDatabase? database, WorldState? world) = Fixture();
         var view = new WorldView(database);
-        foreach (DoorState door in world.Doors) door.LockMode = 3;
+        foreach (DoorState door in world.Doors)
+        {
+            door.LockMode = 3;
+        }
+
         StructureView[] locked = view.Structures(world).ToArray();
         Assert.Equal(2, locked.Length);
         Assert.All(locked, door => Assert.Equal(AssetRef.ForDoorLock("Door"), door.LockMesh));
@@ -232,7 +236,11 @@ public sealed class StructureViewTests
     public void BarricadesAndUnmodelledSecretDisguisesDoNotShowLocks(DoorFlags flags)
     {
         (GameDatabase? database, WorldState? world) = Fixture(doorFlags: flags);
-        foreach (DoorState door in world.Doors) door.LockMode = 3;
+        foreach (DoorState door in world.Doors)
+        {
+            door.LockMode = 3;
+        }
+
         Assert.All(new WorldView(database).Structures(world), structure => Assert.True(structure.LockMesh.IsEmpty));
     }
 
@@ -296,7 +304,11 @@ public sealed class StructureViewTests
         string Trap() => $"Trap {trap.Id}";
         void Show(bool shown)
         {
-            foreach (DoorState door in doors) door.UnderConstruction = !shown;
+            foreach (DoorState door in doors)
+            {
+                door.UnderConstruction = !shown;
+            }
+
             trap.Hidden = !shown;
         }
         List<string> Present()
@@ -327,7 +339,11 @@ public sealed class StructureViewTests
         (GameDatabase? database, WorldState? world) = Fixture(fog: true);
         var view = new WorldView(database);
         Assert.Empty(view.Structures(world));
-        foreach (DoorState door in world.Doors) world.Tile(door.X, door.Y).SetExploredBy(1);
+        foreach (DoorState door in world.Doors)
+        {
+            world.Tile(door.X, door.Y).SetExploredBy(1);
+        }
+
         StructureView[] doors = view.Structures(world).ToArray();
         Assert.Equal(2, doors.Length);
         Assert.Contains(doors, door => door.MeshYaw == 0x600);
@@ -358,7 +374,10 @@ public sealed class StructureViewTests
                 GoldCost = 0, ManufactureRequired = 0, Flags = 0x20, ShotTypeId = 0, ManaUpkeepPerSecond = 0 }]);
         MapTile[] tiles = Enumerable.Repeat(new MapTile(1, 2, 0, 0), 35).ToArray();
         foreach (TilePos wall in new[] { new TilePos(2, 1), new TilePos(2, 3), new TilePos(4, 2), new TilePos(6, 2) })
+        {
             tiles[wall.Y * 7 + wall.X] = new MapTile(2, 2, 0, 0);
+        }
+
         var world = WorldState.FromMap(database, new LevelMap(7, 5, tiles), [1, 2], fogOfWarEnabled: fog);
         ThingProjection.Place(world, database,
         [

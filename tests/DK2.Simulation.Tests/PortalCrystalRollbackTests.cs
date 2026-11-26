@@ -53,13 +53,18 @@ public class PortalCrystalRollbackTests
         var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
             [PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 2; y <= 9; y++)
-        for (int x = 2; x <= 9; x++)
+        {
+            for (int x = 2; x <= 9; x++)
         {
             world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
             world.Tile(x, y).OwnerPlayerId = PlayerIds.FirstKeeper;
             if (x >= 4 && x <= 6 && y >= 4 && y <= 6)
-                RoomRules.Place(database, ref world.Tile(x, y), database.Room(type), PlayerIds.FirstKeeper);
+                {
+                    RoomRules.Place(database, ref world.Tile(x, y), database.Room(type), PlayerIds.FirstKeeper);
+                }
+            }
         }
+
         var navigation = new WorldSteering(database, world);
         navigation.Refresh();
         return navigation;

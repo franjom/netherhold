@@ -36,7 +36,11 @@ public class MpegAudioDecoderTests
     {
         byte[] payload = Payload("FrontEndHD.sdt");
         DirectoryInfo? root = new(AppContext.BaseDirectory);
-        while (root is not null && !File.Exists(Path.Combine(root.FullName, "DK2.slnx"))) root = root.Parent;
+        while (root is not null && !File.Exists(Path.Combine(root.FullName, "DK2.slnx")))
+        {
+            root = root.Parent;
+        }
+
         Assert.NotNull(root);
         string temp = Path.Combine(root.FullName, "build", "mpeg-io", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(temp);

@@ -18,7 +18,11 @@ public sealed class PartyArrivalTests
     {
         (GameDatabase? db, WorldState? world, CreatureState _) = Spawn();
         CreatureState? last = null;
-        for (int i = 1; i < 448; i++) last = world.SpawnCreature(db, Type, Keeper, new TilePos(7, 7));
+        for (int i = 1; i < 448; i++)
+        {
+            last = world.SpawnCreature(db, Type, Keeper, new TilePos(7, 7));
+        }
+
         CreatureDeathRules.BecomeCorpse(world, db, last!);
         Assert.True(HeroPartyRules.Spawn(new StateHookContext(world, db), new SimRandom(7),
             new TriggerTree([], 0, playerRoots: []), Assert.Single(world.HeroParties), 3, 0, _ => { }));
@@ -41,7 +45,13 @@ public sealed class PartyArrivalTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y < 19; y++)
-            for (int x = 1; x < 19; x++) world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+        {
+            for (int x = 1; x < 19; x++)
+            {
+                world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         foreach (TilePos t in new[] { new TilePos(5, 5), new TilePos(6, 5), new TilePos(5, 6), new TilePos(6, 6) })
         {
             world.Tile(t).TerrainId = terrain;
@@ -93,7 +103,10 @@ public sealed class PartyArrivalTests
         Assert.Equal(expected, hero.Dk2StateId);
         Assert.Equal(expected == 269, hero.ReaperHidden);
         Assert.Equal(0, hero.ActionUntilTick);
-        if (expected == 210) Assert.Equal((Fp32.One, Fp32.One), (hero.PosZ, hero.LastPosZ));
+        if (expected == 210)
+        {
+            Assert.Equal((Fp32.One, Fp32.One), (hero.PosZ, hero.LastPosZ));
+        }
     }
 
     /// <summary>269's44 flags vs210/263/264's42:0045A6D0 scan gate,

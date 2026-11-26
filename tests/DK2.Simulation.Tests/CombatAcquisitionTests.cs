@@ -111,7 +111,10 @@ public class CombatAcquisitionTests
         var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         foreach ((int x, int y) in new[] { (5, 5), (5, 4), (6, 4) })
+        {
             world.Tile(new TilePos(x, y)).TerrainId = Dk2TerrainFixture.DirtPath;
+        }
+
         CreatureState demon = world.SpawnArrived(db, Dk2TerrainFixture.BileDemonCreatureId, Keeper, new TilePos(5, 5));
         CreatureState goblin = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(6, 4));
 
@@ -124,7 +127,11 @@ public class CombatAcquisitionTests
     public void AWallBlocksSight_AndALongWayRoundIsOutOfHearing()
     {
         (GameDatabase db, WorldState world) = OpenWorld();
-        for (int y = 1; y <= 9; y++) world.Tile(new TilePos(6, y)).TerrainId = Dk2TerrainFixture.Rock;
+        for (int y = 1; y <= 9; y++)
+        {
+            world.Tile(new TilePos(6, y)).TerrainId = Dk2TerrainFixture.Rock;
+        }
+
         CreatureState demon = world.SpawnArrived(db, Dk2TerrainFixture.BileDemonCreatureId, Keeper, new TilePos(5, 5));
         world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(7, 5));
 
@@ -199,7 +206,9 @@ public class CombatAcquisitionTests
         CreatureState goblin = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(7, 5));
         var demons = new List<CreatureState>();
         for (int i = 0; i < 9; i++)
+        {
             demons.Add(world.SpawnArrived(db, Dk2TerrainFixture.BileDemonCreatureId, Keeper, new TilePos(4 + (i % 3), 3 + (i / 3))));
+        }
 
         Combat(db, world).Run(1);
 
@@ -347,7 +356,9 @@ public class CombatAcquisitionTests
                 ref TileState tile = ref world.Tile(new TilePos(x, y));
                 if (tile.TerrainId == Dk2TerrainFixture.Rock || tile.TerrainId == Dk2TerrainFixture.Gold
                     || tile.TerrainId == Dk2TerrainFixture.Gems)
+                {
                     tile.TerrainId = Dk2TerrainFixture.DirtPath;
+                }
             }
         }
         return (db, world);

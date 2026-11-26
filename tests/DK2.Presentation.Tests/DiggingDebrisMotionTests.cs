@@ -41,7 +41,10 @@ public class DiggingDebrisMotionTests
         });
         int[] heights = rocks.Select(p => p.HeightRaw).ToArray();
         crumble.AdvanceTo(new EffectTime(101));
-        for (int i = 0; i < rocks.Length; i++) Assert.True(rocks[i].HeightRaw < heights[i]);
+        for (int i = 0; i < rocks.Length; i++)
+        {
+            Assert.True(rocks[i].HeightRaw < heights[i]);
+        }
     }
 
     [InstallFact]

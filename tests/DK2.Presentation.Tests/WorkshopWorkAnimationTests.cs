@@ -41,7 +41,11 @@ public class WorkshopWorkAnimationTests
         for (int tick = 0; tick < 400; tick++)
         {
             simulation.Tick();
-            if (troll.Dk2StateId is not (WorkshopStep.AtTheMachineState or WorkshopStep.WorkingState)) continue;
+            if (troll.Dk2StateId is not (WorkshopStep.AtTheMachineState or WorkshopStep.WorkingState))
+            {
+                continue;
+            }
+
             CreatureView pose = view.Creatures(world).Single(c => c.Id == troll.Id);
             bool acting = troll.Dk2StateId == WorkshopStep.WorkingState && world.CurrentTick.Value < troll.ActionUntilTick;
             if (acting)

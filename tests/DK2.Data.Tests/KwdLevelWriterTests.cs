@@ -81,8 +81,12 @@ public class KwdLevelWriterTests
         string[] files=Directory.GetFiles(Path.Combine(Dk2InstallGate.Path,"Data","editor","maps"),"*.kwd");
         Assert.Equal(66,files.Length);
         foreach(string file in files)
-        foreach(KwdChunk chunk in KwdReader.ReadFile(file).Where(c=>c.Type==KwdRecordType.Level))
-            Assert.Equal(chunk.Content,KwdLevel.WriteRecord(KwdLevel.Parse([chunk])!,chunk));
+        {
+            foreach (KwdChunk chunk in KwdReader.ReadFile(file).Where(c=>c.Type==KwdRecordType.Level))
+            {
+                Assert.Equal(chunk.Content,KwdLevel.WriteRecord(KwdLevel.Parse([chunk])!,chunk));
+            }
+        }
     }
 
     [Fact]
@@ -114,6 +118,12 @@ public class KwdLevelWriterTests
 
     private static void Outside(byte[] source,byte[] edited,int at,int size)
     {
-        for(int i=0;i<source.Length;i++) if(i<at || i>=at+size) Assert.Equal(source[i],edited[i]);
+        for(int i=0;i<source.Length;i++)
+        {
+            if (i<at || i>=at+size)
+            {
+                Assert.Equal(source[i],edited[i]);
+            }
+        }
     }
 }

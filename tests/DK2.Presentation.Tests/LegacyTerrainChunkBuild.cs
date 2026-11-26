@@ -82,7 +82,11 @@ internal sealed class LegacyTerrainChunkBuild
 
         public Material Tagged(Material material, bool red = false)
         {
-            if (material.Key.Recipe.Blend == KmfBlend.Additive) return material;
+            if (material.Key.Recipe.Blend == KmfBlend.Additive)
+            {
+                return material;
+            }
+
             return Cached(("tag", material, red), () => new Material(material.Key with
             {
                 Variant = red ? TerrainMaterialVariant.Red : TerrainMaterialVariant.Tagged,
@@ -92,7 +96,11 @@ internal sealed class LegacyTerrainChunkBuild
         public Material TerrainTinted(Material material, TerrainLightColour tint)
         {
             tint = ClassicTerrainTint.PieceColour(tint);
-            if (tint == default || material.Key.Recipe.Blend == KmfBlend.Additive) return material;
+            if (tint == default || material.Key.Recipe.Blend == KmfBlend.Additive)
+            {
+                return material;
+            }
+
             return Cached(("tint", material, tint), () => new Material(material.Key with
             {
                 Variant = TerrainMaterialVariant.Tinted, Tint = tint,
@@ -107,7 +115,11 @@ internal sealed class LegacyTerrainChunkBuild
 
         private Material Cached(object key, Func<Material> make)
         {
-            if (!_cache.TryGetValue(key, out Material? material)) _cache[key] = material = make();
+            if (!_cache.TryGetValue(key, out Material? material))
+            {
+                _cache[key] = material = make();
+            }
+
             return material;
         }
     }
@@ -140,7 +152,13 @@ internal sealed class LegacyTerrainChunkBuild
         public int SlotOf(Material material)
         {
             for (int i = 0; i < MaterialCount; i++)
-                if (ReferenceEquals(Materials[i], material)) return i;
+            {
+                if (ReferenceEquals(Materials[i], material))
+                {
+                    return i;
+                }
+            }
+
             if (MaterialCount == Materials.Length)
             {
                 Array.Resize(ref Materials, MaterialCount * 2);
@@ -170,9 +188,17 @@ internal sealed class LegacyTerrainChunkBuild
     private PieceSource? Piece(AssetRef key, int textureIndex = -1)
     {
         TerrainPiece? piece = _pieces.Piece(key, textureIndex);
-        if (piece == null) return null;
+        if (piece == null)
+        {
+            return null;
+        }
+
         var materials = new Material[piece.Triangles.Count];
-        for (int i = 0; i < materials.Length; i++) materials[i] = _classic.ForTexture(piece.Recipes[i]);
+        for (int i = 0; i < materials.Length; i++)
+        {
+            materials[i] = _classic.ForTexture(piece.Recipes[i]);
+        }
+
         return new PieceSource(piece, materials);
     }
 
@@ -186,16 +212,27 @@ internal sealed class LegacyTerrainChunkBuild
         geometry.LatticeY = y;
         AddTile(geometry, x, y, tile);
         if (!tile.SightFogOverlay.IsEmpty)
+        {
             Add(geometry, Piece(tile.SightFogOverlay), 0, Ground(x + .5f, y + .5f),
                 x, y, fogOpacity: tile.SightFogOpacity);
+        }
+
         _lattice?.Prepare(x, y);
     }
 
     public void Build(TileGeometry geometry)
     {
         geometry.VertexCount = 0;
-        for (int s = 0; s < geometry.MaterialCount; s++) geometry.Triangles[s].Clear();
-        if (geometry.PieceStarts.Length < geometry.Pieces.Count) geometry.PieceStarts = new int[geometry.Pieces.Count * 2];
+        for (int s = 0; s < geometry.MaterialCount; s++)
+        {
+            geometry.Triangles[s].Clear();
+        }
+
+        if (geometry.PieceStarts.Length < geometry.Pieces.Count)
+        {
+            geometry.PieceStarts = new int[geometry.Pieces.Count * 2];
+        }
+
         int x = geometry.LatticeX, y = geometry.LatticeY;
         for (int p = 0; p < geometry.Pieces.Count; p++)
         {
@@ -232,13 +269,20 @@ internal sealed class LegacyTerrainChunkBuild
             TriangleGroup group = geometry.Groups[g];
             int start = geometry.PieceStarts[group.Piece];
             List<int> list = geometry.Triangles[group.Slot];
-            foreach (int index in geometry.Pieces[group.Piece].Piece.Triangles[group.Group]) list.Add(start + index);
+            foreach (int index in geometry.Pieces[group.Piece].Piece.Triangles[group.Group])
+            {
+                list.Add(start + index);
+            }
         }
     }
 
     private void AddTile(TileGeometry geometry, int x, int y, in TileView tile)
     {
-        if (tile.BedKeys != null) AddBed(geometry, x, y, tile);
+        if (tile.BedKeys != null)
+        {
+            AddBed(geometry, x, y, tile);
+        }
+
         if (tile.RoomKeys != null)
         {
             AddRoom(geometry, x, y, tile);
@@ -251,12 +295,29 @@ internal sealed class LegacyTerrainChunkBuild
 
         bool tagged = tile.Tagged;
         for (int side = 0; side < 4; side++)
-            if (pieces.HasFace(side)) Add(geometry, Piece(keys.Side, tile.FaceTexture), side, centre, x, y, tagged, tile.AmbientTint);
-        if (pieces.HasTop) Add(geometry, Piece(keys.Top), 0, centre, x, y, tagged, tile.AmbientTint,
+        {
+            if (pieces.HasFace(side))
+            {
+                Add(geometry, Piece(keys.Side, tile.FaceTexture), side, centre, x, y, tagged, tile.AmbientTint);
+            }
+        }
+
+        if (pieces.HasTop)
+        {
+            Add(geometry, Piece(keys.Top), 0, centre, x, y, tagged, tile.AmbientTint,
             invertLightingNormals: true);
-        if (pieces.HasFloor) Add(geometry, Piece(keys.Floor), 0, centre, x, y, tagged, tile.AmbientTint);
+        }
+
+        if (pieces.HasFloor)
+        {
+            Add(geometry, Piece(keys.Floor), 0, centre, x, y, tagged, tile.AmbientTint);
+        }
+
         AddHeroFaces(geometry, x, y, tile, keys, centre, tagged);
-        if (pieces.Quarters == QuarterKind.None) return;
+        if (pieces.Quarters == QuarterKind.None)
+        {
+            return;
+        }
 
         for (int q = 0; q < 4; q++)
         {
@@ -273,7 +334,9 @@ internal sealed class LegacyTerrainChunkBuild
         Vector3 centre = Ground(x + 0.5f, y + 0.5f);
         AddSet(geometry, tile.RoomFloor, keys, null, centre, x, y, tile.AmbientTint, tile.QuarterAmbientTint);
         if (!tile.ExtraRoomPiece.IsEmpty)
+        {
             Add(geometry, Piece(tile.ExtraRoomPiece), 0, centre, x, y, tint: tile.AmbientTint);
+        }
 
         RoomWalls walls = tile.Walls;
         for (int side = 0; side < 4; side++)
@@ -282,7 +345,9 @@ internal sealed class LegacyTerrainChunkBuild
             TerrainLightColour tint = walls.IsWhole(side) && walls.WholePiece(side) < 7
                 ? default : NeighbourTint(x, y, side);
             if (walls.IsWhole(side))
+            {
                 Add(geometry, Piece(keys.Piece(walls.WholePiece(side))), walls.WholeRotation(side), centre, x, y, tagged, tint);
+            }
             else if (walls.HasWall(side))
             {
                 Add(geometry, Piece(keys.Piece(walls.HalfAPiece(side))), side, Quadrant(centre, side), x, y, tagged, tint);
@@ -295,11 +360,17 @@ internal sealed class LegacyTerrainChunkBuild
     private void AddHeroFaces(TileGeometry geometry, int x, int y, in TileView tile, TerrainPieceKeys keys, Vector3 centre, bool tagged)
     {
         RoomWalls faces = tile.Walls;
-        if (faces.IsEmpty) return;
+        if (faces.IsEmpty)
+        {
+            return;
+        }
+
         for (int side = 0; side < 4; side++)
         {
             if (faces.IsWhole(side))
+            {
                 Add(geometry, Piece(keys.HeroFace(faces.WholePiece(side))), side, centre, x, y, tagged, tile.AmbientTint);
+            }
             else if (faces.HasWall(side))
             {
                 Add(geometry, Piece(keys.HeroFace(SwapHeroHalf(faces.HalfAPiece(side)))), side,
@@ -323,12 +394,22 @@ internal sealed class LegacyTerrainChunkBuild
         TerrainLightColour wholeTint = default, TerrainLightColour quarterTint = default)
     {
         if (set.HasQuarters)
+        {
             for (int q = 0; q < 4; q++)
+            {
                 if (set.HasQuarter(q))
+                {
                     Add(geometry, Piece(Key(room, bed, set.QuarterPiece(q))), set.QuarterRotation(q),
                         Quadrant(centre, q), x, y, tint: quarterTint);
-        if (set.HasWhole) Add(geometry, Piece(Key(room, bed, set.WholePiece)), set.WholeRotation, centre, x, y,
+                }
+            }
+        }
+
+        if (set.HasWhole)
+        {
+            Add(geometry, Piece(Key(room, bed, set.WholePiece)), set.WholeRotation, centre, x, y,
             tint: wholeTint);
+        }
     }
 
     private bool FacesTag(int x, int y, int side)
@@ -353,7 +434,11 @@ internal sealed class LegacyTerrainChunkBuild
     private void Add(TileGeometry geometry, PieceSource? piece, int rotation, Vector3 at, int x, int y, bool tagged = false,
         TerrainLightColour tint = default, byte? fogOpacity = null, bool invertLightingNormals = false)
     {
-        if (piece == null) return;
+        if (piece == null)
+        {
+            return;
+        }
+
         bool red = _tiles[y * _width + x].RedHighlighted;
         int placed = geometry.Pieces.Count;
         geometry.Pieces.Add(new PlacedPiece { Piece = piece, Rotation = rotation, At = at, InvertNormals = invertLightingNormals });
@@ -365,7 +450,9 @@ internal sealed class LegacyTerrainChunkBuild
                 : _classic.TerrainTinted(piece.Materials[m], tint);
             geometry.Groups.Add(new TriangleGroup { Piece = placed, Group = m, Slot = geometry.SlotOf(material) });
             if (red || tagged)
+            {
                 geometry.Groups.Add(new TriangleGroup { Piece = placed, Group = m, Slot = geometry.SlotOf(_classic.TagOverlay(red)) });
+            }
         }
     }
 }

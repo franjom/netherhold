@@ -67,12 +67,19 @@ public class KwdTriggersWriterTests
         int count=0;
         foreach(string file in Directory.EnumerateFiles(Path.Combine(Dk2InstallGate.Path,"Data"),"*",SearchOption.AllDirectories)
             .Where(p=>p.EndsWith(".kwd",StringComparison.OrdinalIgnoreCase)||p.EndsWith(".kld",StringComparison.OrdinalIgnoreCase)))
-        foreach(KwdChunk chunk in KwdReader.ReadFile(file).Where(c=>c.Type==KwdRecordType.Triggers))
+        {
+            foreach (KwdChunk chunk in KwdReader.ReadFile(file).Where(c=>c.Type==KwdRecordType.Triggers))
         {
                 List<TriggerRecord> rows =KwdTriggers.Parse([chunk]); List<KwdRecordImage> images =KwdRecordRoundTrip.Split(chunk);
-            for(int i=0;i<rows.Count;i++) Assert.Equal(images[i].ToBytes(),KwdTriggers.WriteRecord(rows[i],images[i]));
-            count+=rows.Count;
+            for(int i=0;i<rows.Count;i++)
+                {
+                    Assert.Equal(images[i].ToBytes(),KwdTriggers.WriteRecord(rows[i],images[i]));
+                }
+
+                count +=rows.Count;
         }
+        }
+
         Assert.Equal(9161,count);
     }
 

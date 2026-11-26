@@ -70,7 +70,10 @@ public sealed class HandEventTests
             Condition(CreatureRoot, creatureEvent, child: 0xFFFE),
         };
         if (slapCountTest)
+        {
             records.Add(Condition(6, 71, child: 0xFFFF, new() { ["Comparison"] = 5, ["Value"] = 1 }));
+        }
+
         records.Add(SetFlag(0xFFFF, flag: 1));
         records.Add(SetFlag(0xFFFE, flag: 2));
         var tree = new TriggerTree(records, 0, playerRoots: [new TriggerPlayerRoot(Keeper, PlayerRoot)]);

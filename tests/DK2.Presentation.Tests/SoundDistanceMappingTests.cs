@@ -79,7 +79,14 @@ public sealed class SoundDistanceMappingTests
             {
                 bool flagged = (BitConverter.ToUInt16(group.Unknown0x08, 8) & 0x200) != 0;
                 Assert.Equal(flagged, resolver.DistanceMappingOf(group.Id) is null);
-                if (flagged) headRelative++; else spatial++;
+                if (flagged)
+                {
+                    headRelative++;
+                }
+                else
+                {
+                    spatial++;
+                }
             }
         }
         Assert.True(headRelative > 0 && spatial > 0, $"head-relative {headRelative}, spatial {spatial}");

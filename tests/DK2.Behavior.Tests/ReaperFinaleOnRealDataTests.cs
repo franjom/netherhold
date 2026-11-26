@@ -34,8 +34,14 @@ public class ReaperFinaleOnRealDataTests(ITestOutputHelper output)
             {
                 ref PlayerState player = ref simulation.World.Player(Winner);
                 if (gemAtWin is null && player.Finale.GemObjectId != 0)
+                {
                     gemAtWin = (player.Finale.GemTileX, player.Finale.GemTileY);
-                if (pickup == 0) pickup = player.Finale.PickupTick;
+                }
+
+                if (pickup == 0)
+                {
+                    pickup = player.Finale.PickupTick;
+                }
             },
         };
         using FileStream journal = File.OpenRead(Dk2CaptureGate.PathFor(Fixture + "input.journal"));

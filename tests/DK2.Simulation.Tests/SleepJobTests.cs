@@ -142,7 +142,10 @@ public sealed class SleepJobTests
         {
             int before = sink.Events.Count(e => e.EffectRequest?.EffectId == new EffectId(67));
             sim.Tick();
-            if (sink.Events.Count(e => e.EffectRequest?.EffectId == new EffectId(67)) != before) asked.Add(goblin.SleepTicks);
+            if (sink.Events.Count(e => e.EffectRequest?.EffectId == new EffectId(67)) != before)
+            {
+                asked.Add(goblin.SleepTicks);
+            }
         }
 
         Assert.Equal([49, 98], asked);
@@ -166,8 +169,13 @@ public sealed class SleepJobTests
             [PlayerIds.Unowned, PlayerIds.Neutral, Keeper]);
         // A 3x3 Lair whose room point (the centre) is not the bed, so the job's walk has somewhere to go.
         for (int y = 1; y <= 3; y++)
-        for (int x = 1; x <= 3; x++)
-            RoomRules.Place(database, ref world.Tile(x, y), database.Room(RoomTypeId.Lair), Keeper);
+        {
+            for (int x = 1; x <= 3; x++)
+            {
+                RoomRules.Place(database, ref world.Tile(x, y), database.Room(RoomTypeId.Lair), Keeper);
+            }
+        }
+
         RoomRules.Place(database, ref world.Tile(OtherLair), database.Room(RoomTypeId.Lair), Keeper);
         for (int x = 4; x <= 6; x++)
         {

@@ -26,8 +26,13 @@ public class TrapCombatTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 12), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         return (db, world);
     }
 
@@ -87,7 +92,10 @@ public class TrapCombatTests
         // 0x0045E065: a trap adds a quarter tile to MeleeRange, half what a door or an object adds.
         Assert.Equal(((def.MeleeRange.Raw + 0x400) * (def.MeleeRange.Raw + 0x400)) >> 12, goblin.AttackRangeSquared);
 
-        for (int i = 0; i < 2000 && world.Traps.Count > 0; i++) sim.Run(1);
+        for (int i = 0; i < 2000 && world.Traps.Count > 0; i++)
+        {
+            sim.Run(1);
+        }
 
         Assert.Empty(world.Traps);
         // Every blow is the same, from wherever it lands: no bearing bonus on a thing. The trap's own
@@ -116,7 +124,11 @@ public class TrapCombatTests
         var sink = new ListEventSink();
         GameSimulation sim = Fight(db, world, sink);
 
-        for (int i = 0; i < 40 && !goblin.SwingInProgress; i++) sim.Run(1);
+        for (int i = 0; i < 40 && !goblin.SwingInProgress; i++)
+        {
+            sim.Run(1);
+        }
+
         Assert.True(goblin.SwingInProgress);
         int full = alarm.Health;
         sim.Run(delay - 1);
@@ -229,7 +241,11 @@ public class TrapCombatTests
         sim.Run(1);
         Assert.Equal(FightTargetKind.Trap, warlock.FightTargetKind);
         Assert.Equal(CombatRules.AttackMode.SpellAtThing, warlock.AttackType);
-        for (int i = 0; i < 200 && !sink.Events.Any(e => e.Kind == "shot_trap_hit"); i++) sim.Run(1);
+        for (int i = 0; i < 200 && !sink.Events.Any(e => e.Kind == "shot_trap_hit"); i++)
+        {
+            sim.Run(1);
+        }
+
         Assert.Contains(sink.Events, e => e.Kind == "shot_trap_hit" && e.Detail.Contains($"trap={trap.Id}"));
     }
 

@@ -24,12 +24,24 @@ public sealed class PossessionObjectTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         if (heart)
+        {
             for (int y = 3; y <= 7; y++)
+            {
                 for (int x = 10; x <= 14; x++)
+                {
                     RoomRules.Place(db, ref world.Tile(new TilePos(x, y)), db.Room(RoomTypeId.DungeonHeart), Rival);
+                }
+            }
+        }
+
         return (db, world);
     }
 
@@ -247,8 +259,13 @@ public sealed class PossessionObjectTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         CreatureState me = Possess(db, world, Dk2TerrainFixture.PossessorCreatureId, 10, 10);
         InFront(db, world, me, HatcheryRules.ChickenObjectId);
         GameSimulation sim = Sim(db, world);

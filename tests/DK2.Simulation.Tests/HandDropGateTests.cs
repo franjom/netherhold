@@ -26,19 +26,25 @@ public class HandDropGateTests
     private static void Set(WorldState world, int x0, int y0, int x1, int y1, byte terrain, byte owner)
     {
         for (int y = y0; y <= y1; y++)
+        {
             for (int x = x0; x <= x1; x++)
             {
                 ref TileState tile = ref world.Tile(x, y);
                 tile.TerrainId = terrain;
                 tile.OwnerPlayerId = owner;
             }
+        }
     }
 
     private static void Paint(GameDatabase db, WorldState world, RoomTypeId type, int x0, int y0, int x1, int y1, byte owner = Keeper)
     {
         for (int y = y0; y <= y1; y++)
+        {
             for (int x = x0; x <= x1; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(type), owner);
+            }
+        }
     }
 
     private static bool CanDrop(WorldState world, GameDatabase db, CreatureState creature, int x, int y) =>
@@ -134,12 +140,15 @@ public class HandDropGateTests
         CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
 
         for (int y = 5; y <= 7; y++)
+        {
             for (int x = 9; x <= 11; x++)
             {
                 Assert.False(CanDrop(world, db, goblin, x, y));
                 // An Imp, evil and a worker, is refused only another keeper's inner 3x3.
                 Assert.True(CanDrop(world, db, imp, x, y));
             }
+        }
+
         Assert.True(CanDrop(world, db, goblin, 8, 4));
         Assert.True(CanDrop(world, db, goblin, 12, 6));
     }
@@ -221,8 +230,12 @@ public class HandDropGateTests
         Assert.True(CanDrop(world, db, goblin, 7, 5));
 
         for (int y = 4; y <= 6; y++)
+        {
             for (int x = 6; x <= 8; x++)
+            {
                 world.SpawnCreature(db, GoblinId, Keeper, new TilePos(x, y));
+            }
+        }
 
         Assert.False(CanDrop(world, db, goblin, 7, 5));
         Assert.True(CanDrop(world, db, goblin, 5, 3));
@@ -306,9 +319,14 @@ public class HandDropGateTests
         sim.ObserveWith(events);
 
         for (int y = 5; y <= 7; y++)
+        {
             for (int x = 9; x <= 11; x++)
             {
-                if (x == 10 && y == 6) continue;
+                if (x == 10 && y == 6)
+                {
+                    continue;
+                }
+
                 var tile = new TilePos(x, y);
                 sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, imp.Id)));
                 Assert.True(HandRules.DropLands(world, db, Keeper, HandItem.Of(imp), tile));
@@ -318,6 +336,8 @@ public class HandDropGateTests
                 Assert.False(imp.InHand);
                 Assert.Equal(tile, imp.Tile);
             }
+        }
+
         Assert.DoesNotContain(events.Events, e => e.Kind is "drop_refused" or "creature_left" or "worker_given_back");
 
         sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, imp.Id)));
@@ -393,8 +413,13 @@ public class HandDropGateTests
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(7, 3));
 
         for (int y = 5; y <= 7; y++)
+        {
             for (int x = 9; x <= 11; x++)
+            {
                 Assert.False(HandRules.DropLands(world, db, Keeper, HandItem.Of(goblin), new TilePos(x, y)));
+            }
+        }
+
         Assert.True(HandRules.DropLands(world, db, Keeper, HandItem.Of(goblin), new TilePos(8, 4)));
     }
 

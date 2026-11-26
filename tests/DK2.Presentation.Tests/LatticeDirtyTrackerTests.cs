@@ -88,13 +88,21 @@ public sealed class LatticeDirtyTrackerTests
         var world = WorldState.FromMap(database, map, []);
         var lattice = new TerrainLattice(database, world, new PlayerId(PlayerIds.FirstKeeper));
         for (int y = 0; y < Height; y++)
+        {
             for (int x = 0; x < Width; x++)
+            {
                 lattice.Prepare(x, y);
+            }
+        }
 
         lattice.Invalidate(5, 5);
 
         for (int y = 2; y <= 8; y++)
+        {
             for (int x = 2; x <= 8; x++)
+            {
                 Assert.Equal(Math.Abs(x - 5) > 1 || Math.Abs(y - 5) > 1, lattice.IsBuilt(x, y));
+            }
+        }
     }
 }

@@ -67,7 +67,11 @@ public class ClassicVertexLightShaderTextTests
     [MemberData(nameof(Glsl))]
     public void GodotsShadowedShaderKeepsTheReferencesFormulas(string statement, int times)
     {
-        if (statement.StartsWith("if (kind.x == 1.0)", StringComparison.Ordinal)) return;
+        if (statement.StartsWith("if (kind.x == 1.0)", StringComparison.Ordinal))
+        {
+            return;
+        }
+
         Assert.Equal(times, Count(GodotShader(Shadows), statement));
     }
 
@@ -161,7 +165,10 @@ public class ClassicVertexLightShaderTextTests
             "if (v == a || v == d || v == c) sum += normalize(cross(grid[d] - grid[a], grid[c] - grid[a]));",
             "dk2_liquid_wave(CUSTOM1, liquid_position, liquid_normal); VERTEX = liquid_position; NORMAL = liquid_normal;",
         })
+        {
             Assert.Contains(statement, world);
+        }
+
         Assert.DoesNotContain("liquid_sines", Normalise(Preprocess(Read(GodotWorld))));
     }
 
@@ -172,7 +179,10 @@ public class ClassicVertexLightShaderTextTests
     public void EveryWorldShaderKeepsItsOwnDepthPrepass()
     {
         foreach (string file in Directory.GetFiles(Path.Combine(RepositoryRoot(), "godot/DK2.Godot/Shaders"), "World*.gdshader"))
+        {
             Assert.DoesNotContain("skip_vertex_transform", File.ReadAllText(file), StringComparison.Ordinal);
+        }
+
         foreach (string[] defined in new[] { Array.Empty<string>(), new[] { PerPixel }, new[] { PerPixel, Shadows } })
         {
             string world = Normalise(Preprocess(Read(GodotWorld), defined));
@@ -210,19 +220,40 @@ public class ClassicVertexLightShaderTextTests
                 stack.Push((active, holds));
                 active = active && holds;
             }
-            else if (line.StartsWith("#else", StringComparison.Ordinal)) active = stack.Peek().Outer && !stack.Peek().Condition;
-            else if (line.StartsWith("#endif", StringComparison.Ordinal)) active = stack.Pop().Outer;
-            else if (!active || line.StartsWith("#include", StringComparison.Ordinal)) continue;
+            else if (line.StartsWith("#else", StringComparison.Ordinal))
+            {
+                active = stack.Peek().Outer && !stack.Peek().Condition;
+            }
+            else if (line.StartsWith("#endif", StringComparison.Ordinal))
+            {
+                active = stack.Pop().Outer;
+            }
+            else if (!active || line.StartsWith("#include", StringComparison.Ordinal))
+            {
+                continue;
+            }
             else if (Regex.Match(line, @"^#define\s+(\w+)\((\w+)\)\s+(.*)$") is { Success: true } function)
+            {
                 functions[function.Groups[1].Value] = (function.Groups[2].Value, function.Groups[3].Value);
-            else if (Regex.Match(line, @"^#define\s+(\w+)\s+(.*)$") is { Success: true } value) objects[value.Groups[1].Value] = value.Groups[2].Value;
-            else lines.Add(raw);
+            }
+            else if (Regex.Match(line, @"^#define\s+(\w+)\s+(.*)$") is { Success: true } value)
+            {
+                objects[value.Groups[1].Value] = value.Groups[2].Value;
+            }
+            else
+            {
+                lines.Add(raw);
+            }
         }
         Assert.Empty(stack);
         string result = string.Join("\n", lines);
         foreach (KeyValuePair<string, string> macro in objects)
+        {
             result = Regex.Replace(result, $@"\b{macro.Key}\b", macro.Value);
+        }
+
         foreach (KeyValuePair<string, (string Parameter, string Body)> macro in functions)
+        {
             for (int at = result.IndexOf(macro.Key + "(", StringComparison.Ordinal); at >= 0;
                  at = result.IndexOf(macro.Key + "(", at, StringComparison.Ordinal))
             {
@@ -230,11 +261,16 @@ public class ClassicVertexLightShaderTextTests
                 for (; close < result.Length; close++)
                 {
                     depth += result[close] == '(' ? 1 : result[close] == ')' ? -1 : 0;
-                    if (depth == 0) break;
+                    if (depth == 0)
+                    {
+                        break;
+                    }
                 }
                 string argument = result[(open + 1)..close];
                 result = result[..at] + Regex.Replace(macro.Value.Body, $@"\b{macro.Value.Parameter}\b", argument) + result[(close + 1)..];
             }
+        }
+
         return result;
     }
 
@@ -247,7 +283,10 @@ public class ClassicVertexLightShaderTextTests
         int count = 0;
         for (int at = text.IndexOf(statement, StringComparison.Ordinal); at >= 0;
              at = text.IndexOf(statement, at + statement.Length, StringComparison.Ordinal))
+        {
             count++;
+        }
+
         return count;
     }
 
@@ -256,7 +295,11 @@ public class ClassicVertexLightShaderTextTests
     private static string RepositoryRoot()
     {
         DirectoryInfo? dir = new(AppContext.BaseDirectory);
-        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "DK2.slnx"))) dir = dir.Parent;
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "DK2.slnx")))
+        {
+            dir = dir.Parent;
+        }
+
         return dir?.FullName ?? throw new DirectoryNotFoundException("No DK2.slnx above the test binaries.");
     }
 }

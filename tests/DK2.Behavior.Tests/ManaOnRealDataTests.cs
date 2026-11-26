@@ -212,7 +212,9 @@ public class ManaOnRealDataTests
         GameDatabase db = RealDatabase();
 
         foreach (RoomDef room in db.Rooms.Values)
+        {
             Assert.Equal(0, db.TerrainById(room.TerrainId).ManaGain);
+        }
     }
 
     /// <summary>
@@ -298,16 +300,30 @@ public class ManaOnRealDataTests
             for (int t = 0; t < world.TileCount; t++)
             {
                 ref TileState tile = ref world.TileAtIndex(t);
-                if (tile.OwnerPlayerId != player) continue;
+                if (tile.OwnerPlayerId != player)
+                {
+                    continue;
+                }
+
                 expected += db.TerrainById(tile.TerrainId).ManaGain;
                 capBonus += db.TerrainById(tile.TerrainId).MaxManaGain;
-                if (tile.TerrainId is 17 or 26) bridges++;
-                if (tile.TerrainId == heartTerrain) heart = true;
+                if (tile.TerrainId is 17 or 26)
+                {
+                    bridges++;
+                }
+
+                if (tile.TerrainId == heartTerrain)
+                {
+                    heart = true;
+                }
             }
 
             // The heart is a flat per-keeper amount however many tiles it covers,
             // which on a shipped level is 25 of them.
-            if (heart) expected += db[VariableTypeId.DungeonHeartManaGenerationIncreasePerSecond];
+            if (heart)
+            {
+                expected += db[VariableTypeId.DungeonHeartManaGenerationIncreasePerSecond];
+            }
 
             Assert.Equal(Math.Min(expected + bridges,
                 db[VariableTypeId.MaximumManaGainPerSecond] + capBonus), gain[i]);

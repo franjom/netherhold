@@ -20,10 +20,19 @@ public class ClaimAndBedEffectTests
     {
         (GameDatabase db, WorldState world) = Load();
         for (int y = 1; y <= 5; y++)
+        {
             for (int x = 1; x <= 5; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.DungeonHeart), PlayerIds.FirstKeeper);
+            }
+        }
+
         world.Player(PlayerIds.FirstKeeper).HeartRuined = ruined;
-        if (ruined) RoomRules.RuinHearts(world, db, PlayerIds.FirstKeeper);
+        if (ruined)
+        {
+            RoomRules.RuinHearts(world, db, PlayerIds.FirstKeeper);
+        }
+
         var view = new WorldView(db);
         FpPosition3 At(int x, int y) => new(new(x * Fp32.One + Fp32.One / 2),
             new(y * Fp32.One + Fp32.One / 2), new(0));
@@ -40,8 +49,13 @@ public class ClaimAndBedEffectTests
     {
         (GameDatabase db, WorldState world) = Load();
         for (int y = 2; y <= 5; y++)
+        {
             for (int x = 2; x <= 5; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(type), PlayerIds.FirstKeeper);
+            }
+        }
+
         var view = new WorldView(db);
         FpPosition3 At(int x, int y) => new(new Fp32(x * Fp32.One + Fp32.One / 2),
             new Fp32(y * Fp32.One + Fp32.One / 2), new Fp32(0));
@@ -69,20 +83,35 @@ public class ClaimAndBedEffectTests
         var map = new LevelMap(7, 7, Enumerable.Repeat(new MapTile(1, PlayerIds.Unowned, 0, 0), 49).ToArray());
         var world = WorldState.FromMap(db, map, [PlayerIds.Unowned, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 2; y <= 4; y++)
+        {
             for (int x = 2; x <= 4; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Portal), PlayerIds.FirstKeeper);
+            }
+        }
+
         if (lairPresent)
+        {
             for (int y = 5; y <= 6; y++)
+            {
                 for (int x = 5; x <= 6; x++)
+                {
                     RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Lair), PlayerIds.FirstKeeper);
+                }
+            }
+        }
+
         for (int i = 0; i < held; i++)
         {
             world.SpawnCreature(db, goblin.CreatureId, PlayerIds.FirstKeeper, new TilePos(1, 1));
         }
         world.Player(PlayerIds.FirstKeeper).PortalsClosed = !portalOpen;
         if (blocked)
+        {
             world.Player(PlayerIds.FirstKeeper).EntranceInfo.Add(
                 new EntranceInfoState(goblin.CreatureId, PortalChoiceRules.Fresh, PortalChoiceRules.Fresh));
+        }
+
         var sim = new GameSimulation(db, world, 7, [new PortalSystem()]);
         var events = new ListEventSink();
         sim.ObserveWith(events);
@@ -103,7 +132,11 @@ public class ClaimAndBedEffectTests
             Assert.Equal(ViewEffectRequest.AtTileCentre(new EffectId(94), PlayerIds.FirstKeeper,
                 new TilePos(3, 3), new Fp32(0)), requests[0]);
             var particles = new RoomConstructionParticles(db, 7, () => new EffectTime(0));
-            foreach (SimEvent emission in events.Events) particles.Emit(emission);
+            foreach (SimEvent emission in events.Events)
+            {
+                particles.Emit(emission);
+            }
+
             particles.AdvanceTo(new EffectTime(51));
             Assert.Equal(12, particles.Particles.Count);
             Assert.All(particles.Particles, p => Assert.Contains(p.Definition.EffectElementId, new ushort[] { 234, 235 }));
@@ -134,7 +167,9 @@ public class ClaimAndBedEffectTests
             world.QueueWork(at.X, at.Y, TileWorkKind.Reinforce, PlayerIds.FirstKeeper);
             sim.Tick();
             if (world.Tile(at).TerrainId == rock.TerrainId)
+            {
                 Assert.DoesNotContain(events.Events, e => e.EffectRequest.HasValue);
+            }
         }
         Assert.Equal((byte)9, world.Tile(at).TerrainId);
         ViewEffectRequest[] requests = events.Events.Where(e => e.EffectRequest.HasValue)
@@ -153,7 +188,11 @@ public class ClaimAndBedEffectTests
         sim.Tick();
         Assert.Equal(4, events.Events.Count(e => e.EffectRequest.HasValue));
         var particles = new RoomConstructionParticles(db, 7, () => new EffectTime(0));
-        foreach (SimEvent emission in events.Events) particles.Emit(emission);
+        foreach (SimEvent emission in events.Events)
+        {
+            particles.Emit(emission);
+        }
+
         ConstructionParticle[] births = CollectBirths(particles);
         Assert.Equal(4 * 12 * 4, births.Length);
         Assert.All(births, p => Assert.Contains(p.Definition.EffectElementId, new ushort[] { 144, 145, 146, 147 }));
@@ -225,7 +264,10 @@ public class ClaimAndBedEffectTests
         Assert.True((smoke.Definition.ArtResource.Flags & 0x80) != 0);
         Assert.Equal(0, smoke.InitialPhase);
         for (int update = 1; update <= smoke.FrameDuration + 1; update++)
+        {
             model.AdvanceTo(new EffectTime((update + 1) * 50 + 1));
+        }
+
         Assert.Contains(smoke, model.Particles);
         Assert.True(smoke.Health > 0);
         Assert.Equal(Fp32.One, smoke.PhaseRaw);
@@ -258,7 +300,10 @@ public class ClaimAndBedEffectTests
         ConstructionParticle smoke = model.Particles.First(p => p.Health > p.FrameDuration);
         Assert.True((smoke.Definition.ArtResource.Flags & 0x80) == 0);
         for (int update = 1; update <= smoke.FrameDuration; update++)
+        {
             model.AdvanceTo(new EffectTime((update + 1) * 50 + 1));
+        }
+
         Assert.Contains(smoke, model.Particles);
         Assert.Equal(smoke.InitialPhase, smoke.PhaseRaw);
     }
@@ -313,8 +358,13 @@ public class ClaimAndBedEffectTests
     {
         (GameDatabase db, WorldState world) = Load();
         for (int y = 2; y <= 4; y++)
+        {
             for (int x = 2; x <= 4; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Portal), PlayerIds.FirstKeeper);
+            }
+        }
+
         ViewEffectRequest Request(TilePos tile) => ViewEffectRequest.AtTileCentre(
             new EffectId(CaptureEffectLayout.RoomEffectId), PlayerIds.FirstKeeper, tile, new Fp32(0));
         Assert.Equal(CaptureEdges.None, CaptureEffectLayout.Boundary(world, db, Request(new(3, 3))));
@@ -358,7 +408,10 @@ public class ClaimAndBedEffectTests
         Assert.Equal(Fp32.One, request.Height.Raw);
         Assert.Equal(0, request.Heading.Raw);
 
-        foreach (SimEvent simEvent in events.Events) model.Emit(simEvent);
+        foreach (SimEvent simEvent in events.Events)
+        {
+            model.Emit(simEvent);
+        }
 
         ConstructionParticle[] particles = CollectBirths(model);
         Assert.Equal(72, particles.Length);
@@ -397,8 +450,13 @@ public class ClaimAndBedEffectTests
     {
         (GameDatabase db, WorldState world) = Load();
         for (int y = 2; y <= 4; y++)
+        {
             for (int x = 2; x <= 4; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Portal), PlayerIds.Neutral);
+            }
+        }
+
         var sim = new GameSimulation(db, world, 1, [new TileWorkSystem()]);
         var model = new RoomConstructionParticles(db, 7, () => new EffectTime(0));
         sim.ObserveWith(model);
@@ -417,7 +475,10 @@ public class ClaimAndBedEffectTests
         for (int update = 6; update <= 70; update++)
         {
             model.AdvanceTo(new EffectTime(update * 50 + 1));
-            foreach (ConstructionParticle particle in model.Particles) seen.Add(particle);
+            foreach (ConstructionParticle particle in model.Particles)
+            {
+                seen.Add(particle);
+            }
         }
         Assert.Equal(9 * 32, seen.Count);
         Assert.Empty(model.Particles);
@@ -428,8 +489,13 @@ public class ClaimAndBedEffectTests
     {
         (GameDatabase db, WorldState world) = Load();
         for (int y = 2; y <= 4; y++)
+        {
             for (int x = 2; x <= 4; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Lair), PlayerIds.FirstKeeper);
+            }
+        }
+
         CreatureDef goblin = db.Creatures.Values.Single(c => c.Name == "Goblin");
         CreatureState sleeper = world.SpawnCreature(db, goblin.CreatureId, PlayerIds.FirstKeeper, new TilePos(3, 3));
         sleeper.SleepDebtTicks = 1;
@@ -437,13 +503,20 @@ public class ClaimAndBedEffectTests
         var events = new ListEventSink();
         var model = new RoomConstructionParticles(db, 7, () => new EffectTime(0));
         sim.ObserveWith(events);
-        for (int i = 0; i < 120 && !events.Events.Any(e => e.Kind == "bed_claimed"); i++) sim.Tick();
+        for (int i = 0; i < 120 && !events.Events.Any(e => e.Kind == "bed_claimed"); i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Single(events.Events, e => e.Kind == "bed_claimed");
         ViewEffectRequest request = Assert.Single(events.Events, e => e.EffectRequest.HasValue).EffectRequest!.Value;
         Assert.Equal((ushort)17, request.EffectId.Value);
         Assert.Equal(0, request.Height.Raw);
         Assert.Equal(new PlayerId(PlayerIds.FirstKeeper), request.Owner);
-        foreach (SimEvent simEvent in events.Events) model.Emit(simEvent);
+        foreach (SimEvent simEvent in events.Events)
+        {
+            model.Emit(simEvent);
+        }
 
         ConstructionParticle[] particles = CollectBirths(model);
 
@@ -481,11 +554,18 @@ public class ClaimAndBedEffectTests
     private static ConstructionParticle[] CollectBirths(RoomConstructionParticles model)
     {
         var seen = new HashSet<ConstructionParticle>();
-        foreach (ConstructionParticle particle in model.Particles) seen.Add(particle);
+        foreach (ConstructionParticle particle in model.Particles)
+        {
+            seen.Add(particle);
+        }
+
         for (int step = 1; step <= 5; step++)
         {
             model.AdvanceTo(new EffectTime(step * 50 + 1));
-            foreach (ConstructionParticle particle in model.Particles) seen.Add(particle);
+            foreach (ConstructionParticle particle in model.Particles)
+            {
+                seen.Add(particle);
+            }
         }
         return seen.ToArray();
     }

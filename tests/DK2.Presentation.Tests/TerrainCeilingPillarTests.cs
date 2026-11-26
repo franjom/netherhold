@@ -29,7 +29,13 @@ public sealed class TerrainCeilingPillarTests
         var database = new GameDatabase([Terrain(1), Terrain(2)], [room], [], variables);
         MapTile[] tiles = Enumerable.Repeat(new MapTile(1, 3, 0, 0), Size * Size).ToArray();
         for (int y = 4; y < 4 + height; y++)
-            for (int x = 4; x < 4 + width; x++) tiles[(y * Size) + x] = new MapTile(2, 3, 0, 0);
+        {
+            for (int x = 4; x < 4 + width; x++)
+            {
+                tiles[(y * Size) + x] = new MapTile(2, 3, 0, 0);
+            }
+        }
+
         return (WorldState.FromMap(database, new LevelMap(Size, Size, tiles), [3]), database);
     }
     [Theory]

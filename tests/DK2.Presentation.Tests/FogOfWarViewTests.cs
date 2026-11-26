@@ -120,8 +120,15 @@ public sealed class FogOfWarViewTests
         GameDatabase database = Database();
         var map = new LevelMap(1, 1, [new MapTile(terrainId, 2, 0, 0)]);
         var world = WorldState.FromMap(database, map, [1, 2], fogOfWarEnabled: true);
-        if (scanned) world.Tile(0, 0).SetDiscoveredBy(1);
-        if (explored) world.Tile(0, 0).SetExploredBy(1);
+        if (scanned)
+        {
+            world.Tile(0, 0).SetDiscoveredBy(1);
+        }
+
+        if (explored)
+        {
+            world.Tile(0, 0).SetExploredBy(1);
+        }
 
         TileView tile = new WorldView(database, 1).TileAt(world, 0, 0);
 
@@ -149,7 +156,11 @@ public sealed class FogOfWarViewTests
         GameDatabase database = Database();
         var map = new LevelMap(2, 1, [new MapTile(1, 2, 0, 0), new MapTile(1, 1, 0, 0)]);
         var world = WorldState.FromMap(database, map, [1, 2], fogOfWarEnabled: true);
-        if (scanned) world.Tile(0, 0).SetDiscoveredBy(1);
+        if (scanned)
+        {
+            world.Tile(0, 0).SetDiscoveredBy(1);
+        }
+
         world.Tile(1, 0).SetExploredBy(1);
 
         TileView tile = new WorldView(database, 1).TileAt(world, 0, 0);
@@ -173,9 +184,14 @@ public sealed class FogOfWarViewTests
         var view = new WorldView(database, 1);
         int checkedTiles = 0;
         for (int y = 0; y < world.Height; y++)
+        {
             for (int x = 0; x < world.Width; x++)
             {
-                if (!database.TerrainById(world.Tile(x, y).TerrainId).IsWater) continue;
+                if (!database.TerrainById(world.Tile(x, y).TerrainId).IsWater)
+                {
+                    continue;
+                }
+
                 TileView hidden = view.TileAt(world, x, y);
                 Assert.Equal(LiquidSurface.None, hidden.Surface);
                 Assert.True(hidden.Solid);
@@ -188,6 +204,8 @@ public sealed class FogOfWarViewTests
                 Assert.False(scanned.Solid);
                 checkedTiles++;
             }
+        }
+
         Assert.True(checkedTiles > 0);
     }
 
@@ -207,7 +225,11 @@ public sealed class FogOfWarViewTests
         MapTile[] tiles = Enumerable.Repeat(new MapTile(3, 2, 0, 0), 9).ToArray();
         tiles[5] = new MapTile((byte)neighbourTerrain, 2, 0, 0);
         var world = WorldState.FromMap(database, new LevelMap(3, 3, tiles), [1, 2], true);
-        if (sourceExplored) world.Tile(1, 1).SetExploredBy(1);
+        if (sourceExplored)
+        {
+            world.Tile(1, 1).SetExploredBy(1);
+        }
+
         var view = new WorldView(database, 1);
 
         Assert.False(view.TileAt(world, 1, 1).Pieces.HasFace(1));

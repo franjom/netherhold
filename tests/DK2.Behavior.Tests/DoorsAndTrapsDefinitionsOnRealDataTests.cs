@@ -43,7 +43,10 @@ public class DoorsAndTrapsDefinitionsOnRealDataTests
     [InstallFact]
     public void EveryKeeperDoorPriceMatchesTheOriginalManual()
     {
-        if (Database() is not { } database) return;
+        if (Database() is not { } database)
+        {
+            return;
+        }
 
         var prices = new Dictionary<string, ushort>
         {
@@ -56,7 +59,9 @@ public class DoorsAndTrapsDefinitionsOnRealDataTests
         };
 
         foreach ((string name, ushort price) in prices)
+        {
             Assert.Equal(price, database.Doors.Values.Single(d => d.Name == name).GoldCost);
+        }
     }
 
     [InstallFact]
@@ -64,7 +69,10 @@ public class DoorsAndTrapsDefinitionsOnRealDataTests
     {
         // Trap 0x20E and door 0x246 (ADR-0203): the object each points at is the crate named
         // after it, which the Workshop's completion (0x004F5240) creates.
-        if (Database() is not { } database) return;
+        if (Database() is not { } database)
+        {
+            return;
+        }
 
         var traps = new Dictionary<byte, string>
         {
@@ -74,7 +82,9 @@ public class DoorsAndTrapsDefinitionsOnRealDataTests
             [16] = "Crate [ Jack-In-The-Box ]",
         };
         foreach ((byte id, string crate) in traps)
+        {
             Assert.Equal(crate, database.ObjectById(database.Traps[id].CrateObjectId)!.Name);
+        }
 
         var doors = new Dictionary<byte, string>
         {
@@ -82,13 +92,18 @@ public class DoorsAndTrapsDefinitionsOnRealDataTests
             [4] = "Crate Magic Door", [5] = "Crate Secret Door", [6] = "Crate Barricade",
         };
         foreach ((byte id, string crate) in doors)
+        {
             Assert.Equal(crate, database.ObjectById(database.Doors[id].CrateObjectId)!.Name);
+        }
     }
 
     [InstallFact]
     public void EveryManualTrapPriceMatchesTheShippedColumn()
     {
-        if (Database() is not { } database) return;
+        if (Database() is not { } database)
+        {
+            return;
+        }
 
         var prices = new Dictionary<string, ushort>
         {
@@ -106,13 +121,18 @@ public class DoorsAndTrapsDefinitionsOnRealDataTests
         };
 
         foreach ((string name, ushort price) in prices)
+        {
             Assert.Equal(price, database.Traps.Values.Single(t => t.Name == name).GoldCost);
+        }
     }
 
     [InstallFact]
     public void TrapShotIdsNameTheEffectEachTrapEmits()
     {
-        if (Database() is not { } database) return;
+        if (Database() is not { } database)
+        {
+            return;
+        }
 
         // The numbers are SHOTS *record ids*, not row indices - see
         // ATrapsShotIdIsAShotsRecordIdAndNotItsRowIndex below.
@@ -132,13 +152,18 @@ public class DoorsAndTrapsDefinitionsOnRealDataTests
         };
 
         foreach ((string name, byte shotId) in expected)
+        {
             Assert.Equal(shotId, database.Traps.Values.Single(t => t.Name == name).ShotTypeId);
+        }
     }
 
     [InstallFact]
     public void HealthAndManufactureColumnsArePlausibleAcrossEveryRecord()
     {
-        if (Database() is not { } database) return;
+        if (Database() is not { } database)
+        {
+            return;
+        }
 
         Assert.Equal(
             new ushort[] { 2000, 8000, 6000, 12000, 3000, 3000, 3000, 8000 },
@@ -176,7 +201,11 @@ public class DoorsAndTrapsDefinitionsOnRealDataTests
     [InstallFact]
     public void ATrapsShotIdIsAShotsRecordIdAndNotItsRowIndex()
     {
-        if (Database() is not { } database) return;
+        if (Database() is not { } database)
+        {
+            return;
+        }
+
         string install = Dk2InstallGate.Path;
 
         const int recordSize = 239;

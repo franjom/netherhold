@@ -27,8 +27,14 @@ public class ArtCatalogueTests
             Dk2ArtResource expected = standing.Type != 0 ? standing : art.Creatures[creature.CreatureId][0];
             ArtEntry entry = entries[DK2.Assets.AssetRef.ForCreature(creature.Name,
                 DK2.Assets.AssetKind.Animation, "movement_idle").Key];
-            if (expected.IsEmpty) Assert.False(entry.HasSource);
-            else Assert.Equal(expected, entry.Source);
+            if (expected.IsEmpty)
+            {
+                Assert.False(entry.HasSource);
+            }
+            else
+            {
+                Assert.Equal(expected, entry.Source);
+            }
         }
     }
 
@@ -46,8 +52,14 @@ public class ArtCatalogueTests
             Dk2ArtResource expected = resources[slot].Type != 0 ? resources[slot] : resources[fallback];
             ArtEntry entry = entries[DK2.Assets.AssetRef.ForCreature(creature.Name,
                 DK2.Assets.AssetKind.Animation, clip).Key];
-            if (expected.IsEmpty) Assert.False(entry.HasSource);
-            else Assert.Equal(expected, entry.Source);
+            if (expected.IsEmpty)
+            {
+                Assert.False(entry.HasSource);
+            }
+            else
+            {
+                Assert.Equal(expected, entry.Source);
+            }
         }
     }
 
@@ -65,8 +77,14 @@ public class ArtCatalogueTests
             Dk2ArtResource expected = resources[21].Type != 0 ? resources[21] : resources[4];
             ArtEntry entry = entries[DK2.Assets.AssetRef.ForCreature(creature.Name,
                 DK2.Assets.AssetKind.Animation, "working").Key];
-            if (expected.IsEmpty) Assert.False(entry.HasSource);
-            else Assert.Equal(expected, entry.Source);
+            if (expected.IsEmpty)
+            {
+                Assert.False(entry.HasSource);
+            }
+            else
+            {
+                Assert.Equal(expected, entry.Source);
+            }
         }
 
         CreatureDef troll = database.Creatures.Values.Single(c => c.Name == "Troll");
@@ -86,7 +104,10 @@ public class ArtCatalogueTests
             ArtEntry entry = entries[DK2.Assets.AssetRef.ForCreature(creature.Name,
                 DK2.Assets.AssetKind.Animation, "entrance").Key];
             Dk2ArtResource expected = art.Creatures[creature.CreatureId][29];
-            if (expected.IsEmpty) Assert.False(entry.HasSource);
+            if (expected.IsEmpty)
+            {
+                Assert.False(entry.HasSource);
+            }
             else
             {
                 Assert.Equal(expected, entry.Source);
@@ -125,8 +146,14 @@ public class ArtCatalogueTests
             ArtEntry entry = entries[DK2.Assets.AssetRef.ForCreature(creature.Name,
                 DK2.Assets.AssetKind.Animation, "landing").Key];
             Dk2ArtResource expected = resources[23].Type != 0 ? resources[23] : resources[3];
-            if (expected.IsEmpty) Assert.False(entry.HasSource);
-            else Assert.Equal(expected, entry.Source);
+            if (expected.IsEmpty)
+            {
+                Assert.False(entry.HasSource);
+            }
+            else
+            {
+                Assert.Equal(expected, entry.Source);
+            }
         }
     }
 
@@ -143,8 +170,14 @@ public class ArtCatalogueTests
             ArtEntry entry = entries[DK2.Assets.AssetRef.ForCreature(creature.Name,
                 DK2.Assets.AssetKind.Animation, "casting").Key];
             Dk2ArtResource expected = resources[5].Type != 0 ? resources[5] : resources[4];
-            if (expected.IsEmpty) Assert.False(entry.HasSource);
-            else Assert.Equal(expected, entry.Source);
+            if (expected.IsEmpty)
+            {
+                Assert.False(entry.HasSource);
+            }
+            else
+            {
+                Assert.Equal(expected, entry.Source);
+            }
         }
     }
 
@@ -174,7 +207,10 @@ public class ArtCatalogueTests
         Dk2ArtResource requested = art.Creatures[1][fileSlot];
         Assert.Equal(action == "running" && requested.Type == 0 ? art.Creatures[1][0] : requested, entry.Source);
         Assert.True(entry.HasSource);
-        if (action != "running") Assert.NotEqual(art.Creatures[1][0], entry.Source);
+        if (action != "running")
+        {
+            Assert.NotEqual(art.Creatures[1][0], entry.Source);
+        }
     }
 
     [InstallFact]
@@ -207,8 +243,14 @@ public class ArtCatalogueTests
                     DK2.Assets.AssetKind.Animation, "eating").Key);
             IReadOnlyList<Dk2ArtResource> resources = art.Creatures[creature.CreatureId];
             Dk2ArtResource expected = resources[12].Type != 0 ? resources[12] : resources[7];
-            if (expected.IsEmpty) Assert.False(entry.HasSource);
-            else Assert.Equal(expected, entry.Source);
+            if (expected.IsEmpty)
+            {
+                Assert.False(entry.HasSource);
+            }
+            else
+            {
+                Assert.Equal(expected, entry.Source);
+            }
         }
     }
 

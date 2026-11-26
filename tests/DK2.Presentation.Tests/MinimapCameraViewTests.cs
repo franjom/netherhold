@@ -86,7 +86,9 @@ public sealed class MinimapCameraViewTests
     public void TheHeadingIsTheClassicCamerasYawForEveryYaw()
     {
         for (ushort yaw = 0; yaw < 2048; yaw++)
+        {
             Assert.Equal(yaw, View(Camera(yaw), Focus).Heading.Raw);
+        }
     }
 
     [Theory]
@@ -116,12 +118,19 @@ public sealed class MinimapCameraViewTests
     public void TheFootprintTrianglesFollowTheNativeIndexListWithOutwardVerticesAtTheImagesTop()
     {
         var vertices = new Vector2[8];
-        for (int i = 0; i < 8; i++) vertices[i] = new Vector2(10 + i, 600 + i);
+        for (int i = 0; i < 8; i++)
+        {
+            vertices[i] = new Vector2(10 + i, 600 + i);
+        }
+
         var triangles = new HudVertex[MinimapCameraFootprint.TriangleVertices];
         MinimapCameraFootprint.Triangles(vertices, triangles);
         int[] indices = [0, 2, 1, 1, 2, 3, 2, 4, 3, 3, 4, 5, 5, 4, 6, 7, 5, 6, 0, 7, 6, 0, 1, 7];
         for (int i = 0; i < indices.Length; i++)
+        {
             Assert.Equal(new HudVertex((10 + indices[i]) * 2.5f, (600 + indices[i]) * 2.5f, .5f, indices[i] % 2), triangles[i]);
+        }
+
         Assert.Throws<ArgumentException>(() => MinimapCameraFootprint.Triangles(vertices.AsSpan(0, 7), triangles));
         Assert.Throws<ArgumentException>(() => MinimapCameraFootprint.Triangles(vertices, triangles.AsSpan(0, 23)));
     }

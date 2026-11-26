@@ -51,7 +51,11 @@ public class KeeperStagingTests
         (GameDatabase db, WorldState world) = Battle();
         var staging = new KeeperStaging();
         // More than 255 searches exercises the reused router's generation wrap.
-        for (int i = 0; i < 140; i++) AssertSameView(db, world, Keeper, staging);
+        for (int i = 0; i < 140; i++)
+        {
+            AssertSameView(db, world, Keeper, staging);
+        }
+
         Assert.Equal(1, staging.Builds);
     }
 
@@ -69,8 +73,13 @@ public class KeeperStagingTests
         GameDatabase db = KeeperWorld.Database();
         WorldState world = KeeperWorld.World(db, morePlayers: [Other.Value]);
         for (int y = 12; y <= 18; y++)
+        {
             for (int x = 8; x <= 12; x++)
+            {
                 KeeperWorld.Set(world, db, new TilePos(x, y), KeeperWorld.ClaimedPath, Other.Value);
+            }
+        }
+
         KeeperWorld.Set(world, db, new TilePos(9, 15), KeeperWorld.HeartFloor, Other.Value);
         CreatureState a = world.SpawnCreature(db, KeeperWorld.FighterCreature, Keeper, new TilePos(13, 15));
         CreatureState b = world.SpawnCreature(db, KeeperWorld.FighterCreature, Other, new TilePos(11, 15));

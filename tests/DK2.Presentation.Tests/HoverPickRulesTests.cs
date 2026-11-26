@@ -14,8 +14,15 @@ public sealed class HoverPickRulesTests
     {
         var pick = new RenderedPick();
         if (HoverPickRules.RenderedCreature(CreatureFlags.CanBePickedUp, dying: false, objectsOnly: true))
+        {
             pick.Offer(1, 1f, 1f);
-        if (HoverPickRules.RenderedObject(ObjectFlags.CanBePickedUp)) pick.Offer(2, 2f, 2f);
+        }
+
+        if (HoverPickRules.RenderedObject(ObjectFlags.CanBePickedUp))
+        {
+            pick.Offer(2, 2f, 2f);
+        }
+
         Assert.True(pick.TryResult(out int id, out _));
         Assert.Equal(2, id);
         Assert.False(HoverPickRules.FallbackCreature(3, dying: false, stateId: 7, objectsOnly: true));
@@ -86,7 +93,10 @@ public sealed class HoverPickRulesTests
         Assert.False(HoverPickRules.FallbackCreature(0x2E, dying: false, stateId: 7));
         Assert.False(HoverPickRules.FallbackCreature(3, dying: true, stateId: 7));
         foreach (int state in new[] { 0xD6, 0x4C, 0xD1 })
+        {
             Assert.False(HoverPickRules.FallbackCreature(3, dying: false, stateId: state));
+        }
+
         Assert.True(HoverPickRules.FallbackObject(ObjectFlags.CanBePickedUp, 9));
         Assert.True(HoverPickRules.FallbackObject(0, 13));
         Assert.False(HoverPickRules.FallbackObject(ObjectFlags.CanBeSlapped, 9));

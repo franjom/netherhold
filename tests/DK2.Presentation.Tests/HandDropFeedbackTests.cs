@@ -26,8 +26,15 @@ public sealed class HandDropFeedbackTests
     {
         (GameSimulation? sim, HandItem item) = World(gold);
         sim.World.Player(Keeper).Hand.Add(item);
-        if (item.IsObject) sim.World.ObjectById(item.Id)!.InHand = true;
-        else sim.World.CreatureById(item.Id)!.InHand = true;
+        if (item.IsObject)
+        {
+            sim.World.ObjectById(item.Id)!.InHand = true;
+        }
+        else
+        {
+            sim.World.CreatureById(item.Id)!.InHand = true;
+        }
+
         var sink = new ListEventSink();
         var feedback = new HandCursorFeedback();
         var observer = new HandCursorEventSink(feedback, Keeper, sink);
@@ -163,7 +170,11 @@ public sealed class HandDropFeedbackTests
             pile.GoldHeld = 300;
             item = HandItem.Of(pile);
         }
-        else item = HandItem.Of(world.SpawnCreature(db, db.CreatureByName("Goblin")!.CreatureId, Keeper, Start));
+        else
+        {
+            item = HandItem.Of(world.SpawnCreature(db, db.CreatureByName("Goblin")!.CreatureId, Keeper, Start));
+        }
+
         return (new GameSimulation(db, world, 42, [new HandSystem()]), item);
     }
 }

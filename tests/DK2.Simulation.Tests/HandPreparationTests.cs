@@ -31,7 +31,10 @@ public class HandPreparationTests
     private static void Fill(GameDatabase db, WorldState world, CreatureState any)
     {
         List<HandItem> hand = world.Player(Keeper).Hand;
-        while (hand.Count < HandRules.Capacity(db)) hand.Add(HandItem.Of(any));
+        while (hand.Count < HandRules.Capacity(db))
+        {
+            hand.Add(HandItem.Of(any));
+        }
     }
 
     [Fact]

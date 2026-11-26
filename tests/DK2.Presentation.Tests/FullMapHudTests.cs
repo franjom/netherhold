@@ -40,7 +40,13 @@ public sealed class FullMapHudTests
             Terrain(27, TerrainFlags.Solid), Terrain(38, TerrainFlags.Solid)], [room], [], variables);
         MapTile[] cells = Enumerable.Repeat(new MapTile(2, 2, 0, 0), 64).ToArray();
         for (int y = first; y < first + 3; y++)
-            for (int x = first; x < first + 3; x++) cells[y * 8 + x] = new MapTile(12, 2, 0, 0);
+        {
+            for (int x = first; x < first + 3; x++)
+            {
+                cells[y * 8 + x] = new MapTile(12, 2, 0, 0);
+            }
+        }
+
         return (db, WorldState.FromMap(db, new LevelMap(8, 8, cells), [2, 3], fogOfWarEnabled: false));
     }
 
@@ -177,7 +183,11 @@ public sealed class FullMapHudTests
         Assert.Equal("gui\\rooms\\treasury", ClassicFullMapMarkers.RoomArt(RoomTypeId.Treasury));
         Assert.Same(ClassicFullMapMarkers.RoomArt(RoomTypeId.Treasury), ClassicFullMapMarkers.RoomArt(RoomTypeId.Treasury));
         Assert.Null(ClassicFullMapMarkers.RoomArt((RoomTypeId)0));
-        for (byte unlisted = 18; unlisted <= 20; unlisted++) Assert.Null(ClassicFullMapMarkers.RoomArt((RoomTypeId)unlisted));
+        for (byte unlisted = 18; unlisted <= 20; unlisted++)
+        {
+            Assert.Null(ClassicFullMapMarkers.RoomArt((RoomTypeId)unlisted));
+        }
+
         Assert.Equal("gui\\rooms\\Bridge_Wooden", ClassicFullMapMarkers.RoomArt((RoomTypeId)22));
         Assert.Null(ClassicFullMapMarkers.RoomArt((RoomTypeId)200));
     }

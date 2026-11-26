@@ -42,7 +42,11 @@ public class RebellionTests
             new CreatureHealthSystem(),
             new CreatureAngerSystem(),
         ]);
-        if (sink is not null) sim.ObserveWith(sink);
+        if (sink is not null)
+        {
+            sim.ObserveWith(sink);
+        }
+
         return sim;
     }
 
@@ -211,7 +215,10 @@ public class RebellionTests
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
         while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "DK2.slnx")))
+        {
             directory = directory.Parent;
+        }
+
         return directory?.FullName ?? throw new DirectoryNotFoundException("Repository root not found.");
     }
 }

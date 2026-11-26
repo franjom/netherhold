@@ -43,7 +43,11 @@ public class CapturedSteeringTests(ITestOutputHelper log)
         Assert.NotEmpty(live);
 
         var cases = new List<(CapturedCreature Owner, CapturedMover Mover, SteeringBody Body, bool Real)>();
-        foreach (CapturedCreature c in live) cases.Add((c, c.Mover!, BodyOf(c.Body!), true));
+        foreach (CapturedCreature c in live)
+        {
+            cases.Add((c, c.Mover!, BodyOf(c.Body!), true));
+        }
+
         cases.AddRange(Synthetic(state, live[0]));
 
         IReadOnlyList<Outcome> original = Run([.. cases.Select(x => Request(x.Owner, x.Mover, x.Body, x.Real))], state.MemoryImage);
@@ -61,8 +65,15 @@ public class CapturedSteeringTests(ITestOutputHelper log)
             var theirs = new Fixed16Vector((int)original[i].Reads[0], (int)original[i].Reads[1]);
             Fixed16Vector ours = AvoidWallsRules.Compute(body, Profile(mover), grid);
             reached[Arm(body, Profile(mover), grid, theirs)]++;
-            if (WallKind(body, Profile(mover), grid, theirs) is { } wall) reached[wall]++;
-            if (theirs != ours) mismatches.Add($"{at}: original ({theirs.X}, {theirs.Y}), ours ({ours.X}, {ours.Y})");
+            if (WallKind(body, Profile(mover), grid, theirs) is { } wall)
+            {
+                reached[wall]++;
+            }
+
+            if (theirs != ours)
+            {
+                mismatches.Add($"{at}: original ({theirs.X}, {theirs.Y}), ours ({ours.X}, {ours.Y})");
+            }
         }
         log.WriteLine($"{live.Length} real bodies, {cases.Count - live.Length} synthetic; arms (by our probes on DK2's bytes): " +
                       string.Join(", ", reached.Select(kv => $"{kv.Key} {kv.Value}")));
@@ -91,11 +102,17 @@ public class CapturedSteeringTests(ITestOutputHelper log)
         steering.Refresh();
         var differ = new List<string>();
         for (int y = 0; y < state.Height; y++)
-        for (int x = 0; x < state.Width; x++)
+        {
+            for (int x = 0; x < state.Width; x++)
         {
             int theirs = state.NavBytes![y * state.Width + x], ours = steering.NavByte(x, y);
-            if (theirs != ours) differ.Add($"({x},{y}) ours {ours}, DK2 {theirs} (terrain {state.Terrain(x, y)}, owner {state.Owner(x, y)})");
+            if (theirs != ours)
+                {
+                    differ.Add($"({x},{y}) ours {ours}, DK2 {theirs} (terrain {state.Terrain(x, y)}, owner {state.Owner(x, y)})");
+                }
+            }
         }
+
         Assert.Empty(doors);
         Assert.Empty(differ);
     }
@@ -134,7 +151,11 @@ public class CapturedSteeringTests(ITestOutputHelper log)
             EscapeStuckMode = (b.B10F & 2) != 0,
             SubpathIndex = (b.B10E >> 3) & 7,
         };
-        for (int i = 0; i < SteeringBody.WindowSize; i++) body.Subpath[i] = new Fixed16Vector(b.Window[i][0], b.Window[i][1]);
+        for (int i = 0; i < SteeringBody.WindowSize; i++)
+        {
+            body.Subpath[i] = new Fixed16Vector(b.Window[i][0], b.Window[i][1]);
+        }
+
         return body;
     }
 
@@ -178,8 +199,16 @@ public class CapturedSteeringTests(ITestOutputHelper log)
     /// answer.</summary>
     private static string Arm(SteeringBody body, MoverProfile mover, ISteeringWorld world, Fixed16Vector theirs)
     {
-        if (body.EscapeStuckMode) return "stuck nudge";
-        if (theirs == Fixed16Vector.Zero) return "nothing";
+        if (body.EscapeStuckMode)
+        {
+            return "stuck nudge";
+        }
+
+        if (theirs == Fixed16Vector.Zero)
+        {
+            return "nothing";
+        }
+
         (int tx, int ty) = body.Pos.Tile();
         byte own = world.NavByte(tx, ty);
         int sx = body.Vel.X < 0 ? -1 : 1, sy = body.Vel.Y < 0 ? -1 : 1;
@@ -191,16 +220,31 @@ public class CapturedSteeringTests(ITestOutputHelper log)
     /// because of what it is: water or lava it cannot walk, or a door it may not pass.</summary>
     private static string? WallKind(SteeringBody body, MoverProfile mover, ISteeringWorld world, Fixed16Vector theirs)
     {
-        if (body.EscapeStuckMode || theirs == Fixed16Vector.Zero) return null;
+        if (body.EscapeStuckMode || theirs == Fixed16Vector.Zero)
+        {
+            return null;
+        }
+
         (int tx, int ty) = body.Pos.Tile();
         byte own = world.NavByte(tx, ty);
         int sx = body.Vel.X < 0 ? -1 : 1, sy = body.Vel.Y < 0 ? -1 : 1;
         foreach ((int x, int y) in new[] { (tx, ty + sy), (tx + sx, ty + sy), (tx + sx, ty) })
         {
             byte b = world.NavByte(x, y);
-            if (b == NavBytes.Solid || MeshRouter.TransitionCost(b, own, mover) != 0) continue;
-            if ((b & 0xF0) != 0) return "a door wall";
-            if ((b & 3) is 1 or 3) return "a water wall";
+            if (b == NavBytes.Solid || MeshRouter.TransitionCost(b, own, mover) != 0)
+            {
+                continue;
+            }
+
+            if ((b & 0xF0) != 0)
+            {
+                return "a door wall";
+            }
+
+            if ((b & 3) is 1 or 3)
+            {
+                return "a water wall";
+            }
         }
         return null;
     }

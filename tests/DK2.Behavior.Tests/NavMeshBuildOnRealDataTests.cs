@@ -118,7 +118,11 @@ public class NavMeshBuildOnRealDataTests(ITestOutputHelper output)
         foreach (string level in LevelNames(install))
         {
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
-            if (map is null) continue;
+            if (map is null)
+            {
+                continue;
+            }
+
             var world = WorldState.FromMap(database, map, map.Tiles.Select(t => t.PlayerId).Distinct());
             byte[] shipped = WorldSteering.CaptureNavigationBytes(database, world);
 
@@ -132,7 +136,10 @@ public class NavMeshBuildOnRealDataTests(ITestOutputHelper output)
         }
 
         foreach ((string level, ulong value) in actual)
+        {
             output.WriteLine($"        [\"{level}\"] = 0x{value:X16}UL,");
+        }
+
         Assert.NotEmpty(actual);
         Assert.Equal(Pinned.OrderBy(p => p.Key, StringComparer.Ordinal), actual);
     }
@@ -150,7 +157,11 @@ public class NavMeshBuildOnRealDataTests(ITestOutputHelper output)
         foreach (string level in LevelNames(install))
         {
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
-            if (map is null) continue;
+            if (map is null)
+            {
+                continue;
+            }
+
             var world = WorldState.FromMap(database, map, map.Tiles.Select(t => t.PlayerId).Distinct());
             byte[] bytes = WorldSteering.CaptureNavigationBytes(database, world);
             var grid = new Grid(world.Width, world.Height, bytes);
@@ -164,7 +175,11 @@ public class NavMeshBuildOnRealDataTests(ITestOutputHelper output)
                 int y = 1 + (int)((state >> 8) % (uint)(world.Height - 2));
                 state = (state * 1664525) + 1013904223;
                 byte nav = Bytes[(state >> 16) % (uint)Bytes.Length];
-                if (bytes[(y * world.Width) + x] == nav) continue;
+                if (bytes[(y * world.Width) + x] == nav)
+                {
+                    continue;
+                }
+
                 bytes[(y * world.Width) + x] = nav;
                 try
                 {
@@ -187,7 +202,11 @@ public class NavMeshBuildOnRealDataTests(ITestOutputHelper output)
     {
         for (int t = 0; t < mesh.TriangleSlots; t++)
         {
-            if (!mesh.IsTriangleLive(t)) continue;
+            if (!mesh.IsTriangleLive(t))
+            {
+                continue;
+            }
+
             int a = mesh.Vertex(t, 0), b = mesh.Vertex(t, 1), c = mesh.Vertex(t, 2);
             Assert.True(NavMesh.Orient(mesh.PointX(a), mesh.PointY(a), mesh.PointX(b), mesh.PointY(b), mesh.PointX(c), mesh.PointY(c)) > 0,
                 $"triangle {t} is not wound positively");
@@ -207,12 +226,18 @@ public class NavMeshBuildOnRealDataTests(ITestOutputHelper output)
                 cy += mesh.PointY(p) * 3L * NavMesh.UnitsPerTile;
             }
             int tx = (int)Math.Floor(cx / 9 / (double)NavMesh.UnitsPerTile), ty = (int)Math.Floor(cy / 9 / (double)NavMesh.UnitsPerTile);
-            if (tx < 0 || ty < 0 || tx >= grid.Width || ty >= grid.Height) continue;
+            if (tx < 0 || ty < 0 || tx >= grid.Width || ty >= grid.Height)
+            {
+                continue;
+            }
+
             Assert.True(grid.NavByte(tx, ty) == mesh.NavByte(t),
                 $"triangle {t} carries byte {mesh.NavByte(t)} over tile ({tx},{ty}) whose byte is {grid.NavByte(tx, ty)}");
         }
         foreach ((int x, int y) in new[] { (0, 0), (grid.Width, 0), (grid.Width, grid.Height), (0, grid.Height) })
+        {
             Assert.True(mesh.TryLocateVertex(x, y, out _, out _), $"map corner ({x},{y}) is no longer a vertex");
+        }
     }
 
     /// <summary>Rewrites <paramref name="count"/> tiles, drawn by a fixed generator so the pin
@@ -258,7 +283,9 @@ public class NavMeshBuildOnRealDataTests(ITestOutputHelper output)
         string maps = Path.Combine(install, "Data", "editor", "maps");
         Assert.True(Directory.Exists(maps), $"'{maps}' is missing from the installation.");
         foreach (string file in Directory.EnumerateFiles(maps, "*Map.kld").OrderBy(f => f, StringComparer.Ordinal))
+        {
             yield return Path.GetFileName(file)[..^"Map.kld".Length];
+        }
     }
 }
 
@@ -268,7 +295,11 @@ internal static class StableHash
     public static int GetStableHashCode(this string text)
     {
         uint h = 2166136261;
-        foreach (char c in text) h = (h ^ c) * 16777619;
+        foreach (char c in text)
+        {
+            h = (h ^ c) * 16777619;
+        }
+
         return unchecked((int)h);
     }
 }

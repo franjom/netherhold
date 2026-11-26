@@ -19,8 +19,13 @@ public class TreasuryCaptureTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 2; y < 4; y++)
+        {
             for (int x = 2; x < 4; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Treasury), Keeper);
+            }
+        }
+
         RoomInstance room = RoomIndex.RoomAt(world, db, 2 * world.Width + 2)!;
         world.Tile(2, 2).GoldHeld = 500;
         world.Tile(3, 3).GoldHeld = 200;

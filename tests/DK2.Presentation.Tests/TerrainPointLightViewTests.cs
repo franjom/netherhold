@@ -154,14 +154,29 @@ public class TerrainPointLightViewTests
         WorldState world = World(database, fog: true);
         world.Tile(1, 1).ExploredBy = default;
         world.Tile(1, 1).DiscoveredBy = default;
-        if (scanned) world.Tile(1, 1).SetDiscoveredBy(1);
+        if (scanned)
+        {
+            world.Tile(1, 1).SetDiscoveredBy(1);
+        }
+
         var view = new WorldView(database, 1);
         ClassicPointLight? light = view.TileAt(world, 1, 1).PointLight;
-        if (red < 0) Assert.Null(light);
-        else Assert.Equal(red / 255f, light!.Value.Colour.X);
+        if (red < 0)
+        {
+            Assert.Null(light);
+        }
+        else
+        {
+            Assert.Equal(red / 255f, light!.Value.Colour.X);
+        }
+
         WorldState fogOff = World(database);
         fogOff.Tile(1, 1).ExploredBy = default;
-        if (scanned) fogOff.Tile(1, 1).SetDiscoveredBy(1);
+        if (scanned)
+        {
+            fogOff.Tile(1, 1).SetDiscoveredBy(1);
+        }
+
         Assert.Equal(20 / 255f, view.TileAt(fogOff, 1, 1).PointLight!.Value.Colour.X);
     }
 
@@ -273,7 +288,13 @@ public class TerrainPointLightViewTests
         var world = WorldState.FromMap(database, new LevelMap(3, 3,
             Enumerable.Repeat(new MapTile(1, 1, 0, 0), 9).ToArray()), [1, 2], fogOfWarEnabled: fog);
         for (int y = 0; y < 3; y++)
-            for (int x = 0; x < 3; x++) world.Tile(x, y).OwnerPlayerId = 1;
+        {
+            for (int x = 0; x < 3; x++)
+            {
+                world.Tile(x, y).OwnerPlayerId = 1;
+            }
+        }
+
         return world;
     }
 

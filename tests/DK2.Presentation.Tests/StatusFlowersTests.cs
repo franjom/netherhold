@@ -93,7 +93,10 @@ public sealed class StatusFlowersTests
         var flowers = new StatusFlowers(db, PlayerIds.FirstKeeper);
         Assert.Contains(flowers.Capture(world, new GameTick(10), new CreatureQueryTarget(own.Id)), f => f.CreatureId == own.Id);
         for (long turn = 10; turn <= 12; turn++)
+        {
             Assert.Contains(flowers.Capture(world, new GameTick(turn), CreatureQueryTarget.None), f => f.CreatureId == own.Id);
+        }
+
         Assert.DoesNotContain(flowers.Capture(world, new GameTick(13), CreatureQueryTarget.None), f => f.CreatureId == own.Id);
     }
 
@@ -105,8 +108,11 @@ public sealed class StatusFlowersTests
         Assert.DoesNotContain(flowers.Capture(world, new GameTick(20), CreatureQueryTarget.None), f => f.CreatureId == own.Id);
         own.Health -= 1;
         for (long turn = 21; turn <= 23; turn++)
+        {
             Assert.True(Assert.Single(flowers.Capture(world, new GameTick(turn), CreatureQueryTarget.None),
                 f => f.CreatureId == own.Id).Blink);
+        }
+
         Assert.DoesNotContain(flowers.Capture(world, new GameTick(24), CreatureQueryTarget.None), f => f.CreatureId == own.Id);
     }
 

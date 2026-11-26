@@ -21,13 +21,27 @@ public class TerrainChunkSchedulerTests
         var scheduler = new TerrainChunkScheduler(new TerrainTileBuilderTests.FakePieces(), Width, Height, lattice, true)
         { FlushBudgetMilliseconds = 0 };
         for (int y = 0; y < Height; y++)
-            for (int x = 0; x < Width; x++) scheduler.Set(At(x, y), Floor(x, y));
+        {
+            for (int x = 0; x < Width; x++)
+            {
+                scheduler.Set(At(x, y), Floor(x, y));
+            }
+        }
+
         scheduler.Flush(new CountingSink());
         TileView plain = Floor(20, 17);
         TileView tagged = Floor(20, 17, true, new TerrainLightColour(300, 1, 2));
-        for (int i = 0; i < 100; i++) scheduler.Set(At(20, 17), (i & 1) == 0 ? plain : tagged);
+        for (int i = 0; i < 100; i++)
+        {
+            scheduler.Set(At(20, 17), (i & 1) == 0 ? plain : tagged);
+        }
+
         long before = GC.GetAllocatedBytesForCurrentThread();
-        for (int i = 0; i < 100; i++) scheduler.Set(At(20, 17), (i & 1) == 0 ? plain : tagged);
+        for (int i = 0; i < 100; i++)
+        {
+            scheduler.Set(At(20, 17), (i & 1) == 0 ? plain : tagged);
+        }
+
         Assert.Equal(before, GC.GetAllocatedBytesForCurrentThread());
         Assert.True(lattice.IsBuilt(20, 17));
         Assert.Equal(0, scheduler.PendingChunks);
@@ -129,14 +143,23 @@ public class TerrainChunkSchedulerTests
         TerrainLattice lattice = Lattice();
         TerrainChunkScheduler scheduler = Built(lattice);
         for (int y = 0; y < Height; y++)
+        {
             for (int x = 0; x < Width; x++)
+            {
                 lattice.Prepare(x, y);
+            }
+        }
 
         scheduler.Set(At(20, 17), Floor(20, 17));
 
         for (int y = 0; y < Height; y++)
+        {
             for (int x = 0; x < Width; x++)
+            {
                 Assert.Equal(Math.Abs(x - 20) <= 2 && Math.Abs(y - 17) <= 2, scheduler.IsStale(At(x, y)));
+            }
+        }
+
         Assert.False(lattice.IsBuilt(20, 17));
         Assert.True(lattice.IsBuilt(22, 17));
         // The window crosses into the chunks west and north: (16, 16) is chunk 4, (18, 15) chunk 1.
@@ -150,8 +173,13 @@ public class TerrainChunkSchedulerTests
         TerrainChunkScheduler scheduler = Built(Lattice());
         scheduler.Set(At(0, 0), Floor(0, 0));
         for (int y = 0; y < 4; y++)
+        {
             for (int x = 0; x < 4; x++)
+            {
                 Assert.Equal(x <= 2 && y <= 2, scheduler.IsStale(At(x, y)));
+            }
+        }
+
         Assert.False(scheduler.IsStale(At(Width - 1, 0)));
         Assert.False(scheduler.IsStale(At(Width - 2, Height - 1)));
     }
@@ -181,8 +209,15 @@ public class TerrainChunkSchedulerTests
     {
         TerrainChunkScheduler scheduler = Built(null);
         scheduler.Set(At(5, 5), Floor(5, 5, tagged: tag, tint: tint ? new TerrainLightColour(10, 20, 30) : default));
-        foreach ((int x, int y) in new[] { (4, 5), (6, 5), (5, 4), (5, 6) }) Assert.True(scheduler.IsStale(At(x, y)), $"({x}, {y})");
-        foreach ((int x, int y) in new[] { (4, 4), (6, 6), (3, 5), (5, 7) }) Assert.False(scheduler.IsStale(At(x, y)), $"({x}, {y})");
+        foreach ((int x, int y) in new[] { (4, 5), (6, 5), (5, 4), (5, 6) })
+        {
+            Assert.True(scheduler.IsStale(At(x, y)), $"({x}, {y})");
+        }
+
+        foreach ((int x, int y) in new[] { (4, 4), (6, 6), (3, 5), (5, 7) })
+        {
+            Assert.False(scheduler.IsStale(At(x, y)), $"({x}, {y})");
+        }
     }
 
     [Fact]
@@ -206,14 +241,23 @@ public class TerrainChunkSchedulerTests
         var log = new SchedulerLog { Uploaded = () => clock += 10 };
         var scheduler = new TerrainChunkScheduler(new TerrainTileBuilderTests.FakePieces(), Width, Height, null, () => clock);
         for (int y = 0; y < Height; y++)
+        {
             for (int x = 0; x < Width; x++)
+            {
                 scheduler.Set(At(x, y), Floor(x, y));
+            }
+        }
+
         scheduler.Flush(log);
         Assert.Equal(9, log.Uploads.Count);
         Assert.Equal(0, scheduler.PendingChunks);
 
         log.Uploads.Clear();
-        foreach (int x in new[] { 35, 1, 20 }) scheduler.Set(At(x, 1), Floor(x, 1, tagged: true));
+        foreach (int x in new[] { 35, 1, 20 })
+        {
+            scheduler.Set(At(x, 1), Floor(x, 1, tagged: true));
+        }
+
         scheduler.Flush(log);
         Assert.Empty(log.Uploads);
         Assert.Equal(3, scheduler.PendingChunks);
@@ -303,11 +347,20 @@ public class TerrainChunkSchedulerTests
         Assert.Equal(4.0, TerrainChunkScheduler.DefaultFlushBudgetMilliseconds);
         Assert.Equal(4.0, scheduler.FlushBudgetMilliseconds);
         for (int y = 0; y < Height; y++)
+        {
             for (int x = 0; x < Width; x++)
+            {
                 scheduler.Set(At(x, y), Floor(x, y));
+            }
+        }
+
         scheduler.Flush(log);
         log.Uploads.Clear();
-        foreach (int x in new[] { 1, 20 }) scheduler.Set(At(x, 1), Floor(x, 1, tagged: true));
+        foreach (int x in new[] { 1, 20 })
+        {
+            scheduler.Set(At(x, 1), Floor(x, 1, tagged: true));
+        }
+
         scheduler.Flush(log);
         scheduler.WaitForBuild();
         scheduler.Flush(log);
@@ -322,11 +375,20 @@ public class TerrainChunkSchedulerTests
         var log = new SchedulerLog();
         var scheduler = new TerrainChunkScheduler(new TerrainTileBuilderTests.FakePieces(), Width, Height, null, () => clock += 5);
         for (int y = 0; y < Height; y++)
+        {
             for (int x = 0; x < Width; x++)
+            {
                 scheduler.Set(At(x, y), Floor(x, y));
+            }
+        }
+
         scheduler.Flush(log);
         log.Uploads.Clear();
-        foreach (int x in new[] { 1, 20 }) scheduler.Set(At(x, 1), Floor(x, 1, tagged: true));
+        foreach (int x in new[] { 1, 20 })
+        {
+            scheduler.Set(At(x, 1), Floor(x, 1, tagged: true));
+        }
+
         scheduler.Flush(log);
         scheduler.WaitForBuild();
         scheduler.Flush(log);
@@ -361,7 +423,11 @@ public class TerrainChunkSchedulerTests
         var log = new SchedulerLog();
         TerrainChunkScheduler scheduler = Built(null, log);
         scheduler.FlushBudgetMilliseconds = 0;
-        for (int x = 0; x < Width; x += 3) scheduler.Set(At(x, 20), Floor(x, 20, tagged: true));
+        for (int x = 0; x < Width; x += 3)
+        {
+            scheduler.Set(At(x, 20), Floor(x, 20, tagged: true));
+        }
+
         log.Uploads.Clear();
         scheduler.Flush(log);
         Assert.Equal([3, 4, 5], log.Uploads.Select(u => u.Chunk));
@@ -447,8 +513,13 @@ public class TerrainChunkSchedulerTests
         var log = new PackLog();
         var scheduler = new TerrainChunkScheduler(new TerrainTileBuilderTests.FakePieces(), Width, Height) { Packer = log };
         for (int y = 0; y < Height; y++)
+        {
             for (int x = 0; x < Width; x++)
+            {
                 scheduler.Set(At(x, y), Floor(x, y));
+            }
+        }
+
         scheduler.Flush(log);
         Assert.Equal(Enumerable.Range(0, 9), log.Packs.Select(p => p.Chunk));
         Assert.All(log.Packs, p => Assert.Equal(Environment.CurrentManagedThreadId, p.Thread));
@@ -504,12 +575,21 @@ public class TerrainChunkSchedulerTests
             Packer = log,
         };
         for (int y = 0; y < Height; y++)
+        {
             for (int x = 0; x < Width; x++)
+            {
                 scheduler.Set(At(x, y), Floor(x, y));
+            }
+        }
+
         scheduler.Flush(log);
         log.Packs.Clear();
         log.Uploads.Clear();
-        foreach (int x in new[] { 35, 1, 20 }) scheduler.Set(At(x, 1), Floor(x, 1, tagged: true));
+        foreach (int x in new[] { 35, 1, 20 })
+        {
+            scheduler.Set(At(x, 1), Floor(x, 1, tagged: true));
+        }
+
         scheduler.Flush(log);
         scheduler.WaitForBuild();
         scheduler.Flush(log);
@@ -520,7 +600,11 @@ public class TerrainChunkSchedulerTests
         scheduler.Set(At(5, 34), Floor(5, 34, tagged: true));
         scheduler.Flush(log);
         scheduler.WaitForBuild();
-        while (scheduler.PendingChunks > 0) scheduler.Flush(log);
+        while (scheduler.PendingChunks > 0)
+        {
+            scheduler.Flush(log);
+        }
+
         Assert.Equal([6], log.Packs.Select(p => p.Chunk));
         Assert.Equal([0, 1, 2, 6], log.Uploads.Select(u => u.Chunk));
     }
@@ -533,8 +617,13 @@ public class TerrainChunkSchedulerTests
         var packer = new CountingPacker();
         var scheduler = new TerrainChunkScheduler(new TerrainTileBuilderTests.FakePieces(), Width, Height) { Packer = packer };
         for (int y = 0; y < Height; y++)
+        {
             for (int x = 0; x < Width; x++)
+            {
                 scheduler.Set(At(x, y), Floor(x, y));
+            }
+        }
+
         scheduler.Flush(log);
         scheduler.FlushBudgetMilliseconds = 0;
         TileView tagged = Floor(9, 9, tagged: true), plain = Floor(9, 9);
@@ -574,7 +663,11 @@ public class TerrainChunkSchedulerTests
 
         public void PackChunk(int chunk, ReadOnlySpan<TerrainTileGeometry> tiles)
         {
-            if (Interlocked.Increment(ref _inside) != 1) Interlocked.Increment(ref Overlaps);
+            if (Interlocked.Increment(ref _inside) != 1)
+            {
+                Interlocked.Increment(ref Overlaps);
+            }
+
             TerrainTileGeometry[] copy = tiles.ToArray();
             lock (Packs)
             {
@@ -599,7 +692,11 @@ public class TerrainChunkSchedulerTests
         public void EndChunk(int chunk)
         {
             TerrainTileGeometry[]? packed;
-            lock (Packs) Assert.True(_lastPack.TryGetValue(chunk, out packed), "chunk " + chunk + " was never packed");
+            lock (Packs)
+            {
+                Assert.True(_lastPack.TryGetValue(chunk, out packed), "chunk " + chunk + " was never packed");
+            }
+
             Assert.Equal(packed, _uploading);
             Uploads.Add(_open!);
             Uploaded?.Invoke();
@@ -618,8 +715,13 @@ public class TerrainChunkSchedulerTests
     {
         var scheduler = new TerrainChunkScheduler(new TerrainTileBuilderTests.FakePieces(), Width, Height, lattice);
         for (int y = 0; y < Height; y++)
+        {
             for (int x = 0; x < Width; x++)
+            {
                 scheduler.Set(At(x, y), Floor(x, y));
+            }
+        }
+
         scheduler.Flush(sink ?? new SchedulerLog());
         return scheduler;
     }
@@ -656,7 +758,11 @@ public class TerrainChunkSchedulerTests
         TerrainDef floor = rock with { Name = "floor", TerrainId = 3, Flags = 0 };
         var database = new GameDatabase([rock, floor], [], [], new GlobalVariables());
         var tiles = new MapTile[Width * Height];
-        for (int i = 0; i < tiles.Length; i++) tiles[i] = new MapTile((byte)(i % 7 == 0 ? 3 : 2), PlayerIds.Unowned, 0, 0);
+        for (int i = 0; i < tiles.Length; i++)
+        {
+            tiles[i] = new MapTile((byte)(i % 7 == 0 ? 3 : 2), PlayerIds.Unowned, 0, 0);
+        }
+
         var world = WorldState.FromMap(database, new LevelMap(Width, Height, tiles), []);
         return new TerrainLattice(database, world, new PlayerId(PlayerIds.FirstKeeper));
     }

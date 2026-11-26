@@ -32,8 +32,13 @@ public sealed class HatedCompanyTests
         GameDatabase db = Dk2TerrainFixture.Database(extraCreatures: [calm]);
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         for (int y = 3; y <= 5; y++)
+        {
             for (int x = 5; x <= 7; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(type), Keeper);
+            }
+        }
+
         return (db, world);
     }
 

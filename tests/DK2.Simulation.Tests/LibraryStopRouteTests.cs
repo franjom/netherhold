@@ -75,8 +75,13 @@ public sealed class LibraryStopRouteTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
             [PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 2; y <= 4; y++)
-        for (int x = 3; x <= 7; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Library), PlayerIds.FirstKeeper);
+        {
+            for (int x = 3; x <= 7; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Library), PlayerIds.FirstKeeper);
+            }
+        }
+
         CreatureState reader = world.SpawnCreature(db, Dk2TerrainFixture.VampireCreatureId,
             PlayerIds.FirstKeeper, new TilePos(4, 3));
         reader.CurrentJob = JobType.Research;

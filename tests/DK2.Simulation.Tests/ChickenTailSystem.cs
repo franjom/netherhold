@@ -13,6 +13,8 @@ internal sealed class ChickenTailSystem : ISimulationSystem
     public void Execute(SimulationContext context)
     {
         foreach (ObjectState chicken in context.World.Objects.Where(o => o.ObjectTypeId == HatcheryRules.ChickenObjectId).ToList())
+        {
             ChickenMovementRules.Decay(context, chicken);
+        }
     }
 }

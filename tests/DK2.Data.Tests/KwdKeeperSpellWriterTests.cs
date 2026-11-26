@@ -54,7 +54,9 @@ public class KwdKeeperSpellWriterTests
         List<KwdRecordImage> images = KwdRecordRoundTrip.Split(chunk);
         Assert.Equal(13, records.Count);
         for (int i = 0; i < records.Count; i++)
+        {
             Assert.Equal(images[i].ToBytes(), KwdKeeperSpells.WriteRecord(records[i], images[i]));
+        }
     }
 
     [Theory]

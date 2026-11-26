@@ -17,7 +17,11 @@ public class FrontEndImageTests
     public void LoadingScreenReadsAbsoluteRgbDcAndCropsThePaddedBlock(bool alpha)
     {
         string bits = "00011001" + "10" + "01100100" + "10" + "11001000" + "10";
-        if (alpha) bits += "10000000" + "10";
+        if (alpha)
+        {
+            bits += "10000000" + "10";
+        }
+
         byte[] encoded = LoadingImage(bits, width: 5, height: 3, alpha);
         RgbaImage image = LoadingScreenImageReader.Read(encoded);
         Assert.Equal(5, image.Width); Assert.Equal(3, image.Height);
@@ -64,7 +68,10 @@ public class FrontEndImageTests
         BinaryPrimitives.WriteUInt16LittleEndian(encoded.AsSpan(2), height);
         encoded[4] = alpha ? (byte)0xe5 : (byte)0x65;
         for (int word = 0; word < bits.Length / 32; word++)
+        {
             BinaryPrimitives.WriteUInt32LittleEndian(encoded.AsSpan(8 + word * 4), System.Convert.ToUInt32(bits.Substring(word * 32, 32), 2));
+        }
+
         return encoded;
     }
 
@@ -113,7 +120,11 @@ public class FrontEndImageTests
         {
             string name = wad.Entries[i].Name;
             bool bmp = name.EndsWith(".bmp", StringComparison.OrdinalIgnoreCase);
-            if (!bmp && !name.EndsWith(".444", StringComparison.OrdinalIgnoreCase)) continue;
+            if (!bmp && !name.EndsWith(".444", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
             byte[] data = wad.Extract(i);
             RgbaImage image = images.Read(i);
             int width = bmp ? BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(18))
@@ -123,7 +134,14 @@ public class FrontEndImageTests
             Assert.Equal(width, image.Width); Assert.Equal(height, image.Height);
             Assert.Equal(width * height * 4, image.Pixels.Length);
             Assert.True(image.Pixels.Distinct().Count() > 16, name);
-            if (bmp) bmpCount++; else loadingCount++;
+            if (bmp)
+            {
+                bmpCount++;
+            }
+            else
+            {
+                loadingCount++;
+            }
         }
         Assert.Equal(42, bmpCount); Assert.Equal(29, loadingCount);
     }

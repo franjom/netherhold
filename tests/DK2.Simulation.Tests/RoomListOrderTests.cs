@@ -117,7 +117,10 @@ public class RoomListOrderTests
         LevelMap map = Dk2TerrainFixture.Map();
         MapTile[] tiles = map.Tiles.ToArray();
         foreach (TilePos pos in new[] { new TilePos(5, 4), new TilePos(7, 4), new TilePos(5, 5), new TilePos(6, 5), new TilePos(7, 5) })
+        {
             tiles[pos.Y * map.Width + pos.X] = new MapTile(Dk2TerrainFixture.TreasuryTerrain, 3, 0, 0);
+        }
+
         var world = WorldState.FromMap(Db, new LevelMap(map.Width, map.Height, tiles), [(byte)3]);
         Assert.Equal(world.Tile(7, 4).RoomListPosition, world.Tile(5, 4).RoomListPosition);
         Assert.NotEqual(default, world.Tile(5, 4).RoomListPosition);

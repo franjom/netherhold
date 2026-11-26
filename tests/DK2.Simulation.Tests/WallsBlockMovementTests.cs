@@ -28,12 +28,16 @@ public class WallsBlockMovementTests
     {
         var tiles = new List<TilePos>();
         for (int y = 0; y < world.Height; y++)
+        {
             for (int x = 0; x < world.Width; x++)
             {
                 TerrainDef terrain = database.TerrainById(world.Tile(x, y).TerrainId);
                 if (terrain.IsSolid && terrain.IsTaggable && !terrain.IsImpenetrable)
+                {
                     tiles.Add(new TilePos(x, y));
+                }
             }
+        }
 
         return [.. tiles];
     }
@@ -57,7 +61,9 @@ public class WallsBlockMovementTests
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
 
         for (int i = 0; i < 4; i++)
+        {
             world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
+        }
 
         var sim = new GameSimulation(database, world, 7331, Dk2TerrainFixture.DefaultSystems());
         sim.Tick(InputFrame.Of(new TagTilesCommand(Keeper, EverythingDiggable(world, database), true)));
@@ -98,7 +104,9 @@ public class WallsBlockMovementTests
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
 
         for (int i = 0; i < 4; i++)
+        {
             world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
+        }
 
         var sim = new GameSimulation(database, world, 7331, Dk2TerrainFixture.DefaultSystems());
         sim.Tick(InputFrame.Of(new TagTilesCommand(Keeper, EverythingDiggable(world, database), true)));
@@ -109,7 +117,11 @@ public class WallsBlockMovementTests
 
             foreach (CreatureState creature in world.Creatures)
             {
-                if (!creature.HasRoute) continue;
+                if (!creature.HasRoute)
+                {
+                    continue;
+                }
+
                 for (int i = creature.Body.SubpathIndex; i < creature.Body.PathBufferCount; i++)
                 {
                     var at = new TilePos((creature.Body.Subpath[i].X >> 4) / Fp32.One, (creature.Body.Subpath[i].Y >> 4) / Fp32.One);
@@ -152,7 +164,10 @@ public class WallsBlockMovementTests
         var sim = new GameSimulation(database, world, 11, [new Systems.CreatureMovementSystem()]);
 
         // Walk until it is well into the corridor, then wall it off ahead.
-        while (imp.Tile.X < 6) sim.Tick(InputFrame.Empty);
+        while (imp.Tile.X < 6)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
 
         int blockAt = imp.Tile.X + 2;
         ref TileState blocked = ref world.Tile(blockAt, 2);

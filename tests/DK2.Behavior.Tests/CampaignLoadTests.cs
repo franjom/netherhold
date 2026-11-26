@@ -34,12 +34,14 @@ public class CampaignLoadTests
 
         // Every tile carries its terrain's starting health - no invented numbers.
         for (int y = 0; y < map.Height; y++)
+        {
             for (int x = 0; x < map.Width; x++)
             {
                 TerrainDef terrain = database.TerrainById(map[x, y].TerrainId);
                 Assert.Equal(terrain.StartingHealth, world.Tile(x, y).Health);
                 Assert.Equal(map[x, y].PlayerId, world.Tile(x, y).OwnerPlayerId);
             }
+        }
     }
 
     [InstallFact]
@@ -59,7 +61,10 @@ public class CampaignLoadTests
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
 
             Assert.NotNull(map);
-            if (map is null) continue;
+            if (map is null)
+            {
+                continue;
+            }
 
             // Throws if any tile references a terrain type the database lacks.
             var world = WorldState.FromMap(database, map, [(byte)0]);
@@ -87,7 +92,9 @@ public class CampaignLoadTests
     {
         DirectoryInfo? dir = new(AppContext.BaseDirectory);
         while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "DK2.slnx")))
+        {
             dir = dir.Parent;
+        }
 
         return dir?.FullName ?? throw new DirectoryNotFoundException(
             "Could not locate the repository root (no DK2.slnx above the test binaries).");

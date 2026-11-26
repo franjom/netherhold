@@ -56,9 +56,18 @@ public sealed class WorkshopTimerTests
     {
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(24, 24), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int y = y0; y < y0 + size; y++)
-        for (int x = x0; x < x0 + size; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Workshop), Keeper);
-        if (furnish) Dk2TerrainFixture.FurnishRooms(db, world);
+        {
+            for (int x = x0; x < x0 + size; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Workshop), Keeper);
+            }
+        }
+
+        if (furnish)
+        {
+            Dk2TerrainFixture.FurnishRooms(db, world);
+        }
+
         return world;
     }
 
@@ -182,7 +191,11 @@ public sealed class WorkshopTimerTests
         sim.Tick();
 
         var oracle = new Oracle(1);
-        for (int i = 0; i < 4; i++) oracle.Next(16 * Ticks);
+        for (int i = 0; i < 4; i++)
+        {
+            oracle.Next(16 * Ticks);
+        }
+
         Assert.Equal(oracle.Seed, SeedOf(sim));
         Assert.Empty(Requests(sink));
     }
@@ -272,14 +285,21 @@ public sealed class WorkshopTimerTests
             WorldState world = World(db, furnish: false);
             byte[] oldestFirst = [.. new[] { Bucket, Anvil, WorkBench }.Where(t => t != newest), newest];
             int tile = (4 * world.Width) + 4;
-            foreach (byte type in oldestFirst) world.SpawnObject(db, type, Keeper, tile++).AutoPlaced = true;
+            foreach (byte type in oldestFirst)
+            {
+                world.SpawnObject(db, type, Keeper, tile++).AutoPlaced = true;
+            }
+
             GameSimulation sim = TimerSim(db, world, out ListEventSink sink);
 
             sim.Tick();
 
             List<ViewEffectRequest> spills = [.. Requests(sink).Where(r => r.EffectId.Value is BucketSpill or AnvilSparks)];
             Assert.Equal(expected == 0 ? 0 : 1, spills.Count);
-            if (expected != 0) Assert.Equal(expected, spills[0].EffectId.Value);
+            if (expected != 0)
+            {
+                Assert.Equal(expected, spills[0].EffectId.Value);
+            }
         }
     }
 
@@ -318,11 +338,18 @@ public sealed class WorkshopTimerTests
         BuildTile(db, world, new TilePos(10, 10));
         RoomInstance older = Workshop(db, world, (3 * world.Width) + 3), newer = Workshop(db, world, (10 * world.Width) + 10);
         foreach (RoomInstance room in new[] { older, newer })
+        {
             (Lowest(world, room).WorkshopSteamTimer, Lowest(world, room).WorkshopLavaSpillTimer,
                 Lowest(world, room).WorkshopSmokeTimer, Lowest(world, room).WorkshopLavaBubblingTimer) = (0, 0, 0, 0);
+        }
+
         var oracle = new Oracle(SeedOf(sim));
         int first = oracle.Next(16 * Ticks) + (8 * Ticks);
-        for (int i = 0; i < 3; i++) oracle.Next(16 * Ticks);   // the newer room's other three reloads
+        for (int i = 0; i < 3; i++)
+        {
+            oracle.Next(16 * Ticks);   // the newer room's other three reloads
+        }
+
         int second = oracle.Next(16 * Ticks) + (8 * Ticks);
 
         sim.Tick();
@@ -417,8 +444,11 @@ public sealed class WorkshopTimerTests
         var oracle = new Oracle(before);
         int[][] expected = [[0, 0, 0, 0], [0, 0, 0, 0]];
         for (int piece = 0; piece < 2; piece++)
+        {
             (expected[piece][0], expected[piece][1], expected[piece][2], expected[piece][3]) =
                 (oracle.Next(4 * Ticks), oracle.Next(4 * Ticks), oracle.Next(4 * Ticks), oracle.Next(4 * Ticks));
+        }
+
         TileState left = world.Tile(new TilePos(10, 10)), right = world.Tile(new TilePos(12, 10));
         Assert.Equal<IEnumerable<int>>(expected[0], [left.WorkshopSteamTimer, left.WorkshopSmokeTimer, left.WorkshopLavaBubblingTimer, left.WorkshopLavaSpillTimer]);
         Assert.Equal<IEnumerable<int>>(expected[1], [right.WorkshopSteamTimer, right.WorkshopSmokeTimer, right.WorkshopLavaBubblingTimer, right.WorkshopLavaSpillTimer]);
@@ -437,7 +467,10 @@ public sealed class WorkshopTimerTests
         LevelMap basis = Dk2TerrainFixture.Map(24, 24);
         MapTile[] tiles = [.. basis.Tiles];
         foreach ((int x, int y) in new[] { (10, 10), (12, 10), (10, 11), (11, 11), (12, 11) })
+        {
             tiles[(y * 24) + x] = new MapTile(Dk2TerrainFixture.WorkshopTerrain, Keeper, 0, 0);
+        }
+
         var world = WorldState.FromMap(db, new LevelMap(24, 24, tiles), [(byte)0, PlayerIds.Neutral, Keeper]);
 
         GameSimulation sim = Sim(db, world);

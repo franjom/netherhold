@@ -204,9 +204,17 @@ public class ClassicCameraTests
         camera.SetZoom(new Fp32(40960));
         camera.ZoomOut();
         Assert.Equal(new Fp32(43200), camera.Zoom);
-        for (int i = 0; i < 100; i++) camera.ZoomIn();
+        for (int i = 0; i < 100; i++)
+        {
+            camera.ZoomIn();
+        }
+
         Assert.Equal(new Fp32(16384), camera.Zoom);
-        for (int i = 0; i < 100; i++) camera.ZoomOut();
+        for (int i = 0; i < 100; i++)
+        {
+            camera.ZoomOut();
+        }
+
         Assert.Equal(new Fp32(53247), camera.Zoom);
     }
 

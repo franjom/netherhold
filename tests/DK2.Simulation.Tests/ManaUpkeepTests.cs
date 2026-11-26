@@ -28,7 +28,10 @@ public class ManaUpkeepTests
 
         public void Ticks(int count)
         {
-            for (int i = 0; i < count; i++) Tick();
+            for (int i = 0; i < count; i++)
+            {
+                Tick();
+            }
         }
 
         public int Imps => ImpSupplyRules.ImpCount(World, Db, Keeper);
@@ -62,7 +65,13 @@ public class ManaUpkeepTests
     {
         int[] gain = ManaRules.GainPerSecondByPlayerIndex(run.World, run.Db);
         for (int i = 0; i < run.World.PlayerCount; i++)
-            if (run.World.PlayerAtIndex(i).PlayerId == Keeper) return gain[i];
+        {
+            if (run.World.PlayerAtIndex(i).PlayerId == Keeper)
+            {
+                return gain[i];
+            }
+        }
+
         return 0;
     }
 
@@ -186,7 +195,9 @@ public class ManaUpkeepTests
         // land here is small, so this does not take many.
         int gain = LandIncome(run);
         while (run.Imps * ManaRules.ImpUpkeepPerSecond(run.Db) <= gain)
+        {
             run.Tick(new CreateImpCommand(Keeper));
+        }
 
         run.Ticks(SimulationTiming.TicksPerSecond);
         int before = run.Mana;
@@ -218,7 +229,9 @@ public class ManaUpkeepTests
         SettleWithFourImps(run);
 
         while (run.Imps * ManaRules.ImpUpkeepPerSecond(run.Db) <= gain)
+        {
             run.Tick(new CreateImpCommand(Keeper));
+        }
 
         ref PlayerState player = ref run.World.Player(Keeper);
         player.Mana = 10;

@@ -21,24 +21,40 @@ public class HatcheryCoopRebuildTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 3; y++)
+        {
             for (int x = 4; x <= 7; x++)
+            {
                 (world.Tile(x, y).TerrainId, world.Tile(x, y).OwnerPlayerId) = (Dk2TerrainFixture.ClaimedPath, Keeper);
+            }
+        }
+
         return (db, world);
     }
 
     private static void Paint(GameDatabase db, WorldState world, int x0, int x1)
     {
         for (int y = 1; y <= 3; y++)
+        {
             for (int x = x0; x <= x1; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Hatchery), Keeper);
+            }
+        }
     }
 
     private static void Change(GameDatabase db, WorldState world, int x, int y, byte terrain)
     {
         ref TileState tile = ref world.Tile(x, y);
         (byte before, PlayerId owner) = (tile.TerrainId, tile.OwnerPlayerId);
-        if (terrain == Dk2TerrainFixture.HatcheryTerrain) RoomRules.Place(db, ref tile, db.Room(RoomTypeId.Hatchery), Keeper);
-        else tile.TerrainId = terrain;
+        if (terrain == Dk2TerrainFixture.HatcheryTerrain)
+        {
+            RoomRules.Place(db, ref tile, db.Room(RoomTypeId.Hatchery), Keeper);
+        }
+        else
+        {
+            tile.TerrainId = terrain;
+        }
+
         SlabChain.Changed(world, db, (y * world.Width) + x, before, owner);
     }
 
@@ -50,7 +66,11 @@ public class HatcheryCoopRebuildTests
     private static uint After(uint seed, int draws)
     {
         var lcg = new Dk2Lcg(seed);
-        for (int i = 0; i < draws; i++) lcg.NextInt(4);
+        for (int i = 0; i < draws; i++)
+        {
+            lcg.NextInt(4);
+        }
+
         return lcg.Seed;
     }
 
@@ -95,7 +115,11 @@ public class HatcheryCoopRebuildTests
         uint seed = Seed(sim);
 
         // Selling the middle column leaves two 3x3 pieces, one coop each.
-        for (int y = 1; y <= 3; y++) Change(db, world, 4, y, Dk2TerrainFixture.ClaimedPath);
+        for (int y = 1; y <= 3; y++)
+        {
+            Change(db, world, 4, y, Dk2TerrainFixture.ClaimedPath);
+        }
+
         List<ObjectState> after = Coops(world);
         Assert.Equal(2, after.Count);
         Assert.DoesNotContain(after, c => c.TileIndex % world.Width == 4);

@@ -85,7 +85,9 @@ public class LeaveHookBodiesTests
         Assert.Equal(FearlessDelay, creature.CasinoGamblingDuration);
 
         for (int second = 1; second < FearlessDelay; second++)
+        {
             Assert.False(CasinoRules.StepFearlessCountdown(db, creature));
+        }
 
         Assert.True(CasinoRules.StepFearlessCountdown(db, creature));
         Assert.True(creature.CasinoGamblingFearless);

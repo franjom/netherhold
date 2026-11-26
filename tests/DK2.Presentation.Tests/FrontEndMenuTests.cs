@@ -83,7 +83,11 @@ public class FrontEndMenuTests
         menu.UpdatePointer(new(1, 1, false)); menu.AdvanceFrame();
         Assert.Equal(new[] { 0x30f }, sounds);
         menu.UpdatePointer(new(-1, -1, false));
-        for (int i = 0; i < 9; i++) menu.AdvanceFrame();
+        for (int i = 0; i < 9; i++)
+        {
+            menu.AdvanceFrame();
+        }
+
         menu.UpdatePointer(new(1, 1, false));
         Assert.Equal(new[] { 0x30f, 0x30f }, sounds);
     }

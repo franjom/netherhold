@@ -16,7 +16,10 @@ public sealed class FogOfWarTests
     {
         (GameDatabase db, WorldState world, _) = FogWorld();
         for (int x = 8; x <= 10; x++)
+        {
             RoomRules.Place(db, ref world.Tile(x, 8), db.Room(RoomTypeId.Treasury), 2);
+        }
+
         RoomInstance room = RoomIndex.RoomAt(world, db, 8 * world.Width + 8)!;
 
         RoomHealthRules.Apply(world, db, room, -RoomHealthRules.Health(world, db, room), 1);
@@ -34,7 +37,9 @@ public sealed class FogOfWarTests
     {
         (GameDatabase db, WorldState world, _) = FogWorld();
         for (int x = 8; x <= 10; x++)
+        {
             RoomRules.Place(db, ref world.Tile(x, 8), db.Room(RoomTypeId.Portal), 2);
+        }
 
         DiscoveryRules.SetExplored(world, db, new TilePos(9, 8), 1);
         for (int x = 8; x <= 10; x++)
@@ -136,7 +141,11 @@ public sealed class FogOfWarTests
     {
         (GameDatabase db, WorldState world, _) = FogWorld();
         OpenInterior(world);
-        for (int y = 0; y < world.Height; y++) world.Tile(11, y).TerrainId = 1;
+        for (int y = 0; y < world.Height; y++)
+        {
+            world.Tile(11, y).TerrainId = 1;
+        }
+
         new GameSimulation(db, world, 1, [new FogOfWarSystem()]).Tick();
         Assert.True(world.Tile(11, 10).IsExploredBy(1));
         Assert.False(world.Tile(12, 10).IsExploredBy(1));
@@ -182,7 +191,11 @@ public sealed class FogOfWarTests
     {
         (GameDatabase db, WorldState world, _) = FogWorld();
         OpenInterior(world);
-        for (int y = 0; y < world.Height; y++) world.Tile(11, y).TerrainId = 1;
+        for (int y = 0; y < world.Height; y++)
+        {
+            world.Tile(11, y).TerrainId = 1;
+        }
+
         world.Tile(11, 10).TerrainId = Dk2TerrainFixture.DirtPath;
         ThingProjection.Place(world, db, [new DoorThing(new byte[20])
         {
@@ -203,7 +216,11 @@ public sealed class FogOfWarTests
     {
         (GameDatabase db, WorldState world, _) = FogWorld();
         OpenInterior(world);
-        for (int y = 0; y < world.Height; y++) world.Tile(11, y).TerrainId = 1;
+        for (int y = 0; y < world.Height; y++)
+        {
+            world.Tile(11, y).TerrainId = 1;
+        }
+
         world.Tile(11, 10).TerrainId = Dk2TerrainFixture.DirtPath;
         ThingProjection.Place(world, db, [new DoorThing(new byte[20])
         {
@@ -301,10 +318,12 @@ public sealed class FogOfWarTests
     private static void OpenInterior(WorldState world)
     {
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
             {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
                 world.Tile(x, y).ExploredBy = PlayerMask.None;
             }
+        }
     }
 }

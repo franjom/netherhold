@@ -18,8 +18,15 @@ public sealed class HudScriptRestorationTests
     public void ScriptShowForcesGuiVisibleAndPreservesAnOpenModal(bool options)
     {
         var controls = new ClassicHudControls();
-        if (options) controls.Apply(ClassicHudAction.ToggleOptions);
-        else controls.Apply(ClassicHudAction.ToggleGui);
+        if (options)
+        {
+            controls.Apply(ClassicHudAction.ToggleOptions);
+        }
+        else
+        {
+            controls.Apply(ClassicHudAction.ToggleGui);
+        }
+
         ScriptedViewDirector director = Director(controls);
         Letterbox(director, true);
         director.Update(0, 0);
@@ -62,10 +69,17 @@ public sealed class HudScriptRestorationTests
             Letterbox(director, false);
             director.Update(100, 0);
         }
-        else Assert.True(director.Skip());
+        else
+        {
+            Assert.True(director.Skip());
+        }
+
         Assert.Equal(1, director.LetterboxRequestCount);
         Assert.False(controls.Visibility(director.HudFor(ClassicCameraMode.Dungeon)).ShowNormalHud);
-        if (scriptEndsFirst) Assert.True(director.Skip());
+        if (scriptEndsFirst)
+        {
+            Assert.True(director.Skip());
+        }
         else
         {
             Letterbox(director, false);
@@ -202,7 +216,11 @@ public sealed class HudScriptRestorationTests
     {
         ScriptedViewDirector director = Director(new ClassicHudControls());
         Letterbox(director, true);
-        if (duringPath) StartPath(director);
+        if (duringPath)
+        {
+            StartPath(director);
+        }
+
         director.Update(0, 0, new(3));
         director.Update(2000, 0, new(3));
         director.Emit(new SimEvent(default, "test", "mode", "")
@@ -264,7 +282,11 @@ public sealed class HudScriptRestorationTests
         var letterbox = new CinematicLetterbox();
         letterbox.Lower(0, animate: false);
         Assert.Equal(-1, letterbox.RequestCount);
-        for (int i = 0; i < 32769; i++) letterbox.Raise(0, animate: false);
+        for (int i = 0; i < 32769; i++)
+        {
+            letterbox.Raise(0, animate: false);
+        }
+
         Assert.Equal(-32768, letterbox.RequestCount);
         letterbox.Lower(0, animate: false);
         Assert.Equal(32767, letterbox.RequestCount);

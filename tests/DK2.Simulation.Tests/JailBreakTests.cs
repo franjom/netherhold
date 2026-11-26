@@ -29,17 +29,24 @@ public sealed class JailBreakTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, Hero, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y <= 8; y++)
-        for (int x = 1; x <= 12; x++)
+        {
+            for (int x = 1; x <= 12; x++)
         {
             ref TileState tile = ref world.Tile(x, y);
             tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
             tile.OwnerPlayerId = Keeper;
         }
+        }
 
         int x0 = size == 5 ? 4 : 5, y0 = size == 5 ? 2 : 3;
         for (int y = y0; y < y0 + size; y++)
-        for (int x = x0; x < x0 + size; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Prison), Keeper);
+        {
+            for (int x = x0; x < x0 + size; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Prison), Keeper);
+            }
+        }
+
         return (db, world);
     }
 
@@ -99,7 +106,10 @@ public sealed class JailBreakTests
         sim.Tick();
         Assert.Equal((CreatureActivity.Rescuing, JailBreakRules.BreakingOutState), (hero.Activity, hero.Dk2StateId));
 
-        for (int i = 0; i < 300 && PrisonRules.IsImprisoned(comrade); i++) sim.Tick();
+        for (int i = 0; i < 300 && PrisonRules.IsImprisoned(comrade); i++)
+        {
+            sim.Tick();
+        }
 
         Assert.False(PrisonRules.IsImprisoned(comrade));
         Assert.Contains(sink.Events, e => e.Kind == "rescuer_to_door");
@@ -125,10 +135,17 @@ public sealed class JailBreakTests
         sim.Tick();
         StepOnto(hero, Rim);
 
-        for (int i = 0; i < 300 && !sink.Events.Any(e => e.Kind == "prison_door_opened"); i++) sim.Tick();
+        for (int i = 0; i < 300 && !sink.Events.Any(e => e.Kind == "prison_door_opened"); i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Equal(JailBreakRules.Activated | JailBreakRules.Open, JailBreakRules.DoorOf(world, Prison(db, world)));
-        for (int i = 0; i < 300 && PrisonRules.IsImprisoned(comrade); i++) sim.Tick();
+        for (int i = 0; i < 300 && PrisonRules.IsImprisoned(comrade); i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(JailBreakRules.Activated | JailBreakRules.Open | JailBreakRules.Broken, JailBreakRules.DoorOf(world, Prison(db, world)));
     }
 
@@ -145,8 +162,15 @@ public sealed class JailBreakTests
         sim.Tick();
         StepOnto(hero, Rim);
 
-        for (int i = 0; i < 300 && PrisonRules.IsImprisoned(comrade); i++) sim.Tick();
-        for (int i = 0; i < 40; i++) sim.Tick();
+        for (int i = 0; i < 300 && PrisonRules.IsImprisoned(comrade); i++)
+        {
+            sim.Tick();
+        }
+
+        for (int i = 0; i < 40; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.False(PrisonRules.IsImprisoned(comrade));
         Assert.True(PrisonRules.IsImprisoned(stranger));

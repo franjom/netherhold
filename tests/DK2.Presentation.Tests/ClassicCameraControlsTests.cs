@@ -73,9 +73,14 @@ public class ClassicCameraControlsTests
     {
         var controls = new ClassicCameraControls(new ClassicCamera(Profile()));
         foreach (int raw in new[] { 840, 1160, 1480, 1800, 2120, 2120 })
+        {
             Assert.Equal(raw / 4096f, controls.Advance(System.Numerics.Vector3.Zero, ClassicCameraKeys.Right, TimeSpan.FromMilliseconds(20)).X);
+        }
+
         foreach (int raw in new[] { 1600, 1280, 960, 640, 320, 0 })
+        {
             Assert.Equal(raw / 4096f, controls.Advance(System.Numerics.Vector3.Zero, ClassicCameraKeys.None, TimeSpan.FromMilliseconds(20)).X);
+        }
     }
 
     [Fact]
@@ -120,7 +125,11 @@ public class ClassicCameraControlsTests
     {
         var camera = new ClassicCamera(Profile());
         var controls = new ClassicCameraControls(camera);
-        for (int i = 0; i < 3; i++) controls.Advance(System.Numerics.Vector3.Zero, ClassicCameraKeys.TurnRight, TimeSpan.FromTicks(15_000));
+        for (int i = 0; i < 3; i++)
+        {
+            controls.Advance(System.Numerics.Vector3.Zero, ClassicCameraKeys.TurnRight, TimeSpan.FromTicks(15_000));
+        }
+
         Assert.Equal(4 * 360f / 2048, camera.Pose(Vector3.Zero, new(1600, 1600, 1200)).YawDegrees);
     }
 

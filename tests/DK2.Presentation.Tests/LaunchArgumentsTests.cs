@@ -154,7 +154,11 @@ public sealed class LaunchArgumentsTests
         PointerScript script = LaunchArguments.ParsePointerPath("10:100,100;20:200,50:L;22:200,50:l")!;
         script.At(15);
         long before = GC.GetAllocatedBytesForCurrentThread();
-        for (int frame = 0; frame < 40; frame++) script.At(frame);
+        for (int frame = 0; frame < 40; frame++)
+        {
+            script.At(frame);
+        }
+
         Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
     }
 }

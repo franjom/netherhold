@@ -49,8 +49,16 @@ public class CombatAlarmPointTests
         (GameDatabase? db, WorldState? world, RoomInstance? room, CreatureState? imp) = Fixture(Dk2TerrainFixture.GuardRoomTerrain);
         PlaceRoom(world, Dk2TerrainFixture.GuardRoomTerrain, 15, 15);
         for (int y = 7; y <= 9; y++)
+        {
             for (int x = 7; x <= 9; x++)
-                if (x != 8 || y != 8) world.Tile(new TilePos(x, y)).TerrainId = Dk2TerrainFixture.ImpenetrableRock;
+            {
+                if (x != 8 || y != 8)
+                {
+                    world.Tile(new TilePos(x, y)).TerrainId = Dk2TerrainFixture.ImpenetrableRock;
+                }
+            }
+        }
+
         var random = new FixedDraw(0);
 
         Assert.False(Raise(db, world, imp, random));
@@ -65,7 +73,11 @@ public class CombatAlarmPointTests
     {
         (GameDatabase? db, WorldState? world, RoomInstance? room, CreatureState? imp) = Fixture(Dk2TerrainFixture.GuardRoomTerrain);
         int centre = 11 * world.Width + 11;
-        if (wrap) world.TileAtIndex(centre).SlabOrder = 99;
+        if (wrap)
+        {
+            world.TileAtIndex(centre).SlabOrder = 99;
+        }
+
         int[] chain = SlabChain.Order(world, room);
         int draw = Array.IndexOf(chain, centre);
         var random = new FixedDraw(draw);
@@ -121,7 +133,10 @@ public class CombatAlarmPointTests
             StatePlacement.Place(other, walk);
             other.UtilityNewState = state;
         }
-        else StatePlacement.Place(other, state);
+        else
+        {
+            StatePlacement.Place(other, state);
+        }
 
         Assert.Equal(refuses, FearRules.AlreadyResponding(world, Keeper, imp.PosX, imp.PosY));
     }
@@ -156,8 +171,13 @@ public class CombatAlarmPointTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(new TilePos(x, y)).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         PlaceRoom(world, terrain, 11, 11);
         RoomInstance room = RoomIndex.Build(world, db).Single();
         CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(8, 8));
@@ -168,12 +188,14 @@ public class CombatAlarmPointTests
     private static void PlaceRoom(WorldState world, byte terrain, int cx, int cy)
     {
         for (int y = cy - 1; y <= cy + 1; y++)
+        {
             for (int x = cx - 1; x <= cx + 1; x++)
             {
                 ref TileState tile = ref world.Tile(new TilePos(x, y));
                 tile.TerrainId = terrain;
                 tile.OwnerPlayerId = Keeper;
             }
+        }
     }
 
     private sealed class FixedDraw(int value) : IRandomAlgorithm

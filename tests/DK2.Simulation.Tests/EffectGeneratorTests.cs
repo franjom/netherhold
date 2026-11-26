@@ -16,9 +16,16 @@ public class EffectGeneratorTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         if (open)
+        {
             for (int y = 1; y < world.Height - 1; y++)
+            {
                 for (int x = 1; x < world.Width - 1; x++)
+                {
                     world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
+                }
+            }
+        }
+
         var sim = new GameSimulation(db, world, new SimRandom(new Dk2Lcg(seed)), [new EffectGeneratorSystem()]);
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
@@ -34,7 +41,12 @@ public class EffectGeneratorTests
     private static uint SeedForSlot(bool filled)
     {
         for (uint seed = 1; ; seed++)
-            if ((new Dk2Lcg(seed).NextInt(4) == 0) == filled) return seed;
+        {
+            if ((new Dk2Lcg(seed).NextInt(4) == 0) == filled)
+            {
+                return seed;
+            }
+        }
     }
 
     [Fact]
@@ -100,10 +112,21 @@ public class EffectGeneratorTests
         for (uint seed = 1; ; seed++)
         {
             var probe = new Dk2Lcg(seed);
-            if (probe.NextInt(4) != 0) continue;
+            if (probe.NextInt(4) != 0)
+            {
+                continue;
+            }
+
             int x = (0x1800 + probe.NextInt(14 << 12)) >> 12, y = (0x1800 + probe.NextInt(10 << 12)) >> 12;
-            if (x is >= 1 and <= 3 && y is >= 1 and <= 3) continue;
-            if (x == 5 && y == 5 || x == 6 && y == 5) continue; // gold and gems are not rock
+            if (x is >= 1 and <= 3 && y is >= 1 and <= 3)
+            {
+                continue;
+            }
+
+            if (x == 5 && y == 5 || x == 6 && y == 5)
+            {
+                continue; // gold and gems are not rock
+            }
 
             (GameSimulation? sim, ListEventSink? sink) = Start(seed, open: false);
             sim.Tick();
@@ -134,8 +157,12 @@ public class EffectGeneratorTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
+            }
+        }
         // A zero-size rectangle: its point is its own corner, the centre of (5, 7).
         ThingProjection.Place(world, db, [new EffectGeneratorThing(new byte[36])
         {

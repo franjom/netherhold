@@ -72,9 +72,17 @@ public sealed class MinimapDiscGeometryTests
         var geometry = new MinimapDiscGeometry();
         var grid = new MinimapClassGrid(90, 90);
         MinimapMarker[] markers = [new(MinimapMarkerKind.Creature, At(20, 30), 0xFF123456)];
-        for (int i = 0; i < 32; i++) geometry.Build(grid, markers, new MinimapZoom(0), At(25, 25), new TilePos(20, 30), new GameTick(i));
+        for (int i = 0; i < 32; i++)
+        {
+            geometry.Build(grid, markers, new MinimapZoom(0), At(25, 25), new TilePos(20, 30), new GameTick(i));
+        }
+
         long before = GC.GetAllocatedBytesForCurrentThread();
-        for (int i = 0; i < 1000; i++) geometry.Build(grid, markers, new MinimapZoom(0), At(25, 25), new TilePos(20, 30), new GameTick(i));
+        for (int i = 0; i < 1000; i++)
+        {
+            geometry.Build(grid, markers, new MinimapZoom(0), At(25, 25), new TilePos(20, 30), new GameTick(i));
+        }
+
         Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
         Assert.Equal(0xFF123456u, geometry.Quads[0].ColourArgb);
         Assert.All(geometry.Quads.Skip(1), q => Assert.Equal(0xFFFFFFFFu, q.ColourArgb));

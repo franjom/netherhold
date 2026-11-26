@@ -36,7 +36,11 @@ public class SaveLoadingBoundsTests
         byte[] bytes = Snapshot();
         BitConverter.GetBytes(count).CopyTo(bytes, 59);
         // Leave only the header when testing the remaining-bytes bound.
-        if (count == 256) bytes = bytes[..63];
+        if (count == 256)
+        {
+            bytes = bytes[..63];
+        }
+
         SaveIncompatibleException error = Assert.Throws<SaveIncompatibleException>(() => WorldSnapshot.FromBytes(bytes, TestWorld.Database()));
         Assert.Equal(reason, error.Reason);
     }
@@ -107,7 +111,8 @@ public class SaveLoadingBoundsTests
         IEnumerable<int> offsets = Enumerable.Range(0, 100)
             .Concat(Enumerable.Range(0, 512).Select(i => (int)((long)i * (original.Length - 1) / 511))).Distinct();
         foreach (int offset in offsets)
-        foreach (byte value in new byte[] { 0xFF, 0x7F, 0x80 })
+        {
+            foreach (byte value in new byte[] { 0xFF, 0x7F, 0x80 })
         {
             byte[] bytes = (byte[])original.Clone();
             bytes[offset] = value;
@@ -115,6 +120,8 @@ public class SaveLoadingBoundsTests
             Assert.True(error is null or SaveIncompatibleException,
                 $"Offset {offset}, value {value:X2}: {error}");
         }
+        }
+
         foreach (int length in Enumerable.Range(0, 128).Select(i => (int)((long)i * (original.Length - 1) / 127)))
         {
             SaveIncompatibleException error = Assert.Throws<SaveIncompatibleException>(() => WorldSnapshot.FromBytes(original[..length], database));
@@ -150,7 +157,10 @@ public class SaveLoadingBoundsTests
         for (int i = 0; i < 2; i++)
         {
             writer.Write((byte)1); writer.Write(2); writer.Write(2); writer.Write(1);
-            for (int side = 0; side < 4; side++) writer.Write(0);
+            for (int side = 0; side < 4; side++)
+            {
+                writer.Write(0);
+            }
         }
         writer.Write(bytes, countOffset + 4, bytes.Length - countOffset - 4);
         SaveIncompatibleException error = Assert.Throws<SaveIncompatibleException>(() => WorldSnapshot.FromBytes(stream.ToArray(), TestWorld.Database()));

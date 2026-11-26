@@ -118,7 +118,11 @@ public class PortalOnRealDataTests
         // And every other creature is barred, which is what makes it a tutorial.
         foreach (CreatureDef creature in db.Creatures.Values)
         {
-            if (creature.CreatureId == GoblinId) continue;
+            if (creature.CreatureId == GoblinId)
+            {
+                continue;
+            }
+
             Assert.False(PortalRules.IsUnlocked(db, 3, creature.CreatureId));
         }
     }
@@ -165,7 +169,9 @@ public class PortalOnRealDataTests
         RoomInstance portal = RoomIndex.Build(world, db)
             .First(r => PortalRules.IsKeeperPortal(r.Definition));
         foreach (int index in portal.TileIndices)
+        {
             world.TileAtIndex(index).OwnerPlayerId = 3;
+        }
 
         // A lair, on a tile the keeper already owns.
         RoomDef lair = db.Room(RoomTypeId.Lair);
@@ -198,9 +204,17 @@ public class PortalOnRealDataTests
         for (int i = 0; i < world.TileCount; i++)
         {
             ref TileState tile = ref world.TileAtIndex(i);
-            if (tile.OwnerPlayerId != playerId) continue;
+            if (tile.OwnerPlayerId != playerId)
+            {
+                continue;
+            }
+
             TerrainDef terrain = db.TerrainById(tile.TerrainId);
-            if (terrain.IsSolid || terrain.IsRoom) continue;
+            if (terrain.IsSolid || terrain.IsRoom)
+            {
+                continue;
+            }
+
             return i;
         }
         throw new InvalidOperationException($"no plain owned floor for player {playerId}");
@@ -236,12 +250,20 @@ public class PortalOnRealDataTests
         foreach (string level in CampaignLevels(install))
         {
             GlobalVariables? vars = GameDatabaseLoader.LoadCampaignVariables(install, level);
-            if (vars is null) continue;
+            if (vars is null)
+            {
+                continue;
+            }
+
             checkedLevels++;
 
             foreach (AvailabilityEntry entry in vars.Availabilities)
             {
-                if (entry.Kind != 2) continue;
+                if (entry.Kind != 2)
+                {
+                    continue;
+                }
+
                 Assert.True(
                     entry.Value is 1 or 3,
                     $"{level}: creature {entry.TypeId} has availability {entry.Value}, " +
@@ -263,7 +285,11 @@ public class PortalOnRealDataTests
         foreach (string level in CampaignLevels(install))
         {
             GlobalVariables? vars = GameDatabaseLoader.LoadCampaignVariables(install, level);
-            if (vars is null) continue;
+            if (vars is null)
+            {
+                continue;
+            }
+
             checkedLevels++;
 
             List<(int, int)> keys = vars.CreaturePool
@@ -325,7 +351,11 @@ public class PortalOnRealDataTests
 
                 foreach (AvailabilityEntry entry in vars.Availabilities)
                 {
-                    if (entry.Kind != 2) continue;
+                    if (entry.Kind != 2)
+                    {
+                        continue;
+                    }
+
                     Assert.True(PlayerIds.IsKeeper((byte)entry.PlayerId),
                         $"{level}: creature availability for player {entry.PlayerId}");
                 }
@@ -334,7 +364,11 @@ public class PortalOnRealDataTests
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
 
             Assert.NotNull(map);
-            if (map is null) continue;
+            if (map is null)
+            {
+                continue;
+            }
+
             levelsRead++;
 
             for (int y = 0; y < map.Height; y++)
@@ -395,13 +429,19 @@ public class PortalOnRealDataTests
         {
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
             Assert.NotNull(map);
-            if (map is null) continue;
+            if (map is null)
+            {
+                continue;
+            }
 
             var world = WorldState.FromMap(db, map, [(byte)0]);
             var found = RoomIndex.Build(world, db)
                 .Where(r => r.Definition.TerrainId == portalTerrain)
                 .ToList();
-            if (found.Count == 0) continue;
+            if (found.Count == 0)
+            {
+                continue;
+            }
 
             levelsWithPortals++;
             portals += found.Count;
@@ -446,17 +486,30 @@ public class PortalOnRealDataTests
         foreach (string level in CampaignLevels(install))
         {
             GlobalVariables? vars = GameDatabaseLoader.LoadCampaignVariables(install, level);
-            if (vars is null) continue;
+            if (vars is null)
+            {
+                continue;
+            }
+
             checkedLevels++;
 
             foreach (AvailabilityEntry entry in vars.Availabilities)
             {
-                if (entry.Kind != 2 || entry.Value != 3) continue;
-                if (!PlayerIds.IsKeeper((byte)entry.PlayerId)) continue;
+                if (entry.Kind != 2 || entry.Value != 3)
+                {
+                    continue;
+                }
+
+                if (!PlayerIds.IsKeeper((byte)entry.PlayerId))
+                {
+                    continue;
+                }
 
                 CreatureDef creature = db.CreatureById((byte)entry.TypeId);
                 if (!PortalRules.CanComeFromPortal(creature, keeperPortal))
+                {
                     blocked.Add(creature.Name);
+                }
             }
         }
 
@@ -503,7 +556,9 @@ public class PortalOnRealDataTests
         foreach (CreatureDef creature in db.Creatures.Values)
         {
             if (creature.Flags2.HasFlag(CreatureFlags2.AvailableViaHeroPortal))
+            {
                 heroSide.Add(creature.Name);
+            }
         }
 
         Assert.Equal(
@@ -584,8 +639,15 @@ public class PortalOnRealDataTests
         int keeperPortalTiles = 0;
         foreach (MapTile tile in map!.Tiles)
         {
-            if (tile.TerrainId == heroTerrain) heroTiles++;
-            if (tile.TerrainId == portalTerrain) keeperPortalTiles++;
+            if (tile.TerrainId == heroTerrain)
+            {
+                heroTiles++;
+            }
+
+            if (tile.TerrainId == portalTerrain)
+            {
+                keeperPortalTiles++;
+            }
         }
 
         // Four 3x3 Hero Portals and not one Portal, so a keeper here has no
@@ -602,7 +664,11 @@ public class PortalOnRealDataTests
             var pooled = new SortedSet<string>();
             foreach (CreaturePoolEntry entry in vars!.CreaturePool)
             {
-                if (entry.PlayerId != keeper) continue;
+                if (entry.PlayerId != keeper)
+                {
+                    continue;
+                }
+
                 pooled.Add(db.CreatureById((byte)entry.CreatureId).Name);
             }
 
@@ -644,12 +710,20 @@ public class PortalOnRealDataTests
         foreach (string level in CampaignLevels(install))
         {
             GlobalVariables? vars = GameDatabaseLoader.LoadCampaignVariables(install, level);
-            if (vars is null) continue;
+            if (vars is null)
+            {
+                continue;
+            }
+
             checkedLevels++;
 
             foreach (AvailabilityEntry entry in vars.Availabilities)
             {
-                if (entry.Kind != 2) continue;
+                if (entry.Kind != 2)
+                {
+                    continue;
+                }
+
                 Assert.False(
                     db.CreatureById((byte)entry.TypeId).Flags.HasFlag(CreatureFlags.IsUnique),
                     $"{level}: availability lists unique creature {entry.TypeId}");
@@ -720,7 +794,10 @@ public class PortalOnRealDataTests
         int entrances = 0;
         foreach (RoomDef room in db.Rooms.Values)
         {
-            if (PortalRules.IsPortalTerrain(db, room.TerrainId)) entrances++;
+            if (PortalRules.IsPortalTerrain(db, room.TerrainId))
+            {
+                entrances++;
+            }
         }
         Assert.Equal(2, entrances);
 

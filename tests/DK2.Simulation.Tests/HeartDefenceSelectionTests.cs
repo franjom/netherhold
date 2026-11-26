@@ -87,7 +87,10 @@ public class HeartDefenceSelectionTests
         (GameDatabase? db, WorldState? world) = World(FightStyle.Blocker);
         CreatureState imp = world.SpawnArrived(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(11, 5));
         CreatureState hero = world.SpawnArrived(db, FighterType, PlayerIds.Good, new TilePos(9, 5));
-        if (registeredAttacker) Assert.True(CombatRules.Register(hero, imp.Id, ranged: false));
+        if (registeredAttacker)
+        {
+            Assert.True(CombatRules.Register(hero, imp.Id, ranged: false));
+        }
 
         Select(db, world, hero);
 
@@ -123,11 +126,21 @@ public class HeartDefenceSelectionTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         for (int y = 3; y <= 7; y++)
+        {
             for (int x = 10; x <= 14; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.DungeonHeart), Keeper);
+            }
+        }
+
         return (db, world);
     }
 }

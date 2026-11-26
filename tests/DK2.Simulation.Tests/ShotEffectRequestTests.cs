@@ -174,7 +174,13 @@ public class ShotEffectRequestTests
             basis.Variables, shots: [definition]);
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 12), [(byte)0, (byte)1, (byte)2, (byte)3, (byte)4]);
         for (int y = 1; y < 11; y++)
-            for (int x = 1; x < 19; x++) world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
+        {
+            for (int x = 1; x < 19; x++)
+            {
+                world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
+            }
+        }
+
         ShotState shot = ShotRules.Spawn(world, definition, 3, CreatureState.CentreOf(4), CreatureState.CentreOf(4), 0, 0,
             0, FightTargetKind.None, -1, 0, -1, CreatureState.CentreOf(15), CreatureState.CentreOf(4));
         ShotRules.Launch(shot, definition, shot.TargetX, shot.TargetY);
@@ -190,7 +196,10 @@ public class ShotEffectRequestTests
         public void Execute(SimulationContext context)
         {
             context.Navigation.Refresh();
-            if (requestTrail && shot.Age == 0) ShotRules.RequestTrail(context, shot, new Dk2Angle(256), new Fp32(3000));
+            if (requestTrail && shot.Age == 0)
+            {
+                ShotRules.RequestTrail(context, shot, new Dk2Angle(256), new Fp32(3000));
+            }
         }
     }
 

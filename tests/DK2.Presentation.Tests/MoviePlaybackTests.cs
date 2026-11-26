@@ -87,7 +87,10 @@ public class MoviePlaybackTests
         Assert.Equal(skips, movie.Press(input));
         Assert.Equal(skips, movie.Finished);
         Assert.Equal(skips, movie.Skipped);
-        if (skips) Assert.False(movie.Update(10, 0));
+        if (skips)
+        {
+            Assert.False(movie.Update(10, 0));
+        }
     }
 
     [Fact]
@@ -148,7 +151,11 @@ public class MoviePlaybackTests
     private static byte[] Silent(int frames)
     {
         var file = new List<byte>();
-        for (int i = 0; i < frames; i++) Chunk(file, "pIQT", GreyFrame());
+        for (int i = 0; i < frames; i++)
+        {
+            Chunk(file, "pIQT", GreyFrame());
+        }
+
         Chunk(file, "SCEl", []);
         return file.ToArray();
     }
@@ -170,8 +177,16 @@ public class MoviePlaybackTests
     {
         var bits = new StringBuilder();
         bits.Append("1111110").Append("10000000").Append("10");
-        for (int i = 0; i < 3; i++) bits.Append("100").Append("10");
-        for (int i = 0; i < 2; i++) bits.Append("11111110").Append("10000000").Append("10");
+        for (int i = 0; i < 3; i++)
+        {
+            bits.Append("100").Append("10");
+        }
+
+        for (int i = 0; i < 2; i++)
+        {
+            bits.Append("11111110").Append("10000000").Append("10");
+        }
+
         string all = bits.ToString().PadRight((bits.Length + 31) / 32 * 32, '0');
         byte[] frame = new byte[8 + all.Length / 8];
         BinaryPrimitives.WriteUInt16LittleEndian(frame, 16);
@@ -179,7 +194,10 @@ public class MoviePlaybackTests
         frame[4] = 100;
         frame[7] = 3;
         for (int w = 0; w < all.Length / 32; w++)
+        {
             BinaryPrimitives.WriteUInt32LittleEndian(frame.AsSpan(8 + w * 4), Convert.ToUInt32(all.Substring(w * 32, 32), 2));
+        }
+
         return frame;
     }
 
@@ -187,7 +205,11 @@ public class MoviePlaybackTests
     {
         byte[] payload = new byte[4 + 2 * count];
         BinaryPrimitives.WriteInt32LittleEndian(payload, count);
-        for (int i = 0; i < count; i++) BinaryPrimitives.WriteInt16LittleEndian(payload.AsSpan(4 + 2 * i), value);
+        for (int i = 0; i < count; i++)
+        {
+            BinaryPrimitives.WriteInt16LittleEndian(payload.AsSpan(4 + 2 * i), value);
+        }
+
         return payload;
     }
 

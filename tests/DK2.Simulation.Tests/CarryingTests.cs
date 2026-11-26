@@ -41,7 +41,11 @@ public class CarryingTests
             new CreatureSleepSystem(),
             new CreatureHealthSystem(),
         ]);
-        if (sink is not null) sim.ObserveWith(sink);
+        if (sink is not null)
+        {
+            sim.ObserveWith(sink);
+        }
+
         return sim;
     }
 
@@ -72,8 +76,13 @@ public class CarryingTests
     private static void Graveyard(GameDatabase db, WorldState world, int x1 = 6)
     {
         for (int y = 1; y <= 3; y++)
+        {
             for (int x = 4; x <= x1; x++)
+            {
                 Paint(db, world, RoomTypeId.Graveyard, new TilePos(x, y));
+            }
+        }
+
         Dk2TerrainFixture.FurnishRooms(db, world);   // a tombstone on each floor slot, as the room's furniture pass stands
     }
 
@@ -90,7 +99,11 @@ public class CarryingTests
         WorldState world = World(db);
         CreatureState passenger = world.SpawnCreature(db, GoblinId, Rival, new TilePos(1, 1));
         Down(new StateHookContext(world, db), passenger);
-        if (passengerIsCorpse) CreatureDeathRules.BecomeCorpse(world, db, passenger);
+        if (passengerIsCorpse)
+        {
+            CreatureDeathRules.BecomeCorpse(world, db, passenger);
+        }
+
         CreatureState carrier = world.SpawnCreature(db, carrierLeavesBody ? GoblinId : ImpId,
             Keeper, new TilePos(2, 3));
         CarryRules.PickUp(carrier, passenger);
@@ -105,7 +118,11 @@ public class CarryingTests
         sim.Run(Second);
 
         Assert.Equal(carrierLeavesBody, world.CreatureById(carrier.Id) is not null);
-        if (carrierLeavesBody) Assert.True(CreatureDeathRules.IsCorpse(carrier));
+        if (carrierLeavesBody)
+        {
+            Assert.True(CreatureDeathRules.IsCorpse(carrier));
+        }
+
         Assert.Same(passenger, world.CreatureById(passenger.Id));
         Assert.Equal(-1, carrier.CarriedCreatureId);
         Assert.Equal(-1, passenger.CarriedByCreatureId);
@@ -167,15 +184,23 @@ public class CarryingTests
         WorldState world = World(db);
         Paint(db, world, RoomTypeId.Lair, new TilePos(1, 1));
         for (int y = 4; y <= 6; y++)
+        {
             for (int x = 4; x <= 6; x++)
+            {
                 Paint(db, world, RoomTypeId.Prison, new TilePos(x, y));
+            }
+        }
 
         // A way in: the rescue selector carries an enemy only to a Prison its route reaches.
         world.Tile(4, 3).TerrainId = Dk2TerrainFixture.ClaimedPath;
         world.Tile(4, 3).OwnerPlayerId = Keeper;
         CreatureState foreign = world.SpawnCreature(db, GoblinId, Rival, new TilePos(3, 3));
         foreign.RescuePriorityMask = mask;
-        if (foreignFartherAway) foreign.PosX = CreatureState.CentreOf(4);
+        if (foreignFartherAway)
+        {
+            foreign.PosX = CreatureState.CentreOf(4);
+        }
+
         Down(new StateHookContext(world, db), foreign);
         CreatureState own = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(1, 1));
         Assert.True(LairRules.TryPlaceBedInAnyLair(world, db, own));
@@ -251,7 +276,10 @@ public class CarryingTests
         for (int i = 0; i < 30 * Second; i++)
         {
             sim.Tick();
-            if (sink.Events.Any(e => e.Kind == "creature_rescued")) break;
+            if (sink.Events.Any(e => e.Kind == "creature_rescued"))
+            {
+                break;
+            }
         }
 
         Assert.Contains(sink.Events, e => e.Kind == "creature_rescued");
@@ -350,7 +378,11 @@ public class CarryingTests
         imp.Health = 0;
 
         GameSimulation sim = new(db, world, 42, [new CreatureHealthSystem()]);
-        for (int tick = 0; tick < Second * 5 && goblin.Dk2StateId != CreatureDeathRules.DyingState; tick++) sim.Tick();
+        for (int tick = 0; tick < Second * 5 && goblin.Dk2StateId != CreatureDeathRules.DyingState; tick++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(CreatureDeathRules.DyingState, goblin.Dk2StateId);
         sim.Run(CreatureDeathRules.DyingWindowTicks(db));
 
@@ -373,7 +405,11 @@ public class CarryingTests
             [new CreatureSleepSystem(), new CreatureJobSystem(), new CreatureHealthSystem()]);
         sim.ObserveWith(sink);
 
-        for (int i = 0; i < 2 * Second && !sink.Events.Any(e => e.Kind == "creature_collapsed"); i++) sim.Tick();
+        for (int i = 0; i < 2 * Second && !sink.Events.Any(e => e.Kind == "creature_collapsed"); i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(CreatureDeathRules.FallingState, goblin.Dk2StateId);
 
         sim.Run(Second);
@@ -394,7 +430,10 @@ public class CarryingTests
         GameSimulation sim = new(db, world, 42, [new CreatureHealthSystem()]);
         sim.ObserveWith(sink);
 
-        for (int i = 0; i < 2 * Second && !sink.Events.Any(e => e.Kind == "creature_collapsed"); i++) sim.Tick();
+        for (int i = 0; i < 2 * Second && !sink.Events.Any(e => e.Kind == "creature_collapsed"); i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Equal(CreatureDeathRules.FallingState, goblin.Dk2StateId);
         Assert.Equal(0, goblin.GoldHeld);
@@ -434,7 +473,10 @@ public class CarryingTests
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
 
-        for (int i = 0; i < 30 * Second && !sink.Events.Any(e => e.Kind == "creature_rescued"); i++) sim.Tick();
+        for (int i = 0; i < 30 * Second && !sink.Events.Any(e => e.Kind == "creature_rescued"); i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Equal(LairRules.SleepingState, goblin.Dk2StateId);
         Assert.DoesNotContain(sink.Events, e => e.Kind == "state_refused");
@@ -520,7 +562,11 @@ public class CarryingTests
         GameDatabase db = Db;
         WorldState world = World(db);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Rival, new TilePos(2, 2));
-        if (down) Down(new StateHookContext(world, db), goblin);
+        if (down)
+        {
+            Down(new StateHookContext(world, db), goblin);
+        }
+
         goblin.GoldHeld = 300;
         goblin.TriggerId = EventCounterTree.Root;
         goblin.CorpseSuppressed = true;
@@ -653,7 +699,11 @@ public class CarryingTests
         WorldState world = World(db);
         Graveyard(db, world);
         int slot = world.TileIndex(new TilePos(5, 2));
-        foreach (ObjectState stone in world.Objects.Where(o => o.TileIndex == slot).ToList()) world.RemoveObject(stone.Id);
+        foreach (ObjectState stone in world.Objects.Where(o => o.TileIndex == slot).ToList())
+        {
+            world.RemoveObject(stone.Id);
+        }
+
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(5, 2));
         CreatureDeathRules.BecomeCorpse(world, db, goblin);
 
@@ -716,7 +766,11 @@ public class CarryingTests
         goblin.Health = 0;
 
         GameSimulation sim = new(db, world, 42, [new CreatureHealthSystem()]);
-        for (int tick = 0; tick < Second * 5 && goblin.Dk2StateId != CreatureDeathRules.DyingState; tick++) sim.Tick();
+        for (int tick = 0; tick < Second * 5 && goblin.Dk2StateId != CreatureDeathRules.DyingState; tick++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(CreatureDeathRules.DyingState, goblin.Dk2StateId);
         sim.Run(CreatureDeathRules.DyingWindowTicks(db));
 
@@ -772,7 +826,11 @@ public class CarryingTests
         GameSimulation sim = Simulation(db, world);
 
         // Let the imp take it and start walking.
-        for (int i = 0; i < 10 * Second && imp.CarriedCreatureId < 0; i++) sim.Tick();
+        for (int i = 0; i < 10 * Second && imp.CarriedCreatureId < 0; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(corpse.Id, imp.CarriedCreatureId);
         Assert.Equal(imp.Id, corpse.CarriedByCreatureId);
 
@@ -780,7 +838,11 @@ public class CarryingTests
         for (int i = 0; i < 5 && imp.CarriedCreatureId >= 0; i++)
         {
             sim.Tick();
-            if (imp.CarriedCreatureId < 0) break;
+            if (imp.CarriedCreatureId < 0)
+            {
+                break;
+            }
+
             Assert.Equal(imp.PosX, corpse.PosX);
             Assert.Equal(imp.PosY, corpse.PosY);
         }
@@ -866,8 +928,15 @@ public class CarryingTests
         CreatureState body = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, new TilePos(3, 3));
         var sim = new GameSimulation(db, world, 42, [new CreatureHealthSystem()]);
-        if (corpse) CreatureDeathRules.BecomeCorpse(world, db, body);
-        else Down(new StateHookContext(world, db), body);
+        if (corpse)
+        {
+            CreatureDeathRules.BecomeCorpse(world, db, body);
+        }
+        else
+        {
+            Down(new StateHookContext(world, db), body);
+        }
+
         int window = corpse ? CreatureDeathRules.BodyWindowTicks(db) : CreatureDeathRules.DyingWindowTicks(db);
         body.DyingTicks = window - 1;
         CarryRules.PickUp(imp, body);
@@ -878,8 +947,14 @@ public class CarryingTests
 
         CarryRules.PutDown(imp, body);
         sim.Run(Second * 2);
-        if (corpse) Assert.DoesNotContain(body, world.Creatures); // rotted away
-        else Assert.True(CreatureDeathRules.IsCorpse(body));      // died, and is now a corpse
+        if (corpse)
+        {
+            Assert.DoesNotContain(body, world.Creatures); // rotted away
+        }
+        else
+        {
+            Assert.True(CreatureDeathRules.IsCorpse(body));      // died, and is now a corpse
+        }
     }
 
     // ---- the round trip ---------------------------------------------------
@@ -896,7 +971,11 @@ public class CarryingTests
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, new TilePos(3, 3));
 
         GameSimulation sim = Simulation(db, world);
-        for (int i = 0; i < 10 * Second && imp.CarriedCreatureId < 0; i++) sim.Tick();
+        for (int i = 0; i < 10 * Second && imp.CarriedCreatureId < 0; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.True(imp.CarriedCreatureId >= 0);
 
         GameSimulation restored = WorldSnapshot.FromBytes(

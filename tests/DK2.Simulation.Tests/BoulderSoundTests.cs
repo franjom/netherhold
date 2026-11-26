@@ -27,8 +27,13 @@ public sealed class BoulderSoundTests
         db ??= SoundFixture.Database(new Dictionary<byte, string> { [BoulderRules.ObjectId] = "TRAP_BOULDER" });
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 12), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(x, y).TerrainId = y != Row ? Dk2TerrainFixture.Rock : Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         return (db, world);
     }
 
@@ -89,7 +94,10 @@ public sealed class BoulderSoundTests
         (GameDatabase db, WorldState world) = Open();
         ObjectState boulder = Rolling(db, world, 17, Row);
         GameSimulation sim = Sim(db, world, out ListEventSink events);
-        for (int i = 0; i < 12 && !events.Events.Any(e => e.Kind == "boulder_turned"); i++) sim.Run(1);
+        for (int i = 0; i < 12 && !events.Events.Any(e => e.Kind == "boulder_turned"); i++)
+        {
+            sim.Run(1);
+        }
 
         Assert.Contains(events.Events, e => e.Kind == "boulder_turned");
         ThingSoundRequest crash = Assert.Single(Heard(events, ThingSoundEvent.BoulderTurned));
@@ -100,7 +108,11 @@ public sealed class BoulderSoundTests
         ObjectState worn = Rolling(db2, world2, 17, Row);
         worn.Wear = worn.Health - (worn.Health / 10);   // the wall's tenth takes it to its health
         GameSimulation sim2 = Sim(db2, world2, out ListEventSink events2);
-        for (int i = 0; i < 12 && !events2.Events.Any(e => e.Kind == "boulder_broken"); i++) sim2.Run(1);
+        for (int i = 0; i < 12 && !events2.Events.Any(e => e.Kind == "boulder_broken"); i++)
+        {
+            sim2.Run(1);
+        }
+
         Assert.Contains(events2.Events, e => e.Kind == "boulder_turned");
         Assert.Empty(Heard(events2, ThingSoundEvent.BoulderTurned));
     }
@@ -190,7 +202,11 @@ public sealed class BoulderSoundTests
         ObjectState weak = Rolling(db, world, 5, Row);
         weak.Wear = 3900;   // strikes for the 100 it has left
         GameSimulation sim = Sim(db, world, out ListEventSink events);
-        for (int i = 0; i < 10 && !events.Events.Any(e => e.Kind == "boulder_struck_creature"); i++) sim.Run(1);
+        for (int i = 0; i < 10 && !events.Events.Any(e => e.Kind == "boulder_struck_creature"); i++)
+        {
+            sim.Run(1);
+        }
+
         Assert.False(CreatureDeathRules.IsDown(lives));
         ThingSoundRequest hit = Assert.Single(Heard(events, ThingSoundEvent.BoulderHitCreature));
         Assert.Equal((ushort)0x14D, (ushort)hit.Event);
@@ -202,7 +218,11 @@ public sealed class BoulderSoundTests
         CreatureState dies = world2.SpawnCreature(db2, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(7, Row));
         ObjectState strong = Rolling(db2, world2, 5, Row);
         GameSimulation sim2 = Sim(db2, world2, out ListEventSink events2);
-        for (int i = 0; i < 10 && !events2.Events.Any(e => e.Kind == "boulder_struck_creature"); i++) sim2.Run(1);
+        for (int i = 0; i < 10 && !events2.Events.Any(e => e.Kind == "boulder_struck_creature"); i++)
+        {
+            sim2.Run(1);
+        }
+
         Assert.True(CreatureDeathRules.IsDown(dies));
         ThingSoundRequest killed = Assert.Single(Heard(events2, ThingSoundEvent.BoulderHitDownedCreature));
         Assert.Equal((ushort)0x14E, (ushort)killed.Event);
@@ -254,7 +274,11 @@ public sealed class BoulderSoundTests
             world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(9, Row));
             Rolling(db, world, 5, Row);
             var sim = new GameSimulation(db, world, 1, [new CreatureStatusSystem(), new BoulderSystem()]);
-            if (sink is not null) sim.ObserveWith(sink);
+            if (sink is not null)
+            {
+                sim.ObserveWith(sink);
+            }
+
             sim.Run(30);
             return sim;
         }

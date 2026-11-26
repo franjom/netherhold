@@ -130,7 +130,9 @@ public sealed class PlacementCursorHudTests
         var stack = new HeldItemStack();
         var icons = new List<HeldIcon>();
         for (int i = 0; i < count; i++)
+        {
             icons.Add(new HeldIcon((i == 0 && firstIsObject) || i == 3 ? HeldIconKind.Object : HeldIconKind.Creature, (byte)(i + 5)));
+        }
         // The stack fills itself from a world's hand; these tests set its icons directly.
         var list = (List<HeldIcon>)typeof(HeldItemStack)
             .GetField("_icons", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(stack)!;
@@ -158,7 +160,11 @@ public sealed class PlacementCursorHudTests
             {
                 HeldIcon h = held.Icons[i];
                 string? name = h.Kind == HeldIconKind.Creature ? CreatureName(h.TypeId) : ObjectName(h.TypeId);
-                if (string.IsNullOrEmpty(name)) continue;
+                if (string.IsNullOrEmpty(name))
+                {
+                    continue;
+                }
+
                 (int ox, int oy) = HeldItemStack.Offset(i);
                 heldShown[i] = Place(name, x + ox * scale, y + oy * scale, size, size, HudColor.White);
             }
@@ -168,9 +174,14 @@ public sealed class PlacementCursorHudTests
                 more = Place(HeldItemStack.MoreIconName, x + ox * scale, y + oy * scale, size, size, HudColor.White);
             }
             if (feedback.Dispose && held.Icons[0].Kind == HeldIconKind.Creature)
+            {
                 dispose = Place(HeldItemStack.DisposeIconName, x - 2 * scale, y, size, size, HudColor.White);
+            }
+
             if (feedback.NoGo && !feedback.Dispose)
+            {
                 noGo = Place(@"GUI\Cursors\I-No_Go", x - 2 * scale, y + 2 * scale, size, size, HudColor.White);
+            }
         }
         else
         {
@@ -190,29 +201,47 @@ public sealed class PlacementCursorHudTests
             {
                 icon = Place(iconName, x, y, size, size, HudColor.White);
                 float shift = feedback.Icon == PlacementIcon.Spell ? 2 * scale : 0;
-                if (feedback.NoGo) noGo = Place("GUI\\Cursors\\I-No_Go", x - shift, y + shift, size, size, HudColor.White);
+                if (feedback.NoGo)
+                {
+                    noGo = Place("GUI\\Cursors\\I-No_Go", x - shift, y + shift, size, size, HudColor.White);
+                }
+
                 if (feedback.Price != 0 && feedback.Icon != PlacementIcon.Spell)
                 {
                     string family = width >= 640 ? "GUI\\Icons\\i-" : "GUI\\Icons\\lo-";
                     long magnitude = Math.Abs((long)feedback.Price);
                     int count = 0;
-                    for (long rest = magnitude; count == 0 || rest > 0; rest /= 10) count++;
+                    for (long rest = magnitude; count == 0 || rest > 0; rest /= 10)
+                    {
+                        count++;
+                    }
+
                     count = Math.Min(count, 7);
                     string[] names = new string[count];
                     long value = magnitude;
-                    for (int i = count - 1; i >= 0; i--, value /= 10) names[i] = family + (char)('0' + (int)(value % 10));
+                    for (int i = count - 1; i >= 0; i--, value /= 10)
+                    {
+                        names[i] = family + (char)('0' + (int)(value % 10));
+                    }
+
                     HudColor colour = feedback.Price > 0 ? new HudColor(128, 255, 255, 255)
                         : feedback.Affordable ? new HudColor(255, 128, 128, 255) : new HudColor(255, 0, 0, 255);
                     float glyph = 48 * height / 1920f, advance = 40 * height / 1920f;
                     for (int i = 0; i < count; i++)
+                    {
                         digits.Add(Place(names[i], x + 30 * scale + i * advance, y + 10 * scale, glyph, glyph, colour));
+                    }
                 }
             }
         }
         var shown = new List<Shown>();
-        void Add(Shown? s) { if (s is Shown v) shown.Add(v); }
+        void Add(Shown? s) { if (s is Shown v) { shown.Add(v); } }
         Add(icon); Add(heldShown[0]); Add(dispose);
-        for (int i = 1; i < heldShown.Length; i++) Add(heldShown[i]);
+        for (int i = 1; i < heldShown.Length; i++)
+        {
+            Add(heldShown[i]);
+        }
+
         Add(more); Add(noGo);
         shown.AddRange(digits);
         return shown;

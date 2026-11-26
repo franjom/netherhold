@@ -36,12 +36,17 @@ public sealed class PossessionWorldTests
         // An open tile with open ground to its west and solid terrain to its east.
         TilePos open = default, wall = default;
         for (int y = 1; y < world.Height - 1 && wall == default; y++)
+        {
             for (int x = 2; x < world.Width - 1; x++)
+            {
                 if (!Solid(x, y) && !Solid(x - 1, y) && Solid(x + 1, y) && Plain(x, y) && Plain(x - 1, y))
                 {
                     (open, wall) = (new TilePos(x, y), new TilePos(x + 1, y));
                     break;
                 }
+            }
+        }
+
         byte goblin = db.Creatures.Values.Single(c => c.Name == "Goblin").CreatureId;
         CreatureState me = Spawn(db, world, goblin, open);
         me.Possessed = true;

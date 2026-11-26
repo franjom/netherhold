@@ -152,7 +152,10 @@ public class KeeperPayTests
     {
         (GameDatabase? db, WorldState? world, CreatureState? goblin, GameSimulation? sim) = Paying(2000);
         ObjectState filler = world.SpawnObject(db, FloorGold.FloorGoldObjectId, PlayerIds.Neutral, 5);
-        for (int i = 0; i < HandRules.Capacity(db); i++) world.Player(Keeper).Hand.Add(HandItem.Of(filler));
+        for (int i = 0; i < HandRules.Capacity(db); i++)
+        {
+            world.Player(Keeper).Hand.Add(HandItem.Of(filler));
+        }
 
         sim.Tick(InputFrame.Of(new MintWageCommand(Keeper, goblin.Id)));
 

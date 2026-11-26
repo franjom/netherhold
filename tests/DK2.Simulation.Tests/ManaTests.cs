@@ -274,7 +274,11 @@ public class ManaTests
 
         // Five applications to claim one tile (ADR-0133), queued together so the
         // claim completes inside the same game second the mana is paid for.
-        for (int i = 0; i < 5; i++) run.World.QueueWork(4, 1, TileWorkKind.Claim, Keeper);
+        for (int i = 0; i < 5; i++)
+        {
+            run.World.QueueWork(4, 1, TileWorkKind.Claim, Keeper);
+        }
+
         run.Seconds(1);
 
         Assert.Equal(Dk2TerrainFixture.ClaimedPath, run.World.Tile(4, 1).TerrainId);
@@ -318,7 +322,10 @@ public class ManaTests
 
         // The rival's imps convert the tile: applications until the takeover completes.
         for (int i = 0; i < 5000 && run.World.Tile(1, 1).OwnerPlayerId == Keeper; i++)
+        {
             RoomHealthRules.Convert(run.World, database, new TilePos(1, 1), Rival);
+        }
+
         Assert.Equal(Rival, run.World.Tile(1, 1).OwnerPlayerId);
         Assert.Equal(0, ManaRules.GainPerSecond(database, run.World.Tile(1, 1)));
         Assert.Equal(9, run.World.Player(Keeper).TerrainManaGainPerSecond);
@@ -548,7 +555,11 @@ public class ManaTests
         GameDatabase database, int width, int height, byte terrainId, byte owner)
     {
         var tiles = new MapTile[width * height];
-        for (int i = 0; i < tiles.Length; i++) tiles[i] = new MapTile(terrainId, owner, 0, 0);
+        for (int i = 0; i < tiles.Length; i++)
+        {
+            tiles[i] = new MapTile(terrainId, owner, 0, 0);
+        }
+
         return WorldState.FromMap(database, new LevelMap(width, height, tiles), [owner]);
     }
 }

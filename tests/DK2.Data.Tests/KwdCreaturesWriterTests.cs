@@ -47,7 +47,10 @@ public class KwdCreaturesWriterTests
         BinaryPrimitives.WriteUInt32LittleEndian(source.AsSpan(0xEA8), 0x12345ABC);
         source[0xDC4 + 22] = 0; source[0xE0C] = 0;
         foreach (int offset in new[] { 0xE14, 0xE38, 0xE50, 0xE74, 0xE7C })
+        {
             BinaryPrimitives.WriteUInt32LittleEndian(source.AsSpan(offset), 0);
+        }
+
         CreatureDef original = Read(source);
         var image = new KwdRecordImage(KwdRecordType.Creatures, source);
         Assert.Equal(source, KwdCreatures.WriteRecord(original, image));
@@ -88,7 +91,12 @@ public class KwdCreaturesWriterTests
             byte[] written = KwdCreatures.WriteRecord(changed, image); assert(Read(written));
             Assert.False(source.SequenceEqual(written));
             for (int i = 0; i < source.Length; i++)
-                if (i < offset || i >= offset + width) Assert.Equal(source[i], written[i]);
+            {
+                if (i < offset || i >= offset + width)
+                {
+                    Assert.Equal(source[i], written[i]);
+                }
+            }
         }
         static (int, int)[] PrefFields(int offset) => [(offset, 4), (offset + 4, 2), (offset + 6, 2), (offset + 8, 1)];
     }
@@ -117,7 +125,13 @@ public class KwdCreaturesWriterTests
         CreatureDef reread = Read(written);
         Assert.Equal(0, reread.AngryArtType); Assert.Equal(0u, reread.AngryArtFlags);
         Assert.Equal(0, reread.AngryFrames); Assert.Equal(0, reread.AngryFramesPerSecond);
-        for (int i = 0; i < source.Length; i++) if (i != 0x364) Assert.Equal(source[i], written[i]);
+        for (int i = 0; i < source.Length; i++)
+        {
+            if (i != 0x364)
+            {
+                Assert.Equal(source[i], written[i]);
+            }
+        }
     }
 
     [Fact]
@@ -185,7 +199,10 @@ public class KwdCreaturesWriterTests
         {
             int relative = i - offset;
             bool known = relative is >= 0x40 and <= 0x45 or >= 0x48 and <= 0x49 or >= 0x50 and <= 0x52;
-            if (!known) Assert.Equal(source[i], written[i]);
+            if (!known)
+            {
+                Assert.Equal(source[i], written[i]);
+            }
         }
     }
 
@@ -206,7 +223,10 @@ public class KwdCreaturesWriterTests
         {
             int relative = i - offset;
             bool known = relative is >= 0x40 and <= 0x45 or >= 0x48 and <= 0x49 or >= 0x50 and <= 0x52;
-            if (!known) Assert.Equal(source[i], written[i]);
+            if (!known)
+            {
+                Assert.Equal(source[i], written[i]);
+            }
         }
     }
 
@@ -216,7 +236,10 @@ public class KwdCreaturesWriterTests
         KwdChunk chunk = KwdReader.ReadFile(Path.Combine(Dk2InstallGate.Path, "Data", "editor", "Creatures.kwd")).Single();
         List<CreatureDef> creatures = KwdCreatures.Parse([chunk]); List<KwdRecordImage> images = KwdRecordRoundTrip.Split(chunk);
         Assert.Equal(46, creatures.Count);
-        for (int i = 0; i < creatures.Count; i++) Assert.Equal(images[i].ToBytes(), KwdCreatures.WriteRecord(creatures[i], images[i]));
+        for (int i = 0; i < creatures.Count; i++)
+        {
+            Assert.Equal(images[i].ToBytes(), KwdCreatures.WriteRecord(creatures[i], images[i]));
+        }
     }
 
     /// <summary>Q14: DK2's chunk reader takes a CREATURES record of any size, zero-filled to 5449

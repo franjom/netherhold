@@ -61,11 +61,14 @@ public sealed class ObjectHoverHighlightTests
         byte wall = db.Terrain.Values.Single(t => t.Name == "Reinforced Wall").TerrainId;
         byte path = db.Terrain.Values.Single(t => t.Name == "Claimed Path").TerrainId;
         for (int x = 9; x <= 19; x++)
+        {
             for (int y = 9; y <= 11; y++)
             {
                 world.Tile(x, y).TerrainId = y == 10 ? path : wall;
                 world.Tile(x, y).OwnerPlayerId = me.Value;
             }
+        }
+
         RoomRules.Place(db, ref world.Tile(20, 10), db.Room(RoomTypeId.Treasury), me);
         world.Tile(20, 10).GoldHeld = 1_000_000; // pays for all four
 

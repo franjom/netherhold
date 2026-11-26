@@ -12,7 +12,11 @@ public sealed class LevelWarmUpTests
     private static ulong Hash(CampaignLevelData level, int ticks)
     {
         GameSimulation simulation = level.CreateSimulation(seed: 1, fogOfWarEnabled: true);
-        for (int i = 0; i < ticks; i++) simulation.Tick(InputFrame.Empty);
+        for (int i = 0; i < ticks; i++)
+        {
+            simulation.Tick(InputFrame.Empty);
+        }
+
         return simulation.StateHash();
     }
 

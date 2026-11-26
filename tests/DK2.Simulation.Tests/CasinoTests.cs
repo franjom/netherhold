@@ -32,8 +32,13 @@ public class CasinoTests
         var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y <= height; y++)
-        for (int x = 1; x <= width; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Casino), Keeper);
+        {
+            for (int x = 1; x <= width; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Casino), Keeper);
+            }
+        }
+
         return world;
     }
 
@@ -47,7 +52,11 @@ public class CasinoTests
             new CreatureMovementSystem(),
             new CreatureJobSystem(),
         ]);
-        if (sink is not null) sim.ObserveWith(sink);
+        if (sink is not null)
+        {
+            sim.ObserveWith(sink);
+        }
+
         return sim;
     }
 
@@ -79,7 +88,11 @@ public class CasinoTests
     {
         for (int i = 0; i < 2 * CasinoRules.SettlementSeconds * Second; i++)
         {
-            if (done()) return;
+            if (done())
+            {
+                return;
+            }
+
             sim.Tick();
         }
         Assert.True(done(), "the condition never held");

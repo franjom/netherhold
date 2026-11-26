@@ -50,7 +50,10 @@ public class TrapsOnRealDataTests
     private static IReadOnlyDictionary<string, int>? UpkeepByName()
     {
         string install = Dk2InstallGate.Path;
-        if (install is null) return null; // skipped: no DK2 install
+        if (install is null)
+        {
+            return null; // skipped: no DK2 install
+        }
 
         GameDatabase database = GameDatabaseLoader.Load(install);
         return database.Traps.Values.ToDictionary(
@@ -61,7 +64,10 @@ public class TrapsOnRealDataTests
     [InstallFact]
     public void TheTrapRecordDividesExactly_AndNamesSixteenTraps()
     {
-        if (UpkeepByName() is not { } upkeep) return;
+        if (UpkeepByName() is not { } upkeep)
+        {
+            return;
+        }
 
         Assert.Equal(16, upkeep.Count);
         foreach (string name in new[]
@@ -90,7 +96,10 @@ public class TrapsOnRealDataTests
     [InlineData("Lightning Trap", 25)]
     public void EachMeasuredTrapDrainsWhatTheOwnerSaw(string name, int manaPerSecond)
     {
-        if (UpkeepByName() is not { } upkeep) return;
+        if (UpkeepByName() is not { } upkeep)
+        {
+            return;
+        }
 
         Assert.Equal(manaPerSecond, upkeep[name]);
     }
@@ -112,7 +121,10 @@ public class TrapsOnRealDataTests
     [InstallFact]
     public void AGuardPostIsTheOnlyFreeEntry_BecauseItIsNotATrap()
     {
-        if (UpkeepByName() is not { } upkeep) return;
+        if (UpkeepByName() is not { } upkeep)
+        {
+            return;
+        }
 
         Assert.Equal(0, upkeep["Guard Post"]);
         Assert.Equal(30, upkeep["Magic Door"]);
@@ -130,7 +142,10 @@ public class TrapsOnRealDataTests
     [InstallFact]
     public void TheWholeUpkeepColumnIsPlausible()
     {
-        if (UpkeepByName() is not { } upkeep) return;
+        if (UpkeepByName() is not { } upkeep)
+        {
+            return;
+        }
 
         var expected = new Dictionary<string, int>
         {
@@ -154,6 +169,8 @@ public class TrapsOnRealDataTests
 
         Assert.Equal(16, expected.Count);
         foreach ((string name, int mana) in expected)
+        {
             Assert.Equal(mana, upkeep[name]);
+        }
     }
 }

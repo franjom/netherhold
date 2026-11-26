@@ -49,13 +49,17 @@ public class FlameIdentifierTests
             // This file is exempt only where it documents the pattern; it names
             // no Flame identifier itself.
             if (string.Equals(Path.GetFileName(file), "FlameIdentifierTests.cs", StringComparison.Ordinal))
+            {
                 continue;
+            }
 
             string[] lines = File.ReadAllLines(file);
             for (int i = 0; i < lines.Length; i++)
             {
                 if (FlameShaped.IsMatch(lines[i]))
+                {
                     offenders.Add($"{Path.GetRelativePath(root, file)}:{i + 1}: {lines[i].Trim()}");
+                }
             }
         }
 
@@ -112,7 +116,9 @@ public class FlameIdentifierTests
     {
         DirectoryInfo? dir = new(AppContext.BaseDirectory);
         while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "DK2.slnx")))
+        {
             dir = dir.Parent;
+        }
 
         return dir?.FullName ?? throw new DirectoryNotFoundException(
             "Could not locate the repository root (no DK2.slnx above the test binaries).");

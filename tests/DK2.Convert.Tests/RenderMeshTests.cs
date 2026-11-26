@@ -81,15 +81,24 @@ public sealed class RenderMeshTests
         {
             RenderMesh mesh = Load(provider, key, out _);
             foreach (int[] list in mesh.Triangles)
+            {
                 for (int i = 0; i < list.Length; i += 3)
                 {
                     Vector3 a = mesh.Positions[list[i]], b = mesh.Positions[list[i + 1]], c = mesh.Positions[list[i + 2]];
                     var face = Vector3.Cross(b - a, c - a);
-                    if (face.LengthSquared() < 1e-12f) continue;
+                    if (face.LengthSquared() < 1e-12f)
+                    {
+                        continue;
+                    }
+
                     Vector3 stored = mesh.Normals[list[i]] + mesh.Normals[list[i + 1]] + mesh.Normals[list[i + 2]];
                     total++;
-                    if (Vector3.Dot(face, stored) > 0f) agree++;
+                    if (Vector3.Dot(face, stored) > 0f)
+                    {
+                        agree++;
+                    }
                 }
+            }
         }
         Assert.True(total > 50, $"only {total} triangles");
         Assert.True(agree >= total * 0.95, $"{agree} of {total} triangles face their stored normals");

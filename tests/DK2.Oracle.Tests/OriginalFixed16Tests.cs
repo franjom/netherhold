@@ -60,8 +60,15 @@ public class OriginalFixed16Tests(ITestOutputHelper log)
             string at = $"{name}(({inputs[i].V.X}, {inputs[i].V.Y}), {inputs[i].K})";
             if (original[i].Fault is { } fault)
             {
-                if (fault.StartsWith("divide", StringComparison.Ordinal)) faults++;
-                else mismatches.Add($"{at}: original fault ({fault})");
+                if (fault.StartsWith("divide", StringComparison.Ordinal))
+                {
+                    faults++;
+                }
+                else
+                {
+                    mismatches.Add($"{at}: original fault ({fault})");
+                }
+
                 continue;
             }
 
@@ -69,7 +76,10 @@ public class OriginalFixed16Tests(ITestOutputHelper log)
             string mine;
             try { Fixed16Vector v = ours(inputs[i]); mine = $"({v.X}, {v.Y})"; }
             catch (DivideByZeroException) { mine = "divide fault"; }
-            if (theirs != mine) mismatches.Add($"{at}: original {theirs}, ours {mine}");
+            if (theirs != mine)
+            {
+                mismatches.Add($"{at}: original {theirs}, ours {mine}");
+            }
         }
         log.WriteLine($"{name}: {inputs.Length} inputs, {faults} outside the original's domain (divide fault).");
         Assert.True(mismatches.Count == 0, $"{mismatches.Count} of {inputs.Length} differ; first:\n" + string.Join("\n", mismatches.Take(15)));
@@ -88,8 +98,13 @@ public class OriginalFixed16Tests(ITestOutputHelper log)
     private static IEnumerable<Fixed16Vector> Vectors()
     {
         foreach (int x in Edges)
-        foreach (int y in Edges)
-            yield return new Fixed16Vector(x, y);
+        {
+            foreach (int y in Edges)
+            {
+                yield return new Fixed16Vector(x, y);
+            }
+        }
+
         var spread = new Random(20261015);
         for (int i = 0; i < 5000; i++)
         {

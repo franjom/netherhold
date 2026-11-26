@@ -195,8 +195,14 @@ public class CreatureBurningTests
             CreatureState target = context.World.Creatures[0];
             ShotDef definition = context.Database.Shots[Dk2TerrainFixture.FireballShotId] with { AttackCategory = 4 };
             var shot = new ShotState { OwnerPlayerId = 4, Data1 = 1 };
-            if (contact) ShotRules.ContactDamage(context, shot, definition, target);
-            else ShotRules.ModifyHealth(context, shot, definition, target, context.Database.CreatureById(target.CreatureTypeId));
+            if (contact)
+            {
+                ShotRules.ContactDamage(context, shot, definition, target);
+            }
+            else
+            {
+                ShotRules.ModifyHealth(context, shot, definition, target, context.Database.CreatureById(target.CreatureTypeId));
+            }
         }
     }
 

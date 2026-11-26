@@ -19,7 +19,10 @@ internal sealed class StatesUnrecordedAttribute : BeforeAfterTestAttribute
     {
         // An async test may resume on another thread, leaving this one unrecorded for good.
         if (typeof(Task).IsAssignableFrom(methodUnderTest.ReturnType))
+        {
             throw new InvalidOperationException($"{methodUnderTest.Name}: StatesUnrecorded needs a synchronous test.");
+        }
+
         _scope = StateEntryLog.Unrecorded();
     }
 

@@ -40,7 +40,10 @@ public class PlaybookFileTests
         PlaybookAvailableCommand.Available level2 = Level2.Value;
         Assert.Equal("campaign:level2", level2.Level);
         foreach (RoomTypeId room in (RoomTypeId[])[RoomTypeId.Lair, RoomTypeId.Hatchery, RoomTypeId.TrainingRoom])
+        {
             Assert.Contains(PlaybookItem.Room(room), level2.Start);
+        }
+
         Assert.DoesNotContain(PlaybookItem.Room(RoomTypeId.Treasury), level2.Start);
         Assert.DoesNotContain(level2.MayChange, c => c.Item == PlaybookItem.Room(RoomTypeId.Treasury));
         // Level 2's two research items (research-tree.md section 7).
@@ -172,7 +175,10 @@ public class PlaybookFileTests
         {
             File.Delete(other);
             File.Delete(longer);
-            if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
         }
     }
 
@@ -183,7 +189,10 @@ public class PlaybookFileTests
         // the pool (ADR-0316: DK2's own portal still delivered all three); a creature MAKE is not listed.
         PlaybookAvailableCommand.Available level3 = Generate("campaign-player/level3/level3-seed1.yaml");
         foreach (string name in (string[])["Warlock", "Goblin", "Firefly"])
+        {
             Assert.Contains(new PlaybookItem(PlaybookItemKind.Creature, name), level3.Creatures);
+        }
+
         Assert.DoesNotContain(level3.MayChange, c => c.Item.Kind == PlaybookItemKind.Creature);
     }
 

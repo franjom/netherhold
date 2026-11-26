@@ -46,8 +46,15 @@ public class PortalCentreLightTests
         for (int update = 1; update <= 51; update++)
         {
             ClassicPointLight light = Assert.Single(sources.Advance(new EffectTime(update * 50 + 1))).Light;
-            if (update == 26) Assert.Equal(new Vector3(250f / 255, 25f / 255, 32f / 255), light.Colour);
-            if (update == 51) Assert.Equal(Vector3.Zero, light.Colour);
+            if (update == 26)
+            {
+                Assert.Equal(new Vector3(250f / 255, 25f / 255, 32f / 255), light.Colour);
+            }
+
+            if (update == 51)
+            {
+                Assert.Equal(Vector3.Zero, light.Colour);
+            }
         }
     }
 
@@ -96,7 +103,11 @@ public class PortalCentreLightTests
         var view = new WorldView(db, 3);
         Assert.Equal(count, view.PortalLightTiles(world).Count);
         Assert.Equal(count, view.PortalLightTiles(world).Count);
-        if (count != 0) Assert.Equal(new TilePos(3, 3), Assert.Single(view.PortalLightTiles(world)));
+        if (count != 0)
+        {
+            Assert.Equal(new TilePos(3, 3), Assert.Single(view.PortalLightTiles(world)));
+        }
+
         Assert.False(view.TileAt(world, 3, 3).Explored);
         Assert.False(view.TileAt(world, 5, 3).Explored);
         Assert.Equal(hash, simulation.StateHash());
@@ -137,11 +148,27 @@ public class PortalCentreLightTests
     {
         (GameDatabase? db, WorldState? world) = Map(25);
         for (int y = 2; y <= 4; y++)
+        {
             for (int x = 2; x <= 4; x++)
-                if (!merge || x == 2 || y == 2) world.Tile(x, y).OwnerPlayerId = 3;
-        if (growsPastNine) world.Tile(5, 2).TerrainId = 12;
+            {
+                if (!merge || x == 2 || y == 2)
+                {
+                    world.Tile(x, y).OwnerPlayerId = 3;
+                }
+            }
+        }
+
+        if (growsPastNine)
+        {
+            world.Tile(5, 2).TerrainId = 12;
+        }
+
         (GameDatabase? controlDb, WorldState? control) = Map(25);
-        for (int i = 0; i < world.TileCount; i++) control.TileAtIndex(i) = world.TileAtIndex(i);
+        for (int i = 0; i < world.TileCount; i++)
+        {
+            control.TileAtIndex(i) = world.TileAtIndex(i);
+        }
+
         var view = new WorldView(db, 2);
         int before = view.PortalLightTiles(world).Count;
         Assert.Equal(merge ? 0 : 1, before);
@@ -181,10 +208,24 @@ public class PortalCentreLightTests
             Terrain(27, TerrainFlags.Solid), Terrain(38, TerrainFlags.Solid)], [room], [], variables);
         MapTile[] cells = Enumerable.Repeat(new MapTile(2, 2, 0, 0), 64).ToArray();
         for (int y = 2; y <= 4; y++)
-            for (int x = 2; x <= 4; x++) cells[y * 8 + x] = new MapTile(12, 2, 0, 0);
-        if (extraTile) cells[4 * 8 + 5] = new MapTile(12, 2, 0, 0);
+        {
+            for (int x = 2; x <= 4; x++)
+            {
+                cells[y * 8 + x] = new MapTile(12, 2, 0, 0);
+            }
+        }
+
+        if (extraTile)
+        {
+            cells[4 * 8 + 5] = new MapTile(12, 2, 0, 0);
+        }
+
         var world = WorldState.FromMap(db, new LevelMap(8, 8, cells), [2, 3], fogOfWarEnabled: true);
-        for (int i = 0; i < world.TileCount; i++) world.TileAtIndex(i).ExploredBy = PlayerMask.None;
+        for (int i = 0; i < world.TileCount; i++)
+        {
+            world.TileAtIndex(i).ExploredBy = PlayerMask.None;
+        }
+
         return (db, world);
     }
 }

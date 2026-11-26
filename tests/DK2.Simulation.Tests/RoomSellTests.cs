@@ -124,7 +124,9 @@ public class RoomSellTests
             p => Assert.Equal(expected, run.World.Tile(p).TerrainId));
         Assert.Equal(sells, run.Events.Events.Any(e => e.EffectRequest?.Amount.HasValue == true));
         if (!sells)
+        {
             Assert.Contains(run.Of("sold"), e => e.Detail.Contains("NotAvailable"));
+        }
     }
 
     // ---- what happens to the tile ----------------------------------------
@@ -199,7 +201,11 @@ public class RoomSellTests
         run.Tick(SellRoomCommand.Rect(Keeper, 3, 1, 1, 3));
         for (int turn = 0; turn <= 4; turn++)
         {
-            if (turn > 0) run.Tick();
+            if (turn > 0)
+            {
+                run.Tick();
+            }
+
             foreach (TilePos p in all)
             {
                 bool sold = (3 - p.X) + (3 - p.Y) <= turn;
@@ -223,7 +229,9 @@ public class RoomSellTests
         run.Tick();
 
         foreach (int x in new[] { 1, 2, 3 })
+        {
             Assert.Equal(150, FloorGold.OnTile(run.World, database, run.World.Width + x));
+        }
     }
 
     /// <summary>A wave that reaches its minimum corner ends the player's whole drain for the turn (0x004C7160 returns),
@@ -251,7 +259,11 @@ public class RoomSellTests
         Give(run, RoomTypeId.Lair, Keeper, new TilePos(1, 1), new TilePos(3, 3));
 
         run.Tick(SellRoomCommand.Rect(Keeper, 1, 1, 3, 3));
-        for (int i = 0; i < 4; i++) run.Tick();
+        for (int i = 0; i < 4; i++)
+        {
+            run.Tick();
+        }
+
         Assert.DoesNotContain(run.World.RoomSellWaves, w => w.HasValue);
 
         run.Tick(SellRoomCommand.Rect(Keeper, 1, 1, 2, 2), SellRoomCommand.Rect(Keeper, 1, 1, 2, 2),

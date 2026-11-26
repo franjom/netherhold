@@ -22,7 +22,9 @@ public sealed class CombatPitSpectatorCompletionTests
         {
             if (CombatPitSpectatorRules.IsSpectatorState(creature.Dk2StateId)
                 && !CombatPitSpectatorRules.Turn(context, Name, creature))
+            {
                 CreatureStateMachine.TrySetState(context.Hooks, creature, CreatureStateMachine.Idle);
+            }
         }
     }
 
@@ -31,14 +33,24 @@ public sealed class CombatPitSpectatorCompletionTests
     {
         var art = new CreatureAnimationTiming[CreatureDef.ArtSlotCount];
         if (artPresent)
+        {
             art[8] = art[20] = new CreatureAnimationTiming { ResourceType = 6, FrameCount = 100, FramesPerSecond = 20 };
+        }
+
         CreatureDef watcher = Dk2TerrainFixture.Goblin() with { CreatureId = 54, ArtSlots = art };
         GameDatabase db = Dk2TerrainFixture.Database(watcher);
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 2; y <= 6; y++)
-        for (int x = 4; x <= 8; x++)
-            if (!irregular || x < 6 || y > 4)
-                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.CombatPit), PlayerIds.FirstKeeper);
+        {
+            for (int x = 4; x <= 8; x++)
+            {
+                if (!irregular || x < 6 || y > 4)
+                {
+                    RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.CombatPit), PlayerIds.FirstKeeper);
+                }
+            }
+        }
+
         RoomInstance room = RoomIndex.RoomAt(world, db, (4 * world.Width) + 4)!;
         TilePos at = new(4, irregular ? 3 : 4);
         CreatureState c = world.SpawnCreature(db, watcher.CreatureId, PlayerIds.FirstKeeper, at);
@@ -83,7 +95,11 @@ public sealed class CombatPitSpectatorCompletionTests
     public void CheerWaitsForTheAuthoredClipBeyondEightTicks()
     {
         (GameSimulation? sim, CreatureState? c, GameDatabase? db, Dk2Lcg _, RoomInstance _) = Start();
-        for (int i = 0; i < 11; i++) sim.Tick();
+        for (int i = 0; i < 11; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(144, c.Dk2StateId);
         Assert.Equal(70, CreatureCurrentAction.IndexOf(c, db.CreatureById(c.CreatureTypeId), sim.CurrentTick));
     }
@@ -137,8 +153,13 @@ public sealed class CombatPitSpectatorCompletionTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [0, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 0; y < world.Height; y++)
-        for (int x = 0; x < world.Width; x++)
-            world.Tile(x, y).TerrainId = Dk2TerrainFixture.ImpenetrableRock;
+        {
+            for (int x = 0; x < world.Width; x++)
+            {
+                world.Tile(x, y).TerrainId = Dk2TerrainFixture.ImpenetrableRock;
+            }
+        }
+
         TilePos[] order = [new(4, 6), new(5, 6), new(6, 6), new(4, 5), new(5, 5), new(6, 5),
             new(4, 4), new(5, 4), new(6, 4), new(4, 3), new(4, 2)];
         foreach (TilePos tile in order)
@@ -162,7 +183,11 @@ public sealed class CombatPitSpectatorCompletionTests
         int reachableIndex = Array.IndexOf(chain, world.TileIndex(new TilePos(4, 2)));
         Assert.True(reachableIndex >= 0);
         uint seed = 1;
-        while (new Dk2Lcg(seed).NextInt(chain.Length) != reachableIndex) seed++;
+        while (new Dk2Lcg(seed).NextInt(chain.Length) != reachableIndex)
+        {
+            seed++;
+        }
+
         var rng = new Dk2Lcg(seed);
         bool? accepted = null;
         var sim = new GameSimulation(db, world, new SimRandom(rng), [new JobProbe(watcher, value => accepted = value)]);

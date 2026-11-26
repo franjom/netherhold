@@ -168,7 +168,11 @@ public class FrameInputJournalTests
     private static byte[] Encoded(PlayerCommand command)
     {
         using var buffer = new MemoryStream();
-        using (var w = new BinaryWriter(buffer)) CommandCodec.Write(w, command);
+        using (var w = new BinaryWriter(buffer))
+        {
+            CommandCodec.Write(w, command);
+        }
+
         return buffer.ToArray();
     }
 

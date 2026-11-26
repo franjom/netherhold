@@ -35,7 +35,10 @@ public sealed class PossessionControlsTests
             new PossessedBody(0, 0, 0, false, false, false, false, 0, 0, 0, 0, 0, false, 0));
         OpenPossessedPrisonCommand? command = PossessionControls.PickLock(world, db, Keeper, view, creature);
         Assert.Equal(opens, command != null);
-        if (command != null) Assert.Equal(creatureTile, command.PrisonAt);
+        if (command != null)
+        {
+            Assert.Equal(creatureTile, command.PrisonAt);
+        }
     }
     [InstallFact]
     public void SpellAndFollowerKeysClearHypnosisBeforeFireAsTheKeyCallersMaskF9()

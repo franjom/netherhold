@@ -50,7 +50,11 @@ public class ObjectCarryingTests
             new ImpTaskSystem(),
             new TileWorkSystem(),
         ]);
-        if (sink is not null) sim.ObserveWith(sink);
+        if (sink is not null)
+        {
+            sim.ObserveWith(sink);
+        }
+
         return sim;
     }
 
@@ -105,7 +109,10 @@ public class ObjectCarryingTests
         world.SpawnCreature(db, ImpId, Keeper, Middle);
 
         GameSimulation sim = Simulation(db, world);
-        for (int i = 0; i < 20 * Second; i++) sim.Tick();
+        for (int i = 0; i < 20 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         ObjectState bed = Assert.Single(world.Objects);
         Assert.Equal(goblin.Id, bed.CreatureId);
@@ -150,7 +157,11 @@ public class ObjectCarryingTests
         WorldState world = World(db);
         Paint(db, world, RoomTypeId.Library, Shelf, Shelf2);
         world.Player(Keeper).Blueprints.Clear();
-        if (crateFirst) Drop(db, world, Loose, Dk2TerrainFixture.AlarmCrateObjectId);
+        if (crateFirst)
+        {
+            Drop(db, world, Loose, Dk2TerrainFixture.AlarmCrateObjectId);
+        }
+
         Drop(db, world, Loose);
         world.SpawnCreature(db, ImpId, Keeper, Middle);
 
@@ -172,7 +183,10 @@ public class ObjectCarryingTests
 
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
-        for (int i = 0; i < 20 * Second; i++) sim.Tick();
+        for (int i = 0; i < 20 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         // On a library tile, and the keeper's rather than nobody's - which is
         // what takes it out of IsLoose and stops it being fetched for ever.
@@ -192,7 +206,10 @@ public class ObjectCarryingTests
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Middle);
 
         GameSimulation sim = Simulation(db, world);
-        for (int i = 0; i < 20 * Second; i++) sim.Tick();
+        for (int i = 0; i < 20 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.False(ObjectCarryRules.IsLoose(db, book));
         Assert.Equal((Shelf.Y * world.Width) + Shelf.X, book.TileIndex);
@@ -210,7 +227,10 @@ public class ObjectCarryingTests
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Middle);
 
         GameSimulation sim = Simulation(db, world);
-        for (int i = 0; i < 20 * Second; i++) sim.Tick();
+        for (int i = 0; i < 20 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Equal((Loose.Y * world.Width) + Loose.X, book.TileIndex);
         Assert.NotEqual(CreatureActivity.FetchingObject, imp.Activity);
@@ -229,7 +249,10 @@ public class ObjectCarryingTests
         world.SpawnCreature(db, ImpId, Keeper, Middle);
 
         GameSimulation sim = Simulation(db, world);
-        for (int i = 0; i < 20 * Second; i++) sim.Tick();
+        for (int i = 0; i < 20 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Equal((Loose.Y * world.Width) + Loose.X, book.TileIndex);
         Assert.Equal(PlayerIds.Unowned, book.OwnerPlayerId);
@@ -258,7 +281,10 @@ public class ObjectCarryingTests
         Assert.NotEqual(CreatureActivity.FetchingObject, imp.Activity);
         Assert.Equal((Loose.Y * world.Width) + Loose.X, book.TileIndex);
 
-        for (int i = 0; i < 20 * Second; i++) sim.Tick();
+        for (int i = 0; i < 20 * Second; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Equal(Keeper, world.Tile(Loose.X, Loose.Y).OwnerPlayerId);
         Assert.Equal(Keeper, book.OwnerPlayerId);
@@ -309,7 +335,10 @@ public class ObjectCarryingTests
         for (int i = 0; i < 3 * Second; i++)
         {
             sim.Tick();
-            if (imp.CarriedObjectId >= 0) break;
+            if (imp.CarriedObjectId >= 0)
+            {
+                break;
+            }
         }
 
         Assert.True(imp.CarriedObjectId >= 0);
@@ -333,7 +362,10 @@ public class ObjectCarryingTests
         for (int i = 0; i < 20 * Second; i++)
         {
             sim.Tick();
-            if (imp.CarriedObjectId != book.Id) continue;
+            if (imp.CarriedObjectId != book.Id)
+            {
+                continue;
+            }
 
             // While it is held, the book is wherever the imp is - never a tile
             // behind, because the follow runs after the mover.
@@ -358,13 +390,19 @@ public class ObjectCarryingTests
         for (int i = 0; i < 20 * Second; i++)
         {
             sim.Tick();
-            if (imp.CarriedObjectId != book.Id) continue;
+            if (imp.CarriedObjectId != book.Id)
+            {
+                continue;
+            }
 
             held++;
             Assert.Equal(imp.PosX, book.PosX);
             Assert.Equal(imp.PosY, book.PosY);
             Assert.Equal((imp.Heading - 0x400) & 0x7FF, book.Heading);
-            if (imp.PosX % Fp32.One != Fp32.One / 2 || imp.PosY % Fp32.One != Fp32.One / 2) offCentre++;
+            if (imp.PosX % Fp32.One != Fp32.One / 2 || imp.PosY % Fp32.One != Fp32.One / 2)
+            {
+                offCentre++;
+            }
         }
 
         Assert.True(held > 0);
@@ -495,7 +533,10 @@ public class ObjectCarryingTests
         for (int i = 0; i < 20 * Second; i++)
         {
             sim.Tick();
-            if (imp.CarriedObjectId == book.Id) break;
+            if (imp.CarriedObjectId == book.Id)
+            {
+                break;
+            }
         }
         Assert.Equal(book.Id, imp.CarriedObjectId);
 
@@ -549,7 +590,11 @@ public class ObjectCarryingTests
         CreatureState imp = world.SpawnCreature(db, ImpId, Keeper, Middle);
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
-        for (int i = 0; i < 5 * Second && imp.TargetObjectId != book.Id; i++) sim.Tick();
+        for (int i = 0; i < 5 * Second && imp.TargetObjectId != book.Id; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(book.Id, imp.TargetObjectId);
 
         book.InHand = true;
@@ -572,7 +617,10 @@ public class ObjectCarryingTests
         for (int i = 0; i < 20 * Second; i++)
         {
             sim.Tick();
-            if (imp.CarriedObjectId == book.Id) break;
+            if (imp.CarriedObjectId == book.Id)
+            {
+                break;
+            }
         }
         Assert.Equal(book.Id, imp.CarriedObjectId);
 

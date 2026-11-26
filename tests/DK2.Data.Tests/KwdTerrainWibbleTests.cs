@@ -16,7 +16,11 @@ public class KwdTerrainWibbleTests
     {
         byte[] source = Enumerable.Repeat((byte)0x5A, RecordSize).ToArray();
         source[0] = (byte)'a'; source[1] = 0;
-        for (int i = 0; i < 8; i++) source[Wibble + i] = (byte)(10 + i);
+        for (int i = 0; i < 8; i++)
+        {
+            source[Wibble + i] = (byte)(10 + i);
+        }
+
         return source;
     }
 
@@ -43,7 +47,9 @@ public class KwdTerrainWibbleTests
             terrain with { Wibble = new TerrainWibble(1, 2, 3, 4, 5, 6, 7, 8) },
             new KwdRecordImage(KwdRecordType.Terrain, source));
         for (int i = 0; i < RecordSize; i++)
+        {
             Assert.Equal(i is >= Wibble and < Wibble + 8 ? (byte)(i - Wibble + 1) : source[i], edited[i]);
+        }
 
         Assert.Equal(source, KwdTerrainRooms.WriteTerrainRecord(
             terrain with { Wibble = null }, new KwdRecordImage(KwdRecordType.Terrain, source)));

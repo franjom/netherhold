@@ -94,11 +94,14 @@ public class SteeringBodyRetentionTests
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
             [PlayerIds.Unowned, PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
             {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
                 world.Tile(x, y).OwnerPlayerId = PlayerIds.FirstKeeper;
             }
+        }
+
         CreatureState walker = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId,
             PlayerIds.FirstKeeper, new TilePos(4, 4));
         CreatureState idle = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId,

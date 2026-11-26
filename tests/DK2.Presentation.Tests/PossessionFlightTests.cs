@@ -110,7 +110,11 @@ public sealed class PossessionFlightTests
         var screen = new CameraViewport(1920, 1920, 1080);
         ClassicCameraPose picture = PossessionCamera.Picture(Eye(state, yaw), preset, screen, 1600);
         Assert.Equal(picture.VerticalFieldOfView, pose.VerticalFieldOfView, 4);
-        if (pitch == PossessionView.Horizon) Assert.True(Vector3.Distance(picture.Up, pose.Up) < 1e-5f);
+        if (pitch == PossessionView.Horizon)
+        {
+            Assert.True(Vector3.Distance(picture.Up, pose.Up) < 1e-5f);
+        }
+
         Assert.Equal(PossessionCamera.FarClipDistance(preset), pose.FarClipDistance);
         Assert.Equal(0f, pose.ProjectionCentreShift);
     }

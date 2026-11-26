@@ -62,7 +62,10 @@ public class HeroWalkTests
         for (int t = 0; t < 600 && hero.Dk2StateId != HeroJobRules.NoPointState; t++)
         {
             sim.Tick();
-            if (seen.Count == 0 || seen[^1] != hero.Dk2StateId) seen.Add(hero.Dk2StateId);
+            if (seen.Count == 0 || seen[^1] != hero.Dk2StateId)
+            {
+                seen.Add(hero.Dk2StateId);
+            }
         }
 
         Assert.Equal(HeroJobRules.NoPointState, hero.Dk2StateId);
@@ -94,7 +97,10 @@ public class HeroWalkTests
         hero.GoodJobActionPointId = 2;
         GameSimulation sim = Simulation(db, world);
 
-        for (int t = 0; t < 200 && hero.Dk2StateId != HeroJobRules.RoamingState; t++) sim.Tick();
+        for (int t = 0; t < 200 && hero.Dk2StateId != HeroJobRules.RoamingState; t++)
+        {
+            sim.Tick();
+        }
 
         Assert.Equal(HeroJobRules.RoamingState, hero.Dk2StateId);
         Assert.InRange(hero.Tile.X, 11, 12);
@@ -153,14 +159,22 @@ public class HeroWalkTests
         hero.GoodJob = JobType.KillCreatures;
         hero.GoodJobPlayerId = Keeper;
         GameSimulation sim = Simulation(db, world);
-        for (int i = 0; i < 10 && hero.Dk2StateId != HeroJobRules.WaitFailedState; i++) sim.Tick();
+        for (int i = 0; i < 10 && hero.Dk2StateId != HeroJobRules.WaitFailedState; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(HeroJobRules.WaitFailedState, hero.Dk2StateId);
         long deadline = hero.StateDeadlineTick;
         int startX = hero.PosX, startY = hero.PosY;
         sim.Tick();
         Assert.True(world.CurrentTick.Value < deadline);
         Assert.Equal(ImpStates.Wandering, hero.Dk2StateId);
-        for (int i = 0; i < 100 && hero.PosX == startX && hero.PosY == startY; i++) sim.Tick();
+        for (int i = 0; i < 100 && hero.PosX == startX && hero.PosY == startY; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.True(hero.PosX != startX || hero.PosY != startY);
         Assert.Equal(JobType.KillCreatures, hero.GoodJob);
     }
@@ -198,10 +212,18 @@ public class HeroWalkTests
         Assert.Equal(HeroJobRules.WaitFailedState, hero.Dk2StateId);
         long retry = hero.StateDeadlineTick;
         Assert.True(retry < actionEnd);
-        while (sim.CurrentTick.Value <= retry) sim.Tick();
+        while (sim.CurrentTick.Value <= retry)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(HeroJobRules.WaitFailedState, hero.Dk2StateId);
         Assert.Equal(actionEnd, hero.ActionUntilTick);
-        while (sim.CurrentTick.Value <= actionEnd) sim.Tick();
+        while (sim.CurrentTick.Value <= actionEnd)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(CreatureStateMachine.Idle, hero.Dk2StateId);
     }
 
@@ -485,7 +507,10 @@ public class HeroWalkTests
         for (int t = 0; t < 120; t++)
         {
             sim.Tick();
-            if (t >= 60) positions.Add((follower.PosX, follower.PosY));
+            if (t >= 60)
+            {
+                positions.Add((follower.PosX, follower.PosY));
+            }
         }
         Assert.Equal(HeroJobRules.NoPointState, leader.Dk2StateId);
         Assert.True(positions.Count > 5, "the follower must keep moving after reaching its trailing tile");
@@ -545,7 +570,11 @@ public class HeroWalkTests
         {
             sim.Tick();
             if (follower.Dk2StateId == 6) { walked = true; continue; }
-            if (!walked) continue;
+            if (!walked)
+            {
+                continue;
+            }
+
             Assert.Equal(HeroJobRules.FollowingState, follower.Dk2StateId);
             return;
         }
@@ -593,7 +622,10 @@ public class HeroWalkTests
             hero.GoodJob = JobType.KillPlayer;
             hero.GoodJobPlayerId = Keeper;
             var sim = new GameSimulation(db, world, seed, [new HeroSystem(), new CreatureMovementSystem()]);
-            for (int t = 0; t < 8 && hero.UtilityNewState != HeroJobRules.AtTheHeartState; t++) sim.Tick();
+            for (int t = 0; t < 8 && hero.UtilityNewState != HeroJobRules.AtTheHeartState; t++)
+            {
+                sim.Tick();
+            }
 
             Assert.Equal(HeroJobRules.AtTheHeartState, hero.UtilityNewState);
             var centre = new DK2.Simulation.Steering.Fixed16Vector(CreatureState.CentreOf(11) << 4, CreatureState.CentreOf(5) << 4);
@@ -620,10 +652,17 @@ public class HeroWalkTests
         hero.GoodJobPlayerId = Keeper;
         GameSimulation sim = Simulation(db, world);
 
-        for (int t = 0; t < 600 && hero.Dk2StateId != HeroJobRules.HuntingState; t++) sim.Tick();
+        for (int t = 0; t < 600 && hero.Dk2StateId != HeroJobRules.HuntingState; t++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(HeroJobRules.HuntingState, hero.Dk2StateId);
         world.RemoveCreature(prey.Id);
-        for (int t = 0; t < 8 && hero.UtilityNewState != HeroJobRules.AtTheHeartState; t++) sim.Tick();
+        for (int t = 0; t < 8 && hero.UtilityNewState != HeroJobRules.AtTheHeartState; t++)
+        {
+            sim.Tick();
+        }
 
         Assert.Equal(HeroJobRules.AtTheHeartState, hero.UtilityNewState);
         var centre = new DK2.Simulation.Steering.Fixed16Vector(CreatureState.CentreOf(11) << 4, CreatureState.CentreOf(5) << 4);
@@ -634,12 +673,14 @@ public class HeroWalkTests
     private static void Heart(WorldState world, byte owner, int x, int y)
     {
         for (int dy = 0; dy < 3; dy++)
+        {
             for (int dx = 0; dx < 3; dx++)
             {
                 ref TileState tile = ref world.Tile(x + dx, y + dy);
                 tile.TerrainId = Dk2TerrainFixture.DungeonHeartTerrain;
                 tile.OwnerPlayerId = owner;
             }
+        }
     }
 
     private static GameSimulation Simulation(GameDatabase db, WorldState world) =>
@@ -651,9 +692,16 @@ public class HeroWalkTests
         var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 if (world.Tile(x, y).TerrainId != Dk2TerrainFixture.ClaimedPath)
+                {
                     world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+                }
+            }
+        }
+
         return (db, world);
     }
 }

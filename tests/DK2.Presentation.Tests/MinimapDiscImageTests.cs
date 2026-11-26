@@ -135,7 +135,14 @@ public sealed class MinimapDiscImageTests
         {
             int count = 0;
             ReadOnlySpan<byte> pixels = disc.Pixels;
-            for (int i = 0; i < pixels.Length; i += 4) if (pixels[i] == 255 && pixels[i + 1] == 255 && pixels[i + 2] == 255) count++;
+            for (int i = 0; i < pixels.Length; i += 4)
+            {
+                if (pixels[i] == 255 && pixels[i + 1] == 255 && pixels[i + 2] == 255)
+                {
+                    count++;
+                }
+            }
+
             return count;
         }
         MinimapDiscImage disc = Disc();
@@ -193,12 +200,20 @@ public sealed class MinimapDiscImageTests
         FpPosition3 focus = At(44.5f, 44.5f);
         MinimapDiscImage disc = Disc();
         Render(disc, Empty, [new MinimapMarker(MinimapMarkerKind.HorizontalDoor, At(44.5f, 44.5f), 0xFF0000FF)], zoom: zoom, focus: focus);
-        for (int x = 62; x <= 65; x++) Assert.Equal(Opaque(0xFF0000FF), Pixel(disc, x, 64));   // x 62..66, y 64..65
+        for (int x = 62; x <= 65; x++)
+        {
+            Assert.Equal(Opaque(0xFF0000FF), Pixel(disc, x, 64));   // x 62..66, y 64..65
+        }
+
         Assert.Equal(RockPixel, Pixel(disc, 61, 64));
         Assert.Equal(RockPixel, Pixel(disc, 66, 64));
         Assert.Equal(RockPixel, Pixel(disc, 64, 65));
         Render(disc, Empty, [new MinimapMarker(MinimapMarkerKind.VerticalDoor, At(44.5f, 44.5f), 0xFF0000FF)], zoom: zoom, focus: focus);
-        for (int y = 62; y <= 65; y++) Assert.Equal(Opaque(0xFF0000FF), Pixel(disc, 64, y));   // x 64..65, y 62..66
+        for (int y = 62; y <= 65; y++)
+        {
+            Assert.Equal(Opaque(0xFF0000FF), Pixel(disc, 64, y));   // x 64..65, y 62..66
+        }
+
         Assert.Equal(RockPixel, Pixel(disc, 65, 64));
         Assert.Equal(RockPixel, Pixel(disc, 64, 66));
     }
@@ -222,7 +237,10 @@ public sealed class MinimapDiscImageTests
         // Texel (x, y) is (y, x, 0); at heading 0 pixel (x, y) samples texel (x, y) exactly.
         byte[] pixels = new byte[128 * 128 * 4];
         for (int y = 0; y < 128; y++)
+        {
             for (int x = 0; x < 128; x++) { int p = (y * 128 + x) * 4; pixels[p] = (byte)y; pixels[p + 1] = (byte)x; pixels[p + 3] = 255; }
+        }
+
         var disc = new MinimapDiscImage(new RgbaImage(128, 128, pixels));
         Render(disc, Empty);
         Assert.Equal(new byte[] { 10, 64, 0, 255 }, Pixel(disc, 64, 10));

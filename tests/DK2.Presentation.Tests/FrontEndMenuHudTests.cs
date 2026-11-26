@@ -93,9 +93,17 @@ public sealed class FrontEndMenuHudTests
         var away = new FrontEndPointer(-100, -100, false);
         hud.Advance(away, 0, 0);
         Assert.Equal(4, Assert.Single(Draws(hud), d => d.Image.Variant == HudImageVariant.Glow).Image.Pieces);
-        for (int i = 0; i < 3; i++) hud.Advance(away, 0, 0);
+        for (int i = 0; i < 3; i++)
+        {
+            hud.Advance(away, 0, 0);
+        }
+
         Assert.Equal(3, Assert.Single(Draws(hud), d => d.Image.Variant == HudImageVariant.Glow).Image.Pieces);
-        for (int i = 0; i < 2; i++) hud.Advance(away, 0, 0);
+        for (int i = 0; i < 2; i++)
+        {
+            hud.Advance(away, 0, 0);
+        }
+
         Assert.Equal(1, Assert.Single(Draws(hud), d => d.Image.Variant == HudImageVariant.Glow).Image.Pieces);
         hud.Advance(away, 0, 0);
         Assert.DoesNotContain(Draws(hud), d => d.Image.Variant == HudImageVariant.Glow);
@@ -247,7 +255,11 @@ public sealed class FrontEndMenuHudTests
     /// <summary>The text a label shows: its glyph characters in order.</summary>
     private static string Text(FrontEndMenuHud hud, ushort widget, bool sync = true)
     {
-        if (sync) hud.Sync();
+        if (sync)
+        {
+            hud.Sync();
+        }
+
         HudLabel? label = hud.LabelOf(new(widget));
         return label is null ? "" : string.Concat(label.Geometry.Glyphs.Select(g => g.Character));
     }

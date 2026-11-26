@@ -30,7 +30,11 @@ public sealed class PresentationAllocationTests
     {
         lock (Strings)
         {
-            if (!Strings.TryGetValue(id, out string? value)) Strings[id] = value = "text " + id + " %19 %20 %27 %28";
+            if (!Strings.TryGetValue(id, out string? value))
+            {
+                Strings[id] = value = "text " + id + " %19 %20 %27 %28";
+            }
+
             return value;
         }
     }
@@ -189,8 +193,15 @@ public sealed class PresentationAllocationTests
         long iterators = Allocated(() =>
         {
             for (byte owner = 0; owner < 8; owner++)
+            {
                 if (world.HasPlayer(new PlayerId(owner)))
-                    foreach (CreatureState creature in world.OwnedCreatures(new PlayerId(owner))) _ = creature;
+                {
+                    foreach (CreatureState creature in world.OwnedCreatures(new PlayerId(owner)))
+                    {
+                        _ = creature;
+                    }
+                }
+            }
         });
         Assert.True(iterators > 0);
 
@@ -236,16 +247,25 @@ public sealed class PresentationAllocationTests
         foreach (string level in new[] { "Level1", "Level2", "Level3", "Level4", "Level5", "Level6", "Level7", "Level8", "Level9", "Level10" })
         {
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, level);
-            if (map is null) continue;
+            if (map is null)
+            {
+                continue;
+            }
+
             byte[] keepers = [PlayerIds.FirstKeeper, (byte)(PlayerIds.FirstKeeper + 1), (byte)(PlayerIds.FirstKeeper + 2), PlayerIds.Good];
             var world = WorldState.FromMap(database, map, keepers, fogOfWarEnabled: false);
             foreach (byte viewer in keepers)
             {
                 int minX = world.Width, minY = world.Height, maxX = -1, maxY = -1;
                 for (int y = 0; y < world.Height; y++)
+                {
                     for (int x = 0; x < world.Width; x++)
+                    {
                         if (world.Tile(x, y).OwnerPlayerId == viewer && world.Tile(x, y).TerrainId == heart)
                         { minX = Math.Min(minX, x); minY = Math.Min(minY, y); maxX = Math.Max(maxX, x); maxY = Math.Max(maxY, y); }
+                    }
+                }
+
                 var view = new WorldView(database, new PlayerId(viewer));
                 view.CaptureMinimapMarkers(world, new MinimapPalette(new uint[37]), new List<MinimapMarker>());
                 if (maxX < 0) { Assert.Equal(new TilePos(FearRules.NoHeartTile, FearRules.NoHeartTile), view.MinimapHeartTile); continue; }
@@ -266,7 +286,10 @@ public sealed class PresentationAllocationTests
         // Two pieces of the viewer's heart terrain apart, one of the rival's, and the viewer's own tile beside it.
         foreach ((int x, int y, byte owner) in new[] { (2, 1, PlayerIds.FirstKeeper), (3, 1, PlayerIds.FirstKeeper),
             (7, 6, PlayerIds.FirstKeeper), (7, 8, PlayerIds.Good), (8, 8, PlayerIds.Good) })
+        {
             tiles[x + y * 10] = new(heart, owner, 0, 0);
+        }
+
         var world = WorldState.FromMap(database, new LevelMap(10, 10, tiles), [PlayerIds.FirstKeeper, PlayerIds.Good]);
         var view = new WorldView(database, PlayerIds.FirstKeeper);
         view.CaptureMinimapMarkers(world, new MinimapPalette(new uint[37]), new List<MinimapMarker>());

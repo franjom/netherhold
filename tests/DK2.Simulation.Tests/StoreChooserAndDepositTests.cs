@@ -28,6 +28,7 @@ public class StoreChooserAndDepositTests
     {
         TerrainDef def = db.TerrainById(terrain);
         for (int y = y0; y <= y1; y++)
+        {
             for (int x = x0; x <= x1; x++)
             {
                 ref TileState tile = ref world.Tile(x, y);
@@ -35,6 +36,8 @@ public class StoreChooserAndDepositTests
                 tile.OwnerPlayerId = Keeper;
                 tile.Health = def.StartingHealth;
             }
+        }
+
         return RoomIndex.RoomAt(world, db, (y0 * world.Width) + x0)!;
     }
 
@@ -149,7 +152,10 @@ public class StoreChooserAndDepositTests
         (GameDatabase db, WorldState world) = World();
         RoomInstance heart = Room(db, world, Dk2TerrainFixture.DungeonHeartTerrain, 5, 5, 9, 9);
         foreach (int tile in heart.TileIndices)
+        {
             world.TileAtIndex(tile).GoldHeld = GoldStore.Capacity(world, db, tile, heart);
+        }
+
         int rim = (5 * world.Width) + 5;
         ObjectState pile = FloorGold.Drop(world, db, rim, 700)!;
         var counting = new Counting();
@@ -157,7 +163,10 @@ public class StoreChooserAndDepositTests
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
 
-        for (int i = 0; i < StoreSweepSystem.SweepTurns; i++) sim.Tick(InputFrame.Empty);
+        for (int i = 0; i < StoreSweepSystem.SweepTurns; i++)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
 
         SimEvent swept = Assert.Single(sink.Events, e => e.Kind == "swept");
         Assert.Contains("stored=0 left=700", swept.Detail);
@@ -175,12 +184,18 @@ public class StoreChooserAndDepositTests
         (GameDatabase db, WorldState world) = World();
         RoomInstance treasury = Room(db, world, Dk2TerrainFixture.TreasuryTerrain, 5, 5, 7, 5);
         foreach (int tile in treasury.TileIndices)
+        {
             world.TileAtIndex(tile).GoldHeld = db[VariableTypeId.MaxGoldPerTreasuryTile];
+        }
+
         ObjectState pile = FloorGold.Drop(world, db, treasury.TileIndices[0], 700)!;
         var counting = new Counting();
         var sim = new GameSimulation(db, world, new SimRandom(counting), [new StoreSweepSystem()]);
 
-        for (int i = 0; i <= StoreSweepSystem.SweepTurns; i++) sim.Tick(InputFrame.Empty);
+        for (int i = 0; i <= StoreSweepSystem.SweepTurns; i++)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
 
         Assert.Contains(pile, world.Objects);
         Assert.Equal([100], counting.ByBound.Keys);   // the sparkle's draws (0x004F3A00) only

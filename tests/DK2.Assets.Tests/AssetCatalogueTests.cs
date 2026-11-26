@@ -143,7 +143,14 @@ public class AssetCatalogueTests
             Assert.Contains(byName, k => k.Key == $"terrain.{subject}.{AssetRef.RoleOf(expected)}");
             Assert.DoesNotContain(byName, k => k.Key == $"terrain.{subject}.{AssetRef.RoleOf(unexpected)}");
 
-            if (terrain.IsSolid) checkedSolid++; else checkedWalkable++;
+            if (terrain.IsSolid)
+            {
+                checkedSolid++;
+            }
+            else
+            {
+                checkedWalkable++;
+            }
         }
 
         // Both branches were actually exercised by the shipped data.
@@ -204,7 +211,11 @@ public class AssetCatalogueTests
         for (int i = 0; i < pascalCase.Length; i++)
         {
             char c = pascalCase[i];
-            if (char.IsUpper(c) && i > 0) sb.Append('_');
+            if (char.IsUpper(c) && i > 0)
+            {
+                sb.Append('_');
+            }
+
             sb.Append(char.ToLowerInvariant(c));
         }
         return sb.ToString();

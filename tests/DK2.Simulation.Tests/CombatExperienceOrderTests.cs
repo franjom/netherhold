@@ -21,7 +21,11 @@ public sealed class CombatExperienceOrderTests
         Fight(fighter, target, state);
         GameSimulation sim = WithHandler(db, world, (context, creature) =>
         {
-            if (creature != fighter) return;
+            if (creature != fighter)
+            {
+                return;
+            }
+
             Assert.Equal(40, fighter.ExperiencePoints);
             Assert.True(CreatureStateMachine.TrySetState(context.Hooks, fighter, 1));
         });
@@ -38,7 +42,11 @@ public sealed class CombatExperienceOrderTests
         fighter.FightProcessCounter = 10;
         GameSimulation sim = WithHandler(db, world, (_, creature) =>
         {
-            if (creature != fighter) return;
+            if (creature != fighter)
+            {
+                return;
+            }
+
             Assert.Equal(199, fighter.Dk2StateId);
             Assert.Equal(target.Id, fighter.FightTargetId);
             Assert.Equal(40, fighter.ExperiencePoints);
@@ -57,7 +65,11 @@ public sealed class CombatExperienceOrderTests
         fighter.UtilityNewState = 199;
         GameSimulation sim = WithHandler(db, world, (context, creature) =>
         {
-            if (creature != fighter) return;
+            if (creature != fighter)
+            {
+                return;
+            }
+
             Assert.Equal(8, fighter.Dk2StateId);
             Assert.Equal(0, fighter.ExperiencePoints);
             Assert.True(CreatureStateMachine.TrySetState(context.Hooks, fighter, 199));
@@ -76,7 +88,11 @@ public sealed class CombatExperienceOrderTests
         fighter.ExperiencePoints = CreatureLevelRules.ExperienceForNextLevel(db, db.CreatureById(61), 1) - 40;
         GameSimulation sim = WithHandler(db, world, (_, creature) =>
         {
-            if (creature != fighter) return;
+            if (creature != fighter)
+            {
+                return;
+            }
+
             Assert.Equal(2, fighter.Level);
             Assert.Equal(0, fighter.ExperiencePoints);
         });
@@ -95,7 +111,10 @@ public sealed class CombatExperienceOrderTests
         GameSimulation sim = WithHandler(db, world, (_, creature) =>
         {
             visited.Add(creature.Id);
-            if (creature == older) Assert.Equal(40, newer.ExperiencePoints);
+            if (creature == older)
+            {
+                Assert.Equal(40, newer.ExperiencePoints);
+            }
         });
         sim.Tick();
         Assert.Equal(new[] { newer.Id, older.Id }, visited);

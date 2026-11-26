@@ -60,7 +60,11 @@ public class CombatTests
     /// <summary>Runs one tick at a time until the creature's swing begins, at most twenty ticks.</summary>
     private static long RunUntilSwing(GameSimulation sim, CreatureState creature)
     {
-        for (int i = 0; i < 20 && !creature.SwingInProgress; i++) sim.Run(1);
+        for (int i = 0; i < 20 && !creature.SwingInProgress; i++)
+        {
+            sim.Run(1);
+        }
+
         Assert.True(creature.SwingInProgress, "no swing within twenty ticks");
         return sim.World.CurrentTick.Value;
     }
@@ -109,7 +113,11 @@ public class CombatTests
         goblin.DieInstantly = true; // only an outright death gives the victory (Q511)
         GameSimulation sim = new(db, world, 1, [new CombatSystem(), new CreatureHealthSystem()]);
 
-        for (int i = 0; i < 60 && !CreatureDeathRules.IsDown(goblin); i++) sim.Run(1);
+        for (int i = 0; i < 60 && !CreatureDeathRules.IsDown(goblin); i++)
+        {
+            sim.Run(1);
+        }
+
         Assert.True(CreatureDeathRules.IsDown(goblin), $"health {goblin.Health}");
 
         // The death unlink, then the victory arm (combat-approach-and-victory.md §5): a pause, then idle.
@@ -134,7 +142,11 @@ public class CombatTests
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
 
-        for (int i = 0; i < 60 && !CreatureDeathRules.IsDown(goblin); i++) sim.Run(1);
+        for (int i = 0; i < 60 && !CreatureDeathRules.IsDown(goblin); i++)
+        {
+            sim.Run(1);
+        }
+
         sim.Run(8);
 
         Assert.Contains(sink.Events, e => e.Kind == "target_down" && e.Detail.Contains("victim=" + goblin.Id));
@@ -156,7 +168,11 @@ public class CombatTests
         GameSimulation sim = new(db, world, 1, [new CombatSystem()]);
         new GameSimulation(db, world, sim.Rng, [new Lambda(context =>
             CreatureStateMachine.TrySetState(context.Hooks, goblin, DropLandingRules.StunnedState, context.Tick.Value))]).Tick();
-        for (int i = 0; i < 20 && demon.FightTargetId != goblin.Id; i++) sim.Run(1);
+        for (int i = 0; i < 20 && demon.FightTargetId != goblin.Id; i++)
+        {
+            sim.Run(1);
+        }
+
         Assert.Equal((goblin.Id, DropLandingRules.StunnedState), (demon.FightTargetId, goblin.Dk2StateId));
         goblin.Health = 0;
         goblin.CollapseDue = true;
@@ -188,7 +204,11 @@ public class CombatTests
         // Both enemies lie stunned: out of Combat, so neither starts a fight nor releases its attacker.
         new GameSimulation(db, world, sim.Rng, [new Lambda(context =>
             CreatureStateMachine.TrySetState(context.Hooks, goblin, DropLandingRules.StunnedState, context.Tick.Value))]).Tick();
-        for (int i = 0; i < 20 && demon.FightTargetId != goblin.Id; i++) sim.Run(1);
+        for (int i = 0; i < 20 && demon.FightTargetId != goblin.Id; i++)
+        {
+            sim.Run(1);
+        }
+
         Assert.Equal(goblin.Id, demon.FightTargetId);
         CreatureState other = Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, demon);
         new GameSimulation(db, world, sim.Rng, [new Lambda(context =>
@@ -332,8 +352,13 @@ public class CombatTests
         (GameDatabase db, WorldState world) = OpenWorld();
         RoomDef heart = db.Room(RoomTypeId.DungeonHeart);
         for (int y = 3; y <= 7; y++)
+        {
             for (int x = 10; x <= 14; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(new TilePos(x, y)), heart, Rival);
+            }
+        }
+
         CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 9, 5);
         int before = world.Player(Rival).HeartHealth;
         GameSimulation sim = new(db, world, 1, [new CombatSystem(), new CreatureMovementSystem()]);
@@ -367,8 +392,13 @@ public class CombatTests
         (GameDatabase db, WorldState world) = OpenWorld();
         RoomDef heart = db.Room(RoomTypeId.DungeonHeart);
         for (int y = 3; y <= 7; y++)
+        {
             for (int x = 10; x <= 14; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(new TilePos(x, y)), heart, Rival);
+            }
+        }
+
         CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 12, 7);
         new GameSimulation(db, world, 1, [new CombatSystem()]).Tick();
         Assert.Equal(FightTargetKind.Heart, demon.FightTargetKind);
@@ -390,12 +420,22 @@ public class CombatTests
         GameDatabase db = Dk2TerrainFixture.Database(caster);
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         RoomDef heart = db.Room(RoomTypeId.DungeonHeart);
         for (int y = 3; y <= 7; y++)
+        {
             for (int x = 10; x <= 14; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(new TilePos(x, y)), heart, Rival);
+            }
+        }
+
         CreatureState me = world.SpawnArrived(db, 61, Keeper, new TilePos(9, 5));
         me.PosX = (11 << 12) + 0x667 - offset;
         me.PosY = (6 << 12) + 0x19A;
@@ -420,8 +460,13 @@ public class CombatTests
         GameDatabase db = Dk2TerrainFixture.Database(caster);
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y < world.Height - 1; y++)
+        {
             for (int x = 1; x < world.Width - 1; x++)
+            {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.DirtPath;
+            }
+        }
+
         CreatureState me = world.SpawnArrived(db, 61, Keeper, new TilePos(5, 5));
         CreatureState goblin = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, Rival, new TilePos(5, 5));
         goblin.PosX = me.PosX + 0x0C00;
@@ -443,8 +488,13 @@ public class CombatTests
         (GameDatabase db, WorldState world) = OpenWorld();
         RoomDef heart = db.Room(RoomTypeId.DungeonHeart);
         for (int y = 3; y <= 7; y++)
+        {
             for (int x = 10; x <= 14; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(new TilePos(x, y)), heart, Rival);
+            }
+        }
+
         world.Player(Rival).HeartHealth = 1;
         CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 10, 4);
         demon.PosX = (12 << 12) + 0x800 - 300;
@@ -467,8 +517,13 @@ public class CombatTests
         (GameDatabase db, WorldState world) = OpenWorld();
         RoomDef heart = db.Room(RoomTypeId.DungeonHeart);
         for (int y = 3; y <= 7; y++)
+        {
             for (int x = 10; x <= 14; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(new TilePos(x, y)), heart, Rival);
+            }
+        }
+
         world.Player(Rival).HeartHealth = 1;
         CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 10, 4);
         demon.PosX = (12 << 12) + 0x800 - 300;
@@ -530,7 +585,9 @@ public class CombatTests
                 ref TileState tile = ref world.Tile(new TilePos(x, y));
                 if (tile.TerrainId == Dk2TerrainFixture.Rock || tile.TerrainId == Dk2TerrainFixture.Gold
                     || tile.TerrainId == Dk2TerrainFixture.Gems)
+                {
                     tile.TerrainId = Dk2TerrainFixture.DirtPath;
+                }
             }
         }
         return (db, world);

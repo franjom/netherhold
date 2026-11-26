@@ -29,18 +29,30 @@ public class CampaignPlayerPitRescueTests
         const int width = 20, height = 16;
         var tiles = new MapTile[width * height];
         for (int y = 0; y < height; y++)
+        {
             for (int x = 0; x < width; x++)
             {
                 bool edge = x == 0 || y == 0 || x == width - 1 || y == height - 1;
                 tiles[y * width + x] = edge ? new MapTile(ImpenetrableRock, 0, 0, 0) : new MapTile(ClaimedPath, Keeper, 0, 0);
             }
+        }
+
         var world = WorldState.FromMap(db, new LevelMap(width, height, tiles), [PlayerIds.Neutral, Keeper]);
         for (int y = 4; y <= 8; y++)
+        {
             for (int x = 4; x <= 8; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.CombatPit), Keeper);
+            }
+        }
+
         for (int y = 2; y <= 3; y++)
+        {
             for (int x = 14; x <= 15; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Lair), Keeper);
+            }
+        }
 
         CreatureState loser = world.SpawnCreature(db, Goblin, Keeper, new TilePos(6, 6));
         loser.PosZ = loser.LastPosZ = -0xC00;
@@ -67,7 +79,11 @@ public class CampaignPlayerPitRescueTests
                     new PlayerStamp(Run, new PlayerId(Keeper), world.CurrentTick, new PlayerRevision(++revision)), []);
                 foreach (PlayerAction action in player.Decide(capture.Observation).Actions)
                 {
-                    if (action is PlayerAction.DropAt drop) drops.Add(drop.Tile);
+                    if (action is PlayerAction.DropAt drop)
+                    {
+                        drops.Add(drop.Tile);
+                    }
+
                     commands.AddRange(adapter.Resolve(capture, action).Commands);
                 }
             }

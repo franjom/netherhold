@@ -42,7 +42,11 @@ public class PaydayTests
     {
         var sim = new GameSimulation(db, world, seed: 42,
             [new CreatureMovementSystem(), new PaydaySystem()]);
-        if (sink is not null) sim.ObserveWith(sink);
+        if (sink is not null)
+        {
+            sim.ObserveWith(sink);
+        }
+
         return sim;
     }
 
@@ -60,7 +64,10 @@ public class PaydayTests
     private static void RunToFirstPayday(GameSimulation sim, GameDatabase db, int extraTicks = 40)
     {
         int ticks = PaydayRules.FirstPaydayTicks(db) + extraTicks;
-        for (int i = 0; i < ticks; i++) sim.Tick(InputFrame.Empty);
+        for (int i = 0; i < ticks; i++)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
     }
 
     // ---- the clock --------------------------------------------------------
@@ -75,7 +82,11 @@ public class PaydayTests
 
         // One tick short of TimeBeforeFirstPayDaySeconds: nobody is owed a
         // thing. A level does not open with the dungeon on strike.
-        for (int i = 0; i < PaydayRules.FirstPaydayTicks(db); i++) sim.Tick(InputFrame.Empty);
+        for (int i = 0; i < PaydayRules.FirstPaydayTicks(db); i++)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
+
         Assert.Equal(0, goblin.WageOwed);
 
         sim.Tick(InputFrame.Empty);
@@ -130,7 +141,10 @@ public class PaydayTests
         RunToFirstPayday(sim, db);
         Assert.Equal(500, goblin.WageOwed);
 
-        for (int i = 0; i < PaydayRules.IntervalTicks(db); i++) sim.Tick(InputFrame.Empty);
+        for (int i = 0; i < PaydayRules.IntervalTicks(db); i++)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
 
         // The original's accrual ADDS to the field rather than assigning it, so
         // a debt compounds instead of resetting. This is the whole reason
@@ -157,7 +171,11 @@ public class PaydayTests
         Assert.Contains(sink.Events, e => e.Kind == "payday" && e.Detail.Contains("skipped=1"));
 
         // And the next one bills it normally.
-        for (int i = 0; i < PaydayRules.IntervalTicks(db); i++) sim.Tick(InputFrame.Empty);
+        for (int i = 0; i < PaydayRules.IntervalTicks(db); i++)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
+
         Assert.Equal(500, goblin.WageOwed);
     }
 
@@ -179,7 +197,11 @@ public class PaydayTests
         Assert.Equal(arrived + PaydayRules.FirstPaydayTicks(db), world.Player(Keeper).NextPaydayTick.Value);
         Assert.Equal(arrived, world.Player(Keeper).LastPaydayTick.Value);
 
-        for (int i = 0; i < PaydayRules.FirstPaydayTicks(db); i++) sim.Tick(InputFrame.Empty);
+        for (int i = 0; i < PaydayRules.FirstPaydayTicks(db); i++)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
+
         Assert.Equal(0, goblin.WageOwed);
         sim.Tick(InputFrame.Empty);
         Assert.Equal(500, goblin.WageOwed);
@@ -213,7 +235,11 @@ public class PaydayTests
         GameSimulation sim = Simulation(db, world);
 
         long deadline = world.Player(Keeper).NextPaydayTick.Value;
-        while (world.CurrentTick.Value < deadline - 120) sim.Tick(InputFrame.Empty);
+        while (world.CurrentTick.Value < deadline - 120)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
+
         CreatureState onTheEdge = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(1, 1));
         sim.Tick(InputFrame.Empty);
         CreatureState late = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(1, 2));
@@ -221,7 +247,11 @@ public class PaydayTests
         Assert.False(onTheEdge.GetPaid);
         Assert.True(late.GetPaid);
 
-        while (world.CurrentTick.Value <= deadline) sim.Tick(InputFrame.Empty);
+        while (world.CurrentTick.Value <= deadline)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
+
         Assert.Equal(500, onTheEdge.WageOwed);
         Assert.Equal(0, late.WageOwed);
     }
@@ -248,7 +278,11 @@ public class PaydayTests
         Assert.DoesNotContain(sink.Events, e => e.Kind == "wages_sought");
 
         int retry = NeedRules.RetryTurns * SimulationTiming.OriginalTickPeriodTicks;
-        for (int i = 0; i < retry + 1; i++) sim.Tick(InputFrame.Empty);
+        for (int i = 0; i < retry + 1; i++)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
+
         Assert.Contains(sink.Events, e => e.Kind == "wages_sought");
     }
 
@@ -295,7 +329,11 @@ public class PaydayTests
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, Floor);
         var sim = new GameSimulation(db, world, seed: 42,
             [new CreatureUpdateSystem(new PaydaySystem(), new CreatureMovementSystem())]);
-        for (int i = 0; i < PaydayRules.FirstPaydayTicks(db); i++) sim.Tick(InputFrame.Empty);
+        for (int i = 0; i < PaydayRules.FirstPaydayTicks(db); i++)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
+
         goblin.NextPayTryTick = sim.CurrentTick.Value + 100;
         int heading = goblin.Heading;
 
@@ -432,7 +470,11 @@ public class PaydayTests
 
         // The next payday refills the budget for everybody, including one that
         // had given up.
-        for (int i = 0; i < PaydayRules.IntervalTicks(db); i++) sim.Tick(InputFrame.Empty);
+        for (int i = 0; i < PaydayRules.IntervalTicks(db); i++)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
+
         Assert.Equal(1000, goblin.WageOwed);
         Assert.Equal(4, sink.Events.Count(e => e.Kind == "wages_unreachable"));
     }
@@ -490,10 +532,17 @@ public class PaydayTests
         GameSimulation sim = Simulation(db, world, sink);
 
         int limit = PaydayRules.FirstPaydayTicks(db) + 400;
-        while (goblin.UtilityNewState != PaydayRules.ArrivingState && sim.World.CurrentTick.Value < limit) sim.Tick();
+        while (goblin.UtilityNewState != PaydayRules.ArrivingState && sim.World.CurrentTick.Value < limit)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(PaydayRules.ArrivingState, goblin.UtilityNewState);
         world.Tile(vault.X, vault.Y).OwnerPlayerId = PlayerIds.Neutral;
-        while (!sink.Events.Any(e => e.Kind == "wages_not_here") && sim.World.CurrentTick.Value < limit) sim.Tick();
+        while (!sink.Events.Any(e => e.Kind == "wages_not_here") && sim.World.CurrentTick.Value < limit)
+        {
+            sim.Tick();
+        }
 
         Assert.Contains(sink.Events, e => e.Kind == "wages_not_here");
         Assert.Equal(2000, world.Tile(vault.X, vault.Y).GoldHeld);
@@ -578,7 +627,11 @@ public class PaydayTests
     {
         var sim = new GameSimulation(db, world, seed: 42,
             [new CreatureMovementSystem(), new PaydaySystem(), new CreatureAngerSystem()]);
-        if (sink is not null) sim.ObserveWith(sink);
+        if (sink is not null)
+        {
+            sim.ObserveWith(sink);
+        }
+
         return sim;
     }
 
@@ -605,7 +658,9 @@ public class PaydayTests
 
         GameSimulation sim = WithAnger(db, world);
         for (int i = 0; i < AngerWindowSeconds * SimulationTiming.TicksPerSecond; i++)
+        {
             sim.Tick(InputFrame.Empty);
+        }
 
         // Being owed is the whole trigger: the original tests the outstanding wage
         // against zero and nothing else. There is no treasury on this map and no
@@ -634,7 +689,10 @@ public class PaydayTests
 
         goblin.WageOwed = 500;
         for (int i = 0; i < AngerWindowSeconds * SimulationTiming.TicksPerSecond; i++)
+        {
             sim.Tick(InputFrame.Empty);
+        }
+
         int owing = goblin.Anger.Pay;
 
         // Debt cleared by hand, so the take that wipes the bucket never runs; the
@@ -642,7 +700,9 @@ public class PaydayTests
         goblin.WageOwed = 0;
         int settled = goblin.Anger.Lair;
         for (int i = 0; i < AngerWindowSeconds * SimulationTiming.TicksPerSecond; i++)
+        {
             sim.Tick(InputFrame.Empty);
+        }
 
         // The lair charge continues either way; the wage charge stops dead with
         // the debt. Stopping the charge gives back nothing already charged
@@ -665,7 +725,11 @@ public class PaydayTests
         for (int t = 0; t < ticks; t++)
         {
             sim.Run(1);
-            if (creature.Dk2StateId == last) continue;
+            if (creature.Dk2StateId == last)
+            {
+                continue;
+            }
+
             seen.Add((creature.Dk2StateId, creature.StateBeforeUtilityState, creature.UtilityNewState));
             last = creature.Dk2StateId;
         }
@@ -707,7 +771,10 @@ public class PaydayTests
         var sink = new ListEventSink();
 
         GameSimulation sim = Simulation(db, world, sink);
-        for (int t = 0; t < 3 && goblin.WageOwed != 0; t++) sim.Tick();
+        for (int t = 0; t < 3 && goblin.WageOwed != 0; t++)
+        {
+            sim.Tick();
+        }
 
         Assert.Equal(0, goblin.WageOwed);
         Assert.Equal(CreatureStateMachine.Idle, goblin.Dk2StateId);
@@ -732,7 +799,10 @@ public class PaydayTests
         // Hold it in 188 with the turn still to make: a quarter turn a tick is never enough at once.
         sim.Tick();
         int target = BearingToArrivalFacingPoint(goblin);
-        for (int t = 0; t < 40 && goblin.WageOwed != 0; t++) sim.Tick();
+        for (int t = 0; t < 40 && goblin.WageOwed != 0; t++)
+        {
+            sim.Tick();
+        }
 
         Assert.Equal(0, goblin.WageOwed);
         Assert.Equal(target, goblin.Heading);
@@ -774,7 +844,11 @@ public class PaydayTests
         {
             GameDatabase db = Db;
             WorldState world = World(db);
-            for (int x = 2; x <= 4; x++) Treasury(world, new TilePos(x, 2), gold);
+            for (int x = 2; x <= 4; x++)
+            {
+                Treasury(world, new TilePos(x, 2), gold);
+            }
+
             CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(1, 3)).Unstaggered();
             goblin.WageOwed = owed;
             var sim = new GameSimulation(db, world, new SimRandom(new Dk2Lcg(42)),
@@ -785,7 +859,11 @@ public class PaydayTests
 
         GameSimulation with = Run(500), without = Run(0);
         var expected = new Dk2Lcg(((Dk2Lcg)without.Rng.Algorithm).Seed);
-        for (int i = 0; i < draws; i++) expected.NextInt(8);
+        for (int i = 0; i < draws; i++)
+        {
+            expected.NextInt(8);
+        }
+
         Assert.Equal(expected.Seed, ((Dk2Lcg)with.Rng.Algorithm).Seed);
     }
 
@@ -898,7 +976,9 @@ public class PaydayTests
 
         GameSimulation sim = WithAnger(db, world);
         for (int i = 0; i < AngerWindowSeconds * SimulationTiming.TicksPerSecond; i++)
+        {
             sim.Tick(InputFrame.Empty);
+        }
 
         // Not the wage, and NOT the missing bed either. The original's
         // need-anger routine refuses outright on bit 1 of the state record's
@@ -1026,13 +1106,21 @@ public class PaydayTests
         var sim = new GameSimulation(db, world, seed: 42, [new CreatureMovementSystem(), new PaydaySystem()],
             new TriggerTree(records, 0, playerRoots: [new TriggerPlayerRoot(Keeper, 5)]));
 
-        for (int i = 0; i < PaydayRules.FirstPaydayTicks(db); i++) sim.Tick(InputFrame.Empty);
+        for (int i = 0; i < PaydayRules.FirstPaydayTicks(db); i++)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
+
         Assert.Equal(0, world.Triggers.Read(1));
 
         sim.Tick(InputFrame.Empty);
         Assert.Equal(1, world.Triggers.Read(1));
 
-        for (int i = 0; i < PaydayRules.IntervalTicks(db); i++) sim.Tick(InputFrame.Empty);
+        for (int i = 0; i < PaydayRules.IntervalTicks(db); i++)
+        {
+            sim.Tick(InputFrame.Empty);
+        }
+
         Assert.Equal(2, world.Triggers.Read(1));
     }
 }

@@ -28,12 +28,22 @@ public class CapturedGuardRoomTests(ITestOutputHelper log)
         (_, WorldState world) = CapturedState.Level("Level4");
         var differ = new Dictionary<string, int>();
         for (int y = 0; y < state.Height; y++)
-        for (int x = 0; x < state.Width; x++)
+        {
+            for (int x = 0; x < state.Width; x++)
         {
             ref TileState ours = ref world.Tile(x, y);
-            if (ours.TerrainId != state.Terrain(x, y)) Count(differ, $"terrain ours {ours.TerrainId}, DK2 {state.Terrain(x, y)}");
-            if (ours.OwnerPlayerId != state.Owner(x, y)) Count(differ, $"owner ours {ours.OwnerPlayerId}, DK2 {state.Owner(x, y)}");
+            if (ours.TerrainId != state.Terrain(x, y))
+                {
+                    Count(differ, $"terrain ours {ours.TerrainId}, DK2 {state.Terrain(x, y)}");
+                }
+
+                if (ours.OwnerPlayerId != state.Owner(x, y))
+                {
+                    Count(differ, $"owner ours {ours.OwnerPlayerId}, DK2 {state.Owner(x, y)}");
+                }
+            }
         }
+
         Assert.True(differ.Count == 0, "tiles differ: " + string.Join("; ", differ.Select(kv => $"{kv.Key} x{kv.Value}")));
     }
 
@@ -63,7 +73,11 @@ public class CapturedGuardRoomTests(ITestOutputHelper log)
         foreach (CapturedState state in states)
         {
             CapturedCreature[] asking = [.. state.Creatures.Where(c => c.Target != 0)];
-            if (asking.Length == 0) continue;
+            if (asking.Length == 0)
+            {
+                continue;
+            }
+
             state.ApplyTiles(world);
             var context = new SimulationContext(database, world, new SimRandom(0), NullEventSink.Instance);
             var rooms = new RoomCache();
@@ -80,7 +94,11 @@ public class CapturedGuardRoomTests(ITestOutputHelper log)
                 if (!PlayerIds.IsKeeper((byte)me.Owner) || me.TargetClass != 0
                     || !bySlot.TryGetValue(me.Target, out CapturedCreature? target))
                 {
-                    if (original[i].Eax != 0) mismatches.Add($"{at}: original 1 past an early-out");
+                    if (original[i].Eax != 0)
+                    {
+                        mismatches.Add($"{at}: original 1 past an early-out");
+                    }
+
                     continue;
                 }
 
@@ -89,7 +107,10 @@ public class CapturedGuardRoomTests(ITestOutputHelper log)
                 bool theirs = original[i].Eax != 0;
                 compared++;
                 reached[theirs ? "inside" : "outside"]++;
-                if (ours != theirs) mismatches.Add($"{at} target {me.Target} at {tile}: original {theirs}, ours {ours}");
+                if (ours != theirs)
+                {
+                    mismatches.Add($"{at} target {me.Target} at {tile}: original {theirs}, ours {ours}");
+                }
             }
         }
         log.WriteLine($"{states.Count} ticks, {guardRooms} guard-room samples, {compared} compared; " +

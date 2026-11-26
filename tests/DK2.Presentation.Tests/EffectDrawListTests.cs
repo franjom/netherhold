@@ -240,7 +240,9 @@ public sealed class EffectDrawListTests
 
         Vector3[] expected = [new(-2f, 1f, 0f), new(-2f, -1f, 0f), new(2f, -1f, 0f), new(2f, 1f, 0f)];
         for (int corner = 0; corner < 4; corner++)
+        {
             Assert.True(Vector3.Distance(expected[corner], quads.Vertices[corner]) < 0.00001f);
+        }
     }
 
     [Fact]
@@ -307,7 +309,10 @@ public sealed class EffectDrawListTests
         var quads = new EffectQuadBuffer();
         var billboard = new EffectBillboard(Vector3.Zero, 1f, 1f, EffectColour.White);
         for (int i = 0; i < 5; i++)
+        {
             EffectDrawList.AddBillboardQuad(quads, Particle(takesLight: false), billboard, Vector3.UnitX, Vector3.UnitY, 1);
+        }
+
         Assert.Equal(20, quads.VertexCount);
         Assert.Equal(30, quads.IndexCount);
         Assert.Equal([16, 17, 18, 16, 18, 19], quads.Indices[24..].ToArray());

@@ -166,7 +166,10 @@ public class MoodMessageTests
     {
         (GameDatabase _, WorldState? world, CreatureDef? goblin, CreatureState? state) = Goblin();
         for (int i = 0; i < PlayerMessageQueue.Capacity; i++)
+        {
             world.Messages.Post(world, Keeper, PlayerMessageKind.CombatStarted, i, 0);
+        }
+
         uint oldest = world.Messages.Entries[0].Id;
 
         CreatureAngerRules.Apply(world, goblin, state, AngerBucket.Lair,

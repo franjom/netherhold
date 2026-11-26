@@ -25,10 +25,13 @@ public class KeeperViewTests
             basis.Creatures.Values, basis.Variables, traps: [trap]);
         WorldState world = KeeperWorld.World(db);
         foreach (byte owner in new byte[] { 1, 2 })
+        {
             ThingProjection.Place(world, db, [new TrapThing(new byte[16])
             {
                 X = 15, Y = 15, PlayerId = owner, TrapId = 3, NumberOfShots = 0,
             }]);
+        }
+
         PlayerId[] activation = [1, 3, 2];
         var captured = new KeeperView(db, world, KeeperWorld.Keeper, activation);
         activation[0] = 2;
@@ -98,8 +101,13 @@ public class KeeperViewTests
         KeeperWorld.Set(world, db, solid, KeeperWorld.Rock, KeeperWorld.Keeper);
         KeeperWorld.Set(world, db, enemy, KeeperWorld.ClaimedPath, 2);
         for (int y = 8; y <= 10; y++)
+        {
             for (int x = 8; x <= 10; x++)
+            {
                 KeeperWorld.Set(world, db, new TilePos(x, y), KeeperWorld.PortalFloor, KeeperWorld.Keeper);
+            }
+        }
+
         var portal = new TilePos(9, 9);
         var door = new TilePos(14, 14);
         ThingProjection.Place(world, db, [new DoorThing(new byte[20])
@@ -114,9 +122,15 @@ public class KeeperViewTests
         Assert.Equal(NavBytes.PortalHole, restored.Tile(portal).NavigationByte);
         Assert.Equal(NavBytes.Door(KeeperWorld.Keeper, true, false), restored.Tile(door).NavigationByte);
         foreach (TilePos candidate in new[] { water, lava, portal, door, KeeperWorld.HeartAt })
+        {
             Assert.True(restored.IsThreatDropCandidate(candidate));
+        }
+
         foreach (TilePos rejected in new[] { solid, enemy, new TilePos(-1, 5), new TilePos(world.Width, 5) })
+        {
             Assert.False(restored.IsThreatDropCandidate(rejected));
+        }
+
         Assert.False(restored.IsPassable(water));
         Assert.False(restored.IsPassable(lava));
 
@@ -141,7 +155,10 @@ public class KeeperViewTests
         KeeperView restored = KeeperViewSnapshot.FromBytes(packet, db);
         Assert.Equal(packet, KeeperViewSnapshot.ToBytes(restored));
         for (byte player = 0; player <= 8; player++)
+        {
             Assert.Equal(world.AreAllied(KeeperWorld.Keeper, player), restored.AreAllied(player));
+        }
+
         Assert.Equal(world.PlayerIds.Where(id => id != PlayerIds.Unowned).Reverse(), restored.PlayerOrder);
         Assert.True(restored.IsUpgraded(AvailabilityKind.Spell, 4));
         Assert.False(restored.IsUpgraded(AvailabilityKind.Spell, 255));
@@ -187,7 +204,11 @@ public class KeeperViewTests
         public string Name => "test combat messages";
         public void Execute(SimulationContext context)
         {
-            if (context.Tick != GameTick.Zero) return;
+            if (context.Tick != GameTick.Zero)
+            {
+                return;
+            }
+
             context.World.Messages.Post(context.World, KeeperWorld.Keeper, PlayerMessageKind.CombatStarted, 4, 5);
             context.World.Messages.Post(context.World, 2, PlayerMessageKind.CombatStarted, 6, 7);
         }

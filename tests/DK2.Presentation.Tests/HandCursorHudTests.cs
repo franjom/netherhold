@@ -29,7 +29,13 @@ public sealed class HandCursorHudTests
         byte[] expected = (byte[])pixels.Clone();
         // Unity's loop over Color32 (r, g, b, a bytes).
         for (int i = 0; i < expected.Length / 4; i++)
-            if (expected[i * 4] == 0 && expected[i * 4 + 1] == 255 && expected[i * 4 + 2] == 0) expected[i * 4 + 3] = 0;
+        {
+            if (expected[i * 4] == 0 && expected[i * 4 + 1] == 255 && expected[i * 4 + 2] == 0)
+            {
+                expected[i * 4 + 3] = 0;
+            }
+        }
+
         byte[] keyed = (byte[])pixels.Clone();
         HudImagePixels.KeyGreen(keyed);
         Assert.Equal(expected, keyed);
@@ -74,7 +80,11 @@ public sealed class HandCursorHudTests
         using var sheets = new InstallHandCursorSheets(Dk2InstallGate.Path, SizeOnly);
         foreach (HandCursorKind kind in Enum.GetValues<HandCursorKind>())
         {
-            if (kind == HandCursorKind.Default) continue;
+            if (kind == HandCursorKind.Default)
+            {
+                continue;
+            }
+
             HandCursorSprite sprite = HandCursor.Sprite(kind);
             RgbaImage image = sheets.Load(sprite.FileName);
             Assert.Equal(sprite.FrameSize.Y * sprite.FrameCount, image.Height);

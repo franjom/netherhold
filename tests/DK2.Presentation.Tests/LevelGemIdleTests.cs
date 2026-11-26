@@ -36,7 +36,11 @@ public class LevelGemIdleTests
         // four-tick second our tick 3 is DK2's turn 4 and emits, and our tick 0 (turn 1) does not.
         Assert.Equal(4, DK2.Simulation.SimulationTiming.TicksPerSecond);
         bool[] emits = new bool[8];
-        for (long tick = 0; tick < emits.Length; tick++) emits[tick] = LevelGemIdle.EmitsOn(tick + 1);
+        for (long tick = 0; tick < emits.Length; tick++)
+        {
+            emits[tick] = LevelGemIdle.EmitsOn(tick + 1);
+        }
+
         Assert.Equal(new[] { false, false, false, true, false, false, false, true }, emits);
     }
 }

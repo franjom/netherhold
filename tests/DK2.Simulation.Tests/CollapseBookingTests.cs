@@ -23,11 +23,13 @@ public class CollapseBookingTests
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [PlayerIds.Good, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y < 19; y++)
-        for (int x = 1; x < 19; x++)
+        {
+            for (int x = 1; x < 19; x++)
         {
             ref TileState tile = ref world.Tile(x, y);
             tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
             tile.OwnerPlayerId = Keeper;
+        }
         }
 
         return (db, world);

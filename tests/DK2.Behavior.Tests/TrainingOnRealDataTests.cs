@@ -70,7 +70,10 @@ public sealed class TrainingOnRealDataTests
 
         foreach (CreatureDef c in db.Creatures.Values)
         {
-            if (c.ResearchPerSecond is 0 or >= 4) continue;
+            if (c.ResearchPerSecond is 0 or >= 4)
+            {
+                continue;
+            }
 
             Assert.InRange((int)c.ResearchPerSecond, 1, 3);
             Assert.Equal(1, SimulationTiming.LoaderRatePerTick(c.ResearchPerSecond));

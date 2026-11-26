@@ -23,7 +23,9 @@ public class KeyboardSetupTests
     {
         GameAction[] unbuilt = [GameAction.PickLock, GameAction.PrimaryAbility, GameAction.SecondaryAbility];
         for (GameAction action = GameAction.Sniper; action <= GameAction.RemoveAlly; action++)
+        {
             Assert.Equal(Array.IndexOf(unbuilt, action) < 0, KeyboardSetup.IsBuilt(action));
+        }
     }
     [Fact]
     public void RebindingBuiltActionIsLiveAndCancelRestoresIt()

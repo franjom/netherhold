@@ -23,7 +23,11 @@ public class LibraryStateTests
         wall = wall with { Flags = wall.Flags | TerrainFlags.AllowRoomWalls };
         var clip = new CreatureAnimationTiming { ResourceType = 6, FrameCount = 20, FramesPerSecond = 20 };
         var slots = new CreatureAnimationTiming[CreatureDef.ArtSlotCount];
-        foreach (int slot in new[] { 1, 5, 14, 20 }) slots[slot] = clip;
+        foreach (int slot in new[] { 1, 5, 14, 20 })
+        {
+            slots[slot] = clip;
+        }
+
         var level = new GlobalVariables();
         level.Research.Add(new ResearchEntry(ResearchTreeRules.KindSpell, Dk2TerrainFixture.CreateImpSpellId, 1_000_000));
         return new GameDatabase(basis.Terrain.Values.Select(t => t.TerrainId == wall.TerrainId ? wall : t), basis.Rooms.Values,
@@ -36,10 +40,19 @@ public class LibraryStateTests
     private static WorldState World(GameDatabase db, int size)
     {
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20), [(byte)0, PlayerIds.Neutral, Keeper]);
-        for (int i = 1; i <= size; i++) world.Tile(i, 0).TerrainId = Dk2TerrainFixture.ReinforcedWall;
+        for (int i = 1; i <= size; i++)
+        {
+            world.Tile(i, 0).TerrainId = Dk2TerrainFixture.ReinforcedWall;
+        }
+
         for (int y = 1; y <= size; y++)
-        for (int x = 1; x <= size; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Library), Keeper);
+        {
+            for (int x = 1; x <= size; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Library), Keeper);
+            }
+        }
+
         world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Spell, Dk2TerrainFixture.CreateImpSpellId, 3));
         world.Player(Keeper).ResearchTarget = 1;
         return world;
@@ -98,7 +111,10 @@ public class LibraryStateTests
         WorldState world = World(db, 3);
         new GameSimulation(db, world, seed: 1, [new AutoFurnitureSystem()]).Tick();
         foreach (ObjectState o in world.Objects.Where(o => o.ObjectTypeId is ResearchStep.BookObjectId or ResearchStep.BookCaseObjectId).ToList())
+        {
             world.RemoveObject(o.Id);
+        }
+
         CreatureState it = Researcher(db, world, new TilePos(2, 2));
         var sim = new GameSimulation(db, world, seed: 42, [new CreatureMovementSystem(), new CreatureJobSystem()]);
 
@@ -247,7 +263,10 @@ public class LibraryStateTests
         CreatureDef vampire = db.CreatureById(Vampire);
         int current = CreatureMovementSystem.MaxSpeedOf(vampire, intruder.Running) >> 4;
 
-        for (int i = 0; i < 3 && intruder.SpeedEffectTicks == 0; i++) sim.Tick();
+        for (int i = 0; i < 3 && intruder.SpeedEffectTicks == 0; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Equal(2 * current, intruder.SpeedPercent);
         Assert.InRange(intruder.SpeedEffectTicks, 1,
@@ -266,7 +285,10 @@ public class LibraryStateTests
         GameSimulation sim = Simulation(db, world);
         int current = SimulationTiming.LoaderRatePerTick(intruder.PartySpeedRaw);
 
-        for (int i = 0; i < 3 && intruder.SpeedEffectTicks == 0; i++) sim.Tick();
+        for (int i = 0; i < 3 && intruder.SpeedEffectTicks == 0; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Equal(2 * current, intruder.SpeedPercent);
         Assert.InRange(intruder.SpeedEffectTicks, 1,
@@ -342,7 +364,11 @@ public class LibraryStateTests
         {
             sim.Tick();
             // The return state ends a running action on the turns it runs (0x00496D20).
-            if (it.Dk2StateId == ResearchStep.ReturningState && it.ActionUntilTick == 0) endedIn = 0;
+            if (it.Dk2StateId == ResearchStep.ReturningState && it.ActionUntilTick == 0)
+            {
+                endedIn = 0;
+            }
+
             order.Add(it.Dk2StateId);
         }
 
@@ -412,7 +438,11 @@ public class LibraryStateTests
         public string Name => "change Library neighbour";
         public void Execute(SimulationContext context)
         {
-            if (changed) return;
+            if (changed)
+            {
+                return;
+            }
+
             changed = true;
             ref TileState tile = ref context.World.Tile(4, 2);
             (byte before, PlayerId owner) = (tile.TerrainId, tile.OwnerPlayerId);
@@ -479,7 +509,11 @@ public class LibraryStateTests
         return new GameDatabase(basis.Terrain.Values, basis.Rooms.Values,
             basis.Creatures.Values.Select(c =>
             {
-                if (c.CreatureId != Vampire) return c;
+                if (c.CreatureId != Vampire)
+                {
+                    return c;
+                }
+
                 CreatureAnimationTiming[] slots = [.. Enumerable.Range(0, CreatureDef.ArtSlotCount).Select(c.ArtSlot)];
                 slots[8] = clip;
                 return c with { ArtSlots = slots };
@@ -500,7 +534,11 @@ public class LibraryStateTests
         bool cheered = false;
         var shelve = new Probe(context =>
         {
-            if (cheered) return;
+            if (cheered)
+            {
+                return;
+            }
+
             ResearchStep.Cheer(context, "probe", Library(db, world));
             cheered = true;
         });

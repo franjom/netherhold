@@ -101,7 +101,10 @@ public class TerrainMaterialLookTests
     {
         var additive = TerrainMaterialLook.For(new TerrainMaterialKey(Additive, TerrainMaterialVariant.Plain));
         foreach (TerrainMaterialVariant variant in new[] { TerrainMaterialVariant.Tagged, TerrainMaterialVariant.Red, TerrainMaterialVariant.Tinted })
+        {
             Assert.Equal(additive, TerrainMaterialLook.For(new TerrainMaterialKey(Additive, variant, new TerrainLightColour(9, 9, 9))));
+        }
+
         Assert.Equal(TerrainMaterialLook.For(new TerrainMaterialKey(Opaque, TerrainMaterialVariant.Plain)),
             TerrainMaterialLook.For(new TerrainMaterialKey(Opaque, TerrainMaterialVariant.Tinted, new TerrainLightColour(256, 512, 0))));
     }

@@ -22,14 +22,29 @@ public sealed class TerrainArtKeysTests
         var view = new WorldView(database, Viewer);
         var expected = new HashSet<AssetRef>();
         for (int y = 0; y < simulation.World.Height; y++)
+        {
             for (int x = 0; x < simulation.World.Width; x++)
             {
                 TileView tile = view.TileAt(simulation.World, x, y);
-                if (tile.PieceKeys is { } pieces) expected.UnionWith(pieces.All());
-                if (tile.BedKeys is { } bed) expected.UnionWith(bed.All());
-                if (tile.RoomKeys is { } room) expected.UnionWith(room.All());
+                if (tile.PieceKeys is { } pieces)
+                {
+                    expected.UnionWith(pieces.All());
+                }
+
+                if (tile.BedKeys is { } bed)
+                {
+                    expected.UnionWith(bed.All());
+                }
+
+                if (tile.RoomKeys is { } room)
+                {
+                    expected.UnionWith(room.All());
+                }
+
                 expected.Add(tile.SightFogOverlay);
             }
+        }
+
         expected.Remove(default);
 
         AssertCovered(new HashSet<AssetRef>(view.TerrainArtKeys(simulation.World)), expected);

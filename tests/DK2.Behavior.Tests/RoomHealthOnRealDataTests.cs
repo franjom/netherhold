@@ -104,6 +104,8 @@ public class RoomHealthOnRealDataTests
         // down by 14 instead, which is the same only while each is a multiple of four.
         foreach (VariableTypeId v in new[] { VariableTypeId.ConvertNeutralRoomHealth, VariableTypeId.ConvertRoomHealth,
                                              VariableTypeId.AttackRoomHealth, VariableTypeId.RepairRoomHealth })
+        {
             Assert.Equal(0, db[v] % 4);
+        }
     }
 }

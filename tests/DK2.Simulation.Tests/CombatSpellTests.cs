@@ -51,7 +51,11 @@ public class CombatSpellTests
     {
         GameDatabase basis = Dk2TerrainFixture.Database();
         var variables = new GlobalVariables();
-        foreach (KeyValuePair<VariableTypeId, MiscVariable> entry in basis.Variables.Misc) variables.Misc[entry.Key] = entry.Value;
+        foreach (KeyValuePair<VariableTypeId, MiscVariable> entry in basis.Variables.Misc)
+        {
+            variables.Misc[entry.Key] = entry.Value;
+        }
+
         variables.Misc[VariableTypeId.FirstPersonRechargeModifyPercentage] =
             new(VariableTypeId.FirstPersonRechargeModifyPercentage, 50, 0, 0);
         variables.CreatureStats.Add(new((int)CreatureStatId.MeleeRecharge, 25, 9, true));
@@ -89,8 +93,16 @@ public class CombatSpellTests
         CreatureState creature = Spawn(db, world, Dk2TerrainFixture.WarlockCreatureId, Keeper, 5, 10);
         long tick = world.CurrentTick.Value;
         Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), creature, 199, tick + stampOffset));
-        if (allySpell) creature.AttackType = CombatRules.AttackMode.SpellAtAlly;
-        if (leaveBeforeUpdate) Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), creature, 1, tick));
+        if (allySpell)
+        {
+            creature.AttackType = CombatRules.AttackMode.SpellAtAlly;
+        }
+
+        if (leaveBeforeUpdate)
+        {
+            Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), creature, 1, tick));
+        }
+
         Assert.Empty(world.Messages.Entries);
         new GameSimulation(db, world, 1, [new CombatSystem()]).Tick();
         Assert.Equal(expected, world.Messages.Entries.Any(m => m.Kind == PlayerMessageKind.CombatStarted));
@@ -433,7 +445,9 @@ public class CombatSpellTests
                 ref TileState tile = ref world.Tile(new TilePos(x, y));
                 if (tile.TerrainId == Dk2TerrainFixture.Rock || tile.TerrainId == Dk2TerrainFixture.Gold
                     || tile.TerrainId == Dk2TerrainFixture.Gems)
+                {
                     tile.TerrainId = Dk2TerrainFixture.DirtPath;
+                }
             }
         }
         return (db, world);

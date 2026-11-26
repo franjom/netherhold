@@ -20,7 +20,11 @@ public class WallDeteriorationTests
     {
         GameDatabase basis = Dk2TerrainFixture.Database();
         var variables = new GlobalVariables();
-        foreach (KeyValuePair<VariableTypeId, MiscVariable> entry in basis.Variables.Misc) variables.Misc[entry.Key] = entry.Value;
+        foreach (KeyValuePair<VariableTypeId, MiscVariable> entry in basis.Variables.Misc)
+        {
+            variables.Misc[entry.Key] = entry.Value;
+        }
+
         variables.Misc[VariableTypeId.NumberOfRandomWallDeteriorationsPerSecond] =
             new(VariableTypeId.NumberOfRandomWallDeteriorationsPerSecond, picks, 0, 0);
         variables.Misc[VariableTypeId.WallDeteriorationDamage] = new(VariableTypeId.WallDeteriorationDamage, damage, 0, 0);
@@ -33,13 +37,16 @@ public class WallDeteriorationTests
     {
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y < world.Height - 1; y++)
-        for (int x = 1; x < world.Width - 1; x++)
+        {
+            for (int x = 1; x < world.Width - 1; x++)
         {
             ref TileState tile = ref world.Tile(x, y);
             tile.TerrainId = x == FloorColumn ? Dk2TerrainFixture.ClaimedPath : Dk2TerrainFixture.ReinforcedWall;
             tile.OwnerPlayerId = Keeper;
             tile.Health = StartHealth; // below MaxHealth, which Tile_ApplyWork would clamp back to
         }
+        }
+
         return world;
     }
 
@@ -58,11 +65,17 @@ public class WallDeteriorationTests
         Assert.NotEmpty(hits);
         Assert.All(hits, e => Assert.Matches($@"at=\(({FloorColumn - 1}|{FloorColumn + 1}),\d+\) delta=-10", e.Detail));
         for (int y = 1; y < world.Height - 1; y++)
-        for (int x = 1; x < world.Width - 1; x++)
+        {
+            for (int x = 1; x < world.Width - 1; x++)
         {
             int count = hits.Count(e => e.Detail.Contains($"at=({x},{y}) "));
-            if (x == FloorColumn) continue;
-            Assert.Equal(StartHealth - (10 * count), world.Tile(x, y).Health);
+            if (x == FloorColumn)
+                {
+                    continue;
+                }
+
+                Assert.Equal(StartHealth - (10 * count), world.Tile(x, y).Health);
+        }
         }
     }
 

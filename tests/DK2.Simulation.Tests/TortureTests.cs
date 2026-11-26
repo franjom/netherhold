@@ -31,19 +31,26 @@ public class TortureTests
         var world = WorldState.FromMap(
             db, Dk2TerrainFixture.Map(), [(byte)0, Rival, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 8; y++)
-        for (int x = 1; x <= 12; x++)
+        {
+            for (int x = 1; x <= 12; x++)
         {
             ref TileState tile = ref world.Tile(x, y);
             tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
             tile.OwnerPlayerId = Keeper;
         }
+        }
 
         for (int y = 2; y <= 4; y++)
         {
             for (int x = 2; x <= 4; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Prison), Keeper);
+            }
+
             for (int x = 7; x <= 9; x++)
+            {
                 RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.TortureChamber), Keeper);
+            }
         }
 
         world.SpawnObject(db, TortureRules.WheelObjectId, Keeper, Index(world, Wheel)).AutoPlaced = true;
@@ -60,7 +67,11 @@ public class TortureTests
             new PrisonSystem(),
             new TortureSystem(),
         ], triggers);
-        if (sink is not null) sim.ObserveWith(sink);
+        if (sink is not null)
+        {
+            sim.ObserveWith(sink);
+        }
+
         return sim;
     }
 
@@ -115,7 +126,10 @@ public class TortureTests
         var sink = new ListEventSink();
         GameSimulation sim = Simulation(db, world, sink);
         Carry(sim, captive, Wheel);
-        while (sim.CurrentTick.Value % SimulationTiming.TicksPerSecond != phase) sim.Tick();
+        while (sim.CurrentTick.Value % SimulationTiming.TicksPerSecond != phase)
+        {
+            sim.Tick();
+        }
 
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, captive.Id)));
         sim.Tick();
@@ -224,9 +238,16 @@ public class TortureTests
         GameDatabase db = Db;
         WorldState world = World(db);
         if (graveyard)
+        {
             for (int y = 6; y <= 8; y++)
+            {
                 for (int x = 7; x <= 9; x++)
+                {
                     RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Graveyard), Rival);
+                }
+            }
+        }
+
         CreatureState vampire = world.SpawnCreature(db, Dk2TerrainFixture.VampireCreatureId, Rival, Wheel);
         vampire.Level = level;
         Assert.True(TortureRules.TryStrap(new StateHookContext(world, db), vampire, Keeper, Index(world, Wheel)));
@@ -267,7 +288,11 @@ public class TortureTests
         Assert.Equal(255, captive.Dk2StateId);
         Assert.True(PrisonRules.IsImprisoned(captive));
         var status = new GameSimulation(db, world, 1, [new CreatureStatusSystem()]);
-        while (captive.Dk2StateId == 255) status.Tick();
+        while (captive.Dk2StateId == 255)
+        {
+            status.Tick();
+        }
+
         Assert.False(PrisonRules.IsImprisoned(captive));
     }
 
@@ -931,7 +956,10 @@ public class TortureTests
         Simulation(db, world).Run(50);
         int tile = Index(world, new TilePos(11, 7));
         for (int i = 0; i < 5000 && world.TileAtIndex(tile).OwnerPlayerId == Keeper; i++)
+        {
             RoomHealthRules.Convert(world, db, new TilePos(11, 7), Rival);
+        }
+
         RoomInstance taken = RoomIndex.RoomAt(world, db, tile)!;
 
         Assert.Equal(Rival, taken.OwnerPlayerId);

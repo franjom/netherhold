@@ -110,7 +110,11 @@ public class ScenarioControllerTests
         bool done = false;
         return new ScenarioController("tag-once", Keeper, (KeeperView view) =>
         {
-            if (done || !view.IsDiggable(Rock)) return [];
+            if (done || !view.IsDiggable(Rock))
+            {
+                return [];
+            }
+
             done = true;
             return [TagTilesCommand.Tag(view.PlayerId, Rock)];
         });

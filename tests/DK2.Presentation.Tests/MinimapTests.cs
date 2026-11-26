@@ -113,12 +113,24 @@ public sealed class MinimapTests
         var vertices = new Vector2[8];
         MinimapCameraFootprint.TryBuild(corners, 128, 128, 0, vertices);
         Vector2 before = vertices[0];
-        for (int i = 0; i < 4; i++) corners[i] += new Vector2(.25f, 0);
+        for (int i = 0; i < 4; i++)
+        {
+            corners[i] += new Vector2(.25f, 0);
+        }
+
         MinimapCameraFootprint.TryBuild(corners, 128, 128, 0, vertices);
         Assert.True(vertices[0].X > before.X);
-        for (int i = 0; i < 100; i++) MinimapCameraFootprint.TryBuild(corners, 128, 128, 0, vertices);
+        for (int i = 0; i < 100; i++)
+        {
+            MinimapCameraFootprint.TryBuild(corners, 128, 128, 0, vertices);
+        }
+
         long allocated = GC.GetAllocatedBytesForCurrentThread();
-        for (int i = 0; i < 100; i++) MinimapCameraFootprint.TryBuild(corners, 128, 128, i * .001f, vertices);
+        for (int i = 0; i < 100; i++)
+        {
+            MinimapCameraFootprint.TryBuild(corners, 128, 128, i * .001f, vertices);
+        }
+
         Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - allocated);
     }
 
@@ -199,7 +211,10 @@ public sealed class MinimapTests
         PlayerId neutral = PlayerIds.Neutral;
         Assert.True(palette.AdvanceNeutralCycle(GameTick.Zero, neutral));
         foreach (int bank in new[] { 17, 26, 35 })
+        {
             Assert.Equal(0xFFFFFFFFu, palette.Colours[bank + neutral.Value]);
+        }
+
         Assert.False(palette.AdvanceNeutralCycle(GameTick.Zero, neutral));
         Assert.True(palette.AdvanceNeutralCycle(new GameTick(1), neutral));
         uint colour = palette.Colours[19];

@@ -19,9 +19,15 @@ public class CommandRoutingTests
         public void Execute(SimulationContext context)
         {
             foreach (TagTilesCommand tag in context.Commands<TagTilesCommand>())
+            {
                 Seen.Add($"tag {tag.PlayerId} {tag.Tiles[0].X}");
+            }
+
             foreach (SellRoomCommand sell in context.Commands<SellRoomCommand>())
+            {
                 Seen.Add($"sell {sell.PlayerId}");
+            }
+
             Seen.Add($"tags again {context.Commands<TagTilesCommand>().Count}");
             Seen.Add($"all {context.Input.All.Count}");
         }

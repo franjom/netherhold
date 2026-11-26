@@ -23,9 +23,17 @@ public class NeutralAmbientOnRealDataTests
         {
             string level = Path.GetFileNameWithoutExtension(file)[..^"Variables".Length];
             List<PlayerDef>? records = GameDatabaseLoader.LoadCampaignPlayers(install, level);
-            if (records is null) continue;
+            if (records is null)
+            {
+                continue;
+            }
+
             int neutral = records.FindIndex(p => p.PlayerId == PlayerIds.Neutral);
-            if (neutral < 0) continue;
+            if (neutral < 0)
+            {
+                continue;
+            }
+
             checkedLevels++;
             Assert.DoesNotContain(records.Take(neutral), p => PlayerIds.IsKeeper(p.PlayerId));
         }

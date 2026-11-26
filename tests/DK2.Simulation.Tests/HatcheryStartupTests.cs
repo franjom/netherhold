@@ -119,7 +119,11 @@ public class HatcheryStartupTests
         public string Name => "Build test";
         public void Execute(SimulationContext context)
         {
-            if (context.Tick.Value != 13) return;
+            if (context.Tick.Value != 13)
+            {
+                return;
+            }
+
             for (int x = 1; x <= 9; x++)
             {
                 ref TileState tile = ref context.World.Tile(x, 1);
@@ -136,12 +140,20 @@ public class HatcheryStartupTests
     public void CaptureKeepsItsClockAndOnlyAnActualMergeClearsTheStartupTable(bool neighbour)
     {
         (GameSimulation? sim, ListEventSink _) = Start(9);
-        for (int x = 1; x <= 9; x++) sim.World.Tile(x, 1).OwnerPlayerId = x < 5 && neighbour ? (byte)3 : (byte)2;
+        for (int x = 1; x <= 9; x++)
+        {
+            sim.World.Tile(x, 1).OwnerPlayerId = x < 5 && neighbour ? (byte)3 : (byte)2;
+        }
+
         RoomInstance captured = RoomIndex.Build(sim.World, sim.Database).Single(r => r.OwnerPlayerId == 2);
         ref TileState clock = ref sim.World.TileAtIndex(captured.TileIndices[0]);
         clock.HatcheryLastGeneratedTick = 7;
         clock.HatcheryStartupIntervalTicks = 52;
-        if (neighbour) sim.World.Tile(1, 1).HatcheryLastGeneratedTick = 2;
+        if (neighbour)
+        {
+            sim.World.Tile(1, 1).HatcheryLastGeneratedTick = 2;
+        }
+
         RoomHealthRules.Set(sim.World, sim.Database, captured, 1);
         RoomHealthRules.Convert(sim.World, sim.Database, new TilePos(captured.TileIndices[0] % sim.World.Width,
             captured.TileIndices[0] / sim.World.Width), 3);
@@ -172,7 +184,11 @@ public class HatcheryStartupTests
         GameDatabase db = Dk2TerrainFixture.Database();
         int width = 40, height = 4;
         MapTile[] map = Enumerable.Repeat(new MapTile(Dk2TerrainFixture.Rock, 2, 0, 0), width * height).ToArray();
-        for (int x = 1; x <= tiles; x++) map[width + x] = new MapTile(Dk2TerrainFixture.HatcheryTerrain, 3, 0, 0);
+        for (int x = 1; x <= tiles; x++)
+        {
+            map[width + x] = new MapTile(Dk2TerrainFixture.HatcheryTerrain, 3, 0, 0);
+        }
+
         var world = WorldState.FromMap(db, new LevelMap(width, height, map), [(byte)2, (byte)3]);
         var sim = new GameSimulation(db, world, 42, [new HatcherySystem()]);
         var events = new ListEventSink();

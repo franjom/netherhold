@@ -140,7 +140,11 @@ public sealed class ObjectSoundTests
             GameDatabase db = SoundFixture.Database(objects: new Dictionary<byte, string> { [HatcheryRules.ChickenObjectId] = "OBJECT_CHICKEN" });
             var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
             var sim = new GameSimulation(db, world, seed: 42, []);
-            if (sink is not null) sim.ObserveWith(sink);
+            if (sink is not null)
+            {
+                sim.ObserveWith(sink);
+            }
+
             ObjectState chicken = world.SpawnObject(db, HatcheryRules.ChickenObjectId, Keeper, Tile);
             sim.Tick(InputFrame.Empty);
             world.RemoveObject(chicken.Id);

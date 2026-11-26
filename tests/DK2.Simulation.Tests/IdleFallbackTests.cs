@@ -35,12 +35,15 @@ public sealed class IdleFallbackTests
     {
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y <= 8; y++)
-        for (int x = 1; x <= 12; x++)
+        {
+            for (int x = 1; x <= 12; x++)
         {
             ref TileState tile = ref world.Tile(x, y);
             tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
             tile.OwnerPlayerId = Keeper;
         }
+        }
+
         return world;
     }
 
@@ -59,8 +62,13 @@ public sealed class IdleFallbackTests
     private static void TrainingRoom(GameDatabase db, WorldState world)
     {
         for (int y = 5; y <= 7; y++)
-        for (int x = 9; x <= 11; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.TrainingRoom), Keeper);
+        {
+            for (int x = 9; x <= 11; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.TrainingRoom), Keeper);
+            }
+        }
+
         Dk2TerrainFixture.Furnish(db, world, RoomTypeId.TrainingRoom, new TilePos(10, 6), Keeper);
         ref TileState gold = ref world.Tile(2, 8);
         gold.GoldHeld = 10_000;
@@ -70,10 +78,17 @@ public sealed class IdleFallbackTests
     private static void PitWithAFight(GameDatabase db, WorldState world)
     {
         for (int y = 2; y <= 6; y++)
-        for (int x = 4; x <= 8; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.CombatPit), Keeper);
+        {
+            for (int x = 4; x <= 8; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.CombatPit), Keeper);
+            }
+        }
+
         foreach ((TilePos at, byte owner) in new[] { (new TilePos(6, 4), Keeper), (new TilePos(6, 5), Rival) })
+        {
             Assert.True(CreatureStateMachine.TrySetState(new StateHookContext(world, db), world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, owner, at), Engaging));
+        }
     }
 
     [Fact]
@@ -132,7 +147,11 @@ public sealed class IdleFallbackTests
         GameDatabase db = Db();
         WorldState world = World(db);
         TrainingRoom(db, world);
-        if (available) Allow(world, RoomTypeId.TrainingRoom);
+        if (available)
+        {
+            Allow(world, RoomTypeId.TrainingRoom);
+        }
+
         (GameSimulation sim, ListEventSink sink) = Simulation(db, world);
         CreatureState goblin = world.SpawnCreature(db, type, Keeper, new TilePos(3, 3));
 
@@ -172,14 +191,25 @@ public sealed class IdleFallbackTests
         (GameSimulation sim, ListEventSink sink) = Simulation(db, world);
         CreatureState goblin = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(10, 3));
 
-        for (int i = 0; i < 200 && goblin.Dk2StateId != 108; i++) sim.Tick();
+        for (int i = 0; i < 200 && goblin.Dk2StateId != 108; i++)
+        {
+            sim.Tick();
+        }
+
         Assert.Equal(108, goblin.Dk2StateId);   // training, in the room
         long chosen = goblin.LastHappyChoiceTick = sim.World.CurrentTick.Value;   // a choice just made: the gate is shut
         for (int y = 5; y <= 7; y++)
-        for (int x = 9; x <= 11; x++)
-            world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
+        {
+            for (int x = 9; x <= 11; x++)
+            {
+                world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
+            }
+        }
 
-        for (int i = 0; i < 40 && goblin.CurrentJob != JobType.CombatPitSpectate; i++) sim.Tick();
+        for (int i = 0; i < 40 && goblin.CurrentJob != JobType.CombatPitSpectate; i++)
+        {
+            sim.Tick();
+        }
 
         Assert.Equal(JobType.CombatPitSpectate, goblin.CurrentJob);
         Assert.True(sim.World.CurrentTick.Value - chosen < JobRules.ReselectionGateTicks, "the gate had already run out");
@@ -209,8 +239,13 @@ public sealed class IdleFallbackTests
         GameDatabase db = Db();
         WorldState world = World(db);
         for (int y = 5; y <= 7; y++)
-        for (int x = 9; x <= 11; x++)
-            RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Casino), Keeper);
+        {
+            for (int x = 9; x <= 11; x++)
+            {
+                RoomRules.Place(db, ref world.Tile(x, y), db.Room(RoomTypeId.Casino), Keeper);
+            }
+        }
+
         Dk2TerrainFixture.Furnish(db, world, RoomTypeId.Casino, new TilePos(10, 6), Keeper);
         Allow(world, RoomTypeId.Casino);
         (GameSimulation sim, ListEventSink sink) = Simulation(db, world);

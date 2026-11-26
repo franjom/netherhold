@@ -18,7 +18,9 @@ public class StructureDeathEffectTests
         public void Execute(SimulationContext context)
         {
             foreach (DoorState door in context.World.Doors)
+            {
                 DoorRules.Damage(context, door, -door.Health, Keeper);
+            }
         }
     }
 
@@ -70,7 +72,11 @@ public class StructureDeathEffectTests
         ListEventSink events = Run(db, world, new DoorHealthSystem(), new DoorRemovalSystem());
         SimEvent[] effects = events.Events.Where(e => e.EffectRequest.HasValue).ToArray();
         Assert.Equal(expected, effects.Length);
-        if (expected == 0) return;
+        if (expected == 0)
+        {
+            return;
+        }
+
         ViewEffectRequest request = Assert.Single(effects).EffectRequest!.Value;
         Assert.Equal(new EffectId(effect), request.EffectId);
         Assert.Equal(new PlayerId(Keeper), request.Owner);
@@ -101,7 +107,11 @@ public class StructureDeathEffectTests
         ListEventSink events = Run(db, world, new TrapSystem(), new TrapRemovalSystem());
         SimEvent[] effects = events.Events.Where(e => e.EffectRequest.HasValue).ToArray();
         Assert.Equal(expected, effects.Length);
-        if (expected == 0) return;
+        if (expected == 0)
+        {
+            return;
+        }
+
         ViewEffectRequest request = Assert.Single(effects).EffectRequest!.Value;
         Assert.Equal(new EffectId(effect), request.EffectId);
         Assert.Equal(new PlayerId(Keeper), request.Owner);
@@ -185,7 +195,11 @@ public class StructureDeathEffectTests
             new DoorThing(new byte[20]) { X = 1, Y = 1, PlayerId = Keeper, DoorId = 1, Unknown_0011 = new byte[3] },
             new DoorThing(new byte[20]) { X = 3, Y = 3, PlayerId = Keeper, DoorId = 1, Unknown_0011 = new byte[3] },
         ]);
-        foreach (DoorState door in world.Doors) door.Health = 0;
+        foreach (DoorState door in world.Doors)
+        {
+            door.Health = 0;
+        }
+
         ListEventSink events = Run(db, world, new DoorHealthSystem(), new DoorRemovalSystem());
         TilePos[] order = events.Events.Where(e => e.EffectRequest.HasValue).Select(e => e.EffectRequest!.Value.Tile).ToArray();
         Assert.Equal(new[] { new TilePos(3, 3), new TilePos(1, 1) }, order);

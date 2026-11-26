@@ -83,7 +83,15 @@ public sealed class LocalPickupFeedbackTests
         var events = new ListEventSink();
         var sink = new LocalPickupEffectSink(pending, events);
         Assert.True(pending.TryQueue(world, db, Keeper, new(creature.Id), 0));
-        if (timeout) pending.Advance(world, 2001); else pending.Reset();
+        if (timeout)
+        {
+            pending.Advance(world, 2001);
+        }
+        else
+        {
+            pending.Reset();
+        }
+
         sink.Emit(new SimEvent(world.CurrentTick, "Hand", "effect_requested", "") { EffectRequest = dust });
         Assert.Single(events.Events);
     }
@@ -217,7 +225,10 @@ public sealed class LocalPickupFeedbackTests
         Assert.Equal(8, stack.Icons.Count);
         Assert.True(stack.More);
         for (int i = 0; i < 6; i++)
+        {
             Assert.True(pending.TryQueueDrop(new DropCommand(Keeper, new TilePos(1, 1))));
+        }
+
         stack.Refresh(world, Keeper, pending);
         Assert.Equal(3, stack.Icons.Count);
         Assert.False(stack.More);
