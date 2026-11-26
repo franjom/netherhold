@@ -23,10 +23,14 @@ public sealed class SoundClipDecoderTests
         }
     }
 
+    /// <summary>Guards against a hang only. The decoder works on the thread pool, which a full suite on a busy machine
+    /// can hold behind other tests' work for well over 10 seconds (two tests timed out there, 2026-11-26).</summary>
+    private static readonly TimeSpan PoolWait = TimeSpan.FromSeconds(60);
+
     private static PcmClip? WaitFor(SoundClipDecoder decoder, ResolvedSound reference)
     {
         PcmClip? clip = null;
-        Assert.True(SpinWait.SpinUntil(() => decoder.TryGet(reference, out clip), TimeSpan.FromSeconds(10)));
+        Assert.True(SpinWait.SpinUntil(() => decoder.TryGet(reference, out clip), PoolWait));
         return clip;
     }
 
@@ -75,7 +79,7 @@ public sealed class SoundClipDecoderTests
     {
         var assets = new Assets(_ => null);
         var decoder = new SoundClipDecoder(assets);
-        await decoder.Prefetch(new[] { new SoundCategory("object_training_target"), SoundCategory.None }, 2).WaitAsync(TimeSpan.FromSeconds(10));
+        await decoder.Prefetch(new[] { new SoundCategory("object_training_target"), SoundCategory.None }, 2).WaitAsync(PoolWait);
         Assert.Equal(0, assets.Calls);
     }
 }

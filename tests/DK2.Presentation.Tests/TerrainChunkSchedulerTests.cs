@@ -259,7 +259,7 @@ public class TerrainChunkSchedulerTests
 
     /// <summary>Clear waits for a running build and takes its tiles over before forgetting them.</summary>
     [Fact]
-    public async Task ClearJoinsTheBuild()
+    public void ClearJoinsTheBuild()
     {
         TerrainChunkScheduler scheduler = Built(null);
         using var gate = new ManualResetEventSlim(false);
@@ -267,12 +267,15 @@ public class TerrainChunkSchedulerTests
         scheduler.Set(At(3, 3), Floor(3, 3, tagged: true));
         scheduler.Flush(new SchedulerLog());
         Assert.True(scheduler.IsBuilding);
-        var release = Task.Run(() => { Thread.Sleep(50); gate.Set(); });
+        // Its own thread, not the pool: a loaded test host can starve the pool past the gate's timeout, and the
+        // build would then run ungated and Clear would return before the gate opened.
+        var release = new Thread(() => { Thread.Sleep(50); gate.Set(); }) { IsBackground = true };
+        release.Start();
         scheduler.Clear();
         Assert.True(gate.IsSet);
         Assert.False(scheduler.IsBuilding);
         Assert.False(scheduler.IsStale(At(3, 3)));
-        await release;
+        release.Join();
     }
 
     /// <summary>The tag's neighbour marks reach the map's first and last row and column from one tile in.</summary>

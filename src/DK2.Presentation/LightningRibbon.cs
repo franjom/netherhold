@@ -10,11 +10,19 @@ namespace DK2.Presentation;
 public sealed record LightningRibbon(IReadOnlyList<Vector3> Vertices, IReadOnlyList<Vector2> Uvs,
     IReadOnlyList<int> Triangles)
 {
+    /// <summary>The most nodes whose side offsets fit on the stack. <see cref="LightningBolts.BuildInto"/> thins every
+    /// path to 32 nodes or fewer, so drawn bolts never rent. The shared pool is not a per-frame source: a gen-2
+    /// collection under high memory load empties its thread caches, and the next rent allocates.</summary>
+    private const int StackSideLimit = 64;
+
     public static void Append(IReadOnlyList<Vector3> nodes, List<Vector3> vertices,
         List<Vector2> uvs, List<int> triangles)
     {
         if (nodes.Count < 2) return;
-        Vector3[] sides = ArrayPool<Vector3>.Shared.Rent(nodes.Count);
+        Vector3[]? rented = null;
+        Span<Vector3> sides = nodes.Count <= StackSideLimit
+            ? stackalloc Vector3[StackSideLimit]
+            : rented = ArrayPool<Vector3>.Shared.Rent(nodes.Count);
         try
         {
             sides[0] = sides[nodes.Count - 1] = Vector3.Zero;
@@ -38,7 +46,10 @@ public sealed record LightningRibbon(IReadOnlyList<Vector3> Vertices, IReadOnlyL
                 triangles.Add(v + 3); triangles.Add(v + 1); triangles.Add(v + 2);
             }
         }
-        finally { ArrayPool<Vector3>.Shared.Return(sides); }
+        finally
+        {
+            if (rented is not null) ArrayPool<Vector3>.Shared.Return(rented);
+        }
     }
 
     public static LightningRibbon Build(IReadOnlyList<Vector3> nodes)
