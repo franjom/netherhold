@@ -258,7 +258,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         if (warmUp) StartJitWarmUp();
         LaunchArguments launch = LaunchArguments.Parse(args, "--");
         // A save the previous instance loaded: its level, return page and restored simulation replace the arguments'.
-        GameSessionRequest? resume = s_resume;
+        GameSessionRequest? resume = s_resume ?? (s_launch?.Resume != null ? s_launch : null);
         s_resume = null;
         _context = StartingSession(resume, launch.Level, args, install);
         if (_context == null) return;
@@ -1461,12 +1461,14 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
 
     /// <summary>The settings pages' save request, written as Unity's runner writes it (<see cref="GameSettingsFile"/>); a
     /// failed write is a warning, and the settings stay applied.</summary>
-    private void SaveSettings(GameSettings settings)
+    private void SaveSettings(GameSettings settings) => SaveSettings(_settingsPath, settings);
+
+    internal static void SaveSettings(string path, GameSettings settings)
     {
-        try { GameSettingsFile.Save(_settingsPath, settings); }
+        try { GameSettingsFile.Save(path, settings); }
         catch (Exception e) when (IsFileError(e))
         {
-            GD.PushWarning("DK2.Godot: cannot write the settings file ", _settingsPath, " (", e.Message, ").");
+            GD.PushWarning("DK2.Godot: cannot write the settings file ", path, " (", e.Message, ").");
         }
     }
 

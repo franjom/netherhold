@@ -205,6 +205,24 @@ public sealed class OptionsHudTests
     }
 
     [Fact]
+    public void FrontEndSaveDateAndTimeUseTheirOwnColumnsAndSelectTheSameSave()
+    {
+        var header = new SavedSessionHeader("Level1", (byte)GameSessionMode.Campaign, 0,
+            new DateTime(2026, 1, 17, 8, 45, 0, DateTimeKind.Utc), "Mine");
+        var view = new SaveSlotsView("saves", () => new[] { new SavedSessionEntry("mine.dk2g", header, null) });
+        var hud = new SaveLoadHud(id => "text " + id, _ => Font);
+        hud.Show(view, visible: true, save: false, frontEnd: true);
+        HudDraw[] draws = Build(hud);
+        Assert.Equal(new[] { "Mine", header.SavedAtUtc.ToLocalTime().ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
+            header.SavedAtUtc.ToLocalTime().ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture) }, draws.Select(d => d.Image.Text!.Text));
+        Assert.Equal(1630f, draws[1].Rect.X + draws[1].Rect.Width / 2);
+        Assert.Equal(2100f, draws[2].Rect.X + draws[2].Rect.Width / 2);
+        Assert.True(hud.PointerDown(2100, draws[2].Rect.Y + 1, 0));
+        Assert.Equal(0, view.SelectedIndex);
+        Assert.All(Build(hud), draw => Assert.Equal(HudColor.White, draw.Tint));
+    }
+
+    [Fact]
     public void TheFrontEndListHasNoTitleOrButtonsAndTypingIsIgnored()
     {
         var hud = new SaveLoadHud(id => "text " + id, _ => Font);

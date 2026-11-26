@@ -15,9 +15,8 @@ the nearest land or marker triangle (`WorldScene.PickFrontEndMap`, Unity's `Pick
 `GameSessionRequest.Campaign` for `InGameHud.tscn` (`InGameHud.QueueSession`) and changes to it. That level's
 `SessionContext` takes its level, mode and return page from the request (`SessionContext.Starting`), so its result writes
 the profile and Space returns to the results page, as `--from-map` does. While a hi-score row takes a name, the frame's
-typed text goes to `FrontEndHost.TypeName`. The model disables the save buttons, and the settings pages open but their
-controls are inert. The front end
-loads a real campaign profile and hi-score table, and reads and writes the files listed under *The player's files*. A
+typed text goes to `FrontEndHost.TypeName`. The [front-end Load Game and settings](#front-end-load-game-and-settings)
+pages use the files listed under *The player's files*. The front end also loads the campaign profile and hi-score table. A
 start without a scene shows the Netherhold launcher first (*The launcher* below), which sets the install, the menu font and
 the screen mode; a scripted run never sees it and opens full screen as before (see *Verifying* for a window of a fixed size).
 
@@ -424,6 +423,17 @@ The in-game scene loads the profile on the first save or load, from the same pat
 - with a corrupt profile (current policy, an owner product decision) a save still works and keeps the profile in memory with no
   file write, and a load is refused with "The campaign profile could not be read, so a save cannot be loaded." and writes nothing.
 
+### Front-end Load Game and settings
+
+Single Player > Load Game lists Netherhold `.dk2g` checkpoints from the player's saves folder or the `--saves` override.
+Each row has separate Name, Date and Time columns. Select a checkpoint and continue to resume its session.
+Import DK2 Save opens a native file picker for
+`.sav` and `.qsav` files and starts a [terrain import](#importing-an-original-dk2-save).
+
+The Graphics, Sound, Controls and Keyboard pages share `OptionsPagesController` with the in-game menu. The front end
+applies its supported graphics and audio settings and saves applied changes, including captured key bindings, through
+`GameSettingsFile` to the `--settings` path or its default. Launched and resumed levels use that settings file.
+
 ### Importing an original DK2 save
 
 Pass `--dk2-save <path>` after `--` to `InGameHud.tscn`. A relative name is tried as given first, then in the
@@ -431,7 +441,6 @@ install's save folder. The save names the level to load. The import starts a fre
 tile ownership only. Its log describes that scope. Saved entities, elapsed time, and campaign progress remain in
 the original file. You can save the fresh session as a Netherhold `.dk2g` checkpoint and resume it with the viewer
 it stored. Restart uses the imported grid or the resumed checkpoint's terrain and keeps the session in import mode.
-The front-end Import DK2 Save button is tracked in the [migration plan](../docs/plans/2026-11-15-godot-migration.md#step-4-media-tools-packaging).
 
 | File | Role |
 |---|---|
@@ -441,6 +450,7 @@ The front-end Import DK2 Save button is tracked in the [migration plan](../docs/
 | `DK2.Godot/` | the Godot project: `project.godot`, `DK2.Godot.csproj` (`ProjectReference`s into `src/`), scenes, C# |
 | `DK2.Godot/export_presets.cfg`, `DK2.Godot.sln` | the one export preset and the solution file the .NET export requires (*Exporting*) |
 | `DK2.Godot/Main.tscn`, `Main.cs` | the main scene: the front-end menu (`ClassicFrontEndMenu`) |
+| `DK2.Godot/ClassicFrontEndMenu.Pages.cs`, `ClassicSaveLoadPanel.cs` | front-end checkpoint browsing, DK2 terrain import picker and options key capture |
 | `DK2.Godot/Launcher/` | the launcher (*The launcher*): `Launcher.cs` (the page), `LauncherTheme.cs`, `LauncherDisplay.cs` (applies the screen mode), `LauncherSettingsStore.cs` (the saved file, the install, the start decision), `LauncherSystem.cs` (Shift and reduced motion from Windows), the two shaders and the OFL fonts |
 | `DK2.Godot/UserFolders.cs` | `GameFolders` over `user://` with the `--profile`, `--settings`, `--saves` and `--hiscores` overrides, for both scenes |
 | `DK2.Godot/InGameHud.tscn`, `InGameHud.cs` | the in-game HUD and its `WorldScene` (see above) |
@@ -598,6 +608,10 @@ OS mouse. Each page change prints its process frame (`DK2.Godot front end: page 
 places the next key of a script. The campaign loop at 1920x1080 with `--skip-startup`: Single Player (956,324), Continue
 Campaign (952,376), Level1's land (960,780), the briefing's Launch (1606,1000), then `--stage-win --leave-result` for the
 level, which returns to the results page.
+
+To drive Import DK2 Save during a front-end capture, pair `--front-end-import-path <path>` with
+`--front-end-pointer-path` and click the import button on Load Game. The script supplies the chosen file to the import.
+Use a windowed 1920x1080 run for these front-end pointer checks.
 
 To capture the opening path, start Level1 without `--load`, with Movie Maker and a scripted pointer. To capture the
 preview, load a save after the path and add `--open-full-map`; place the pointer over explored territory on the map.

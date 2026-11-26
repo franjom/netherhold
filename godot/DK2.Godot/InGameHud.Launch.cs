@@ -48,7 +48,7 @@ public partial class InGameHud
         return SessionContext.Starting(resume, launched, levelArgument, Array.IndexOf(args, "--from-map") >= 0);
     }
 
-    private static bool IsLegacyImportError(Exception ex) =>
+    internal static bool IsLegacyImportError(Exception ex) =>
         ex is IOException or InvalidDataException or UnauthorizedAccessException or InvalidOperationException
             or ArgumentException or KeyNotFoundException;
 

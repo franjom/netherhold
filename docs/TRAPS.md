@@ -16,6 +16,9 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 - Godot AI 4.4.1's dock shows Claude Code red ("verification still reads error") for a working `local`-scope entry; check with `claude mcp get godot-ai` from the repo root, and do not run its suggested `remove --scope user`.
 - Godot 4.8 beta 3 on this machine (project `window/size/mode=3`) ignores `--windowed` and `--resolution`; the window takes the desktop size and a Movie Maker PNG is a 1920x1080 cut of it. Use a temporary `godot/DK2.Godot/override.cfg` (`window/size/mode=0`) for captures.
+- Headless front-end hit coordinates differed from Movie Maker even with `--resolution`. Validate scripted pointer hits in a windowed 1920x1080 run.
+- Finish the Godot C# build before capture. An early launch can exit 0 with `Cannot instantiate C# script`. Pass the explicit `.csproj` to `dotnet build` for Release.
+- A shared gameplay art entry resolves only when the Godot adapter registers it with its install art provider. The dollar flower needs `StatusFlowerArt.Entries` in `WorldScene.Open`.
 - Godot 4.8 Movie Maker fixes its frame size at the window size it starts with and scales a later `Window.Size` change into it, so a launcher capture (it resizes its window) runs a copy of the project with an `override.cfg` of the launcher's size (`godot/README.md`, *The launcher*).
 - Godot 4.8 beta 3 on Windows gives a decorated window 4 px less client height than `Window.Size` asks (1100x680 became 1100x676, 1280x720 1280x716); a deferred second set did not help.
 - Godot 4.8's `Viewport.GetMousePosition` (which the adapter polls, as Unity polls `Input.mousePosition`) reads the OS cursor, so `Input.ParseInputEvent` motion does not move it; a hover probe that must `warp_mouse` moves the owner's real cursor while it runs. Drive a capture's pointer with `--pointer-path` instead (`godot/README.md`).

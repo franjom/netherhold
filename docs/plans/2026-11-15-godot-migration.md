@@ -1173,7 +1173,8 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
 - [x] Original DK2 save import from the command line. See [terrain import](../../godot/README.md#importing-an-original-dk2-save)
       for the flag, export entry point and checkpoint scope.
 - [x] Dollar flower. Godot uses the existing [world mesh and clock](../../godot/README.md#shot-effects).
-- [ ] Front-end Load Game and settings. Include the Import DK2 Save button in Load Game.
+- [x] [Front-end Load Game and settings](../../godot/README.md#front-end-load-game-and-settings). The scripted Main scene
+      resumed a Netherhold checkpoint, imported a synthetic DK2 save through Load Game and saved a key rebind.
 
 ## Step 5: remove Unity (one change, at parity)
 
