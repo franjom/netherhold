@@ -53,7 +53,7 @@ public sealed class BottomPanelHud
     private readonly BottomPanelChoice?[] _slots = new BottomPanelChoice?[SlotCount];
     private readonly BottomPanelCategory[] _panelCategory = new BottomPanelCategory[MaxPanels];
     private readonly BottomPanelRect[] _panelArea = new BottomPanelRect[MaxPanels];
-    private readonly int[] _page = new int[4], _pages = { 1, 1, 1, 1 };
+    private readonly int[] _page = new int[4], _pages = [1, 1, 1, 1];
     private readonly GuiSoundSlot[] _panelSlot = new GuiSoundSlot[MaxPanels];
     private readonly BottomPanelTabs _tabState = new();
     private readonly FlashChime _chime = new();
@@ -88,14 +88,14 @@ public sealed class BottomPanelHud
 
         _railMetal = Picture("GUI\\Windows\\Bar-02");
         _railEnd = Picture("GUI\\Windows\\Bar-03");
-        string[] tabs = { "t-creatures", "t-rooms", "t-spells", "t-workshop" };
+        string[] tabs = ["t-creatures", "t-rooms", "t-spells", "t-workshop"];
         for (int i = 0; i < 4; i++)
         {
             _tabs[i] = Interactive("GUI\\Tabs\\" + tabs[i], TabAction + i);
         }
         // The selected tab draws its widget's alternate art (+0x40: catalogue 173/174/175/178)
         // over the icon; unselected tabs are not dimmed.
-        string[] selected = { "selected-creature", "selected-room", "selected-spell", "selected-workshop" };
+        string[] selected = ["selected-creature", "selected-room", "selected-spell", "selected-workshop"];
         for (int i = 0; i < 4; i++)
         {
             _tabSelected[i] = Picture("GUI\\Icons\\" + selected[i]);
@@ -557,10 +557,8 @@ public sealed class BottomPanelHud
         second.Rect = new HudRect(reaperBounds.X + 128, reaperBounds.Y + 72, 128, 128);
     }
 
-    private static readonly HudImage[] Digits = Enumerable.Range(0, 10)
-        .Select(n => (HudImage)("GUI\\Spells\\RT-" + n.ToString(CultureInfo.InvariantCulture))).ToArray();
-    private static readonly HudImage[] SparkleFrames = Enumerable.Range(0, BottomPanelSparkles.Frames)
-        .Select(n => (HudImage)("GSparkle" + n.ToString(CultureInfo.InvariantCulture))).ToArray();
+    private static readonly HudImage[] Digits = [.. Enumerable.Range(0, 10).Select(n => (HudImage)("GUI\\Spells\\RT-" + n.ToString(CultureInfo.InvariantCulture)))];
+    private static readonly HudImage[] SparkleFrames = [.. Enumerable.Range(0, BottomPanelSparkles.Frames).Select(n => (HudImage)("GSparkle" + n.ToString(CultureInfo.InvariantCulture)))];
 
     private static HudImage Digit(int value) => Digits[value];
 

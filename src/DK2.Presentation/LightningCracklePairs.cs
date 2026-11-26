@@ -51,7 +51,7 @@ public sealed class LightningCracklePairs(IRandomAlgorithm random)
     }
     public IEnumerable<LightningSegment> Choose(IReadOnlyList<LightningControlPoint> controlPoints)
     {
-        LightningControlPoint[] points = controlPoints.Where(p => p.Id < 2000).ToArray();
+        LightningControlPoint[] points = [.. controlPoints.Where(p => p.Id < 2000)];
         for (int i = points.Length - 1; i > 0; i--)
         {
             int previous = i;

@@ -98,7 +98,9 @@ public sealed class FrameRecording
         if (Count == Capacity)
         {
             Dropped++;
+#pragma warning disable IDE0301 // Preserve the existing empty-span lowering on the frozen path.
             return Span<double>.Empty;
+#pragma warning restore IDE0301
         }
         _moving[Count] = cameraMoved;
         Span<double> row = _values.AsSpan(Count * MetricCount, MetricCount);

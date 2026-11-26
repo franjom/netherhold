@@ -25,7 +25,7 @@ public sealed class TabletMesh
             }
         }
 
-        Points = points.ToArray();
+        Points = [.. points];
         bool front = false;
         foreach (KmfPrimitive primitive in mesh.Primitives)
         {

@@ -8,7 +8,7 @@ namespace DK2.Presentation;
 /// to sRGB. MapColours.png declares gamma 0.22727, and its 231,24,24 decodes as 209,2,2.</summary>
 public static class PngChunks
 {
-    private static readonly byte[] Signature = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
+    private static readonly byte[] Signature = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
 
     /// <summary>The PNG without its colour-space chunks (gAMA, cHRM, sRGB, iCCP); the other chunks, CRCs included, are
     /// copied as they are, up to and including IEND. The input itself is returned when it has none.</summary>

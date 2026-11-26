@@ -22,7 +22,7 @@ public sealed class GameOptionsHud
         Up = "GUI\\Scroll Bars\\v-up_arrow", Down = "GUI\\Scroll Bars\\v-down_arrow",
         Track = "GUI\\Scroll Bars\\v-scroll_bar_bg", Thumb = "GUI\\Scroll Bars\\v-scroll_bar";
     /// <summary>The key list's columns: action name, modifiers, key.</summary>
-    private static readonly float[] CellLeft = { 0, 320, 480 };
+    private static readonly float[] CellLeft = [0, 320, 480];
 
     private enum Hit : byte { Label, Track, Thumb, Left, Right, KeyArea, KeyRow, KeyUp, KeyDown, KeyThumb }
     private enum Hold : byte { None, Slider, KeyArrow, KeyThumb }

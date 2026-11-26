@@ -41,7 +41,7 @@ public sealed class ClassicLightPublisher
     private readonly int _width, _height;
     private int _portalRequestsPublished;
     private bool _tablesNeedPublication;
-    private TilePos[] _visibleTiles = Array.Empty<TilePos>();
+    private TilePos[] _visibleTiles = [];
     private int _visibleCount;
     private readonly HashSet<TilePos> _published = new();
     private ClassicCameraPose? _pose;
@@ -49,9 +49,9 @@ public sealed class ClassicLightPublisher
     private float _viewDistance;
     private ClassicCameraPose? _secondPose;
     private CameraViewport _secondViewport;
-    private TilePos[] _secondTiles = Array.Empty<TilePos>();
+    private TilePos[] _secondTiles = [];
     private readonly HashSet<TilePos> _joined = new();
-    private TilePos[] _joinedBuffer = Array.Empty<TilePos>();
+    private TilePos[] _joinedBuffer = [];
 
     /// <param name="torchFlags">The scene's torch flags (<see cref="ClassicLightFlagsRules.Torch"/>), whose cheap test the
     /// entrance lights take.</param>
@@ -185,7 +185,7 @@ public sealed class ClassicLightPublisher
     {
         _cache.Clear();
         _published.Clear();
-        _visibleTiles = Array.Empty<TilePos>();
+        _visibleTiles = [];
         _visibleCount = 0;
         _pose = null;
     }

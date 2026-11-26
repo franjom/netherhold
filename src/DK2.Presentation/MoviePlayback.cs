@@ -33,7 +33,7 @@ public sealed class MoviePlayback : IDisposable
     private readonly long _delayFrames;
     private long _delivered;
     private readonly TqiDecoder _decoder = new();
-    private byte[] _shownPixels = Array.Empty<byte>(), _aheadPixels = Array.Empty<byte>();
+    private byte[] _shownPixels = [], _aheadPixels = [];
     private readonly Thread? _worker;
     private readonly AutoResetEvent _request = new(false);
     // A kernel event, not ManualResetEventSlim: the slim one allocates its lock object the first time a Wait has to block,

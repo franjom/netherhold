@@ -18,11 +18,11 @@ public sealed class CreatureOverviewHud
     private static readonly HudColor Highlight = new(201, 255, 0);
     private static readonly HudImage Lit = "GUI\\Tabs\\t-cp-hilight", WorkerStrip = "GUI\\Tabs\\t-cp-imp",
         Back = "GUI\\Pages\\page_back", Forward = "GUI\\Pages\\page_forward", ModeStrip = "GUI\\Tabs\\t-creature_panel";
-    private static readonly HudImage[] ModeHovers = Enumerable.Range(0, 4).Select(i => (HudImage)("GUI\\Tabs\\t-creature_panel-" + i)).ToArray();
+    private static readonly HudImage[] ModeHovers = [.. Enumerable.Range(0, 4).Select(i => (HudImage)("GUI\\Tabs\\t-creature_panel-" + i))];
     private static readonly HudImage[] ModeFrames =
-        new[] { "total", "jobs", "fights", "moods" }.Select(f => (HudImage)("GUI\\Tabs\\t-cp-" + f)).ToArray();
+        [.. new[] { "total", "jobs", "fights", "moods" }.Select(f => (HudImage)("GUI\\Tabs\\t-cp-" + f))];
     private static readonly HudImage[,] Numbers = NumberImages();
-    private static readonly int[] WorkerIconTop = { 4, 68, 132, 196 }, WorkerIconHeight = { 72, 68, 72, 72 };
+    private static readonly int[] WorkerIconTop = [4, 68, 132, 196], WorkerIconHeight = [72, 68, 72, 72];
 
     private readonly Func<CreatureOverviewType, string> _portrait;
     private readonly CreatureOverview _view;

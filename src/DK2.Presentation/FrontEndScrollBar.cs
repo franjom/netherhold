@@ -24,7 +24,7 @@ public sealed class FrontEndScrollBar
     /// <summary>A hovered part's glow counter; 0x00551BA0 counts it down once per drawn frame.</summary>
     private const sbyte GlowStart = 8;
 
-    private readonly sbyte[] _glow = { -1, -1, -1 };
+    private readonly sbyte[] _glow = [-1, -1, -1];
     private ScrollBarPart _held;
     private bool _wasDown;
 

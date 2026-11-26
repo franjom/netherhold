@@ -18,20 +18,20 @@ public sealed class MessageTabsHud
     private const int Slots = MessageTabsView.RecordsExamined;
     private const int ObjectiveAction = 100, ExitAction = 101, TickAction = 102, GotoAction = 103, PanelAction = 104,
         ObjectivePanelAction = 105, TrackAction = 106, ThumbAction = 107, UpAction = 108, DownAction = 109;
-    private static readonly string[] Families = { "mt-info", "mt-info", "mt-creature", "mt-fight", "mt-objective", "mt-allymsg", "mt-playerexit" };
+    private static readonly string[] Families = ["mt-info", "mt-info", "mt-creature", "mt-fight", "mt-objective", "mt-allymsg", "mt-playerexit"];
     private static readonly string[,] FrameNames = Names();
-    private static readonly string[] FramePieces = { "tl", "t", "tr", "l", "m", "r", "bl", "b", "br" };
-    private static readonly HudImage[] FrameImages = FramePieces.Select(p => (HudImage)("GUI\\Windows\\text_box-" + p)).ToArray();
+    private static readonly string[] FramePieces = ["tl", "t", "tr", "l", "m", "r", "bl", "b", "br"];
+    private static readonly HudImage[] FrameImages = [.. FramePieces.Select(p => (HudImage)("GUI\\Windows\\text_box-" + p))];
     private static readonly HudIndicator[] Drawn =
-    {
+    [
         HudIndicator.TimeRemaining, HudIndicator.Score, HudIndicator.CurrentHolder,
         HudIndicator.HeroesKilled, HudIndicator.SlapsRemaining, HudIndicator.NextRoom,
-    };
+    ];
     private static readonly string[] IndicatorArt =
-    {
+    [
         "GUI\\Windows\\timer-bg", "GUI\\Windows\\score-bg", "GUI\\Windows\\kingofhill-bg",
         "GUI\\Windows\\kills-bg", "GUI\\Windows\\slaps-bg", "GUI\\Icons\\next_room",
-    };
+    ];
     private static readonly string[] HighDigits = DigitNames("GUI\\Icons\\i-"), LowDigits = DigitNames("GUI\\Icons\\lo-");
     // Menu33's own background is unread: a translucent dark pane, as before.
     private static readonly HudColor ObjectivePane = new(20, 20, 20, 153);

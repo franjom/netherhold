@@ -30,7 +30,7 @@ public static class LevelGemIdle
     // 0x006C1488 is a 2048-entry sine table scaled by 65536; the process reads entry
     // (turn & 15) * 128 and shifts it right 8, rounding toward zero. These are those sixteen values.
     private static readonly short[] Bob =
-        { 0, 97, 181, 236, 256, 236, 181, 97, 0, -97, -181, -236, -256, -236, -181, -97 };
+        [0, 97, 181, 236, 256, 236, 181, 97, 0, -97, -181, -236, -256, -236, -181, -97];
 
     /// <summary>DK2's turn number during our current tick: <c>CurrentTick + 1</c>, the convention of
     /// <c>0x00517490</c> (ADR-0119) that <c>HandRules</c> and the job system use. The bob, spin and

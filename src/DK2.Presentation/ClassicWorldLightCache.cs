@@ -18,7 +18,7 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
     private readonly List<ObjectSource>?[] _objectsByTile;
     private readonly Dictionary<long, ObjectSource> _objects = new();
     /// <summary>The sources of each kind (objects, effects, the Hand, entrances), so a kind's update scans only its own.</summary>
-    private readonly List<ObjectSource>[] _entries = { new(), new(), new(), new() };
+    private readonly List<ObjectSource>[] _entries = [new(), new(), new(), new()];
 
     /// <summary>A dynamic source: an object's light or an effect instance's. Both are engine lights
     /// in one list (<c>+0x33A</c>), so they share each tile's insertion order.</summary>
@@ -39,13 +39,13 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
     /// <summary>Freed tables, taken again for tiles coming into view, so a scrolling view allocates none.</summary>
     private readonly Stack<ClassicLightTable> _freeTables = new();
     private readonly ClassicLightWindow _window = new();
-    private ClassicLightTable[] _visibleTables = Array.Empty<ClassicLightTable>(),
-        _previousTables = Array.Empty<ClassicLightTable>();
+    private ClassicLightTable[] _visibleTables = [],
+        _previousTables = [];
     private int _visibleCount, _previousCount;
     private bool _evictionPending;
     private ulong _sourceRevision, _gatheredRevision;
     private bool _canReuse;
-    private ulong[] _tableRevisions = Array.Empty<ulong>();
+    private ulong[] _tableRevisions = [];
 
     public ClassicWorldLightCache(int width, int height)
     {

@@ -20,7 +20,7 @@ public sealed class MinimapDiscImage
     private readonly byte[] _backdrop;
     private readonly int _backdropWidth, _backdropHeight;
     private readonly MinimapRasterPoint[] _trail = new MinimapRasterPoint[MinimapHeartTrail.MaximumDots];
-    private byte[] _pixels = Array.Empty<byte>();
+    private byte[] _pixels = [];
 
     /// <param name="backdrop">The rock backdrop (<c>Map-BG.PNG</c>, 128x128), decoded to RGBA, top row first.</param>
     public MinimapDiscImage(RgbaImage backdrop)

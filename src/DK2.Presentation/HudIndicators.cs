@@ -92,10 +92,10 @@ public static class HudIndicatorLayout
     public static int Width(HudIndicator indicator) => indicator >= HudIndicator.SlapsRemaining ? 256 : 444;
 
     private static readonly HudIndicator[] Order =
-    {
+    [
         HudIndicator.TimeRemaining, HudIndicator.Score, HudIndicator.CurrentHolder,
         HudIndicator.HeroesKilled, HudIndicator.SlapsRemaining, HudIndicator.NextRoom,
-    };
+    ];
 
     /// <summary>Shown indicators in menu order with their top-left. Packed left to right from x 20;
     /// the first sits at y 1332 whatever the panel, later ones at panel top - 128 (the same row

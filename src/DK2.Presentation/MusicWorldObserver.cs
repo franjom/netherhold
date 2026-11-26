@@ -25,7 +25,7 @@ public sealed class MusicWorldObserver(PlayerId viewer, MusicDirector music)
         public readonly List<int> Scratch = new();
         public int X, Y;
     }
-    private readonly Battle[] _battles = Enumerable.Range(0, 8).Select(_ => new Battle()).ToArray();
+    private readonly Battle[] _battles = [.. Enumerable.Range(0, 8).Select(_ => new Battle())];
     private readonly Dictionary<int, (int State, int Resume)> _previous = new();
     private long _lastTick = -1;
     private readonly BattleViewSnapshot[] _snapshots = new BattleViewSnapshot[8];

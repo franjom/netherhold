@@ -175,7 +175,7 @@ public sealed class BlendedTerrainStream<TMaterial> where TMaterial : class
         }
         else
         {
-            _sources[_chunk] = new Source(_kept.ToArray(), _chunkMaterials.ToArray(), _chunkTriangles.ToArray());
+            _sources[_chunk] = new Source([.. _kept], [.. _chunkMaterials], [.. _chunkTriangles]);
         }
 
         _dirty = true;

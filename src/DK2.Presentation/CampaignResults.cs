@@ -60,8 +60,8 @@ public sealed record CampaignResults(IReadOnlyList<CampaignResultCell> Cells, ui
         string time = hours != 0 ? $"{hours:00} : {seconds / 60 % 60:00}" : $"{seconds / 60:00} : {seconds % 60:00}";
         (uint whole, uint hundredths) = b.TrainingParts;
         uint attempts = profile.LevelAttempts[played.Value - 1] + (b.LevelWon ? 1u : 0u);
-        CampaignResultCell[] cells = new[]
-        {
+        CampaignResultCell[] cells =
+        [
             new CampaignResultCell(1516, "", b.LevelWon ? 21u : 22u),
             new CampaignResultCell(1410, time),
             new CampaignResultCell(1508, b.DungeonHeartsDestroyed.ToString()),
@@ -76,7 +76,7 @@ public sealed record CampaignResults(IReadOnlyList<CampaignResultCell> Cells, ui
             new CampaignResultCell(1429, b.CreaturesConverted.ToString()),
             new CampaignResultCell(1515, $"{whole}.{hundredths}"),
             new CampaignResultCell(1636, attempts.ToString()),
-        };
+        ];
         uint overall = 0;
         for (int slot = 0; slot < 25; slot++)
         {

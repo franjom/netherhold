@@ -93,7 +93,9 @@ public static class ClassicTorchShadowSlots
     public const int MaximumTorches = 2;
 
     public static int Choose(Vector3 focus, ReadOnlySpan<int> keys, ReadOnlySpan<Vector3> positions, float reach,
+#pragma warning disable IDE0301 // Preserve the existing empty-span lowering of the forwarding overload.
         Span<int> chosen) => Choose(focus, keys, positions, reach, ReadOnlySpan<int>.Empty, 0f, chosen);
+#pragma warning restore IDE0301
 
     public static int Choose(Vector3 focus, ReadOnlySpan<int> keys, ReadOnlySpan<Vector3> positions, float reach,
         ReadOnlySpan<int> held, float hysteresis, Span<int> chosen)

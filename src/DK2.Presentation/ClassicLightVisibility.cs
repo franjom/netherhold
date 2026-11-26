@@ -114,7 +114,7 @@ public static class ClassicLightVisibility
 
     public static TilePos[] EnumerateTiles(ReadOnlySpan<TilePos> polygon)
     {
-        TilePos[] buffer = Array.Empty<TilePos>();
+        TilePos[] buffer = [];
         int count = EnumerateTiles(polygon, ref buffer);
         if (count == buffer.Length)
         {

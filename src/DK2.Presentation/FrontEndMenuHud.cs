@@ -57,8 +57,8 @@ public static class FrontEndBox
 /// <see cref="HudLabel"/> as the shared bitmap or as its own TrueType glyphs in the glyph boxes.</summary>
 public sealed partial class FrontEndMenuHud : IDisposable
 {
-    private static readonly uint[] TitleIds = { 71, 1476, 1403, 2803, 96, 2802, 145, 73, 93, 2800,
-        94, 95, 98, 168, 162, 141, 149, 2729, 1478, 2801, 372, 1675, 140, 0 };
+    private static readonly uint[] TitleIds = [ 71, 1476, 1403, 2803, 96, 2802, 145, 73, 93, 2800,
+        94, 95, 98, 168, 162, 141, 149, 2729, 1478, 2801, 372, 1675, 140, 0 ];
     private static readonly HudImage LogoArt = "Logo", MovieHighlight = "Mov_Shots/M-Hilight",
         Confirm = "Confirm", ConfirmClick = "Confirm-Click", ConfirmOver = "Confirm-Over",
         Cancel = "Cancel", CancelClick = "Cancel-Click", CancelOver = "Cancel-Over";
@@ -620,7 +620,7 @@ public sealed partial class FrontEndMenuHud : IDisposable
             HudColor.White, Uv: uv));
     }
 
-    private static readonly string[] BarArt = { FrontEndScrollBar.UpArrowArt, FrontEndScrollBar.DownArrowArt, FrontEndScrollBar.TrackArt };
+    private static readonly string[] BarArt = [FrontEndScrollBar.UpArrowArt, FrontEndScrollBar.DownArrowArt, FrontEndScrollBar.TrackArt];
 
     private static HudColor LabelColour(FrontEndWidget widget, bool hovered, byte alpha)
     {

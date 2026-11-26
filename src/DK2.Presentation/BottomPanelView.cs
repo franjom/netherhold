@@ -226,7 +226,7 @@ public sealed class BottomPanelView
             }
         }
 
-        _choices = choices.ToArray();
+        _choices = [.. choices];
     }
 
     /// <summary>The tab updater <c>0x00416E20</c>: Creatures and Rooms always show; Spells shows

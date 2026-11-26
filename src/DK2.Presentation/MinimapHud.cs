@@ -36,7 +36,7 @@ public sealed class MinimapHud
 
     /// <summary>The corners' actions, in <see cref="MinimapCorner"/> order.</summary>
     private static readonly ClassicHudAction[] CornerActions =
-        { ClassicHudAction.SelectQuery, ClassicHudAction.SelectSell, ClassicHudAction.ToggleOptions, ClassicHudAction.ZoomIn };
+        [ClassicHudAction.SelectQuery, ClassicHudAction.SelectSell, ClassicHudAction.ToggleOptions, ClassicHudAction.ZoomIn];
 
     private readonly MinimapClassGrid _grid;
     private readonly List<MinimapMarker> _markers = new();

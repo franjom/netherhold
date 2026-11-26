@@ -18,7 +18,7 @@ public sealed class CampaignMapController : IDisposable
     private readonly Func<CampaignSlot, CampaignBriefing> _loadBriefing;
     private readonly int[] _lift = new int[30];
     /// <summary>Each land's arming word (<c>+0x184</c>): set by every update that has no hover on it (<c>0x004A35E0</c>), cleared by the sound it arms.</summary>
-    private readonly bool[] _armed = Enumerable.Repeat(true, 30).ToArray();
+    private readonly bool[] _armed = [.. Enumerable.Repeat(true, 30)];
     /// <summary>The land sound, <c>0x32A</c> in <c>OBJECT_FE_MAP</c> (<c>0x00538D00</c>): nonpositional, no handle (docs/research/sound-effects-interface.md section 5).</summary>
     public SoundRequests Sounds { get; } = new();
     private const int LiftLimit = 0x40;
@@ -222,7 +222,7 @@ public sealed class CampaignMapController : IDisposable
 
     private void SetEntryName(string name)
     {
-        HiScoreEntry[] rows = HiScores.ToArray();
+        HiScoreEntry[] rows = [.. HiScores];
         rows[EntryRow] = rows[EntryRow] with { Name = name };
         HiScores = Array.AsReadOnly(rows); Revision++;
     }
@@ -366,12 +366,12 @@ public sealed class CampaignMapController : IDisposable
     { if (phases[index] != value) { phases[index] = value; Revision++; } }
     private static readonly IReadOnlyDictionary<byte, int[]> Routes = new Dictionary<byte, int[]>
     {
-        [6] = new[] { 8, 9 }, [7] = new[] { 8, 9, 11 }, [8] = new[] { 8, 9, 11 }, [9] = new[] { 9, 11, 15 },
-        [10] = new[] { 11, 13, 15 }, [11] = new[] { 13, 15 }, [12] = new[] { 12, 13, 14, 15, 20 },
-        [13] = new[] { 20 }, [14] = new[] { 20 }, [15] = new[] { 20 }, [16] = new[] { 16, 20 },
-        [21] = new[] { 21, 22 }, [22] = new[] { 22 },
+        [6] = [8, 9], [7] = [8, 9, 11], [8] = [8, 9, 11], [9] = [9, 11, 15],
+        [10] = [11, 13, 15], [11] = [13, 15], [12] = [12, 13, 14, 15, 20],
+        [13] = [20], [14] = [20], [15] = [20], [16] = [16, 20],
+        [21] = [21, 22], [22] = [22],
     };
-    private static IReadOnlyList<int> RouteSlots(byte level) => Routes.TryGetValue(level, out int[]? slots) ? slots : Array.Empty<int>();
+    private static IReadOnlyList<int> RouteSlots(byte level) => Routes.TryGetValue(level, out int[]? slots) ? slots : [];
     public void Dispose()
     { _session.OperationRequested -= OnOperation; _session.Updated -= AdvanceVisuals; }
 }

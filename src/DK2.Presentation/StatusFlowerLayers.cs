@@ -26,7 +26,7 @@ public static class StatusFlowerLayers
 
     public const int MaxLayers = 4;
 
-    private static readonly string[] Rings = { "H-00", "H-01", "H-02", "H-03", "H-04", "H-05" };
+    private static readonly string[] Rings = ["H-00", "H-01", "H-02", "H-03", "H-04", "H-05"];
 
     /// <summary>Writes the flower's layers into <paramref name="layers"/> (at least <see cref="MaxLayers"/> long) and
     /// returns how many.</summary>

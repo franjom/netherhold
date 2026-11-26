@@ -18,10 +18,10 @@ public sealed class PossessionHudIndicators
     private bool _forward = true;
     private readonly HudFrame _nativeFrame = new();
     private static readonly string[] Art =
-    {
+    [
         "GUI\\Windows\\timer-bg", "GUI\\Windows\\score-bg", "GUI\\Windows\\kingofhill-bg",
         "GUI\\Windows\\kills-bg", "GUI\\Windows\\slaps-bg", "GUI\\Icons\\next_room",
-    };
+    ];
 
     public PossessionHudIndicators(IBottomPanelArt art, Func<int, BitmapFont> font, Func<PlayerId, string> playerName)
     { _art = art; _font = font; _playerName = playerName; }

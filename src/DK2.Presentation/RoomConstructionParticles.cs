@@ -95,8 +95,10 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         _terrainFlags = terrainFlags;
         _solidTile = solidTile;
         _pillarHeightHeartSparkles = heartSparkleStyle == HeartSparkleStyle.PillarHeight;
+#pragma warning disable IDE0306 // Preserve the existing HashSet constructor and growth behavior.
         _heartManaEffects = new HashSet<ushort>(database.Rooms.Values.Where(r => r.TypeId == RoomTypeId.DungeonHeart)
             .Select(r => r.CreatedObjectEffectId).Where(id => id != 0));
+#pragma warning restore IDE0306
         _database = database;
         _random = new SimRandom(new Dk2Lcg(unchecked((uint)seed)));
         _visible = visible;
@@ -106,7 +108,9 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         _captureAtEdges = captureEffectStyle == CaptureEffectStyle.Edges;
         _captureEdges = captureEdges;
         _crumblingEffects = terrainDebrisStyle == TerrainDebrisStyle.Crumbling
+#pragma warning disable IDE0306 // Preserve the existing HashSet constructor and growth behavior.
             ? new HashSet<ushort>(database.Terrain.Values.Select(t => t.DestroyedEffectId).Where(id => id != 0))
+#pragma warning restore IDE0306
             : [];
         _lastUpdateMilliseconds = _clock().Milliseconds;
     }

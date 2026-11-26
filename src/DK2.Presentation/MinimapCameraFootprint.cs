@@ -64,7 +64,7 @@ public static class MinimapCameraFootprint
     }
 
     /// <summary>The ribbon's index list (minimap-rendering.md, pairs in corner order, outward then inward).</summary>
-    private static readonly byte[] Indices = { 0, 2, 1, 1, 2, 3, 2, 4, 3, 3, 4, 5, 5, 4, 6, 7, 5, 6, 0, 7, 6, 0, 1, 7 };
+    private static readonly byte[] Indices = [0, 2, 1, 1, 2, 3, 2, 4, 3, 3, 4, 5, 5, 4, 6, 7, 5, 6, 0, 7, 6, 0, 1, 7];
 
     /// <summary>The vertices of <see cref="Triangles"/>' list: eight triangles.</summary>
     public const int TriangleVertices = 24;

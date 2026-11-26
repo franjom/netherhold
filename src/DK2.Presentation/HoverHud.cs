@@ -16,7 +16,7 @@ public sealed class HoverHud
     public static readonly HudImage Bar = "GUI\\Windows\\Bar-00";
     public static readonly HudImage Cap = "GUI\\Windows\\Bar-01";
     private static readonly HudImage[] Pieces =
-        new[] { "tl", "t", "tr", "l", "m", "r", "bl", "b", "br" }.Select(p => (HudImage)("GUI\\Windows\\text_box-" + p)).ToArray();
+        [.. new[] { "tl", "t", "tr", "l", "m", "r", "bl", "b", "br" }.Select(p => (HudImage)("GUI\\Windows\\text_box-" + p))];
 
     /// <summary>The status line scrolls back and forth at 60 local pixels a second: our time-based form of
     /// DK2's one pixel per callback (0x0042E4A2).</summary>

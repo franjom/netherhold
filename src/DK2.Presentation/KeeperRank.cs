@@ -15,8 +15,8 @@ namespace DK2.Presentation;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/level-statistics.md")]
 public static class KeeperRank
 {
-    private static readonly int[] HeartBonus = { 0, 6, 8, 9, 10 };
-    private static readonly uint[] TitleLimits = { 17, 33, 50, 67, 82 };
+    private static readonly int[] HeartBonus = [0, 6, 8, 9, 10];
+    private static readonly uint[] TitleLimits = [17, 33, 50, 67, 82];
 
     /// <param name="nativeTurn">The verdict's game turn as DK2 counts it.</param>
     /// <param name="averageTimeMinutes">Variable 242, <c>AverageTime</c>.</param>

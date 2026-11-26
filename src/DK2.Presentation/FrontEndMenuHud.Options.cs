@@ -128,11 +128,11 @@ public sealed partial class FrontEndMenuHud
             {
                 KeyboardAction row = KeyboardSetup.Actions[_keysFirst + i];
                 GameKeyBinding binding = Model.Options.Pending.Binding(row.Action);
-                string[] text = { _sources.Text(row.TextId), binding.Modifiers == KeyModifiers.None ? "" : binding.Modifiers.ToString(),
+                string[] text = [ _sources.Text(row.TextId), binding.Modifiers == KeyModifiers.None ? "" : binding.Modifiers.ToString(),
                     Model.Options.CapturingAction == row.Action ? _sources.Text(1475)
-                        : binding.ScanCode == 0 ? "-" : _keyName(binding.ScanCode) };
+                        : binding.ScanCode == 0 ? "-" : _keyName(binding.ScanCode) ];
                 FrontEndRect raw = template.DrawRect;
-                float[] start = { 0, 306 * 4, 454 * 4, raw.Width };
+                float[] start = [0, 306 * 4, 454 * 4, raw.Width];
                 for (int column = 0; column < 3; column++)
                 {
                     FrontEndWidget widget = template with { Id = new FrontEndWidgetId((ushort)(800 + column * 5 + i)),
