@@ -116,8 +116,20 @@ public class Dk2SaveReaderTests
         string install = FindInstall();
         if (install is null) return null;
 
-        IReadOnlyList<string> saves = Dk2SaveReader.EnumerateSaves(install);
-        return saves.Count == 0 ? null : (install, saves[0]);
+        // The newest save of a level the install holds: a save of a custom level whose map is elsewhere
+        // (a test level made in the editor) cannot be read against a design map, and is not this file's subject.
+        foreach (string save in Dk2SaveReader.EnumerateSaves(install))
+            if (HasInstalledLevel(install, save)) return (install, save);
+        return null;
+    }
+
+    /// <summary>Whether the save names a level whose design map the install holds.</summary>
+    private static bool HasInstalledLevel(string install, string save)
+    {
+        LevelMap? map = null;
+        try { Dk2SaveReader.Read(File.ReadAllBytes(save), name => map = GameDatabaseLoader.LoadCampaignMap(install, name)); }
+        catch (InvalidDataException) { return true; } // unreadable: let the test that loads it say why
+        return map is not null;
     }
 
     [InstallFact("woodsong_ai.SAV")]
@@ -295,6 +307,7 @@ public class Dk2SaveReaderTests
 
         foreach (string save in Dk2SaveReader.EnumerateSaves(install))
         {
+            if (!HasInstalledLevel(install, save)) continue; // a custom level's save: no design map to read it against
             SavedGame? loaded = Dk2SaveReader.Load(install, save);
             Assert.NotNull(loaded);
             Assert.True(
