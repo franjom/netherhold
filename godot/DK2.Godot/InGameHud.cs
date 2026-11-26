@@ -131,7 +131,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private readonly ClassicKeyboard _keyboard = new();
     /// <summary>The options menu's pages and the GUI state, as Unity's runner keeps them.</summary>
     private readonly ClassicHudControls _hudControls = new();
-    private readonly PlayerId _viewer = PlayerIds.FirstKeeper;
+    private PlayerId _viewer = PlayerIds.FirstKeeper;
     private GameSimulation? _simulation;
     private InstallHudSources? _sources;
     private InstallBottomPanelArt? _art;
@@ -260,7 +260,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // A save the previous instance loaded: its level, return page and restored simulation replace the arguments'.
         GameSessionRequest? resume = s_resume;
         s_resume = null;
-        _context = StartingSession(resume, launch.Level, args);
+        _context = StartingSession(resume, launch.Level, args, install);
+        if (_context == null) return;
         string levelName = _context.LevelName;
         ulong seed = launch.Seed ?? 1;
         GameFolders folders = UserFolders.FromArguments(args);
@@ -268,13 +269,32 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _seed = seed;
         // Only the argument: DK2_INPUT_JOURNAL is Unity's switch, and a global one must not make every Godot run write a session.
         _journalRoot = LaunchArguments.Value(args, "--input-journal");
-        CampaignLevelData level = CampaignLevelData.Load(install, levelName);
-        _simulation = resume?.Resume?.Simulation ?? level.CreateSimulation(seed, fogOfWarEnabled: true);
+        CampaignLevelData level;
+        try
+        {
+            level = CampaignLevelData.Load(install, levelName);
+            _simulation = resume?.Resume?.Simulation ?? (_context.ImportedTerrain is { } imported
+                ? GameSessionStarter.FromDk2Save(level.Database, imported, seed, fogOfWarEnabled: true)
+                : level.CreateSimulation(seed, fogOfWarEnabled: true));
+            if (resume?.Resume != null && _context.Mode == GameSessionMode.ImportedTerrain)
+                _viewer = GameSessionStarter.ImportedSaveViewer(_simulation.World, _simulation.World.LocalPlayerId);
+            else if (_context.ImportedTerrain != null)
+            {
+                _viewer = GameSessionStarter.ImportedSaveViewer(_simulation.World, _viewer);
+                GD.Print("DK2.Godot imported terrain and tile ownership from a DK2 save for ", levelName,
+                    ". The session starts fresh without saved entities, time or progress.");
+            }
+        }
+        catch (Exception ex) when (_context.ImportedTerrain != null && IsLegacyImportError(ex))
+        {
+            ReportLegacyImportError(ex);
+            return;
+        }
         _simulation.World.LocalPlayerId = _viewer;
         // Level load, not the opening path: the first ticks compile on a throwaway simulation (LevelWarmUp).
         // A restart (no Resume) is a fresh start of the level; only a loaded save is resumed.
         bool resumed = resume?.Resume != null;
-        if (!resumed && warmUp)
+        if (!resumed && warmUp && _context.ImportedTerrain == null)
         {
             long warmStarted = Stopwatch.GetTimestamp();
             LevelWarmUp.Run(level, seed, fogOfWarEnabled: true);
@@ -283,7 +303,8 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _profilePath = folders.Profile;
         _profiles = new CampaignProfileStore(InstalledCampaignRegistry.ReadCurrentUser, () => DateTime.Now);
         _saver = new SessionSaver(_profiles, LoadProfile, () => DateTime.UtcNow);
-        _loader = new SessionLoader(_profiles, LoadProfile, name => CampaignLevelData.Load(install, name));
+        _loader = new SessionLoader(_profiles, LoadProfile, name => CampaignLevelData.Load(install, name))
+        { TerrainImportsSupported = true };
         // DungeonRunner.PrepareCampaignResult, before the first turn: a level started from the campaign map plays its slot;
         // a restored save counts its carry as written, a fresh start brings the stored transfer creature in.
         _resultFlow = new CampaignResultFlow(_context, _profiles, LoadProfile, _hudControls)

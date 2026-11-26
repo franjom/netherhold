@@ -14,6 +14,7 @@ namespace DK2.Presentation;
 public sealed record SessionContext(string LevelName, GameSessionMode Mode, FrontEndPage ReturnPage)
 {
     public CampaignSlot PlayedSlot { get; set; } = CampaignSlot.None;
+    public LevelMap? ImportedTerrain { get; init; }
 
     /// <summary>The world's <see cref="CampaignCarry"/> as last written to the profile by <see cref="ApplyCarry"/>; a
     /// resumed session starts from the restored world's.</summary>
@@ -30,7 +31,8 @@ public sealed record SessionContext(string LevelName, GameSessionMode Mode, Fron
         bool fromMap)
     {
         GameSessionRequest? request = resumed ?? launched;
-        if (request is not null) return new SessionContext(request.LevelName, request.Mode, request.ReturnPage);
+        if (request is not null)
+            return new SessionContext(request.LevelName, request.Mode, request.ReturnPage) { ImportedTerrain = request.ImportedTerrain };
         string level = levelArgument ?? "Level1";
         return new SessionContext(level, GameSessionMode.Campaign,
             fromMap ? GameSessionRequest.Campaign(level).ReturnPage : FrontEndPage.None);

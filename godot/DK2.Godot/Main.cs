@@ -55,8 +55,8 @@ public partial class Main : Node
                     LauncherDisplay.Apply(GetTree().Root, LauncherSettingsStore.Current(args));
                     break;
             }
-            // A level that ended hands this scene the front end; only the process's first start goes to --level's level.
-            if (Array.IndexOf(args, "--level") >= 0 && !InGameHud.LevelStarted)
+            // A level that ended hands this scene the front end; only the first process start can use a command-line level request.
+            if (!InGameHud.LevelStarted && (Array.IndexOf(args, "--level") >= 0 || Array.IndexOf(args, "--dk2-save") >= 0))
             {
                 // InGameHud reads the same user arguments (--level, --seed, ...).
                 Callable.From(() => GetTree().ChangeSceneToFile(InGameHudScene)).CallDeferred();

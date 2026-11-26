@@ -9,7 +9,10 @@ namespace DK2.Data.Save;
 
 /// <summary>Our save header; GameMode and ReturnPageId retain their byte/word on-disk widths.</summary>
 public sealed record SavedSessionHeader(string LevelName, byte GameMode, ushort ReturnPageId,
-    DateTime SavedAtUtc, string DisplayName);
+    DateTime SavedAtUtc, string DisplayName)
+{
+    public const byte TerrainImportMode = 128;
+}
 
 public sealed record SavedSession(SavedSessionHeader Header, byte[] Snapshot, CampaignProfile Profile);
 /// <summary>One file in the save folder. A file whose header cannot be read is still listed, with no

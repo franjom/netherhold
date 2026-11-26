@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using DK2.Core;
 using DK2.Data;
 using DK2.Data.Model;
 using DK2.Simulation;
@@ -36,6 +37,29 @@ public static class GameSessionStarter
     public static GameSimulation FromDk2Save(GameDatabase database, LevelMap map, ulong seed, bool fogOfWarEnabled) =>
         new(database, WorldState.FromMap(database, map, PlayersOf(map), fogOfWarEnabled: fogOfWarEnabled), seed,
             SimulationSystems.Default());
+
+    /// <summary>The usual local keeper, or an owner present in the imported grid when that keeper has no tiles.</summary>
+    public static PlayerId ImportedSaveViewer(WorldState world, PlayerId preferred)
+    {
+        if (world.HasPlayer(preferred)) return preferred;
+        IReadOnlyList<PlayerId> players = world.PlayerIds;
+        foreach (PlayerId player in players)
+            if (PlayerIds.IsKeeper(player.Value)) return player;
+        return players[0];
+    }
+
+    /// <summary>The terrain a native checkpoint of an imported session can restart from.</summary>
+    internal static LevelMap TerrainOf(WorldState world)
+    {
+        var tiles = new MapTile[world.Width * world.Height];
+        for (int y = 0; y < world.Height; y++)
+        for (int x = 0; x < world.Width; x++)
+        {
+            ref TileState tile = ref world.Tile(x, y);
+            tiles[y * world.Width + x] = new MapTile(tile.TerrainId, tile.OwnerPlayerId, 0, 0);
+        }
+        return new LevelMap(world.Width, world.Height, tiles);
+    }
 
     /// <summary>Whoever the map says owns a tile, ascending: the rule the harness uses when a scenario names no players.</summary>
     public static byte[] PlayersOf(LevelMap map)

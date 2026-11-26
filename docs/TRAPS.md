@@ -144,7 +144,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - `dotnet test -t` means list-tests, not an MSBuild target; rebuild with `dotnet build --no-incremental`, then use `dotnet test --no-build`.
 
 - Unity Package Manager rejects a UTF-8 BOM in Packages/manifest.json; write that JSON as UTF-8 without a BOM.
-- PowerShell can return early from a GUI executable invoked with `&`; use `Start-Process -PassThru` and wait on that process for Unity builds and player captures.
+- PowerShell can return early from a GUI executable invoked with `&`. Use `Start-Process -Wait -PassThru` for Unity builds, player captures and Godot release exports that ship only `DK2.exe`. Confirm the Godot run in its log.
 
 - PowerShell treats curly apostrophes as quote delimiters; avoid them inside single-quoted command arguments.
 - Windows PowerShell redirects native stdout as UTF-16; detect the BOM when aggregating logs in Python, or regex matches can silently return zero; write JSON artifacts as UTF-8 in the producer.

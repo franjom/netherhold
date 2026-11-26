@@ -165,7 +165,8 @@ These are entry points, not a new priority order.
   The in-game keys go through `ClassicKeyboard` and `GameBindingInput` (`InGameHud.cs`), every HUD shortcut included (Heart, portal and fight glides); live keys have not been driven, scripted ones (`--key-path`) have.
   In-game parity with Unity's runner (2026-11-25): the options menu's Restart, Return to Menu and Quit (`GameSessionRequest.ForSessionAction`), the level end's prompt, the room build and sell drag's rubber-band limit and the hand's drop animation after an accepted drop (`HandCursorEventSink`) are wired. Godot draws the [win screen](../godot/README.md#subtitles) under the result prompt and the battle fly-in above the HUD overlays.
   A start without a scene now shows the Netherhold launcher (install folder, menu font, screen mode; [godot/README.md](../godot/README.md), *The launcher*);
-  scripted runs skip it.
+  scripted runs skip it. [`--dk2-save`](../godot/README.md#importing-an-original-dk2-save) imports original save terrain
+  and tile ownership, including through the exported entry point.
   Step 4's probes item is done: `--record-frames` writes Unity's recorder's `frames.csv` for `draw_clock.py`; every other
   Unity probe is covered or obsolete ([Probes](../godot/README.md#probes)); `tools/hud-probe` is deleted.
   The tester package is a release Godot export (`tools/tester-package`, [Exporting](../godot/README.md#exporting)). CI builds

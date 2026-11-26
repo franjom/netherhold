@@ -25,11 +25,36 @@ public partial class InGameHud
 
     /// <summary>The session this instance starts, taking the queued launch: its level, mode and return page, from which the
     /// level end's front-end launch rule follows (<see cref="SessionContext.LaunchedFromFrontEnd"/>).</summary>
-    private static SessionContext StartingSession(GameSessionRequest? resume, string? levelArgument, string[] args)
+    private SessionContext? StartingSession(GameSessionRequest? resume, string? levelArgument, string[] args, string install)
     {
         GameSessionRequest? launched = s_launch;
         s_launch = null;
+        if (resume == null && launched == null && Array.IndexOf(args, "--dk2-save") >= 0)
+        {
+            try
+            {
+                string? path = LaunchArguments.Value(args, "--dk2-save");
+                if (path == null || path.StartsWith("--", StringComparison.Ordinal))
+                    throw new ArgumentException("--dk2-save requires a path.");
+                launched = GameSessionRequest.LoadDk2Save(install, path);
+            }
+            catch (Exception ex) when (IsLegacyImportError(ex))
+            {
+                ReportLegacyImportError(ex);
+                return null;
+            }
+        }
         LevelStarted = true;
         return SessionContext.Starting(resume, launched, levelArgument, Array.IndexOf(args, "--from-map") >= 0);
+    }
+
+    private static bool IsLegacyImportError(Exception ex) =>
+        ex is IOException or InvalidDataException or UnauthorizedAccessException or InvalidOperationException
+            or ArgumentException or KeyNotFoundException;
+
+    private void ReportLegacyImportError(Exception error)
+    {
+        GD.PushError("DK2.Godot could not import the DK2 save. " + error.Message);
+        GetTree().Quit(1);
     }
 }

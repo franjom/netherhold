@@ -65,6 +65,50 @@ public class Dk2SaveReaderTests
         Assert.Equal(tiles, Dk2SaveReader.ReadGrid(bytes, found, 8, 8).Tiles);
     }
 
+    [Fact]
+    public void SyntheticSaveLoadsTerrainAndOwnershipThroughTheMapLookup()
+    {
+        byte[] bytes = SyntheticSave("Level1");
+        var design = new LevelMap(2, 2, new[]
+        {
+            new MapTile(1, 0, 0, 0), new MapTile(2, 0, 0, 0),
+            new MapTile(3, 0, 0, 0), new MapTile(4, 0, 0, 0),
+        });
+
+        SavedGame save = Assert.IsType<SavedGame>(Dk2SaveReader.Read(bytes, name =>
+        {
+            Assert.Equal("Level1", name);
+            return design;
+        }));
+
+        Assert.Equal(new MapTile(2, 3, 0, 0), save.Map.Tiles[1]);
+        Assert.Equal(1.0, save.TerrainAgreement);
+    }
+
+    [Fact]
+    public void SavedMapNameCannotNameAPath()
+    {
+        byte[] bytes = SyntheticSave("../Level1");
+        Assert.Throws<InvalidDataException>(() => Dk2SaveReader.Read(bytes,
+            _ => throw new InvalidOperationException("An unsafe name reached the map lookup.")));
+    }
+
+    private static byte[] SyntheticSave(string name)
+    {
+        const int grid = 0x134;
+        byte[] bytes = new byte[grid + 4 * Dk2SaveReader.TileRecordSize];
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(bytes, 220);
+        System.Text.Encoding.ASCII.GetBytes(Dk2SaveReader.SupportedBuildStamp).CopyTo(bytes, 8);
+        System.Text.Encoding.ASCII.GetBytes(name).CopyTo(bytes, 0xC2);
+        for (int i = 0; i < 4; i++)
+        {
+            int at = grid + i * Dk2SaveReader.TileRecordSize;
+            bytes[at + 6] = 3;
+            bytes[at + 8] = (byte)(i + 1);
+        }
+        return bytes;
+    }
+
     private static string FindInstall() => Dk2InstallGate.Path;
 
     private static (string Install, string Save)? FirstSave()

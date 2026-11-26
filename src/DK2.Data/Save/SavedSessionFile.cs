@@ -118,8 +118,10 @@ public static class SavedSessionFile
     private static void Validate(SavedSessionHeader header)
     {
         if (header is null || string.IsNullOrEmpty(header.LevelName) || header.LevelName.Length > 128
-            || !header.LevelName.All(c => c is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= '0' and <= '9' or '_' or '-')
-            || header.GameMode != 1 || header.SavedAtUtc.Kind != DateTimeKind.Utc
+            || (header.GameMode == SavedSessionHeader.TerrainImportMode
+                ? !Dk2SaveReader.IsMapName(header.LevelName)
+                : !header.LevelName.All(c => c is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= '0' and <= '9' or '_' or '-'))
+            || header.GameMode is not (1 or SavedSessionHeader.TerrainImportMode) || header.SavedAtUtc.Kind != DateTimeKind.Utc
             || string.IsNullOrWhiteSpace(header.DisplayName) || header.DisplayName.Length > 128)
             throw new ArgumentException("Invalid saved-session header.", nameof(header));
     }

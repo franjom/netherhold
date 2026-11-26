@@ -1170,6 +1170,10 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
 - [x] Live creature-shadow setting. See the [projection and benchmark notes](../../godot/README.md#creature-shadows)
       for the Godot coverage path and the default.
 
+- [x] Original DK2 save import from the command line. See [terrain import](../../godot/README.md#importing-an-original-dk2-save)
+      for the flag, export entry point and checkpoint scope.
+- [ ] Front-end Load Game and settings. Include the Import DK2 Save button in Load Game.
+
 ## Step 5: remove Unity (one change, at parity)
 
 - [ ] Delete `unity/`, the Unity-only tools and the CI steps for them (first move the files step 4's probes item lists).

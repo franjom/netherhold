@@ -116,6 +116,7 @@ public sealed class LauncherTests
         Assert.True(LauncherStartRule.IsAutomated(["Main.SCN"], [], false, false));
         Assert.True(LauncherStartRule.IsAutomated(engine, ["--play-movie", "Data/Movies/x.tgq"], false, false));
         Assert.True(LauncherStartRule.IsAutomated(engine, ["--level", "Level6a", "--seed", "1"], false, false));
+        Assert.True(LauncherStartRule.IsAutomated(engine, ["--dk2-save", "test.sav"], false, false));
         Assert.False(LauncherStartRule.IsAutomated(engine, ["--seed", "1"], false, false));
         Assert.True(LauncherStartRule.Requested(["--profile", "p", "--launcher"]));
         Assert.False(LauncherStartRule.Requested(["--launcher-config", "x"]));
