@@ -45,7 +45,7 @@ public partial class HudCanvas
     private TextLayout Layout(HudText text)
     {
         if (_atlasesHeld.Add(text.Font)) BitmapGlyphAtlas.Acquire(text.Font);
-        BitmapGlyphAtlas atlas = BitmapGlyphAtlas.Of(text.Font);
+        var atlas = BitmapGlyphAtlas.Of(text.Font);
         HudTextPixels.Pieces(text, _pieceScratch, out int width, out int height);
         var sources = new Rect2[_pieceScratch.Count];
         var offsets = new Vector2[_pieceScratch.Count];

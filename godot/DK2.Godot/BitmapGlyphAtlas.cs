@@ -35,7 +35,7 @@ internal sealed class BitmapGlyphAtlas
             x += glyph.Width; row = Math.Max(row, glyph.Height);
         }
         int height = Math.Max(1, y + row);
-        var pixels = new byte[width * height * 2];
+        byte[] pixels = new byte[width * height * 2];
         foreach (BitmapGlyph glyph in font.Glyphs)
         {
             Vector2I at = _corners[glyph];
@@ -48,7 +48,7 @@ internal sealed class BitmapGlyphAtlas
                     pixels[i] = 255; pixels[i + 1] = (byte)(coverage * 17);
                 }
         }
-        using Image image = Image.CreateFromData(width, height, false, Image.Format.La8, pixels);
+        using var image = Image.CreateFromData(width, height, false, Image.Format.La8, pixels);
         _texture = ImageTexture.CreateFromImage(image);
     }
 

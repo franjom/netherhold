@@ -120,7 +120,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             GD.PushError("DK2.Godot: the level has no dungeon camera preset; no 3D camera.");
             return;
         }
-        ClassicCameraSetup setup = ClassicCameraSetup.Create(profile, ClassicCameraSetup.DefaultZoomOutLimitScale,
+        var setup = ClassicCameraSetup.Create(profile, ClassicCameraSetup.DefaultZoomOutLimitScale,
             GameSessionStarter.CameraTicksPerSecond(level), scrollSpeed, level.Players, viewer, world.Width, world.Height);
         _controls = setup.Controls;
         ClassicCamera = setup.Camera;
@@ -155,7 +155,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         OpenLighting(world, view, world.Width, world.Height);
         OpenShadows();
         OpenTerrainState(world.Width, world.Height);
-        using (Image white = Image.CreateEmpty(1, 1, false, Image.Format.Rgba8))
+        using (var white = Image.CreateEmpty(1, 1, false, Image.Format.Rgba8))
         {
             white.Fill(Colors.White);
             _white = ImageTexture.CreateFromImage(white);
@@ -245,7 +245,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             PlaceFrontEndCamera(viewport);
             return;
         }
-        var drawnViewport = LetterboxBar > 0
+        CameraViewport drawnViewport = LetterboxBar > 0
             ? new CameraViewport(width, width, Math.Max(1, (int)(height * (1 - 2 * LetterboxBar)))) : viewport;
         ClassicCameraPose? held = PossessionPose(drawnViewport);
         ClassicCameraPose pose = held ?? ClassicCamera.Pose(Focus, drawnViewport);
@@ -438,8 +438,8 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     private ShaderMaterial MaterialFor(in TerrainMaterialKey key)
     {
         if (_keyMaterials.TryGetValue(key, out ShaderMaterial? material)) return material;
-        TerrainMaterialLook look = TerrainMaterialLook.For(key);
-        var shaderKey = (look, key.Variant == TerrainMaterialVariant.Fog);
+        var look = TerrainMaterialLook.For(key);
+        (TerrainMaterialLook look, bool) shaderKey = (look, key.Variant == TerrainMaterialVariant.Fog);
         if (!_lookMaterials.TryGetValue(shaderKey, out material))
         {
             material = WorldMaterial(look.Texture, look.Blend, look.WritesDepth, look.FullLight, look.Colour, look.AddedLight);
@@ -561,7 +561,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     /// brightness curve, <see cref="SetBrightness"/>; 1 leaves it).</summary>
     private static ImageTexture GammaTable(float exponent)
     {
-        using Image table = Image.CreateEmpty(GammaTableWidth, 1, false, Image.Format.Rgbah);
+        using var table = Image.CreateEmpty(GammaTableWidth, 1, false, Image.Format.Rgbah);
         for (int i = 0; i < GammaTableWidth; i++)
         {
             // A linear-filtered texel i is sampled whole at (i + 0.5) / width.
@@ -595,7 +595,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     {
         if (_blended == null || _camera == null || View is not MinimapCameraView view) return;
         ViewFrustum frustum = PlacedFrustum;
-        NVector3 forward = NVector3.Normalize(_placed.Forward);
+        var forward = NVector3.Normalize(_placed.Forward);
         if (!_blended.NeedsRefresh(forward, NMatrix4x4.Identity, frustum.ViewProjection)) return;
         long start = Stopwatch.GetTimestamp(), allocated = GC.GetAllocatedBytesForCurrentThread();
         _blended.Refresh(forward, NMatrix4x4.Identity, frustum);
@@ -637,7 +637,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         {
             RgbaImage source = _art!.LoadTexture(name);
             // Rows top first, as Godot's V counts down from the top, which is the KMF's V (RenderMesh).
-            using Image image = Image.CreateFromData(source.Width, source.Height, false, Image.Format.Rgba8, source.Pixels);
+            using var image = Image.CreateFromData(source.Width, source.Height, false, Image.Format.Rgba8, source.Pixels);
             image.GenerateMipmaps();
             texture = ImageTexture.CreateFromImage(image);
         }
@@ -695,10 +695,10 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     /// signed amplitude, by which the shader waves each vertex.</summary>
     private ShaderMaterial LiquidMaterial(LiquidSurfaceWave wave)
     {
-        TerrainMaterialLook look = TerrainMaterialLook.For(
+        var look = TerrainMaterialLook.For(
             new TerrainMaterialKey(new ClassicMaterialRecipe(wave.Texture, KmfBlend.Opaque, 0f), TerrainMaterialVariant.Plain));
         ShaderMaterial material = WorldMaterial(ShaderFor(LiquidShaderState), look.Texture, look.FullLight, look.Colour, look.AddedLight);
-        var sines = new float[LiquidSurfaceWave.MaximumSines];
+        float[] sines = new float[LiquidSurfaceWave.MaximumSines];
         LiquidSurfaceWave.Sines(wave.Kind).CopyTo(sines);
         material.SetShaderParameter(LiquidSinesParameter, sines);
         material.SetShaderParameter(LiquidPhaseParameter, new Vector3I(LiquidSurfaceWave.PhaseTileStep(wave.Kind),
@@ -736,8 +736,8 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             // The positions only bound the mesh (the shader places every vertex): the wave at frame 0, from SetTiles.
             var positions = new Vector3[count];
             var uvs = new Vector2[count];
-            var anchors = new float[count * 2];
-            var points = new float[count * 4];
+            float[] anchors = new float[count * 2];
+            float[] points = new float[count * 4];
             for (int i = 0; i < count; i++)
             {
                 positions[i] = ToGodot(RightHandedFrame.Point(wave.Positions[i]));
@@ -1167,7 +1167,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             var positions = new Vector3[_vertexCount];
             var normals = new Vector3[_vertexCount];
             var uvs = new Vector2[_vertexCount];
-            var anchors = new float[_vertexCount * 4];
+            float[] anchors = new float[_vertexCount * 4];
             for (int i = 0; i < _vertexCount; i++)
             {
                 positions[i] = ToGodot(_positions[i]);

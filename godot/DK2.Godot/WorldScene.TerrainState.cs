@@ -39,7 +39,7 @@ public partial class WorldScene
         bool geometryChanged = !_terrainStateKnown[tileIndex] || !TerrainTileState.GeometryEquals(_terrainStateTiles[tileIndex], tile);
         _terrainStateKnown[tileIndex] = true;
         _terrainStateTiles[tileIndex] = tile;
-        var state = TerrainTileState.Encode(tile);
+        System.Numerics.Vector4 state = TerrainTileState.Encode(tile);
         _terrainStateImage!.SetPixel(tileIndex % _terrainStateWidth, tileIndex / _terrainStateWidth,
             new Color(state.X, state.Y, state.Z, state.W));
         _terrainStateDirty = true;
@@ -59,7 +59,7 @@ public partial class WorldScene
     private ShaderMaterial FixedTerrainMaterial(in TerrainMaterialKey key)
     {
         if (_fixedTerrainMaterials.TryGetValue(key, out ShaderMaterial? material)) return material;
-        TerrainMaterialLook look = TerrainMaterialLook.For(key);
+        var look = TerrainMaterialLook.For(key);
         material = WorldMaterial(look.Texture, look.Blend, look.WritesDepth, look.FullLight, look.Colour, look.AddedLight);
         _fixedTerrainMaterials.Add(key, material);
         return material;
@@ -93,7 +93,7 @@ public partial class WorldScene
     {
         MeshInstance3D? instance = _terrainOverlayChunks[chunk];
         if (instance == null && _terrainOverlaySurface.IndexCount == 0) return;
-        var mesh = instance?.Mesh as ArrayMesh ?? new ArrayMesh();
+        ArrayMesh mesh = instance?.Mesh as ArrayMesh ?? new ArrayMesh();
         mesh.ClearSurfaces();
         if (_terrainOverlaySurface.IndexCount != 0)
         {

@@ -113,7 +113,7 @@ public partial class HudCanvas
         int size = SizeFor(label, pixelsPerLabel);
         var key = new Vector2I(size, 0);
         var info = new FontGlyph[glyphs.Count];
-        var index = new long[glyphs.Count];
+        long[] index = new long[glyphs.Count];
         for (int g = 0; g < glyphs.Count; g++)
         {
             index[g] = server.FontGetGlyphIndex(_fontRid, size, glyphs[g].Character, 0);

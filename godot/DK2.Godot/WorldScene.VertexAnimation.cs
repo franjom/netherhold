@@ -82,11 +82,11 @@ public partial class WorldScene
             // deriving extents from all frames, so culling covers the clip without moving its blended-order key.
             Vector3 centre = firstFrame.GetCenter();
             NVector3 anchor = new(centre.X, centre.Y, centre.Z);
-            NVector3 extent = NVector3.Max(NVector3.Abs(low - anchor), NVector3.Abs(high - anchor));
+            var extent = NVector3.Max(NVector3.Abs(low - anchor), NVector3.Abs(high - anchor));
             Box = _vertices == 0 ? new Aabb() : new Aabb(centre - ToGodot(extent), ToGodot(extent * 2f));
             bytes.Slice(checked(_vertices * _frames * 3 * sizeof(float))).Clear();
             TextureBytes = byteCount;
-            using Image image = Image.CreateFromData(_width, height, false, Image.Format.Rgbf, bytes);
+            using var image = Image.CreateFromData(_width, height, false, Image.Format.Rgbf, bytes);
             _texture = ImageTexture.CreateFromImage(image);
         }
 

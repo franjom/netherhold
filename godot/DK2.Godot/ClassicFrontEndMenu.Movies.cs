@@ -54,7 +54,7 @@ public partial class ClassicFrontEndMenu : ICampaignCutsceneHost
             try
             {
                 RgbaImage title = _assets!.Load("TitleScreen/TitleScreen");
-                using Image image = Image.CreateFromData(title.Width, title.Height, false, Image.Format.Rgba8, title.Pixels);
+                using var image = Image.CreateFromData(title.Width, title.Height, false, Image.Format.Rgba8, title.Pixels);
                 _titleImage = ImageTexture.CreateFromImage(image);
             }
             catch (Exception ex) when (ex is IOException or InvalidDataException or KeyNotFoundException)

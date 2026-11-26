@@ -259,7 +259,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         // (JitWarmUp), and the level's first ticks run on a throwaway simulation below (LevelWarmUp). --no-warm-up skips both.
         bool warmUp = Array.IndexOf(args, "--no-warm-up") < 0;
         if (warmUp) StartJitWarmUp();
-        LaunchArguments launch = LaunchArguments.Parse(args, "--");
+        var launch = LaunchArguments.Parse(args, "--");
         // A save the previous instance loaded: its level, return page and restored simulation replace the arguments'.
         GameSessionRequest? resume = s_resume ?? (s_launch?.Resume != null ? s_launch : null);
         s_resume = null;

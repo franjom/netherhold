@@ -26,7 +26,7 @@ public partial class InGameHud
         _possessionHudView = new(level.Database, new InstallPossessionHudArt(install));
         if (_art != null)
         {
-            var names = PlayerNames.From(level.Players);
+            Func<byte, string> names = PlayerNames.From(level.Players);
             _possessionIndicators = new(_art, _art.Font, player => names(player.Value));
         }
         _possessionCanvas = new HudCanvas { Name = "PossessionHud", Load = _sources.Texture, Visible = false };

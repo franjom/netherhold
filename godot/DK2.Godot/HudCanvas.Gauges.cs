@@ -50,11 +50,11 @@ public partial class HudCanvas
         DK2.Art.Textures.RgbaImage source = Catalogue(image.Path!);
         var mask = new HudGaugeMask(source.Width, source.Height);
         var slot = new GaugeSlot { Mask = mask, Current = image.Slot };
-        using (Image pixels = Image.CreateFromData(source.Width, source.Height, false, Image.Format.Rgba8, source.Pixels))
+        using (var pixels = Image.CreateFromData(source.Width, source.Height, false, Image.Format.Rgba8, source.Pixels))
             slot.Source = ImageTexture.CreateFromImage(pixels);
         byte[] ranks = new byte[mask.Ranks.Length * 4];
         Buffer.BlockCopy(mask.Ranks, 0, ranks, 0, ranks.Length);
-        using (Image rankImage = Image.CreateFromData(source.Width, source.Height, false, Image.Format.Rf, ranks))
+        using (var rankImage = Image.CreateFromData(source.Width, source.Height, false, Image.Format.Rf, ranks))
             slot.RankTexture = ImageTexture.CreateFromImage(rankImage);
         _gaugeShader ??= GD.Load<Shader>("res://Shaders/HudGauge.gdshader");
         slot.Material = new ShaderMaterial { Shader = _gaugeShader };

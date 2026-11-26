@@ -53,7 +53,7 @@ public partial class MinimapGpuDisc : Node
 
     public void Open(RgbaImage rock)
     {
-        using Image image = Image.CreateFromData(rock.Width, rock.Height, false, Image.Format.Rgba8, rock.Pixels);
+        using var image = Image.CreateFromData(rock.Width, rock.Height, false, Image.Format.Rgba8, rock.Pixels);
         _rockTexture = ImageTexture.CreateFromImage(image);
         SetMapParameter(BackdropName, _rockTexture);
     }
@@ -77,7 +77,7 @@ public partial class MinimapGpuDisc : Node
         float angle = heading.Value * (MathF.PI * 2 / 2048);
         var turn = new Vector2(MathF.Sin(angle), MathF.Cos(angle));
         SetMapParameter(TurnName, turn);
-        MinimapMapBounds fit = MinimapMapBounds.Fit(grid.Width, grid.Height);
+        var fit = MinimapMapBounds.Fit(grid.Width, grid.Height);
         SetMapParameter(FitName, new Vector4I(fit.Left, fit.Top, fit.Width, fit.Height));
         SetMapParameter(GridName, new Vector2I(grid.Width, grid.Height));
         MinimapRasterPoint origin = zoom.IsWholeMap ? default : zoom.RasterOrigin(focus);

@@ -4,6 +4,7 @@
 
 using DK2.Art;
 using DK2.Art.Kmf;
+using DK2.Art.Textures;
 using DK2.Assets;
 using DK2.Core;
 using DK2.Data.Model;
@@ -116,7 +117,7 @@ public partial class WorldScene : ISimulationEventSink
     private bool EffectInPlacedCamera(ViewEffectRequest request)
     {
         if (View == null) return true;
-        var point = RenderWorld.Ground(request.Position.X.Raw / 4096f,
+        NVector3 point = RenderWorld.Ground(request.Position.X.Raw / 4096f,
             request.Position.Y.Raw / 4096f, request.Position.Z.Raw / 4096f);
         ViewFrustum frustum = PlacedFrustum;
         // Use the same one-tile sphere for the camera test.
@@ -124,7 +125,7 @@ public partial class WorldScene : ISimulationEventSink
             if (System.Numerics.Plane.DotCoordinate(frustum[i], point) < -1f)
             {
                 if (PreviewPose is not ClassicCameraPose preview) return false;
-                ViewFrustum second = ViewFrustum.FromPose(preview, PreviewViewport.Width / (float)PreviewViewport.Height, .05f);
+                var second = ViewFrustum.FromPose(preview, PreviewViewport.Width / (float)PreviewViewport.Height, .05f);
                 for (int j = 0; j < 6; j++)
                     if (System.Numerics.Plane.DotCoordinate(second[j], point) < -1f) return false;
                 return true;
@@ -192,7 +193,7 @@ public partial class WorldScene : ISimulationEventSink
                 if (batch.Shape.IsFlat) _effects.AddFlatQuad(_effectQuad, particle, fraction, batch.Frames);
                 else
                 {
-                    var at = EffectDrawList.Position(particle, fraction);
+                    NVector3 at = EffectDrawList.Position(particle, fraction);
                     EffectBillboard billboard = _effects.Billboard(particle, at, batch.Shape, right, up);
                     EffectDrawList.AddBillboardQuad(_effectQuad, particle, billboard, right, up, batch.Frames);
                 }
@@ -360,24 +361,24 @@ public partial class WorldScene : ISimulationEventSink
         public static EffectSpriteBatch? Create(WorldScene scene, IEffectSpriteProvider provider, AssetRef key, EffectElementDef definition)
         {
             if (!provider.TryResolve(key, out ResolvedAsset asset) || !provider.TryGetSprite(asset, out EffectSpriteResource sprite)
-                || !provider.TryLoadFrame(asset, 0, out var first)) return null;
+                || !provider.TryLoadFrame(asset, 0, out RgbaImage? first)) return null;
             int frames = sprite.StoredFrameCount, width = first.Width, height = first.Height;
             byte[] atlas = new byte[width * frames * height * 4];
             for (int frame = 0; frame < frames; frame++)
             {
-                if (!provider.TryLoadFrame(asset, frame, out var image) || image.Width != width || image.Height != height)
+                if (!provider.TryLoadFrame(asset, frame, out RgbaImage? image) || image.Width != width || image.Height != height)
                     throw new InvalidOperationException("Effect sprite frames must have equal dimensions.");
                 for (int row = 0; row < height; row++)
                     Buffer.BlockCopy(image.Pixels, row * width * 4, atlas, (row * width * frames + frame * width) * 4, width * 4);
             }
-            using Image pixels = Image.CreateFromData(width * frames, height, false, Image.Format.Rgba8, atlas);
+            using var pixels = Image.CreateFromData(width * frames, height, false, Image.Format.Rgba8, atlas);
             return new EffectSpriteBatch(scene, ImageTexture.CreateFromImage(pixels), sprite, definition, frames);
         }
 
         /// <summary>One quad of <see cref="EffectQuadBuffer"/> (corners 0, 1 and 3 span it) as an instance at its centre.</summary>
         public void Add(WorldScene scene, EffectQuadBuffer quad)
         {
-            var vertices = quad.Vertices;
+            ReadOnlySpan<NVector3> vertices = quad.Vertices;
             Vector3 origin = ToGodot(RightHandedFrame.Point(vertices[0]));
             Vector3 x = ToGodot(RightHandedFrame.Point(vertices[1])) - origin;
             Vector3 y = ToGodot(RightHandedFrame.Point(vertices[3])) - origin;

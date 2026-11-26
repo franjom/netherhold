@@ -39,9 +39,9 @@ public partial class WorldScene
         }
         int dollars = 0;
         long started = System.Diagnostics.Stopwatch.GetTimestamp(), allocated = GC.GetAllocatedBytesForCurrentThread();
-        NVector3 forward = NVector3.Normalize(view.Forward);
-        NVector3 right = NVector3.Normalize(NVector3.Cross(view.Up, forward));
-        NVector3 up = NVector3.Cross(forward, right);
+        var forward = NVector3.Normalize(view.Forward);
+        var right = NVector3.Normalize(NVector3.Cross(view.Up, forward));
+        var up = NVector3.Cross(forward, right);
         Vector3 x = ToGodot(RightHandedFrame.Direction(right)), y = ToGodot(RightHandedFrame.Direction(up));
         Vector3 z = -ToGodot(RightHandedFrame.Direction(forward));
         for (int f = 0; f < flowers.Count; f++)
@@ -95,8 +95,8 @@ public partial class WorldScene
             return batch;
         }
         RgbaImage rgba = art(name);
-        using Image image = Image.CreateFromData(rgba.Width, rgba.Height, false, Image.Format.Rgba8, rgba.Pixels);
-        ImageTexture texture = ImageTexture.CreateFromImage(image);
+        using var image = Image.CreateFromData(rgba.Width, rgba.Height, false, Image.Format.Rgba8, rgba.Pixels);
+        var texture = ImageTexture.CreateFromImage(image);
         _flowerShader ??= GD.Load<Shader>("res://Shaders/StatusFlower.gdshader");
         _flowerQuad ??= new QuadMesh { Size = Vector2.One };
         var material = new ShaderMaterial { Shader = _flowerShader };

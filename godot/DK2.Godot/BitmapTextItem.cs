@@ -74,7 +74,7 @@ internal sealed class BitmapTextItem : IDisposable
             if (_atlasFont != null) BitmapGlyphAtlas.Release(_atlasFont);
             _atlasFont = font;
         }
-        BitmapGlyphAtlas atlas = BitmapGlyphAtlas.Of(font);
+        var atlas = BitmapGlyphAtlas.Of(font);
         Rid texture = atlas.Texture;
         foreach (PlacedBitmapGlyph placed in _block.Glyphs)
         {

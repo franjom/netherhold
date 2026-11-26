@@ -94,7 +94,7 @@ public partial class WorldScene
         var positions = new Vector3[count];
         var normals = new Vector3[count];
         var uvs = new Vector2[count];
-        var anchors = new float[count * 2];
+        float[] anchors = new float[count * 2];
         for (int i = 0; i < count; i++)
         {
             positions[i] = ToGodot(RightHandedFrame.Point(geometry.Positions[i]));
@@ -111,7 +111,7 @@ public partial class WorldScene
         arrays[(int)Mesh.ArrayType.Custom0] = anchors;
         arrays[(int)Mesh.ArrayType.Index] = geometry.Triangles.ToArray();
 
-        var mesh = instance?.Mesh as ArrayMesh ?? new ArrayMesh();
+        ArrayMesh mesh = instance?.Mesh as ArrayMesh ?? new ArrayMesh();
         mesh.ClearSurfaces();
         mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays, null, null, TerrainCustomFormat);
         // Use the opaque Ceiling texture, lit as the terrain is.

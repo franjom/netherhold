@@ -56,7 +56,7 @@ public partial class MinimapParity : Node
                     foreach (bool withMarkers in new[] { false, true })
                     {
                         MinimapMarker[] drawn = withMarkers ? markers : [];
-                        var focus = At(40.5f, 24.75f); var scale = new MinimapZoom(zoom);
+                            FpPosition3 focus = At(40.5f, 24.75f); var scale = new MinimapZoom(zoom);
                         oracle.Render(diameter, grid, palette, drawn, scale, focus, new Dk2Angle(heading), new TilePos(12, 10), new GameTick(31));
                         gpu.Render(diameter, grid, palette, drawn, scale, focus, new Dk2Angle(heading), new TilePos(12, 10), new GameTick(31), true);
                         for (int f = 0; f < 3; f++) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
@@ -76,7 +76,7 @@ public partial class MinimapParity : Node
                         if (different != 0)
                         {
                             failures++; actual.SavePng(Path.Combine(output, $"actual-{index}.png"));
-                            using Image reference = Image.CreateFromData(diameter, diameter, false, Image.Format.Rgba8, expected);
+                            using var reference = Image.CreateFromData(diameter, diameter, false, Image.Format.Rgba8, expected);
                             reference.SavePng(Path.Combine(output, $"oracle-{index}.png"));
                         }
                         bool? displayEqual = null;
@@ -91,7 +91,7 @@ public partial class MinimapParity : Node
                         GD.Print("minimap parity ", index, ": d", diameter, " heading ", heading, " zoom ", zoom, ", ", different, " differing channels, max ", max);
                         index++;
                     }
-            foreach (var dimensions in new[] { new TilePos(12, 8), new TilePos(8, 12) })
+            foreach (TilePos dimensions in new[] { new TilePos(12, 8), new TilePos(8, 12) })
             {
                 var changedGrid = new MinimapClassGrid(dimensions.X, dimensions.Y);
                 for (int y = 0; y < changedGrid.Height; y++) for (int x = 0; x < changedGrid.Width; x++)
@@ -134,8 +134,8 @@ public partial class MinimapParity : Node
             CanvasItemDefaultTextureFilter = Godot.Viewport.DefaultCanvasItemTextureFilter.Linear,
         };
         viewport.AddChild(new ColorRect { Size = new Vector2(384, 352), Color = new Color(.125f, .25f, .375f) });
-        using Image reference = Image.CreateFromData(oracle.Diameter, oracle.Diameter, false, Image.Format.Rgba8, oracle.Pixels);
-        using ImageTexture referenceTexture = ImageTexture.CreateFromImage(reference);
+        using var reference = Image.CreateFromData(oracle.Diameter, oracle.Diameter, false, Image.Format.Rgba8, oracle.Pixels);
+        using var referenceTexture = ImageTexture.CreateFromImage(reference);
         var quad = new TextureRect
         {
             Position = new Vector2(2.25f, 3.5f), Size = new Vector2(oracle.Diameter * .9375f, oracle.Diameter * .875f),

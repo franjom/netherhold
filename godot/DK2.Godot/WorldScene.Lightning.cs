@@ -85,7 +85,7 @@ public partial class WorldScene
         SetLightningCamera(beginFrame: false);
         _lightning.DrawShots(_effectSimulation.World, _effectSimulation.Database, _lightningView, _lightFraction);
         _lightning.DrawEffects();
-        var vertices = _lightning.Vertices;
+        IReadOnlyList<NVector3> vertices = _lightning.Vertices;
         int quads = vertices.Count / 4;
         if (quads != 0)
         {

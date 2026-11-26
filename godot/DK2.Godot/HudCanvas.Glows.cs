@@ -55,9 +55,9 @@ public partial class HudCanvas
         }
         for (int at = 3; at < quarters.Length; at += 4) quarters[at] = 255;
         var pack = new GlowPack();
-        using (Image image = Image.CreateFromData(full.Width, full.Height, false, Image.Format.Rgba8, full.Pixels))
+        using (var image = Image.CreateFromData(full.Width, full.Height, false, Image.Format.Rgba8, full.Pixels))
             pack.Full = ImageTexture.CreateFromImage(image);
-        using (Image image = Image.CreateFromData(full.Width, full.Height, false, Image.Format.Rgba8, quarters))
+        using (var image = Image.CreateFromData(full.Width, full.Height, false, Image.Format.Rgba8, quarters))
             pack.Quarters = ImageTexture.CreateFromImage(image);
         pack.Partial = new CanvasTexture { DiffuseTexture = pack.Full, NormalTexture = pack.Quarters };
         return pack;

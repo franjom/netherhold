@@ -23,9 +23,9 @@ public static class LauncherTheme
 
     public static Theme Build(float scale)
     {
-        var regular = GD.Load<FontFile>("res://Launcher/AlegreyaSans-Regular.ttf");
-        var medium = GD.Load<FontFile>("res://Launcher/AlegreyaSans-Medium.ttf");
-        var blackletter = GD.Load<FontFile>("res://Launcher/UnifrakturMaguntia-Book.ttf");
+        FontFile regular = GD.Load<FontFile>("res://Launcher/AlegreyaSans-Regular.ttf");
+        FontFile medium = GD.Load<FontFile>("res://Launcher/AlegreyaSans-Medium.ttf");
+        FontFile blackletter = GD.Load<FontFile>("res://Launcher/UnifrakturMaguntia-Book.ttf");
         var theme = new Theme { DefaultFont = regular, DefaultFontSize = 18 };
 
         Variation(theme, Title, "Label");
@@ -160,7 +160,7 @@ public static class LauncherTheme
     private static ImageTexture Mark(int size, float scale, Color colour, Func<Vector2, float, (float Distance, float Cut)> shape)
     {
         int pixels = Mathf.CeilToInt(size * scale);
-        Image image = Image.CreateEmpty(pixels, pixels, false, Image.Format.Rgba8);
+        var image = Image.CreateEmpty(pixels, pixels, false, Image.Format.Rgba8);
         for (int y = 0; y < pixels; y++)
             for (int x = 0; x < pixels; x++)
             {
@@ -169,7 +169,7 @@ public static class LauncherTheme
                 float cover = Mathf.Clamp(.5f - d * scale, 0f, 1f) * (1f - Mathf.Clamp(.5f - cut * scale, 0f, 1f));
                 image.SetPixel(x, y, new Color(colour.R, colour.G, colour.B, colour.A * cover));
             }
-        ImageTexture texture = ImageTexture.CreateFromImage(image);
+        var texture = ImageTexture.CreateFromImage(image);
         texture.SetSizeOverride(new Vector2I(size, size));
         return texture;
     }

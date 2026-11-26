@@ -75,7 +75,7 @@ public partial class Main : Node, IDevOverlayHost
         int movieAt = Array.IndexOf(args, "--play-movie");
         if (movieAt >= 0 && movieAt + 1 < args.Length)
         {
-            ClassicMoviePlayer movie = ClassicMoviePlayer.Play(this, install, args[movieAt + 1]);
+            var movie = ClassicMoviePlayer.Play(this, install, args[movieAt + 1]);
             // A few frames later: the audio server lets go of the stopped stream only on a later mix.
             movie.Finished += () => _quitFrame = _frame + 10;
             return;
@@ -105,7 +105,7 @@ public partial class Main : Node, IDevOverlayHost
     /// the launcher here and whose Quit quits.</summary>
     private void ShowNoInstall(string[] args, FrontEndPage returnPage)
     {
-        FailureScreen screen = FailureScreen.Show(this,
+        var screen = FailureScreen.Show(this,
             new GameFailure(GameFailureKind.NoInstall, Path: LauncherSettingsStore.NamedInstall(args)), overFrame: false);
         if (!GameFailureCopy.WaitsForChoice(hasDisplay: DisplayServer.GetName() != "headless"))
         {

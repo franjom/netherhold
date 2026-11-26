@@ -235,7 +235,7 @@ public partial class WorldScene
                 int texel = at + 4 + (slot * 8);
                 if (slot < lights.Length)
                 {
-                    ClassicTileLightSource source = ClassicTileLightSource.Of(lights[slot]);
+                    var source = ClassicTileLightSource.Of(lights[slot]);
                     // Godot's frame: Z negated (RightHandedFrame).
                     changed |= Write(texel, source.PositionRadiusSquared.X) | Write(texel + 1, source.PositionRadiusSquared.Y)
                         | Write(texel + 2, -source.PositionRadiusSquared.Z) | Write(texel + 3, source.PositionRadiusSquared.W)

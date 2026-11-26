@@ -48,7 +48,7 @@ public partial class HudCanvas
             _catalogueCount++;
         }
         byte[] pixels = HudImagePixels.Apply(source.Pixels, source.Width, source.Height, image);
-        using Image decoded = Image.CreateFromData(source.Width, source.Height, false, Image.Format.Rgba8, pixels);
+        using var decoded = Image.CreateFromData(source.Width, source.Height, false, Image.Format.Rgba8, pixels);
         texture = ImageTexture.CreateFromImage(decoded);
         _textures.Add(image, texture);
         return texture;

@@ -534,7 +534,7 @@ public partial class WorldScene
                 if (triangles.Length == 0) { SurfaceOf[submesh] = -1; continue; }
                 remap.Clear();
                 var used = new List<int>();
-                var indices = new int[triangles.Length];
+                int[] indices = new int[triangles.Length];
                 for (int i = 0; i < triangles.Length; i++)
                 {
                     if (!remap.TryGetValue(triangles[i], out int local)) { remap.Add(triangles[i], local = used.Count); used.Add(triangles[i]); }
@@ -580,7 +580,7 @@ public partial class WorldScene
             int[] triangles = Source.Triangles[submesh];
             var local = new Dictionary<int, int>(used.Length);
             for (int i = 0; i < used.Length; i++) local[used[i]] = i;
-            var indices = new int[triangles.Length];
+            int[] indices = new int[triangles.Length];
             for (int i = 0; i < triangles.Length; i++) indices[i] = local[triangles[i]];
             return Arrays(positions, normals ?? Source.Normals, used, indices, instance);
         }
@@ -594,9 +594,9 @@ public partial class WorldScene
             var points = new Vector3[used.Count];
             var turned = new Vector3[used.Count];
             var uvs = new Vector2[used.Count];
-            var bounds = new float[used.Count * 4];
-            var kinds = new float[used.Count * 4];
-            var sourceIndices = new float[used.Count];
+            float[] bounds = new float[used.Count * 4];
+            float[] kinds = new float[used.Count * 4];
+            float[] sourceIndices = new float[used.Count];
             NVector3 centre = Sphere is PickSphere sphere ? RightHandedFrame.Point(sphere.Centre) : default;
             float radius = Sphere?.Radius ?? 0f, kindX = Sphere != null && instance ? 1f : 0f, kindY = Sphere != null ? 1f : 0f;
             for (int i = 0; i < used.Count; i++)
@@ -703,7 +703,7 @@ public partial class WorldScene
             RenderTurn = RenderRotation.Of(turn);
             RenderScale = new NVector3(scale.X, scale.Y, scale.Z);
             System.Numerics.Quaternion q = RightHandedFrame.Rotation(RenderTurn);
-            var basis = new Basis(new Quaternion(q.X, q.Y, q.Z, q.W)) * Basis.FromScale(scale);
+            Basis basis = new Basis(new Quaternion(q.X, q.Y, q.Z, q.W)) * Basis.FromScale(scale);
             Node.Transform = new Transform3D(basis, ToGodot(RightHandedFrame.Point(position)));
         }
 
@@ -1108,7 +1108,7 @@ public partial class WorldScene
             {
                 if (!provider.TryLoadFrame(asset, frame, out DK2.Art.Textures.RgbaImage image)) break;
                 // Rows top first, as the frame stands with its tip up.
-                Image pixels = Image.CreateFromData(image.Width, image.Height, false, Image.Format.Rgba8, image.Pixels);
+                var pixels = Image.CreateFromData(image.Width, image.Height, false, Image.Format.Rgba8, image.Pixels);
                 if (frame == 0) (width, height) = (image.Width, image.Height);
                 else if (image.Width != width || image.Height != height)
                 {

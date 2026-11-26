@@ -72,7 +72,7 @@ public partial class InGameHud
         CapturePointer(false);
         if (_soundOutput != null) _soundOutput.ProcessMode = ProcessModeEnum.Disabled;
         _mixer?.Dispose();
-        FailureScreen screen = FailureScreen.Show(this, failure, overFrame);
+        var screen = FailureScreen.Show(this, failure, overFrame);
         if (!GameFailureCopy.WaitsForChoice(hasDisplay: DisplayServer.GetName() != "headless"))
         {
             GetTree().Quit(GameFailureCopy.ExitCode);

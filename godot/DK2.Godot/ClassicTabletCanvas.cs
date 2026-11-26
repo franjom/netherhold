@@ -3,6 +3,7 @@
 // See LICENSE in the project root for the full license text.
 
 
+using DK2.Art.Kmf;
 using DK2.Presentation;
 using Godot;
 
@@ -22,7 +23,7 @@ internal sealed class ClassicTabletCanvas : IDisposable
     {
         _draw = new TabletDrawList(mesh);
         int capacity = 0;
-        foreach (var primitive in mesh.Primitives)
+        foreach (KmfPrimitive primitive in mesh.Primitives)
         {
             capacity = Math.Max(capacity, primitive.IndicesByDetailLevel[0].Count);
             foreach (string name in mesh.Model.Materials[(int)primitive.MaterialIndex].TextureNames)

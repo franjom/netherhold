@@ -53,7 +53,7 @@ public partial class PerformanceReport : Node
         string? path = LaunchArguments.Value(args, "--perf-report");
         if (path == null) return null;
         string? cameraText = LaunchArguments.Value(args, "--perf-camera");
-        CameraScript? camera = CameraScript.Parse(cameraText);
+        var camera = CameraScript.Parse(cameraText);
         if (!TryCount(args, "--perf-warmup", DefaultWarmUp, out int warmUp) || !TryCount(args, "--perf-frames", 0, out int frames)
             || !TrySize(LaunchArguments.Value(args, "--perf-size"), out Vector2I? size) || camera == null && cameraText != null)
         {
@@ -274,7 +274,7 @@ public partial class PerformanceReport : Node
     private static string[] Abbreviated(string[] args)
     {
         string home = System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile).Replace('\\', '/');
-        var shown = new string[args.Length];
+        string[] shown = new string[args.Length];
         for (int i = 0; i < args.Length; i++)
         {
             string arg = args[i].Replace('\\', '/');
