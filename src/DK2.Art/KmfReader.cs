@@ -13,7 +13,11 @@ public static class KmfReader
 {
     public static KmfModel Read(Stream stream)
     {
-        if (stream is null) throw new ArgumentNullException(nameof(stream));
+        if (stream is null)
+        {
+            throw new ArgumentNullException(nameof(stream));
+        }
+
         using var copy = new MemoryStream();
         stream.CopyTo(copy);
         return Read(copy.ToArray());
@@ -27,10 +31,15 @@ public static class KmfReader
         reader.Expect("HEAD"); reader.SkipSectionSize();
         var kind = (KmfKind)reader.UInt32();
         if (kind is not (KmfKind.Mesh or KmfKind.Animation or KmfKind.Group))
+        {
             throw reader.Invalid($"Unsupported KMF kind {(uint)kind}.");
+        }
+
         _ = reader.UInt32(); // UNKNOWN header field.
         if (kind == KmfKind.Group)
+        {
             return new KmfModel(version, kind, [], null, Group: ReadGroup(ref reader));
+        }
 
         IReadOnlyList<KmfMaterial> materials = ReadMaterials(ref reader);
         return kind == KmfKind.Mesh
@@ -67,7 +76,9 @@ public static class KmfReader
             uint textureCount = reader.Count("material texture");
             var textures = new List<string>((int)textureCount);
             for (uint texture = 0; texture < textureCount; texture++)
+            {
                 textures.Add(reader.NullTerminatedAscii());
+            }
             // DK2's loader (0x0057D390) reads the same order: flags, brightness, shininess, the
             // environment texture; KmfMaterial derives the blend from the flags.
             materials.Add(new KmfMaterial(name, textures, reader.UInt32(),
@@ -91,7 +102,10 @@ public static class KmfReader
         List<SpriteData> sprites = ReadStaticSprites(ref reader, primitiveCount, detailLevelCount);
         reader.Expect("GEOM"); reader.SkipSectionSize();
         var positions = new Vector3[(int)geometryCount];
-        for (int i = 0; i < positions.Length; i++) positions[i] = reader.Vector3();
+        for (int i = 0; i < positions.Length; i++)
+        {
+            positions[i] = reader.Vector3();
+        }
 
         var primitives = new List<KmfPrimitive>(sprites.Count);
         foreach (SpriteData sprite in sprites)
@@ -102,7 +116,10 @@ public static class KmfReader
             {
                 RawVertex vertex = sprite.Vertices[i];
                 if (vertex.GeometryIndex >= positions.Length)
+                {
                     throw reader.Invalid($"Geometry index {vertex.GeometryIndex} is out of range.");
+                }
+
                 vertices[i] = new KmfVertex(positions[vertex.GeometryIndex], vertex.Normal, vertex.Uv);
             }
             primitives.Add(new KmfPrimitive(sprite.MaterialIndex, sprite.DetailFactor,
@@ -120,11 +137,19 @@ public static class KmfReader
         string name = reader.NullTerminatedAscii();
         uint primitiveCount = reader.Count("animation primitive");
         uint frameCount = reader.Count("animation frame");
-        if (frameCount == 0) throw reader.Invalid("Animation has no frames.");
+        if (frameCount == 0)
+        {
+            throw reader.Invalid("Animation has no frames.");
+        }
+
         uint indexTableCount = reader.Count("animation index table");
         uint geometryCount = reader.Count("animation geometry");
         uint frameMode = reader.UInt32();
-        if (frameMode > 1) throw reader.Invalid($"Unknown animation frame mode {frameMode}.");
+        if (frameMode > 1)
+        {
+            throw reader.Invalid($"Unknown animation frame mode {frameMode}.");
+        }
+
         Vector3 origin = reader.Vector3();
         float boundsScale = reader.Single();
         float geometryScale = reader.Single();
@@ -138,7 +163,11 @@ public static class KmfReader
         for (uint chunk = 0; chunk < tableChunkCount; chunk++)
         {
             uint[] table = new uint[(int)indexTableCount];
-            for (int i = 0; i < table.Length; i++) table[i] = reader.UInt32();
+            for (int i = 0; i < table.Length; i++)
+            {
+                table[i] = reader.UInt32();
+            }
+
             indexTables[(int)chunk] = table;
         }
 
@@ -161,16 +190,27 @@ public static class KmfReader
         reader.Expect("VGEO"); reader.SkipSectionSize();
         byte[,] frameOffsets = new byte[(int)indexTableCount, (int)frameCount];
         for (int index = 0; index < (int)indexTableCount; index++)
+        {
             for (uint frame = 0; frame < frameCount; frame++)
+            {
                 frameOffsets[index, (int)frame] = reader.Byte();
+            }
+        }
 
-        foreach (SpriteData sprite in sprites) ValidateSprite(ref reader, sprite, materials.Count);
+        foreach (SpriteData sprite in sprites)
+        {
+            ValidateSprite(ref reader, sprite, materials.Count);
+        }
+
         KmfMesh frameZero = BuildFrame(0);
         var frames = new List<KmfMesh>(checked((int)frameCount)) { frameZero };
         string? decodeFailure = null;
         try
         {
-            for (int frame = 1; frame < (int)frameCount; frame++) frames.Add(BuildFrame(frame));
+            for (int frame = 1; frame < (int)frameCount; frame++)
+            {
+                frames.Add(BuildFrame(frame));
+            }
         }
         catch (InvalidDataException exception)
         {
@@ -192,7 +232,10 @@ public static class KmfReader
                 {
                     RawVertex vertex = sprite.Vertices[i];
                     if ((uint)vertex.GeometryIndex >= indexTableCount)
+                    {
                         throw Invalid($"Animation table index {vertex.GeometryIndex} is out of range.");
+                    }
+
                     uint geometryIndex;
                     try
                     {
@@ -204,8 +247,11 @@ public static class KmfReader
                         throw Invalid($"Animation geometry index overflow at frame {frame}.", exception);
                     }
                     if (geometryIndex >= positions.Length)
+                    {
                         throw Invalid(
                             $"Animation geometry index {geometryIndex} is out of range at frame {frame}.");
+                    }
+
                     vertices[i] = new KmfVertex(PositionAt(frame, lookup, (int)geometryIndex), vertex.Normal, vertex.Uv);
                 }
                 primitives.Add(new KmfPrimitive(sprite.MaterialIndex, sprite.DetailFactor,
@@ -221,11 +267,19 @@ public static class KmfReader
         // in shipped KMFs only on the key's own frame, where DK2's numerator is 0 (ADR-0390).
         Vector3 PositionAt(int frame, int lookup, int g)
         {
-            if (g + 1 >= positions.Length) return positions[g];
+            if (g + 1 >= positions.Length)
+            {
+                return positions[g];
+            }
+
             int blockStart = lookup / 128 * 128;
             int keyA = blockStart + keyFrames[g];
             int span = keyFrames[g + 1] - keyFrames[g];
-            if (span <= 0) return positions[g];
+            if (span <= 0)
+            {
+                return positions[g];
+            }
+
             float t = (frame - keyA) / (float)span;
             return positions[g] + (positions[g + 1] - positions[g]) * t;
         }
@@ -305,7 +359,10 @@ public static class KmfReader
             reader.Expect("SPHD"); reader.SkipSectionSize();
             uint[] triangleCounts = new uint[(int)detailLevelCount];
             for (int detail = 0; detail < triangleCounts.Length; detail++)
+            {
                 triangleCounts[detail] = reader.Count("triangle");
+            }
+
             headers.Add(new SpriteHeader(triangleCounts, reader.Count("vertex"), reader.Single()));
         }
         return headers;
@@ -316,17 +373,27 @@ public static class KmfReader
     {
         var levels = new List<IReadOnlyList<byte>>(triangleCounts.Count);
         foreach (uint triangleCount in triangleCounts)
+        {
             levels.Add(reader.Bytes(checked((int)triangleCount * 3)));
+        }
+
         return levels;
     }
 
     private static void ValidateSprite(ref SpanReader reader, SpriteData sprite, int materialCount)
     {
         if (sprite.MaterialIndex >= materialCount)
+        {
             throw reader.Invalid($"Material index {sprite.MaterialIndex} is out of range.");
+        }
+
         foreach (byte index in sprite.Indices.SelectMany(level => level))
+        {
             if (index >= sprite.Vertices.Count)
+            {
                 throw reader.Invalid($"Vertex index {index} is out of range.");
+            }
+        }
     }
 
     private sealed record SpriteHeader(uint[] TriangleCounts, uint VertexCount, float DetailFactor);
@@ -357,14 +424,26 @@ public static class KmfReader
         public uint Count(string name)
         {
             uint value = UInt32();
-            if (value > int.MaxValue) throw Invalid($"{name} count {value} is too large.");
+            if (value > int.MaxValue)
+            {
+                throw Invalid($"{name} count {value} is too large.");
+            }
+
             return value;
         }
         public string NullTerminatedAscii()
         {
             int start = _position;
-            while (_position < _data.Length && _data[_position] != 0) _position++;
-            if (_position == _data.Length) throw Invalid("Unterminated ASCII string.");
+            while (_position < _data.Length && _data[_position] != 0)
+            {
+                _position++;
+            }
+
+            if (_position == _data.Length)
+            {
+                throw Invalid("Unterminated ASCII string.");
+            }
+
             string value = Encoding.ASCII.GetString(_data[start.._position]); _position++; return value;
         }
         public byte[] Bytes(int count)
@@ -376,7 +455,10 @@ public static class KmfReader
         {
             Require(4); string actual = Encoding.ASCII.GetString(_data.Slice(_position, 4));
             _position += 4;
-            if (actual != expected) throw Invalid($"Expected chunk '{expected}', found '{actual}'.");
+            if (actual != expected)
+            {
+                throw Invalid($"Expected chunk '{expected}', found '{actual}'.");
+            }
         }
         public void SkipSectionSize() => _ = UInt32();
         public void Skip(int count) { Require(count); _position += count; }
@@ -385,7 +467,9 @@ public static class KmfReader
         private void Require(int count)
         {
             if (count < 0 || _position > _data.Length - count)
+            {
                 throw Invalid($"Need {count} bytes, only {_data.Length - _position} remain.");
+            }
         }
     }
 }

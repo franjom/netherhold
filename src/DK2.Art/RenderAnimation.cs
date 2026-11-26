@@ -14,9 +14,16 @@ public sealed class RenderAnimation
 
     public RenderAnimation(KmfModel model)
     {
-        if (model is null) throw new ArgumentNullException(nameof(model));
+        if (model is null)
+        {
+            throw new ArgumentNullException(nameof(model));
+        }
+
         if (model.Animation is not { IsComplete: true } animation || animation.Frames.Count == 0)
+        {
             throw new ArgumentException("A complete animated KMF is required.", nameof(model));
+        }
+
         Mesh = RenderMesh.FromModel(model);
         _frames = new Vector3[animation.Frames.Count][];
         for (int frame = 0; frame < _frames.Length; frame++)
@@ -24,7 +31,9 @@ public sealed class RenderAnimation
             _frames[frame] = animation.Frames[frame].Primitives
                 .SelectMany(p => p.Vertices).Select(v => RenderMesh.ToRenderFrame(v.Position)).ToArray();
             if (_frames[frame].Length != Mesh.Positions.Count)
+            {
                 throw new ArgumentException("Animation frame vertex counts differ.", nameof(model));
+            }
         }
     }
 
@@ -39,7 +48,10 @@ public sealed class RenderAnimation
     public Vector3 SampleVertex(float normalizedTime, int vertex)
     {
         if (float.IsNaN(normalizedTime) || float.IsInfinity(normalizedTime))
+        {
             throw new ArgumentOutOfRangeException(nameof(normalizedTime));
+        }
+
         float frame = Math.Clamp(normalizedTime, 0f, 1f) * (FrameCount - 1);
         int first = (int)frame, second = Math.Min(first + 1, FrameCount - 1);
         return Vector3.Lerp(_frames[first][vertex], _frames[second][vertex], frame - first);
@@ -50,16 +62,32 @@ public sealed class RenderAnimation
     public void Sample(float normalizedTime, bool loop, Vector3[] positions)
     {
         if (float.IsNaN(normalizedTime) || float.IsInfinity(normalizedTime))
+        {
             throw new ArgumentOutOfRangeException(nameof(normalizedTime));
-        if (positions is null) throw new ArgumentNullException(nameof(positions));
+        }
+
+        if (positions is null)
+        {
+            throw new ArgumentNullException(nameof(positions));
+        }
+
         if (positions.Length != Mesh.Positions.Count)
+        {
             throw new ArgumentException("The destination must match the clip vertex count.", nameof(positions));
+        }
+
         float time = Math.Max(normalizedTime, 0f);
-        if (time > 1f) time = loop ? time - (float)Math.Ceiling(time) + 1f : 1f;
+        if (time > 1f)
+        {
+            time = loop ? time - (float)Math.Ceiling(time) + 1f : 1f;
+        }
+
         float frame = time * (FrameCount - 1);
         int first = (int)frame, second = Math.Min(first + 1, FrameCount - 1);
         float fraction = frame - first;
         for (int i = 0; i < positions.Length; i++)
+        {
             positions[i] = Vector3.Lerp(_frames[first][i], _frames[second][i], fraction);
+        }
     }
 }

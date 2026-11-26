@@ -33,13 +33,21 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
     /// <summary>Models decoded and kept so far.</summary>
     public int ModelsDecoded
     {
-        get { lock (_gate) return _models.Count; }
+        get { lock (_gate)
+            {
+                return _models.Count;
+            }
+        }
     }
 
     /// <summary>Images decoded and kept so far.</summary>
     public int ImagesDecoded
     {
-        get { lock (_gate) return _images.Count; }
+        get { lock (_gate)
+            {
+                return _images.Count;
+            }
+        }
     }
 
     /// <summary>Time spent decoding models and images on request, cache hits and
@@ -56,16 +64,26 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
     private InstallArtProvider(IReadOnlyList<ArtEntry> entries, IMeshSource meshes, ITextureSource textures,
         IDisposable? owned)
     {
-        if (entries is null) throw new ArgumentNullException(nameof(entries));
+        if (entries is null)
+        {
+            throw new ArgumentNullException(nameof(entries));
+        }
+
         _meshes = meshes ?? throw new ArgumentNullException(nameof(meshes));
         _textures = textures ?? throw new ArgumentNullException(nameof(textures));
         _owned = owned;
         foreach (ArtEntry entry in entries)
         {
-            if (!entry.HasSource) continue;
+            if (!entry.HasSource)
+            {
+                continue;
+            }
+
             bool collection = entry.Use == ArtUse.FirstMaterialTexture;
             if (_meshes.TryFind(entry.Source!.Name, collection, out _, out string entryName))
+            {
                 _entries[entry.Reference] = (entryName, entry.Use, entry.Source);
+            }
         }
     }
 
@@ -74,8 +92,14 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
     public static InstallArtProvider Open(string installDirectory, GameDatabase database, IEnumerable<ArtEntry>? additionalEntries = null)
     {
         if (string.IsNullOrWhiteSpace(installDirectory))
+        {
             throw new ArgumentException("An install directory is required.", nameof(installDirectory));
-        if (database is null) throw new ArgumentNullException(nameof(database));
+        }
+
+        if (database is null)
+        {
+            throw new ArgumentNullException(nameof(database));
+        }
 
         var catalogue = Dk2ArtCatalogue.Load(installDirectory);
         IReadOnlyList<ArtEntry> entries = additionalEntries is null ? ArtSourceMap.ForDatabase(database, catalogue)
@@ -128,9 +152,17 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
     public bool TryLoadGroup(string groupName, out KmfGroup group)
     {
         group = null!;
-        if (!_meshes.TryFind(groupName, allowCollectionMember: false, out _, out string entryName)) return false;
+        if (!_meshes.TryFind(groupName, allowCollectionMember: false, out _, out string entryName))
+        {
+            return false;
+        }
+
         KmfModel model = LoadEntry(entryName);
-        if (model.Group is null) return false;
+        if (model.Group is null)
+        {
+            return false;
+        }
+
         group = model.Group;
         return true;
     }
@@ -165,7 +197,11 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
     public bool TryResolveSegment(in ResolvedAsset asset, AnimationSegment segment, out ResolvedAsset resolved)
     {
         resolved = default;
-        if (!TryGetResource(asset, out Dk2ArtResource resource)) return false;
+        if (!TryGetResource(asset, out Dk2ArtResource resource))
+        {
+            return false;
+        }
+
         if (segment == AnimationSegment.Main) { resolved = asset; return true; }
         CreatureAnimationFlags flag = segment switch
         {
@@ -173,9 +209,17 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
             AnimationSegment.End => CreatureAnimationFlags.EndSegment,
             _ => throw new ArgumentOutOfRangeException(nameof(segment)),
         };
-        if ((resource.AnimationFlags & flag) == 0) return false;
+        if ((resource.AnimationFlags & flag) == 0)
+        {
+            return false;
+        }
+
         string name = resource.Name + (segment == AnimationSegment.Start ? "Start" : "End");
-        if (!_meshes.TryFind(name, false, out _, out string entry)) return false;
+        if (!_meshes.TryFind(name, false, out _, out string entry))
+        {
+            return false;
+        }
+
         resolved = new ResolvedAsset(asset.Reference, AssetSource.InstallEntry, filePath: null,
             look: default, providerName: Name, installEntry: entry);
         return true;
@@ -209,14 +253,29 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
     /// </summary>
     public void Prefetch(IEnumerable<AssetRef> keys, int workers, CancellationToken cancellation = default)
     {
-        if (keys is null) throw new ArgumentNullException(nameof(keys));
+        if (keys is null)
+        {
+            throw new ArgumentNullException(nameof(keys));
+        }
+
         var entries = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (AssetRef key in keys)
         {
-            if (!TryResolve(key, out ResolvedAsset asset)) continue;
+            if (!TryResolve(key, out ResolvedAsset asset))
+            {
+                continue;
+            }
+
             entries.Add(asset.InstallEntry!);
-            if (TryResolveSegment(asset, AnimationSegment.Start, out ResolvedAsset start)) entries.Add(start.InstallEntry!);
-            if (TryResolveSegment(asset, AnimationSegment.End, out ResolvedAsset end)) entries.Add(end.InstallEntry!);
+            if (TryResolveSegment(asset, AnimationSegment.Start, out ResolvedAsset start))
+            {
+                entries.Add(start.InstallEntry!);
+            }
+
+            if (TryResolveSegment(asset, AnimationSegment.End, out ResolvedAsset end))
+            {
+                entries.Add(end.InstallEntry!);
+            }
         }
 
         var options = new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, workers), CancellationToken = cancellation };
@@ -225,7 +284,11 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
         {
             Parallel.ForEach(entries, options, entry =>
             {
-                if (!TryPrefetch(() => LoadEntry(entry, counted: false), out KmfModel model)) return;
+                if (!TryPrefetch(() => LoadEntry(entry, counted: false), out KmfModel model))
+                {
+                    return;
+                }
+
                 foreach (KmfMaterial material in model.Materials)
                 {
                     if (material.TextureNames.Count > 0)
@@ -234,7 +297,9 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
                         textures.TryAdd(material.TextureNames[material.TextureNames.Count - 1], true);
                     }
                     else if (!string.IsNullOrEmpty(material.EnvironmentTextureName))
+                    {
                         textures.TryAdd(material.EnvironmentTextureName, true);
+                    }
                 }
             });
             Parallel.ForEach(textures.Keys, options, name => TryPrefetch(() => LoadTexture(name, counted: false), out _));
@@ -262,13 +327,27 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
 
     private RgbaImage LoadTexture(string textureName, bool counted)
     {
-        if (string.IsNullOrEmpty(textureName)) throw new ArgumentException("A texture name is required.", nameof(textureName));
+        if (string.IsNullOrEmpty(textureName))
+        {
+            throw new ArgumentException("A texture name is required.", nameof(textureName));
+        }
+
         string stored = _textures.Resolve(textureName);
         lock (_gate)
-            if (_images.TryGetValue(stored, out RgbaImage? kept)) return kept;
+        {
+            if (_images.TryGetValue(stored, out RgbaImage? kept))
+            {
+                return kept;
+            }
+        }
+
         long start = Stopwatch.GetTimestamp();
         RgbaImage image = _textures.Read(stored);
-        if (counted) Interlocked.Add(ref _decodeTicks, Stopwatch.GetTimestamp() - start);
+        if (counted)
+        {
+            Interlocked.Add(ref _decodeTicks, Stopwatch.GetTimestamp() - start);
+        }
+
         return Keep(_images, stored, image);
     }
 
@@ -276,7 +355,11 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
     {
         lock (_gate)
         {
-            if (cache.TryGetValue(name, out T? kept)) return kept;
+            if (cache.TryGetValue(name, out T? kept))
+            {
+                return kept;
+            }
+
             cache[name] = value;
             return value;
         }
@@ -287,19 +370,35 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
     private string EntryOf(in ResolvedAsset asset)
     {
         if (asset.Source != AssetSource.InstallEntry || asset.InstallEntry is null || asset.ProviderName != Name)
+        {
             throw new ArgumentException($"'{asset.Reference}' was not resolved by {Name}.", nameof(asset));
+        }
+
         return asset.InstallEntry;
     }
 
     private KmfModel LoadEntry(string entryName, bool counted = true)
     {
         lock (_gate)
-            if (_models.TryGetValue(entryName, out KmfModel? kept)) return kept;
+        {
+            if (_models.TryGetValue(entryName, out KmfModel? kept))
+            {
+                return kept;
+            }
+        }
+
         if (!_meshes.TryFind(entryName, out int index))
+        {
             throw new FileNotFoundException($"Meshes.WAD has no '{entryName}'.");
+        }
+
         long start = Stopwatch.GetTimestamp();
         KmfModel model = KmfReader.Read(_meshes.Read(index));
-        if (counted) Interlocked.Add(ref _decodeTicks, Stopwatch.GetTimestamp() - start);
+        if (counted)
+        {
+            Interlocked.Add(ref _decodeTicks, Stopwatch.GetTimestamp() - start);
+        }
+
         return Keep(_models, entryName, model);
     }
 

@@ -157,9 +157,14 @@ public static partial class KwdAdditionalRecords
     internal static void WriteU16s(byte[] image, int offset, int count, IReadOnlyList<ushort> values)
     {
         if (values is null || values.Count != count)
+        {
             throw new InvalidDataException($"Field at +0x{offset:X} requires exactly {count} ushort slots.");
+        }
+
         for (int i = 0; i < count; i++)
+        {
             BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(offset + i * 2), values[i]);
+        }
     }
 
     internal static void WriteLight(byte[] image, int offset, KwdLight row)
@@ -185,7 +190,10 @@ public static partial class KwdAdditionalRecords
     internal static void WriteRaw(byte[] image, int offset, int width, ReadOnlyMemory<byte> value)
     {
         if (value.Length != width)
+        {
             throw new InvalidDataException($"Raw field at +0x{offset:X} requires exactly {width} bytes.");
+        }
+
         value.Span.CopyTo(image.AsSpan(offset, width));
     }
 }

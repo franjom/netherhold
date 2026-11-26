@@ -23,7 +23,10 @@ public static class KwdTerrainRooms
         byte[] bytes = KwdOverlay.Image(template, KwdRecordType.Rooms, RoomRecordSize);
         KwdOverlay.Ascii(bytes, 0, 32, record.Name, ReadName(bytes, 0, 32), trimmed: false);
         if (record.ObjectIds.Count != 8)
+        {
             throw new InvalidDataException("ROOMS requires exactly eight object ids.");
+        }
+
         void U16(int offset, ushort value) => BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(offset), value);
         BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(RoomLayout.Height), record.CeilingHeight.Raw);
         BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(RoomLayout.Flags), (uint)record.Flags);
@@ -40,7 +43,11 @@ public static class KwdTerrainRooms
         bytes[RoomLayout.Terrain] = record.TerrainId;
         bytes[RoomLayout.Construction] = (byte)record.Construction;
         bytes[RoomLayout.Creature] = record.CreatedCreatureId;
-        for (int i = 0; i < 8; i++) bytes[RoomLayout.Objects + i] = record.ObjectIds[i];
+        for (int i = 0; i < 8; i++)
+        {
+            bytes[RoomLayout.Objects + i] = record.ObjectIds[i];
+        }
+
         bytes[RoomLayout.Order] = record.OrderInEditor;
         bytes[RoomLayout.SizeX] = record.RecommendedSizeX;
         bytes[RoomLayout.SizeY] = record.RecommendedSizeY;
@@ -54,7 +61,10 @@ public static class KwdTerrainRooms
         void U16(int offset, ushort value) => BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(offset), value);
         BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(TerrainLayout.Depth), record.Depth.Raw);
         if (record.TerrainLightHeight is Fp32 lightHeight)
+        {
             BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(TerrainLayout.LightHeight), lightHeight.Raw);
+        }
+
         BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(TerrainLayout.Flags), (uint)record.Flags);
         BinaryPrimitives.WriteInt16LittleEndian(bytes.AsSpan(TerrainLayout.Damage), record.Damage);
         U16(TerrainLayout.Gold, record.GoldValue);
@@ -117,10 +127,16 @@ public static class KwdTerrainRooms
         var result = new List<TerrainDef>();
         foreach (KwdChunk chunk in chunks)
         {
-            if (chunk.Type != KwdRecordType.Terrain) continue;
+            if (chunk.Type != KwdRecordType.Terrain)
+            {
+                continue;
+            }
+
             RequireSize(chunk, TerrainRecordSize, "TERRAIN");
             for (int i = 0; i < chunk.ItemCount; i++)
+            {
                 result.Add(ParseTerrainRecord(chunk.Content, i * TerrainRecordSize));
+            }
         }
         return result;
     }
@@ -130,21 +146,33 @@ public static class KwdTerrainRooms
         var result = new List<RoomDef>();
         foreach (KwdChunk chunk in chunks)
         {
-            if (chunk.Type != KwdRecordType.Rooms) continue;
+            if (chunk.Type != KwdRecordType.Rooms)
+            {
+                continue;
+            }
+
             RequireSize(chunk, RoomRecordSize, "ROOMS");
             for (int i = 0; i < chunk.ItemCount; i++)
+            {
                 result.Add(ParseRoomRecord(chunk.Content, i * RoomRecordSize));
+            }
         }
         return result;
     }
 
     private static void RequireSize(KwdChunk chunk, int expected, string what)
     {
-        if (chunk.ItemCount == 0) return;
+        if (chunk.ItemCount == 0)
+        {
+            return;
+        }
+
         int actual = chunk.Content.Length / chunk.ItemCount;
         if (actual != expected || chunk.Content.Length != (long)expected * chunk.ItemCount)
+        {
             throw new InvalidDataException(
                 $"{what} record size is {actual}, expected {expected}.");
+        }
     }
 
     private static string ReadName(byte[] rec, int at, int len)

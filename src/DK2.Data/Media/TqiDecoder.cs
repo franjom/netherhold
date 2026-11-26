@@ -117,10 +117,22 @@ public sealed class TqiDecoder
     /// bytes) and returns the number of bitstream bits consumed.</summary>
     public int Decode(ReadOnlySpan<byte> payload, Span<byte> rgba)
     {
-        if (payload.Length < 8) throw new InvalidDataException("TQI frame is shorter than its header");
+        if (payload.Length < 8)
+        {
+            throw new InvalidDataException("TQI frame is shorter than its header");
+        }
+
         (int width, int height) = FrameSize(payload);
-        if (width % 16 != 0 || height % 16 != 0) throw new InvalidDataException($"TQI frame {width}x{height} is not whole macroblocks");
-        if (rgba.Length < width * height * 4) throw new ArgumentException("output is too small", nameof(rgba));
+        if (width % 16 != 0 || height % 16 != 0)
+        {
+            throw new InvalidDataException($"TQI frame {width}x{height} is not whole macroblocks");
+        }
+
+        if (rgba.Length < width * height * 4)
+        {
+            throw new ArgumentException("output is too small", nameof(rgba));
+        }
+
         BuildMatrix(payload[4]);
         LoadWords(payload[8..]);
 
@@ -150,18 +162,28 @@ public sealed class TqiDecoder
 
     private void BuildMatrix(int quantiser)
     {
-        if (quantiser == _matrixQuantiser) return;
+        if (quantiser == _matrixQuantiser)
+        {
+            return;
+        }
         // 0x005AAB10. q = 100 is a flat 8 * S; otherwise S scaled by the intra matrix and
         // (107 - q) / 16. Coefficient 0 always takes 0x10000. DK2 indexes M by the transposed
         // position; with the natural zigzag used here the multiplier is M at the transposed index.
         Span<int> natural = stackalloc int[64];
         float factor = (107 - quantiser) * 0.0625f;
         for (int i = 0; i < 64; i++)
+        {
             natural[i] = quantiser == 100
                 ? FixMul(Prescale[i], 0x80000)
                 : FixMul(Prescale[i], (int)(IntraMatrix[i] * (double)factor * 65536.0));
+        }
+
         natural[0] = FixMul(Prescale[0], 0x80000);
-        for (int i = 0; i < 64; i++) _matrix[i] = natural[(i & 7) * 8 + (i >> 3)];
+        for (int i = 0; i < 64; i++)
+        {
+            _matrix[i] = natural[(i & 7) * 8 + (i >> 3)];
+        }
+
         _matrixQuantiser = quantiser;
     }
 
@@ -170,11 +192,21 @@ public sealed class TqiDecoder
     private void LoadWords(ReadOnlySpan<byte> bits)
     {
         int count = bits.Length / 4 + 3;
-        if (_words.Length < count) _words = new uint[count];
+        if (_words.Length < count)
+        {
+            _words = new uint[count];
+        }
+
         Array.Clear(_words, 0, _words.Length);
-        for (int i = 0; i < bits.Length / 4; i++) _words[i] = BinaryPrimitives.ReadUInt32LittleEndian(bits[(i * 4)..]);
+        for (int i = 0; i < bits.Length / 4; i++)
+        {
+            _words[i] = BinaryPrimitives.ReadUInt32LittleEndian(bits[(i * 4)..]);
+        }
         // A trailing partial word is read as DK2 reads it: the bytes present, low first.
-        for (int i = bits.Length / 4 * 4, shift = 0; i < bits.Length; i++, shift += 8) _words[bits.Length / 4] |= (uint)bits[i] << shift;
+        for (int i = bits.Length / 4 * 4, shift = 0; i < bits.Length; i++, shift += 8)
+        {
+            _words[bits.Length / 4] |= (uint)bits[i] << shift;
+        }
     }
 
     // Words are little-endian u32s, bits taken most significant first within each (0x005AE220).
@@ -189,7 +221,11 @@ public sealed class TqiDecoder
     {
         Array.Clear(_block, 0, 64);
         byte dc = dcTable[Peek(position, 8)];
-        if (dc == 0) throw new InvalidDataException($"invalid DC size code at bit {position}");
+        if (dc == 0)
+        {
+            throw new InvalidDataException($"invalid DC size code at bit {position}");
+        }
+
         position += dc >> 4;
         int size = dc & 0xF;
         if (size > 0)
@@ -205,10 +241,18 @@ public sealed class TqiDecoder
         while (true)
         {
             int entry = AcTable[Peek(position, PeekBits)];
-            if (entry == 0) throw new InvalidDataException($"invalid AC code at bit {position}");
+            if (entry == 0)
+            {
+                throw new InvalidDataException($"invalid AC code at bit {position}");
+            }
+
             position += entry >> 24;
             int run = (entry >> 16) & 0xFF;
-            if (run == 0xFF) break; // end of block
+            if (run == 0xFF)
+            {
+                break; // end of block
+            }
+
             int level;
             if (run == 0xFE)
             {
@@ -218,16 +262,27 @@ public sealed class TqiDecoder
                 position += 14;
                 if (level == 0) { level = (int)Peek(position, 8); position += 8; }
                 else if (level == 0x80) { level = (int)Peek(position, 8) - 256; position += 8; }
-                else if (level > 0x80) level -= 256;
+                else if (level > 0x80)
+                {
+                    level -= 256;
+                }
             }
             else
             {
                 level = entry & 0xFFFF;
-                if (Peek(position, 1) != 0) level = -level;
+                if (Peek(position, 1) != 0)
+                {
+                    level = -level;
+                }
+
                 position++;
             }
             k += run + 1;
-            if (k > 63) throw new InvalidDataException($"coefficient index past 63 at bit {position}");
+            if (k > 63)
+            {
+                throw new InvalidDataException($"coefficient index past 63 at bit {position}");
+            }
+
             int at = ZigZag[k];
             _block[at] = unchecked(level * _matrix[at]);
             any = true;
@@ -237,7 +292,11 @@ public sealed class TqiDecoder
         {
             // 0x005AE91A skips the IDCT: every sample is coefficient 0 >> 17.
             int v = _block[0] >> 17;
-            for (int i = 0; i < 64; i++) _block[i] = v;
+            for (int i = 0; i < 64; i++)
+            {
+                _block[i] = v;
+            }
+
             return;
         }
         InverseDct();
@@ -250,15 +309,29 @@ public sealed class TqiDecoder
         // DK2's first pass runs on the rows of its transposed block, that is on natural columns.
         for (int c = 0; c < 8; c++)
         {
-            for (int r = 0; r < 8; r++) s[r] = _block[r * 8 + c];
+            for (int r = 0; r < 8; r++)
+            {
+                s[r] = _block[r * 8 + c];
+            }
+
             Butterfly(s, o);
-            for (int r = 0; r < 8; r++) _scratch[r * 8 + c] = o[r];
+            for (int r = 0; r < 8; r++)
+            {
+                _scratch[r * 8 + c] = o[r];
+            }
         }
         for (int r = 0; r < 8; r++)
         {
-            for (int c = 0; c < 8; c++) s[c] = _scratch[r * 8 + c];
+            for (int c = 0; c < 8; c++)
+            {
+                s[c] = _scratch[r * 8 + c];
+            }
+
             Butterfly(s, o);
-            for (int c = 0; c < 8; c++) _block[r * 8 + c] = o[c] >> 17;
+            for (int c = 0; c < 8; c++)
+            {
+                _block[r * 8 + c] = o[c] >> 17;
+            }
         }
     }
 
@@ -291,8 +364,12 @@ public sealed class TqiDecoder
     {
         // The colour tables clamp v - 64 to [-64, 63], so a sample is kept as its table index.
         for (int r = 0; r < 8; r++)
+        {
             for (int c = 0; c < 8; c++)
+            {
                 target[(y0 + r) * stride + x0 + c] = (byte)Math.Clamp(_block[r * 8 + c], 0, 127);
+            }
+        }
     }
 
     private static void WritePixels(Span<byte> rgba, int width, int x0, int y0, ReadOnlySpan<byte> luma, ReadOnlySpan<byte> cb, ReadOnlySpan<byte> cr)
@@ -328,7 +405,10 @@ public sealed class TqiDecoder
             int prefix = Convert.ToInt32(code, 2) << (PeekBits - length);
             int packedRun = run == -1 ? 0xFF : run == -2 ? 0xFE : run;
             int entry = (length << 24) | (packedRun << 16) | level;
-            for (int i = 0; i < 1 << (PeekBits - length); i++) table[prefix + i] = entry;
+            for (int i = 0; i < 1 << (PeekBits - length); i++)
+            {
+                table[prefix + i] = entry;
+            }
         }
         return table;
     }
@@ -340,7 +420,10 @@ public sealed class TqiDecoder
         {
             int length = codes[size].Length;
             int prefix = Convert.ToInt32(codes[size], 2) << (8 - length);
-            for (int i = 0; i < 1 << (8 - length); i++) table[prefix + i] = (byte)((length << 4) | size);
+            for (int i = 0; i < 1 << (8 - length); i++)
+            {
+                table[prefix + i] = (byte)((length << 4) | size);
+            }
         }
         return table;
     }

@@ -12,7 +12,10 @@ public static partial class KwdThings
     public static byte[] WriteRecord(ThingRecord row, KwdRecordImage template)
     {
         if (!KwdTaggedRecords.ThingPayloadSizes.TryGetValue(row.Tag, out (string Name, int PayloadSize, bool InShippedData) layout))
+        {
             throw new InvalidDataException($"Unsupported THINGS tag {row.Tag}.");
+        }
+
         byte[] image = KwdOverlay.TaggedImage(template, KwdRecordType.Things, row.Tag, layout.PayloadSize);
         Span<byte> payload = image.AsSpan(8);
         switch (row)
@@ -106,7 +109,11 @@ public static partial class KwdThings
                 payload[34] = c.PartyId;
                 BinaryPrimitives.WriteInt32LittleEndian(payload[35..], c.Unknown_0023);
                 BinaryPrimitives.WriteInt32LittleEndian(payload[39..], c.Unknown_0027);
-                if (c.Members.Count != 16) throw new InvalidDataException("Hero parties require all sixteen explicit member slots.");
+                if (c.Members.Count != 16)
+                {
+                    throw new InvalidDataException("Hero parties require all sixteen explicit member slots.");
+                }
+
                 for (int i = 0; i < 16; i++)
                 {
                     byte[] member = new byte[40];

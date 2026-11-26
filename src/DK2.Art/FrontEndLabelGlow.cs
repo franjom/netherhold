@@ -22,33 +22,56 @@ public static class FrontEndLabelGlow
 
     public static RgbaImage Create(RgbaImage source)
     {
-        if (source is null) throw new ArgumentNullException(nameof(source));
+        if (source is null)
+        {
+            throw new ArgumentNullException(nameof(source));
+        }
+
         int width = source.Width, height = source.Height;
         if (width <= 0 || height <= 0 || source.Pixels.Length != checked(width * height * 4))
+        {
             throw new ArgumentException("A label needs a complete RGBA surface.", nameof(source));
+        }
+
         byte[] dilated = new byte[width * height];
         for (int y = 0; y < height; y++)
+        {
             for (int x = 0; x < width; x++)
             {
                 byte maximum = 0;
                 for (int sy = Math.Max(0, y - 3); sy <= Math.Min(height - 1, y + 3); sy++)
+                {
                     for (int sx = Math.Max(0, x - 3); sx <= Math.Min(width - 1, x + 3); sx++)
+                    {
                         maximum = Math.Max(maximum, source.Pixels[(sy * width + sx) * 4 + 3]);
+                    }
+                }
+
                 dilated[y * width + x] = maximum;
             }
+        }
+
         byte[] result = new byte[source.Pixels.Length];
         for (int y = 0; y < height; y++)
+        {
             for (int x = 0; x < width; x++)
             {
                 double alpha = 0;
                 int coefficient = 0;
                 for (int sy = Math.Max(0, y - 4); sy < Math.Min(height - 1, y + 4); sy++)
+                {
                     for (int sx = Math.Max(0, x - 4); sx < Math.Min(width - 1, x + 4); sx++)
+                    {
                         alpha += dilated[sy * width + sx] * Kernel[coefficient++];
+                    }
+                }
+
                 int at = (y * width + x) * 4;
                 result[at] = 255; result[at + 1] = 168; result[at + 2] = 0;
                 result[at + 3] = (byte)Math.Min(255, (int)alpha);
             }
+        }
+
         return new(width, height, result);
     }
 }

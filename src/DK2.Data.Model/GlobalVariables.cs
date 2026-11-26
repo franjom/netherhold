@@ -97,7 +97,11 @@ public sealed class GlobalVariables
         var table = new Dictionary<(ushort Kind, int TypeId), AvailabilityEntry>();
         foreach (AvailabilityEntry row in Availabilities)
         {
-            if (row.PlayerId != 0 && row.PlayerId != playerId) continue;
+            if (row.PlayerId != 0 && row.PlayerId != playerId)
+            {
+                continue;
+            }
+
             table[(row.Kind, row.TypeId)] = row with { PlayerId = playerId };
         }
         return table.Values.OrderBy(a => a.Kind).ThenBy(a => a.TypeId);
@@ -108,7 +112,9 @@ public sealed class GlobalVariables
         var merged = new GlobalVariables();
 
         foreach (KeyValuePair<VariableTypeId, MiscVariable> entry in Misc)
+        {
             merged.Misc[entry.Key] = entry.Value;
+        }
 
         merged.CreaturePool.AddRange(CreaturePool);
         merged.Availabilities.AddRange(Availabilities);
@@ -118,10 +124,15 @@ public sealed class GlobalVariables
         merged.CreatureFieldOverrides.AddRange(CreatureFieldOverrides);
         merged.Alliances.AddRange(Alliances);
 
-        if (level is null) return merged;
+        if (level is null)
+        {
+            return merged;
+        }
 
         foreach (KeyValuePair<VariableTypeId, MiscVariable> entry in level.Misc)
+        {
             merged.Misc[entry.Key] = entry.Value;
+        }
 
         Replace(merged.CreaturePool, level.CreaturePool);
         merged.Availabilities.AddRange(level.Availabilities);
@@ -137,7 +148,11 @@ public sealed class GlobalVariables
 
         static void Replace<T>(List<T> target, List<T> from)
         {
-            if (from.Count == 0) return;
+            if (from.Count == 0)
+            {
+                return;
+            }
+
             target.Clear();
             target.AddRange(from);
         }

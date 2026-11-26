@@ -13,7 +13,11 @@ public static class HiScoresFile
 {
     public static IReadOnlyList<HiScoreEntry> Read(ReadOnlySpan<byte> data)
     {
-        if (data.Length != 1320) throw new InvalidDataException("Expected ten 132-byte high-score rows.");
+        if (data.Length != 1320)
+        {
+            throw new InvalidDataException("Expected ten 132-byte high-score rows.");
+        }
+
         var entries = new HiScoreEntry[10];
         for (int i = 0; i < entries.Length; i++)
         {
@@ -26,7 +30,11 @@ public static class HiScoresFile
 
     public static byte[] Write(IReadOnlyList<HiScoreEntry> entries)
     {
-        if (entries is null || entries.Count != 10) throw new ArgumentException("Expected ten high-score rows.", nameof(entries));
+        if (entries is null || entries.Count != 10)
+        {
+            throw new ArgumentException("Expected ten high-score rows.", nameof(entries));
+        }
+
         byte[] data = new byte[1320];
         for (int i = 0; i < entries.Count; i++)
         {
@@ -43,14 +51,21 @@ public static class HiScoresFile
     private static string Text(ReadOnlySpan<byte> field)
     {
         int length = 0;
-        while (length < field.Length && BinaryPrimitives.ReadUInt16LittleEndian(field[length..]) != 0) length += 2;
+        while (length < field.Length && BinaryPrimitives.ReadUInt16LittleEndian(field[length..]) != 0)
+        {
+            length += 2;
+        }
+
         return Encoding.Unicode.GetString(field[..length]);
     }
 
     private static void WriteText(string value, Span<byte> field)
     {
         if (value is null || value.Length > 31 || value.IndexOf('\0') >= 0)
+        {
             throw new ArgumentException("High-score text must fit 31 UTF-16 units and a terminator.");
+        }
+
         Encoding.Unicode.GetBytes(value.AsSpan(), field);
     }
 }

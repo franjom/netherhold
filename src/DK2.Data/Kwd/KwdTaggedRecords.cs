@@ -40,12 +40,16 @@ public static class KwdTaggedRecords
     public static List<TaggedRecord> Split(KwdChunk chunk)
     {
         if (!IsTagged(chunk.Type))
+        {
             throw new ArgumentException(
                 $"{chunk.Type} is a fixed-stride record type, not a tagged one.", nameof(chunk));
+        }
 
         byte[] content = chunk.Content;
         if (chunk.ItemCount < 0)
+        {
             throw new InvalidDataException($"{chunk.Type}: negative record count {chunk.ItemCount}.");
+        }
         // Every record has an 8-byte header, so the content bounds the capacity, not the count.
         var records = new List<TaggedRecord>(Math.Min(chunk.ItemCount, content.Length / RecordHeaderSize));
         int at = 0;
@@ -53,28 +57,34 @@ public static class KwdTaggedRecords
         for (int i = 0; i < chunk.ItemCount; i++)
         {
             if (at + RecordHeaderSize > content.Length)
+            {
                 throw new InvalidDataException(
                     $"{chunk.Type}: record {i} of {chunk.ItemCount} starts at {at}, " +
                     $"past the end of {content.Length} content bytes.");
+            }
 
             int tag = BinaryPrimitives.ReadInt32LittleEndian(content.AsSpan(at));
             int size = BinaryPrimitives.ReadInt32LittleEndian(content.AsSpan(at + 4));
             at += RecordHeaderSize;
 
             if (size < 0 || size > content.Length - at)
+            {
                 throw new InvalidDataException(
                     $"{chunk.Type}: record {i} (tag {tag}) declares {size} payload bytes " +
                     $"but only {content.Length - at} remain.");
+            }
 
             records.Add(new TaggedRecord(tag, content.AsMemory(at, size)));
             at += size;
         }
 
         if (at != content.Length)
+        {
             throw new InvalidDataException(
                 $"{chunk.Type}: {chunk.ItemCount} records consumed {at} of " +
                 $"{content.Length} content bytes. A self-describing format that " +
                 "does not add up means the chunk header was read wrongly.");
+        }
 
         return records;
     }

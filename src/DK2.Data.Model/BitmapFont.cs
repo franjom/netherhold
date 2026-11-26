@@ -24,7 +24,10 @@ public sealed class BitmapFont
         Glyphs = glyphs;
         byCharacter = new Dictionary<char, BitmapGlyph>(glyphs.Count);
         // The files repeat a few characters (spaces); the first copy wins.
-        foreach (BitmapGlyph glyph in glyphs) byCharacter.TryAdd(glyph.Character, glyph);
+        foreach (BitmapGlyph glyph in glyphs)
+        {
+            byCharacter.TryAdd(glyph.Character, glyph);
+        }
     }
 
     public int LineHeight { get; }

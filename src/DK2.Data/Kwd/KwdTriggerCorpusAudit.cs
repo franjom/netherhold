@@ -23,7 +23,10 @@ public static class KwdTriggerCorpusAudit
             {
                 (int Tag, byte Type) key = (trigger.Tag, trigger.Type);
                 if (!distribution.TryGetValue(key, out (int Count, SortedSet<string> Levels) entry))
+                {
                     entry = (0, new SortedSet<string>(StringComparer.OrdinalIgnoreCase));
+                }
+
                 entry.Levels.Add(level);
                 distribution[key] = (entry.Count + 1, entry.Levels);
             }

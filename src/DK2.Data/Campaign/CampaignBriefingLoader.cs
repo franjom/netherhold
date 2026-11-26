@@ -12,7 +12,11 @@ public static class CampaignBriefingLoader
 {
     public static CampaignBriefing Load(string install, CampaignSlot slot)
     {
-        if (slot.LevelName is not string name) throw new ArgumentOutOfRangeException(nameof(slot));
+        if (slot.LevelName is not string name)
+        {
+            throw new ArgumentOutOfRangeException(nameof(slot));
+        }
+
         LevelDef definition = GameDatabaseLoader.LoadCampaignLevel(install, name)
             ?? throw new FileNotFoundException("Campaign level metadata was not found: " + name);
         string file = BriefingTextTable.FileName(definition.TextTableId)

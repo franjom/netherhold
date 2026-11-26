@@ -117,12 +117,22 @@ public readonly struct AssetRef : IEquatable<AssetRef>
         // door per structure); the first build is kept, so a frame allocates no key it built before.
         var made = new MadeKey(category, subject, kind, variant);
         lock (Made)
-            if (Made.TryGetValue(made, out AssetRef known)) return known;
+        {
+            if (Made.TryGetValue(made, out AssetRef known))
+            {
+                return known;
+            }
+        }
+
         AssetRef built = Build(category, subject, kind, variant);
         lock (Made)
         {
             // Names come from the database, so the set is bounded; this only stops a runaway caller.
-            if (Made.Count >= MadeCapacity) Made.Clear();
+            if (Made.Count >= MadeCapacity)
+            {
+                Made.Clear();
+            }
+
             Made[made] = built;
         }
         return built;
@@ -161,9 +171,11 @@ public readonly struct AssetRef : IEquatable<AssetRef>
     private static AssetRef Build(string category, string subject, AssetKind kind, string? variant)
     {
         if (!Categories.Contains(category))
+        {
             throw new ArgumentException(
                 $"'{category}' is not a known asset category. Add it to AssetRef if it is real.",
                 nameof(category));
+        }
 
         string normalisedSubject = NormaliseSubject(subject);
         string role = RoleOf(kind);
@@ -255,7 +267,9 @@ public readonly struct AssetRef : IEquatable<AssetRef>
     public static string NormaliseSubject(string subject)
     {
         if (string.IsNullOrWhiteSpace(subject))
+        {
             throw new ArgumentException("An asset key segment cannot be blank.", nameof(subject));
+        }
 
         string trimmed = subject.Trim();
         var sb = new StringBuilder(trimmed.Length);
@@ -265,17 +279,25 @@ public readonly struct AssetRef : IEquatable<AssetRef>
         {
             char mapped;
             if (c is >= 'a' and <= 'z' || c is >= '0' and <= '9')
+            {
                 mapped = c;
+            }
             else if (c is >= 'A' and <= 'Z')
+            {
                 mapped = (char)(c + 32);
+            }
             else if (c == '_' || Separators.IndexOf(c) >= 0)
+            {
                 mapped = '_';
+            }
             else
+            {
                 throw new ArgumentException(
                     $"'{subject}' cannot be an asset key segment: '{c}' has no mapping. " +
                     "Asset keys come from record names, so an unmappable character usually " +
                     "means the name was read from the wrong place.",
                     nameof(subject));
+            }
 
             if (mapped == '_')
             {
@@ -296,8 +318,10 @@ public readonly struct AssetRef : IEquatable<AssetRef>
         // A trailing separator is dropped by simply never flushing it.
         string result = sb.ToString();
         if (result.Length == 0)
+        {
             throw new ArgumentException(
                 $"'{subject}' normalises to nothing usable.", nameof(subject));
+        }
 
         return result;
     }

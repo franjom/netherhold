@@ -13,7 +13,11 @@ public readonly record struct CampaignSlot
         "secret1", "secret2", "secret3", "secret4", "secret5" };
     public CampaignSlot(int value)
     {
-        if (value is < 1 or > 30) throw new ArgumentOutOfRangeException(nameof(value));
+        if (value is < 1 or > 30)
+        {
+            throw new ArgumentOutOfRangeException(nameof(value));
+        }
+
         Value = (byte)value;
     }
     public byte Value { get; }
@@ -25,9 +29,19 @@ public readonly record struct CampaignSlot
     /// campaign map.</summary>
     public static CampaignSlot ForLevel(string? levelName)
     {
-        if (levelName is null) return None;
+        if (levelName is null)
+        {
+            return None;
+        }
+
         for (int slot = 1; slot <= 30; slot++)
-            if (string.Equals(Names[slot], levelName, StringComparison.OrdinalIgnoreCase)) return new CampaignSlot(slot);
+        {
+            if (string.Equals(Names[slot], levelName, StringComparison.OrdinalIgnoreCase))
+            {
+                return new CampaignSlot(slot);
+            }
+        }
+
         return None;
     }
     public static CampaignSlot FromPickTag(byte tag) => tag switch

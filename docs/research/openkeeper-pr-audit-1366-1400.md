@@ -70,7 +70,7 @@ nothing is CONFIRMED: a claim read from the instructions is STRONGLY INFERRED.
    its body already gave resume state 1. Nothing was wrong; the reviewer of the build caught it.
 6. **The walk-pace tick rate is hard-coded
    ([#1380](https://github.com/tonihele/OpenKeeper/pull/1380)).** Ghidra, STRONGLY INFERRED. [0x004B41E0] divides the animation's `+0` word by the ticks-per-second global
-   (`0x6F2590`, variable 19); `src/DK2.Art/RenderAnimationClock.cs:175,180` writes 4. Every shipped
+   (`0x6F2590`, variable 19); `RenderAnimationClock.CalculateRate` uses 4. Every shipped
    level sets 4, so nothing changes today. `animation-clock.md` and the record now say the divisor
    is the level's variable; the code keeps the constant 4.
 

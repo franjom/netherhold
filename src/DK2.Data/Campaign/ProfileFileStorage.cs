@@ -19,9 +19,19 @@ internal static class ProfileFileStorage
                 stream.Write(data, 0, data.Length);
                 stream.Flush(flushToDisk: true);
             }
-            if (replaceExisting && File.Exists(fullPath)) File.Replace(temporary, fullPath, null);
-            else File.Move(temporary, fullPath);
+            if (replaceExisting && File.Exists(fullPath))
+            {
+                File.Replace(temporary, fullPath, null);
+            }
+            else
+            {
+                File.Move(temporary, fullPath);
+            }
         }
-        finally { if (File.Exists(temporary)) File.Delete(temporary); }
+        finally { if (File.Exists(temporary))
+            {
+                File.Delete(temporary);
+            }
+        }
     }
 }

@@ -23,23 +23,41 @@ public static class Bf4FontReader
     public static BitmapFont Read(ReadOnlySpan<byte> data, string sourceName = "<memory>")
     {
         if (data.Length < 8 || BinaryPrimitives.ReadUInt32LittleEndian(data) != Magic)
+        {
             throw Invalid(sourceName, "expected the F4FB magic");
+        }
+
         int lineHeight = data[5];
         int count = BinaryPrimitives.ReadUInt16LittleEndian(data[6..]);
-        if (data.Length < 8 + 4 * count) throw Invalid(sourceName, "offset table is truncated");
+        if (data.Length < 8 + 4 * count)
+        {
+            throw Invalid(sourceName, "offset table is truncated");
+        }
 
         var glyphs = new BitmapGlyph[count];
         for (int i = 0; i < count; i++)
         {
             uint offset = BinaryPrimitives.ReadUInt32LittleEndian(data[(8 + 4 * i)..]);
-            if (offset > (uint)data.Length - 0x18 || data.Length < 0x18) throw Invalid(sourceName, $"glyph {i} lies outside the file");
+            if (offset > (uint)data.Length - 0x18 || data.Length < 0x18)
+            {
+                throw Invalid(sourceName, $"glyph {i} lies outside the file");
+            }
+
             ReadOnlySpan<byte> record = data[(int)offset..];
             uint stored = BinaryPrimitives.ReadUInt32LittleEndian(record[4..]);
             uint flags = BinaryPrimitives.ReadUInt32LittleEndian(record[0x0C..]);
             int width = BinaryPrimitives.ReadUInt16LittleEndian(record[0x10..]);
             int height = BinaryPrimitives.ReadUInt16LittleEndian(record[0x12..]);
-            if ((long)width * height > 1 << 20) throw Invalid(sourceName, $"glyph {i} is implausibly large");
-            if (stored > (uint)(record.Length - 0x18)) throw Invalid(sourceName, $"glyph {i}'s data runs past the end");
+            if ((long)width * height > 1 << 20)
+            {
+                throw Invalid(sourceName, $"glyph {i} is implausibly large");
+            }
+
+            if (stored > (uint)(record.Length - 0x18))
+            {
+                throw Invalid(sourceName, $"glyph {i}'s data runs past the end");
+            }
+
             glyphs[i] = new BitmapGlyph(
                 (char)BinaryPrimitives.ReadUInt16LittleEndian(record),
                 width, height,
@@ -66,7 +84,11 @@ public static class Bf4FontReader
             int nibble = 0;
             int Next()
             {
-                if (nibble >> 1 >= source.Length) throw Invalid(sourceName, $"glyph {glyph}'s RLE runs past its data");
+                if (nibble >> 1 >= source.Length)
+                {
+                    throw Invalid(sourceName, $"glyph {glyph}'s RLE runs past its data");
+                }
+
                 int value = (nibble & 1) == 0 ? source[nibble >> 1] >> 4 : source[nibble >> 1] & 0xF;
                 nibble++;
                 return value;
@@ -80,24 +102,43 @@ public static class Bf4FontReader
                     continue;
                 }
                 int run = Next();
-                if (run == 0) break;
+                if (run == 0)
+                {
+                    break;
+                }
+
                 int repeated = Next();
-                for (; run > 0; run--) Put(repeated);
+                for (; run > 0; run--)
+                {
+                    Put(repeated);
+                }
             }
         }
         else if ((flags & 2) != 0)
         {
             // One bit a pixel, high bit first; a set bit is a full pixel.
             for (int i = 0; i < pixels && (i >> 3) < source.Length; i++)
+            {
                 Put((source[i >> 3] & (0x80 >> (i & 7))) != 0 ? 15 : 0);
+            }
         }
         else
         {
             for (int i = 0; i < pixels && (i >> 1) < source.Length; i++)
+            {
                 Put((i & 1) == 0 ? source[i >> 1] >> 4 : source[i >> 1] & 0xF);
+            }
         }
-        if ((flags & 1) != 0 && written == pixels - 1) written = pixels;
-        if (written != pixels) throw Invalid(sourceName, $"glyph {glyph} unpacked to {written} of {pixels} pixels");
+        if ((flags & 1) != 0 && written == pixels - 1)
+        {
+            written = pixels;
+        }
+
+        if (written != pixels)
+        {
+            throw Invalid(sourceName, $"glyph {glyph} unpacked to {written} of {pixels} pixels");
+        }
+
         return output;
 
         void Put(int value)
@@ -107,7 +148,11 @@ public static class Bf4FontReader
                 padded = true;
                 return;
             }
-            if (written >= output.Length) throw Invalid(sourceName, $"glyph {glyph} unpacks past its size");
+            if (written >= output.Length)
+            {
+                throw Invalid(sourceName, $"glyph {glyph} unpacks past its size");
+            }
+
             output[written++] = (byte)value;
         }
     }

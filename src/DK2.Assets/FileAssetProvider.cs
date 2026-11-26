@@ -47,11 +47,16 @@ public sealed class FileAssetProvider : IAssetProvider
     public FileAssetProvider(string root, AssetSource source, string? name = null, IFileProbe? probe = null)
     {
         if (string.IsNullOrWhiteSpace(root))
+        {
             throw new ArgumentException("An asset root cannot be blank.", nameof(root));
+        }
+
         if (source == AssetSource.Placeholder)
+        {
             throw new ArgumentException(
                 "A file provider cannot report Placeholder; that is PlaceholderProvider's answer.",
                 nameof(source));
+        }
 
         _root = root;
         _source = source;
@@ -72,20 +77,30 @@ public sealed class FileAssetProvider : IAssetProvider
     public bool TryResolve(AssetRef reference, out ResolvedAsset asset)
     {
         asset = default;
-        if (reference.IsEmpty) return false;
+        if (reference.IsEmpty)
+        {
+            return false;
+        }
 
         if (!_pathOf.TryGetValue(reference, out string? found))
         {
             foreach (string extension in ExtensionsFor(reference.Kind))
             {
                 string path = Path.Combine(_root, RelativePathWithoutExtension(reference) + extension);
-                if (!_probe.Exists(path)) continue;
+                if (!_probe.Exists(path))
+                {
+                    continue;
+                }
+
                 found = path;
                 break;
             }
             _pathOf[reference] = found;
         }
-        if (found is null) return false;
+        if (found is null)
+        {
+            return false;
+        }
 
         asset = new ResolvedAsset(reference, _source, found, look: default, providerName: Name);
         return true;

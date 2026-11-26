@@ -40,14 +40,19 @@ public static partial class KwdCreatures
         var result = new List<CreatureDef>();
         foreach (KwdChunk chunk in chunks)
         {
-            if (chunk.Type != KwdRecordType.Creatures) continue;
+            if (chunk.Type != KwdRecordType.Creatures)
+            {
+                continue;
+            }
 
             // Any record size (Q14): the chunk reader 0x0056A250 zero-fills a 5449-byte record and
             // reads the file's record into it, and nothing reads past 0x1548; the 5537-byte variant
             // is one shipped case.
             int recordSize = chunk.ItemCount == 0 ? RecordSize : chunk.Content.Length / chunk.ItemCount;
             if (chunk.Content.Length != (long)recordSize * chunk.ItemCount)
+            {
                 throw new InvalidDataException("CREATURES content size does not divide into records.");
+            }
 
             byte[] staged = new byte[RecordSize];
             for (int i = 0; i < chunk.ItemCount; i++)
@@ -91,8 +96,10 @@ public static partial class KwdCreatures
             int off = 0xDC4 + i * 24;
             byte spellId = U8(off + 22);
             if (spellId != 0)
+            {
                 spells.Add(new CreatureSpellSlot(spellId, U8(off + 23), Fp(off + 16), U8(off + 13),
                     Fp(off).Raw, Fp(off + 4).Raw, Fp(off + 8).Raw));
+            }
         }
 
         // Resistances[4] at 0xE0C (2 bytes each).
@@ -101,7 +108,9 @@ public static partial class KwdCreatures
         {
             int off = 0xE0C + i * 2;
             if (U8(off) != 0)
+            {
                 resistances.Add(new CreatureResistance((AttackType)U8(off), U8(off + 1)));
+            }
         }
 
         // Job preference tables. JobPreference = 12 bytes: u32 job, u16 mood, u16 mana, u8 chance, 3 unk.
@@ -113,7 +122,9 @@ public static partial class KwdCreatures
                 int off = baseOff + i * 12;
                 var job = (JobType)U32(off);
                 if (job != JobType.None)
+                {
                     list.Add(new CreatureJobPreference(job, S16(off + 4), S16(off + 6), U8(off + 8)));
+                }
             }
             return list;
         }
@@ -126,7 +137,10 @@ public static partial class KwdCreatures
         for (int i = 0; i < 2; i++)
         {
             var job = (JobType)U32(0xE74 + i * 4);
-            if (job != JobType.None) hateJobs.Add(job);
+            if (job != JobType.None)
+            {
+                hateJobs.Add(job);
+            }
         }
 
         // JobAlternative = 8 bytes: u32 job, u16 mood, u16 mana.
@@ -136,7 +150,9 @@ public static partial class KwdCreatures
             int off = 0xE7C + i * 8;
             var job = (JobType)U32(off);
             if (job != JobType.None)
+            {
                 altJobs.Add(new CreatureJobAlternative(job, S16(off + 4), S16(off + 6)));
+            }
         }
 
         CreatureAnimationTiming AnimationTiming(int slot) => AnimationTimingAt(0x20 + (slot * 84));
@@ -156,12 +172,17 @@ public static partial class KwdCreatures
         }
 
         var artSlots = new CreatureAnimationTiming[CreatureDef.ArtSlotCount];
-        for (int slot = 0; slot < artSlots.Length; slot++) artSlots[slot] = AnimationTiming(slot);
+        for (int slot = 0; slot < artSlots.Length; slot++)
+        {
+            artSlots[slot] = AnimationTiming(slot);
+        }
 
         // Footstep marks: 48 pairs of unsigned words at 0x1323, one pair per art slot (definition +0x7A3, 0x00492320).
         var footstepMarks = new FootstepMarkPair[CreatureDef.FootstepMarkCount];
         for (int slot = 0; slot < footstepMarks.Length; slot++)
+        {
             footstepMarks[slot] = new FootstepMarkPair(U16(OffsetFootstepMarks + (4 * slot)), U16(OffsetFootstepMarks + (4 * slot) + 2));
+        }
 
         return new CreatureDef
         {

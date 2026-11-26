@@ -93,7 +93,11 @@ public static class DefaultKeyBindings
     public static GameKeyBinding Get(GameAction action)
     {
         int index = (int)action;
-        if (index < 0 || index >= Scans.Length) throw new ArgumentOutOfRangeException(nameof(action));
+        if (index < 0 || index >= Scans.Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(action));
+        }
+
         KeyModifiers modifiers = index is 13 or 63 or >= 47 and <= 57 ? KeyModifiers.Control
             : index is 45 or 46 ? KeyModifiers.Shift : index >= 58 ? KeyModifiers.Alt : KeyModifiers.None;
         return new(action, Scans[index], modifiers);

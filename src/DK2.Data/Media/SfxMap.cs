@@ -45,6 +45,7 @@ public sealed class SfxMap
         }
         var groupHeaders = new List<(SoundId Id, int Count, byte[] Unknown)>();
         foreach (int groupCount in eventCounts)
+        {
             for (int i = 0; i < groupCount; i++)
             {
                 SoundMapReader.Require(reader, 20);
@@ -52,6 +53,8 @@ public sealed class SfxMap
                 int items = SoundMapReader.Count(reader, 42);
                 groupHeaders.Add((id, items, SoundMapReader.Bytes(reader, 12)));
             }
+        }
+
         var groups = new List<SoundGroup>();
         foreach ((SoundId Id, int Count, byte[] Unknown) header in groupHeaders)
         {

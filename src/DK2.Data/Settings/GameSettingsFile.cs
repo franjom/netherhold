@@ -43,7 +43,10 @@ public static class GameSettingsFile
         text.Append("EnvironmentalEffects=").Append(settings.EnvironmentalEffects.ToString()).Append('\n');
         text.Append("InvertMouse=").Append(settings.InvertMouse.ToString()).Append('\n');
         foreach (GameKeyBinding b in settings.Bindings.OrderBy(b => b.Action))
+        {
             text.Append("Key.").Append((int)b.Action).Append('=').Append(b.ScanCode).Append(',').Append((int)b.Modifiers).Append('\n');
+        }
+
         return text.ToString();
     }
 
@@ -54,9 +57,14 @@ public static class GameSettingsFile
         foreach (string line in text.Split('\n'))
         {
             int split = line.IndexOf('=');
-            if (split <= 0) continue;
+            if (split <= 0)
+            {
+                continue;
+            }
+
             string key = line.Substring(0, split).Trim(), value = line.Substring(split + 1).Trim();
             if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int number))
+            {
                 settings = key switch
                 {
                     "Gamma" => settings with { Gamma = number },
@@ -74,7 +82,10 @@ public static class GameSettingsFile
                     "RenderScale" => settings with { RenderScale = number },
                     _ => settings,
                 };
+            }
+
             if (bool.TryParse(value, out bool flag))
+            {
                 settings = key switch
                 {
                     "WaterTranslucency" => settings with { WaterTranslucency = flag },
@@ -90,10 +101,14 @@ public static class GameSettingsFile
                     "RenderScaleFsr" => settings with { RenderScaleFsr = flag },
                     _ => settings,
                 };
+            }
+
             string[] pair = value.Split(',');
             if (key.StartsWith("Key.", StringComparison.Ordinal) && int.TryParse(key.Substring(4), out int action)
                 && pair.Length == 2 && int.TryParse(pair[0], out int scan) && int.TryParse(pair[1], out int modifiers))
+            {
                 bindings.Add(new((GameAction)action, scan, (KeyModifiers)modifiers));
+            }
         }
         return (settings with { Bindings = bindings }).Clamped();
     }

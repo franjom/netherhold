@@ -65,3 +65,23 @@ dotnet_diagnostic.IDE0011.severity = warning
 [src/DK2.Core/**.cs]
 csharp_prefer_braces = true
 dotnet_diagnostic.IDE0011.severity = warning
+
+[src/DK2.Data/**.cs]
+csharp_prefer_braces = true
+dotnet_diagnostic.IDE0011.severity = warning
+
+[src/DK2.Data.Model/**.cs]
+csharp_prefer_braces = true
+dotnet_diagnostic.IDE0011.severity = warning
+
+[src/DK2.Assets/**.cs]
+csharp_prefer_braces = true
+dotnet_diagnostic.IDE0011.severity = warning
+
+[src/DK2.Art/**.cs]
+csharp_prefer_braces = true
+dotnet_diagnostic.IDE0011.severity = warning
+
+[src/DK2.Convert/**.cs]
+csharp_prefer_braces = true
+dotnet_diagnostic.IDE0011.severity = warning

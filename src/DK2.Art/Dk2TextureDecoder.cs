@@ -33,8 +33,16 @@ internal sealed class Dk2TextureDecoder
 
     private static byte[] DecodeImage(ReadOnlySpan<byte> compressed, int width, int height, bool alpha, bool engineTexture)
     {
-        if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
-        if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+        if (width <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(width));
+        }
+
+        if (height <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(height));
+        }
+
         byte[] pixels = new byte[checked(width * height * 4)];
         // The native reader always fetches the dword after the current one (0x00665EF0's
         // SHLD pair), so two zero words of padding keep the last code readable.
@@ -57,12 +65,22 @@ internal sealed class Dk2TextureDecoder
                     {
                         Span<int> plane = planes.Slice(channel * BlockArea, BlockArea);
                         if (engineTexture)
+                        {
                             DecodeEngineChannel(ref bits, ref predictors[channel], plane, coefficients, columns);
+                        }
                         else
+                        {
                             DecodeLoadingChannel(ref bits, plane, coefficients, columns);
+                        }
                     }
-                    if (engineTexture) WriteEngineBlock(planes, alpha, pixels, width, height, left, top);
-                    else WriteLoadingBlock(planes, alpha, pixels, width, height, left, top);
+                    if (engineTexture)
+                    {
+                        WriteEngineBlock(planes, alpha, pixels, width, height, left, top);
+                    }
+                    else
+                    {
+                        WriteLoadingBlock(planes, alpha, pixels, width, height, left, top);
+                    }
                 }
             }
         }
@@ -119,14 +137,22 @@ internal sealed class Dk2TextureDecoder
             int length = (int)code >> 16;
             int run = (int)(code >> 8) & 0xFF;
             bits.Skip(length);
-            if (run == EndOfBlock) return;
+            if (run == EndOfBlock)
+            {
+                return;
+            }
+
             int level, slot;
             if (run < EndOfBlock)
             {
                 slotCounter -= run;
                 slot = slotCounter + 1;
                 level = (int)(code & 0xFF);
-                if (((window >> (31 - length)) & 1) != 0) level = -level;
+                if (((window >> (31 - length)) & 1) != 0)
+                {
+                    level = -level;
+                }
+
                 bits.Skip(1);
             }
             else
@@ -151,7 +177,11 @@ internal sealed class Dk2TextureDecoder
             // to 0xFF and the zigzag lookup reads the table after it (0x006597D2..0x00659929). Slot 0 is
             // the DC term, which no AC code reaches in a well-formed stream, so anything outside 1..63 is
             // malformed input and is refused here rather than mirrored.
-            if (slot < 1 || slot >= BlockArea) throw new InvalidDataException("Texture AC run passes the end of the block.");
+            if (slot < 1 || slot >= BlockArea)
+            {
+                throw new InvalidDataException("Texture AC run passes the end of the block.");
+            }
+
             int index = zigzag[slot];
             coefficients[index] = unchecked(level * step[index]);
         }
@@ -164,15 +194,43 @@ internal sealed class Dk2TextureDecoder
     {
         uint prefix = window >> 15;
         int index;
-        if (prefix >= 0x8000) index = (int)(prefix >> 13) - 4;
-        else if (prefix >= 0x800) index = (int)(prefix >> 9) + 8;
-        else if (prefix >= 0x400) index = (int)(prefix >> 7) + 64;
-        else if (prefix >= 0x200) index = (int)(prefix >> 5) + 64;
-        else if (prefix >= 0x100) index = (int)(prefix >> 4) + 80;
-        else if (prefix >= 0x80) index = (int)(prefix >> 3) + 96;
-        else if (prefix >= 0x40) index = (int)(prefix >> 2) + 112;
-        else if (prefix >= 0x20) index = (int)(prefix >> 1) + 128;
-        else throw new InvalidDataException("Invalid texture AC code.");
+        if (prefix >= 0x8000)
+        {
+            index = (int)(prefix >> 13) - 4;
+        }
+        else if (prefix >= 0x800)
+        {
+            index = (int)(prefix >> 9) + 8;
+        }
+        else if (prefix >= 0x400)
+        {
+            index = (int)(prefix >> 7) + 64;
+        }
+        else if (prefix >= 0x200)
+        {
+            index = (int)(prefix >> 5) + 64;
+        }
+        else if (prefix >= 0x100)
+        {
+            index = (int)(prefix >> 4) + 80;
+        }
+        else if (prefix >= 0x80)
+        {
+            index = (int)(prefix >> 3) + 96;
+        }
+        else if (prefix >= 0x40)
+        {
+            index = (int)(prefix >> 2) + 112;
+        }
+        else if (prefix >= 0x20)
+        {
+            index = (int)(prefix >> 1) + 128;
+        }
+        else
+        {
+            throw new InvalidDataException("Invalid texture AC code.");
+        }
+
         return AcCodes[index];
     }
 
@@ -183,9 +241,14 @@ internal sealed class Dk2TextureDecoder
     private static void InverseTransform(ReadOnlySpan<int> coefficients, Span<int> columns, Span<int> plane, bool engineTexture)
     {
         for (int row = 0; row < BlockSide; row++)
+        {
             Transform8(coefficients.Slice(row * BlockSide, BlockSide), columns, row, BlockSide, engineTexture, wideStore: false);
+        }
+
         for (int row = 0; row < BlockSide; row++)
+        {
             Transform8(columns.Slice(row * BlockSide, BlockSide), plane, row * BlockSide, 1, engineTexture, wideStore: !engineTexture);
+        }
     }
 
     private static void Transform8(ReadOnlySpan<int> x, Span<int> output, int start, int stride, bool engineTexture, bool wideStore)
@@ -194,7 +257,11 @@ internal sealed class Dk2TextureDecoder
         if ((x1 | x2 | x3 | x4 | x5 | x6 | x7) == 0)
         {
             // The binary takes this branch in the first pass only; the full arithmetic gives the same values.
-            for (int i = 0; i < BlockSide; i++) output[start + i * stride] = x0;
+            for (int i = 0; i < BlockSide; i++)
+            {
+                output[start + i * stride] = x0;
+            }
+
             return;
         }
         unchecked
@@ -317,7 +384,11 @@ internal sealed class Dk2TextureDecoder
         public static int ToInt(long units, bool wideStore)
         {
             long value = RoundShift(units, FractionBits);
-            if (value >= int.MinValue && value <= int.MaxValue) return (int)value;
+            if (value >= int.MinValue && value <= int.MaxValue)
+            {
+                return (int)value;
+            }
+
             return wideStore ? unchecked((int)value) : int.MinValue;
         }
 
@@ -337,7 +408,11 @@ internal sealed class Dk2TextureDecoder
             long quotient = value >> shift;
             long remainder = value - (quotient << shift);
             long half = 1L << (shift - 1);
-            if (remainder > half || (remainder == half && (quotient & 1) != 0)) quotient++;
+            if (remainder > half || (remainder == half && (quotient & 1) != 0))
+            {
+                quotient++;
+            }
+
             return quotient;
         }
     }
@@ -355,15 +430,26 @@ internal sealed class Dk2TextureDecoder
             _limit = wordCount;
             _position = 0;
             int whole = bytes.Length / 4;
-            for (int i = 0; i < whole; i++) words[i] = BinaryPrimitives.ReadUInt32LittleEndian(bytes.Slice(i * 4));
+            for (int i = 0; i < whole; i++)
+            {
+                words[i] = BinaryPrimitives.ReadUInt32LittleEndian(bytes.Slice(i * 4));
+            }
+
             Array.Clear(words, whole, wordCount - whole);
-            for (int i = whole * 4; i < bytes.Length; i++) words[whole] |= (uint)bytes[i] << ((i & 3) * 8);
+            for (int i = whole * 4; i < bytes.Length; i++)
+            {
+                words[whole] |= (uint)bytes[i] << ((i & 3) * 8);
+            }
         }
 
         public uint Peek()
         {
             int word = _position >> 5;
-            if (word + 1 >= _limit) throw new InvalidDataException("Texture bitstream ends inside a block.");
+            if (word + 1 >= _limit)
+            {
+                throw new InvalidDataException("Texture bitstream ends inside a block.");
+            }
+
             ulong pair = ((ulong)_words[word] << 32) | _words[word + 1];
             return (uint)((pair << (_position & 31)) >> 32);
         }
@@ -378,7 +464,11 @@ internal sealed class Dk2TextureDecoder
             byte entry = DcCodes[(int)(Peek() >> 24)];
             _position += entry & 0xF;
             int size = entry >> 4;
-            if (size == 0) return 0;
+            if (size == 0)
+            {
+                return 0;
+            }
+
             int value = (int)(Peek() >> (32 - size));
             _position += size;
             return (value & (1 << (size - 1))) != 0 ? value : value - ((1 << size) - 1);
@@ -457,7 +547,11 @@ internal sealed class Dk2TextureDecoder
 
     private static int[] BuildDequantisation(int[] table)
     {
-        for (int i = 0; i < table.Length; i++) table[i] *= 8;
+        for (int i = 0; i < table.Length; i++)
+        {
+            table[i] *= 8;
+        }
+
         return table;
     }
 }

@@ -47,7 +47,9 @@ public static class KwdCorpusAudit
                 List<KwdRecordImage> images = KwdRecordRoundTrip.Split(chunk);
                 byte[] roundTrip = KwdRecordRoundTrip.Join(chunk, images);
                 if (!roundTrip.SequenceEqual(chunk.Content))
+                {
                     throw new InvalidDataException($"{file}: {chunk.Type} record images did not round-trip.");
+                }
 
                 switch (chunk.Type)
                 {
@@ -71,10 +73,18 @@ public static class KwdCorpusAudit
                         AuditTagged(chunk, KwdTriggers.Parse([chunk])); Add(chunk.Type, chunk.ItemCount); break;
                     case KwdRecordType.Level:
                         LevelDef level = KwdLevel.Parse([chunk]) ?? throw new InvalidDataException($"{file}: LEVEL did not parse.");
-                        if (!level.ToBytes().SequenceEqual(chunk.Content)) throw new InvalidDataException($"{file}: LEVEL did not round-trip.");
+                        if (!level.ToBytes().SequenceEqual(chunk.Content))
+                        {
+                            throw new InvalidDataException($"{file}: LEVEL did not round-trip.");
+                        }
+
                         Add(chunk.Type, 1);
                         int globals = level.Paths.Count(p => p.RecordType == KwdRecordType.Globals);
-                        if (globals > 0) Add(KwdRecordType.Globals, globals);
+                        if (globals > 0)
+                        {
+                            Add(KwdRecordType.Globals, globals);
+                        }
+
                         break;
                     default: throw new InvalidDataException($"{file}: no parser for {chunk.Type}.");
                 }
@@ -87,18 +97,33 @@ public static class KwdCorpusAudit
     private static void AuditFixed<T>(KwdChunk chunk, IReadOnlyList<T> records)
         where T : KwdRoundTripRecord
     {
-        if (records.Count != chunk.ItemCount) throw new InvalidDataException($"{chunk.Type}: item count mismatch.");
+        if (records.Count != chunk.ItemCount)
+        {
+            throw new InvalidDataException($"{chunk.Type}: item count mismatch.");
+        }
+
         byte[] joined = records.SelectMany(r => r.ToBytes()).ToArray();
-        if (!joined.SequenceEqual(chunk.Content)) throw new InvalidDataException($"{chunk.Type}: records did not round-trip.");
+        if (!joined.SequenceEqual(chunk.Content))
+        {
+            throw new InvalidDataException($"{chunk.Type}: records did not round-trip.");
+        }
     }
 
     private static void AuditTagged<T>(KwdChunk chunk, IReadOnlyList<T> records)
         where T : KwdRoundTripRecord
     {
         List<KwdTaggedRecords.TaggedRecord> tagged = KwdTaggedRecords.Split(chunk);
-        if (records.Count != tagged.Count) throw new InvalidDataException($"{chunk.Type}: item count mismatch.");
+        if (records.Count != tagged.Count)
+        {
+            throw new InvalidDataException($"{chunk.Type}: item count mismatch.");
+        }
+
         for (int i = 0; i < records.Count; i++)
+        {
             if (!records[i].ToBytes().SequenceEqual(tagged[i].Payload.ToArray()))
+            {
                 throw new InvalidDataException($"{chunk.Type}: record {i} did not round-trip.");
+            }
+        }
     }
 }

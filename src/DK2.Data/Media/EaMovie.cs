@@ -75,19 +75,30 @@ public sealed class EaMovie
             uint tag = BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(offset));
             int size = BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(offset + 4));
             if (size < 8 || size > data.Length - offset)
+            {
                 throw new InvalidDataException($"{sourceName}: chunk at 0x{offset:X} has size {size}");
+            }
+
             var chunk = new EaMovieChunk(Classify(tag, sourceName, offset), offset + 8, size - 8);
             if (chunk.Kind == EaMovieChunkKind.AudioHeader && !headerSeen)
             {
                 if (Canonical(tag) == Tag.SEAD)
+                {
                     (channels, rate, compression) = (2, 22050, 10); // fixed values, 0x005A7EA0
+                }
                 else
+                {
                     ReadAudioHeader(data.AsSpan(chunk.Offset, chunk.Length), ref channels, ref rate, ref compression, ref bits);
+                }
+
                 headerSeen = true;
             }
             chunks.Add(chunk);
             offset += size;
-            if (chunk.Kind == EaMovieChunkKind.End) break;
+            if (chunk.Kind == EaMovieChunkKind.End)
+            {
+                break;
+            }
         }
         return new EaMovie(data, chunks, channels, rate, compression, bits);
     }
@@ -110,7 +121,13 @@ public sealed class EaMovie
     {
         uint swapped = BinaryPrimitives.ReverseEndianness(tag);
         foreach (uint known in Tag.BothOrders)
-            if (swapped == known) return known;
+        {
+            if (swapped == known)
+            {
+                return known;
+            }
+        }
+
         return tag;
     }
 
@@ -124,15 +141,39 @@ public sealed class EaMovie
         {
             byte element = payload[p++];
             if (element == 0xFD) { audio = true; continue; }
-            if (audio && element == 0x8A) return;
-            if (p >= payload.Length) return;
+            if (audio && element == 0x8A)
+            {
+                return;
+            }
+
+            if (p >= payload.Length)
+            {
+                return;
+            }
+
             int length = payload[p++];
-            if (p + length > payload.Length) return;
+            if (p + length > payload.Length)
+            {
+                return;
+            }
+
             int value = 0;
-            for (int i = 0; i < length; i++) value = (value << 8) | payload[p + i];
-            if (length is > 0 and < 4) value = (value << (32 - 8 * length)) >> (32 - 8 * length);
+            for (int i = 0; i < length; i++)
+            {
+                value = (value << 8) | payload[p + i];
+            }
+
+            if (length is > 0 and < 4)
+            {
+                value = (value << (32 - 8 * length)) >> (32 - 8 * length);
+            }
+
             p += length;
-            if (!audio) continue;
+            if (!audio)
+            {
+                continue;
+            }
+
             switch (element)
             {
                 case 0x81: bits = value; break;

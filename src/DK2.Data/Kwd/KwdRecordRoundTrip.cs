@@ -30,12 +30,18 @@ public static class KwdRecordRoundTrip
     public static byte[] Join(KwdChunk template, IReadOnlyList<KwdRecordImage> records)
     {
         if (template.Type == KwdRecordType.Globals)
+        {
             throw new InvalidDataException("GLOBALS has no established standalone record layout; its known form is a LEVEL path row.");
+        }
+
         bool tagged = KwdTaggedRecords.IsTagged(template.Type);
         int count = template.Type == KwdRecordType.Level ? 1
             : template.Type == KwdRecordType.Map ? template.Content.Length / 4 : template.ItemCount;
         if (records.Count != count)
+        {
             throw new InvalidDataException($"{template.Type}: joining requires {count} images, received {records.Count}.");
+        }
+
         int stride = tagged ? 0 : template.Type == KwdRecordType.Level
             ? template.Content.Length : FixedStride(template);
         using var stream = new MemoryStream();
@@ -43,21 +49,36 @@ public static class KwdRecordRoundTrip
         {
             KwdRecordImage record = records[i];
             if (record.Type != template.Type)
+            {
                 throw new InvalidDataException($"{template.Type}: image {i} has type {record.Type}.");
+            }
+
             byte[] bytes = record.ToBytes();
             if (tagged)
             {
                 if (bytes.Length < 8 || record.Tag != BinaryPrimitives.ReadInt32LittleEndian(bytes)
                     || BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(4)) != bytes.Length - 8)
+                {
                     throw new InvalidDataException($"{template.Type}: image {i} has an inconsistent tag or payload size.");
+                }
             }
             else if (record.Tag is not null || bytes.Length != stride)
+            {
                 throw new InvalidDataException($"{template.Type}: image {i} must be an untagged {stride}-byte record.");
+            }
+
             stream.Write(bytes, 0, bytes.Length);
         }
         byte[] joined = stream.ToArray();
-        if (tagged) _ = KwdTaggedRecords.Split(template with { Content = joined });
-        else _ = Split(template with { Content = joined });
+        if (tagged)
+        {
+            _ = KwdTaggedRecords.Split(template with { Content = joined });
+        }
+        else
+        {
+            _ = Split(template with { Content = joined });
+        }
+
         return joined;
     }
     private static readonly IReadOnlyDictionary<KwdRecordType, int> Strides =
@@ -82,9 +103,15 @@ public static class KwdRecordRoundTrip
     public static List<KwdRecordImage> Split(KwdChunk chunk)
     {
         if (chunk.Type == KwdRecordType.Globals)
+        {
             throw new InvalidDataException("GLOBALS has no standalone record in the shipped corpus; it is a LEVEL path discriminator.");
+        }
+
         if (chunk.Type == KwdRecordType.Level)
+        {
             return [new KwdRecordImage(chunk.Type, chunk.Content)];
+        }
+
         if (KwdTaggedRecords.IsTagged(chunk.Type))
         {
             var result = new List<KwdRecordImage>(chunk.ItemCount);
@@ -102,7 +129,10 @@ public static class KwdRecordRoundTrip
         int stride = FixedStride(chunk);
         int count = chunk.Type == KwdRecordType.Map ? chunk.Content.Length / stride : chunk.ItemCount;
         if (count < 0 || chunk.Content.Length != (long)count * stride)
+        {
             throw new InvalidDataException($"{chunk.Type}: {chunk.Content.Length} bytes do not divide into {count} records of {stride}.");
+        }
+
         return Enumerable.Range(0, count)
             .Select(i => new KwdRecordImage(chunk.Type, chunk.Content.AsSpan(i * stride, stride).ToArray()))
             .ToList();
@@ -111,10 +141,16 @@ public static class KwdRecordRoundTrip
     private static int FixedStride(KwdChunk chunk)
     {
         if (!Strides.TryGetValue(chunk.Type, out int stride))
+        {
             throw new InvalidDataException($"No record-image layout for {chunk.Type}.");
+        }
+
         if (chunk.Type == KwdRecordType.Creatures && chunk.ItemCount > 0
             && chunk.Content.Length == (long)chunk.ItemCount * 5537)
+        {
             stride = 5537;
+        }
+
         return stride;
     }
 }

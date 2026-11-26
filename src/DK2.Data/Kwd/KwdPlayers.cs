@@ -43,15 +43,22 @@ public static partial class KwdPlayers
         var result = new List<PlayerDef>();
         foreach (KwdChunk chunk in chunks)
         {
-            if (chunk.Type != KwdRecordType.Players) continue;
+            if (chunk.Type != KwdRecordType.Players)
+            {
+                continue;
+            }
 
             if (chunk.ItemCount <= 0 || chunk.Content.Length != (long)RecordSize * chunk.ItemCount)
+            {
                 throw new InvalidDataException(
                     $"PLAYERS content of {chunk.Content.Length} bytes does not divide into " +
                     $"{chunk.ItemCount} records of {RecordSize}.");
+            }
 
             for (int i = 0; i < chunk.ItemCount; i++)
+            {
                 result.Add(ParseRecord(chunk.Content, i * RecordSize));
+            }
         }
         return result;
     }
@@ -72,7 +79,9 @@ public static partial class KwdPlayers
     public static KeeperAIParameters ParseBlock(byte[] rec, int b)
     {
         if (b < 0 || b + BlockSize > rec.Length)
+        {
             throw new ArgumentOutOfRangeException(nameof(b), "AI block runs past the record.");
+        }
 
         byte[] s = rec.AsSpan(b, BlockSize).ToArray();
         byte U8(int off) => s[off];

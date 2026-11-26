@@ -49,11 +49,17 @@ public static class KwdDoors
         var result = new List<DoorDef>();
         foreach (KwdChunk chunk in chunks)
         {
-            if (chunk.Type != KwdRecordType.Doors) continue;
+            if (chunk.Type != KwdRecordType.Doors)
+            {
+                continue;
+            }
+
             Validate(chunk);
 
             for (int i = 0; i < chunk.ItemCount; i++)
+            {
                 result.Add(ParseRecord(chunk.Content, i * RecordSize));
+            }
         }
         return result;
     }
@@ -61,8 +67,10 @@ public static class KwdDoors
     private static void Validate(KwdChunk chunk)
     {
         if (chunk.ItemCount < 0 || chunk.Content.Length != (long)chunk.ItemCount * RecordSize)
+        {
             throw new InvalidDataException(
                 $"DOORS content is not {chunk.ItemCount} records of {RecordSize} bytes.");
+        }
     }
 
     private static DoorDef ParseRecord(byte[] record, int at) => new()

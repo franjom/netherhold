@@ -19,13 +19,27 @@ public sealed class SoundBank
 
     public PcmClip? GetClip(SoundEntryId entryId)
     {
-        if ((uint)entryId.Value >= _archive.Entries.Count) throw new ArgumentOutOfRangeException(nameof(entryId));
+        if ((uint)entryId.Value >= _archive.Entries.Count)
+        {
+            throw new ArgumentOutOfRangeException(nameof(entryId));
+        }
+
         lock (_clips)
-            if (_clips.TryGetValue(entryId, out PcmClip? cached)) return cached;
+        {
+            if (_clips.TryGetValue(entryId, out PcmClip? cached))
+            {
+                return cached;
+            }
+        }
+
         PcmClip? clip = Decode(_archive.Entries[entryId.Value]);
         lock (_clips)
         {
-            if (_clips.TryGetValue(entryId, out PcmClip? first)) return first;
+            if (_clips.TryGetValue(entryId, out PcmClip? first))
+            {
+                return first;
+            }
+
             _clips.Add(entryId, clip);
         }
         return clip;
@@ -33,17 +47,28 @@ public sealed class SoundBank
 
     private PcmClip? Decode(SdtEntry entry)
     {
-        if (entry.Codec == SdtCodec.Empty) return null;
+        if (entry.Codec == SdtCodec.Empty)
+        {
+            return null;
+        }
+
         if (entry.Codec == SdtCodec.Pcm)
         {
             ArraySegment<byte> wave = _archive.Payload(entry);
             int bytesPerSample = entry.BitsPerSample / 8;
-            if (bytesPerSample != 1 && bytesPerSample != 2) throw new InvalidDataException("Unsupported PCM sample width.");
+            if (bytesPerSample != 1 && bytesPerSample != 2)
+            {
+                throw new InvalidDataException("Unsupported PCM sample width.");
+            }
+
             short[] samples = new short[entry.StoredSize / bytesPerSample];
             ReadOnlySpan<byte> data = wave.AsSpan();
             for (int i = 0; i < samples.Length; i++)
+            {
                 samples[i] = bytesPerSample == 1 ? (short)((data[i] - 128) << 8)
                     : BinaryPrimitives.ReadInt16LittleEndian(data.Slice(i * 2));
+            }
+
             return new PcmClip(entry.SampleRate, entry.ChannelCount!.Value, samples);
         }
         if (entry.Codec is SdtCodec.MpegLayer1 or SdtCodec.MpegLayer2 or SdtCodec.MpegLayer3)

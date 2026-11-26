@@ -21,20 +21,37 @@ public static class KwdRewriteAudit
         string source=Path.GetFullPath(input),output=Path.GetFullPath(outputDirectory);
         RefuseLinkedPath(source); RefuseLinkedPath(output);
         bool directory=Directory.Exists(source);
-        if(!directory && !File.Exists(source)) throw new FileNotFoundException("Rewrite input does not exist.",source);
-        if(directory && Within(output,source)) throw new InvalidDataException("Rewrite output must be outside the input directory.");
+        if(!directory && !File.Exists(source))
+        {
+            throw new FileNotFoundException("Rewrite input does not exist.",source);
+        }
+
+        if (directory && Within(output,source))
+        {
+            throw new InvalidDataException("Rewrite output must be outside the input directory.");
+        }
+
         string root=directory ? source : Path.GetDirectoryName(source)!;
         string[] files=directory ? EnumeratePlainFiles(source)
             .Where(IsKwd).OrderBy(p=>p,StringComparer.OrdinalIgnoreCase).ToArray() : [source];
-        if(files.Any(f=>!IsKwd(f))) throw new InvalidDataException("Rewrite accepts KWD/KLD files.");
-        foreach(string file in files)
+        if(files.Any(f=>!IsKwd(f)))
+        {
+            throw new InvalidDataException("Rewrite accepts KWD/KLD files.");
+        }
+
+        foreach (string file in files)
         {
             string destination=Path.Combine(output,Path.GetRelativePath(root,file));
             RefuseLinkedPath(destination);
             if(string.Equals(file,destination,StringComparison.OrdinalIgnoreCase))
+            {
                 throw new InvalidDataException("Rewrite output would overwrite its source file.");
-            if(File.Exists(destination) || Directory.Exists(destination))
+            }
+
+            if (File.Exists(destination) || Directory.Exists(destination))
+            {
                 throw new InvalidDataException($"Rewrite destination already exists: {destination}");
+            }
         }
         var results=new List<FileResult>(); var counts=new Dictionary<KwdRecordType,int>();
         foreach(string file in files)
@@ -53,7 +70,10 @@ public static class KwdRewriteAudit
             string relative=Path.GetRelativePath(root,file),destination=Path.Combine(output,relative);
             Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
             using(var target=new FileStream(destination,FileMode.CreateNew,FileAccess.Write,FileShare.None))
+            {
                 target.Write(actual,0,actual.Length);
+            }
+
             results.Add(new(relative,chunks.Count,records,DescribeDifference(original,actual,chunks)));
         }
         return new(results.ToArray(),counts);
@@ -62,8 +82,16 @@ public static class KwdRewriteAudit
     public static Difference? DescribeDifference(byte[] expected,byte[] actual,IReadOnlyList<KwdChunk> chunks)
     {
         int at=0;
-        while(at<expected.Length && at<actual.Length && expected[at]==actual[at]) at++;
-        if(at==expected.Length && at==actual.Length) return null;
+        while(at<expected.Length && at<actual.Length && expected[at]==actual[at])
+        {
+            at++;
+        }
+
+        if (at==expected.Length && at==actual.Length)
+        {
+            return null;
+        }
+
         byte? before=at<expected.Length ? expected[at] : null,after=at<actual.Length ? actual[at] : null;
         int start=0;
         for(int index=0;index<chunks.Count;index++)
@@ -73,7 +101,10 @@ public static class KwdRewriteAudit
             if(relative<length)
             {
                 if(relative<contentAt)
+                {
                     return new(at,index,chunk.Type,null,HeaderField(chunk,relative),before,after);
+                }
+
                 int recordAt=0,payloadAt=relative-contentAt;
                 List<KwdRecordImage> images =KwdRecordRoundTrip.Split(chunk);
                 for(int record=0;record<images.Count;record++)
@@ -98,21 +129,44 @@ public static class KwdRewriteAudit
 
     private static string HeaderField(KwdChunk chunk,int offset)
     {
-        if(offset<20) return (offset/4) switch {
+        if(offset<20)
+        {
+            return (offset/4) switch {
             0=>"signature",1=>"byteSize",2=>"chunkEndOffset",3=>"checkOne",_=>"headerBlockSize" };
+        }
+
         int at=offset-20,length=chunk.HeaderBlock.Length;
-        if(at>=length) return at<length+4 ? "checkTwo" : "declaredContentSize";
-        if(chunk.Type==KwdRecordType.Map) return at<4 ? "width" : at<8 ? "height" : $"header raw +0x{at:X}";
-        if(chunk.Type==KwdRecordType.Level && at<4) return at<2 ? "itemCount" : "height";
-        if(chunk.Type==KwdRecordType.Triggers)
+        if(at>=length)
+        {
+            return at<length+4 ? "checkTwo" : "declaredContentSize";
+        }
+
+        if (chunk.Type==KwdRecordType.Map)
+        {
+            return at<4 ? "width" : at<8 ? "height" : $"header raw +0x{at:X}";
+        }
+
+        if (chunk.Type==KwdRecordType.Level && at<4)
+        {
+            return at<2 ? "itemCount" : "height";
+        }
+
+        if (chunk.Type==KwdRecordType.Triggers)
+        {
             return at<4 ? "genericCount" : at<8 ? "actionCount" : at<12 ? "unknown"
                 : at<22 ? "created" : at<32 ? "modified" : $"header raw +0x{at:X}";
+        }
+
         return at<4 ? "itemCount" : at<8 ? "unknown" : at<18 ? "created" : at<28 ? "modified" : $"header raw +0x{at:X}";
     }
 
     private static string? DecodedField(KwdChunk chunk,int record,int offset,byte? value)
     {
-        if(value is null) return null;
+        if(value is null)
+        {
+            return null;
+        }
+
         byte[] changed=(byte[])chunk.Content.Clone(); changed[offset]=value.Value;
         try
         {
@@ -126,17 +180,37 @@ public static class KwdRewriteAudit
 
     private static string? ChangedProperty(object? before,object? after,string path,int depth)
     {
-        if(Equals(before,after)) return null;
-        if(before is null || after is null || before.GetType()!=after.GetType() || depth>12)
+        if(Equals(before,after))
+        {
+            return null;
+        }
+
+        if (before is null || after is null || before.GetType()!=after.GetType() || depth>12)
+        {
             return path.Length>0 ? path : before is KwdVariableEntry && after is KwdVariableEntry ? "Id" : "recordType";
-        if(before is ReadOnlyMemory<byte> oldBytes && after is ReadOnlyMemory<byte> newBytes)
+        }
+
+        if (before is ReadOnlyMemory<byte> oldBytes && after is ReadOnlyMemory<byte> newBytes)
+        {
             return oldBytes.Span.SequenceEqual(newBytes.Span) ? null : path;
+        }
+
         Type type=before.GetType();
-        if(type.IsPrimitive || type.IsEnum || before is string or decimal) return path;
-        if(before is IReadOnlyDictionary<string,long> oldFields && after is IReadOnlyDictionary<string,long> newFields)
+        if(type.IsPrimitive || type.IsEnum || before is string or decimal)
+        {
+            return path;
+        }
+
+        if (before is IReadOnlyDictionary<string,long> oldFields && after is IReadOnlyDictionary<string,long> newFields)
         {
             foreach(string key in oldFields.Keys.OrderBy(k=>k,StringComparer.Ordinal))
-                if(!newFields.TryGetValue(key,out long value) || oldFields[key]!=value) return path+"."+key;
+            {
+                if (!newFields.TryGetValue(key,out long value) || oldFields[key]!=value)
+                {
+                    return path+"."+key;
+                }
+            }
+
             return null;
         }
         if(before is IEnumerable oldItems && after is IEnumerable newItems)
@@ -144,9 +218,16 @@ public static class KwdRewriteAudit
             IEnumerator left=oldItems.GetEnumerator(),right=newItems.GetEnumerator(); int index=0;
             while(left.MoveNext())
             {
-                if(!right.MoveNext()) return path;
+                if(!right.MoveNext())
+                {
+                    return path;
+                }
+
                 string? difference=ChangedProperty(left.Current,right.Current,$"{path}[{index++}]",depth+1);
-                if(difference is not null) return difference;
+                if(difference is not null)
+                {
+                    return difference;
+                }
             }
             return right.MoveNext() ? path : null;
         }
@@ -156,7 +237,10 @@ public static class KwdRewriteAudit
         {
             string name=path.Length==0 ? property.Name : path+"."+property.Name;
             string? difference=ChangedProperty(property.GetValue(before),property.GetValue(after),name,depth+1);
-            if(difference is not null) return difference;
+            if(difference is not null)
+            {
+                return difference;
+            }
         }
         return null;
     }
@@ -168,8 +252,14 @@ public static class KwdRewriteAudit
         {
             string directory=pending.Pop(); RefuseLinkedPath(directory);
             foreach(string file in Directory.EnumerateFiles(directory))
-                if(IsKwd(file)) { RefuseLinkedPath(file); yield return file; }
-            foreach(string child in Directory.EnumerateDirectories(directory)) pending.Push(child);
+            {
+                if (IsKwd(file)) { RefuseLinkedPath(file); yield return file; }
+            }
+
+            foreach (string child in Directory.EnumerateDirectories(directory))
+            {
+                pending.Push(child);
+            }
         }
     }
 
@@ -180,7 +270,9 @@ public static class KwdRewriteAudit
             try
             {
                 if((File.GetAttributes(current)&FileAttributes.ReparsePoint)!=0)
+                {
                     throw new InvalidDataException($"Rewrite refuses linked paths: {current}");
+                }
             }
             catch(FileNotFoundException) { }
             catch(DirectoryNotFoundException) { }

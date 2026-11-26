@@ -35,11 +35,18 @@ public sealed class EaMovieTimeline
         long frames = 0;
         foreach (EaMovieChunk chunk in movie.Chunks)
         {
-            if (chunk.Kind == EaMovieChunkKind.Video) video.Add(chunk);
+            if (chunk.Kind == EaMovieChunkKind.Video)
+            {
+                video.Add(chunk);
+            }
             else if (chunk.Kind == EaMovieChunkKind.Audio)
             {
                 int length = EaAudio.FrameCount(movie.Payload(chunk), movie.Channels, movie.Compression);
-                if (length <= 0) continue; // never playing, so it never paces a frame
+                if (length <= 0)
+                {
+                    continue; // never playing, so it never paces a frame
+                }
+
                 audio.Add(chunk);
                 start.Add(frames);
                 before.Add(video.Count);
@@ -73,8 +80,16 @@ public sealed class EaMovieTimeline
     /// count when it lies past the end.</summary>
     public int BlockAt(long frame)
     {
-        if (frame < 0) return 0;
-        if (frame >= TotalAudioFrames) return _blockStart.Length;
+        if (frame < 0)
+        {
+            return 0;
+        }
+
+        if (frame >= TotalAudioFrames)
+        {
+            return _blockStart.Length;
+        }
+
         int index = Array.BinarySearch(_blockStart, frame);
         return index >= 0 ? index : ~index - 1;
     }
@@ -94,7 +109,13 @@ public sealed class EaMovieTimeline
     public long DueAudioFrame(int frame)
     {
         for (int block = 0; block < _videosBefore.Length; block++)
-            if (_videosBefore[block] > frame) return _blockStart[block];
+        {
+            if (_videosBefore[block] > frame)
+            {
+                return _blockStart[block];
+            }
+        }
+
         return TotalAudioFrames;
     }
 
@@ -111,7 +132,11 @@ public sealed class EaMovieTimeline
     {
         int target = showable - 1;
         int next = shown + 1;
-        if (next > target) return -1;
+        if (next > target)
+        {
+            return -1;
+        }
+
         return target - next >= SkipThreshold ? target : next;
     }
 }
@@ -146,12 +171,23 @@ public sealed class EaAudioStream
         while (written < wanted && _position < _timeline.TotalAudioFrames)
         {
             int block = _timeline.BlockAt(_position);
-            if (block != _blockIndex) DecodeBlock(block);
+            if (block != _blockIndex)
+            {
+                DecodeBlock(block);
+            }
+
             int offset = (int)(_position - _timeline.BlockStart(block));
             int take = Math.Min(_blockFrames - offset, wanted - written);
-            if (take <= 0) break; // a block shorter than the timeline counted; never expected
+            if (take <= 0)
+            {
+                break; // a block shorter than the timeline counted; never expected
+            }
+
             for (int i = 0; i < take * 2; i++)
+            {
                 interleaved[written * 2 + i] = _block[offset * 2 + i] * (1f / 32768f);
+            }
+
             written += take;
             _position += take;
         }
@@ -164,7 +200,11 @@ public sealed class EaAudioStream
         EaMovie movie = _timeline.Movie;
         ReadOnlySpan<byte> payload = movie.Payload(_timeline.AudioBlocks[block]);
         int frames = EaAudio.FrameCount(payload, movie.Channels, movie.Compression);
-        if (_block.Length < frames * 2) _block = new short[frames * 2];
+        if (_block.Length < frames * 2)
+        {
+            _block = new short[frames * 2];
+        }
+
         _blockFrames = EaAudio.DecodeBlock(payload, movie.Channels, movie.Compression, _block);
         _blockIndex = block;
     }

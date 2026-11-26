@@ -24,7 +24,11 @@ public sealed class BankMap
         using BinaryReader reader = SoundMapReader.Open(data, 0xE9612C01, 0xA00009B4);
         int count = SoundMapReader.Count(reader, 11);
         byte[][] records = new byte[count][];
-        for (int i = 0; i < count; i++) records[i] = SoundMapReader.Bytes(reader, 11);
+        for (int i = 0; i < count; i++)
+        {
+            records[i] = SoundMapReader.Bytes(reader, 11);
+        }
+
         var archives = new SoundArchive[count];
         for (int i = 0; i < count; i++)
         {
@@ -41,7 +45,11 @@ internal static class SoundMapReader
 {
     internal static BinaryReader Open(ReadOnlySpan<byte> data, uint first, uint third)
     {
-        if (data.Length < 28) throw new InvalidDataException("Sound map header is truncated.");
+        if (data.Length < 28)
+        {
+            throw new InvalidDataException("Sound map header is truncated.");
+        }
+
         var reader = new BinaryReader(new MemoryStream(data.ToArray(), false));
         if (reader.ReadUInt32() != first || reader.ReadUInt32() != 0x11D231D0
             || reader.ReadUInt32() != third || reader.ReadUInt32() != 0x03F293C9)
@@ -58,14 +66,19 @@ internal static class SoundMapReader
         Require(reader, 4);
         uint count = reader.ReadUInt32();
         if (count > (reader.BaseStream.Length - reader.BaseStream.Position) / width)
+        {
             throw new InvalidDataException("Sound map count exceeds its payload.");
+        }
+
         return checked((int)count);
     }
 
     internal static void Require(BinaryReader reader, int bytes)
     {
         if (bytes < 0 || bytes > reader.BaseStream.Length - reader.BaseStream.Position)
+        {
             throw new InvalidDataException("Sound map record is truncated.");
+        }
     }
 
     internal static byte[] Bytes(BinaryReader reader, int count)
@@ -77,6 +90,8 @@ internal static class SoundMapReader
     internal static void End(BinaryReader reader)
     {
         if (reader.BaseStream.Position != reader.BaseStream.Length)
+        {
             throw new InvalidDataException("Sound map has trailing data.");
+        }
     }
 }

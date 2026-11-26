@@ -12,10 +12,17 @@ public static class CampaignRegistryImport
 {
     public static CampaignProfile Read(IReadOnlyDictionary<string, object> values)
     {
-        if (values is null) throw new ArgumentNullException(nameof(values));
+        if (values is null)
+        {
+            throw new ArgumentNullException(nameof(values));
+        }
+
         if (!values.TryGetValue("Version Number", out object? version)
             || (version is not int signed || signed != 1) && (version is not uint unsigned || unsigned != 1))
+        {
             return new CampaignProfile();
+        }
+
         var defaults = new CampaignProfile();
         return defaults with
         {
@@ -38,25 +45,52 @@ public static class CampaignRegistryImport
     private static byte Byte(IReadOnlyDictionary<string, object> values, string name, byte fallback)
     {
         uint value = Dword(values, name, fallback);
-        if (value > byte.MaxValue) throw new InvalidDataException($"Invalid registry byte: {name}");
+        if (value > byte.MaxValue)
+        {
+            throw new InvalidDataException($"Invalid registry byte: {name}");
+        }
+
         return (byte)value;
     }
 
     private static uint Dword(IReadOnlyDictionary<string, object> values, string name, uint fallback)
     {
-        if (!values.TryGetValue(name, out object? value)) return fallback;
-        if (value is int signed) return unchecked((uint)signed);
-        if (value is uint unsigned) return unsigned;
+        if (!values.TryGetValue(name, out object? value))
+        {
+            return fallback;
+        }
+
+        if (value is int signed)
+        {
+            return unchecked((uint)signed);
+        }
+
+        if (value is uint unsigned)
+        {
+            return unsigned;
+        }
+
         throw new InvalidDataException($"Expected a registry DWORD: {name}");
     }
 
     private static IReadOnlyList<uint> Array(IReadOnlyDictionary<string, object> values, string name, IReadOnlyList<uint> fallback)
     {
-        if (!values.TryGetValue(name, out object? value)) return fallback;
+        if (!values.TryGetValue(name, out object? value))
+        {
+            return fallback;
+        }
+
         if (value is not byte[] bytes || bytes.Length < fallback.Count * 4)
+        {
             throw new InvalidDataException($"Invalid registry array: {name}");
+        }
+
         uint[] result = new uint[fallback.Count];
-        for (int i = 0; i < result.Length; i++) result[i] = BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(i * 4));
+        for (int i = 0; i < result.Length; i++)
+        {
+            result[i] = BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(i * 4));
+        }
+
         return System.Array.AsReadOnly(result);
     }
 }

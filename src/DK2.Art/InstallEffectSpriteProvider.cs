@@ -29,23 +29,45 @@ public sealed class InstallEffectSpriteProvider : IEffectSpriteProvider
 
     public InstallEffectSpriteProvider(GameDatabase database, Func<string, RgbaImage> loadTexture)
     {
-        if (database is null) throw new ArgumentNullException(nameof(database));
+        if (database is null)
+        {
+            throw new ArgumentNullException(nameof(database));
+        }
+
         _loadTexture = loadTexture ?? throw new ArgumentNullException(nameof(loadTexture));
         foreach (IGrouping<AssetRef, EffectElementDef> group in database.EffectElements.Values
                      .Where(element => element.ArtResource.Type is >= 1 and <= 3
                          && !string.IsNullOrWhiteSpace(element.ArtResource.Name))
                      .GroupBy(element => AssetRef.ForEffectElement(element.Name)))
-            if (group.Count() == 1) _elements.Add(group.Key, group.Single().ArtResource);
+        {
+            if (group.Count() == 1)
+            {
+                _elements.Add(group.Key, group.Single().ArtResource);
+            }
+        }
+
         foreach (IGrouping<AssetRef, EffectDef> group in database.Effects.Values
                      .Where(effect => effect.ArtResource.Type is >= 1 and <= 3
                          && !string.IsNullOrWhiteSpace(effect.ArtResource.Name))
                      .GroupBy(effect => AssetRef.ForEffect(effect.Name)))
-            if (group.Count() == 1) _elements.Add(group.Key, group.Single().ArtResource);
+        {
+            if (group.Count() == 1)
+            {
+                _elements.Add(group.Key, group.Single().ArtResource);
+            }
+        }
+
         foreach (IGrouping<AssetRef, ShotDef> group in database.Shots.Values
                      .Where(shot => shot.MeshResource.Type is >= 1 and <= 3
                          && !string.IsNullOrWhiteSpace(shot.MeshResource.Name))
                      .GroupBy(shot => AssetRef.ForShot(shot.Name)))
-            if (group.Count() == 1) _elements.Add(group.Key, group.Single().MeshResource);
+        {
+            if (group.Count() == 1)
+            {
+                _elements.Add(group.Key, group.Single().MeshResource);
+            }
+        }
+
         byte[] flameValues = new byte[12];
         BinaryPrimitives.WriteInt32LittleEndian(flameValues, 4096);
         BinaryPrimitives.WriteInt32LittleEndian(flameValues.AsSpan(4), 4096);
@@ -94,11 +116,23 @@ public sealed class InstallEffectSpriteProvider : IEffectSpriteProvider
 
     private LoadedSprite? Load(AssetRef reference)
     {
-        if (_loaded.TryGetValue(reference, out LoadedSprite? cached)) return cached;
-        if (!_elements.TryGetValue(reference, out KwdArtResource? element)) return null;
+        if (_loaded.TryGetValue(reference, out LoadedSprite? cached))
+        {
+            return cached;
+        }
+
+        if (!_elements.TryGetValue(reference, out KwdArtResource? element))
+        {
+            return null;
+        }
+
         KwdArtResource art = element;
         ReadOnlySpan<byte> values = art.Unknown_0044.Span;
-        if (values.Length != 12) throw new InvalidDataException("A sprite descriptor requires twelve value bytes.");
+        if (values.Length != 12)
+        {
+            throw new InvalidDataException("A sprite descriptor requires twelve value bytes.");
+        }
+
         int declaredFrames = (art.Flags & 4) != 0 ? Math.Max(1, (int)values[8]) : 1;
         bool animated = (art.Flags & 4) != 0;
         var frames = new List<RgbaImage>();

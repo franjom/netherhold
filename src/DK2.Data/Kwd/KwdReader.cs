@@ -62,18 +62,25 @@ public static class KwdReader
             uint headerBlockSize = U32();
 
             if (byteSize != 4)
+            {
                 throw new InvalidDataException($"{sourceName}: unexpected byteSize {byteSize}.");
+            }
+
             if (checkOne != signature + 1)
+            {
                 throw new InvalidDataException(
                     $"{sourceName}: header check failed (sig={signature}, checkOne={checkOne}).");
+            }
 
             byte[] headerBlock = new byte[Size(stream, headerBlockSize, sourceName)];
             stream.ReadExactly(headerBlock);
 
             uint checkTwo = U32();
             if (checkTwo != signature + 2 && checkTwo != signature + 3)
+            {
                 throw new InvalidDataException(
                     $"{sourceName}: trailer check failed (sig={signature}, checkTwo={checkTwo}).");
+            }
 
             uint contentSize = U32();
             byte[] content = new byte[Size(stream, contentSize, sourceName)];
@@ -101,8 +108,11 @@ public static class KwdReader
                 _ => 4,
             };
             if (headerBlock.Length < countBytes)
+            {
                 throw new InvalidDataException(
                     $"{sourceName}: {type} header block is {headerBlock.Length} bytes, too short for its count.");
+            }
+
             long itemCount = type switch
             {
                 KwdRecordType.Map => 0, // MAP is width*height tiles, not itemCount records
@@ -115,8 +125,10 @@ public static class KwdReader
             // Every record takes at least one content byte, so a larger count is corrupt; refusing
             // it here keeps every parser's count bounded by the bytes actually read (ADR-0724 R5).
             if (itemCount > content.Length)
+            {
                 throw new InvalidDataException(
                     $"{sourceName}: {type} declares {itemCount} records in {content.Length} content bytes.");
+            }
 
             chunks.Add(new KwdChunk
             {
@@ -136,8 +148,11 @@ public static class KwdReader
     private static int Size(Stream stream, uint declared, string sourceName)
     {
         if (declared > stream.Length - stream.Position)
+        {
             throw new InvalidDataException(
                 $"{sourceName}: a declared size of {declared} bytes runs past the end of the file.");
+        }
+
         return (int)declared;
     }
 
@@ -145,7 +160,10 @@ public static class KwdReader
     private static bool NextLooksLikeChunkHeader(Stream stream)
     {
         long pos = stream.Position;
-        if (stream.Length - pos < 28) return false;
+        if (stream.Length - pos < 28)
+        {
+            return false;
+        }
 
         Span<byte> peek = stackalloc byte[16];
         stream.ReadExactly(peek);

@@ -34,7 +34,10 @@ public static class KwdWriter
             uint size = checked((uint)(header.DeclaredContentSize + delta));
             uint signature = (uint)chunk.Type;
             if (header.CheckTwo != signature + 2 && header.CheckTwo != signature + 3)
+            {
                 throw new InvalidDataException($"{chunk.Type}: header template has an incompatible checkTwo.");
+            }
+
             U32(stream, word, signature);
             U32(stream, word, 4);
             U32(stream, word, end);
@@ -51,12 +54,20 @@ public static class KwdWriter
     {
         KwdContainerHeader original = template.ContainerHeader ?? throw new InvalidDataException(
             "The explicit template must have a parsed container header.");
-        if (itemCount < 0) throw new ArgumentOutOfRangeException(nameof(itemCount));
+        if (itemCount < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(itemCount));
+        }
+
         byte[] header = (byte[])template.HeaderBlock.Clone();
         switch (template.Type)
         {
             case KwdRecordType.Map:
-                if (itemCount != 0) throw new InvalidDataException("MAP has no record count.");
+                if (itemCount != 0)
+                {
+                    throw new InvalidDataException("MAP has no record count.");
+                }
+
                 break;
             case KwdRecordType.Level:
                 BinaryPrimitives.WriteUInt16LittleEndian(header, checked((ushort)itemCount));

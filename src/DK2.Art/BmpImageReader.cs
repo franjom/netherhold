@@ -12,7 +12,10 @@ public static class BmpImageReader
     public static RgbaImage Read(ReadOnlySpan<byte> data)
     {
         if (data.Length < 54 || data[0] != 'B' || data[1] != 'M')
+        {
             throw new InvalidDataException("Not a BMP image.");
+        }
+
         uint headerSize = BinaryPrimitives.ReadUInt32LittleEndian(data[14..]);
         uint offset = BinaryPrimitives.ReadUInt32LittleEndian(data[10..]);
         int width = BinaryPrimitives.ReadInt32LittleEndian(data[18..]);
@@ -22,11 +25,17 @@ public static class BmpImageReader
             || BinaryPrimitives.ReadUInt16LittleEndian(data[26..]) != 1
             || BinaryPrimitives.ReadUInt16LittleEndian(data[28..]) != 24
             || BinaryPrimitives.ReadUInt32LittleEndian(data[30..]) != 0)
+        {
             throw new InvalidDataException("Expected an uncompressed 24-bit BMP.");
+        }
+
         int height = Math.Abs(signedHeight);
         long stride = ((long)width * 3 + 3) & ~3L;
         if ((long)width * height > 16_777_216 || offset + stride * height > data.Length)
+        {
             throw new InvalidDataException("Invalid BMP dimensions or truncated pixels.");
+        }
+
         byte[] pixels = new byte[checked(width * height * 4)];
         for (int y = 0; y < height; y++)
         {

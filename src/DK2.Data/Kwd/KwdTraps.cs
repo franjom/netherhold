@@ -79,11 +79,17 @@ public static class KwdTraps
         var result = new List<TrapDef>();
         foreach (KwdChunk chunk in chunks)
         {
-            if (chunk.Type != KwdRecordType.Traps) continue;
+            if (chunk.Type != KwdRecordType.Traps)
+            {
+                continue;
+            }
+
             Validate(chunk);
 
             for (int i = 0; i < chunk.ItemCount; i++)
+            {
                 result.Add(ParseRecord(chunk.Content, i * RecordSize));
+            }
         }
         return result;
     }
@@ -91,8 +97,10 @@ public static class KwdTraps
     private static void Validate(KwdChunk chunk)
     {
         if (chunk.ItemCount < 0 || chunk.Content.Length != (long)chunk.ItemCount * RecordSize)
+        {
             throw new InvalidDataException(
                 $"TRAPS content is not {chunk.ItemCount} records of {RecordSize} bytes.");
+        }
     }
 
     private static TrapDef ParseRecord(byte[] record, int at) => new()

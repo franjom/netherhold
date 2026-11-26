@@ -45,12 +45,17 @@ public sealed class EngineTextureArchive : ITextureSource, IDisposable
     {
         byte[] directory = File.ReadAllBytes(directoryPath);
         if (directory.Length < 16 || BinaryPrimitives.ReadUInt32LittleEndian(directory) != DirectoryMagic)
+        {
             throw new InvalidDataException($"Not a DK2 engine texture directory: {directoryPath}");
+        }
+
         uint directorySize = BinaryPrimitives.ReadUInt32LittleEndian(directory.AsSpan(4));
         uint version = BinaryPrimitives.ReadUInt32LittleEndian(directory.AsSpan(8));
         uint count = BinaryPrimitives.ReadUInt32LittleEndian(directory.AsSpan(12));
         if (directorySize > directory.Length || directorySize < 16 || count > int.MaxValue)
+        {
             throw new InvalidDataException("Invalid engine texture directory size or entry count.");
+        }
 
         var data = new FileStream(dataPath, FileMode.Open, FileAccess.Read, FileShare.Read);
         try
@@ -61,20 +66,33 @@ public sealed class EngineTextureArchive : ITextureSource, IDisposable
             for (uint i = 0; i < count; i++)
             {
                 int start = position;
-                while (position < directory.Length && directory[position] != 0) position++;
+                while (position < directory.Length && directory[position] != 0)
+                {
+                    position++;
+                }
+
                 if (position == directory.Length || position + 5 > directory.Length)
+                {
                     throw new InvalidDataException($"Invalid engine texture directory entry {i}.");
+                }
+
                 string name = Encoding.ASCII.GetString(directory, start, position - start);
                 position++;
                 uint offset = BinaryPrimitives.ReadUInt32LittleEndian(directory.AsSpan(position));
                 position += 4;
                 if (offset > data.Length - header.Length)
+                {
                     throw new InvalidDataException($"Texture '{name}' points outside the data file.");
+                }
+
                 data.Position = offset;
                 data.ReadExactly(header);
                 uint storedWithHeader = BinaryPrimitives.ReadUInt32LittleEndian(header[8..]);
                 if (storedWithHeader < 8 || storedWithHeader - 8 > data.Length - data.Position)
+                {
                     throw new InvalidDataException($"Texture '{name}' has an invalid stored size.");
+                }
+
                 entries.Add(new EngineTextureEntry(name,
                     PositiveInt(BinaryPrimitives.ReadUInt32LittleEndian(header), "width", name),
                     PositiveInt(BinaryPrimitives.ReadUInt32LittleEndian(header[4..]), "height", name),
@@ -99,9 +117,20 @@ public sealed class EngineTextureArchive : ITextureSource, IDisposable
     public EngineTextureEntry FindBest(string textureName)
     {
         if (ShippedNameCorrections.TryGetValue(textureName, out string? corrected))
+        {
             textureName = corrected;
-        if (TryGetEntry(textureName, out EngineTextureEntry exact)) return exact;
-        if (TryGetEntry(textureName + "MM0", out EngineTextureEntry highest)) return highest;
+        }
+
+        if (TryGetEntry(textureName, out EngineTextureEntry exact))
+        {
+            return exact;
+        }
+
+        if (TryGetEntry(textureName + "MM0", out EngineTextureEntry highest))
+        {
+            return highest;
+        }
+
         throw new FileNotFoundException($"Engine texture '{textureName}' was not found.");
     }
 
@@ -126,7 +155,10 @@ public sealed class EngineTextureArchive : ITextureSource, IDisposable
     private static int PositiveInt(uint value, string field, string name)
     {
         if (value == 0 || value > int.MaxValue)
+        {
             throw new InvalidDataException($"Texture '{name}' has invalid {field} {value}.");
+        }
+
         return (int)value;
     }
 }

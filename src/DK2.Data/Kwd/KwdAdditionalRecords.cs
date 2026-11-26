@@ -39,14 +39,22 @@ public static partial class KwdAdditionalRecords
         var result = new List<T>();
         foreach (KwdChunk chunk in chunks)
         {
-            if (chunk.Type != type) continue;
+            if (chunk.Type != type)
+            {
+                continue;
+            }
+
             if (chunk.ItemCount < 0 || chunk.Content.Length != (long)chunk.ItemCount * stride)
+            {
                 throw new InvalidDataException(
                     $"{type} content of {chunk.Content.Length} bytes does not contain " +
                     $"{chunk.ItemCount} records of {stride} bytes.");
+            }
 
             for (int i = 0; i < chunk.ItemCount; i++)
+            {
                 result.Add(parse(chunk.Content.AsSpan(i * stride, stride).ToArray()));
+            }
         }
         return result;
     }
@@ -132,7 +140,11 @@ public static partial class KwdAdditionalRecords
     {
         ReadOnlySpan<byte> s = r.AsSpan(at, characters * 2);
         int bytes = 0;
-        while (bytes + 1 < s.Length && (s[bytes] != 0 || s[bytes + 1] != 0)) bytes += 2;
+        while (bytes + 1 < s.Length && (s[bytes] != 0 || s[bytes + 1] != 0))
+        {
+            bytes += 2;
+        }
+
         return Encoding.Unicode.GetString(s[..bytes]).Trim();
     }
 
@@ -158,9 +170,15 @@ public static partial class KwdThings
         var result = new List<ThingRecord>();
         foreach (KwdChunk chunk in chunks)
         {
-            if (chunk.Type != KwdRecordType.Things) continue;
+            if (chunk.Type != KwdRecordType.Things)
+            {
+                continue;
+            }
+
             foreach (KwdTaggedRecords.TaggedRecord tagged in KwdTaggedRecords.Split(chunk))
+            {
                 result.Add(Parse(tagged.Tag, tagged.Payload.ToArray()));
+            }
         }
         return result;
     }
@@ -168,9 +186,14 @@ public static partial class KwdThings
     public static ThingRecord Parse(int tag, byte[] r)
     {
         if (!KwdTaggedRecords.ThingPayloadSizes.TryGetValue(tag, out (string Name, int PayloadSize, bool InShippedData) layout))
+        {
             throw new InvalidDataException($"Unknown THINGS tag {tag}.");
+        }
+
         if (r.Length != layout.PayloadSize)
+        {
             throw new InvalidDataException($"THINGS {layout.Name} payload is {r.Length}, expected {layout.PayloadSize}.");
+        }
 
         return tag switch
         {
@@ -203,7 +226,10 @@ public static partial class KwdThings
     {
         var members = new List<GoodCreatureThing>(16);
         for (int i = 0; i < 16; i++)
+        {
             members.Add(Creature199(r.AsSpan(43 + i * 32, 32).ToArray()));
+        }
+
         return new HeroPartyThing(r) { Name = KwdAdditionalRecords.Ascii(r, 0, 32), TriggerId = U(r, 32), PartyId = r[34], Unknown_0023 = I(r, 35), Unknown_0027 = I(r, 39), Members = members };
     }
 
@@ -220,11 +246,19 @@ public static partial class KwdTriggers
         var result = new List<TriggerRecord>();
         foreach (KwdChunk chunk in chunks)
         {
-            if (chunk.Type != KwdRecordType.Triggers) continue;
+            if (chunk.Type != KwdRecordType.Triggers)
+            {
+                continue;
+            }
+
             foreach (KwdTaggedRecords.TaggedRecord tagged in KwdTaggedRecords.Split(chunk))
             {
                 byte[] r = tagged.Payload.ToArray();
-                if (r.Length != 16) throw new InvalidDataException($"TRIGGERS tag {tagged.Tag} payload is {r.Length}, expected 16.");
+                if (r.Length != 16)
+                {
+                    throw new InvalidDataException($"TRIGGERS tag {tagged.Tag} payload is {r.Length}, expected 16.");
+                }
+
                 TriggerRecord record = tagged.Tag switch
                 {
                     213 => new GenericTriggerRecord(r) { BodyValue = KwdAdditionalRecords.U32(r, 4), Parameters = ReadParameters(GenericParameterLayout(r[14]), r), Body = r.AsMemory(0, 8), TriggerId = KwdAdditionalRecords.U16(r, 8), NextTriggerId = KwdAdditionalRecords.U16(r, 10), ChildTriggerId = KwdAdditionalRecords.U16(r, 12), Type = r[14], RepeatCount = r[15] },
@@ -253,7 +287,10 @@ public static partial class KwdTriggers
         // one was missed.
         if (type == 1) { B("Comparison", 0); B("FlagId", 1); B("Flag", 2); B("IndirectFlagId", 3); S("Value", 4); }
         else if (type == 2) { B("Comparison", 0); B("TimerId", 1); B("Flag", 2); B("IndirectTimerId", 3); S("Value", 4); }
-        else if (type is 3 or 4 or 6 or 8 or 10 or 12 or 13 or 16 or 33 or 43 or 46 or 56 or 57 or 58 or 59 or 60 or 61 or 65 or 72) Unread();
+        else if (type is 3 or 4 or 6 or 8 or 10 or 12 or 13 or 16 or 33 or 43 or 46 or 56 or 57 or 58 or 59 or 60 or 61 or 65 or 72)
+        {
+            Unread();
+        }
         else if (type is 19 or 20 or 21) { B("Comparison", 0); B("CreatureId", 1); W("Unreached_0002", 2); S("Value", 4); }
         else if (type == 22) { B("Comparison", 0); W("Unreached_0001", 1); B("PlayerId", 3); S("Value", 4); }
         // Condition 23's byte 2: 0 counts the total killed, n player n's slot (0x004C7DF0, Q227).
@@ -315,9 +352,15 @@ public static partial class KwdTriggers
         else if (type is 42 or 47) { B("TargetId", 0); B("Unreached_0001", 1); W("Unreached_0002", 2); D("Unreached_0004", 4); }
         else if (type == 4) { W("ObjectiveId", 0); W("Unreached_0002", 2); B("ActionPointId", 4); B("Unreached_0005", 5); W("Unreached_0006", 6); }
         else if (type == 24) { D("SpeechId", 0); B("SpeakOnly", 4); B("Unreached_0005", 5); W("Unreached_0006", 6); }
-        else if (type == 25) Unread();
+        else if (type == 25)
+        {
+            Unread();
+        }
         else if (type == 30) { D("Value", 0); D("Unreached_0004", 4); }
-        else if (type == 34) Unread();
+        else if (type == 34)
+        {
+            Unread();
+        }
         else if (type == 31) { B("PathId", 0); B("ActionPointId", 1); B("Available", 2); B("Unreached_0003", 3); D("Unreached_0004", 4); }
         else if (type == 9) { B("MakeType", 0); B("TargetId", 1); B("Available", 2); B("Unreached_0003", 3); D("Value", 4); }
         else if (type == 16) { B("ActionPointId", 0); B("Available", 1); W("Unreached_0002", 2); S16("Value", 4); W("Unreached_0006", 6); }
@@ -328,9 +371,15 @@ public static partial class KwdTriggers
         else if (type == 14) { B("PartyId", 0); B("PartyType", 1); W("Unreached_0002", 2); B("ActionPointId", 4); B("Unreached_0005", 5); W("Unreached_0006", 6); }
         else if (type == 48) { B("GeneratorId", 0); B("Available", 1); W("Unreached_0002", 2); D("Unreached_0004", 4); }
         else if (type == 28) { B("CreatureId", 0); B("Level", 1); W("Unreached_0002", 2); D("Unreached_0004", 4); }
-        else if (type is 3 or 5) Unread();
+        else if (type is 3 or 5)
+        {
+            Unread();
+        }
         else if (type == 2) { B("ObjectId", 0); B("PlayerId", 1); W("Unreached_0002", 2); W("PosX", 4); W("PosY", 6); }
-        else if (type is 10 or 11 or 20 or 21 or 29 or 43) Unread();
+        else if (type is 10 or 11 or 20 or 21 or 29 or 43)
+        {
+            Unread();
+        }
         else if (type == 35) { B("DeathKind", 0); B("Unreached_0001", 1); W("Unreached_0002", 2); D("Unreached_0004", 4); }
         else if (type is 39 or 40) { B(type == 39 ? "DoorId" : "TrapId", 0); B("PlayerId", 1); W("Unreached_0002", 2); W("PosX", 4); W("PosY", 6); }
         else if (type == 41) { W("EffectId", 0); W("Unreached_0002", 2); W("PosX", 4); W("PosY", 6); }
@@ -349,24 +398,39 @@ public static partial class KwdLevel
     public static LevelDef? Parse(IEnumerable<KwdChunk> chunks)
     {
         KwdChunk? chunk = chunks.SingleOrDefault(c => c.Type == KwdRecordType.Level);
-        if (chunk is null) return null;
+        if (chunk is null)
+        {
+            return null;
+        }
+
         byte[] r = chunk.Content;
         if (chunk.HeaderBlock.Length < 4 || chunk.ItemCount < 0)
+        {
             throw new InvalidDataException("LEVEL header block is too short for its path count and extent.");
+        }
+
         int height = KwdAdditionalRecords.U16(chunk.HeaderBlock, 2);
         int expectedInner = checked(chunk.ItemCount * PathSize + height * 4);
         // Opaque extended metadata may contain the marker; counts and extent select the boundary.
         int metadata = checked(r.Length - 8 - expectedInner);
         if ((metadata != BaseMetadataSize && metadata != ExtendedMetadataSize) || Check(r, metadata) != 222)
+        {
             throw new InvalidDataException("LEVEL metadata does not end at either shipped v1.70 boundary.");
+        }
+
         uint innerSize = KwdAdditionalRecords.U32(r, metadata + 4);
         if (innerSize != expectedInner || r.Length != metadata + 8 + expectedInner)
+        {
             throw new InvalidDataException($"LEVEL inner content is {innerSize} bytes; expected {expectedInner}.");
+        }
 
         var paths = new List<KwdLevelFilePath>(chunk.ItemCount);
         int at = metadata + 8;
         for (int i = 0; i < chunk.ItemCount; i++, at += PathSize)
+        {
             paths.Add(new KwdLevelFilePath((KwdRecordType)KwdAdditionalRecords.I32(r, at), KwdAdditionalRecords.I32(r, at + 4), KwdAdditionalRecords.Ascii(r, at + 8, 64)));
+        }
+
         uint[] tail = Enumerable.Range(0, height).Select(i => KwdAdditionalRecords.U32(r, at + i * 4)).ToArray();
 
         return new LevelDef(r)

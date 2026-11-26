@@ -21,10 +21,18 @@ public static class KwdVariables
         var result = new GlobalVariables();
         foreach (KwdChunk chunk in chunks)
         {
-            if (chunk.Type != KwdRecordType.Variables) continue;
+            if (chunk.Type != KwdRecordType.Variables)
+            {
+                continue;
+            }
+
             if (chunk.ItemCount < 0 || chunk.Content.Length != (long)chunk.ItemCount * Stride)
+            {
                 throw new InvalidDataException($"VARIABLES content is {chunk.Content.Length} bytes for {chunk.ItemCount} records.");
+            }
+
             for (int i = 0; i < chunk.ItemCount; i++)
+            {
                 switch (ParseRecord(chunk.Content.AsSpan(i * Stride, Stride)))
                 {
                     case CreaturePoolEntry entry: result.CreaturePool.Add(entry); break;
@@ -37,13 +45,18 @@ public static class KwdVariables
                     // Table projection deliberately folds repeats; cell writing does not.
                     case MiscVariable entry: result.Misc[entry.Id] = entry; break;
                 }
+            }
         }
         return result;
     }
 
     public static KwdVariableEntry ParseRecord(ReadOnlySpan<byte> record)
     {
-        if (record.Length != Stride) throw new InvalidDataException("VARIABLES requires a 16-byte cell.");
+        if (record.Length != Stride)
+        {
+            throw new InvalidDataException("VARIABLES requires a 16-byte cell.");
+        }
+
         var id = (VariableTypeId)BinaryPrimitives.ReadInt32LittleEndian(record[IdOffset..]);
         ReadOnlySpan<byte> p = record[PayloadOffset..];
         return id switch
@@ -68,7 +81,10 @@ public static class KwdVariables
     {
         byte[] image = KwdOverlay.Image(template, KwdRecordType.Variables, Stride);
         if (entry is null || ParseRecord(image).GetType() != entry.GetType())
+        {
             throw new InvalidDataException("VARIABLES entry must match the explicit template's payload shape.");
+        }
+
         Span<byte> p = image.AsSpan(PayloadOffset);
         switch (entry)
         {
@@ -97,7 +113,10 @@ public static class KwdVariables
             case MiscVariable row:
                 BinaryPrimitives.WriteInt32LittleEndian(image.AsSpan(IdOffset), (int)row.Id);
                 if (ParseRecord(image) is not MiscVariable)
+                {
                     throw new InvalidDataException("A plain VARIABLES cell cannot select a structured payload id.");
+                }
+
                 WriteWords(p, row.Value, row.Unk1, row.Unk2); break;
             default: throw new InvalidDataException("Unsupported VARIABLES entry type.");
         }

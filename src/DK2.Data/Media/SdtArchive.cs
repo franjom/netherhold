@@ -50,13 +50,21 @@ public sealed class SdtArchive
 
     public static SdtArchive Open(string path)
     {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Path is required.", nameof(path));
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            throw new ArgumentException("Path is required.", nameof(path));
+        }
+
         return Parse(File.ReadAllBytes(path));
     }
 
     public static SdtArchive Read(Stream stream)
     {
-        if (stream is null) throw new ArgumentNullException(nameof(stream));
+        if (stream is null)
+        {
+            throw new ArgumentNullException(nameof(stream));
+        }
+
         using var copy = new MemoryStream();
         stream.CopyTo(copy);
         return Parse(copy.ToArray());
@@ -69,10 +77,17 @@ public sealed class SdtArchive
     private static SdtArchive Parse(byte[] bytes)
     {
         ReadOnlySpan<byte> data = bytes;
-        if (data.Length < 4) throw Invalid(0, "Missing entry count.");
+        if (data.Length < 4)
+        {
+            throw Invalid(0, "Missing entry count.");
+        }
+
         uint count = U32(data, 0);
         if (count > int.MaxValue || count > (uint)((data.Length - 4) / 4))
+        {
             throw Invalid(0, $"Entry count {count} does not fit the offset table.");
+        }
+
         int directoryEnd = checked(4 + (int)count * 4);
         var entries = new List<SdtEntry>((int)count);
         uint previousOffset = (uint)directoryEnd;
@@ -82,17 +97,25 @@ public sealed class SdtArchive
             uint offset = U32(data, 4 + index * 4);
             if (offset < directoryEnd || (index > 0 && offset <= previousOffset)
                 || offset > data.Length - FixedHeaderSize)
+            {
                 throw Invalid(4 + index * 4, $"Entry {index} offset {offset} is outside the archive or out of order.");
+            }
+
             int start = checked((int)offset);
             uint headerSize = U32(data, start);
             uint storedSize = U32(data, start + 4);
             if (headerSize < FixedHeaderSize)
+            {
                 throw Invalid(start, $"Entry {index} header is {headerSize} bytes; at least 40 are required.");
+            }
+
             ulong dataOffset = (ulong)offset + headerSize;
             ulong end = dataOffset + storedSize;
             uint nextOffset = index + 1 < (int)count ? U32(data, 8 + index * 4) : (uint)data.Length;
             if (dataOffset > (uint)data.Length || end > nextOffset)
+            {
                 throw Invalid(start, $"Entry {index} data extends beyond its archive range.");
+            }
 
             string name = FixedAscii(data.Slice(start + 8, 16));
             ushort sampleRate = U16(data, start + 24);
@@ -107,7 +130,9 @@ public sealed class SdtArchive
                 _ => (SdtCodec.Unknown, (int?)null, (ushort?)null),
             };
             if (codec == SdtCodec.Pcm)
+            {
                 ValidatePcm(index, sampleRate, bitsPerSample, channels!.Value, storedSize, start);
+            }
 
             entries.Add(new SdtEntry(index, offset, headerSize, storedSize, name,
                 sampleRate, bitsPerSample, type, U32(data, start + 28),
@@ -121,7 +146,11 @@ public sealed class SdtArchive
 
     public byte[] Extract(SdtEntry entry)
     {
-        if (entry is null) throw new ArgumentNullException(nameof(entry));
+        if (entry is null)
+        {
+            throw new ArgumentNullException(nameof(entry));
+        }
+
         SdtEntry owned = Entry(entry);
         ReadOnlySpan<byte> payload = _data.AsSpan(checked((int)owned.DataOffset), checked((int)owned.StoredSize));
         return owned.Codec == SdtCodec.Pcm ? Wave(payload, owned) : payload.ToArray();
@@ -136,15 +165,27 @@ public sealed class SdtArchive
 
     public string OutputFileName(SdtEntry entry)
     {
-        if (entry is null) throw new ArgumentNullException(nameof(entry));
+        if (entry is null)
+        {
+            throw new ArgumentNullException(nameof(entry));
+        }
+
         SdtEntry owned = Entry(entry);
         string stem = owned.Name;
         int dot = stem.LastIndexOf('.');
-        if (dot > 0) stem = stem[..dot];
+        if (dot > 0)
+        {
+            stem = stem[..dot];
+        }
+
         char[] invalid = Path.GetInvalidFileNameChars();
         stem = new string(stem.Select(character => invalid.Contains(character)
             || character is '/' or '\\' ? '_' : character).ToArray()).Trim(' ', '.');
-        if (stem.Length == 0) stem = "entry";
+        if (stem.Length == 0)
+        {
+            stem = "entry";
+        }
+
         string extension = owned.Codec switch
         {
             SdtCodec.Pcm => ".wav",
@@ -159,7 +200,10 @@ public sealed class SdtArchive
     private SdtEntry Entry(SdtEntry entry)
     {
         if ((uint)entry.Index >= Entries.Count || !ReferenceEquals(Entries[entry.Index], entry))
+        {
             throw new ArgumentException("Entry does not belong to this SDT archive.", nameof(entry));
+        }
+
         return entry;
     }
 
@@ -190,27 +234,48 @@ public sealed class SdtArchive
         int channels, uint storedSize, int position)
     {
         if (sampleRate == 0 || bitsPerSample == 0 || bitsPerSample % 8 != 0)
+        {
             throw Invalid(position, $"PCM entry {index} has invalid {sampleRate} Hz/{bitsPerSample}-bit metadata.");
+        }
+
         int blockAlign = checked(channels * bitsPerSample / 8);
         if (storedSize % blockAlign != 0)
+        {
             throw Invalid(position, $"PCM entry {index} size {storedSize} is not aligned to {blockAlign} bytes.");
+        }
     }
 
     private static (SdtCodec Codec, int? Channels, ushort? PayloadRate) MpegMetadata(
         ReadOnlySpan<byte> data, int dataOffset, uint storedSize, byte type)
     {
-        if (storedSize < 4) return (SdtCodec.Unknown, null, null);
+        if (storedSize < 4)
+        {
+            return (SdtCodec.Unknown, null, null);
+        }
+
         uint header = BinaryPrimitives.ReadUInt32BigEndian(data[dataOffset..]);
-        if ((header & 0xffe00000) != 0xffe00000) return (SdtCodec.Unknown, null, null);
+        if ((header & 0xffe00000) != 0xffe00000)
+        {
+            return (SdtCodec.Unknown, null, null);
+        }
+
         int version = (int)((header >> 19) & 3);
         int layer = (int)((header >> 17) & 3);
         int rateIndex = (int)((header >> 10) & 3);
-        if (version == 1 || layer == 0 || rateIndex == 3) return (SdtCodec.Unknown, null, null);
+        if (version == 1 || layer == 0 || rateIndex == 3)
+        {
+            return (SdtCodec.Unknown, null, null);
+        }
+
         int baseRate = rateIndex switch { 0 => 44100, 1 => 48000, _ => 32000 };
         int streamRate = version switch { 3 => baseRate, 2 => baseRate / 2, _ => baseRate / 4 };
         int channels = ((header >> 6) & 3) == 3 ? 1 : 2;
         int expectedChannels = type == 36 ? 1 : 2;
-        if (channels != expectedChannels) return (SdtCodec.Unknown, null, checked((ushort)streamRate));
+        if (channels != expectedChannels)
+        {
+            return (SdtCodec.Unknown, null, checked((ushort)streamRate));
+        }
+
         SdtCodec codec = layer switch
         {
             3 => SdtCodec.MpegLayer1,
@@ -224,7 +289,11 @@ public sealed class SdtArchive
     private static string FixedAscii(ReadOnlySpan<byte> bytes)
     {
         int length = bytes.IndexOf((byte)0);
-        if (length < 0) length = bytes.Length;
+        if (length < 0)
+        {
+            length = bytes.Length;
+        }
+
         return Encoding.ASCII.GetString(bytes[..length].ToArray()).TrimEnd();
     }
 

@@ -96,11 +96,31 @@ public static class AssetCatalogue
     /// </summary>
     public static IEnumerable<AssetRef> ForDatabase(GameDatabase database)
     {
-        foreach (AssetRef reference in ForTerrain(database)) yield return reference;
-        foreach (AssetRef reference in ForRooms(database)) yield return reference;
-        foreach (AssetRef reference in ForTorches(database)) yield return reference;
-        foreach (AssetRef reference in ForCreatures(database)) yield return reference;
-        foreach (AssetRef reference in ForObjects(database)) yield return reference;
+        foreach (AssetRef reference in ForTerrain(database))
+        {
+            yield return reference;
+        }
+
+        foreach (AssetRef reference in ForRooms(database))
+        {
+            yield return reference;
+        }
+
+        foreach (AssetRef reference in ForTorches(database))
+        {
+            yield return reference;
+        }
+
+        foreach (AssetRef reference in ForCreatures(database))
+        {
+            yield return reference;
+        }
+
+        foreach (AssetRef reference in ForObjects(database))
+        {
+            yield return reference;
+        }
+
         foreach (byte id in Sorted(database.Doors.Keys))
         {
             yield return AssetRef.ForDoor(database.Doors[id].Name);
@@ -108,10 +128,19 @@ public static class AssetCatalogue
             yield return AssetRef.ForDoorLock(database.Doors[id].Name);
         }
         foreach (byte id in Sorted(database.Traps.Keys))
+        {
             yield return AssetRef.ForTrap(database.Traps[id].Name);
+        }
+
         foreach (EffectElementDef element in MeshEffectElements(database))
+        {
             yield return AssetRef.ForEffectElement(element.Name);
-        foreach (ShotDef shot in MeshShots(database)) yield return AssetRef.ForShot(shot.Name);
+        }
+
+        foreach (ShotDef shot in MeshShots(database))
+        {
+            yield return AssetRef.ForShot(shot.Name);
+        }
     }
 
     /// <summary>The bridge's own torch art, which a wall torch over a floor with no room carries
@@ -128,7 +157,10 @@ public static class AssetCatalogue
     /// </summary>
     public static IEnumerable<AssetRef> ForTorches(GameDatabase database)
     {
-        foreach (string art in TorchArt(database)) yield return TorchMesh(art);
+        foreach (string art in TorchArt(database))
+        {
+            yield return TorchMesh(art);
+        }
     }
 
     /// <summary>The torch art names <see cref="ForTorches"/> lists, for a converter to follow.</summary>
@@ -137,12 +169,24 @@ public static class AssetCatalogue
         var names = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
         bool torchWalls = false;
         foreach (TerrainDef terrain in database.Terrain.Values)
+        {
             torchWalls |= (terrain.Flags & TerrainFlags.Torch) != 0;
-        if (!torchWalls) return new List<string>();
+        }
+
+        if (!torchWalls)
+        {
+            return new List<string>();
+        }
+
         names.Add(DefaultTorchArt);
         foreach (RoomDef room in database.Rooms.Values)
+        {
             if (room.Torch is { HasArt: true } torch && !string.IsNullOrWhiteSpace(torch.ArtName))
+            {
                 names.Add(torch.ArtName);
+            }
+        }
+
         return new List<string>(names);
     }
 
@@ -167,9 +211,14 @@ public static class AssetCatalogue
                 : AssetRef.ForTerrain(terrain.Name, AssetKind.Texture);
 
             if (terrain.Damage != 0)
+            {
                 yield return AssetRef.ForTerrain(terrain.Name, AssetKind.Effect);
+            }
 
-            foreach (AssetRef piece in ForTerrainPieces(terrain)) yield return piece;
+            foreach (AssetRef piece in ForTerrainPieces(terrain))
+            {
+                yield return piece;
+            }
         }
     }
 
@@ -187,12 +236,24 @@ public static class AssetCatalogue
     /// </summary>
     public static IEnumerable<AssetRef> ForTerrainPieces(TerrainDef terrain)
     {
-        if (terrain is null) throw new ArgumentNullException(nameof(terrain));
+        if (terrain is null)
+        {
+            throw new ArgumentNullException(nameof(terrain));
+        }
+
         TerrainFlags flags = terrain.Flags;
-        if ((flags & TerrainFlags.Room) != 0) yield break;
+        if ((flags & TerrainFlags.Room) != 0)
+        {
+            yield break;
+        }
+
         if ((flags & TerrainFlags.ConstructionTypeWater) != 0)
         {
-            for (int k = 0; k < BedPieces; k++) yield return TerrainBed(terrain.Name, k);
+            for (int k = 0; k < BedPieces; k++)
+            {
+                yield return TerrainBed(terrain.Name, k);
+            }
+
             yield break;
         }
 
@@ -202,12 +263,17 @@ public static class AssetCatalogue
             if ((flags & TerrainFlags.PlayerColouredWall) == 0)
             {
                 yield return TerrainPiece(terrain.Name, TerrainTop);
-                if (terrain.IsTaggable) yield return TerrainPiece(terrain.Name, TerrainTopTagged);
+                if (terrain.IsTaggable)
+                {
+                    yield return TerrainPiece(terrain.Name, TerrainTopTagged);
+                }
             }
             else
             {
                 for (int k = 0; k < HeroWallPieces; k++)
+                {
                     yield return HeroWallPiece(terrain.Name, FirstHeroWallPiece + k);
+                }
             }
         }
         else if ((flags & TerrainFlags.PlayerColouredPath) == 0)
@@ -216,13 +282,23 @@ public static class AssetCatalogue
         }
 
         if ((flags & (TerrainFlags.PlayerColouredPath | TerrainFlags.PlayerColouredWall)) != 0)
+        {
             for (int set = 0; set < ClaimedSets; set++)
+            {
                 for (int piece = 0; piece < ClaimedPieces; piece++)
+                {
                     yield return TerrainQuarter(terrain.Name, set, piece);
+                }
+            }
+        }
 
         if (terrain.TerrainId == HeroLairTerrainId)
+        {
             for (int piece = 0; piece < HeroLairPieces; piece++)
+            {
                 yield return HeroLairPiece(terrain.Name, piece);
+            }
+        }
     }
 
     /// <summary>Terrain 0x23, the Hero Lair, whose floor quarters are its own five pieces
@@ -279,12 +355,22 @@ public static class AssetCatalogue
             yield return AssetRef.ForRoom(room.Name, AssetKind.Texture);
             yield return AssetRef.ForRoom(room.Name, AssetKind.Mesh);
             for (int piece = 0; piece < RoomPieceCount(room); piece++)
+            {
                 yield return RoomPiece(room.Name, piece);
+            }
+
             if (room.Construction == TileConstruction.HeroGateFrontEndTile)
+            {
                 yield return FrontEndAssets.EntranceCap(room.Name);
+            }
+
             if (room.TypeId == RoomTypeId.DungeonHeart)
+            {
                 for (int piece = 0; piece < 6; piece++)
+                {
                     yield return DestroyedHeartPiece(room.Name, piece);
+                }
+            }
         }
     }
 
@@ -336,8 +422,12 @@ public static class AssetCatalogue
     public static IEnumerable<AssetRef> ForCreatures(GameDatabase database)
     {
         foreach (byte id in Sorted(database.Creatures.Keys))
+        {
             foreach (AssetRef key in ForCreature(database.Creatures[id]))
+            {
                 yield return key;
+            }
+        }
     }
 
     /// <summary>One creature type's art: its living and corpse meshes and every animation.</summary>
@@ -346,9 +436,14 @@ public static class AssetCatalogue
         yield return AssetRef.ForCreature(creature.Name, AssetKind.Mesh);
         yield return AssetRef.ForCreature(creature.Name, AssetKind.Mesh, "dead");
         foreach (string animation in CreatureAnimations)
+        {
             yield return AssetRef.ForCreature(creature.Name, AssetKind.Animation, animation);
+        }
+
         foreach (string animation in CreatureActionAnimations)
+        {
             yield return AssetRef.ForCreature(creature.Name, AssetKind.Animation, animation);
+        }
     }
 
     /// <summary>
@@ -364,10 +459,17 @@ public static class AssetCatalogue
     public static IEnumerable<AssetRef> ForObjects(GameDatabase database)
     {
         foreach (byte id in Sorted(database.Objects.Keys))
+        {
             yield return AssetRef.ForObject(database.Objects[id].Name, AssetKind.Mesh);
+        }
+
         foreach (byte id in Sorted(database.Objects.Keys))
+        {
             foreach (int slot in ObjectArtSlots(id))
+            {
                 yield return ObjectArt(database.Objects[id].Name, slot);
+            }
+        }
     }
 
     /// <summary>An object's file art <paramref name="slot"/> (5 to 8, the definition's extra arts;

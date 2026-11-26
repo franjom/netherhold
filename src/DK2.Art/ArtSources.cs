@@ -38,12 +38,18 @@ public sealed class WadMeshSource : IMeshSource, IDisposable
 
     public WadMeshSource(WadArchive archive)
     {
-        if (archive is null) throw new ArgumentNullException(nameof(archive));
+        if (archive is null)
+        {
+            throw new ArgumentNullException(nameof(archive));
+        }
+
         _archive = archive;
         EntryNames = archive.Entries.Select(entry => entry.Name).ToArray();
         _byName = new Dictionary<string, int>(EntryNames.Count, StringComparer.OrdinalIgnoreCase);
         for (int i = 0; i < EntryNames.Count; i++)
+        {
             _byName[EntryNames[i]] = i;
+        }
     }
 
     public static WadMeshSource OpenInstall(string installDirectory) =>
@@ -69,7 +75,11 @@ public static class KmfLookup
     public static bool TryFind(this IMeshSource meshes, string sourceName, bool allowCollectionMember,
         out int index, out string entryName)
     {
-        if (meshes is null) throw new ArgumentNullException(nameof(meshes));
+        if (meshes is null)
+        {
+            throw new ArgumentNullException(nameof(meshes));
+        }
+
         entryName = sourceName.EndsWith(".kmf", StringComparison.OrdinalIgnoreCase)
             ? sourceName : sourceName + ".kmf";
         if (meshes.TryFind(entryName, out index))

@@ -12,7 +12,11 @@ public static class FrontEndArt
 {
     public static IReadOnlyList<ArtEntry> Entries(GameDatabase database)
     {
-        if (database is null) throw new ArgumentNullException(nameof(database));
+        if (database is null)
+        {
+            throw new ArgumentNullException(nameof(database));
+        }
+
         var entries = new List<ArtEntry>();
         foreach (FrontEndMapPiece piece in Enum.GetValues(typeof(FrontEndMapPiece)))
         {
@@ -29,8 +33,11 @@ public static class FrontEndArt
                 new Dk2ArtResource("3dmap" + slot.LevelName + "_arrows", 5), "front-end campaign marker"));
         }
         foreach (PetDungeonMapPiece piece in Enum.GetValues(typeof(PetDungeonMapPiece)))
+        {
             entries.Add(new ArtEntry(FrontEndAssets.PetDungeonPiece(piece), ArtUse.Model,
                 new Dk2ArtResource("MPD_map" + (int)piece, 5), "front-end pet dungeon land"));
+        }
+
         return entries;
     }
 }

@@ -26,15 +26,20 @@ public static class WadDecompressor
 
         // Prelude.
         if ((Next(ref inPos, input) & 1) != 0)
+        {
             inPos += 3;
+        }
+
         inPos++;
 
         int embeddedSize = (Next(ref inPos, input) << 16)
                          | (Next(ref inPos, input) << 8)
                          | Next(ref inPos, input);
         if (embeddedSize != expectedSize)
+        {
             throw new InvalidDataException(
                 $"WAD entry declares decompressed size {embeddedSize}, directory says {expectedSize}.");
+        }
 
         while (inPos < input.Length)
         {
@@ -45,7 +50,10 @@ public static class WadDecompressor
                 // Short backref. Extra byte = low distance bits.
                 byte b1 = Next(ref inPos, input);
                 int literals = flag & 3;
-                while (literals-- != 0) output[outPos++] = Next(ref inPos, input);
+                while (literals-- != 0)
+                {
+                    output[outPos++] = Next(ref inPos, input);
+                }
 
                 int src = outPos - (((flag & 0x60) << 3) + b1 + 1);
                 int count = ((flag >> 2) & 7) + 2;
@@ -57,7 +65,10 @@ public static class WadDecompressor
                 byte b1 = Next(ref inPos, input);
                 byte b2 = Next(ref inPos, input);
                 int literals = b1 >> 6;
-                while (literals-- != 0) output[outPos++] = Next(ref inPos, input);
+                while (literals-- != 0)
+                {
+                    output[outPos++] = Next(ref inPos, input);
+                }
 
                 int src = outPos - (((b1 & 0x3F) << 8) + b2 + 1);
                 int count = (flag & 0x3F) + 3;
@@ -70,7 +81,10 @@ public static class WadDecompressor
                 byte b2 = Next(ref inPos, input);
                 byte b3 = Next(ref inPos, input);
                 int literals = flag & 3;
-                while (literals-- != 0) output[outPos++] = Next(ref inPos, input);
+                while (literals-- != 0)
+                {
+                    output[outPos++] = Next(ref inPos, input);
+                }
 
                 int src = outPos - (((flag & 0x10) << 12) + (b1 << 8) + b2 + 1);
                 int count = b3 + ((flag & 0x0C) << 6) + 4;
@@ -81,15 +95,29 @@ public static class WadDecompressor
                 // Literal run / terminator.
                 int count = (flag & 0x1F) * 4 + 4;
                 bool finished = count > 0x70;
-                if (finished) count = flag & 3;
-                while (count-- != 0) output[outPos++] = Next(ref inPos, input);
-                if (finished) break;
+                if (finished)
+                {
+                    count = flag & 3;
+                }
+
+                while (count-- != 0)
+                {
+                    output[outPos++] = Next(ref inPos, input);
+                }
+
+                if (finished)
+                {
+                    break;
+                }
             }
         }
 
         if (outPos != expectedSize)
+        {
             throw new InvalidDataException(
                 $"WAD decompression produced {outPos} bytes, expected {expectedSize}.");
+        }
+
         return output;
     }
 }

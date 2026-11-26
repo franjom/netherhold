@@ -28,9 +28,15 @@ public static partial class KwdPlayers
     private static void WriteBlock(byte[] image, KeeperAIParameters row)
     {
         if (row is null || !row.RawBlock.Span.SequenceEqual(image.AsSpan(OffsetBlock, BlockSize)))
+        {
             throw new InvalidDataException("PLAYERS AI RawBlock must match its explicit template; edit typed fields instead.");
+        }
+
         if (row.RoomList is null || row.RoomList.Count != 15)
+        {
             throw new InvalidDataException("PLAYERS AI RoomList requires exactly 15 bytes.");
+        }
+
         void U8(int offset, byte value) => image[OffsetBlock + offset] = value;
         void U16(int offset, ushort value) => BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(OffsetBlock + offset), value);
         void I32(int offset, int value) => BinaryPrimitives.WriteInt32LittleEndian(image.AsSpan(OffsetBlock + offset), value);
@@ -50,7 +56,11 @@ public static partial class KwdPlayers
         U8(0x18, row.CorridorStyle);
         U8(0x19, row.BuildNewRoomWhenMoreSpaceRequired);
         U8(0x1A, row.NeutralRoomRangeFromHeart);
-        for (int i = 0; i < 15; i++) U8(0x1B + i, row.RoomList[i]);
+        for (int i = 0; i < 15; i++)
+        {
+            U8(0x1B + i, row.RoomList[i]);
+        }
+
         U8(0x2A, row.Flexibility);
         U8(0x2B, row.NeutralRoomRangeFromClaimedArea);
         U16(0x2C, row.RemoveCallToArmsAfter);
@@ -112,8 +122,18 @@ public static partial class KwdPlayers
     {
         bool original = width == 1 ? image[offset] != 0
             : BinaryPrimitives.ReadInt32LittleEndian(image.AsSpan(offset)) != 0;
-        if (value == original) return;
-        if (width == 1) image[offset] = value ? (byte)1 : (byte)0;
-        else BinaryPrimitives.WriteInt32LittleEndian(image.AsSpan(offset), value ? 1 : 0);
+        if (value == original)
+        {
+            return;
+        }
+
+        if (width == 1)
+        {
+            image[offset] = value ? (byte)1 : (byte)0;
+        }
+        else
+        {
+            BinaryPrimitives.WriteInt32LittleEndian(image.AsSpan(offset), value ? 1 : 0);
+        }
     }
 }

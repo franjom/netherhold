@@ -30,17 +30,25 @@ public static class MapGrid
     {
         foreach (KwdChunk chunk in chunks)
         {
-            if (chunk.Type != KwdRecordType.Map) continue;
+            if (chunk.Type != KwdRecordType.Map)
+            {
+                continue;
+            }
 
             if (chunk.HeaderBlock.Length < 8)
+            {
                 throw new InvalidDataException($"MAP header block is {chunk.HeaderBlock.Length} bytes; width and height need 8.");
+            }
+
             int width = (int)BinaryPrimitives.ReadUInt32LittleEndian(chunk.HeaderBlock);
             int height = (int)BinaryPrimitives.ReadUInt32LittleEndian(chunk.HeaderBlock.AsSpan(4));
             long expected = (long)width * height * 4; // long: width * height * 4 overflows int
 
             if (width <= 0 || height <= 0 || chunk.Content.Length < expected)
+            {
                 throw new InvalidDataException(
                     $"MAP chunk claims {width}x{height} ({expected} bytes) but content is {chunk.Content.Length}.");
+            }
 
             var tiles = new MapTile[width * height];
             for (int i = 0; i < tiles.Length; i++)

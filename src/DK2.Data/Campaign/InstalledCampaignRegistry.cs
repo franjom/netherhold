@@ -24,27 +24,64 @@ public static class InstalledCampaignRegistry
 
     public static CampaignProfile? ReadCurrentUser()
     {
-        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return null;
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            return null;
+        }
+
         int error = RegOpenKeyEx(new IntPtr(unchecked((int)0x80000001)), PlayerKeyPath, 0, 1, out KeyHandle key);
         using (key)
         {
-            if (error == 2) return null;
-            if (error != 0) throw new Win32Exception(error);
+            if (error == 2)
+            {
+                return null;
+            }
+
+            if (error != 0)
+            {
+                throw new Win32Exception(error);
+            }
+
             var values = new Dictionary<string, object>(StringComparer.Ordinal);
             foreach ((string name, bool binary) in Values)
             {
                 uint size = 0;
                 error = RegQueryValueEx(key, name, IntPtr.Zero, out _, null, ref size);
-                if (error == 2) continue;
-                if (error != 0) throw new Win32Exception(error);
-                if (size > 4096) throw new InvalidDataException($"Registry campaign value too large: {name}");
+                if (error == 2)
+                {
+                    continue;
+                }
+
+                if (error != 0)
+                {
+                    throw new Win32Exception(error);
+                }
+
+                if (size > 4096)
+                {
+                    throw new InvalidDataException($"Registry campaign value too large: {name}");
+                }
+
                 byte[] bytes = new byte[size];
                 error = RegQueryValueEx(key, name, IntPtr.Zero, out uint type, bytes, ref size);
-                if (error != 0) throw new Win32Exception(error);
-                if (size != bytes.Length) throw new IOException($"Registry value changed during import: {name}");
+                if (error != 0)
+                {
+                    throw new Win32Exception(error);
+                }
+
+                if (size != bytes.Length)
+                {
+                    throw new IOException($"Registry value changed during import: {name}");
+                }
                 // DK2's binary query ignores the registry type; some installed arrays use type 9.
-                if (binary) values.Add(name, bytes);
-                else if (type == 4 && size == 4) values.Add(name, BinaryPrimitives.ReadUInt32LittleEndian(bytes));
+                if (binary)
+                {
+                    values.Add(name, bytes);
+                }
+                else if (type == 4 && size == 4)
+                {
+                    values.Add(name, BinaryPrimitives.ReadUInt32LittleEndian(bytes));
+                }
                 // Missing or unsupported scalar type/width retains the profile default.
             }
             return CampaignRegistryImport.Read(values);

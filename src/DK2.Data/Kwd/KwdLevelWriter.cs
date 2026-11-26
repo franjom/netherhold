@@ -12,7 +12,11 @@ public static partial class KwdLevel
 {
     public static byte[] WriteRecord(LevelDef row, KwdChunk template)
     {
-        if (template.Type != KwdRecordType.Level) throw new InvalidDataException("An explicit LEVEL chunk template is required.");
+        if (template.Type != KwdRecordType.Level)
+        {
+            throw new InvalidDataException("An explicit LEVEL chunk template is required.");
+        }
+
         LevelDef original = Parse([template])!;
         byte[] image = template.Content.ToArray();
         int metadata = original.Unknown_6403.Length + BaseMetadataSize;
@@ -45,14 +49,26 @@ public static partial class KwdLevel
         KwdOverlay.Ascii(image, 25571, 32, row.TerrainPath, original.TerrainPath, trimmed: true);
         KwdAdditionalRecords.WriteRaw(image, BaseMetadataSize, metadata - BaseMetadataSize, row.Unknown_6403);
         if (row.Messages.Count != 512 || row.Paths.Count != original.Paths.Count || row.UnknownPathTail.Count != original.UnknownPathTail.Count)
+        {
             throw new InvalidDataException("LEVEL overlay requires unchanged message, path and tail counts.");
+        }
+
         for (int i = 0; i < 512; i++)
+        {
             WriteUtf16(image, 5004 + i * 40, 20, row.Messages[i], original.Messages[i]);
+        }
+
         int at = metadata + 8;
         for (int i = 0; i < row.Paths.Count; i++, at += PathSize)
+        {
             WritePathRecord(row.Paths[i], new KwdRecordImage(KwdRecordType.Level, image.AsSpan(at, PathSize).ToArray())).CopyTo(image, at);
+        }
+
         for (int i = 0; i < row.UnknownPathTail.Count; i++)
+        {
             BinaryPrimitives.WriteUInt32LittleEndian(image.AsSpan(at + i * 4), row.UnknownPathTail[i]);
+        }
+
         return image;
     }
 
@@ -67,9 +83,16 @@ public static partial class KwdLevel
 
     private static void WriteUtf16(byte[] image, int at, int characters, string value, string original)
     {
-        if (value == original) return;
+        if (value == original)
+        {
+            return;
+        }
+
         if (value is null || value.Length > characters || value.Trim() != value || value.Contains('\0'))
+        {
             throw new InvalidDataException($"Text at +0x{at:X} must round-trip in {characters} UTF-16 code units.");
+        }
+
         byte[] encoded;
         try { encoded = new UnicodeEncoding(false, false, true).GetBytes(value); }
         catch (EncoderFallbackException exception) { throw new InvalidDataException("Text contains an unpaired UTF-16 surrogate.", exception); }

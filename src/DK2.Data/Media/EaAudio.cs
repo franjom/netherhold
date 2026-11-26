@@ -31,7 +31,11 @@ public static class EaAudio
     public static int DecodeBlock(ReadOnlySpan<byte> payload, int channels, int compression, Span<short> stereo)
     {
         int frames = FrameCount(payload, channels, compression);
-        if (stereo.Length < frames * 2) throw new ArgumentException("output is too small", nameof(stereo));
+        if (stereo.Length < frames * 2)
+        {
+            throw new ArgumentException("output is too small", nameof(stereo));
+        }
+
         if (compression == 0)
         {
             // The leading u32 sample count is skipped; samples are little-endian int16.
@@ -93,7 +97,11 @@ public static class EaAudio
     {
         // DK2 reads indices above 3 past 0x00670AA0's table into unrelated data; no shipped
         // stream uses them, so they are refused rather than guessed.
-        if (index > 3) throw new InvalidDataException($"EA ADPCM coefficient index {index} is not valid");
+        if (index > 3)
+        {
+            throw new InvalidDataException($"EA ADPCM coefficient index {index} is not valid");
+        }
+
         int c1 = C1[index];
         int c2 = C2[index];
         int delta = (nibble << 28) >> (shift + 8);

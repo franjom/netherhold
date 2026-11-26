@@ -50,9 +50,18 @@ public static class AssetConverter
         var run = new Run(root, meshes, textures);
         foreach (ArtEntry entry in ArtSourceMap.ForDatabase(database, art))
         {
-            if (!entry.HasSource) run.Missing(entry.Reference, entry.MissingReason!);
-            else if (entry.Use == ArtUse.Model) run.ConvertKmf(entry.Reference, entry.Source!, entry.Detail);
-            else run.ConvertTexture(entry.Reference, entry.Source!, entry.Detail);
+            if (!entry.HasSource)
+            {
+                run.Missing(entry.Reference, entry.MissingReason!);
+            }
+            else if (entry.Use == ArtUse.Model)
+            {
+                run.ConvertKmf(entry.Reference, entry.Source!, entry.Detail);
+            }
+            else
+            {
+                run.ConvertTexture(entry.Reference, entry.Source!, entry.Detail);
+            }
         }
         return run.Results;
     }
@@ -98,7 +107,10 @@ public static class AssetConverter
                 File.WriteAllBytes(path, glb);
                 foreach (string textureName in model.Materials.SelectMany(MaterialTextures).Distinct(
                     StringComparer.OrdinalIgnoreCase))
+                {
                     WriteDependency(textureName);
+                }
+
                 Results.Add(new AssetConversionResult(reference, true, path, $"{detail} from {entryName}"));
             }
             catch (Exception exception) when (exception is InvalidDataException or FileNotFoundException
@@ -161,7 +173,11 @@ public static class AssetConverter
         {
             string storedName = _textures.Resolve(textureName);
             string path = TexturePath(storedName);
-            if (_writtenTextures.Contains(storedName)) return;
+            if (_writtenTextures.Contains(storedName))
+            {
+                return;
+            }
+
             TextureExtractor.WritePng(_textures.Read(storedName), path);
             _writtenTextures.Add(storedName);
         }
@@ -180,7 +196,11 @@ public static class AssetConverter
             // A repeat conversion must not leave a formerly-produced key
             // resolvable after its current source becomes unavailable.
             string stalePath = OutputPath(reference);
-            if (File.Exists(stalePath)) File.Delete(stalePath);
+            if (File.Exists(stalePath))
+            {
+                File.Delete(stalePath);
+            }
+
             Results.Add(new AssetConversionResult(reference, false, null, reason));
         }
     }

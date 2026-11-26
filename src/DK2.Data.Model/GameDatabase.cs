@@ -70,10 +70,25 @@ public sealed class GameDatabase
         foreach (CreatureStatEntry e in Variables.CreatureStats)
         {
             // First-person rows use their separate signed-word table.
-            if (e.FirstPerson) continue;
-            if (e.StatId < 0 || e.StatId >= StatCount) continue;
-            if (e.Level < 1 || e.Level > MaxCreatureLevel) continue;
-            if (e.Value < 0 || e.Value > 65535) continue;
+            if (e.FirstPerson)
+            {
+                continue;
+            }
+
+            if (e.StatId < 0 || e.StatId >= StatCount)
+            {
+                continue;
+            }
+
+            if (e.Level < 1 || e.Level > MaxCreatureLevel)
+            {
+                continue;
+            }
+
+            if (e.Value < 0 || e.Value > 65535)
+            {
+                continue;
+            }
 
             _statPercent[(e.StatId * (MaxCreatureLevel + 1)) + e.Level] =
                 (byte)Math.Min(e.Value, 255);
@@ -108,9 +123,20 @@ public sealed class GameDatabase
     public int StatPercent(CreatureStatId stat, int level)
     {
         int id = (int)stat;
-        if (id < 0 || id >= StatCount) return 100;
-        if (level <= 1) return 100;
-        if (level > MaxCreatureLevel) level = MaxCreatureLevel;
+        if (id < 0 || id >= StatCount)
+        {
+            return 100;
+        }
+
+        if (level <= 1)
+        {
+            return 100;
+        }
+
+        if (level > MaxCreatureLevel)
+        {
+            level = MaxCreatureLevel;
+        }
 
         return _wideStatPercent.TryGetValue((id, level), out int wide)
             ? wide
@@ -122,10 +148,20 @@ public sealed class GameDatabase
     public int FirstPersonStat(CreatureStatId stat)
     {
         int id = (int)stat;
-        if (id < 0 || id >= StatCount) return 100;
+        if (id < 0 || id >= StatCount)
+        {
+            return 100;
+        }
+
         int value = 100;
         foreach (CreatureStatEntry entry in Variables.CreatureStats)
-            if (entry.FirstPerson && entry.StatId == id) value = unchecked((short)entry.Value);
+        {
+            if (entry.FirstPerson && entry.StatId == id)
+            {
+                value = unchecked((short)entry.Value);
+            }
+        }
+
         return value;
     }
 
@@ -239,11 +275,19 @@ public sealed class GameDatabase
     /// the handler's lookup fails.</summary>
     public static IEnumerable<CreatureDef> WithFieldOverrides(IEnumerable<CreatureDef> creatures, GlobalVariables? level)
     {
-        if (level is null || level.CreatureFieldOverrides.Count == 0) return creatures;
+        if (level is null || level.CreatureFieldOverrides.Count == 0)
+        {
+            return creatures;
+        }
+
         var byId = creatures.ToDictionary(c => c.CreatureId);
         foreach (CreatureFieldOverrideEntry e in level.CreatureFieldOverrides)
         {
-            if (e.CreatureId is < 0 or > byte.MaxValue || !byId.TryGetValue((byte)e.CreatureId, out CreatureDef? c)) continue;
+            if (e.CreatureId is < 0 or > byte.MaxValue || !byId.TryGetValue((byte)e.CreatureId, out CreatureDef? c))
+            {
+                continue;
+            }
+
             byId[c.CreatureId] = (CreatureStatId)e.Selector switch
             {
                 CreatureStatId.Health => c with { Hp = (ushort)e.Value },
@@ -287,7 +331,13 @@ public sealed class GameDatabase
     public KeeperSpellDef? KeeperSpellById(int id)
     {
         foreach (KeeperSpellDef spell in KeeperSpells.Values)
-            if (spell.KeeperSpellId == id) return spell;
+        {
+            if (spell.KeeperSpellId == id)
+            {
+                return spell;
+            }
+        }
+
         return null;
     }
 

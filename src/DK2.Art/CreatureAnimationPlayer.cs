@@ -107,10 +107,17 @@ public sealed class CreatureAnimationPlayer<TResources>
     /// <summary>One turn of a Heart's health phase, outside the catch-up.</summary>
     public void AdvanceHealthPhase(Fp32 phaseStep)
     {
-        if (_clock == null) return;
+        if (_clock == null)
+        {
+            return;
+        }
+
         long previousLoops = _clock.CompletedLoops;
         _clock.Advance(phaseStepOverride: phaseStep);
-        if (_clock.CompletedLoops != previousLoops) BeatPending = true;
+        if (_clock.CompletedLoops != previousLoops)
+        {
+            BeatPending = true;
+        }
     }
 
     /// <summary>Starts <paramref name="clips"/> at <paramref name="start"/> on the draw clock. A deferred replacement
@@ -122,7 +129,11 @@ public sealed class CreatureAnimationPlayer<TResources>
         Fp32? initialMovementSpeed = null, Fp32? phaseStepOverride = null, Fp32 initialPhase = default,
         FootstepMarkPair footstepMarks = default)
     {
-        if (clips is null) throw new ArgumentNullException(nameof(clips));
+        if (clips is null)
+        {
+            throw new ArgumentNullException(nameof(clips));
+        }
+
         if (_clock != null && replacement == AnimationReplacement.Deferred)
         {
             Draw(start, movementSpeed, hold);
@@ -154,13 +165,21 @@ public sealed class CreatureAnimationPlayer<TResources>
     /// not yet advanced (the start's own turn included), then hands the pose or sampled vertices to the surface.</summary>
     public void Draw(double seconds, Fp32? movementSpeed = null, bool hold = false, Fp32? phaseStepOverride = null)
     {
-        if (_clock == null) return;
+        if (_clock == null)
+        {
+            return;
+        }
+
         double tickTime = seconds * CreatureAnimationArt.TurnsPerSecond;
         long tick = (long)Math.Floor(tickTime);
         long previousLoops = _clock.CompletedLoops;
         int advancedNow = 0;
         while (_advanced <= tick - _startTick) { _clock.Advance(movementSpeed, hold, phaseStepOverride); _advanced++; advancedNow++; }
-        if (_clock.CompletedLoops != previousLoops) BeatPending = true;
+        if (_clock.CompletedLoops != previousLoops)
+        {
+            BeatPending = true;
+        }
+
         float fraction = (float)(tickTime - tick);
         AnimationPose pose = _clock.Sample(fraction);
         FootstepCrossing = (_mark1 | _mark2) == 0 ? 0
@@ -181,22 +200,43 @@ public sealed class CreatureAnimationPlayer<TResources>
         }
         _drawnPhase = pose.Phase;
         _sampleCurrent = false;
-        if (_surface is ICreatureAnimationPoseSurface gpu) gpu.Pose(segment, pose.Phase);
-        else if (TryGetSample(out Vector3[] sample)) _surface.Upload(segment, sample);
+        if (_surface is ICreatureAnimationPoseSurface gpu)
+        {
+            gpu.Pose(segment, pose.Phase);
+        }
+        else if (TryGetSample(out Vector3[] sample))
+        {
+            _surface.Upload(segment, sample);
+        }
     }
 
     /// <summary>The last drawn pose, sampled only on request and cached until the next draw.</summary>
     public bool TryGetSample(out Vector3[] vertices)
     {
         vertices = Array.Empty<Vector3>();
-        if (_clock == null || !_drawnSegment.HasValue || _clips == null) return false;
+        if (_clock == null || !_drawnSegment.HasValue || _clips == null)
+        {
+            return false;
+        }
+
         int segment = (int)_drawnSegment.Value;
         RenderAnimation? clip = _clips[segment];
-        if (clip == null) return false;
+        if (clip == null)
+        {
+            return false;
+        }
+
         if (!_buffers.TryGetValue(clip, out Vector3[]? buffer))
+        {
             _buffers.Add(clip, buffer = new Vector3[clip.Mesh.Positions.Count]);
+        }
+
         vertices = buffer;
-        if (!_sampleCurrent) clip.Sample(_drawnPhase, false, vertices);
+        if (!_sampleCurrent)
+        {
+            clip.Sample(_drawnPhase, false, vertices);
+        }
+
         _sampleCurrent = true;
         return true;
     }
@@ -206,11 +246,19 @@ public sealed class CreatureAnimationPlayer<TResources>
     public bool TryGetControlPoint(uint id, out Vector3 local)
     {
         local = default;
-        if (!_drawnSegment.HasValue || _clips == null) return false;
+        if (!_drawnSegment.HasValue || _clips == null)
+        {
+            return false;
+        }
+
         int segment = (int)_drawnSegment.Value;
         RenderAnimation? clip = _clips[segment];
         if (clip == null || !clip.Mesh.ControlPoints.TryGetValue(id, out int index)
-            || index >= clip.Mesh.Positions.Count) return false;
+            || index >= clip.Mesh.Positions.Count)
+        {
+            return false;
+        }
+
         local = clip.SampleVertex(_drawnPhase, index);
         return true;
     }
@@ -218,18 +266,32 @@ public sealed class CreatureAnimationPlayer<TResources>
     /// <summary>The drawn clip's tagged points below id 2000, in file order with repeats, model-local as last drawn.</summary>
     public void CollectLightningPoints(List<AnimationPoint> points)
     {
-        if (points is null) throw new ArgumentNullException(nameof(points));
+        if (points is null)
+        {
+            throw new ArgumentNullException(nameof(points));
+        }
+
         points.Clear();
-        if (!_drawnSegment.HasValue || _clips == null) return;
+        if (!_drawnSegment.HasValue || _clips == null)
+        {
+            return;
+        }
+
         int segment = (int)_drawnSegment.Value;
         RenderAnimation? clip = _clips[segment];
-        if (clip == null) return;
+        if (clip == null)
+        {
+            return;
+        }
+
         IReadOnlyList<RenderControlPoint> tagged = clip.Mesh.TaggedPoints;
         for (int i = 0; i < tagged.Count; i++)
         {
             RenderControlPoint control = tagged[i];
             if (control.Id < LightningPointLimit && control.VertexIndex < clip.Mesh.Positions.Count)
+            {
                 points.Add(new AnimationPoint(control.Id, clip.SampleVertex(_drawnPhase, control.VertexIndex)));
+            }
         }
     }
 

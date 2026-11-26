@@ -35,10 +35,15 @@ public sealed class Dk2StringTable
     public static Dk2StringTable Open(string path)
     {
         if (string.IsNullOrEmpty(path))
+        {
             throw new ArgumentException("String table path must not be empty.", nameof(path));
+        }
+
         string? directory = Path.GetDirectoryName(Path.GetFullPath(path));
         if (directory is null)
+        {
             throw new ArgumentException($"String table path has no directory: '{path}'.", nameof(path));
+        }
 
         string codePagePath = Path.Combine(directory, "MBToUni.dat");
         return Read(File.ReadAllBytes(path), File.ReadAllBytes(codePagePath), path);
@@ -51,19 +56,30 @@ public sealed class Dk2StringTable
         string sourceName = "<memory>")
     {
         if (tableData.Length < HeaderSize)
+        {
             throw Invalid(sourceName, "file is shorter than the 12-byte BFST header");
+        }
+
         if (!tableData[..4].SequenceEqual("BFST"u8))
+        {
             throw Invalid(sourceName, "expected BFST magic");
+        }
 
         uint fileId = BinaryPrimitives.ReadUInt32LittleEndian(tableData[4..]);
         uint countValue = BinaryPrimitives.ReadUInt32LittleEndian(tableData[8..]);
         if (countValue > int.MaxValue)
+        {
             throw Invalid(sourceName, $"entry count {countValue} is too large");
+        }
+
         int count = (int)countValue;
 
         long tableEndLong = HeaderSize + (long)count * sizeof(uint);
         if (tableEndLong > tableData.Length)
+        {
             throw Invalid(sourceName, $"offset table ends beyond the file at {tableEndLong}");
+        }
+
         int tableEnd = (int)tableEndLong;
 
         var codePage = Dk2CodePage.Read(codePageData, sourceName);
@@ -74,11 +90,17 @@ public sealed class Dk2StringTable
                 tableData.Slice(HeaderSize + i * sizeof(uint), sizeof(uint)));
             long absoluteOffset = HeaderSize + (long)storedOffset;
             if (absoluteOffset < tableEnd)
+            {
                 throw Invalid(sourceName,
                     $"entry {i} starts at {absoluteOffset}, inside the offset table ending at {tableEnd}");
+            }
+
             if (absoluteOffset > tableData.Length)
+            {
                 throw Invalid(sourceName,
                     $"entry {i} starts beyond the file at {absoluteOffset}");
+            }
+
             storedOffsets[i] = storedOffset;
         }
 
@@ -133,14 +155,20 @@ public sealed class Dk2StringTable
             {
                 case 0:
                     if (chunkLength != 0)
+                    {
                         throw Invalid(sourceName,
                             $"entry {entryIndex} has an end chunk with length {chunkLength}");
+                    }
+
                     return result.ToString();
 
                 case 1:
                     if (chunkLength > data.Length - position)
+                    {
                         throw Invalid(sourceName,
                             $"entry {entryIndex} string chunk exceeds its entry boundary");
+                    }
+
                     DecodeCharacters(data.Slice(position, chunkLength), codePage, result,
                         sourceName, entryIndex);
                     position += chunkLength;
@@ -174,13 +202,18 @@ public sealed class Dk2StringTable
         {
             int index = encoded[position++] - 1;
             if (index < 0)
+            {
                 throw Invalid(sourceName, $"entry {entryIndex} contains character code zero");
+            }
 
             if (index >= codePage.MultiByteThreshold)
             {
                 if (position >= encoded.Length)
+                {
                     throw Invalid(sourceName,
                         $"entry {entryIndex} ends midway through a two-byte character code");
+                }
+
                 index = checked(index * 255 - codePage.MultiByteThreshold * 254
                     + encoded[position++] - 1);
             }
@@ -207,11 +240,19 @@ public sealed class Dk2StringTable
         {
             const int headerSize = 8;
             if (data.Length < headerSize)
+            {
                 throw Invalid(sourceName, "MBToUni.dat is shorter than its 8-byte header");
+            }
+
             if (!data[..4].SequenceEqual("BFMU"u8))
+            {
                 throw Invalid(sourceName, "expected BFMU magic in MBToUni.dat");
+            }
+
             if ((data.Length - headerSize) % sizeof(ushort) != 0)
+            {
                 throw Invalid(sourceName, "MBToUni.dat has a partial UTF-16LE character");
+            }
 
             int threshold = 255 - data[4];
             char[] characters = new char[(data.Length - headerSize) / sizeof(ushort)];
@@ -226,8 +267,11 @@ public sealed class Dk2StringTable
         public char CharacterAt(int index, string sourceName, int entryIndex)
         {
             if ((uint)index >= (uint)Characters.Length)
+            {
                 throw Invalid(sourceName,
                     $"entry {entryIndex} references missing code-page character {index}");
+            }
+
             return Characters[index];
         }
     }

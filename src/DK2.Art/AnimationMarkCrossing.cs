@@ -21,18 +21,33 @@ public static class AnimationMarkCrossing
     {
         if (mark1 == 0)
         {
-            if (mark2 == 0) return 0;
+            if (mark2 == 0)
+            {
+                return 0;
+            }
         }
-        else if (mark2 == 0) mark2 = mark1;
+        else if (mark2 == 0)
+        {
+            mark2 = mark1;
+        }
+
         int step = phase - previousPhase;
-        if (step < 0) step += One;
+        if (step < 0)
+        {
+            step += One;
+        }
+
         int start = previousPhase + Scale(step, from);
         int end = previousPhase + Scale(step, to);
         if (Outside(mark1, mark2, start, end))
         {
             do
             {
-                if (end <= One) return 0;
+                if (end <= One)
+                {
+                    return 0;
+                }
+
                 start -= One;
                 end -= One;
             }

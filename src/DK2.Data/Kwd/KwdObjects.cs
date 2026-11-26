@@ -54,13 +54,21 @@ public static class KwdObjects
             CreatureAnimationTiming timing = record.ArtSlots[slot];
             BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(offset + 0x40), (uint)timing.Flags);
             bytes[offset + 0x50] = timing.ResourceType;
-            if (timing.ResourceType != 6) continue;
+            if (timing.ResourceType != 6)
+            {
+                continue;
+            }
+
             bytes[offset + 0x51] = timing.StartSegmentFrames;
             bytes[offset + 0x52] = timing.EndSegmentFrames;
             U16(offset + 0x44, timing.FrameCount);
             U16(offset + 0x48, timing.FramesPerSecond);
         }
-        if (record.Light is KwdLight light) KwdAdditionalRecords.WriteLight(bytes, 0x314, light);
+        if (record.Light is KwdLight light)
+        {
+            KwdAdditionalRecords.WriteLight(bytes, 0x314, light);
+        }
+
         return bytes;
     }
     private const int RecordSize = 894;
@@ -92,17 +100,27 @@ public static class KwdObjects
         var result = new List<ObjectDef>();
         foreach (KwdChunk chunk in chunks)
         {
-            if (chunk.Type != KwdRecordType.Objects) continue;
+            if (chunk.Type != KwdRecordType.Objects)
+            {
+                continue;
+            }
 
             int recordSize = chunk.ItemCount == 0 ? RecordSize : chunk.Content.Length / chunk.ItemCount;
             if (recordSize != RecordSize)
+            {
                 throw new InvalidDataException(
                     $"OBJECTS record size {recordSize} is not {RecordSize}.");
+            }
+
             if (chunk.Content.Length != (long)recordSize * chunk.ItemCount)
+            {
                 throw new InvalidDataException("OBJECTS content size does not divide into records.");
+            }
 
             for (int i = 0; i < chunk.ItemCount; i++)
+            {
                 result.Add(ParseRecord(chunk.Content, i * recordSize));
+            }
         }
         return result;
     }

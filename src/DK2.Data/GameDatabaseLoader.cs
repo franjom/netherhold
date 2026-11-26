@@ -27,7 +27,10 @@ public static class GameDatabaseLoader
         foreach (CameraThing camera in global.Concat(campaign)
                      .OfType<CameraThing>().Select(c => c with { CameraId = (byte)c.CameraId })
                      .Where(c => c.CameraId is > 0 and < 19))
+        {
             cameras[camera.CameraId] = camera;
+        }
+
         return cameras.Values.OrderBy(c => c.CameraId).ToArray();
     }
 
@@ -38,8 +41,10 @@ public static class GameDatabaseLoader
     {
         string editor = Path.Combine(installDir, "Data", EditorDir);
         if (!Directory.Exists(editor))
+        {
             throw new DirectoryNotFoundException(
                 $"'{editor}' does not exist; '{installDir}' is not a DK2 installation.");
+        }
 
         List<TerrainDef> terrain = KwdTerrainRooms.ParseTerrain(
             KwdReader.ReadFile(Path.Combine(editor, "Terrain.kwd")));
@@ -82,16 +87,26 @@ public static class GameDatabaseLoader
     {
         var frames = new Dictionary<int, int>();
         string path = Path.Combine(installDir, "Data", "Paths.WAD");
-        if (!File.Exists(path)) return frames;
+        if (!File.Exists(path))
+        {
+            return frames;
+        }
+
         using var wad = WadArchive.Open(path);
         foreach (WadEntry entry in wad.Entries)
         {
             Match name = EnginePathName.Match(Path.GetFileName(entry.Name));
-            if (!name.Success) continue;
+            if (!name.Success)
+            {
+                continue;
+            }
+
             byte[] data = wad.Extract(entry);
             if (data.Length >= 4)
+            {
                 frames[int.Parse(name.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture)] =
                     (int)BinaryPrimitives.ReadUInt32LittleEndian(data);
+            }
         }
         return frames;
     }
@@ -112,7 +127,10 @@ public static class GameDatabaseLoader
         {
             // The campaign uses both "level1Map.kld" and bare "<name>.kld" forms.
             file = Path.Combine(maps, levelName + ".kld");
-            if (!File.Exists(file)) return null;
+            if (!File.Exists(file))
+            {
+                return null;
+            }
         }
         return MapGrid.Parse(KwdReader.ReadFile(file));
     }

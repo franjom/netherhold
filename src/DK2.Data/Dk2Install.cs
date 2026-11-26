@@ -48,14 +48,34 @@ public static class Dk2Install
     /// install (a moved folder falls through), then the first of <paramref name="defaults"/> that does.</summary>
     public static string? Resolve(string? environment, string? commandLine, string? saved, IReadOnlyList<string> defaults)
     {
-        if (defaults is null) throw new ArgumentNullException(nameof(defaults));
+        if (defaults is null)
+        {
+            throw new ArgumentNullException(nameof(defaults));
+        }
+
         if (!string.IsNullOrWhiteSpace(environment))
+        {
             return IsInstall(environment) ? environment : null;
+        }
+
         if (!string.IsNullOrWhiteSpace(commandLine))
+        {
             return IsInstall(commandLine) ? commandLine : null;
-        if (IsInstall(saved)) return saved;
+        }
+
+        if (IsInstall(saved))
+        {
+            return saved;
+        }
+
         foreach (string candidate in defaults)
-            if (IsInstall(candidate)) return candidate;
+        {
+            if (IsInstall(candidate))
+            {
+                return candidate;
+            }
+        }
+
         return null;
     }
 
@@ -67,10 +87,18 @@ public static class Dk2Install
     /// <summary>What <paramref name="dir"/> holds by the install rule (<see cref="Dk2InstallCheck"/>).</summary>
     public static Dk2InstallCheck Check(string? dir)
     {
-        if (string.IsNullOrWhiteSpace(dir)) return Dk2InstallCheck.Empty;
+        if (string.IsNullOrWhiteSpace(dir))
+        {
+            return Dk2InstallCheck.Empty;
+        }
+
         try
         {
-            if (!File.Exists(Path.Combine(dir, "DKII.EXE"))) return Dk2InstallCheck.NoGame;
+            if (!File.Exists(Path.Combine(dir, "DKII.EXE")))
+            {
+                return Dk2InstallCheck.NoGame;
+            }
+
             return Directory.Exists(Path.Combine(dir, "Data")) ? Dk2InstallCheck.Found : Dk2InstallCheck.NoData;
         }
         catch (ArgumentException) { return Dk2InstallCheck.NoGame; }   // a typed path with characters no path can hold (Mono)

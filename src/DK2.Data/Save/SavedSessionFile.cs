@@ -19,16 +19,26 @@ public static class SavedSessionFile
     {
         if (string.IsNullOrWhiteSpace(name) || name.Length > 128 || name is "." or ".."
             || name.Any(c => c < ' ' || "<>:\"/\\|?*".Contains(c)) || name.EndsWith(".", StringComparison.Ordinal))
+        {
             throw new ArgumentException("A save needs a file name without a path or reserved characters.", nameof(name));
+        }
+
         return Path.Combine(directory, name.Trim() + Extension);
     }
 
     public static void Save(string path, SavedSession session)
     {
-        if (session is null) throw new ArgumentNullException(nameof(session));
+        if (session is null)
+        {
+            throw new ArgumentNullException(nameof(session));
+        }
+
         Validate(session.Header);
         if (session.Snapshot is null || session.Snapshot.Length == 0)
+        {
             throw new ArgumentException("A save needs a simulation snapshot.", nameof(session));
+        }
+
         byte[] profile = CampaignProfileFile.Write(session.Profile);
         using var stream = new MemoryStream();
         using (var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true))
@@ -57,15 +67,27 @@ public static class SavedSessionFile
             ulong snapshotChecksum = reader.ReadUInt64(), profileChecksum = reader.ReadUInt64();
             long payloadLength = (long)snapshotLength + profileLength;
             if (snapshotLength == 0 || profileLength == 0)
+            {
                 throw SaveReader.Error(reader, SaveIncompatibleReason.OutOfRange, "A saved-session payload is empty");
+            }
+
             if (payloadLength > SaveReader.Remaining(reader))
+            {
                 throw SaveReader.Error(reader, SaveIncompatibleReason.Truncated, "Truncated saved-session payload");
+            }
+
             if (payloadLength != SaveReader.Remaining(reader))
+            {
                 throw SaveReader.Error(reader, SaveIncompatibleReason.Corrupt, "Invalid saved-session payload lengths");
+            }
+
             byte[] snapshot = SaveReader.Bytes(reader, snapshotLength, "snapshot");
             byte[] profile = SaveReader.Bytes(reader, profileLength, "profile");
             if (PayloadChecksum.Compute(snapshot) != snapshotChecksum || PayloadChecksum.Compute(profile) != profileChecksum)
+            {
                 throw SaveReader.Error(reader, SaveIncompatibleReason.ChecksumMismatch, "The saved-session payload checksum does not match");
+            }
+
             return new SavedSession(header, snapshot, CampaignProfileFile.Read(profile));
         }
         catch (Exception ex) when (SaveReader.IsMalformed(ex)) { throw SaveReader.Wrap(ex, stream.Position); }
@@ -74,16 +96,25 @@ public static class SavedSessionFile
     public static SavedSessionHeader ReadHeader(Stream stream)
     {
         if (!stream.CanSeek)
+        {
             throw new SaveIncompatibleException(SaveIncompatibleReason.Corrupt, "A saved session requires a seekable stream.");
+        }
+
         try
         {
             using var reader = new BinaryReader(stream, Encoding.UTF8, leaveOpen: true);
             if (reader.ReadUInt32() != Magic)
+            {
                 throw SaveReader.Error(reader, SaveIncompatibleReason.NotASave, "Not a DK2 saved session");
+            }
+
             uint version = reader.ReadUInt32();
             if (version != Version)
+            {
                 throw SaveReader.Error(reader, SaveIncompatibleReason.UnsupportedVersion,
                     $"Saved-session version {version} is not supported (this build reads {Version})");
+            }
+
             string level = ReadText(reader);
             byte mode = reader.ReadByte(); ushort page = reader.ReadUInt16();
             var time = new DateTime(reader.ReadInt64(), DateTimeKind.Utc);
@@ -96,7 +127,11 @@ public static class SavedSessionFile
 
     public static IReadOnlyList<SavedSessionEntry> List(string directory)
     {
-        if (!Directory.Exists(directory)) return Array.Empty<SavedSessionEntry>();
+        if (!Directory.Exists(directory))
+        {
+            return Array.Empty<SavedSessionEntry>();
+        }
+
         var entries = new List<SavedSessionEntry>();
         foreach (string path in Directory.EnumerateFiles(directory, "*" + Extension))
         {
@@ -123,7 +158,9 @@ public static class SavedSessionFile
                 : !header.LevelName.All(c => c is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= '0' and <= '9' or '_' or '-'))
             || header.GameMode is not (1 or SavedSessionHeader.TerrainImportMode) || header.SavedAtUtc.Kind != DateTimeKind.Utc
             || string.IsNullOrWhiteSpace(header.DisplayName) || header.DisplayName.Length > 128)
+        {
             throw new ArgumentException("Invalid saved-session header.", nameof(header));
+        }
     }
 
     private static void WriteText(BinaryWriter writer, string value)

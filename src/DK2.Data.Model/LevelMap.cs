@@ -26,11 +26,21 @@ public sealed class LevelMap
 
     public LevelMap(int width, int height, MapTile[] tiles)
     {
-        if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
-        if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+        if (width <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(width));
+        }
+
+        if (height <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(height));
+        }
+
         if (tiles.Length != width * height)
+        {
             throw new ArgumentException(
                 $"tile array is {tiles.Length} long, expected {width * height}.", nameof(tiles));
+        }
 
         Width = width;
         Height = height;
@@ -41,8 +51,16 @@ public sealed class LevelMap
     {
         get
         {
-            if ((uint)x >= (uint)Width) throw new ArgumentOutOfRangeException(nameof(x));
-            if ((uint)y >= (uint)Height) throw new ArgumentOutOfRangeException(nameof(y));
+            if ((uint)x >= (uint)Width)
+            {
+                throw new ArgumentOutOfRangeException(nameof(x));
+            }
+
+            if ((uint)y >= (uint)Height)
+            {
+                throw new ArgumentOutOfRangeException(nameof(y));
+            }
+
             return _tiles[y * Width + x];
         }
     }

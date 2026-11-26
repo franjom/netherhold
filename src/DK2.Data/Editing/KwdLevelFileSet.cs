@@ -26,10 +26,18 @@ public sealed partial class KwdLevelFileSet
             KwdChunk[] chunks=file.Value.Select(Clone).ToArray();
             foreach(KwdChunk chunk in chunks)
             {
-                if(chunk.ContainerHeader is null) throw new InvalidDataException("Editing requires explicit container templates.");
-                _=KwdRecordRoundTrip.Split(chunk);
+                if(chunk.ContainerHeader is null)
+                {
+                    throw new InvalidDataException("Editing requires explicit container templates.");
+                }
+
+                _ =KwdRecordRoundTrip.Split(chunk);
             }
-            if(result._files.ContainsKey(path)) throw new InvalidDataException("Duplicate file path.");
+            if(result._files.ContainsKey(path))
+            {
+                throw new InvalidDataException("Duplicate file path.");
+            }
+
             result._files.Add(path,chunks);
         }
         return result;
@@ -43,7 +51,10 @@ public sealed partial class KwdLevelFileSet
         {
             full=Path.GetFullPath(full);
             if(!full.StartsWith(root,Path.DirectorySeparatorChar=='\\' ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
+            {
                 throw new InvalidDataException("Level files must remain within the explicit content root.");
+            }
+
             return Normalize(full[root.Length..]);
         }
         string levelPath=Relative(levelFile);
@@ -53,10 +64,17 @@ public sealed partial class KwdLevelFileSet
         foreach(KwdLevelFilePath entry in level.Paths)
         {
             string path=Normalize(entry.Path);
-            if(Path.GetExtension(path).Length==0) path+=".kwd";
+            if(Path.GetExtension(path).Length==0)
+            {
+                path +=".kwd";
+            }
+
             string actual=Resolve(root,path);
             string relative=Relative(actual);
-            if(!files.ContainsKey(relative)) files.Add(relative,KwdReader.ReadFile(actual));
+            if(!files.ContainsKey(relative))
+            {
+                files.Add(relative,KwdReader.ReadFile(actual));
+            }
         }
         return Create(files);
     }
@@ -68,8 +86,16 @@ public sealed partial class KwdLevelFileSet
     {
         KwdChunk chunk=Chunk(location);
         IReadOnlyList<object> rows=KwdTypedRecords.Read(Clone(chunk));
-        if((uint)location.RecordIndex>=(uint)rows.Count) throw new ArgumentOutOfRangeException(nameof(location));
-        if(rows[location.RecordIndex] is not T row) throw new InvalidDataException("The requested typed record does not match the file image.");
+        if((uint)location.RecordIndex>=(uint)rows.Count)
+        {
+            throw new ArgumentOutOfRangeException(nameof(location));
+        }
+
+        if (rows[location.RecordIndex] is not T row)
+        {
+            throw new InvalidDataException("The requested typed record does not match the file image.");
+        }
+
         return row;
     }
 
@@ -85,7 +111,10 @@ public sealed partial class KwdLevelFileSet
         try { changed=edit(ReadRecord<T>(location)); }
         finally { _editing=false; }
         if(changed is null || changed.GetType()!=baseline!.GetType())
+        {
             throw new InvalidDataException("A typed edit must retain its record type.");
+        }
+
         RefuseReferenceChanges(baseline,changed);
         List<KwdRecordImage> images =KwdRecordRoundTrip.Split(chunk);
         KwdRecordImage template=images[location.RecordIndex];
@@ -99,7 +128,11 @@ public sealed partial class KwdLevelFileSet
         foreach((string Path, byte[] Bytes) file in output)
         {
             string? parent=Path.GetDirectoryName(file.Path);
-            if(!string.IsNullOrEmpty(parent)) Directory.CreateDirectory(parent);
+            if(!string.IsNullOrEmpty(parent))
+            {
+                Directory.CreateDirectory(parent);
+            }
+
             File.WriteAllBytes(file.Path,file.Bytes);
         }
     }
@@ -110,7 +143,11 @@ public sealed partial class KwdLevelFileSet
     private KwdChunk Chunk(KwdRecordLocation location)
     {
         KwdChunk[] chunks=FileChunks(location.RelativePath);
-        if((uint)location.ChunkIndex>=(uint)chunks.Length) throw new ArgumentOutOfRangeException(nameof(location));
+        if((uint)location.ChunkIndex>=(uint)chunks.Length)
+        {
+            throw new ArgumentOutOfRangeException(nameof(location));
+        }
+
         return chunks[location.ChunkIndex];
     }
 
@@ -122,16 +159,26 @@ public sealed partial class KwdLevelFileSet
 
     private void RefuseNestedMutation()
     {
-        if(_editing) throw new InvalidOperationException("Nested mutations during a typed edit callback are not supported.");
+        if(_editing)
+        {
+            throw new InvalidOperationException("Nested mutations during a typed edit callback are not supported.");
+        }
     }
     private static KwdChunk Clone(KwdChunk chunk) => chunk with { Content=chunk.Content.ToArray(),HeaderBlock=chunk.HeaderBlock.ToArray() };
 
     private static string Normalize(string path)
     {
         if(string.IsNullOrWhiteSpace(path) || Path.IsPathRooted(path) || path.Contains(':'))
+        {
             throw new InvalidDataException("File paths must be relative to the level set's content root.");
+        }
+
         string[] parts=path.Replace('\\','/').Split('/');
-        if(parts.Any(part=>part is "" or "." or "..")) throw new InvalidDataException("File paths cannot escape the content root.");
+        if(parts.Any(part=>part is "" or "." or ".."))
+        {
+            throw new InvalidDataException("File paths cannot escape the content root.");
+        }
+
         return string.Join(Path.DirectorySeparatorChar.ToString(),parts);
     }
 
@@ -144,8 +191,12 @@ public sealed partial class KwdLevelFileSet
             if(File.Exists(exact) || Directory.Exists(exact)) { current=exact; continue; }
             string[] matches=Directory.EnumerateFileSystemEntries(current)
                 .Where(p=>Path.GetFileName(p).Equals(part,StringComparison.OrdinalIgnoreCase)).ToArray();
-            if(matches.Length!=1) throw new FileNotFoundException("A LEVEL reference cannot be resolved uniquely.",exact);
-            current=matches[0];
+            if(matches.Length!=1)
+            {
+                throw new FileNotFoundException("A LEVEL reference cannot be resolved uniquely.",exact);
+            }
+
+            current =matches[0];
         }
         return current;
     }
@@ -161,14 +212,25 @@ public sealed partial class KwdLevelFileSet
     private static void RefuseReferenceChanges(object original,object changed)
     {
         if(RootTrigger(original)!=RootTrigger(changed))
+        {
             throw new InvalidDataException("Trigger root changes require a validated reference-edit operation.");
-        if(original is TriggerRecord a && changed is TriggerRecord b
+        }
+
+        if (original is TriggerRecord a && changed is TriggerRecord b
             && (a.TriggerId!=b.TriggerId || a.NextTriggerId!=b.NextTriggerId || a.ChildTriggerId!=b.ChildTriggerId))
+        {
             throw new InvalidDataException("Trigger identifiers and tree links cannot be rewritten through a field edit.");
-        if(original is HeroPartyThing p && changed is HeroPartyThing q
+        }
+
+        if (original is HeroPartyThing p && changed is HeroPartyThing q
             && !p.Members.Select(m=>m.TriggerId).SequenceEqual(q.Members.Select(m=>m.TriggerId)))
+        {
             throw new InvalidDataException("Hero-party member trigger roots cannot be rewritten through a field edit.");
-        if(original is LevelDef x && changed is LevelDef y && !x.Paths.SequenceEqual(y.Paths))
+        }
+
+        if (original is LevelDef x && changed is LevelDef y && !x.Paths.SequenceEqual(y.Paths))
+        {
             throw new InvalidDataException("LEVEL file-reference edits require an explicit file-set import operation.");
+        }
     }
 }

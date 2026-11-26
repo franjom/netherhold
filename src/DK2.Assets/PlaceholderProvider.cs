@@ -54,7 +54,9 @@ public sealed class PlaceholderProvider : IAssetProvider
 
         PlaceholderShape shape = ShapeFor(reference);
         if (shape == PlaceholderShape.None)
+        {
             return new PlaceholderLook(shape, 0, 0, 0, 0);
+        }
 
         // Bytes 0..2 of the hash pick the colour; 3 nudges the height. Using
         // distinct bytes rather than the whole value keeps the three channels
@@ -116,7 +118,11 @@ public sealed class PlaceholderProvider : IAssetProvider
     /// </summary>
     public static int SymbolIndex(AssetRef reference, int count)
     {
-        if (count <= 0) throw new System.ArgumentOutOfRangeException(nameof(count));
+        if (count <= 0)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(count));
+        }
+
         return (int)(reference.StableHash() % (ulong)count);
     }
 

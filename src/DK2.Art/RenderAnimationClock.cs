@@ -42,7 +42,11 @@ public sealed class RenderAnimationClock
     public RenderAnimationClock(CreatureAnimationTiming timing, bool loop, Fp32? authoredMovementScale = null,
         Fp32? initialMovementSpeed = null, Fp32 initialPhase = default)
     {
-        if (initialPhase.Raw < 0 || initialPhase.Raw >= One) throw new ArgumentOutOfRangeException(nameof(initialPhase));
+        if (initialPhase.Raw < 0 || initialPhase.Raw >= One)
+        {
+            throw new ArgumentOutOfRangeException(nameof(initialPhase));
+        }
+
         Install(timing, loop, authoredMovementScale, initialMovementSpeed);
         _phase = _previousPhase = initialPhase.Raw;
     }
@@ -89,7 +93,10 @@ public sealed class RenderAnimationClock
             Fp32 scalar = movementSpeed.Value.Raw == 0 ? _movementSpeed ?? new Fp32(1) : movementSpeed.Value;
             _movementSpeed = scalar;
             _rate = CalculateRate();
-            if (movementSpeed.Value.Raw == 0) _movementSpeed = new Fp32(1);
+            if (movementSpeed.Value.Raw == 0)
+            {
+                _movementSpeed = new Fp32(1);
+            }
         }
     }
 
@@ -99,13 +106,25 @@ public sealed class RenderAnimationClock
         _previousPhase = _phase;
         if (_complete) { _previousPhase = _phase = One; _rate = 0; return; }
         int step = phaseStepOverride?.Raw ?? _rate;
-        if (step == 0) return;
+        if (step == 0)
+        {
+            return;
+        }
+
         _phase += step;
-        if (_phase < One) return;
+        if (_phase < One)
+        {
+            return;
+        }
+
         if (_segment == AnimationSegment.Start)
         {
             Transition(AnimationSegment.Main);
-            if (_phase <= One) return;
+            if (_phase <= One)
+            {
+                return;
+            }
+
             if (!Has(CreatureAnimationFlags.EndSegment)) { _phase = One; return; }
             Transition(AnimationSegment.End);
             _phase = Math.Min(One, _phase);
@@ -134,15 +153,26 @@ public sealed class RenderAnimationClock
     public AnimationPose Sample(float fraction)
     {
         if (float.IsNaN(fraction) || float.IsInfinity(fraction))
+        {
             throw new ArgumentOutOfRangeException(nameof(fraction));
+        }
+
         fraction = Math.Clamp(fraction, 0f, 1f);
         int current = _phase;
-        if (_segment == _previousSegment && current < _previousPhase) current += One;
+        if (_segment == _previousSegment && current < _previousPhase)
+        {
+            current += One;
+        }
+
         float phase = _previousPhase + ((int)(_segment - _previousSegment) * One + current - _previousPhase) * fraction;
         AnimationSegment segment = _previousSegment;
         if (phase > 2 * One) { phase -= 2 * One; segment += 2; }
         else if (phase > One) { phase -= One; segment++; }
-        if (segment > _segment) segment = _segment;
+        if (segment > _segment)
+        {
+            segment = _segment;
+        }
+
         return new AnimationPose(segment, Math.Clamp(phase / One, 0f, 1f));
     }
 
@@ -176,7 +206,11 @@ public sealed class RenderAnimationClock
         if (_authoredMovementScale.HasValue && _movementSpeed.HasValue)
         {
             int scale = _authoredMovementScale.Value.Raw;
-            if (scale == 0) return 0;
+            if (scale == 0)
+            {
+                return 0;
+            }
+
             int perTick = scale / 4;
             if (perTick > 0)
             {

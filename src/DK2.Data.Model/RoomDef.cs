@@ -133,7 +133,11 @@ public sealed record RoomDef
     private static RoomTypeId?[] NamedIds()
     {
         var ids = new RoomTypeId?[256];
-        foreach (RoomTypeId id in Enum.GetValues(typeof(RoomTypeId))) ids[(byte)id] = id;
+        foreach (RoomTypeId id in Enum.GetValues(typeof(RoomTypeId)))
+        {
+            ids[(byte)id] = id;
+        }
+
         return ids;
     }
 }

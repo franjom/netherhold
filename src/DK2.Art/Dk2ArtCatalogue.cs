@@ -98,14 +98,23 @@ public sealed class Dk2ArtCatalogue
         var result = new Dictionary<byte, Dk2ArtResource>();
         foreach (KwdChunk chunk in KwdReader.ReadFile(path).Where(chunk => chunk.Type == KwdRecordType.Doors))
         {
-            if (chunk.ItemCount == 0) continue;
+            if (chunk.ItemCount == 0)
+            {
+                continue;
+            }
+
             if (chunk.Content.Length != chunk.ItemCount * 616)
+            {
                 throw new InvalidDataException("Unexpected door record size.");
+            }
+
             for (int at = 0; at < chunk.Content.Length; at += 616)
             {
                 byte objectId = chunk.Content[at + 0x247];
                 if (objectId != 0 && objects.TryGetValue(objectId, out IReadOnlyList<Dk2ArtResource>? resources))
+                {
                     result.Add(chunk.Content[at + 0x244], resources[0]);
+                }
             }
         }
         return result;
@@ -118,11 +127,17 @@ public sealed class Dk2ArtCatalogue
         var result = new Dictionary<byte, IReadOnlyList<Dk2ArtResource>>();
         foreach (KwdChunk chunk in KwdReader.ReadFile(path).Where(chunk => chunk.Type == type))
         {
-            if (chunk.ItemCount == 0) continue;
+            if (chunk.ItemCount == 0)
+            {
+                continue;
+            }
+
             int stride = chunk.Content.Length / chunk.ItemCount;
             if (stride != expectedStride || stride * chunk.ItemCount != chunk.Content.Length)
+            {
                 throw new InvalidDataException(
                     $"{type} record size is {stride}, expected {expectedStride}.");
+            }
 
             for (int i = 0; i < chunk.ItemCount; i++)
             {
@@ -151,7 +166,9 @@ public sealed class Dk2ArtCatalogue
                 }
                 byte id = chunk.Content[record + idOffset];
                 if (!result.TryAdd(id, resources))
+                {
                     throw new InvalidDataException($"Duplicate {type} id {id} in '{path}'.");
+                }
             }
         }
         return result;

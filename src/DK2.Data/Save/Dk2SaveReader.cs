@@ -99,7 +99,10 @@ public static class Dk2SaveReader
     public static IReadOnlyList<string> EnumerateSaves(string installDir)
     {
         string dir = SaveDirectory(installDir);
-        if (!Directory.Exists(dir)) return [];
+        if (!Directory.Exists(dir))
+        {
+            return [];
+        }
 
         return Directory.EnumerateFiles(dir)
             .Where(f => f.EndsWith(".SAV", StringComparison.OrdinalIgnoreCase)
@@ -116,16 +119,20 @@ public static class Dk2SaveReader
     public static Dk2SaveHeader ReadHeader(ReadOnlySpan<byte> save)
     {
         if (save.Length < HeaderLength)
+        {
             throw new InvalidDataException(
                 $"a save's header is {HeaderLength} bytes; this file is {save.Length}.");
+        }
 
         uint formatWord = BinaryPrimitives.ReadUInt32LittleEndian(save);
         uint version = BinaryPrimitives.ReadUInt32LittleEndian(save[4..]);
 
         // 220 is a constant the writer emits, not a length: the header runs to 0x134.
         if (formatWord != ExpectedFormatWord)
+        {
             throw new InvalidDataException(
                 $"the save opens with {formatWord}, not the expected {ExpectedFormatWord}.");
+        }
 
         string stamp = Encoding.ASCII.GetString(
             save.Slice(BuildStampOffset, BuildStampTextLength));
@@ -142,9 +149,15 @@ public static class Dk2SaveReader
     private static string ReadNulPaddedText(ReadOnlySpan<byte> field, string what)
     {
         int end = field.IndexOf((byte)0);
-        if (end < 0) end = field.Length;
+        if (end < 0)
+        {
+            end = field.Length;
+        }
+
         if (end == 0)
+        {
             throw new InvalidDataException($"the save's {what} field is empty.");
+        }
 
         return Encoding.ASCII.GetString(field[..end]);
     }
@@ -162,21 +175,29 @@ public static class Dk2SaveReader
     /// stride is not what this reader believes.</exception>
     public static int FindGridOffset(ReadOnlySpan<byte> save, LevelMap design)
     {
-        if (design is null) throw new ArgumentNullException(nameof(design));
+        if (design is null)
+        {
+            throw new ArgumentNullException(nameof(design));
+        }
 
         int tiles = design.Width * design.Height;
         int span = tiles * TileRecordSize;
         int lastOffset = save.Length - span;
         if (lastOffset < HeaderLength)
+        {
             throw new InvalidDataException(
                 $"a {design.Width}x{design.Height} grid needs {span} bytes after the header; " +
                 $"the save is {save.Length}.");
+        }
 
         // The sample. Every stride'th tile, so it crosses the whole map instead
         // of sitting in the border rock the first rows are made of.
         int stride = Math.Max(1, tiles / SampleTiles);
         int sampled = 0;
-        for (int i = 0; i < tiles; i += stride) sampled++;
+        for (int i = 0; i < tiles; i += stride)
+        {
+            sampled++;
+        }
 
         // Keep the finalists sorted best-first. Insert an offset only when it beats the last finalist.
         int[] offsets = new int[FinalistOffsets];
@@ -187,9 +208,17 @@ public static class Dk2SaveReader
         {
             int hits = 0;
             for (int i = 0; i < tiles; i += stride)
-                if (save[offset + LaneTerrain + (i * TileRecordSize)] == design.Tiles[i].TerrainId) hits++;
+            {
+                if (save[offset + LaneTerrain + (i * TileRecordSize)] == design.Tiles[i].TerrainId)
+                {
+                    hits++;
+                }
+            }
 
-            if (held == FinalistOffsets && hits <= scores[held - 1]) continue;
+            if (held == FinalistOffsets && hits <= scores[held - 1])
+            {
+                continue;
+            }
 
             int at = held < FinalistOffsets ? held++ : FinalistOffsets - 1;
             while (at > 0 && scores[at - 1] < hits)
@@ -208,21 +237,35 @@ public static class Dk2SaveReader
         {
             // Nothing that failed the sample outright can win the full grid, and
             // scoring it would only cost time.
-            if (scores[n] * 2 < sampled) continue;
+            if (scores[n] * 2 < sampled)
+            {
+                continue;
+            }
 
             int hits = 0;
             for (int i = 0; i < tiles; i++)
-                if (save[offsets[n] + LaneTerrain + (i * TileRecordSize)] == design.Tiles[i].TerrainId) hits++;
+            {
+                if (save[offsets[n] + LaneTerrain + (i * TileRecordSize)] == design.Tiles[i].TerrainId)
+                {
+                    hits++;
+                }
+            }
 
-            if (hits <= winningScore) continue;
+            if (hits <= winningScore)
+            {
+                continue;
+            }
+
             winningScore = hits;
             winner = offsets[n];
         }
 
         if (winner < 0)
+        {
             throw new InvalidDataException(
                 $"no offset in the save correlates with {design.Width}x{design.Height} of " +
                 "the level's design map; the save may not be of this level.");
+        }
 
         return winner;
     }
@@ -236,12 +279,16 @@ public static class Dk2SaveReader
         ReadOnlySpan<byte> save, int gridOffset, int width, int height)
     {
         if (width <= 0 || height <= 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(width), "grid dimensions must be positive.");
+        }
 
         int needed = gridOffset + (width * height * TileRecordSize);
         if (save.Length < needed)
+        {
             throw new InvalidDataException(
                 $"a {width}x{height} grid needs {needed} bytes; the save is {save.Length}.");
+        }
 
         var tiles = new MapTile[width * height];
         for (int i = 0; i < tiles.Length; i++)
@@ -270,8 +317,10 @@ public static class Dk2SaveReader
     {
         int needed = gridOffset + (width * height * TileRecordSize);
         if (save.Length < needed)
+        {
             throw new InvalidDataException(
                 $"a {width}x{height} grid needs {needed} bytes; the save is {save.Length}.");
+        }
 
         var tiles = new SavedTile[width * height];
         for (int i = 0; i < tiles.Length; i++)
@@ -300,19 +349,35 @@ public static class Dk2SaveReader
     /// <summary>Reads a complete save using the installed design map looked up by its saved level name.</summary>
     public static SavedGame? Read(byte[] bytes, Func<string, LevelMap?> designMap)
     {
-        if (bytes is null) throw new ArgumentNullException(nameof(bytes));
-        if (designMap is null) throw new ArgumentNullException(nameof(designMap));
+        if (bytes is null)
+        {
+            throw new ArgumentNullException(nameof(bytes));
+        }
+
+        if (designMap is null)
+        {
+            throw new ArgumentNullException(nameof(designMap));
+        }
+
         Dk2SaveHeader header = ReadHeader(bytes);
 
         if (!header.IsSupportedBuild)
+        {
             throw new InvalidDataException(
                 $"the save was written by a DK2 build stamped '{header.BuildStamp}'; " +
                 $"only '{SupportedBuildStamp}' has a known layout.");
+        }
 
         if (!IsMapName(header.LevelName))
+        {
             throw new InvalidDataException("The save's level name must be a filename without a path.");
+        }
+
         LevelMap? design = designMap(header.LevelName);
-        if (design is null) return null;
+        if (design is null)
+        {
+            return null;
+        }
 
         int gridOffset = FindGridOffset(bytes, design);
         LevelMap map = ReadGrid(bytes, gridOffset, design.Width, design.Height);
@@ -336,11 +401,19 @@ public static class Dk2SaveReader
     /// </summary>
     public static double AgreementWithDesign(LevelMap saved, LevelMap design)
     {
-        if (saved.Width != design.Width || saved.Height != design.Height) return 0;
+        if (saved.Width != design.Width || saved.Height != design.Height)
+        {
+            return 0;
+        }
 
         int same = 0;
         for (int i = 0; i < saved.Tiles.Count; i++)
-            if (saved.Tiles[i].TerrainId == design.Tiles[i].TerrainId) same++;
+        {
+            if (saved.Tiles[i].TerrainId == design.Tiles[i].TerrainId)
+            {
+                same++;
+            }
+        }
 
         return (double)same / saved.Tiles.Count;
     }

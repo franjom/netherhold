@@ -67,7 +67,11 @@ public sealed class TriangleDepthOrderBuffer
             {
                 int slot = _runs.Count;
                 material = t.MaterialIndex;
-                if (slot == _pool.Count) _pool.Add(new Run());
+                if (slot == _pool.Count)
+                {
+                    _pool.Add(new Run());
+                }
+
                 current = _pool[slot].Storage;
                 current.Clear();
                 _pool[slot].MaterialIndex = material;
@@ -89,8 +93,14 @@ public sealed class TriangleDepthOrderBuffer
         while (low < high)
         {
             int middle = (low + high) >> 1;
-            if (_runs[middle].NearestDepth >= depth) low = middle + 1;
-            else high = middle;
+            if (_runs[middle].NearestDepth >= depth)
+            {
+                low = middle + 1;
+            }
+            else
+            {
+                high = middle;
+            }
         }
         return low;
     }

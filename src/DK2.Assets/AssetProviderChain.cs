@@ -27,9 +27,14 @@ public sealed class AssetProviderChain : IAssetProvider
     public AssetProviderChain(params IAssetProvider[] providers)
     {
         if (providers is null || providers.Length == 0)
+        {
             throw new ArgumentException("A chain needs at least one provider.", nameof(providers));
+        }
+
         if (providers.Any(p => p is null))
+        {
             throw new ArgumentException("A chain cannot contain a null provider.", nameof(providers));
+        }
 
         _providers = providers;
     }
@@ -46,11 +51,20 @@ public sealed class AssetProviderChain : IAssetProvider
     {
         var providers = new List<IAssetProvider>(4);
         if (!string.IsNullOrWhiteSpace(replacementRoot))
+        {
             providers.Add(FileAssetProvider.Replacement(replacementRoot!));
+        }
+
         if (install is not null)
+        {
             providers.Add(install);
+        }
+
         if (!string.IsNullOrWhiteSpace(convertedRoot))
+        {
             providers.Add(FileAssetProvider.Converted(convertedRoot!));
+        }
+
         providers.Add(PlaceholderProvider.Instance);
         return new AssetProviderChain([.. providers]);
     }
@@ -64,7 +78,10 @@ public sealed class AssetProviderChain : IAssetProvider
     {
         foreach (IAssetProvider provider in _providers)
         {
-            if (!provider.TryResolve(reference, out asset)) continue;
+            if (!provider.TryResolve(reference, out asset))
+            {
+                continue;
+            }
 
             _resolvedByProvider.TryGetValue(provider.Name, out int count);
             _resolvedByProvider[provider.Name] = count + 1;
@@ -100,7 +117,10 @@ public sealed class AssetProviderChain : IAssetProvider
     /// </summary>
     public string Summarise()
     {
-        if (_resolvedByProvider.Count == 0) return "no assets were requested";
+        if (_resolvedByProvider.Count == 0)
+        {
+            return "no assets were requested";
+        }
 
         int total = _resolvedByProvider.Values.Sum();
         IEnumerable<string> parts = _providers

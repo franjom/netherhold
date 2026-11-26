@@ -55,8 +55,16 @@ public sealed class RenderMesh
     /// detail level 0 (each primitive's first index list), as <c>GlbWriter</c> takes.</summary>
     public static RenderMesh FromModel(KmfModel model, int frame = 0)
     {
-        if (model is null) throw new ArgumentNullException(nameof(model));
-        if (frame < 0) throw new ArgumentOutOfRangeException(nameof(frame));
+        if (model is null)
+        {
+            throw new ArgumentNullException(nameof(model));
+        }
+
+        if (frame < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(frame));
+        }
+
         KmfMesh mesh = model.Animation is { IsComplete: true } animation && frame < animation.Frames.Count
             ? animation.Frames[frame]
             : model.Mesh ?? throw new ArgumentException("A KMF group has no mesh.", nameof(model));
@@ -65,7 +73,10 @@ public sealed class RenderMesh
         var normals = new List<Vector3>();
         var uvs = new List<Vector2>();
         var triangles = new List<int>[Math.Max(model.Materials.Count, 1)];
-        for (int i = 0; i < triangles.Length; i++) triangles[i] = [];
+        for (int i = 0; i < triangles.Length; i++)
+        {
+            triangles[i] = [];
+        }
 
         var firsts = new List<int>(mesh.Primitives.Count);
         foreach (KmfPrimitive primitive in mesh.Primitives)
@@ -79,16 +90,26 @@ public sealed class RenderMesh
                 uvs.Add(vertex.TextureCoordinate);
             }
             int material = (int)Math.Min(primitive.MaterialIndex, (uint)(triangles.Length - 1));
-            if (primitive.IndicesByDetailLevel.Count == 0) continue;
+            if (primitive.IndicesByDetailLevel.Count == 0)
+            {
+                continue;
+            }
+
             foreach (byte index in primitive.IndicesByDetailLevel[0])
+            {
                 triangles[material].Add(first + index);
+            }
         }
         var blends = new KmfBlend[triangles.Length];
         for (int i = 0; i < blends.Length && i < model.Materials.Count; i++)
+        {
             blends[i] = model.Materials[i].Blend;
+        }
+
         var controlPoints = new Dictionary<uint, int>();
         var taggedPoints = new List<RenderControlPoint>();
         if (model.Kind == KmfKind.Animation)
+        {
             foreach (KmfControlPoint control in model.ControlPoints)
             {
                 int primitive = (int)(control.Vertex & 0xFFFF), vertex = (int)(control.Vertex >> 16);
@@ -98,6 +119,8 @@ public sealed class RenderMesh
                     taggedPoints.Add(new(control.Id, firsts[primitive] + vertex));
                 }
             }
+        }
+
         return new RenderMesh([.. positions], [.. normals], [.. uvs],
             triangles.Select(list => list.ToArray()).ToArray(), blends, controlPoints, taggedPoints);
     }

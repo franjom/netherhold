@@ -41,7 +41,13 @@ public sealed record GameSettings
     public GameKeyBinding Binding(GameAction action)
     {
         for (int i = Bindings.Count - 1; i >= 0; i--)
-            if (Bindings[i].Action == action) return Bindings[i];
+        {
+            if (Bindings[i].Action == action)
+            {
+                return Bindings[i];
+            }
+        }
+
         return DefaultKeyBindings.Get(action);
     }
 

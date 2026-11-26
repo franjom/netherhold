@@ -57,7 +57,11 @@ public static class KwdTypedRecords
     public static KwdChunk Rewrite(KwdChunk chunk)
     {
         IReadOnlyList<object> rows=Read(chunk); List<KwdRecordImage> images =KwdRecordRoundTrip.Split(chunk);
-        if(rows.Count!=images.Count) throw new InvalidDataException($"{chunk.Type}: typed projection and image counts differ.");
+        if(rows.Count!=images.Count)
+        {
+            throw new InvalidDataException($"{chunk.Type}: typed projection and image counts differ.");
+        }
+
         KwdRecordImage[] rewritten=rows.Select((row,i)=>
             new KwdRecordImage(chunk.Type,Write(row,images[i],chunk),images[i].Tag)).ToArray();
         return chunk with { Content=KwdRecordRoundTrip.Join(chunk,rewritten) };

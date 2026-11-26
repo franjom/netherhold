@@ -27,11 +27,16 @@ public sealed class KcsCameraPath
     public static KcsCameraPath Read(ReadOnlySpan<byte> data, string sourceName = "<memory>")
     {
         if (data.Length < HeaderSize)
+        {
             throw Invalid(sourceName, "file is shorter than the 16-byte header");
+        }
+
         uint count = BinaryPrimitives.ReadUInt32LittleEndian(data);
         long expected = HeaderSize + (long)count * FrameSize;
         if (count == 0 || expected != data.Length)
+        {
             throw Invalid(sourceName, $"{count} frames need {expected} bytes, the file has {data.Length}");
+        }
 
         var frames = new List<KcsFrame>((int)count);
         Span<float> v = stackalloc float[FrameSize / 4];
@@ -39,7 +44,9 @@ public sealed class KcsCameraPath
         {
             ReadOnlySpan<byte> f = data.Slice(HeaderSize + i * FrameSize, FrameSize);
             for (int k = 0; k < v.Length; k++)
+            {
                 v[k] = BitConverter.Int32BitsToSingle(BinaryPrimitives.ReadInt32LittleEndian(f[(k * 4)..]));
+            }
 
             // The loader stores S * Mt * S with S = diag(-1, 1, 1): it transposes the
             // file's matrix and negates every element with exactly one index 0.

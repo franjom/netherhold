@@ -12,7 +12,11 @@ public static class MpegAudioDecoder
 {
     public static PcmClip Decode(ReadOnlySpan<byte> mpeg)
     {
-        if (mpeg.Length < 4) throw new InvalidDataException("MPEG audio is truncated.");
+        if (mpeg.Length < 4)
+        {
+            throw new InvalidDataException("MPEG audio is truncated.");
+        }
+
         byte[] copy = mpeg.ToArray();
         return Decode(copy, 0, copy.Length);
     }
@@ -21,7 +25,11 @@ public static class MpegAudioDecoder
     /// and no growing list, so a clip allocates its samples once (and one 4,096-float block).</summary>
     public static PcmClip Decode(byte[] buffer, int offset, int count)
     {
-        if (count < 4) throw new InvalidDataException("MPEG audio is truncated.");
+        if (count < 4)
+        {
+            throw new InvalidDataException("MPEG audio is truncated.");
+        }
+
         using var stream = new MemoryStream(buffer, offset, count, false);
         try
         {
@@ -35,13 +43,27 @@ public static class MpegAudioDecoder
             int read;
             while ((read = decoder.ReadSamples(block, 0, block.Length)) > 0)
             {
-                if (written + read > samples.Length) Array.Resize(ref samples, Math.Max(samples.Length * 2, written + read));
+                if (written + read > samples.Length)
+                {
+                    Array.Resize(ref samples, Math.Max(samples.Length * 2, written + read));
+                }
+
                 for (int i = 0; i < read; i++)
+                {
                     samples[written++] = (short)Math.Max(short.MinValue, Math.Min(short.MaxValue,
                         (int)Math.Round(block[i] * 32768.0)));
+                }
             }
-            if (written == 0) throw new InvalidDataException("MPEG audio has no decodable samples.");
-            if (written != samples.Length) Array.Resize(ref samples, written);
+            if (written == 0)
+            {
+                throw new InvalidDataException("MPEG audio has no decodable samples.");
+            }
+
+            if (written != samples.Length)
+            {
+                Array.Resize(ref samples, written);
+            }
+
             return new PcmClip(decoder.SampleRate, decoder.Channels, samples);
         }
         catch (InvalidOperationException error)

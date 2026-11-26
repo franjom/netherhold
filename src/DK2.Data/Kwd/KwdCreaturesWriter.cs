@@ -15,12 +15,21 @@ public static partial class KwdCreatures
     {
         int stride = template.ConsumedLength;
         if (stride != RecordSize && stride != RecordSizeEmbedded)
+        {
             throw new InvalidDataException("CREATURES requires a 5449- or 5537-byte explicit template.");
+        }
+
         byte[] image = KwdOverlay.Image(template, KwdRecordType.Creatures, stride);
         if (row.SizeClass < 0 || row.SizeClass > 0xFFFFF)
+        {
             throw new InvalidDataException("CREATURES SizeClass must fit the decoded upper 20 bits.");
+        }
+
         if (row.AngryArtType == 0 && (row.AngryArtFlags != 0 || row.AngryFrames != 0 || row.AngryFramesPerSecond != 0))
+        {
             throw new InvalidDataException("CREATURES Angry fields must be zero when AngryArtType is absent.");
+        }
+
         void U8(int offset, byte value) => image[offset] = value;
         void U16(int offset, ushort value) => BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(offset), value);
         void S16(int offset, short value) => BinaryPrimitives.WriteInt16LittleEndian(image.AsSpan(offset), value);
@@ -60,7 +69,11 @@ public static partial class KwdCreatures
             int offset = 0x20 + (slot * 84);
             U8(offset + 0x50, timing.ResourceType);
             U32(offset + 0x40, (uint)timing.Flags);
-            if (timing.ResourceType != 6) return;
+            if (timing.ResourceType != 6)
+            {
+                return;
+            }
+
             U16(offset + 0x44, timing.FrameCount);
             U16(offset + 0x48, timing.FramesPerSecond);
             U8(offset + 0x51, timing.StartSegmentFrames);
@@ -71,20 +84,36 @@ public static partial class KwdCreatures
         // and GetUpFrames/GetUpFramesPerSecond as S32 (ADR-0348). The S32 view is written only when
         // it was changed, so an unchanged view never clobbers the upper words; changed, it wins.
         AnimationTiming(27, row.GetUpAnimation);
-        if (row.GetUpFrames != original.GetUpFrames) S32(GetUpBlock + 0x44, row.GetUpFrames);
-        if (row.GetUpFramesPerSecond != original.GetUpFramesPerSecond) S32(GetUpBlock + 0x48, row.GetUpFramesPerSecond);
+        if (row.GetUpFrames != original.GetUpFrames)
+        {
+            S32(GetUpBlock + 0x44, row.GetUpFrames);
+        }
+
+        if (row.GetUpFramesPerSecond != original.GetUpFramesPerSecond)
+        {
+            S32(GetUpBlock + 0x48, row.GetUpFramesPerSecond);
+        }
+
         AnimationTiming(4, row.KnockdownFallbackAnimation);
         AnimationTiming(1, row.GetUpFallbackAnimation);
         AnimationTiming(35, row.ReaperSummonAnimation);
         AnimationTiming(8, row.ReaperSummonFallbackAnimation);
         // ArtSlots views the same blocks: only a slot it changed is written, so it wins over a view above.
         for (int slot = 0; slot < row.ArtSlots.Count && slot < original.ArtSlots.Count; slot++)
-            if (row.ArtSlots[slot] != original.ArtSlots[slot]) AnimationTiming(slot, row.ArtSlots[slot]);
+        {
+            if (row.ArtSlots[slot] != original.ArtSlots[slot])
+            {
+                AnimationTiming(slot, row.ArtSlots[slot]);
+            }
+        }
         // The marks are written whole or not at all: a hand-built definition has none.
         if (row.FootstepMarks.Count != 0)
         {
             if (row.FootstepMarks.Count != CreatureDef.FootstepMarkCount)
+            {
                 throw new InvalidDataException("CREATURES requires 48 footstep mark pairs or none.");
+            }
+
             for (int slot = 0; slot < CreatureDef.FootstepMarkCount; slot++)
             {
                 U16(OffsetFootstepMarks + (4 * slot), row.FootstepMarks[slot].First);
@@ -170,7 +199,10 @@ public static partial class KwdCreatures
             S32(AngryBlock + 0x48, row.AngryFramesPerSecond);
         }
         if (row.Attractions is null || row.Attractions.Count != 2)
+        {
             throw new InvalidDataException("CREATURES requires exactly two attraction slots.");
+        }
+
         for (int i = 0; i < 2; i++)
         {
             int offset = 0xDAC + i * 8;
@@ -179,20 +211,32 @@ public static partial class KwdCreatures
         }
         WriteFiltered("Spells", row.Spells, 0xDC4, 3, 24, off => image[off + 22] != 0, (off, value) =>
         {
-            if (value.CreatureSpellId == 0) throw new InvalidDataException("CREATURES active spell id cannot be zero.");
+            if (value.CreatureSpellId == 0)
+            {
+                throw new InvalidDataException("CREATURES active spell id cannot be zero.");
+            }
+
             U8(off + 22, value.CreatureSpellId); U8(off + 23, value.LevelAvailable);
             S32(off + 16, value.ShotDelay.Raw); U8(off + 13, value.PlayAnimation);
             S32(off, value.OriginX); S32(off + 4, value.OriginY); S32(off + 8, value.OriginZ);
         });
         WriteFiltered("Resistances", row.Resistances, 0xE0C, 4, 2, off => image[off] != 0, (off, value) =>
         {
-            if (value.AttackType == 0) throw new InvalidDataException("CREATURES active resistance type cannot be zero.");
+            if (value.AttackType == 0)
+            {
+                throw new InvalidDataException("CREATURES active resistance type cannot be zero.");
+            }
+
             U8(off, (byte)value.AttackType); U8(off + 1, value.Value);
         });
         void Preferences(string name, IReadOnlyList<CreatureJobPreference> values, int offset, int count) =>
             WriteFiltered(name, values, offset, count, 12, off => ReadU32(off) != 0, (off, value) =>
             {
-                if (value.Job == JobType.None) throw new InvalidDataException("CREATURES active preference job cannot be None.");
+                if (value.Job == JobType.None)
+                {
+                    throw new InvalidDataException("CREATURES active preference job cannot be None.");
+                }
+
                 U32(off, (uint)value.Job); S16(off + 4, value.MoodChange);
                 S16(off + 6, value.ManaChange); U8(off + 8, value.ChancePercent);
             });
@@ -201,12 +245,20 @@ public static partial class KwdCreatures
         Preferences("AngryJobs", row.AngryJobs, 0xE50, 3);
         WriteFiltered("HateJobs", row.HateJobs, 0xE74, 2, 4, off => ReadU32(off) != 0, (off, value) =>
         {
-            if (value == JobType.None) throw new InvalidDataException("CREATURES active hated job cannot be None.");
+            if (value == JobType.None)
+            {
+                throw new InvalidDataException("CREATURES active hated job cannot be None.");
+            }
+
             U32(off, (uint)value);
         });
         WriteFiltered("AlternativeJobs", row.AlternativeJobs, 0xE7C, 3, 8, off => ReadU32(off) != 0, (off, value) =>
         {
-            if (value.Job == JobType.None) throw new InvalidDataException("CREATURES active alternative job cannot be None.");
+            if (value.Job == JobType.None)
+            {
+                throw new InvalidDataException("CREATURES active alternative job cannot be None.");
+            }
+
             U32(off, (uint)value.Job); S16(off + 4, value.MoodChange); S16(off + 6, value.ManaChange);
         });
         return image;
@@ -216,9 +268,22 @@ public static partial class KwdCreatures
         int stride, Func<int, bool> active, Action<int, T> write)
     {
         var slots = new List<int>(count);
-        for (int i = 0; i < count; i++) if (active(offset + i * stride)) slots.Add(offset + i * stride);
+        for (int i = 0; i < count; i++)
+        {
+            if (active(offset + i * stride))
+            {
+                slots.Add(offset + i * stride);
+            }
+        }
+
         if (values is null || values.Count != slots.Count)
+        {
             throw new InvalidDataException($"CREATURES {name} requires the template's {slots.Count} active slots; shape changes are unsupported.");
-        for (int i = 0; i < slots.Count; i++) write(slots[i], values[i]);
+        }
+
+        for (int i = 0; i < slots.Count; i++)
+        {
+            write(slots[i], values[i]);
+        }
     }
 }

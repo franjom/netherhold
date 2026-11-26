@@ -41,8 +41,15 @@ public static class ArtSourceMap
 
     public static IReadOnlyList<ArtEntry> ForDatabase(GameDatabase database, Dk2ArtCatalogue art)
     {
-        if (database is null) throw new ArgumentNullException(nameof(database));
-        if (art is null) throw new ArgumentNullException(nameof(art));
+        if (database is null)
+        {
+            throw new ArgumentNullException(nameof(database));
+        }
+
+        if (art is null)
+        {
+            throw new ArgumentNullException(nameof(art));
+        }
 
         var entries = new List<ArtEntry>();
         AddTerrain(entries, database, art);
@@ -52,8 +59,11 @@ public static class ArtSourceMap
         AddObjects(entries, database, art);
         AddStructures(entries, database, art);
         foreach (EffectElementDef element in AssetCatalogue.MeshEffectElements(database))
+        {
             entries.Add(Model(AssetRef.ForEffectElement(element.Name),
                 new Dk2ArtResource(element.ArtResource.Name, element.ArtResource.Type), "effect element mesh"));
+        }
+
         foreach (ShotDef shot in AssetCatalogue.MeshShots(database))
         {
             KwdArtResource resource = shot.MeshResource;
@@ -68,7 +78,10 @@ public static class ArtSourceMap
 
         IReadOnlyList<AssetRef> expected = AssetCatalogue.ForDatabase(database).ToArray();
         if (entries.Count != expected.Count || !entries.Select(entry => entry.Reference).SequenceEqual(expected))
+        {
             throw new InvalidOperationException("Art source order drifted from AssetCatalogue.ForDatabase.");
+        }
+
         return entries;
     }
 
@@ -77,17 +90,27 @@ public static class ArtSourceMap
         foreach (TerrainDef terrain in database.Terrain.Values.OrderBy(value => value.TerrainId))
         {
             if (!art.Terrains.TryGetValue(terrain.TerrainId, out IReadOnlyList<Dk2ArtResource>? resources))
+            {
                 entries.Add(Missing(AssetRef.ForTerrain(terrain.Name, terrain.IsSolid ? AssetKind.Mesh : AssetKind.Texture),
                     NoArtRecord("terrain", terrain.TerrainId)));
+            }
             else if (terrain.IsSolid)
+            {
                 entries.Add(Model(AssetRef.ForTerrain(terrain.Name, AssetKind.Mesh),
                     First(resources[1], resources[0]), "terrain side/complete mesh"));
+            }
             else
+            {
                 entries.Add(Texture(AssetRef.ForTerrain(terrain.Name, AssetKind.Texture),
                     resources[0], "terrain complete mesh's first material texture"));
+            }
+
             if (terrain.Damage != 0)
+            {
                 entries.Add(Missing(AssetRef.ForTerrain(terrain.Name, AssetKind.Effect),
                     "effect conversion is UNKNOWN; no effect format is emitted"));
+            }
+
             AddTerrainPieces(entries, terrain, resources);
         }
     }
@@ -153,12 +176,23 @@ public static class ArtSourceMap
                 entries.Add(Missing(AssetRef.ForRoom(room.Name, AssetKind.Texture), reason));
                 entries.Add(Missing(AssetRef.ForRoom(room.Name, AssetKind.Mesh), reason));
                 for (int piece = 0; piece < AssetCatalogue.RoomPieceCount(room); piece++)
+                {
                     entries.Add(Missing(AssetCatalogue.RoomPiece(room.Name, piece), reason));
+                }
+
                 if (room.Construction == TileConstruction.HeroGateFrontEndTile)
+                {
                     entries.Add(Missing(FrontEndAssets.EntranceCap(room.Name), reason));
+                }
+
                 if (room.TypeId == RoomTypeId.DungeonHeart)
+                {
                     for (int piece = 0; piece < 6; piece++)
+                    {
                         entries.Add(Missing(AssetCatalogue.DestroyedHeartPiece(room.Name, piece), reason));
+                    }
+                }
+
                 continue;
             }
             Dk2ArtResource complete = resources[2];
@@ -167,15 +201,25 @@ public static class ArtSourceMap
             entries.Add(Model(AssetRef.ForRoom(room.Name, AssetKind.Mesh), complete, "room complete mesh"));
             // The loader names each piece art 2's name plus its number (0x004EACC0).
             for (int piece = 0; piece < AssetCatalogue.RoomPieceCount(room); piece++)
+            {
                 entries.Add(Model(AssetCatalogue.RoomPiece(room.Name, piece),
                     new Dk2ArtResource(complete.IsEmpty ? "" : complete.Name
                         + (room.Construction == TileConstruction.HeroGateFrontEndTile ? piece + 1 : piece), 0), "room piece"));
+            }
+
             if (room.Construction == TileConstruction.HeroGateFrontEndTile)
+            {
                 entries.Add(Model(FrontEndAssets.EntranceCap(room.Name), resources[8], "front-end entrance cap"));
+            }
+
             if (room.TypeId == RoomTypeId.DungeonHeart)
+            {
                 for (int piece = 0; piece < 6; piece++)
+                {
                     entries.Add(Model(AssetCatalogue.DestroyedHeartPiece(room.Name, piece),
                         new Dk2ArtResource("Dungeon_Destroyed" + piece, 0), "destroyed heart piece"));
+                }
+            }
         }
     }
 
@@ -183,7 +227,9 @@ public static class ArtSourceMap
     private static void AddTorches(List<ArtEntry> entries, GameDatabase database)
     {
         foreach (string name in AssetCatalogue.TorchArt(database))
+        {
             entries.Add(Model(AssetCatalogue.TorchMesh(name), new Dk2ArtResource(name, 0), "torch mesh"));
+        }
     }
 
     private static void AddCreatures(List<ArtEntry> entries, GameDatabase database, Dk2ArtCatalogue art)
@@ -196,9 +242,15 @@ public static class ArtSourceMap
                 entries.Add(Missing(AssetRef.ForCreature(creature.Name, AssetKind.Mesh), reason));
                 entries.Add(Missing(AssetRef.ForCreature(creature.Name, AssetKind.Mesh, "dead"), reason));
                 foreach (string animation in AssetCatalogue.CreatureAnimations)
+                {
                     entries.Add(Missing(AssetRef.ForCreature(creature.Name, AssetKind.Animation, animation), reason));
+                }
+
                 foreach (string animation in AssetCatalogue.CreatureActionAnimations)
+                {
                     entries.Add(Missing(AssetRef.ForCreature(creature.Name, AssetKind.Animation, animation), reason));
+                }
+
                 continue;
             }
             entries.Add(Model(AssetRef.ForCreature(creature.Name, AssetKind.Mesh), resources[CreatureIdle],
@@ -207,15 +259,20 @@ public static class ArtSourceMap
                 && corpse.Type != 0 ? corpse : resources[CreatureWalk];
             entries.Add(Model(AssetRef.ForCreature(creature.Name, AssetKind.Mesh, "dead"), dead, "corpse mesh"));
             foreach (string animation in AssetCatalogue.CreatureAnimations)
+            {
                 entries.Add(Model(AssetRef.ForCreature(creature.Name, AssetKind.Animation, animation),
                     animation == "dead" ? dead : CreatureAnimationSource(creature, resources, animation),
                     "creature visual resource"));
+            }
+
             foreach (string animation in AssetCatalogue.CreatureActionAnimations)
+            {
                 entries.Add(Model(AssetRef.ForCreature(creature.Name, AssetKind.Animation, animation),
                     animation == "movement_idle"
                         ? art.CreatureStandingPoses.TryGetValue(creature.CreatureId, out Dk2ArtResource? standing)
                             && standing.Type != 0 ? standing : resources[CreatureWalk]
                         : CreatureAnimationSource(creature, resources, animation), "action animation KMF"));
+            }
         }
     }
 
@@ -224,11 +281,16 @@ public static class ArtSourceMap
         foreach (ObjectDef value in database.Objects.Values.OrderBy(value => value.ObjectId))
         {
             if (!art.Objects.TryGetValue(value.ObjectId, out IReadOnlyList<Dk2ArtResource>? resources))
+            {
                 entries.Add(Missing(AssetRef.ForObject(value.Name, AssetKind.Mesh), NoArtRecord("object", value.ObjectId)));
+            }
             else
+            {
                 entries.Add(Model(AssetRef.ForObject(value.Name, AssetKind.Mesh), resources[0], "object mesh"));
+            }
         }
         foreach (ObjectDef value in database.Objects.Values.OrderBy(value => value.ObjectId))
+        {
             foreach (int slot in AssetCatalogue.ObjectArtSlots(value.ObjectId))
             {
                 AssetRef reference = AssetCatalogue.ObjectArt(value.Name, slot);
@@ -236,6 +298,7 @@ public static class ArtSourceMap
                     ? Model(reference, resources[slot], "object art " + slot)
                     : Missing(reference, NoArtRecord("object", value.ObjectId)));
             }
+        }
     }
 
     private static void AddStructures(List<ArtEntry> entries, GameDatabase database, Dk2ArtCatalogue art)
@@ -246,10 +309,14 @@ public static class ArtSourceMap
             {
                 var reference = AssetRef.ForDoor(door.Name, open);
                 if (!art.Doors.TryGetValue(door.DoorId, out IReadOnlyList<Dk2ArtResource>? resources))
+                {
                     entries.Add(Missing(reference, NoArtRecord("door", door.DoorId)));
+                }
                 else
+                {
                     entries.Add(Model(reference, ((door.Flags & DoorFlags.Barricade) == DoorFlags.Barricade)
                         ? resources[0] : resources[open ? 4 : 5], open ? "door opening" : "door closing"));
+                }
             }
             var lockReference = AssetRef.ForDoorLock(door.Name);
             entries.Add(art.DoorLocks.TryGetValue(door.DoorId, out Dk2ArtResource? lockResource)

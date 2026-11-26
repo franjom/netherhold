@@ -16,7 +16,11 @@ public static class CampaignProfileFile
 
     public static byte[] Write(CampaignProfile profile)
     {
-        if (profile is null) throw new ArgumentNullException(nameof(profile));
+        if (profile is null)
+        {
+            throw new ArgumentNullException(nameof(profile));
+        }
+
         using var stream = new MemoryStream(FileSize);
         using var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true);
         writer.Write(Magic); writer.Write(Version);
@@ -25,17 +29,28 @@ public static class CampaignProfileFile
         writer.Write(profile.SecretLevelNumber); writer.Write(profile.IsUserPetDungeon ? 1u : 0u);
         writer.Write(profile.LastPetDungeonEvilRating);
         WriteArray(writer, profile.PlayerLevelStatus?.Select(value => (uint)value).ToArray(), 40);
-        foreach ((IReadOnlyList<uint> values, int count) in Arrays(profile)) WriteArray(writer, values, count);
+        foreach ((IReadOnlyList<uint> values, int count) in Arrays(profile))
+        {
+            WriteArray(writer, values, count);
+        }
+
         return stream.ToArray();
     }
 
     public static CampaignProfile Read(ReadOnlySpan<byte> data)
     {
-        if (data.Length != FileSize) throw new InvalidDataException("Invalid campaign profile length.");
+        if (data.Length != FileSize)
+        {
+            throw new InvalidDataException("Invalid campaign profile length.");
+        }
+
         using var stream = new MemoryStream(data.ToArray(), writable: false);
         using var reader = new BinaryReader(stream);
         if (reader.ReadUInt32() != Magic || reader.ReadUInt32() != Version)
+        {
             throw new InvalidDataException("Unsupported campaign profile signature or version.");
+        }
+
         return new CampaignProfile
         {
             LevelNumber = reader.ReadByte(), PetDungeonLevelNumber = reader.ReadByte(),
@@ -53,7 +68,11 @@ public static class CampaignProfileFile
 
     public static CampaignProfile LoadOrCreate(string path, Func<CampaignProfile?>? import = null)
     {
-        if (File.Exists(path)) return Read(File.ReadAllBytes(path));
+        if (File.Exists(path))
+        {
+            return Read(File.ReadAllBytes(path));
+        }
+
         CampaignProfile profile = import?.Invoke() ?? new CampaignProfile();
         byte[] data = Write(profile);
         ProfileFileStorage.Save(path, data, replaceExisting: false);
@@ -73,14 +92,25 @@ public static class CampaignProfileFile
 
     private static void WriteArray(BinaryWriter writer, IReadOnlyList<uint>? values, int count)
     {
-        if (values is null || values.Count != count) throw new InvalidDataException($"Expected {count} profile values.");
-        foreach (uint value in values) writer.Write(value);
+        if (values is null || values.Count != count)
+        {
+            throw new InvalidDataException($"Expected {count} profile values.");
+        }
+
+        foreach (uint value in values)
+        {
+            writer.Write(value);
+        }
     }
 
     private static IReadOnlyList<uint> ReadArray(BinaryReader reader, int count)
     {
         uint[] values = new uint[count];
-        for (int i = 0; i < values.Length; i++) values[i] = reader.ReadUInt32();
+        for (int i = 0; i < values.Length; i++)
+        {
+            values[i] = reader.ReadUInt32();
+        }
+
         return Array.AsReadOnly(values);
     }
 }

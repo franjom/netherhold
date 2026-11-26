@@ -41,7 +41,11 @@ public static class GlbWriter
     {
         ArgumentNullException.ThrowIfNull(model);
         ArgumentNullException.ThrowIfNull(output);
-        if (!output.CanWrite) throw new ArgumentException("Output stream is not writable.", nameof(output));
+        if (!output.CanWrite)
+        {
+            throw new ArgumentException("Output stream is not writable.", nameof(output));
+        }
+
         KmfMesh mesh = model.Mesh ?? throw new NotSupportedException(
             $"KMF kind {model.Kind} does not contain directly writable mesh geometry.");
         textureUri ??= DefaultTextureUri;
@@ -50,8 +54,11 @@ public static class GlbWriter
         var binary = new BinaryBuilder();
         var primitives = new List<PrimitiveLayout>(mesh.Primitives.Count);
         for (int i = 0; i < mesh.Primitives.Count; i++)
+        {
             primitives.Add(binary.Add(mesh.Primitives[i], animationFrames?.Skip(1)
                 .Select(frame => frame.Primitives[i]).ToArray() ?? []));
+        }
+
         AnimationLayout? animation = animationFrames is null
             ? null : binary.AddAnimation(animationFrames.Count, animationFrames.Count - 1, passSeconds);
 
@@ -99,12 +106,20 @@ public static class GlbWriter
             writer.WriteStartObject();
             writer.WriteString("name", mesh.Name);
             writer.WriteStartArray("primitives");
-            foreach (PrimitiveLayout primitive in primitives) WritePrimitive(writer, primitive);
+            foreach (PrimitiveLayout primitive in primitives)
+            {
+                WritePrimitive(writer, primitive);
+            }
+
             writer.WriteEndArray();
             if (animation is not null)
             {
                 writer.WriteStartArray("weights");
-                for (int i = 0; i < animation.TargetCount; i++) writer.WriteNumberValue(0);
+                for (int i = 0; i < animation.TargetCount; i++)
+                {
+                    writer.WriteNumberValue(0);
+                }
+
                 writer.WriteEndArray();
             }
             writer.WriteEndObject();
@@ -123,7 +138,11 @@ public static class GlbWriter
     private static void WriteMaterials(Utf8JsonWriter writer,
         IReadOnlyList<KmfMaterial> materials, TextureLayout textures)
     {
-        if (materials.Count == 0) return;
+        if (materials.Count == 0)
+        {
+            return;
+        }
+
         writer.WriteStartArray("materials");
         for (int i = 0; i < materials.Count; i++)
         {
@@ -144,10 +163,16 @@ public static class GlbWriter
                 writer.WriteStartObject("extras");
                 writer.WriteStartArray("dk2TextureAlternatives");
                 foreach (int index in textures.TextureIndexByMaterial[i])
+                {
                     writer.WriteStringValue(textures.Uris[index]);
+                }
+
                 writer.WriteEndArray();
                 if (textures.EnvironmentIndexByMaterial[i] is int environmentIndex)
+                {
                     writer.WriteString("dk2EnvironmentTexture", textures.Uris[environmentIndex]);
+                }
+
                 writer.WriteEndObject();
             }
             writer.WriteEndObject();
@@ -157,7 +182,11 @@ public static class GlbWriter
 
     private static void WriteTextures(Utf8JsonWriter writer, TextureLayout textures)
     {
-        if (textures.Uris.Count == 0) return;
+        if (textures.Uris.Count == 0)
+        {
+            return;
+        }
+
         writer.WriteStartArray("textures");
         for (int i = 0; i < textures.Uris.Count; i++)
         {
@@ -181,9 +210,14 @@ public static class GlbWriter
         writer.WriteNumber("TEXCOORD_0", primitive.UvAccessor);
         writer.WriteEndObject();
         if (primitive.IndexAccessor is int indexAccessor)
+        {
             writer.WriteNumber("indices", indexAccessor);
+        }
         else
+        {
             writer.WriteNumber("mode", 0); // No triangles in LOD 0: preserve it as points.
+        }
+
         writer.WriteNumber("material", primitive.MaterialIndex);
         if (primitive.TargetAccessors.Count > 0)
         {
@@ -199,7 +233,11 @@ public static class GlbWriter
 
     private static void WriteAnimation(Utf8JsonWriter writer, AnimationLayout? animation)
     {
-        if (animation is null) return;
+        if (animation is null)
+        {
+            return;
+        }
+
         writer.WriteStartArray("animations");
         writer.WriteStartObject();
         writer.WriteString("name", "KMF frames");
@@ -229,8 +267,15 @@ public static class GlbWriter
             View(primitive.PositionView, 34962);
             View(primitive.NormalView, 34962);
             View(primitive.UvView, 34962);
-            if (primitive.IndexView is BufferView indices) View(indices, 34963);
-            foreach (BufferView target in primitive.TargetViews) View(target, 34962);
+            if (primitive.IndexView is BufferView indices)
+            {
+                View(indices, 34963);
+            }
+
+            foreach (BufferView target in primitive.TargetViews)
+            {
+                View(target, 34962);
+            }
         }
         if (animation is not null)
         {
@@ -242,7 +287,11 @@ public static class GlbWriter
         {
             writer.WriteStartObject(); writer.WriteNumber("buffer", 0);
             writer.WriteNumber("byteOffset", view.Offset); writer.WriteNumber("byteLength", view.Length);
-            if (target is int value) writer.WriteNumber("target", value);
+            if (target is int value)
+            {
+                writer.WriteNumber("target", value);
+            }
+
             writer.WriteEndObject();
         }
     }
@@ -258,9 +307,14 @@ public static class GlbWriter
             Accessor(primitive.NormalViewIndex, 5126, primitive.VertexCount, "VEC3");
             Accessor(primitive.UvViewIndex, 5126, primitive.VertexCount, "VEC2");
             if (primitive.IndexViewIndex is int indexView)
+            {
                 Accessor(indexView, 5121, primitive.IndexCount, "SCALAR");
+            }
+
             foreach (int targetView in primitive.TargetViewIndices)
+            {
                 Accessor(targetView, 5126, primitive.VertexCount, "VEC3");
+            }
         }
         if (animation is not null)
         {
@@ -277,8 +331,16 @@ public static class GlbWriter
             writer.WriteStartObject(); writer.WriteNumber("bufferView", view);
             writer.WriteNumber("componentType", componentType); writer.WriteNumber("count", count);
             writer.WriteString("type", type);
-            if (minimum is Vector3 min) WriteVector("min", min);
-            if (maximum is Vector3 max) WriteVector("max", max);
+            if (minimum is Vector3 min)
+            {
+                WriteVector("min", min);
+            }
+
+            if (maximum is Vector3 max)
+            {
+                WriteVector("max", max);
+            }
+
             if (scalarMinimum is float scalarMin)
             { writer.WriteStartArray("min"); writer.WriteNumberValue(scalarMin); writer.WriteEndArray(); }
             if (scalarMaximum is float scalarMax)
@@ -297,7 +359,11 @@ public static class GlbWriter
         string normalized = textureName.Replace('\\', '/');
         int slash = normalized.LastIndexOf('/');
         int dot = normalized.LastIndexOf('.');
-        if (dot > slash) normalized = normalized[..dot];
+        if (dot > slash)
+        {
+            normalized = normalized[..dot];
+        }
+
         return string.Join('/', normalized.Split('/').Select(Uri.EscapeDataString)) + ".png";
     }
 
@@ -308,7 +374,10 @@ public static class GlbWriter
         BinaryPrimitives.WriteUInt32LittleEndian(header, checked((uint)paddedLength));
         BinaryPrimitives.WriteUInt32LittleEndian(header[4..], type);
         output.Write(header); output.Write(bytes);
-        for (int i = bytes.Length; i < paddedLength; i++) output.WriteByte(padding);
+        for (int i = bytes.Length; i < paddedLength; i++)
+        {
+            output.WriteByte(padding);
+        }
     }
 
     private static int Align4(int value) => checked((value + 3) & ~3);
@@ -318,12 +387,22 @@ public static class GlbWriter
         KmfAnimation? animation = model.Animation;
         if (animation is null || !animation.IsComplete || animation.Frames.Count < 2
             || animation.Frames.Any(frame => frame.Primitives.Count != mesh.Primitives.Count))
+        {
             return null;
+        }
+
         for (int frame = 1; frame < animation.Frames.Count; frame++)
+        {
             for (int primitive = 0; primitive < mesh.Primitives.Count; primitive++)
+            {
                 if (animation.Frames[frame].Primitives[primitive].Vertices.Count
                     != mesh.Primitives[primitive].Vertices.Count)
+                {
                     return null;
+                }
+            }
+        }
+
         return animation.Frames;
     }
 
@@ -341,7 +420,10 @@ public static class GlbWriter
             IReadOnlyList<KmfPrimitive> targets)
         {
             if (primitive.Vertices.Count == 0)
+            {
                 throw new InvalidDataException("A glTF primitive cannot have no vertices.");
+            }
+
             Vector3 minimum = new(float.PositiveInfinity);
             Vector3 maximum = new(float.NegativeInfinity);
             BufferView positions = AddView(() =>
@@ -355,7 +437,10 @@ public static class GlbWriter
             int positionView = _viewCount++; int positionAccessor = _accessorCount++;
             BufferView normals = AddView(() =>
             {
-                foreach (KmfVertex vertex in primitive.Vertices) Write(ToGltf(vertex.Normal));
+                foreach (KmfVertex vertex in primitive.Vertices)
+                {
+                    Write(ToGltf(vertex.Normal));
+                }
             });
             int normalView = _viewCount++; int normalAccessor = _accessorCount++;
             BufferView uvs = AddView(() =>
@@ -388,7 +473,9 @@ public static class GlbWriter
                 BufferView targetView = AddView(() =>
                 {
                     for (int i = 0; i < primitive.Vertices.Count; i++)
+                    {
                         Write(ToGltf(target.Vertices[i].Position - primitive.Vertices[i].Position));
+                    }
                 });
                 targetViews.Add(targetView);
                 targetViewIndices.Add(_viewCount++);
@@ -408,14 +495,20 @@ public static class GlbWriter
             BufferView times = AddView(() =>
             {
                 for (int frame = 0; frame < frameCount; frame++)
+                {
                     _writer.Write(frame * frameSeconds);
+                }
             });
             int timeView = _viewCount++; int timeAccessor = _accessorCount++;
             BufferView weights = AddView(() =>
             {
                 for (int frame = 0; frame < frameCount; frame++)
+                {
                     for (int target = 0; target < targetCount; target++)
+                    {
                         _writer.Write(frame == target + 1 ? 1f : 0f);
+                    }
+                }
             });
             int weightView = _viewCount++; int weightAccessor = _accessorCount++;
             return new AnimationLayout(frameCount, targetCount,
@@ -425,7 +518,11 @@ public static class GlbWriter
 
         private BufferView AddView(Action write)
         {
-            while ((_stream.Position & 3) != 0) _writer.Write((byte)0);
+            while ((_stream.Position & 3) != 0)
+            {
+                _writer.Write((byte)0);
+            }
+
             int offset = checked((int)_stream.Position); write();
             return new BufferView(offset, checked((int)_stream.Position - offset));
         }
@@ -461,7 +558,10 @@ public static class GlbWriter
             {
                 var indices = new List<int>(material.TextureNames.Count);
                 foreach (string name in material.TextureNames)
+                {
                     indices.Add(Add(name));
+                }
+
                 byMaterial.Add(indices);
                 environmentByMaterial.Add(string.IsNullOrEmpty(material.EnvironmentTextureName)
                     ? null : Add(material.EnvironmentTextureName));
@@ -471,7 +571,11 @@ public static class GlbWriter
             int Add(string name)
             {
                 string uri = textureUri(name);
-                if (byUri.TryGetValue(uri, out int index)) return index;
+                if (byUri.TryGetValue(uri, out int index))
+                {
+                    return index;
+                }
+
                 index = uris.Count; uris.Add(uri); byUri.Add(uri, index); return index;
             }
         }

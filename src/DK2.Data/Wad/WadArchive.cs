@@ -33,7 +33,9 @@ public sealed class WadArchive : IDisposable
         Entries = entries;
         _byName = new Dictionary<string, WadEntry>(entries.Count, StringComparer.OrdinalIgnoreCase);
         foreach (WadEntry e in entries)
+        {
             _byName[e.Name] = e;
+        }
     }
 
     public static WadArchive Open(string path)
@@ -46,9 +48,14 @@ public sealed class WadArchive : IDisposable
             uint sig = BinaryPrimitives.ReadUInt32LittleEndian(head);
             uint version = BinaryPrimitives.ReadUInt32LittleEndian(head[4..]);
             if (sig != Signature)
+            {
                 throw new InvalidDataException($"Not a DK2 WAD (bad signature) : {path}");
+            }
+
             if (version != 2)
+            {
                 throw new InvalidDataException($"Unsupported WAD version {version}: {path}");
+            }
 
             fs.Position = HeaderCountOffset;
             Span<byte> dir = stackalloc byte[16];

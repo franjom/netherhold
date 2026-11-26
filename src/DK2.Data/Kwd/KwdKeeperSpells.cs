@@ -22,7 +22,10 @@ public static class KwdKeeperSpells
             Name(bytes, OffsetGuiButtonSoundCategory), trimmed: false);
         void I32(int offset, int value) => BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(offset), value);
         if (record.ManaUpkeepPerSecond < 0 || record.ManaUpkeepPerSecond > ushort.MaxValue)
+        {
             throw new InvalidDataException("KEEPERSPELLS mana upkeep must fit its unsigned 16-bit field.");
+        }
+
         BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(OffsetManaUpkeepPerSecond), (ushort)record.ManaUpkeepPerSecond);
         I32(OffsetManaCost, record.ManaCost);
         I32(OffsetCooldown, record.CooldownRaw);
@@ -77,17 +80,27 @@ public static class KwdKeeperSpells
         var result = new List<KeeperSpellDef>();
         foreach (KwdChunk chunk in chunks)
         {
-            if (chunk.Type != KwdRecordType.KeeperSpells) continue;
+            if (chunk.Type != KwdRecordType.KeeperSpells)
+            {
+                continue;
+            }
 
             int recordSize = chunk.ItemCount == 0 ? RecordSize : chunk.Content.Length / chunk.ItemCount;
             if (recordSize != RecordSize)
+            {
                 throw new InvalidDataException(
                     $"KEEPERSPELLS record size {recordSize} is not {RecordSize}.");
+            }
+
             if (chunk.Content.Length != (long)recordSize * chunk.ItemCount)
+            {
                 throw new InvalidDataException("KEEPERSPELLS content size does not divide into records.");
+            }
 
             for (int i = 0; i < chunk.ItemCount; i++)
+            {
                 result.Add(ParseRecord(chunk.Content, i * recordSize));
+            }
         }
         return result;
     }
