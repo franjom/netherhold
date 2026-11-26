@@ -31,6 +31,18 @@ while read -r local_ref local_sha remote_ref remote_sha; do
         status=1
     fi
 
+    # An AI tool as author or committer (identities only; Assisted-by in the message is expected).
+    bots=$(git log --format='%h %an <%ae>%n%h %cn <%ce>' $range | awk -v bot="$LEAK_BOT_IDENT_RE" '
+        { i = tolower(substr($0, index($0, " ") + 1)) }
+        i ~ bot { print "    " $0 }' | sort -u)
+    if [ -n "$bots" ]; then
+        echo "pre-push: $local_ref has commits authored or committed by an AI tool:" >&2
+        echo "$bots" | head -20 >&2
+        echo "          Re-commit them as the repository's git user (git commit --amend --reset-author" >&2
+        echo "          for the last one); credit the tool with an Assisted-by trailer." >&2
+        status=1
+    fi
+
     # Any added or removed line of text with the work domain, in any commit.
     files=$(git log --format='    %h %s' --regexp-ignore-case -G"$LEAK_WORK_DOMAIN_RE" $range)
     if [ -n "$files" ]; then

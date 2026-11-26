@@ -474,6 +474,7 @@ A reviewer rejects a change that breaks these, the same as a wrong claim about t
 - One imperative line. No bullet list unless the change genuinely spans unrelated scopes.
 - Describe intent, not mechanics.
 - Never include `Co-Authored-By`. For AI-assisted commits add trailer `Assisted-by: <Model>` (e.g. `Assisted-by: Claude:claude-fable-5`).
+- Commit as the repository's configured git user. Never set the author or committer to an AI tool (`--author`, `GIT_AUTHOR_*`, `GIT_COMMITTER_*`, `user.name`/`user.email`): GitHub lists that identity as a contributor. `.githooks/commit-msg` and `pre-push` reject it.
 
 
 # Long-Term Project Goals
