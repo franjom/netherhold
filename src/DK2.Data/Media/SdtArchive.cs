@@ -169,7 +169,7 @@ public sealed class SdtArchive
         int blockAlign = checked(channels * entry.BitsPerSample / 8);
         int byteRate = checked(entry.SampleRate * blockAlign);
         int fileLength = checked(44 + pcm.Length + (pcm.Length & 1));
-        var result = new byte[fileLength];
+        byte[] result = new byte[fileLength];
         Encoding.ASCII.GetBytes("RIFF").CopyTo(result, 0);
         BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(4), checked((uint)(fileLength - 8)));
         Encoding.ASCII.GetBytes("WAVEfmt ").CopyTo(result, 8);

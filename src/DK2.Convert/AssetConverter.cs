@@ -28,9 +28,9 @@ public static class AssetConverter
         ArgumentException.ThrowIfNullOrWhiteSpace(outputRoot);
 
         Directory.CreateDirectory(Path.GetFullPath(outputRoot));
-        Dk2ArtCatalogue art = Dk2ArtCatalogue.Load(installDirectory);
-        using WadMeshSource meshes = WadMeshSource.OpenInstall(installDirectory);
-        using EngineTextureArchive textures = EngineTextureArchive.OpenInstall(installDirectory);
+        var art = Dk2ArtCatalogue.Load(installDirectory);
+        using var meshes = WadMeshSource.OpenInstall(installDirectory);
+        using var textures = EngineTextureArchive.OpenInstall(installDirectory);
         return ConvertAll(art, meshes, textures, database, outputRoot);
     }
 

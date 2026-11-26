@@ -62,7 +62,7 @@ public sealed class Dk2ArtCatalogue
     public static Dk2ArtCatalogue Load(string installDirectory)
     {
         string editor = Path.Combine(installDirectory, "Data", "editor");
-        var objects = Read(Path.Combine(editor, "Objects.kwd"), KwdRecordType.Objects,
+        IReadOnlyDictionary<byte, IReadOnlyList<Dk2ArtResource>> objects = Read(Path.Combine(editor, "Objects.kwd"), KwdRecordType.Objects,
             894, idOffset: 0x35A, artOffset: 0x20, artCount: 9);
         return new Dk2ArtCatalogue
         {
@@ -104,7 +104,7 @@ public sealed class Dk2ArtCatalogue
             for (int at = 0; at < chunk.Content.Length; at += 616)
             {
                 byte objectId = chunk.Content[at + 0x247];
-                if (objectId != 0 && objects.TryGetValue(objectId, out var resources))
+                if (objectId != 0 && objects.TryGetValue(objectId, out IReadOnlyList<Dk2ArtResource>? resources))
                     result.Add(chunk.Content[at + 0x244], resources[0]);
             }
         }

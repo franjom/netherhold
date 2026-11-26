@@ -34,10 +34,10 @@ public sealed class SfxMap
 
     public static SfxMap Read(ReadOnlySpan<byte> data)
     {
-        using var reader = SoundMapReader.Open(data, 0xE9612C00, 0xB00009B4);
+        using BinaryReader reader = SoundMapReader.Open(data, 0xE9612C00, 0xB00009B4);
         int count = SoundMapReader.Count(reader, 24);
-        var eventCounts = new int[count];
-        var eventUnknown = new byte[count][];
+        int[] eventCounts = new int[count];
+        byte[][] eventUnknown = new byte[count][];
         for (int i = 0; i < count; i++)
         {
             eventCounts[i] = SoundMapReader.Count(reader, 20);
@@ -53,7 +53,7 @@ public sealed class SfxMap
                 groupHeaders.Add((id, items, SoundMapReader.Bytes(reader, 12)));
             }
         var groups = new List<SoundGroup>();
-        foreach (var header in groupHeaders)
+        foreach ((SoundId Id, int Count, byte[] Unknown) header in groupHeaders)
         {
             var itemHeaders = new (int Sounds, int Links, byte[] Unknown)[header.Count];
             for (int i = 0; i < header.Count; i++)

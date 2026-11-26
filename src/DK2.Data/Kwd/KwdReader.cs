@@ -23,7 +23,7 @@ public static class KwdReader
 {
     public static List<KwdChunk> ReadFile(string path)
     {
-        using var fs = File.OpenRead(path);
+        using FileStream fs = File.OpenRead(path);
         return Read(fs, path);
     }
 

@@ -20,7 +20,7 @@ public sealed partial class KwdLevelFileSet
     public static KwdLevelFileSet Create(IReadOnlyDictionary<string,IReadOnlyList<KwdChunk>> files)
     {
         var result=new KwdLevelFileSet();
-        foreach(var file in files)
+        foreach(KeyValuePair<string, IReadOnlyList<KwdChunk>> file in files)
         {
             string path=Normalize(file.Key);
             KwdChunk[] chunks=file.Value.Select(Clone).ToArray();
@@ -87,7 +87,7 @@ public sealed partial class KwdLevelFileSet
         if(changed is null || changed.GetType()!=baseline!.GetType())
             throw new InvalidDataException("A typed edit must retain its record type.");
         RefuseReferenceChanges(baseline,changed);
-        var images=KwdRecordRoundTrip.Split(chunk);
+        List<KwdRecordImage> images =KwdRecordRoundTrip.Split(chunk);
         KwdRecordImage template=images[location.RecordIndex];
         images[location.RecordIndex]=new KwdRecordImage(chunk.Type,KwdTypedRecords.Write(changed,template,chunk),template.Tag);
         Replace(location,chunk with { Content=KwdRecordRoundTrip.Join(chunk,images) });
@@ -95,8 +95,8 @@ public sealed partial class KwdLevelFileSet
 
     public void Save(string outputRoot)
     {
-        var output=_files.Select(file=>(Path:Path.Combine(outputRoot,file.Key),Bytes:KwdWriter.ToBytes(file.Value))).ToArray();
-        foreach(var file in output)
+        (string Path, byte[] Bytes)[] output =_files.Select(file=>(Path:Path.Combine(outputRoot,file.Key),Bytes:KwdWriter.ToBytes(file.Value))).ToArray();
+        foreach((string Path, byte[] Bytes) file in output)
         {
             string? parent=Path.GetDirectoryName(file.Path);
             if(!string.IsNullOrEmpty(parent)) Directory.CreateDirectory(parent);

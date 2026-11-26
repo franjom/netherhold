@@ -31,7 +31,7 @@ public static partial class KwdTriggers
         byte[] source=image.AsSpan(8,8).ToArray();
         if (row.Type!=image[22]) throw new InvalidDataException("Trigger type changes need an independently validated payload template.");
         if (row.Body.Length!=8) throw new InvalidDataException("Trigger bodies require eight explicit bytes.");
-        var layout=row.Tag==213 ? GenericParameterLayout(row.Type) : ActionParameterLayout(row.Type);
+        IReadOnlyDictionary<string, ParameterField> layout =row.Tag==213 ? GenericParameterLayout(row.Type) : ActionParameterLayout(row.Type);
         if(row.Parameters.Count!=layout.Count || row.Parameters.Keys.Any(k=>!layout.ContainsKey(k)))
             throw new InvalidDataException("Trigger parameters must match the existing type's decoded schema.");
         byte?[] requested=new byte?[8];
@@ -68,7 +68,7 @@ public static partial class KwdTriggers
                 Scalar(0,4,false,c.BodyDword0); Scalar(4,4,false,c.BodyDword4); break;
             default: throw new InvalidDataException("Trigger record class does not match its tag.");
         }
-        foreach(var entry in layout)
+        foreach(KeyValuePair<string, ParameterField> entry in layout)
             Scalar(entry.Value.Offset,entry.Value.Width,entry.Value.Signed,row.Parameters[entry.Key]);
         for(int i=0;i<8;i++) if(requested[i] is byte value) image[i+8]=value;
         BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(16),row.TriggerId);

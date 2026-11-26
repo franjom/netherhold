@@ -168,7 +168,7 @@ public readonly struct AssetRef : IEquatable<AssetRef>
         string normalisedSubject = NormaliseSubject(subject);
         string role = RoleOf(kind);
 
-        var key = new StringBuilder(category).Append('.').Append(normalisedSubject).Append('.').Append(role);
+        StringBuilder key = new StringBuilder(category).Append('.').Append(normalisedSubject).Append('.').Append(role);
 
         if (variant is not null)
         {
@@ -310,7 +310,7 @@ public readonly struct AssetRef : IEquatable<AssetRef>
     /// </summary>
     public ulong StableHash()
     {
-        Fnv1a64 hash = Fnv1a64.Start();
+        var hash = Fnv1a64.Start();
         hash.Add(Key);
         hash.Add((int)Kind);
         return hash.Value;

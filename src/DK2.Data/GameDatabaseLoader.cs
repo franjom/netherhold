@@ -83,7 +83,7 @@ public static class GameDatabaseLoader
         var frames = new Dictionary<int, int>();
         string path = Path.Combine(installDir, "Data", "Paths.WAD");
         if (!File.Exists(path)) return frames;
-        using WadArchive wad = WadArchive.Open(path);
+        using var wad = WadArchive.Open(path);
         foreach (WadEntry entry in wad.Entries)
         {
             Match name = EnginePathName.Match(Path.GetFileName(entry.Name));

@@ -118,7 +118,7 @@ public sealed class TqiDecoder
     public int Decode(ReadOnlySpan<byte> payload, Span<byte> rgba)
     {
         if (payload.Length < 8) throw new InvalidDataException("TQI frame is shorter than its header");
-        var (width, height) = FrameSize(payload);
+        (int width, int height) = FrameSize(payload);
         if (width % 16 != 0 || height % 16 != 0) throw new InvalidDataException($"TQI frame {width}x{height} is not whole macroblocks");
         if (rgba.Length < width * height * 4) throw new ArgumentException("output is too small", nameof(rgba));
         BuildMatrix(payload[4]);
@@ -321,8 +321,8 @@ public sealed class TqiDecoder
 
     private static int[] BuildAcTable()
     {
-        var table = new int[1 << PeekBits];
-        foreach (var (code, run, level) in AcCodes)
+        int[] table = new int[1 << PeekBits];
+        foreach ((string? code, int run, int level) in AcCodes)
         {
             int length = code.Length;
             int prefix = Convert.ToInt32(code, 2) << (PeekBits - length);
@@ -335,7 +335,7 @@ public sealed class TqiDecoder
 
     private static byte[] BuildDcTable(string[] codes)
     {
-        var table = new byte[256];
+        byte[] table = new byte[256];
         for (int size = 0; size < codes.Length; size++)
         {
             int length = codes[size].Length;

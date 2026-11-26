@@ -55,7 +55,7 @@ public static class GlbWriter
         AnimationLayout? animation = animationFrames is null
             ? null : binary.AddAnimation(animationFrames.Count, animationFrames.Count - 1, passSeconds);
 
-        TextureLayout textures = TextureLayout.Create(model.Materials, textureUri);
+        var textures = TextureLayout.Create(model.Materials, textureUri);
         byte[] json = BuildJson(model, mesh, primitives, animation, binary.ByteLength, textures);
         byte[] bin = binary.ToArray();
         int jsonLength = Align4(json.Length);

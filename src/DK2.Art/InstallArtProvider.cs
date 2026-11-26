@@ -77,13 +77,13 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
             throw new ArgumentException("An install directory is required.", nameof(installDirectory));
         if (database is null) throw new ArgumentNullException(nameof(database));
 
-        Dk2ArtCatalogue catalogue = Dk2ArtCatalogue.Load(installDirectory);
+        var catalogue = Dk2ArtCatalogue.Load(installDirectory);
         IReadOnlyList<ArtEntry> entries = additionalEntries is null ? ArtSourceMap.ForDatabase(database, catalogue)
             : ArtSourceMap.ForDatabase(database, catalogue).Concat(additionalEntries).ToArray();
-        WadMeshSource meshes = WadMeshSource.OpenInstall(installDirectory);
+        var meshes = WadMeshSource.OpenInstall(installDirectory);
         try
         {
-            EngineTextureArchive textures = EngineTextureArchive.OpenInstall(installDirectory);
+            var textures = EngineTextureArchive.OpenInstall(installDirectory);
             return new InstallArtProvider(entries, meshes, textures, new Owned(meshes, textures)) { Catalogue = catalogue };
         }
         catch
@@ -103,7 +103,7 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
 
     public bool TryResolve(AssetRef reference, out ResolvedAsset asset)
     {
-        if (reference.IsEmpty || !_entries.TryGetValue(reference, out var found))
+        if (reference.IsEmpty || !_entries.TryGetValue(reference, out (string Entry, ArtUse Use, Dk2ArtResource Resource) found))
         {
             asset = default;
             return false;
@@ -153,7 +153,7 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
     public bool TryGetResource(in ResolvedAsset asset, out Dk2ArtResource resource)
     {
         if (asset.Source == AssetSource.InstallEntry && asset.ProviderName == Name
-            && _entries.TryGetValue(asset.Reference, out var entry))
+            && _entries.TryGetValue(asset.Reference, out (string Entry, ArtUse Use, Dk2ArtResource Resource) entry))
         {
             resource = entry.Resource;
             return true;

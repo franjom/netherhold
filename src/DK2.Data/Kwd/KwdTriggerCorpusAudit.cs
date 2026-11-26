@@ -21,7 +21,7 @@ public static class KwdTriggerCorpusAudit
             string level = Path.GetFileName(file)[..^"Triggers.kld".Length];
             foreach (TriggerRecord trigger in KwdTriggers.Parse(KwdReader.ReadFile(file)))
             {
-                var key = (trigger.Tag, trigger.Type);
+                (int Tag, byte Type) key = (trigger.Tag, trigger.Type);
                 if (!distribution.TryGetValue(key, out (int Count, SortedSet<string> Levels) entry))
                     entry = (0, new SortedSet<string>(StringComparer.OrdinalIgnoreCase));
                 entry.Levels.Add(level);

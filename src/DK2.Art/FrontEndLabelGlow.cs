@@ -26,7 +26,7 @@ public static class FrontEndLabelGlow
         int width = source.Width, height = source.Height;
         if (width <= 0 || height <= 0 || source.Pixels.Length != checked(width * height * 4))
             throw new ArgumentException("A label needs a complete RGBA surface.", nameof(source));
-        var dilated = new byte[width * height];
+        byte[] dilated = new byte[width * height];
         for (int y = 0; y < height; y++)
             for (int x = 0; x < width; x++)
             {
@@ -36,7 +36,7 @@ public static class FrontEndLabelGlow
                         maximum = Math.Max(maximum, source.Pixels[(sy * width + sx) * 4 + 3]);
                 dilated[y * width + x] = maximum;
             }
-        var result = new byte[source.Pixels.Length];
+        byte[] result = new byte[source.Pixels.Length];
         for (int y = 0; y < height; y++)
             for (int x = 0; x < width; x++)
             {

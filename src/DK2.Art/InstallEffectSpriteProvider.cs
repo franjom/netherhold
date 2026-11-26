@@ -31,17 +31,17 @@ public sealed class InstallEffectSpriteProvider : IEffectSpriteProvider
     {
         if (database is null) throw new ArgumentNullException(nameof(database));
         _loadTexture = loadTexture ?? throw new ArgumentNullException(nameof(loadTexture));
-        foreach (var group in database.EffectElements.Values
+        foreach (IGrouping<AssetRef, EffectElementDef> group in database.EffectElements.Values
                      .Where(element => element.ArtResource.Type is >= 1 and <= 3
                          && !string.IsNullOrWhiteSpace(element.ArtResource.Name))
                      .GroupBy(element => AssetRef.ForEffectElement(element.Name)))
             if (group.Count() == 1) _elements.Add(group.Key, group.Single().ArtResource);
-        foreach (var group in database.Effects.Values
+        foreach (IGrouping<AssetRef, EffectDef> group in database.Effects.Values
                      .Where(effect => effect.ArtResource.Type is >= 1 and <= 3
                          && !string.IsNullOrWhiteSpace(effect.ArtResource.Name))
                      .GroupBy(effect => AssetRef.ForEffect(effect.Name)))
             if (group.Count() == 1) _elements.Add(group.Key, group.Single().ArtResource);
-        foreach (var group in database.Shots.Values
+        foreach (IGrouping<AssetRef, ShotDef> group in database.Shots.Values
                      .Where(shot => shot.MeshResource.Type is >= 1 and <= 3
                          && !string.IsNullOrWhiteSpace(shot.MeshResource.Name))
                      .GroupBy(shot => AssetRef.ForShot(shot.Name)))
@@ -89,13 +89,13 @@ public sealed class InstallEffectSpriteProvider : IEffectSpriteProvider
 
     private bool Owns(in ResolvedAsset asset) => asset.Source == AssetSource.InstallEntry
         && asset.ProviderName == Name && !asset.Reference.IsEmpty
-        && _elements.TryGetValue(asset.Reference, out var element)
+        && _elements.TryGetValue(asset.Reference, out KwdArtResource? element)
         && asset.InstallEntry == element.Name;
 
     private LoadedSprite? Load(AssetRef reference)
     {
         if (_loaded.TryGetValue(reference, out LoadedSprite? cached)) return cached;
-        if (!_elements.TryGetValue(reference, out var element)) return null;
+        if (!_elements.TryGetValue(reference, out KwdArtResource? element)) return null;
         KwdArtResource art = element;
         ReadOnlySpan<byte> values = art.Unknown_0044.Span;
         if (values.Length != 12) throw new InvalidDataException("A sprite descriptor requires twelve value bytes.");
@@ -108,7 +108,7 @@ public sealed class InstallEffectSpriteProvider : IEffectSpriteProvider
             catch (FileNotFoundException) { break; }
         }
         // Descriptor duration and material image count are separate (room-construction-effects.md section 4).
-        var loaded = frames.Count == 0 ? null : new LoadedSprite(new EffectSpriteResource(
+        LoadedSprite? loaded = frames.Count == 0 ? null : new LoadedSprite(new EffectSpriteResource(
             BinaryPrimitives.ReadInt32LittleEndian(values),
             BinaryPrimitives.ReadInt32LittleEndian(values.Slice(4)), declaredFrames, frames.Count,
             art.Type == 3 ? EffectSpriteBlend.Additive : art.Type == 2 ? EffectSpriteBlend.Alpha : EffectSpriteBlend.Opaque,

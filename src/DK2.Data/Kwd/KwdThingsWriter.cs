@@ -11,7 +11,7 @@ public static partial class KwdThings
 {
     public static byte[] WriteRecord(ThingRecord row, KwdRecordImage template)
     {
-        if (!KwdTaggedRecords.ThingPayloadSizes.TryGetValue(row.Tag, out var layout))
+        if (!KwdTaggedRecords.ThingPayloadSizes.TryGetValue(row.Tag, out (string Name, int PayloadSize, bool InShippedData) layout))
             throw new InvalidDataException($"Unsupported THINGS tag {row.Tag}.");
         byte[] image = KwdOverlay.TaggedImage(template, KwdRecordType.Things, row.Tag, layout.PayloadSize);
         Span<byte> payload = image.AsSpan(8);

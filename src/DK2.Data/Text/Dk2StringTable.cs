@@ -66,8 +66,8 @@ public sealed class Dk2StringTable
             throw Invalid(sourceName, $"offset table ends beyond the file at {tableEndLong}");
         int tableEnd = (int)tableEndLong;
 
-        Dk2CodePage codePage = Dk2CodePage.Read(codePageData, sourceName);
-        var storedOffsets = new uint[count];
+        var codePage = Dk2CodePage.Read(codePageData, sourceName);
+        uint[] storedOffsets = new uint[count];
         for (int i = 0; i < count; i++)
         {
             uint storedOffset = BinaryPrimitives.ReadUInt32LittleEndian(
@@ -214,7 +214,7 @@ public sealed class Dk2StringTable
                 throw Invalid(sourceName, "MBToUni.dat has a partial UTF-16LE character");
 
             int threshold = 255 - data[4];
-            var characters = new char[(data.Length - headerSize) / sizeof(ushort)];
+            char[] characters = new char[(data.Length - headerSize) / sizeof(ushort)];
             for (int i = 0; i < characters.Length; i++)
             {
                 characters[i] = (char)BinaryPrimitives.ReadUInt16LittleEndian(

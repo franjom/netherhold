@@ -125,7 +125,7 @@ public sealed class RenderAnimationClock
         _complete = true;
         if (_pending.HasValue)
         {
-            var pending = _pending.Value;
+            (CreatureAnimationTiming Timing, bool Loop, Fp32? Scale, Fp32? InitialSpeed) pending = _pending.Value;
             Install(pending.Timing, pending.Loop, pending.Scale, pending.InitialSpeed);
             ResourceRevision++;
         }

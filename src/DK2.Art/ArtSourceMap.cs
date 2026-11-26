@@ -244,21 +244,21 @@ public static class ArtSourceMap
         {
             foreach (bool open in new[] { false, true })
             {
-                AssetRef reference = AssetRef.ForDoor(door.Name, open);
+                var reference = AssetRef.ForDoor(door.Name, open);
                 if (!art.Doors.TryGetValue(door.DoorId, out IReadOnlyList<Dk2ArtResource>? resources))
                     entries.Add(Missing(reference, NoArtRecord("door", door.DoorId)));
                 else
                     entries.Add(Model(reference, ((door.Flags & DoorFlags.Barricade) == DoorFlags.Barricade)
                         ? resources[0] : resources[open ? 4 : 5], open ? "door opening" : "door closing"));
             }
-            AssetRef lockReference = AssetRef.ForDoorLock(door.Name);
+            var lockReference = AssetRef.ForDoorLock(door.Name);
             entries.Add(art.DoorLocks.TryGetValue(door.DoorId, out Dk2ArtResource? lockResource)
                 ? Model(lockReference, lockResource, "door lock object")
                 : Missing(lockReference, "No lock object art for this door."));
         }
         foreach (TrapDef trap in database.Traps.Values.OrderBy(value => value.TrapId))
         {
-            AssetRef reference = AssetRef.ForTrap(trap.Name);
+            var reference = AssetRef.ForTrap(trap.Name);
             entries.Add(art.Traps.TryGetValue(trap.TrapId, out IReadOnlyList<Dk2ArtResource>? resources)
                 ? Model(reference, resources[0], "trap model") : Missing(reference, NoArtRecord("trap", trap.TrapId)));
         }

@@ -39,7 +39,7 @@ public sealed class SoundBank
             ArraySegment<byte> wave = _archive.Payload(entry);
             int bytesPerSample = entry.BitsPerSample / 8;
             if (bytesPerSample != 1 && bytesPerSample != 2) throw new InvalidDataException("Unsupported PCM sample width.");
-            var samples = new short[entry.StoredSize / bytesPerSample];
+            short[] samples = new short[entry.StoredSize / bytesPerSample];
             ReadOnlySpan<byte> data = wave.AsSpan();
             for (int i = 0; i < samples.Length; i++)
                 samples[i] = bytesPerSample == 1 ? (short)((data[i] - 128) << 8)

@@ -79,7 +79,7 @@ public sealed partial class KwdLevelFileSet
 
     private void WriteUnchecked(KwdRecordLocation location,KwdChunk chunk,object changed)
     {
-        var images=KwdRecordRoundTrip.Split(chunk);
+        List<KwdRecordImage> images =KwdRecordRoundTrip.Split(chunk);
         KwdRecordImage template=images[location.RecordIndex];
         images[location.RecordIndex]=new KwdRecordImage(chunk.Type,KwdTypedRecords.Write(changed,template,chunk),template.Tag);
         Replace(location,chunk with { Content=KwdRecordRoundTrip.Join(chunk,images) });
@@ -119,7 +119,7 @@ public sealed partial class KwdLevelFileSet
 
     private void InsertTagged(KwdRecordLocation location,KwdChunk chunk,KwdRecordImage image)
     {
-        var images=KwdRecordRoundTrip.Split(chunk);
+        List<KwdRecordImage> images =KwdRecordRoundTrip.Split(chunk);
         if((uint)location.RecordIndex>(uint)images.Count) throw new ArgumentOutOfRangeException(nameof(location));
         images.Insert(location.RecordIndex,image);
         Replace(location,TaggedChunk(chunk,images));
@@ -127,7 +127,7 @@ public sealed partial class KwdLevelFileSet
 
     private void RemoveTagged(KwdRecordLocation location,KwdChunk chunk)
     {
-        var images=KwdRecordRoundTrip.Split(chunk);
+        List<KwdRecordImage> images =KwdRecordRoundTrip.Split(chunk);
         if((uint)location.RecordIndex>=(uint)images.Count) throw new ArgumentOutOfRangeException(nameof(location));
         images.RemoveAt(location.RecordIndex);
         Replace(location,TaggedChunk(chunk,images));

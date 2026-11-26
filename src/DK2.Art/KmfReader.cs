@@ -134,17 +134,17 @@ public static class KmfReader
 
         reader.Expect("ITAB"); reader.SkipSectionSize();
         uint tableChunkCount = checked((frameCount + 127) / 128);
-        var indexTables = new uint[(int)tableChunkCount][];
+        uint[][] indexTables = new uint[(int)tableChunkCount][];
         for (uint chunk = 0; chunk < tableChunkCount; chunk++)
         {
-            var table = new uint[(int)indexTableCount];
+            uint[] table = new uint[(int)indexTableCount];
             for (int i = 0; i < table.Length; i++) table[i] = reader.UInt32();
             indexTables[(int)chunk] = table;
         }
 
         reader.Expect("GEOM"); reader.SkipSectionSize();
         var positions = new Vector3[(int)geometryCount];
-        var keyFrames = new byte[(int)geometryCount];
+        byte[] keyFrames = new byte[(int)geometryCount];
         for (int i = 0; i < positions.Length; i++)
         {
             uint packed = reader.UInt32();
@@ -159,7 +159,7 @@ public static class KmfReader
         }
 
         reader.Expect("VGEO"); reader.SkipSectionSize();
-        var frameOffsets = new byte[(int)indexTableCount, (int)frameCount];
+        byte[,] frameOffsets = new byte[(int)indexTableCount, (int)frameCount];
         for (int index = 0; index < (int)indexTableCount; index++)
             for (uint frame = 0; frame < frameCount; frame++)
                 frameOffsets[index, (int)frame] = reader.Byte();
@@ -303,7 +303,7 @@ public static class KmfReader
         for (uint i = 0; i < primitiveCount; i++)
         {
             reader.Expect("SPHD"); reader.SkipSectionSize();
-            var triangleCounts = new uint[(int)detailLevelCount];
+            uint[] triangleCounts = new uint[(int)detailLevelCount];
             for (int detail = 0; detail < triangleCounts.Length; detail++)
                 triangleCounts[detail] = reader.Count("triangle");
             headers.Add(new SpriteHeader(triangleCounts, reader.Count("vertex"), reader.Single()));

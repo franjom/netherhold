@@ -58,7 +58,7 @@ public sealed class CreatureNamePool
         {
             int pointers = Offset(address);
             Require(pointers, count * 4);
-            var strings = new string[count];
+            string[] strings = new string[count];
             for (int i = 0; i < count; i++)
             {
                 int start = Offset(U32(pointers + i * 4)), end = start;

@@ -167,7 +167,7 @@ public static partial class KwdThings
 
     public static ThingRecord Parse(int tag, byte[] r)
     {
-        if (!KwdTaggedRecords.ThingPayloadSizes.TryGetValue(tag, out var layout))
+        if (!KwdTaggedRecords.ThingPayloadSizes.TryGetValue(tag, out (string Name, int PayloadSize, bool InShippedData) layout))
             throw new InvalidDataException($"Unknown THINGS tag {tag}.");
         if (r.Length != layout.PayloadSize)
             throw new InvalidDataException($"THINGS {layout.Name} payload is {r.Length}, expected {layout.PayloadSize}.");

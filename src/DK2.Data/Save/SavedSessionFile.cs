@@ -47,7 +47,7 @@ public static class SavedSessionFile
 
     public static SavedSession Load(string path)
     {
-        using var stream = File.OpenRead(path);
+        using FileStream stream = File.OpenRead(path);
         try
         {
             SavedSessionHeader header = ReadHeader(stream);
@@ -102,7 +102,7 @@ public static class SavedSessionFile
         {
             try
             {
-                using var stream = File.OpenRead(path);
+                using FileStream stream = File.OpenRead(path);
                 entries.Add(new SavedSessionEntry(path, ReadHeader(stream)));
             }
             catch (SaveIncompatibleException ex) { entries.Add(new SavedSessionEntry(path, null, ex)); }

@@ -41,7 +41,7 @@ public static class KwdRewriteAudit
         {
             byte[] original=File.ReadAllBytes(file);
             using var stream=new MemoryStream(original,false);
-            var chunks=KwdReader.Read(stream,file); var rewritten=new List<KwdChunk>(); int records=0;
+            List<KwdChunk> chunks =KwdReader.Read(stream,file); var rewritten=new List<KwdChunk>(); int records=0;
             foreach(KwdChunk chunk in chunks)
             {
                 int count=KwdRecordRoundTrip.Split(chunk).Count;
@@ -75,7 +75,7 @@ public static class KwdRewriteAudit
                 if(relative<contentAt)
                     return new(at,index,chunk.Type,null,HeaderField(chunk,relative),before,after);
                 int recordAt=0,payloadAt=relative-contentAt;
-                var images=KwdRecordRoundTrip.Split(chunk);
+                List<KwdRecordImage> images =KwdRecordRoundTrip.Split(chunk);
                 for(int record=0;record<images.Count;record++)
                 {
                     KwdRecordImage image=images[record];

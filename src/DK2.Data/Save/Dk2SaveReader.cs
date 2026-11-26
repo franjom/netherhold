@@ -179,8 +179,8 @@ public static class Dk2SaveReader
         for (int i = 0; i < tiles; i += stride) sampled++;
 
         // Keep the finalists sorted best-first. Insert an offset only when it beats the last finalist.
-        var offsets = new int[FinalistOffsets];
-        var scores = new int[FinalistOffsets];
+        int[] offsets = new int[FinalistOffsets];
+        int[] scores = new int[FinalistOffsets];
         int held = 0;
 
         for (int offset = HeaderLength; offset <= lastOffset; offset++)

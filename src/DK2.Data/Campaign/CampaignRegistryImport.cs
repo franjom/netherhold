@@ -55,7 +55,7 @@ public static class CampaignRegistryImport
         if (!values.TryGetValue(name, out object? value)) return fallback;
         if (value is not byte[] bytes || bytes.Length < fallback.Count * 4)
             throw new InvalidDataException($"Invalid registry array: {name}");
-        var result = new uint[fallback.Count];
+        uint[] result = new uint[fallback.Count];
         for (int i = 0; i < result.Length; i++) result[i] = BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(i * 4));
         return System.Array.AsReadOnly(result);
     }

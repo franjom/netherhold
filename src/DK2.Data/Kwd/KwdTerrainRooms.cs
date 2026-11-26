@@ -197,7 +197,7 @@ public static class KwdTerrainRooms
         uint U32(int off) => BinaryPrimitives.ReadUInt32LittleEndian(rec.AsSpan(b + off));
         byte U8(int off) => rec[b + off];
 
-        var objectIds = new byte[8];
+        byte[] objectIds = new byte[8];
         Array.Copy(rec, b + RoomLayout.Objects, objectIds, 0, 8);
 
         return new RoomDef

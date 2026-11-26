@@ -79,7 +79,7 @@ public static class CampaignProfileFile
 
     private static IReadOnlyList<uint> ReadArray(BinaryReader reader, int count)
     {
-        var values = new uint[count];
+        uint[] values = new uint[count];
         for (int i = 0; i < values.Length; i++) values[i] = reader.ReadUInt32();
         return Array.AsReadOnly(values);
     }

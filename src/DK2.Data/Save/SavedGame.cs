@@ -56,7 +56,7 @@ public sealed record SavedGame(
             var seen = new SortedSet<byte>();
             foreach (MapTile tile in Map.Tiles) seen.Add(tile.PlayerId);
 
-            var players = new byte[seen.Count];
+            byte[] players = new byte[seen.Count];
             seen.CopyTo(players);
             return players;
         }

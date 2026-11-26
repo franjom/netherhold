@@ -15,13 +15,13 @@ public static class TriangleDepthOrder
     public static IReadOnlyList<RenderTriangleRun> Sort(IReadOnlyList<Vector3> positions,
         IReadOnlyList<RenderTriangle> triangles, Vector3 cameraForward)
     {
-        var sorted = triangles.Select((triangle, order) => (triangle, order,
+        IOrderedEnumerable<(RenderTriangle triangle, int order, float depth)> sorted = triangles.Select((triangle, order) => (triangle, order,
             depth: Vector3.Dot(positions[triangle.A] + positions[triangle.B] + positions[triangle.C], cameraForward)))
             .OrderByDescending(entry => entry.depth).ThenBy(entry => entry.order);
         var runs = new List<RenderTriangleRun>();
         List<RenderTriangle>? current = null;
         int material = -1;
-        foreach (var entry in sorted)
+        foreach ((RenderTriangle triangle, int order, float depth) entry in sorted)
         {
             if (current is null || material != entry.triangle.MaterialIndex)
             {

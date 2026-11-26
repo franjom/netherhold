@@ -29,9 +29,9 @@ public static class MpegAudioDecoder
             long expected = decoder.Length / sizeof(float);
             // No Layer I/II stream gives 64 samples per input byte (the shipped banks give about 6); a larger count
             // is a corrupt header, and the array grows from a small start instead.
-            var samples = new short[expected > 0 && expected <= (long)count * 64 ? (int)expected : 4096];
+            short[] samples = new short[expected > 0 && expected <= (long)count * 64 ? (int)expected : 4096];
             int written = 0;
-            var block = new float[4096];
+            float[] block = new float[4096];
             int read;
             while ((read = decoder.ReadSamples(block, 0, block.Length)) > 0)
             {

@@ -52,7 +52,7 @@ public static class Bf4FontReader
 
     private static byte[] Unpack(byte[] source, uint flags, int pixels, string sourceName, int glyph)
     {
-        var output = new byte[pixels];
+        byte[] output = new byte[pixels];
         int written = 0;
         bool padded = false;
         if ((flags & 1) != 0)

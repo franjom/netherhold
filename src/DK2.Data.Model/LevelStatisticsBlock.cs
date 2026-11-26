@@ -58,7 +58,7 @@ public sealed record LevelStatisticsBlock
 
     public uint[] ToDwords()
     {
-        var bytes = new byte[Dwords * 4];
+        byte[] bytes = new byte[Dwords * 4];
         Span<byte> span = bytes;
         uint[] head = { DungeonHeartsDestroyed, EnemyCreaturesKilled, HeroesDestroyed, RoomsTakenOver, RoomExtraPoints,
             LandOwned, GoldMined, (uint)ManaStored, ItemsManufactured, CreaturesCommanded, CreaturesConverted, CreatureTraining };
@@ -69,14 +69,14 @@ public sealed record LevelStatisticsBlock
         BinaryPrimitives.WriteUInt32LittleEndian(span[0x39..], ThingsResearched);
         BinaryPrimitives.WriteUInt32LittleEndian(span[0x3D..], TimeTaken);
         bytes[0x41] = SpecialsFound; bytes[0x42] = SpecialsMissed; bytes[0x43] = SecretLevelsMissed;
-        var dwords = new uint[Dwords];
+        uint[] dwords = new uint[Dwords];
         for (int i = 0; i < Dwords; i++) dwords[i] = BinaryPrimitives.ReadUInt32LittleEndian(span[(i * 4)..]);
         return dwords;
     }
 
     public static LevelStatisticsBlock FromDwords(IReadOnlyList<uint> source, int row)
     {
-        var bytes = new byte[Dwords * 4];
+        byte[] bytes = new byte[Dwords * 4];
         Span<byte> span = bytes;
         for (int i = 0; i < Dwords; i++) BinaryPrimitives.WriteUInt32LittleEndian(span[(i * 4)..], source[row * Dwords + i]);
         uint U(int at) => BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(at));

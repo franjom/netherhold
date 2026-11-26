@@ -21,9 +21,9 @@ public sealed class BankMap
 
     public static BankMap Read(ReadOnlySpan<byte> data)
     {
-        using var reader = SoundMapReader.Open(data, 0xE9612C01, 0xA00009B4);
+        using BinaryReader reader = SoundMapReader.Open(data, 0xE9612C01, 0xA00009B4);
         int count = SoundMapReader.Count(reader, 11);
-        var records = new byte[count][];
+        byte[][] records = new byte[count][];
         for (int i = 0; i < count; i++) records[i] = SoundMapReader.Bytes(reader, 11);
         var archives = new SoundArchive[count];
         for (int i = 0; i < count; i++)

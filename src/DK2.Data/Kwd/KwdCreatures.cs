@@ -49,7 +49,7 @@ public static partial class KwdCreatures
             if (chunk.Content.Length != (long)recordSize * chunk.ItemCount)
                 throw new InvalidDataException("CREATURES content size does not divide into records.");
 
-            var staged = new byte[RecordSize];
+            byte[] staged = new byte[RecordSize];
             for (int i = 0; i < chunk.ItemCount; i++)
             {
                 Array.Clear(staged, 0, staged.Length);
@@ -118,9 +118,9 @@ public static partial class KwdCreatures
             return list;
         }
 
-        var happyJobs = Prefs(0xE14, 3);
-        var unhappyJobs = Prefs(0xE38, 2);
-        var angryJobs = Prefs(0xE50, 3);
+        List<CreatureJobPreference> happyJobs = Prefs(0xE14, 3);
+        List<CreatureJobPreference> unhappyJobs = Prefs(0xE38, 2);
+        List<CreatureJobPreference> angryJobs = Prefs(0xE50, 3);
 
         var hateJobs = new List<JobType>(2);
         for (int i = 0; i < 2; i++)
