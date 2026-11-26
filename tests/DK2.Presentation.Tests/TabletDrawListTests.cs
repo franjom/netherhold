@@ -17,7 +17,7 @@ public sealed class TabletDrawListTests
 
     /// <summary>A front with the item frames (one face toward the viewer, one away), a one-texture back, an untextured
     /// part and a back whose only face is turned away.</summary>
-    private static TabletMesh Mesh()
+    private static TabletMesh Mesh(int extraPointCount = 0)
     {
         KmfVertex[] square = [V(0, 0, 0, 0), V(1, 0, 1, 0), V(0, 1, 0, 1)];
         var model = new KmfModel(2, KmfKind.Mesh,
@@ -31,7 +31,11 @@ public sealed class TabletDrawListTests
             ]))
         {
             Geometry = [new Vector3(1, 2, 3), new Vector3(4, 5, 6)],
-            ControlPoints = [new KmfControlPoint(1, 0), new KmfControlPoint(7, 0), new KmfControlPoint(0, 0)],
+            ControlPoints =
+            [
+                new KmfControlPoint(1, 0), new KmfControlPoint(7, 0), new KmfControlPoint(0, 0),
+                .. Enumerable.Repeat(new KmfControlPoint(0, 0), extraPointCount),
+            ],
         };
         return new TabletMesh(model);
     }
@@ -105,5 +109,40 @@ public sealed class TabletDrawListTests
         draw.Build(new RewardTablet(), itemId: 0, originX: 0, originY: 0, screenHeight: 768);
         Assert.Equal(0, draw.Sparkles.Length);
         Assert.Equal(0, draw.Vertices.Length);
+    }
+
+    [Fact]
+    public void AFullMeshSparkleSequenceDoesNotGrowItsBuffersWhileDrawing()
+    {
+        static int PlayFrames(WinScreen screen, TabletDrawList draw)
+        {
+            int maxSparkles = 0;
+            screen.Start(0);
+            for (int frame = 0; frame < RewardTablet.GrowFrames; frame++)
+            {
+                screen.Update(frame * 34, cameraOnPath: false, continueRequested: false);
+                draw.Build(screen.Tablet, itemId: 1, originX: 30, originY: 60, screenHeight: 768);
+                maxSparkles = Math.Max(maxSparkles, draw.Sparkles.Length);
+            }
+            return maxSparkles;
+        }
+
+        TabletMesh small = Mesh();
+        PlayFrames(new WinScreen([1], _ => null, small.Points, new LongLivedSparkles()), new TabletDrawList(small));
+
+        TabletMesh mesh = Mesh(extraPointCount: 14);
+        var screen = new WinScreen([1], _ => null, mesh.Points, new LongLivedSparkles());
+        var draw = new TabletDrawList(mesh);
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        int maxSparkles = PlayFrames(screen, draw);
+        long bytes = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(maxSparkles > 256);
+        Assert.Equal(0, bytes);
+    }
+
+    private sealed class LongLivedSparkles : Random
+    {
+        public override int Next(int maxValue) => maxValue - 1;
     }
 }

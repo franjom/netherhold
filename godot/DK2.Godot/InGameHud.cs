@@ -486,6 +486,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _reportTicks = _world.ProbeWithoutTorches || probeShift || Array.IndexOf(args, "--light-probe") >= 0;
         // The first frame's terrain, built whole; each frame's Present pushes the changes since.
         _world.Open(install, level, _simulation.World, _worldView, _viewer, startFocus, _settings.ScrollSpeed);
+        OpenWinScreen(install, level.Database.Level);
         if (probeShift) _world.Focus += new System.Numerics.Vector3(1, 0, 1);
         _world.SetBrightness(DisplaySettings.BrightnessExponent(_settings.Gamma));
         OpenPossession(install, level, args);
@@ -1580,6 +1581,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         if (_heartHealthObserver != null && _simulation != null) _simulation.World.HeartHealthChanged -= _heartHealthObserver;
         _heartHealthObserver = null;
         _mixer?.Dispose();
+        CloseWinScreen();
         CloseSubtitles();
         ClosePossession();
     }

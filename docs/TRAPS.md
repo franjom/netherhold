@@ -229,6 +229,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - `verification-ledger --check` goes stale on any rule, ADR or test change, and the commit hook
   does not run it.
 - `docs --check` covers unstaged files too: everything changed since HEAD.
+- Linked worktrees share Git configuration. If `core.hooksPath` points into another worktree, invoke `git -c core.hooksPath=.githooks commit` to run this worktree's hooks.
 - Renaming a research-doc heading breaks every function record whose `evidence:` anchors to it;
   `kb check` fails the commit. Repoint the anchors and give each record a dated History line.
 - A dk2tools command can behave differently under `dotnet run` and under the hook's
@@ -370,6 +371,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - ShaderUtil reports an uninitialized SRP compatibility result before a shader has actually drawn; check after a GPU render.
 - Start PresentMon before creating the graphics context, retain its process Handle for ExitCode, reject lost ETW events, and stop only the probe's own named session on failure.
 - A background (concurrent) GC charges a running thread's unused allocation-context tail to `GC.GetAllocatedBytesForCurrentThread` (1-8 KB it never allocated), so under CPU load a random zero-allocation test failed; `tests/Directory.Build.props` turns concurrent GC off for test hosts (blocking GCs leave the counter exact). Keep it, and check the test host still runs `GCLatencyMode.Batch` before blaming product code or loosening an assertion.
+- Lightning zero-allocation tests reported 624 B in the worktree and 216 B on a clean HEAD archive. The full suite passed with `DOTNET_TC_QuickJitForLoops=0` set only for the test process. Use that control before attributing a failure to the change.
 - `ManualResetEventSlim.Wait` allocates its lock object the first time it has to block (24 bytes, only when the other side is late), so a zero-allocation test around a worker hand-off failed about 1 run in 15 under CPU load; `MoviePlayback` waits on a `ManualResetEvent` for that reason.
 - Runtime level switching must release the old scene before activating its replacement: deferred OnDestroy can clear or dispose shader globals already published by the new scene.
 - Legacy Unity Font atlases can have black RGB with valid glyph alpha; UI Toolkit textured meshes need an in-memory white-RGB copy of that coverage.

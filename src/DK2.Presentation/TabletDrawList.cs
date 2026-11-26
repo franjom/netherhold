@@ -63,7 +63,7 @@ public sealed class TabletDrawList
 {
     private readonly TabletVertex[] _vertices;
     private readonly TabletBatch[] _batches;
-    private TabletSparkleQuad[] _sparkles = new TabletSparkleQuad[256];
+    private TabletSparkleQuad[] _sparkles;
     private int _vertexCount, _batchCount, _sparkleCount;
 
     public TabletDrawList(TabletMesh mesh)
@@ -71,6 +71,7 @@ public sealed class TabletDrawList
         Mesh = mesh ?? throw new ArgumentNullException(nameof(mesh));
         _vertices = new TabletVertex[mesh.VertexCapacity];
         _batches = new TabletBatch[mesh.Primitives.Count];
+        _sparkles = new TabletSparkleQuad[RewardTablet.SparkleCapacityFor(mesh.Points.Length)];
     }
 
     public TabletMesh Mesh { get; }

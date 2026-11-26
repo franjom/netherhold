@@ -390,7 +390,7 @@ group 2 is a list to audit, not a finding.
       had them the other way round. `FinaleTests.TheContinueAndTheRevealCommuteWithinTheirTurn` shows the state hash is
       equal in either order, so only that frame's command stream changes, and no journal fixture holds the commands
       ([Q865](../research/open-questions.md)). A null `WinScreen` now counts as done, so Escape continues at once;
-      Godot has no win screen and Space never left before. The minimap heading during the opening path needs no rule:
+      Godot reached this branch until step 4 added its win screen. The minimap heading during the opening path needs no rule:
       the HUD, so the minimap, is hidden for the whole path. Open, not decided: the old runner's comment said Space
       posts action 1, but the code switches the session directly and `CampaignResultFlow` keeps that
       ([0x00510F40](../research/functions/00510F40.md)). Godot: it runs `ScriptedViewDirector`, observing the simulation
@@ -401,8 +401,8 @@ group 2 is a list to audit, not a finding.
       `--profile` is given. `ClassicFrontEndMenu.Open` passes the return page to the profile load, so the won map's
       branch repair runs as in Unity (it writes the profile when the front end is entered with CampaignResults). New
       check arguments: `--from-map`, `--stage-win`, `--stage-loss`, `--leave-result`, `--escape-result`; Godot also
-      prints the viewer's status changes (`godot/README.md`). Not wired in Godot: subtitles and the win screen and tablet; the post-win title card and cutscene play
-      in the front end since step 4's movies (the card's text waits for the subtitles). Verification: `dotnet test DK2.slnx` green (Presentation 2276, Simulation 5583,
+      prints the viewer's status changes (`godot/README.md`). Step 4 draws the subtitles and win screen and plays the
+      post-win title card and cutscene in the front end. Verification: `dotnet test DK2.slnx` green (Presentation 2276, Simulation 5583,
       Behavior 674 with 5 skipped); Godot builds clean and the Unity compile has 0 errors; headless Level3 `--from-map`
       with temp folders: a win then Space leaves, a win then Escape posts Continue then Reveal and the game keeps
       playing, a loss then Escape posts nothing and Space leaves; 17 + 8 mutations across the review all fail a test.
@@ -1160,6 +1160,9 @@ with the sync found 3h and 3i byte-identical, so 3h's claim holds.
       2.82 ms (p99 4.52), GPU 1.21 ms; 0 B allocated a frame in both. Against a clean `git archive HEAD` with only this change
       added: turn-400 hash `F5C7BAE552173778`, Level1 and Level7 Movie Maker frames (200 each) byte-identical. Not checked:
       a real mouse and keyboard.
+
+- [x] Campaign win screen and reward tablet. The Godot adapter uses the shared `WinScreen` and `TabletDrawList`.
+      See the [adapter notes](../../godot/README.md#subtitles) for runtime art, reward text and layering.
 
 ## Step 5: remove Unity (one change, at parity)
 

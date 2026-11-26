@@ -37,6 +37,11 @@ public sealed class RewardTablet
         public int Life;
     }
 
+    private const int SparklesPerPointPerFrame = 2;
+    private const int MinimumSparkleLifeFrames = 8;
+    private const int SparkleRandomLimit = 32768;
+    private const int SparkleRandomBucketSize = 8192;
+
     private Sparkle[] _sparkles = new Sparkle[256];
     private int _sparkleCount;
     private double _holdEnds;
@@ -70,6 +75,16 @@ public sealed class RewardTablet
     /// <summary><c>+0x4B</c>: the item's tablet has finished.</summary>
     public bool Done { get; private set; }
     public ReadOnlySpan<Sparkle> Sparkles => _sparkles.AsSpan(0, _sparkleCount);
+
+    // Count just after spawning, before the oldest sparkles lose their last frame.
+    internal static int SparkleCapacityFor(int pointCount) => checked(pointCount * SparklesPerPointPerFrame *
+        (MinimumSparkleLifeFrames + SparkleRandomLimit / SparkleRandomBucketSize - 1));
+
+    internal void ReserveSparkles(int pointCount)
+    {
+        int capacity = SparkleCapacityFor(pointCount);
+        if (capacity > _sparkles.Length) Array.Resize(ref _sparkles, capacity);
+    }
 
     /// <summary>The texture a material of <paramref name="textureCount"/> frames shows for an item: the step
     /// stores <c>(id &lt;&lt; 12) / 52</c> (<c>+0x4F</c>), the draw passes it × 2⁻¹² and <c>0x00579730</c> rounds
@@ -140,13 +155,13 @@ public sealed class RewardTablet
             for (int i = points.Length - 1; i >= 0; i--)
             {
                 Vector3 at = Project(points[i], turn);
-                for (int k = 0; k < 2; k++)
+                for (int k = 0; k < SparklesPerPointPerFrame; k++)
                     Add(new Sparkle
                     {
                         X = X + at.X, Y = Y + at.Y,
-                        VelocityX = (random.Next(32768) - 16384) / 8192f,
-                        VelocityY = (random.Next(32768) - 16384) / 8192f,
-                        Life = random.Next(32768) / 8192 + 8,
+                        VelocityX = (random.Next(SparkleRandomLimit) - SparkleRandomLimit / 2) / (float)SparkleRandomBucketSize,
+                        VelocityY = (random.Next(SparkleRandomLimit) - SparkleRandomLimit / 2) / (float)SparkleRandomBucketSize,
+                        Life = random.Next(SparkleRandomLimit) / SparkleRandomBucketSize + MinimumSparkleLifeFrames,
                     });
             }
         }
