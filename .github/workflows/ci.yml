@@ -58,6 +58,9 @@ jobs:
       - name: Function knowledge base
         run: dotnet src/DK2.Tools/bin/Release/net10.0/DK2.Tools.dll kb check --since "$BASE"
 
+      - name: Named enum cast baseline
+        run: python3 tools/style/check_named_enum_baseline.py "$BASE"
+
       - name: Commit messages
         # Merge commits are skipped: git writes their messages, not the author.
         run: |

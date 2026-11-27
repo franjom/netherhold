@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <_NamedEnumCastScope>$([MSBuild]::MakeRelative('$(MSBuildThisFileDirectory)', '$(MSBuildProjectDirectory)').Replace('\', '/'))</_NamedEnumCastScope>
+  </PropertyGroup>
+  <ItemGroup Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(_NamedEnumCastScope)', '^(src|tests|godot/DK2\.Godot)(/|$)'))">
+    <ProjectReference Include="$(MSBuildThisFileDirectory)tools/style/DK2.StyleAnalyzers.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" Private="false" />
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)tools/style/named-enum-casts.baseline" />
+  </ItemGroup>
+</Project>
