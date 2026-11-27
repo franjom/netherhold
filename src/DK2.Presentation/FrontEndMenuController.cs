@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
-using DK2.Simulation;
 using DK2.Data.Media;
+using DK2.Simulation;
 
 namespace DK2.Presentation;
 

@@ -5,8 +5,8 @@
 using DK2.Core;
 using DK2.Data.Model;
 using DK2.Simulation;
-using DK2.Simulation.Commands;
 using DK2.Simulation.Combat;
+using DK2.Simulation.Commands;
 
 namespace DK2.Presentation;
 

@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
-using DK2.Core;
 using System.Numerics;
+using DK2.Core;
 namespace DK2.Presentation;
 
 public readonly record struct FullMapPreview(Vector2 Origin, Vector2 Size, ClassicCameraPose Pose);
