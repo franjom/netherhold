@@ -62,24 +62,14 @@ public static partial class KwdThings
                 KwdOverlay.Ascii(image, 8 + 24, 32, c.Name, KwdAdditionalRecords.Ascii(image, 8 + 24, 32), trimmed: true);
                 break;
             case NeutralCreatureThing c when c.Tag == KwdThingTags.NeutralCreature:
-                BinaryPrimitives.WriteInt32LittleEndian(payload[0..], c.X);
-                BinaryPrimitives.WriteInt32LittleEndian(payload[4..], c.Y);
-                BinaryPrimitives.WriteInt32LittleEndian(payload[8..], c.Z);
-                BinaryPrimitives.WriteUInt16LittleEndian(payload[12..], c.GoldHeld);
-                payload[14] = c.Level;
-                payload[15] = c.Flags;
+                WriteCreaturePrefix(payload, c);
                 BinaryPrimitives.WriteInt32LittleEndian(payload[16..], c.InitialHealth);
                 BinaryPrimitives.WriteUInt16LittleEndian(payload[20..], c.TriggerId);
                 payload[22] = c.CreatureId;
                 payload[23] = c.Unknown_0017;
                 break;
             case GoodCreatureThing c when c.Tag == KwdThingTags.GoodCreature:
-                BinaryPrimitives.WriteInt32LittleEndian(payload[0..], c.X);
-                BinaryPrimitives.WriteInt32LittleEndian(payload[4..], c.Y);
-                BinaryPrimitives.WriteInt32LittleEndian(payload[8..], c.Z);
-                BinaryPrimitives.WriteUInt16LittleEndian(payload[12..], c.GoldHeld);
-                payload[14] = c.Level;
-                payload[15] = c.Flags;
+                WriteCreaturePrefix(payload, c);
                 BinaryPrimitives.WriteInt32LittleEndian(payload[16..], c.ObjectiveTargetActionPointId);
                 BinaryPrimitives.WriteInt32LittleEndian(payload[20..], c.InitialHealth);
                 BinaryPrimitives.WriteUInt16LittleEndian(payload[24..], c.TriggerId);
@@ -91,12 +81,7 @@ public static partial class KwdThings
                 payload[31] = c.Flags2;
                 break;
             case KeeperCreatureThing c when c.Tag == KwdThingTags.KeeperCreature:
-                BinaryPrimitives.WriteInt32LittleEndian(payload[0..], c.X);
-                BinaryPrimitives.WriteInt32LittleEndian(payload[4..], c.Y);
-                BinaryPrimitives.WriteInt32LittleEndian(payload[8..], c.Z);
-                BinaryPrimitives.WriteUInt16LittleEndian(payload[12..], c.GoldHeld);
-                payload[14] = c.Level;
-                payload[15] = c.Flags;
+                WriteCreaturePrefix(payload, c);
                 BinaryPrimitives.WriteInt32LittleEndian(payload[16..], c.InitialHealth);
                 BinaryPrimitives.WriteInt32LittleEndian(payload[20..], c.ObjectiveTargetActionPointId);
                 BinaryPrimitives.WriteUInt16LittleEndian(payload[24..], c.TriggerId);
@@ -183,5 +168,15 @@ public static partial class KwdThings
             default: throw new InvalidDataException("THINGS record type does not match its payload tag.");
         }
         return image;
+    }
+
+    private static void WriteCreaturePrefix(Span<byte> payload, CreatureThing creature)
+    {
+        BinaryPrimitives.WriteInt32LittleEndian(payload[0..], creature.X);
+        BinaryPrimitives.WriteInt32LittleEndian(payload[4..], creature.Y);
+        BinaryPrimitives.WriteInt32LittleEndian(payload[8..], creature.Z);
+        BinaryPrimitives.WriteUInt16LittleEndian(payload[12..], creature.GoldHeld);
+        payload[14] = creature.Level;
+        payload[15] = creature.Flags;
     }
 }

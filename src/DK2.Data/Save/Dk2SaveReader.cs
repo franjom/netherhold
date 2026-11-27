@@ -36,7 +36,6 @@ public static class Dk2SaveReader
     /// serialised object graph (Q180, docs/research/sav-format.md).
     /// </summary>
     private const int BuildStampOffset = 8;
-    private const int BuildStampField = 64;
     private const int BuildStampTextLength = 19;
 
     /// <summary>The level name: a 64-byte NUL-padded field, read off the writer.</summary>

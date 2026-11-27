@@ -9,14 +9,6 @@ namespace DK2.Convert.Textures;
 
 public static class TextureExtractor
 {
-    private static ReadOnlySpan<byte> PngSignature
-    {
-        get
-        {
-            return [137, 80, 78, 71, 13, 10, 26, 10];
-        }
-    }
-
     public static void WritePng(RgbaImage image, string path)
     {
         string? directory = Path.GetDirectoryName(Path.GetFullPath(path));
