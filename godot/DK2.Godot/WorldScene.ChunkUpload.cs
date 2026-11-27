@@ -332,6 +332,8 @@ public partial class WorldScene
             Span<uint> normalWords = MemoryMarshal.Cast<byte, uint>(_vertices.AsSpan(normalBlock, count * NormalStride));
             Span<float> attributes = MemoryMarshal.Cast<byte, float>(_attributes.AsSpan(0, _attributeBytes));
             NVector3 min = count > 0 ? positions[0] : default, max = min;
+            NVector3 previousNormal = default;
+            uint encodedNormal = 0, encodedTangent = 0;
             for (int i = 0; i < count; i++)
             {
                 // _compute_aabb_from_points: Vector3::min and max, a < b ? a : b per component.
@@ -340,8 +342,18 @@ public partial class WorldScene
                 max = new NVector3(p.X > max.X ? p.X : max.X, p.Y > max.Y ? p.Y : max.Y, p.Z > max.Z ? p.Z : max.Z);
 
                 NVector3 n = normals[i];
-                normalWords[2 * i] = OctahedralNormal(n);
-                normalWords[(2 * i) + 1] = OctahedralTangent(n);
+                // Identical input bits preserve the encoder's result, including signed zero.
+                if (i == 0 || BitConverter.SingleToInt32Bits(n.X) != BitConverter.SingleToInt32Bits(previousNormal.X)
+                    || BitConverter.SingleToInt32Bits(n.Y) != BitConverter.SingleToInt32Bits(previousNormal.Y)
+                    || BitConverter.SingleToInt32Bits(n.Z) != BitConverter.SingleToInt32Bits(previousNormal.Z))
+                {
+                    previousNormal = n;
+                    encodedNormal = OctahedralNormal(n);
+                    encodedTangent = OctahedralTangent(n);
+                }
+
+                normalWords[2 * i] = encodedNormal;
+                normalWords[(2 * i) + 1] = encodedTangent;
 
                 int a = i * (AttributeStride / sizeof(float));
                 attributes[a] = uvs[i].X;

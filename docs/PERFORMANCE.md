@@ -143,6 +143,12 @@ causes, all on the opening fly-by the owner saw stutter:
   stall of 43-72 ms at 26.6 s when the path ends and the HUD first shows, and now and then a frame that rebuilds a chunk
   (18 ms). The floor tier still fails on them (2-4 frames), the desktop tier on 2-3% of frames over 8.33 ms.
 
+`PackedSurface.Write` reuses the encoded normal and tangent words for consecutive bit-identical normals. A
+packed-word probe matched the uncached encoders for 1,039,920 inputs. On the Level6a turn-200 save at 1920×1080
+(D3D12, Debug C#), each run in three alternating fixed-delta pairs processed 177 packs and 6,155 surfaces.
+Mean pack time fell from 2.130 to 1.780 ms (16.5%), and p95 fell from 3.966 to 3.311 ms. Across three real-time
+pairs, whole-frame median p50 (10.75 to 10.82 ms) and p99 (30.16 to 30.49 ms) stayed within run-to-run variance.
+
 ## Hardware tiers and captures on other machines (2026-11-06)
 
 The owner's laptop is the floor, not the goal. Revised targets, by tier:
