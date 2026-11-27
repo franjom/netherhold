@@ -55,16 +55,16 @@ public partial class WorldScene
         RenderingServer.FreeRid(mesh);
 
         var layout = (RenderingServer.ArrayFormat)format;
-        const int Vertices = 4;
+        const int vertices = 4;
         if ((layout & RenderingServer.ArrayFormat.FlagCompressAttributes) != 0
             || (layout & RenderingServer.ArrayFormat.FormatTangent) == 0
-            || RenderingServer.MeshSurfaceGetFormatVertexStride(layout, Vertices) != PackedSurface.PositionStride
-            || RenderingServer.MeshSurfaceGetFormatNormalTangentStride(layout, Vertices) != PackedSurface.NormalStride
-            || RenderingServer.MeshSurfaceGetFormatAttributeStride(layout, Vertices) != PackedSurface.AttributeStride
-            || RenderingServer.MeshSurfaceGetFormatOffset(layout, Vertices, (int)Mesh.ArrayType.Normal) != Vertices * PackedSurface.PositionStride
-            || RenderingServer.MeshSurfaceGetFormatOffset(layout, Vertices, (int)Mesh.ArrayType.Tangent) != (Vertices * PackedSurface.PositionStride) + 4
-            || RenderingServer.MeshSurfaceGetFormatOffset(layout, Vertices, (int)Mesh.ArrayType.TexUV) != 0
-            || RenderingServer.MeshSurfaceGetFormatOffset(layout, Vertices, (int)Mesh.ArrayType.Custom0) != 8)
+            || RenderingServer.MeshSurfaceGetFormatVertexStride(layout, vertices) != PackedSurface.PositionStride
+            || RenderingServer.MeshSurfaceGetFormatNormalTangentStride(layout, vertices) != PackedSurface.NormalStride
+            || RenderingServer.MeshSurfaceGetFormatAttributeStride(layout, vertices) != PackedSurface.AttributeStride
+            || RenderingServer.MeshSurfaceGetFormatOffset(layout, vertices, (int)Mesh.ArrayType.Normal) != vertices * PackedSurface.PositionStride
+            || RenderingServer.MeshSurfaceGetFormatOffset(layout, vertices, (int)Mesh.ArrayType.Tangent) != (vertices * PackedSurface.PositionStride) + 4
+            || RenderingServer.MeshSurfaceGetFormatOffset(layout, vertices, (int)Mesh.ArrayType.TexUV) != 0
+            || RenderingServer.MeshSurfaceGetFormatOffset(layout, vertices, (int)Mesh.ArrayType.Custom0) != 8)
         {
             GD.PushError("DK2.Godot: the terrain chunk layout is not positions, then normal and tangent, then UV and four-float CUSTOM0; chunks draw wrong.");
         }
@@ -354,8 +354,8 @@ public partial class WorldScene
             float ax = n.Z, ay = -n.X, az = n.Y;
             Normalise((ay * nz) - (az * ny), (az * nx) - (ax * nz), (ax * ny) - (ay * nx), out float tx, out float ty, out float tz);
             Octahedron(tx, ty, tz, out float u, out float v);
-            const float Bias = 1.0f / 32767.0f;
-            v = v > Bias ? v : Bias;
+            const float bias = 1.0f / 32767.0f;
+            v = v > bias ? v : bias;
             v = (v * 0.5f) + 0.5f;
             ushort first = Unorm16(u), second = Unorm16(v);
             if (first == 0 && second == 65535)
