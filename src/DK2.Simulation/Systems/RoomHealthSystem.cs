@@ -18,9 +18,18 @@ public sealed class RoomHealthSystem : IRoomTickStep
     private GameDatabase? _checked;
     private bool _anyGain;
 
-    public string Name => "RoomHealth";
+    public string Name
+    {
+        get
+        {
+            return "RoomHealth";
+        }
+    }
 
-    public void Execute(SimulationContext context) => RoomTickSystem.RunAlone(context, this);
+    public void Execute(SimulationContext context)
+    {
+        RoomTickSystem.RunAlone(context, this);
+    }
 
     public void BeginTurn(SimulationContext context)
     {
@@ -34,8 +43,13 @@ public sealed class RoomHealthSystem : IRoomTickStep
         _anyGain = database.Rooms.Values.Any(r => r.HealthGain != 0);
     }
 
-    public bool Applies(SimulationContext context, RoomInstance room) => _anyGain;
+    public bool Applies(SimulationContext context, RoomInstance room)
+    {
+        return _anyGain;
+    }
 
-    public void Tick(SimulationContext context, RoomInstance room) =>
+    public void Tick(SimulationContext context, RoomInstance room)
+    {
         RoomHealthRules.Regenerate(context.World, context.Database, room);
+    }
 }

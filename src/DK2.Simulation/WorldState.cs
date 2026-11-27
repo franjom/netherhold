@@ -26,7 +26,11 @@ public struct TileState
     /// is counted in <see cref="KeyWriteCount"/>, so their caches can tell without reading every tile that none did.</summary>
     public byte TerrainId
     {
-        readonly get => _terrainId;
+        readonly get
+        {
+            return _terrainId;
+        }
+
         set
         {
             if (_terrainId == value)
@@ -42,7 +46,11 @@ public struct TileState
     /// <summary>The tile's owner; counted as <see cref="TerrainId"/> is.</summary>
     public byte OwnerPlayerId
     {
-        readonly get => _ownerPlayerId;
+        readonly get
+        {
+            return _ownerPlayerId;
+        }
+
         set
         {
             if (_ownerPlayerId == value)
@@ -58,15 +66,27 @@ public struct TileState
     /// <summary>How many changes to a tile's terrain, owner, ruin bit or Secret Door bit any tile has had, in any
     /// world, since the process began. A cache of what those imply stands while this has not moved; it moves for a
     /// change in another world as well, which only costs a recheck. A whole-array copy calls <see cref="NoteBulkKeyWrite"/>.</summary>
-    internal static long KeyWriteCount => Volatile.Read(ref s_keyWriteCount);
+    internal static long KeyWriteCount
+    {
+        get
+        {
+            return Volatile.Read(ref s_keyWriteCount);
+        }
+    }
 
     // Shared by every world and only ever incremented, so a racing or stale read costs a recheck and decides nothing.
     private static long s_keyWriteCount;
 
-    private static void NoteKeyWrite() => Interlocked.Increment(ref s_keyWriteCount);
+    private static void NoteKeyWrite()
+    {
+        Interlocked.Increment(ref s_keyWriteCount);
+    }
 
     /// <summary>Counts a change that bypassed the setters (a tile array copied over another).</summary>
-    internal static void NoteBulkKeyWrite() => NoteKeyWrite();
+    internal static void NoteBulkKeyWrite()
+    {
+        NoteKeyWrite();
+    }
 
     /// <summary>
     /// The MAP record's third byte per tile, preserved verbatim — and, for a
@@ -113,7 +133,11 @@ public struct TileState
     /// <summary>Native tile byte +0x0B bit 0: a concealed Secret Door, independent of dig tags.</summary>
     public bool SecretDoor
     {
-        readonly get => _secretDoor;
+        readonly get
+        {
+            return _secretDoor;
+        }
+
         set
         {
             if (_secretDoor == value)
@@ -295,7 +319,11 @@ public struct TileState
     /// It goes with the room to a new owner, so a captured ruined Heart stays one (ADR-0662).</summary>
     public bool RoomRuined
     {
-        readonly get => _roomRuined;
+        readonly get
+        {
+            return _roomRuined;
+        }
+
         set
         {
             if (_roomRuined == value)
@@ -322,17 +350,38 @@ public struct TileState
     /// <summary>Highest player id that fits in <see cref="TaggedBy"/>.</summary>
     public const int MaxTaggingPlayerId = PlayerMask.MaxPlayerId;
 
-    public readonly bool IsTaggedBy(PlayerId playerId) => TaggedBy.Contains(playerId);
+    public readonly bool IsTaggedBy(PlayerId playerId)
+    {
+        return TaggedBy.Contains(playerId);
+    }
 
-    public readonly bool IsTaggedByAnyone => !TaggedBy.IsEmpty;
+    public readonly bool IsTaggedByAnyone
+    {
+        get
+        {
+            return !TaggedBy.IsEmpty;
+        }
+    }
 
-    public readonly bool IsDiscoveredBy(PlayerId playerId) => DiscoveredBy.Contains(playerId);
+    public readonly bool IsDiscoveredBy(PlayerId playerId)
+    {
+        return DiscoveredBy.Contains(playerId);
+    }
 
-    public readonly bool IsExploredBy(PlayerId playerId) => ExploredBy.Contains(playerId);
+    public readonly bool IsExploredBy(PlayerId playerId)
+    {
+        return ExploredBy.Contains(playerId);
+    }
 
-    public void SetExploredBy(PlayerId playerId) => ExploredBy = ExploredBy.With(playerId);
+    public void SetExploredBy(PlayerId playerId)
+    {
+        ExploredBy = ExploredBy.With(playerId);
+    }
 
-    public void ClearExploredBy(PlayerId playerId) => ExploredBy = ExploredBy.Without(playerId);
+    public void ClearExploredBy(PlayerId playerId)
+    {
+        ExploredBy = ExploredBy.Without(playerId);
+    }
 
     public void SetDiscoveredBy(PlayerId playerId)
     {
@@ -804,12 +853,23 @@ public enum HandItemKind : byte
 /// </summary>
 public readonly record struct HandItem(HandItemKind Kind, int Id)
 {
-    public static HandItem Of(CreatureState creature) =>
-        new(HandItemKind.Creature, creature.Id);
+    public static HandItem Of(CreatureState creature)
+    {
+        return new(HandItemKind.Creature, creature.Id);
+    }
 
-    public static HandItem Of(ObjectState thing) => new(HandItemKind.Object, thing.Id);
+    public static HandItem Of(ObjectState thing)
+    {
+        return new(HandItemKind.Object, thing.Id);
+    }
 
-    public bool IsObject => Kind == HandItemKind.Object;
+    public bool IsObject
+    {
+        get
+        {
+            return Kind == HandItemKind.Object;
+        }
+    }
 }
 
 /// <summary>
@@ -831,19 +891,54 @@ public sealed partial class WorldState
     internal RoomIndex.Cache RoomSweepCache { get; } = new();
     internal const int TremorSlotCount = 8;
     internal TremorState[] TremorSlots { get; } = new TremorState[TremorSlotCount];
-    public IReadOnlyList<TremorState> Tremors => TremorSlots;
+    public IReadOnlyList<TremorState> Tremors
+    {
+        get
+        {
+            return TremorSlots;
+        }
+    }
+
     internal const int HeroSlotCount = 6;
     /// <summary>The six marked-creature records trigger action 42 writes (<see cref="HeroSlot"/>).</summary>
     internal HeroSlot[] HeroSlotArray { get; } = new HeroSlot[HeroSlotCount];
-    public IReadOnlyList<HeroSlot> HeroSlots => HeroSlotArray;
+    public IReadOnlyList<HeroSlot> HeroSlots
+    {
+        get
+        {
+            return HeroSlotArray;
+        }
+    }
+
     /// <summary>The border cursors of the rooms with flames, in room order (<see cref="RoomBorderCursor"/>).</summary>
     internal List<RoomBorderCursor> RoomBorderCursorList { get; } = [];
-    public IReadOnlyList<RoomBorderCursor> RoomBorderCursors => RoomBorderCursorList;
+    public IReadOnlyList<RoomBorderCursor> RoomBorderCursors
+    {
+        get
+        {
+            return RoomBorderCursorList;
+        }
+    }
+
     private readonly PlayerState[] _players; // kept sorted by PlayerId, for stable hashing
     internal RoomBuildWaveState?[] RoomBuildWaveSlots { get; }
-    public IReadOnlyList<RoomBuildWaveState?> RoomBuildWaves => RoomBuildWaveSlots;
+    public IReadOnlyList<RoomBuildWaveState?> RoomBuildWaves
+    {
+        get
+        {
+            return RoomBuildWaveSlots;
+        }
+    }
+
     internal RoomSellWaveState?[] RoomSellWaveSlots { get; }
-    public IReadOnlyList<RoomSellWaveState?> RoomSellWaves => RoomSellWaveSlots;
+    public IReadOnlyList<RoomSellWaveState?> RoomSellWaves
+    {
+        get
+        {
+            return RoomSellWaveSlots;
+        }
+    }
+
     private readonly List<TileWorkOrder> _pendingWork = [];
     private readonly List<CreatureState> _creatures = [];
     internal CreatureSlotPool CreatureSlots { get; } = new();
@@ -900,7 +995,14 @@ public sealed partial class WorldState
     /// (<c>0x004C2460</c>) and the level loader activates one player per PLAYERS record in file
     /// order, in every mode (win-and-defeat.md §7), so hosts pass the records' order. The verdict
     /// and the heart tail walk it (ADR-0547).</summary>
-    public IReadOnlyList<PlayerId> ActivePlayerOrder => ActivePlayerOrderSlots;
+    public IReadOnlyList<PlayerId> ActivePlayerOrder
+    {
+        get
+        {
+            return ActivePlayerOrderSlots;
+        }
+    }
+
     internal PlayerId[] ActivePlayerOrderSlots { get; set; }
 
     public int Width { get; }
@@ -919,7 +1021,13 @@ public sealed partial class WorldState
     /// <summary>Observation-only room refreshes; never read back by simulation or included in state.</summary>
     public event Action<IReadOnlyList<TilePos>>? RoomTilesChanged;
 
-    internal bool ObservesRoomTileChanges => RoomTilesChanged is not null;
+    internal bool ObservesRoomTileChanges
+    {
+        get
+        {
+            return RoomTilesChanged is not null;
+        }
+    }
 
     internal void NotifyRoomTilesChanged(IReadOnlyList<int> chain)
     {
@@ -937,7 +1045,13 @@ public sealed partial class WorldState
         observer(tiles);
     }
 
-    public int TileCount => _tiles.Length;
+    public int TileCount
+    {
+        get
+        {
+            return _tiles.Length;
+        }
+    }
 
     public ref TileState Tile(int x, int y)
     {
@@ -954,24 +1068,66 @@ public sealed partial class WorldState
         return ref _tiles[(y * Width) + x];
     }
 
-    public ref TileState Tile(TilePos p) => ref Tile(p.X, p.Y);
-    public int TileIndex(TilePos p) => (p.Y * Width) + p.X;
-    public TilePos TilePosition(int index) => new(index % Width, index / Width);
+    public ref TileState Tile(TilePos p)
+    {
+        return ref Tile(p.X, p.Y);
+    }
 
-    public ref TileState TileAtIndex(int index) => ref _tiles[index];
+    public int TileIndex(TilePos p)
+    {
+        return (p.Y * Width) + p.X;
+    }
+
+    public TilePos TilePosition(int index)
+    {
+        return new(index % Width, index / Width);
+    }
+
+    public ref TileState TileAtIndex(int index)
+    {
+        return ref _tiles[index];
+    }
 
     /// <summary>Every tile, read-only, for a reader that compares the whole map at once rather
     /// than tile by tile. No route back into state: the span cannot be written.</summary>
-    public ReadOnlySpan<TileState> Tiles => _tiles;
+    public ReadOnlySpan<TileState> Tiles
+    {
+        get
+        {
+            return _tiles;
+        }
+    }
 
-    public bool Contains(int x, int y) => (uint)x < (uint)Width && (uint)y < (uint)Height;
-    public bool Contains(TilePos p) => Contains(p.X, p.Y);
+    public bool Contains(int x, int y)
+    {
+        return (uint)x < (uint)Width && (uint)y < (uint)Height;
+    }
 
-    public IReadOnlyList<PlayerId> PlayerIds => _players.Select(p => p.PlayerId).ToArray();
+    public bool Contains(TilePos p)
+    {
+        return Contains(p.X, p.Y);
+    }
 
-    public int PlayerCount => _players.Length;
+    public IReadOnlyList<PlayerId> PlayerIds
+    {
+        get
+        {
+            return _players.Select(p => p.PlayerId).ToArray();
+        }
+    }
 
-    public ref PlayerState PlayerAtIndex(int index) => ref _players[index];
+    public int PlayerCount
+    {
+        get
+        {
+            return _players.Length;
+        }
+    }
+
+    public ref PlayerState PlayerAtIndex(int index)
+    {
+        return ref _players[index];
+    }
 
     internal ref RoomBuildWaveState? RoomBuildWave(PlayerId playerId, RoomBuildSlot slot)
     {
@@ -1077,8 +1233,10 @@ public sealed partial class WorldState
     }
 
     /// <summary>Whether any row of one kind has the requested state.</summary>
-    public bool HasAvailability(PlayerId playerId, AvailabilityKind kind, int value) =>
-        Player(playerId).Availabilities.Any(a => a.Kind == kind && a.Value == value);
+    public bool HasAvailability(PlayerId playerId, AvailabilityKind kind, int value)
+    {
+        return Player(playerId).Availabilities.Any(a => a.Kind == kind && a.Value == value);
+    }
 
     /// <summary>Ends the game for one player — DK2's <c>0x004BE630</c>, which returns at
     /// once if <c>Status</c> is already set, so the first verdict stands. Returns whether
@@ -1146,9 +1304,11 @@ public sealed partial class WorldState
     /// the original's <c>0x004BF3D0</c>, which answers yes for the same player without reading
     /// the array and otherwise returns the byte at <c>player+0x1AE+other</c>. The door update
     /// asks it of every creature standing at a door (doors-and-traps.md).</summary>
-    public bool AreAllied(PlayerId playerId, byte otherId) =>
-        playerId == otherId
+    public bool AreAllied(PlayerId playerId, byte otherId)
+    {
+        return playerId == otherId
         || (otherId < 8 && (Player(playerId).AlliedWith & (1 << otherId)) != 0);
+    }
 
     /// <summary>Make or break an alliance. <b>Always symmetric</b>: the original's two handlers
     /// and trigger action 18 (<c>0x00519376</c>) write both players' arrays, and nothing else
@@ -1198,7 +1358,13 @@ public sealed partial class WorldState
     /// Produced by <see cref="Systems.ImpTaskSystem"/>; the scenario harness and
     /// tests may also queue directly, and say so in their reports.
     /// </summary>
-    public IReadOnlyList<TileWorkOrder> PendingWork => _pendingWork;
+    public IReadOnlyList<TileWorkOrder> PendingWork
+    {
+        get
+        {
+            return _pendingWork;
+        }
+    }
 
     public void QueueWork(TileWorkOrder order)
     {
@@ -1221,7 +1387,10 @@ public sealed partial class WorldState
         _pendingWork.Add(new TileWorkOrder((y * Width) + x, kind, playerId));
     }
 
-    internal void ClearPendingWork() => _pendingWork.Clear();
+    internal void ClearPendingWork()
+    {
+        _pendingWork.Clear();
+    }
 
     /// <summary>
     /// Every creature in the level, in spawn order. The order is behaviour, not
@@ -1229,7 +1398,13 @@ public sealed partial class WorldState
     /// for the same job get it in this order. Never sorted, never reordered —
     /// removing a creature must preserve the order of the rest.
     /// </summary>
-    public EntityList<CreatureState> Creatures => new(_creatures);
+    public EntityList<CreatureState> Creatures
+    {
+        get
+        {
+            return new(_creatures);
+        }
+    }
 
     /// <summary>Most recently acquired first; held and dying creatures remain owned.
     /// Corpses are separate things in DK2 and are excluded here (ADR-0273).</summary>
@@ -1271,7 +1446,13 @@ public sealed partial class WorldState
         PaydayRules.ArmOnGain(this, database, creature);
     }
 
-    internal IReadOnlyList<CreatureState> CreatureOwnershipOrder => _creaturesByOwnership;
+    internal IReadOnlyList<CreatureState> CreatureOwnershipOrder
+    {
+        get
+        {
+            return _creaturesByOwnership;
+        }
+    }
 
     internal void RestoreCreatureOwnershipOrder(IReadOnlyList<int> ids)
     {
@@ -1293,8 +1474,10 @@ public sealed partial class WorldState
 
     /// <summary>004B7900 refuses a full native creature pool without allocating a creature.</summary>
     public CreatureState? TrySpawnCreature(
-        GameDatabase database, CreatureTypeId creatureTypeId, PlayerId ownerPlayerId, TilePos at) =>
-        CreatureSlots.FreeTags.Count == 0 ? null : SpawnCreature(database, creatureTypeId.Value, ownerPlayerId, at);
+        GameDatabase database, CreatureTypeId creatureTypeId, PlayerId ownerPlayerId, TilePos at)
+    {
+        return CreatureSlots.FreeTags.Count == 0 ? null : SpawnCreature(database, creatureTypeId.Value, ownerPlayerId, at);
+    }
 
     /// <summary>Places a creature at a tile centre, requiring a free native slot.
     /// Validated projection, tests and scenarios may construct directly; gameplay uses TrySpawnCreature.</summary>
@@ -1457,7 +1640,13 @@ public sealed partial class WorldState
     /// <para>Order is behaviour, as on <see cref="Creatures"/> — two beds freed on
     /// one tick are claimed in this order. Never sorted, never reordered.</para>
     /// </summary>
-    public EntityList<ObjectState> Objects => new(_objects);
+    public EntityList<ObjectState> Objects
+    {
+        get
+        {
+            return new(_objects);
+        }
+    }
 
     /// <summary>
     /// Puts an object on a tile. Takes a definition id rather than a definition so
@@ -1555,16 +1744,43 @@ public sealed partial class WorldState
     /// The level's action points in THINGS-file order. The original walks its
     /// collection linearly for several queries, so this is never sorted by id.
     /// </summary>
-    public IReadOnlyList<ActionPointState> ActionPoints => _actionPoints;
+    public IReadOnlyList<ActionPointState> ActionPoints
+    {
+        get
+        {
+            return _actionPoints;
+        }
+    }
+
     public TileHighlightState TileHighlights { get; } = new();
 
-    internal void AddActionPoint(ActionPointState actionPoint) => _actionPoints.Add(actionPoint);
+    internal void AddActionPoint(ActionPointState actionPoint)
+    {
+        _actionPoints.Add(actionPoint);
+    }
 
     /// <summary>Shots in flight, in creation order (shots.md). Ids climb like creatures' and are
     /// never reused.</summary>
-    public IReadOnlyList<ShotState> Shots => _shots;
+    public IReadOnlyList<ShotState> Shots
+    {
+        get
+        {
+            return _shots;
+        }
+    }
 
-    public int NextShotId { get => _nextShotId; internal set => _nextShotId = value; }
+    public int NextShotId
+    {
+        get
+        {
+            return _nextShotId;
+        }
+
+        internal set
+        {
+            _nextShotId = value;
+        }
+    }
 
     /// <summary>The next <see cref="TileState.SlabOrder"/> to hand out. It only climbs, so a
     /// stamped tile always comes after every tile stamped before it.</summary>
@@ -1630,11 +1846,19 @@ public sealed partial class WorldState
     }
 
     /// <summary>The holder of one side of the wall's kind-16 entry, 0 when the entry or the side is empty.</summary>
-    internal int RepairSideHolder(PlayerId player, TilePos tile, int side) =>
-        RepairTaskEntries.Count == 0 ? 0
+    internal int RepairSideHolder(PlayerId player, TilePos tile, int side)
+    {
+        return RepairTaskEntries.Count == 0 ? 0
         : RepairTaskEntries.TryGetValue((player, tile), out RepairTaskEntry? entry) ? entry.Holders[side] : 0;
+    }
 
-    internal List<ShotState> RawShots => _shots;
+    internal List<ShotState> RawShots
+    {
+        get
+        {
+            return _shots;
+        }
+    }
 
     public ShotState? ShotById(int id)
     {
@@ -1677,7 +1901,13 @@ public sealed partial class WorldState
     }
 
     /// <summary>The standing doors, the level's in THINGS-file order and then those placed in play.</summary>
-    public IReadOnlyList<DoorState> Doors => _doors.All;
+    public IReadOnlyList<DoorState> Doors
+    {
+        get
+        {
+            return _doors.All;
+        }
+    }
 
     /// <summary>Adds a door with the next id, which <see cref="DoorState.Id"/> keeps for its life.</summary>
     internal void AddDoor(DoorState door)
@@ -1687,13 +1917,22 @@ public sealed partial class WorldState
     }
 
     /// <summary>The standing door with this id, or null once it is gone.</summary>
-    public DoorState? DoorById(int id) => _doors.ById(id);
+    public DoorState? DoorById(int id)
+    {
+        return _doors.ById(id);
+    }
 
     /// <summary>The standing door on a tile, or null. One door to a tile, as placement allows.</summary>
-    public DoorState? DoorAt(int x, int y) => _doors.At(x, y);
+    public DoorState? DoorAt(int x, int y)
+    {
+        return _doors.At(x, y);
+    }
 
     /// <summary>Takes a dead door out of the world (DK2's removal <c>0x004B7BD0</c>).</summary>
-    internal void RemoveDoor(DoorState door) => _doors.Remove(door);
+    internal void RemoveDoor(DoorState door)
+    {
+        _doors.Remove(door);
+    }
 
     /// <summary>Navigation bytes a writer other than the terrain left on a tile, which outlive the
     /// writer until the tile's terrain is set again (<c>Tile_SetTerrain</c> <c>0x0044FC40</c> writes
@@ -1701,9 +1940,18 @@ public sealed partial class WorldState
     /// (<c>0x004A66F0(0)</c>, Q600), and the Heart's builder leaves 3 on its chain tile 12
     /// (<c>0x004DB700</c>, Q601). Ours ends a stamp when the terrain id changes
     /// (<see cref="PruneNavStamps"/>); a <c>Tile_SetTerrain</c> that keeps the id ends DK2's too.</summary>
-    public IReadOnlyList<NavStamp> NavStamps => _navStamps;
+    public IReadOnlyList<NavStamp> NavStamps
+    {
+        get
+        {
+            return _navStamps;
+        }
+    }
 
-    internal void Stamp(int tile, byte navByte) => _navStamps.Add(new NavStamp(tile, _tiles[tile].TerrainId, navByte));
+    internal void Stamp(int tile, byte navByte)
+    {
+        _navStamps.Add(new NavStamp(tile, _tiles[tile].TerrainId, navByte));
+    }
 
     /// <summary>Drops the stamps whose tile's terrain has changed since.</summary>
     internal void PruneNavStamps()
@@ -1720,10 +1968,22 @@ public sealed partial class WorldState
 
     /// <summary>Bumped by every add and removal, so a per-tile cache of doors knows when to
     /// rebuild. Derived, not state: neither hashed nor saved.</summary>
-    public int DoorsVersion => _doors.Version;
+    public int DoorsVersion
+    {
+        get
+        {
+            return _doors.Version;
+        }
+    }
 
     /// <summary>The standing traps, the level's in THINGS-file order and then those placed in play.</summary>
-    public IReadOnlyList<TrapState> Traps => _traps.All;
+    public IReadOnlyList<TrapState> Traps
+    {
+        get
+        {
+            return _traps.All;
+        }
+    }
 
     internal void AddTrap(TrapState trap)
     {
@@ -1732,36 +1992,80 @@ public sealed partial class WorldState
     }
 
     /// <summary>The standing trap with this id, or null.</summary>
-    public TrapState? TrapById(int id) => _traps.ById(id);
+    public TrapState? TrapById(int id)
+    {
+        return _traps.ById(id);
+    }
 
     /// <summary>The first trap of <paramref name="owner"/> on the tile, or null: <c>0x00453700(3, owner)</c>
     /// over the tile's chain. A tile holds one trap.</summary>
-    public TrapState? TrapAt(int x, int y, PlayerId owner) => _traps.At(x, y, owner);
+    public TrapState? TrapAt(int x, int y, PlayerId owner)
+    {
+        return _traps.At(x, y, owner);
+    }
 
-    internal void RemoveTrap(TrapState trap) => _traps.Remove(trap);
+    internal void RemoveTrap(TrapState trap)
+    {
+        _traps.Remove(trap);
+    }
 
     /// <summary>The last tile-chain link given (<see cref="CreatureState.ChainOrder"/>).</summary>
-    internal int NextChainOrder { get => _nextChainOrder; set => _nextChainOrder = value; }
+    internal int NextChainOrder
+    {
+        get
+        {
+            return _nextChainOrder;
+        }
+
+        set
+        {
+            _nextChainOrder = value;
+        }
+    }
 
     /// <summary>The last mixed-class link order given (<see cref="ThingTileLink.Order"/>).</summary>
-    internal int NextTileLinkOrder { get => _nextTileLinkOrder; set => _nextTileLinkOrder = value; }
+    internal int NextTileLinkOrder
+    {
+        get
+        {
+            return _nextTileLinkOrder;
+        }
+
+        set
+        {
+            _nextTileLinkOrder = value;
+        }
+    }
 
     /// <summary>The tile whose mixed-class chain holds a creature: its position's tile while on the
     /// map, -1 while held or carried (layer 2, <c>0x004B4F60</c>).</summary>
-    private int ChainTileOf(CreatureState creature) =>
-        creature.InHand || creature.CarriedByCreatureId >= 0 ? -1 : TileIndexAt(creature.PosX, creature.PosY);
+    private int ChainTileOf(CreatureState creature)
+    {
+        return creature.InHand || creature.CarriedByCreatureId >= 0 ? -1 : TileIndexAt(creature.PosX, creature.PosY);
+    }
 
-    private int ChainTileOf(ObjectState thing) =>
-        thing.InHand || thing.CarriedByCreatureId >= 0 || (uint)thing.TileIndex >= (uint)_tiles.Length ? -1 : thing.TileIndex;
+    private int ChainTileOf(ObjectState thing)
+    {
+        return thing.InHand || thing.CarriedByCreatureId >= 0 || (uint)thing.TileIndex >= (uint)_tiles.Length ? -1 : thing.TileIndex;
+    }
 
     // DK2 takes the tile as the position's bits 12 and up (0x004B505C); off the map is off the chain here.
-    private int TileIndexAt(int x, int y) => Contains(x >> 12, y >> 12) ? ((y >> 12) * Width) + (x >> 12) : -1;
+    private int TileIndexAt(int x, int y)
+    {
+        return Contains(x >> 12, y >> 12) ? ((y >> 12) * Width) + (x >> 12) : -1;
+    }
 
-    private ThingTileLink NewLink(int tile) => tile < 0 ? ThingTileLink.None : new(tile, ++_nextTileLinkOrder);
+    private ThingTileLink NewLink(int tile)
+    {
+        return tile < 0 ? ThingTileLink.None : new(tile, ++_nextTileLinkOrder);
+    }
 
     // 0x004B5020: a thing that changes tile moves to the head of the new tile's chain; one that does
     // not keeps its place. Leaving the map (hand, carrier) unlinks; returning links at the head.
-    private ThingTileLink Moved(ThingTileLink link, int tile) => tile == link.TileIndex ? link : NewLink(tile);
+    private ThingTileLink Moved(ThingTileLink link, int tile)
+    {
+        return tile == link.TileIndex ? link : NewLink(tile);
+    }
 
     /// <summary>Keeps the creature's <see cref="CreatureState.TileLink"/> current; its position, hand
     /// and carry setters call this, so no caller has to. A diagonal crossing written PosX then PosY
@@ -1804,30 +2108,85 @@ public sealed partial class WorldState
     }
 
     /// <summary>Restores a loaded thing's ownership without relinking: its link was saved.</summary>
-    internal void AttachLoaded(CreatureState creature) => creature.LinkWorld = this;
+    internal void AttachLoaded(CreatureState creature)
+    {
+        creature.LinkWorld = this;
+    }
 
-    internal void AttachLoaded(ObjectState thing) => thing.LinkWorld = this;
+    internal void AttachLoaded(ObjectState thing)
+    {
+        thing.LinkWorld = this;
+    }
 
-    internal void AttachLoaded(ShotState shot) => shot.LinkWorld = this;
+    internal void AttachLoaded(ShotState shot)
+    {
+        shot.LinkWorld = this;
+    }
 
     /// <summary>The last door and trap ids given, restored by a snapshot so ids stay unique.</summary>
-    internal int NextDoorId { get => _doors.NextId; set => _doors.NextId = value; }
+    internal int NextDoorId
+    {
+        get
+        {
+            return _doors.NextId;
+        }
 
-    internal int NextTrapId { get => _traps.NextId; set => _traps.NextId = value; }
+        set
+        {
+            _doors.NextId = value;
+        }
+    }
+
+    internal int NextTrapId
+    {
+        get
+        {
+            return _traps.NextId;
+        }
+
+        set
+        {
+            _traps.NextId = value;
+        }
+    }
 
     /// <summary>The level's unspawned hero-party records in THINGS-file order.</summary>
-    public IReadOnlyList<HeroPartyState> HeroParties => _heroParties;
+    public IReadOnlyList<HeroPartyState> HeroParties
+    {
+        get
+        {
+            return _heroParties;
+        }
+    }
 
-    internal void AddHeroParty(HeroPartyState party) => _heroParties.Add(party);
+    internal void AddHeroParty(HeroPartyState party)
+    {
+        _heroParties.Add(party);
+    }
 
     /// <summary>The level's effect generators in THINGS-file order, then the level-start generator;
     /// <see cref="EffectGeneratorSystem"/> runs them (ADR-0648).</summary>
-    public IReadOnlyList<EffectGeneratorState> EffectGenerators => _effectGenerators;
+    public IReadOnlyList<EffectGeneratorState> EffectGenerators
+    {
+        get
+        {
+            return _effectGenerators;
+        }
+    }
 
-    internal void AddEffectGenerator(EffectGeneratorState generator) => _effectGenerators.Add(generator);
+    internal void AddEffectGenerator(EffectGeneratorState generator)
+    {
+        _effectGenerators.Add(generator);
+    }
 
     /// <summary>Persistent offering histories, ordered by their Temple room anchor.</summary>
-    public IReadOnlyList<TempleSacrificeState> TempleSacrifices => _templeSacrifices;
+    public IReadOnlyList<TempleSacrificeState> TempleSacrifices
+    {
+        get
+        {
+            return _templeSacrifices;
+        }
+    }
 
     internal TempleSacrificeState TempleSacrificeAt(int anchorTileIndex, PlayerId ownerPlayerId)
     {
@@ -1856,7 +2215,13 @@ public sealed partial class WorldState
     }
 
     /// <summary>Persistent decomposition tallies, ordered by their Graveyard room anchor.</summary>
-    public IReadOnlyList<GraveyardState> Graveyards => _graveyards;
+    public IReadOnlyList<GraveyardState> Graveyards
+    {
+        get
+        {
+            return _graveyards;
+        }
+    }
 
     internal GraveyardState GraveyardAt(int anchorTileIndex, PlayerId ownerPlayerId)
     {
@@ -1993,34 +2358,140 @@ public sealed partial class WorldState
     /// <summary>Reconstructs a world from a snapshot. Used only by <see cref="WorldSnapshot"/>.</summary>
     internal static WorldState FromParts(
         int width, int height, TileState[] tiles, PlayerState[] players, bool fogOfWarEnabled)
-        => new(width, height, tiles, players, fogOfWarEnabled);
+    {
+        return new(width, height, tiles, players, fogOfWarEnabled);
+    }
 
-    internal TileState[] RawTiles => _tiles;
-    internal PlayerState[] RawPlayers => _players;
-    internal List<TileWorkOrder> RawPendingWork => _pendingWork;
-    internal List<CreatureState> RawCreatures => _creatures;
-    internal List<ObjectState> RawObjects => _objects;
-    internal List<ActionPointState> RawActionPoints => _actionPoints;
-    internal List<DoorState> RawDoors => _doors.Raw;
-    internal List<NavStamp> RawNavStamps => _navStamps;
-    internal List<TrapState> RawTraps => _traps.Raw;
-    internal List<HeroPartyState> RawHeroParties => _heroParties;
-    internal List<EffectGeneratorState> RawEffectGenerators => _effectGenerators;
-    internal List<TempleSacrificeState> RawTempleSacrifices => _templeSacrifices;
-    internal List<GraveyardState> RawGraveyards => _graveyards;
+    internal TileState[] RawTiles
+    {
+        get
+        {
+            return _tiles;
+        }
+    }
+
+    internal PlayerState[] RawPlayers
+    {
+        get
+        {
+            return _players;
+        }
+    }
+
+    internal List<TileWorkOrder> RawPendingWork
+    {
+        get
+        {
+            return _pendingWork;
+        }
+    }
+
+    internal List<CreatureState> RawCreatures
+    {
+        get
+        {
+            return _creatures;
+        }
+    }
+
+    internal List<ObjectState> RawObjects
+    {
+        get
+        {
+            return _objects;
+        }
+    }
+
+    internal List<ActionPointState> RawActionPoints
+    {
+        get
+        {
+            return _actionPoints;
+        }
+    }
+
+    internal List<DoorState> RawDoors
+    {
+        get
+        {
+            return _doors.Raw;
+        }
+    }
+
+    internal List<NavStamp> RawNavStamps
+    {
+        get
+        {
+            return _navStamps;
+        }
+    }
+
+    internal List<TrapState> RawTraps
+    {
+        get
+        {
+            return _traps.Raw;
+        }
+    }
+
+    internal List<HeroPartyState> RawHeroParties
+    {
+        get
+        {
+            return _heroParties;
+        }
+    }
+
+    internal List<EffectGeneratorState> RawEffectGenerators
+    {
+        get
+        {
+            return _effectGenerators;
+        }
+    }
+
+    internal List<TempleSacrificeState> RawTempleSacrifices
+    {
+        get
+        {
+            return _templeSacrifices;
+        }
+    }
+
+    internal List<GraveyardState> RawGraveyards
+    {
+        get
+        {
+            return _graveyards;
+        }
+    }
 
     /// <summary>Restores the id counter after a snapshot, so ids stay unique across a save.</summary>
     internal int NextCreatureId
     {
-        get => _nextCreatureId;
-        set => _nextCreatureId = value;
+        get
+        {
+            return _nextCreatureId;
+        }
+
+        set
+        {
+            _nextCreatureId = value;
+        }
     }
 
     /// <summary>Restores the object id counter after a snapshot.</summary>
     internal int NextObjectId
     {
-        get => _nextObjectId;
-        set => _nextObjectId = value;
+        get
+        {
+            return _nextObjectId;
+        }
+
+        set
+        {
+            _nextObjectId = value;
+        }
     }
 
     public void HashInto(ref Hash64 hash)

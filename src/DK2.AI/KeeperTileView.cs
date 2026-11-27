@@ -9,11 +9,26 @@ namespace DK2.AI;
 
 public readonly record struct KeeperTileView(byte TerrainId, byte OwnerPlayerId, PlayerMask TaggedBy, byte NavigationByte)
 {
-    internal TileState ToTileState() => new()
+    internal TileState ToTileState()
     {
-        TerrainId = TerrainId, OwnerPlayerId = OwnerPlayerId, TaggedBy = TaggedBy,
-    };
+        return new()
+        {
+            TerrainId = TerrainId,
+            OwnerPlayerId = OwnerPlayerId,
+            TaggedBy = TaggedBy,
+        };
+    }
 
-    public bool IsTaggedBy(PlayerId playerId) => TaggedBy.Contains(playerId);
-    public bool IsTaggedByAnyone => !TaggedBy.IsEmpty;
+    public bool IsTaggedBy(PlayerId playerId)
+    {
+        return TaggedBy.Contains(playerId);
+    }
+
+    public bool IsTaggedByAnyone
+    {
+        get
+        {
+            return !TaggedBy.IsEmpty;
+        }
+    }
 }

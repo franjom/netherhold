@@ -328,13 +328,17 @@ public static class LineWalker
     }
 
     /// <summary>The hug's open test: terrain neither solid nor lava (<c>+0x17B</c> bits 0 and 8).</summary>
-    private static bool HugOpen(KeeperView view, TilePos p) =>
-        view.InBounds(p) && !view.IsSolid(p) && !view.IsLava(p);
+    private static bool HugOpen(KeeperView view, TilePos p)
+    {
+        return view.InBounds(p) && !view.IsSolid(p) && !view.IsLava(p);
+    }
 
     /// <summary>The trial's open test is the navigation query (world vtable <c>+0x208</c>), which
     /// ours stands in for with terrain solidity.</summary>
-    private static bool TrialOpen(KeeperView view, TilePos p) =>
-        view.InBounds(p) && !view.IsSolid(p);
+    private static bool TrialOpen(KeeperView view, TilePos p)
+    {
+        return view.InBounds(p) && !view.IsSolid(p);
+    }
 
     private static TilePos Neighbour(TilePos p, int heading)
     {

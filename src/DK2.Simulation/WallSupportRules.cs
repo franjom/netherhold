@@ -59,7 +59,10 @@ public static class WallSupportRules
         }
     }
 
-    private static TilePos Offset(TilePos at, TilePos delta) => new(at.X + delta.X, at.Y + delta.Y);
+    private static TilePos Offset(TilePos at, TilePos delta)
+    {
+        return new(at.X + delta.X, at.Y + delta.Y);
+    }
 
     private static bool IsOwnedWall(WorldState world, GameDatabase database, TilePos at, bool requireFullNonGold)
     {

@@ -15,7 +15,10 @@ public sealed record CreateImpCommand : PlayerCommand
     public TilePos? At { get; }
     public FpPosition2? Position { get; }
 
-    public CreateImpCommand(PlayerId PlayerId, TilePos? At = null) : base(PlayerId) => this.At = At;
+    public CreateImpCommand(PlayerId PlayerId, TilePos? At = null) : base(PlayerId)
+    {
+        this.At = At;
+    }
 
     public CreateImpCommand(PlayerId PlayerId, FpPosition2 Position) : base(PlayerId)
     {

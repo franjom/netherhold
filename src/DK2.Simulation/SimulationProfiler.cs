@@ -66,7 +66,10 @@ public sealed class SimulationMarker
         }
     }
 
-    public override string ToString() => Name;
+    public override string ToString()
+    {
+        return Name;
+    }
 }
 
 /// <summary>The markers the simulation itself opens below system level. A system's own marker is
@@ -149,12 +152,17 @@ public readonly ref struct ProfileScope
         profiler.Begin(marker);
     }
 
-    public void Dispose() => _profiler.End(_marker);
+    public void Dispose()
+    {
+        _profiler.End(_marker);
+    }
 }
 
 public static class SimulationProfilerExtensions
 {
     /// <summary><c>using var _ = profiler.Scope(marker);</c></summary>
-    public static ProfileScope Scope(this ISimulationProfiler profiler, SimulationMarker marker) =>
-        new(profiler, marker);
+    public static ProfileScope Scope(this ISimulationProfiler profiler, SimulationMarker marker)
+    {
+        return new(profiler, marker);
+    }
 }

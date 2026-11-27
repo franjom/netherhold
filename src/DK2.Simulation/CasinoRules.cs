@@ -25,8 +25,10 @@ public static class CasinoRules
     /// <summary>The purse a gambler must beat: <c>abs(GamblingModifyCreatureMoneyMoneyPerSecond)</c>,
     /// 8. Tested by the Drink job, the enter hook <c>0x0047ACB0</c> and every second of the
     /// update <c>0x0047AD70</c>, which sends a creature at or below it idle.</summary>
-    public static int Stake(GameDatabase database) =>
-        Math.Abs(database[VariableTypeId.GamblingModifyCreatureMoneyMoneyPerSecond]);
+    public static int Stake(GameDatabase database)
+    {
+        return Math.Abs(database[VariableTypeId.GamblingModifyCreatureMoneyMoneyPerSecond]);
+    }
 
     /// <summary>A gambler's second on this setting, to buckets 5, 0 and 3, Treatment, Company and
     /// Work: variable 201 (−2000) generous, 202 (+100) stingy.</summary>
@@ -40,16 +42,20 @@ public static class CasinoRules
 
     /// <summary>What the same second does to the purse: variable 199 (+1) generous, 200 (−8)
     /// stingy.</summary>
-    public static int PursePerSecond(GameDatabase database, byte setting) =>
-        database[setting == Stingy
+    public static int PursePerSecond(GameDatabase database, byte setting)
+    {
+        return database[setting == Stingy
             ? VariableTypeId.GamblingModifyCreatureMoneyMoneyPerSecond
             : VariableTypeId.GamblingModifyCreatureMoneySmilesPerSecond];
+    }
 
     /// <summary>What one gambler is worth to the lever's tile at a settlement, <c>0x004D7180</c>'s
     /// argument: four seconds of the purse's change, negated. Positive is gold put down beneath
     /// the lever (stingy, +32); negative is gold the keeper pays out (generous, −4).</summary>
-    public static int SettlementPerGambler(GameDatabase database, byte setting) =>
-        -PursePerSecond(database, setting) * SettlementSeconds;
+    public static int SettlementPerGambler(GameDatabase database, byte setting)
+    {
+        return -PursePerSecond(database, setting) * SettlementSeconds;
+    }
 
     /// <summary>This room's lever, or null. A Casino without one is skipped by the settlement
     /// (<c>room+0x53</c> zero), as DK2's is.</summary>
@@ -133,8 +139,10 @@ public static class CasinoRules
     /// <summary>Whether a Casino win still makes this creature fearless: DK2's unsigned
     /// <c>now &lt; FearlessUntil</c> in the fear counter <c>0x0045EC80</c> and the withdraw test
     /// <c>0x0045EDA0</c>.</summary>
-    public static bool IsFearlessFromGambling(WorldState world, CreatureState creature) =>
-        world.CurrentTick.Value < creature.FearlessUntilTick;
+    public static bool IsFearlessFromGambling(WorldState world, CreatureState creature)
+    {
+        return world.CurrentTick.Value < creature.FearlessUntilTick;
+    }
 
     /// <summary>The setting of the Casino this creature stands in: generous when it has no lever.</summary>
     public static byte SettingUnder(WorldState world, GameDatabase database, CreatureState creature)

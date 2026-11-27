@@ -10,8 +10,16 @@ namespace DK2.Simulation.Systems;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-death.md")]
 public sealed class GraveyardSystem : ISimulationSystem
 {
-    public string Name => "Graveyard";
+    public string Name
+    {
+        get
+        {
+            return "Graveyard";
+        }
+    }
 
-    public void Execute(SimulationContext context) =>
+    public void Execute(SimulationContext context)
+    {
         GraveyardRules.Reconcile(context.World, context.Database);
+    }
 }

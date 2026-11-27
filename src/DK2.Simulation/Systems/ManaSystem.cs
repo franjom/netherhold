@@ -24,7 +24,13 @@ public sealed class ManaSystem : ISimulationSystem
 {
     private const string SystemName = "Mana";
 
-    public string Name => SystemName;
+    public string Name
+    {
+        get
+        {
+            return SystemName;
+        }
+    }
 
     public void Execute(SimulationContext context)
     {

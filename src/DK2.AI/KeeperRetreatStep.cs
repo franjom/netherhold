@@ -126,7 +126,10 @@ public sealed class KeeperRetreatStep
     }
 
     /// <summary>The Pit fighter's level is at least <c>IACreatureSkillLevel</c>, the four-bit field.</summary>
-    private bool SkilledEnough(KeeperCreatureView creature) => creature.Level >= (_p.IACreatureSkillLevel & 0xF);
+    private bool SkilledEnough(KeeperCreatureView creature)
+    {
+        return creature.Level >= (_p.IACreatureSkillLevel & 0xF);
+    }
 
     /// <summary><c>0x004C6460(2)</c>: a random own Lair's stored position (<c>+0x27</c>, read at
     /// <c>0x004FF260</c>); none, and the heart position.</summary>
@@ -138,7 +141,9 @@ public sealed class KeeperRetreatStep
     }
 
     /// <summary>An owner's creature list in DK2's order, held ones included; a corpse is a different thing there.</summary>
-    private IEnumerable<KeeperCreatureView> Owned(PlayerId player) =>
-        _view.Creatures.Where(c => c.OwnerPlayerId == player && c.OwnershipRank >= 0 && c.Activity != CreatureActivity.Dead)
+    private IEnumerable<KeeperCreatureView> Owned(PlayerId player)
+    {
+        return _view.Creatures.Where(c => c.OwnerPlayerId == player && c.OwnershipRank >= 0 && c.Activity != CreatureActivity.Dead)
             .OrderBy(c => c.OwnershipRank);
+    }
 }

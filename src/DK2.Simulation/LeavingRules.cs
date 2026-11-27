@@ -64,13 +64,17 @@ public static class LeavingRules
 
     /// <summary>Sets 194. Returns whether the rule took it: it refuses 194 from the captive,
     /// device and pit states, and the creature then stays where it was.</summary>
-    public static bool Start(SimulationContext context, CreatureState state, string systemName) =>
-        Systems.StateShadow.TryMove(context, systemName, state, ChoosingState);
+    public static bool Start(SimulationContext context, CreatureState state, string systemName)
+    {
+        return Systems.StateShadow.TryMove(context, systemName, state, ChoosingState);
+    }
 
     /// <summary>Portal or Hero Portal terrain, whoever owns it — DK2's room finder treats types
     /// 3 and 25 alike and walks every player's list.</summary>
-    public static bool IsExitTile(WorldState world, GameDatabase database, TilePos at) =>
-        world.Contains(at) && PortalRules.IsPortalTerrain(database, world.Tile(at.X, at.Y).TerrainId);
+    public static bool IsExitTile(WorldState world, GameDatabase database, TilePos at)
+    {
+        return world.Contains(at) && PortalRules.IsPortalTerrain(database, world.Tile(at.X, at.Y).TerrainId);
+    }
 
     /// <summary>The entrance tile nearest the creature by squared straight-line distance, ties
     /// broken by tile order; -1 when no entrance exists. DK2 measures to the room and then aims

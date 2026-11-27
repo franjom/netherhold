@@ -21,8 +21,10 @@ public sealed class LairSeeker
     private readonly List<TilePos> _route = [];
     private readonly List<TilePos> _fallbackRoute = [];
 
-    public LairSeeker(IPathfinder pathfinder) =>
+    public LairSeeker(IPathfinder pathfinder)
+    {
         _pathfinder = pathfinder ?? throw new ArgumentNullException(nameof(pathfinder));
+    }
 
     /// <summary>The implemented eligibility subset of <c>FUN_0046f390</c> (Q104, Q150).</summary>
     /// <remarks>Checks sleeping capability, bed ownership and activity exclusions.

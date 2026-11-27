@@ -79,7 +79,13 @@ public static class ApproachRules
     }
 
     [ThreadStatic] private static List<Fixed16Vector>? s_scratch;
-    private static List<Fixed16Vector> Scratch => s_scratch ??= [];
+    private static List<Fixed16Vector> Scratch
+    {
+        get
+        {
+            return s_scratch ??= [];
+        }
+    }
 
     /// <summary>Stops the approach and enters the current resume state, including one
     /// replaced during reselection.</summary>
@@ -106,9 +112,11 @@ public static class ApproachRules
 
     /// <summary><c>0x0045F000</c>: a target in state 6 resuming 251 or 202, walking to raise the alarm or
     /// to withdraw (ADR-0584). Fleeing in 203 itself is not retreating.</summary>
-    public static bool IsRetreating(CreatureState target) =>
-        target.Dk2StateId == Systems.StateShadow.TravelToPoint
+    public static bool IsRetreating(CreatureState target)
+    {
+        return target.Dk2StateId == Systems.StateShadow.TravelToPoint
         && target.UtilityNewState is CombatStates.Withdrawn or CombatStates.RespondingToThreat;
+    }
 
     /// <summary>The handler before movement (<c>0x00470E30</c>, §2) and the refresh (§3), one call.
     /// True when the creature is still approaching after it.</summary>

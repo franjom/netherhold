@@ -30,12 +30,16 @@ public static class RebellionRules
 
     /// <summary>Whether job 16 may start at all. DK2's three guards, in its order: not a
     /// captive, not a Combat Pit fighter, not in the Hand.</summary>
-    public static bool CanRebel(CreatureState creature) =>
-        !PrisonRules.IsImprisoned(creature)
+    public static bool CanRebel(CreatureState creature)
+    {
+        return !PrisonRules.IsImprisoned(creature)
         && !creature.CombatPitFighter
         && !HandRules.IsHeld(creature);
+    }
 
     /// <summary>Is this creature waiting out the defection countdown?</summary>
-    public static bool IsDefecting(CreatureState creature) =>
-        creature.RebelCountdownTicks > 0;
+    public static bool IsDefecting(CreatureState creature)
+    {
+        return creature.RebelCountdownTicks > 0;
+    }
 }

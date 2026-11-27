@@ -17,14 +17,17 @@ namespace DK2.Simulation;
 public static class WeaponImpactRules
 {
     /// <summary>The record's category: type 1 <c>WEAPON_METAL</c>, 2 <c>WEAPON_WOOD</c>, 3 <c>WEAPON_FLESH</c>, <c>0xF</c> <c>WEAPON_SCYTHE</c>.</summary>
-    public static string? CategoryOf(AttackType type) => type switch
+    public static string? CategoryOf(AttackType type)
     {
-        AttackType.MeleeBlade => "WEAPON_METAL",
-        AttackType.MeleeBlunt => "WEAPON_WOOD",
-        AttackType.MeleeBody => "WEAPON_FLESH",
-        AttackType.MeleeScythe => "WEAPON_SCYTHE",
-        _ => null,
-    };
+        return type switch
+        {
+            AttackType.MeleeBlade => "WEAPON_METAL",
+            AttackType.MeleeBlunt => "WEAPON_WOOD",
+            AttackType.MeleeBody => "WEAPON_FLESH",
+            AttackType.MeleeScythe => "WEAPON_SCYTHE",
+            _ => null,
+        };
+    }
 
     /// <summary>The sound of surface 1 to 7 in every record: <c>0x114</c>, <c>0x1BC</c>, <c>0x113</c>, <c>0x1BB</c>, <c>0x112</c>, <c>0x112</c>, <c>0x1BD</c>. The
     /// jump table <c>0x00499A24</c> sends surface 6 to the pair at record <c>+0x21</c> and surface 7 to the one at <c>+0x1D</c>.</summary>

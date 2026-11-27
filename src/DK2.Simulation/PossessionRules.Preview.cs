@@ -11,7 +11,13 @@ namespace DK2.Simulation;
 /// <summary>One thing chosen for first-person hover feedback, with its class-local id and owning tile.</summary>
 public readonly record struct PossessionTarget(FightTargetKind Kind, int Id, TilePos Tile)
 {
-    public static PossessionTarget None => default;
+    public static PossessionTarget None
+    {
+        get
+        {
+            return default;
+        }
+    }
 }
 
 public static partial class PossessionRules

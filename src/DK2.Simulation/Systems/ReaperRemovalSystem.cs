@@ -6,6 +6,16 @@ namespace DK2.Simulation.Systems;
 
 public sealed class ReaperRemovalSystem : ISimulationSystem
 {
-    public string Name => "reaper-removal";
-    public void Execute(SimulationContext context) => ReaperRules.RemoveDeparted(context);
+    public string Name
+    {
+        get
+        {
+            return "reaper-removal";
+        }
+    }
+
+    public void Execute(SimulationContext context)
+    {
+        ReaperRules.RemoveDeparted(context);
+    }
 }

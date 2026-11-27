@@ -8,7 +8,13 @@ namespace DK2.Simulation;
 
 internal readonly record struct NativeCreatureTag(ushort Value)
 {
-    public byte InitialFightPhase => (byte)(Value % 10);
+    public byte InitialFightPhase
+    {
+        get
+        {
+            return (byte)(Value % 10);
+        }
+    }
 }
 
 /// <summary>004B5A10 constructs tags 8..455 after the seven players;
@@ -18,7 +24,13 @@ internal sealed partial class CreatureSlotPool
     internal const int Capacity = 448;
     private readonly List<NativeCreatureTag> _free = [.. Enumerable.Range(8, Capacity).Select(value => new NativeCreatureTag((ushort)value))];
 
-    internal IReadOnlyList<NativeCreatureTag> FreeTags => _free;
+    internal IReadOnlyList<NativeCreatureTag> FreeTags
+    {
+        get
+        {
+            return _free;
+        }
+    }
 
     internal NativeCreatureTag Take()
     {

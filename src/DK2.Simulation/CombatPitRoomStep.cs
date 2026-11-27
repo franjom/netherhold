@@ -13,9 +13,24 @@ internal readonly record struct CombatPitRoomRuntime(byte ShortTicks, byte LongT
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/combat-pit.md")]
 public sealed class CombatPitRoomStep : IRoomTickStep
 {
-    public string Name => "combat pit room";
-    public bool Applies(SimulationContext context, RoomInstance room) => room.Definition.TypeId == RoomTypeId.CombatPit;
-    public void Execute(SimulationContext context) => RoomTickSystem.RunAlone(context, this);
+    public string Name
+    {
+        get
+        {
+            return "combat pit room";
+        }
+    }
+
+    public bool Applies(SimulationContext context, RoomInstance room)
+    {
+        return room.Definition.TypeId == RoomTypeId.CombatPit;
+    }
+
+    public void Execute(SimulationContext context)
+    {
+        RoomTickSystem.RunAlone(context, this);
+    }
+
     public void Tick(SimulationContext context, RoomInstance room)
     {
         WorldState world = context.World;
@@ -86,7 +101,10 @@ public sealed class CombatPitRoomStep : IRoomTickStep
     }
 
     /// <summary>0x004581F0: the second room effect at the destroyed creature's absolute position.</summary>
-    public static void CreatureDestroyed(SimulationContext context, CreatureState creature) => CreatureDestroyed(context.Hooks, creature);
+    public static void CreatureDestroyed(SimulationContext context, CreatureState creature)
+    {
+        CreatureDestroyed(context.Hooks, creature);
+    }
 
     public static void CreatureDestroyed(StateHookContext context, CreatureState creature)
     {

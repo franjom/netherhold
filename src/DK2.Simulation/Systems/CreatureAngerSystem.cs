@@ -37,9 +37,18 @@ public sealed class CreatureAngerSystem : ICreatureUpdateStep
         _seeker = new LairSeeker(_pathfinder);
     }
 
-    public string Name => SystemName;
+    public string Name
+    {
+        get
+        {
+            return SystemName;
+        }
+    }
 
-    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+    public void Execute(SimulationContext context)
+    {
+        CreatureUpdateSystem.RunAlone(context, this);
+    }
 
     // Every tick, because DK2's defection deadline is 30 ticks and 7.5 game seconds is not
     // something a per-second step can express.

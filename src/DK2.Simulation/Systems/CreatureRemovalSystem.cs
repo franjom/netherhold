@@ -18,7 +18,13 @@ public sealed class CreatureRemovalSystem : ISimulationSystem
 {
     private const string SystemName = "creature-removal";
 
-    public string Name => SystemName;
+    public string Name
+    {
+        get
+        {
+            return SystemName;
+        }
+    }
 
     public void Execute(SimulationContext context)
     {

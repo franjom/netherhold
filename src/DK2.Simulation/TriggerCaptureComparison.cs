@@ -118,8 +118,10 @@ public static class TriggerCaptureComparison
     /// strict because a sampled probe needs a further read to show a stamp written on its last
     /// tick.</summary>
     private static long[] Within(
-        List<long> stamps, long origin, long otherOrigin, long otherLastTurn) =>
-        [.. stamps.Select(v => v - origin).Where(v => v + otherOrigin < otherLastTurn)];
+        List<long> stamps, long origin, long otherOrigin, long otherLastTurn)
+    {
+        return [.. stamps.Select(v => v - origin).Where(v => v + otherOrigin < otherLastTurn)];
+    }
 
     /// <summary>Moves the one-sided events the other run stopped too early to see out of
     /// <paramref name="only"/>. A run that ends at turn 1218 says nothing about an event due
@@ -311,7 +313,14 @@ public sealed class TriggerCaptureComparisonResult
     public IReadOnlyList<string> OursBeyondCapture { get; }
     public IReadOnlyList<string> CaptureBeyondOurs { get; }
 
-    public bool EventSetsMatch => CaptureOnly.Count == 0 && OursOnly.Count == 0;
+    public bool EventSetsMatch
+    {
+        get
+        {
+            return CaptureOnly.Count == 0 && OursOnly.Count == 0;
+        }
+    }
+
     public string? AnchorId { get; }
     public long? OursOrigin { get; }
     public long? CaptureOrigin { get; }
@@ -323,8 +332,21 @@ public sealed class TriggerCaptureComparisonResult
 
     /// <summary>True when every timer stamped on both sides holds the same stored values.
     /// This is the claim a sampled residual cannot make.</summary>
-    public bool StampsAgree => StampSeries.All(s => s.Agrees);
-    public long? LargestAbsoluteResidual => AlignedEvents
-        .Select(e => e.Residual.HasValue ? Math.Abs(e.Residual.Value) : (long?)null)
-        .Max();
+    public bool StampsAgree
+    {
+        get
+        {
+            return StampSeries.All(s => s.Agrees);
+        }
+    }
+
+    public long? LargestAbsoluteResidual
+    {
+        get
+        {
+            return AlignedEvents
+                .Select(e => e.Residual.HasValue ? Math.Abs(e.Residual.Value) : (long?)null)
+                .Max();
+        }
+    }
 }

@@ -88,15 +88,36 @@ public static class StatusEffectRules
     /// handler skips them (its only reader, <c>0x004AF1E0</c>).</summary>
     public const CreatureFlags2 LightningImmune = CreatureFlags2.Unk0;
 
-    public static bool IsFrozen(CreatureState creature) => creature.FrozenTicks > 0;
-    public static bool IsInvulnerable(CreatureState creature) => creature.InvulnerableTicks > 0;
-    public static bool IsInvisible(CreatureState creature) => creature.InvisibleTicks > 0;
-    public static bool IsArmoured(CreatureState creature) => creature.ArmourTicks > 0;
-    public static bool IsStunned(CreatureState creature) => creature.Dk2StateId is 209 or 255 or 256 or 257;
+    public static bool IsFrozen(CreatureState creature)
+    {
+        return creature.FrozenTicks > 0;
+    }
+
+    public static bool IsInvulnerable(CreatureState creature)
+    {
+        return creature.InvulnerableTicks > 0;
+    }
+
+    public static bool IsInvisible(CreatureState creature)
+    {
+        return creature.InvisibleTicks > 0;
+    }
+
+    public static bool IsArmoured(CreatureState creature)
+    {
+        return creature.ArmourTicks > 0;
+    }
+
+    public static bool IsStunned(CreatureState creature)
+    {
+        return creature.Dk2StateId is 209 or 255 or 256 or 257;
+    }
 
     /// <summary>Standing in the frozen or the stunned state: no fight, no job, no move.</summary>
-    public static bool IsIncapacitated(CreatureState creature) =>
-        creature.Activity is CreatureActivity.Frozen or CreatureActivity.Stunned or CreatureActivity.Arriving;
+    public static bool IsIncapacitated(CreatureState creature)
+    {
+        return creature.Activity is CreatureActivity.Frozen or CreatureActivity.Stunned or CreatureActivity.Arriving;
+    }
 
     /// <summary>The multiplier a negative health change is scaled by (§3): 128, plus 32 frozen,
     /// minus 64 armoured or possessed, plus 128 stunned, then for a Combat Pit fighter less 128 and
@@ -285,11 +306,13 @@ public static class StatusEffectRules
     /// creature, <c>+0x135</c> <c>0x1388</c>); the effect update <c>0x00434E80</c> moves it and its
     /// elements with that point. Ours asks at the creature's position on the floor and leaves the
     /// point to the view, which has the mesh.</summary>
-    public static void RequestDazedEffect(SimulationContext context, CreatureState creature) =>
+    public static void RequestDazedEffect(SimulationContext context, CreatureState creature)
+    {
         context.RequestEffect(SystemName, new ViewEffectRequest(new EffectId(DazedEffectId),
             new PlayerId(creature.OwnerPlayerId),
             new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(Fp32.One)),
             new Dk2Angle((ushort)creature.Heading), creature.Id, DazedAttachPoint));
+    }
 
     /// <summary>The mesh point 255 ties the dazed effect to (<c>0x1388</c>), the head.</summary>
     public const uint DazedAttachPoint = 5000;
@@ -297,8 +320,10 @@ public static class StatusEffectRules
     /// <summary><c>0x00491830(255)</c> as the landing calls it (ADR-0226): <c>SetState(255)</c>,
     /// action 52 and event 15, with none of <see cref="Stun"/>'s callers' refusals. A refused state
     /// is no stun.</summary>
-    public static bool StunOnLanding(SimulationContext context, CreatureState creature, CreatureDef definition) =>
-        StunInto(context, creature, definition, CombatStates.Stunned, "landing");
+    public static bool StunOnLanding(SimulationContext context, CreatureState creature, CreatureDef definition)
+    {
+        return StunInto(context, creature, definition, CombatStates.Stunned, "landing");
+    }
 
     /// <summary><c>0x00491830(state)</c>: <c>SetState</c>, action 52 and event 15. State 256, the
     /// boulder's, runs 255's handler (<c>0x004810D0</c> jumps to <c>0x004810E0</c>), so it lies for

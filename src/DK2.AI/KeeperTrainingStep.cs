@@ -218,8 +218,10 @@ public sealed class KeeperTrainingStep
     }
 
     /// <summary><c>0x004E8210(1, 0)</c>: a floor slot drawn uniformly in chain order; none, no draw.</summary>
-    private TilePos? Slot(KeeperRoomView room) =>
-        room.FloorSlots.Count == 0 ? null : _view.FromIndex(room.FloorSlots[_rng.NextInt(room.FloorSlots.Count)]);
+    private TilePos? Slot(KeeperRoomView room)
+    {
+        return room.FloorSlots.Count == 0 ? null : _view.FromIndex(room.FloorSlots[_rng.NextInt(room.FloorSlots.Count)]);
+    }
 
     /// <summary><c>0x004BFBD0</c> prepares, <c>0x004BC500</c> lifts unless the hand refuses, and the
     /// drop follows only a lift.</summary>
@@ -233,8 +235,10 @@ public sealed class KeeperTrainingStep
         }
     }
 
-    private int LevelOf(KeeperCreatureView creature) =>
-        _readiness.Granted.TryGetValue(creature.Id, out int level) ? level : creature.Level;
+    private int LevelOf(KeeperCreatureView creature)
+    {
+        return _readiness.Granted.TryGetValue(creature.Id, out int level) ? level : creature.Level;
+    }
 
     /// <summary>The level-up's 12-bit share (<c>0x0048B120</c>) for a creature readiness granted a
     /// level this tick; the captured health otherwise.</summary>
@@ -250,8 +254,10 @@ public sealed class KeeperTrainingStep
     }
 
     /// <summary>The owner's list in DK2's order, held ones included; a corpse is a different thing.</summary>
-    private IEnumerable<KeeperCreatureView> Owned() =>
-        _view.Creatures.Where(c => c.OwnerPlayerId == _view.PlayerId && c.OwnershipRank >= 0
+    private IEnumerable<KeeperCreatureView> Owned()
+    {
+        return _view.Creatures.Where(c => c.OwnerPlayerId == _view.PlayerId && c.OwnershipRank >= 0
                 && c.Activity != CreatureActivity.Dead)
             .OrderBy(c => c.OwnershipRank);
+    }
 }

@@ -27,8 +27,10 @@ public static class PortalRules
 
     /// <summary>Whether this keeper's portals let an ordinary arrival out: DK2's
     /// <c>PortalsOpen</c>, which the creator <c>0x004DC9A0</c> tests first (ADR-0314).</summary>
-    public static bool PortalsOpen(WorldState world, PlayerId playerId) =>
-        !world.Player(playerId).PortalsClosed;
+    public static bool PortalsOpen(WorldState world, PlayerId playerId)
+    {
+        return !world.Player(playerId).PortalsClosed;
+    }
 
     /// <summary>Action 28: use the first owned keeper Portal, bypass attraction, pool,
     /// availability, keeper capacity and closed portals (<c>0x004DC8F0</c> sets
@@ -171,11 +173,13 @@ public static class PortalRules
 
     /// <summary>How long the Entrance animation runs, in ticks: its frames at its rate,
     /// rounded up. Zero for a creature with none.</summary>
-    public static int JoiningTicks(CreatureDef definition) =>
-        definition.EntranceFrames <= 0 || definition.EntranceFramesPerSecond <= 0
+    public static int JoiningTicks(CreatureDef definition)
+    {
+        return definition.EntranceFrames <= 0 || definition.EntranceFramesPerSecond <= 0
             ? 0
             : ((definition.EntranceFrames * SimulationTiming.OriginalTicksPerGameSecond)
                + definition.EntranceFramesPerSecond - 1) / definition.EntranceFramesPerSecond;
+    }
 
     /// <summary>One tick of state 193: whether the creature is still coming out. When done,
     /// it steps by its definition's entrance offset, off the portal's hole, and the caller
@@ -204,11 +208,16 @@ public static class PortalRules
     /// Both count as entrances and both pay into <see cref="CreatureCapacity"/>: DK2
     /// runs one implementation for the pair and separates them by room type inside it
     /// (<see cref="CanComeFromPortal"/>).</summary>
-    public static bool IsEntrance(RoomDef room) =>
-        room.RoomId is (byte)RoomTypeId.Portal or (byte)RoomTypeId.HeroPortal;
+    public static bool IsEntrance(RoomDef room)
+    {
+        return room.RoomId is (byte)RoomTypeId.Portal or (byte)RoomTypeId.HeroPortal;
+    }
 
     /// <summary>Whether this room is a keeper's portal, as opposed to a hero one.</summary>
-    public static bool IsKeeperPortal(RoomDef room) => room.RoomId == (byte)RoomTypeId.Portal;
+    public static bool IsKeeperPortal(RoomDef room)
+    {
+        return room.RoomId == (byte)RoomTypeId.Portal;
+    }
 
     /// <summary>Portal terrain owned by <paramref name="playerId"/>: the hole test builds on it.
     /// No longer the deserter's exit — DK2 leaves by the nearest entrance of anyone, hero
@@ -301,9 +310,11 @@ public static class PortalRules
     /// terrain with one owner, so a portal half taken from a rival is two rooms and
     /// the half without the hole produces nothing — which is also what makes the
     /// spawn clock safe on the centre tile.</summary>
-    public static bool CanProduce(WorldState world, RoomInstance portal) =>
-        portal.IsFunctional
+    public static bool CanProduce(WorldState world, RoomInstance portal)
+    {
+        return portal.IsFunctional
         && portal.TileIndices.Contains(EntranceTileIndex(world, portal));
+    }
 
     /// <summary>Ticks until this portal's next creature:
     /// <c>(n² + EntranceGenerationSpeedSeconds)</c> game seconds, <c>n</c> being how
@@ -332,11 +343,13 @@ public static class PortalRules
     /// so at capacity nothing arrives and nothing is culled: a keeper who loses a
     /// portal keeps every creature (CONFIRMED, owner). A portal counts however broken,
     /// DK2's counter testing only <c>room[0x18] == type</c> — a dead Hero Portal raises the limit, a split portal counts twice (fidelity 4).</summary>
-    public static int CreatureCapacity(GameDatabase database, int keeperPortalCount) =>
-        keeperPortalCount <= 0
+    public static int CreatureCapacity(GameDatabase database, int keeperPortalCount)
+    {
+        return keeperPortalCount <= 0
             ? 0
             : database[VariableTypeId.CreaturesSupportedByFirstPortal]
               + ((keeperPortalCount - 1) * database[VariableTypeId.CreaturesSupportedPerAdditionalPortal]);
+    }
 
     /// <summary>How many creatures this keeper holds against the cap, <c>0x004DBF90</c>: those
     /// that came through a portal (<see cref="CreatureState.CameThroughPortal"/>). Placed, converted,
@@ -441,14 +454,18 @@ public static class PortalRules
     /// kind 2, state AVAILABLE (3) or RESEARCHABLE (2); a creature the level never
     /// mentions is unavailable. <c>PortalOnRealDataTests</c> and
     /// <c>docs/research/portals.md</c> hold why both states count.</summary>
-    public static bool IsUnlocked(WorldState world, PlayerId playerId, byte creatureTypeId) =>
-        world.Availability(playerId, AvailabilityKind.Creature, creatureTypeId)
+    public static bool IsUnlocked(WorldState world, PlayerId playerId, byte creatureTypeId)
+    {
+        return world.Availability(playerId, AvailabilityKind.Creature, creatureTypeId)
             is Available or Researchable;
+    }
 
     /// <summary>Reads the immutable level definition before a world exists.</summary>
-    public static bool IsUnlocked(GameDatabase database, PlayerId playerId, byte creatureTypeId) =>
-        database.Variables.AvailabilitiesOf(playerId.Value).Any(a =>
+    public static bool IsUnlocked(GameDatabase database, PlayerId playerId, byte creatureTypeId)
+    {
+        return database.Variables.AvailabilitiesOf(playerId.Value).Any(a =>
             (AvailabilityKind)a.Kind == AvailabilityKind.Creature && a.TypeId == creatureTypeId && a.Value is Available or Researchable);
+    }
 
     /// <summary>The most of this creature type the keeper's pool allows at once, or 0
     /// if the pool does not mention it — a standing limit, not a draining quota
@@ -478,7 +495,9 @@ public static class PortalRules
     /// nothing. Not gated on IsFunctional (Q45). This overload is for a keeper with no gold and no
     /// mana, so a kind 2 or 3 entry above zero refuses.</summary>
     public static bool IsAttracted(CreatureDef creature, IReadOnlyList<RoomInstance> keeperRooms)
-        => IsAttracted(creature, keeperRooms, new GoldAmount(0), new ManaAmount(0));
+    {
+        return IsAttracted(creature, keeperRooms, new GoldAmount(0), new ManaAmount(0));
+    }
 
     /// <inheritdoc cref="IsAttracted(CreatureDef, IReadOnlyList{RoomInstance})"/>
     public static bool IsAttracted(

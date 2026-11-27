@@ -72,10 +72,12 @@ public sealed record DropCommand(PlayerId PlayerId, TilePos Tile, int TargetCrea
     /// <c>0x004FF589</c>, <c>0x004FFA1A</c> and <c>0x004F95F4</c> among them) pass the tile's centre plus
     /// <c>0x100</c> on each axis and angle 0. They also pass height 0, which ours does not: it falls as
     /// a hand drop does. The drop on a creature (<c>0x004F9B5F</c>) is not this form.</summary>
-    public static DropCommand ByComputerKeeper(PlayerId player, TilePos tile) =>
-        new(player, tile, 0,
+    public static DropCommand ByComputerKeeper(PlayerId player, TilePos tile)
+    {
+        return new(player, tile, 0,
             new FpPosition2(new Fp32(CreatureState.CentreOf(tile.X) + 0x100), new Fp32(CreatureState.CentreOf(tile.Y) + 0x100)),
             new Dk2Angle(0));
+    }
 
     public override void HashInto(ref Hash64 hash)
     {

@@ -19,7 +19,13 @@ public sealed class RescueSystem : ISimulationSystem
 {
     private const string SystemName = "Rescue";
 
-    public string Name => SystemName;
+    public string Name
+    {
+        get
+        {
+            return SystemName;
+        }
+    }
 
     public void Execute(SimulationContext context)
     {
@@ -72,8 +78,10 @@ public sealed class RescueSystem : ISimulationSystem
         }
     }
 
-    private static bool MayStart(CreatureState creature) =>
-        creature.Activity is CreatureActivity.Idle or CreatureActivity.AtWork or CreatureActivity.GoingToJob;
+    private static bool MayStart(CreatureState creature)
+    {
+        return creature.Activity is CreatureActivity.Idle or CreatureActivity.AtWork or CreatureActivity.GoingToJob;
+    }
 
     private static void Start(SimulationContext context, CreatureState creature, int state)
     {
@@ -140,9 +148,11 @@ public sealed class RescueSystem : ISimulationSystem
         Stop(context, creature);
     }
 
-    private static bool IsBreakingOut(CreatureState creature) =>
-        creature.Dk2StateId == JailBreakRules.BreakingOutState
+    private static bool IsBreakingOut(CreatureState creature)
+    {
+        return creature.Dk2StateId == JailBreakRules.BreakingOutState
         || (StateShadow.IsTravelling(creature) && creature.UtilityNewState == JailBreakRules.BreakingOutState);
+    }
 
     /// <summary>122, a turn: the walk to the door, then <see cref="JailBreakRules.BreakOut"/>. A state
     /// entered this turn runs from the next.</summary>

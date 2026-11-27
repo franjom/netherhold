@@ -14,20 +14,40 @@ public readonly record struct Fp32(int Raw)
 {
     public const int One = 4096;
 
-    public double ToDouble() => Raw / 4096.0;
+    public double ToDouble()
+    {
+        return Raw / 4096.0;
+    }
 
-    public static Fp32 FromDouble(double value) => new((int)Math.Round(value * 4096.0));
+    public static Fp32 FromDouble(double value)
+    {
+        return new((int)Math.Round(value * 4096.0));
+    }
 
     /// <summary>Signed 12.12 multiplication, narrowed to 32 bits after the shift;
     /// see docs/research/combat-damage.md §1.</summary>
-    public static Fp32 operator *(Fp32 left, Fp32 right) =>
-        new(unchecked((int)(((long)left.Raw * right.Raw) >> 12)));
+    public static Fp32 operator *(Fp32 left, Fp32 right)
+    {
+        return new(unchecked((int)(((long)left.Raw * right.Raw) >> 12)));
+    }
 
-    public static Fp32 operator +(Fp32 left, Fp32 right) => new(unchecked(left.Raw + right.Raw));
+    public static Fp32 operator +(Fp32 left, Fp32 right)
+    {
+        return new(unchecked(left.Raw + right.Raw));
+    }
 
-    public static Fp32 operator -(Fp32 left, Fp32 right) => new(unchecked(left.Raw - right.Raw));
+    public static Fp32 operator -(Fp32 left, Fp32 right)
+    {
+        return new(unchecked(left.Raw - right.Raw));
+    }
 
-    public static Fp32 operator -(Fp32 value) => new(unchecked(-value.Raw));
+    public static Fp32 operator -(Fp32 value)
+    {
+        return new(unchecked(-value.Raw));
+    }
 
-    public override string ToString() => ToDouble().ToString("0.###");
+    public override string ToString()
+    {
+        return ToDouble().ToString("0.###");
+    }
 }

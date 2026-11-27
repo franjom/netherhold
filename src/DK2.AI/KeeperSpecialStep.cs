@@ -39,6 +39,8 @@ public static class KeeperSpecialStep
 
     /// <summary>The switch at <c>0x005005C2</c>: 8 (the Torture Wheel, which carries no
     /// <c>TypeSpecial</c> and so never reaches it), 117–126, 128 and 129.</summary>
-    public static bool Usable(byte objectTypeId) =>
-        objectTypeId is 8 or (>= 117 and <= 126) or 128 or 129;
+    public static bool Usable(byte objectTypeId)
+    {
+        return objectTypeId is 8 or (>= 117 and <= 126) or 128 or 129;
+    }
 }

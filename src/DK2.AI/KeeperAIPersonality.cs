@@ -290,8 +290,10 @@ public static class KeeperAIPersonality
         }
         return list;
 
-        static bool Qualifies(RoomDef room) =>
-            ((room.Flags & RoomFlags.Buildable) == RoomFlags.Buildable)
+        static bool Qualifies(RoomDef room)
+        {
+            return ((room.Flags & RoomFlags.Buildable) == RoomFlags.Buildable)
             || room.RoomId == (byte)RoomTypeId.Portal || room.RoomId == (byte)RoomTypeId.HeroPortal;
+        }
     }
 }

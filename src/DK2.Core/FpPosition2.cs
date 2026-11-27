@@ -6,7 +6,13 @@ namespace DK2.Core;
 
 public readonly record struct FpPosition2(Fp32 X, Fp32 Y)
 {
-    public TilePos Tile => new(X.Raw >> 12, Y.Raw >> 12);
+    public TilePos Tile
+    {
+        get
+        {
+            return new(X.Raw >> 12, Y.Raw >> 12);
+        }
+    }
 
     public void HashInto(ref Hash64 hash)
     {

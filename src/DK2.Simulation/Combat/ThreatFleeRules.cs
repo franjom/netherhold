@@ -17,11 +17,20 @@ public readonly record struct ThreatSource(byte Kind, int Id)
 {
     public const byte None = 0, Trap = 1, Object = 2, Creature = 3;
 
-    public static ThreatSource OfTrap(TrapState trap) => new(Trap, trap.Id);
+    public static ThreatSource OfTrap(TrapState trap)
+    {
+        return new(Trap, trap.Id);
+    }
 
-    public static ThreatSource OfObject(ObjectState thing) => new(Object, thing.Id);
+    public static ThreatSource OfObject(ObjectState thing)
+    {
+        return new(Object, thing.Id);
+    }
 
-    public static ThreatSource OfCreature(CreatureState creature) => new(Creature, creature.Id);
+    public static ThreatSource OfCreature(CreatureState creature)
+    {
+        return new(Creature, creature.Id);
+    }
 }
 
 /// <summary><c>Creature_Update</c>'s flight from its threat (<c>0x00489AD3</c>-<c>0x00489E27</c>, ADR-0678),
@@ -59,8 +68,10 @@ public static class ThreatFleeRules
     }
 
     /// <summary>A walk to 221, or 221 itself.</summary>
-    public static bool IsFleeing(CreatureState creature) =>
-        creature.Dk2StateId == FledState || (StateShadow.IsTravelling(creature) && creature.UtilityNewState == FledState);
+    public static bool IsFleeing(CreatureState creature)
+    {
+        return creature.Dk2StateId == FledState || (StateShadow.IsTravelling(creature) && creature.UtilityNewState == FledState);
+    }
 
     /// <summary>The arm, run in the creature's update after the fear accumulator.</summary>
     public static void Turn(SimulationContext context, ISightBlocker sight, CreatureState me, CreatureDef definition)
@@ -149,12 +160,15 @@ public static class ThreatFleeRules
 
     /// <summary>The live thing (<c>0x006ED540</c>): whether it is a creature (class 0, cleared with no flight)
     /// and its position; null with none or a dead one, which is kept.</summary>
-    private static (bool Creature, int X, int Y)? Source(WorldState world, CreatureState me) => me.ThreatThingKind switch
+    private static (bool Creature, int X, int Y)? Source(WorldState world, CreatureState me)
     {
-        ThreatSource.Trap when world.TrapById(me.ThreatThingId) is TrapState trap => (false, trap.PosX, trap.PosY),
-        ThreatSource.Object when world.ObjectById(me.ThreatThingId) is ObjectState thing => (false, thing.PosX, thing.PosY),
-        ThreatSource.Creature when world.CreatureById(me.ThreatThingId) is CreatureState c && !CreatureDeathRules.IsCorpse(c)
-            => (true, c.PosX, c.PosY),
-        _ => null,
-    };
+        return me.ThreatThingKind switch
+        {
+            ThreatSource.Trap when world.TrapById(me.ThreatThingId) is TrapState trap => (false, trap.PosX, trap.PosY),
+            ThreatSource.Object when world.ObjectById(me.ThreatThingId) is ObjectState thing => (false, thing.PosX, thing.PosY),
+            ThreatSource.Creature when world.CreatureById(me.ThreatThingId) is CreatureState c && !CreatureDeathRules.IsCorpse(c)
+                => (true, c.PosX, c.PosY),
+            _ => null,
+        };
+    }
 }

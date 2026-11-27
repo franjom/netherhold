@@ -9,7 +9,14 @@ namespace DK2.Simulation.Systems;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/prison-rats.md")]
 public sealed class RatSystem : ISimulationSystem
 {
-    public string Name => "Rat";
+    public string Name
+    {
+        get
+        {
+            return "Rat";
+        }
+    }
+
     public void Execute(SimulationContext context)
     {
         if (!context.World.Objects.Any(o => o.ObjectTypeId == RatRules.RatObjectId))
@@ -32,7 +39,14 @@ public sealed class RatSystem : ISimulationSystem
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/prison-rats.md")]
 public sealed class RatSpawnSystem : ISimulationSystem
 {
-    public string Name => "RatSpawn";
+    public string Name
+    {
+        get
+        {
+            return "RatSpawn";
+        }
+    }
+
     public void Execute(SimulationContext context)
     {
         if (context.Database.ObjectById(RatRules.RatObjectId) is null)

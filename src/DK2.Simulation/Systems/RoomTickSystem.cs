@@ -50,10 +50,22 @@ public sealed class RoomTickSystem : ISimulationSystem
         _newestFirst = (a, b) => Compare(_world!, a, b);
     }
 
-    public string Name => "room ticks";
+    public string Name
+    {
+        get
+        {
+            return "room ticks";
+        }
+    }
 
     /// <summary>The steps, in the order each room takes them.</summary>
-    public IReadOnlyList<IRoomTickStep> Steps => _steps;
+    public IReadOnlyList<IRoomTickStep> Steps
+    {
+        get
+        {
+            return _steps;
+        }
+    }
 
     public void Execute(SimulationContext context)
     {
@@ -85,8 +97,10 @@ public sealed class RoomTickSystem : ISimulationSystem
 
     /// <summary>Steps on their own, over the whole room list in the walk's order: what a step's
     /// <see cref="ISimulationSystem.Execute"/> does in a host that runs it without the others.</summary>
-    public static void RunAlone(SimulationContext context, params IRoomTickStep[] steps) =>
+    public static void RunAlone(SimulationContext context, params IRoomTickStep[] steps)
+    {
         new RoomTickSystem(steps).Execute(context);
+    }
 
     /// <summary>Every room, newest first: <see cref="RoomListPosition"/> descending, then lowest tile
     /// descending, as <see cref="RoomLists.Of"/> orders a player's rooms.</summary>

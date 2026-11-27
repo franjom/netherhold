@@ -29,9 +29,18 @@ public sealed class MovementDustSystem : ICreatureUpdateStep
     /// <summary>The request's height over the creature's position: one tile (<c>0x1000</c>).</summary>
     public const int RequestHeight = Fp32.One;
 
-    public string Name => "movement dust";
+    public string Name
+    {
+        get
+        {
+            return "movement dust";
+        }
+    }
 
-    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+    public void Execute(SimulationContext context)
+    {
+        CreatureUpdateSystem.RunAlone(context, this);
+    }
 
     public void Update(SimulationContext context, CreatureState creature)
     {

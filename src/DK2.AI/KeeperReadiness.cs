@@ -32,7 +32,13 @@ public sealed class KeeperReadiness
     }
 
     /// <summary>The creatures granted a level this tick, by id, with the level predicted.</summary>
-    public IReadOnlyDictionary<int, int> Granted => _granted;
+    public IReadOnlyDictionary<int, int> Granted
+    {
+        get
+        {
+            return _granted;
+        }
+    }
 
     public bool ArmyReady()
     {
@@ -73,8 +79,10 @@ public sealed class KeeperReadiness
         return true;
     }
 
-    private int LevelOf(KeeperCreatureView creature) =>
-        _granted.TryGetValue(creature.Id, out int level) ? level : creature.Level;
+    private int LevelOf(KeeperCreatureView creature)
+    {
+        return _granted.TryGetValue(creature.Id, out int level) ? level : creature.Level;
+    }
 
     /// <summary>The level-up refuses a finished creature and level 10, as <c>CreatureLevelRules</c>
     /// does, so those are predicted unchanged.</summary>
@@ -91,9 +99,11 @@ public sealed class KeeperReadiness
     }
 
     /// <summary>The owner's list in DK2's order, workers left out; a corpse is a different thing.</summary>
-    private IEnumerable<KeeperCreatureView> NonWorkers() =>
-        _view.Creatures.Where(c => c.OwnerPlayerId == _view.PlayerId && c.OwnershipRank >= 0
+    private IEnumerable<KeeperCreatureView> NonWorkers()
+    {
+        return _view.Creatures.Where(c => c.OwnerPlayerId == _view.PlayerId && c.OwnershipRank >= 0
                 && c.Activity != CreatureActivity.Dead
                 && !((_view.Database.CreatureById(c.CreatureTypeId).Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker))
             .OrderBy(c => c.OwnershipRank);
+    }
 }

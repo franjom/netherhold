@@ -13,15 +13,29 @@ namespace DK2.Core;
 /// </summary>
 public readonly record struct TilePos(int X, int Y)
 {
-    public static TilePos operator +(TilePos a, TilePos b) => new(a.X + b.X, a.Y + b.Y);
-    public static TilePos operator -(TilePos a, TilePos b) => new(a.X - b.X, a.Y - b.Y);
+    public static TilePos operator +(TilePos a, TilePos b)
+    {
+        return new(a.X + b.X, a.Y + b.Y);
+    }
+
+    public static TilePos operator -(TilePos a, TilePos b)
+    {
+        return new(a.X - b.X, a.Y - b.Y);
+    }
 
     /// <summary>Chebyshev distance — adjacency including diagonals.</summary>
-    public int ChebyshevDistance(TilePos other) =>
-        Math.Max(Math.Abs(X - other.X), Math.Abs(Y - other.Y));
+    public int ChebyshevDistance(TilePos other)
+    {
+        return Math.Max(Math.Abs(X - other.X), Math.Abs(Y - other.Y));
+    }
 
-    public int ManhattanDistance(TilePos other) =>
-        Math.Abs(X - other.X) + Math.Abs(Y - other.Y);
+    public int ManhattanDistance(TilePos other)
+    {
+        return Math.Abs(X - other.X) + Math.Abs(Y - other.Y);
+    }
 
-    public override string ToString() => $"({X},{Y})";
+    public override string ToString()
+    {
+        return $"({X},{Y})";
+    }
 }

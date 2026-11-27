@@ -14,7 +14,13 @@ public sealed class KeeperResponseQueue
     private int _head;
 
     public int Count { get; private set; }
-    public KeeperThreatResponse? Current => Count == 0 ? null : _slots[_head];
+    public KeeperThreatResponse? Current
+    {
+        get
+        {
+            return Count == 0 ? null : _slots[_head];
+        }
+    }
 
     /// <summary>False leaves the message unhandled. A cancelled reservation is still handled.
     /// Evaluation may reroll imprisonment; the full-queue gate must precede it.</summary>

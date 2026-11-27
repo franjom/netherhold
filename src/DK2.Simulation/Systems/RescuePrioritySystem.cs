@@ -9,7 +9,13 @@ namespace DK2.Simulation.Systems;
 /// <summary>Applies priority commands before this tick's worker selection (ADR-0261).</summary>
 public sealed class RescuePrioritySystem : ISimulationSystem
 {
-    public string Name => "rescue_priority";
+    public string Name
+    {
+        get
+        {
+            return "rescue_priority";
+        }
+    }
 
     public void Execute(SimulationContext context)
     {

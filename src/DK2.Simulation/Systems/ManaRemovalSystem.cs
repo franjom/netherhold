@@ -18,7 +18,13 @@ public sealed class ManaRemovalSystem : ISimulationSystem
 {
     private const string SystemName = "ManaRemoval";
 
-    public string Name => SystemName;
+    public string Name
+    {
+        get
+        {
+            return SystemName;
+        }
+    }
 
     public void Execute(SimulationContext context)
     {

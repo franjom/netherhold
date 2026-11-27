@@ -17,9 +17,18 @@ namespace DK2.Simulation.Systems;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/sound-effects.md#10-imp-jobs")]
 public sealed class CarriedThingSoundSystem : ICreatureUpdateStep
 {
-    public string Name => "carried thing sound";
+    public string Name
+    {
+        get
+        {
+            return "carried thing sound";
+        }
+    }
 
-    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+    public void Execute(SimulationContext context)
+    {
+        CreatureUpdateSystem.RunAlone(context, this);
+    }
 
     public void Update(SimulationContext context, CreatureState creature)
     {

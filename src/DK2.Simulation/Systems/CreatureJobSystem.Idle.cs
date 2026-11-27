@@ -108,8 +108,10 @@ public sealed partial class CreatureJobSystem
         context.Rng.NextInt(2);
     }
 
-    private static bool RoomAvailable(WorldState world, PlayerId player, RoomTypeId type) =>
-        world.Availability(player, AvailabilityKind.Room, (int)type) == Available;
+    private static bool RoomAvailable(WorldState world, PlayerId player, RoomTypeId type)
+    {
+        return world.Availability(player, AvailabilityKind.Room, (int)type) == Available;
+    }
 
     /// <summary>States 3/4 (<c>0x00477680</c> and <c>0x004776C0</c>): wait out a playing action; at the
     /// deadline, idle. Otherwise, after a wander (<c>+0xA7</c> set), roll: under 25 wander again,
@@ -133,7 +135,10 @@ public sealed partial class CreatureJobSystem
 
     /// <summary>State 5, a neutral creature's idle (<c>0x004776B0</c>): a bare jump to 3's inner body
     /// <c>0x004776C0</c>, without 3's wait for a running action or its deadline (refused-states.md §1).</summary>
-    private static void NeutralIdle(SimulationContext context, CreatureState creature) => IdleBody(context, creature);
+    private static void NeutralIdle(SimulationContext context, CreatureState creature)
+    {
+        IdleBody(context, creature);
+    }
 
     /// <summary><c>0x004776C0</c>, the body 3, 4 and 5 share. After an idle action, a Bile Demon
     /// (<c>+0x36F</c> 3) rolls <c>random(100)</c> again (simulation stream, <c>0x004777D7</c>) and under

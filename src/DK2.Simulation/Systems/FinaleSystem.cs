@@ -9,11 +9,26 @@ namespace DK2.Simulation.Systems;
 /// after the last creature's; DK2's player frame fires the fireworks, an order ours does not mirror.</summary>
 public sealed class FinaleSystem : ICreatureUpdateStep
 {
-    public string Name => "finale";
+    public string Name
+    {
+        get
+        {
+            return "finale";
+        }
+    }
 
-    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+    public void Execute(SimulationContext context)
+    {
+        CreatureUpdateSystem.RunAlone(context, this);
+    }
 
-    public void Update(SimulationContext context, CreatureState creature) => FinaleRules.Run(context, creature);
+    public void Update(SimulationContext context, CreatureState creature)
+    {
+        FinaleRules.Run(context, creature);
+    }
 
-    public void EndTurn(SimulationContext context) => FinaleRules.Fireworks(context);
+    public void EndTurn(SimulationContext context)
+    {
+        FinaleRules.Fireworks(context);
+    }
 }

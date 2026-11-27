@@ -47,8 +47,10 @@ public sealed class InputLog
     public InputLogTally Tally { get; }
 
     /// <summary>What was issued on <paramref name="turn"/>, in DK2 turn numbers.</summary>
-    public InputFrame At(long turn) =>
-        _frames.TryGetValue(turn, out InputFrame frame) ? frame : InputFrame.Empty;
+    public InputFrame At(long turn)
+    {
+        return _frames.TryGetValue(turn, out InputFrame frame) ? frame : InputFrame.Empty;
+    }
 
     /// <summary>
     /// Player marks: rock (1), gold (2), and Secret Door (11), whose native marker
@@ -248,8 +250,10 @@ public sealed class InputLog
     /// The order within a frame is ours and DK2's is UNKNOWN, but a tag is
     /// per-tile and independent, so no rule here can depend on it.
     /// </summary>
-    private static TilePos[] Sorted(HashSet<TilePos> tiles) =>
-        [.. tiles.OrderBy(t => t.Y).ThenBy(t => t.X)];
+    private static TilePos[] Sorted(HashSet<TilePos> tiles)
+    {
+        return [.. tiles.OrderBy(t => t.Y).ThenBy(t => t.X)];
+    }
 
     /// <summary>
     /// When each tile was claimed, and when it was marked, so a dig leaving the
@@ -331,8 +335,10 @@ public sealed class InputLog
         public int Worked;
         public int Before;
 
-        public InputLogTally Freeze(long first, long last) =>
-            new(Rows, Commands, Migrations, Worked, Before, first, last);
+        public InputLogTally Freeze(long first, long last)
+        {
+            return new(Rows, Commands, Migrations, Worked, Before, first, last);
+        }
     }
 
     private readonly record struct Row(
@@ -347,11 +353,13 @@ public sealed class InputLog
                     $"'{name}' line {number} has {c.Length} columns; expected 11.");
             }
 
-            long N(int i) =>
-                long.TryParse(c[i], NumberStyles.Integer, CultureInfo.InvariantCulture, out long v)
+            long N(int i)
+            {
+                return long.TryParse(c[i], NumberStyles.Integer, CultureInfo.InvariantCulture, out long v)
                     ? v
                     : throw new InvalidDataException(
                         $"'{name}' line {number} has '{c[i]}' where a number was expected.");
+            }
 
             bool tagged = c[3] switch
             {

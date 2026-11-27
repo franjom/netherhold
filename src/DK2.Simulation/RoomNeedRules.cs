@@ -332,14 +332,16 @@ public static class RoomNeedRules
 
     /// <summary>The selector's message for a body it meets (<c>0x0046D810</c>): 41, 43 or 42 for results
     /// 1, 2 and 3, Data1 the room type, Data2 0, with no pending-build or four-second gate.</summary>
-    public static PlayerMessage? ForRescue(SimulationContext context, PlayerId player, RescueRoom result, RoomTypeId type) =>
-        result switch
+    public static PlayerMessage? ForRescue(SimulationContext context, PlayerId player, RescueRoom result, RoomTypeId type)
+    {
+        return result switch
         {
             RescueRoom.NoRoom => Post(context, player, PlayerMessageKind.RoomNeeded, type),
             RescueRoom.Unreachable => Post(context, player, PlayerMessageKind.RoomUnreachable, type),
             RescueRoom.Full => Post(context, player, PlayerMessageKind.RoomFull, type),
             _ => null,
         };
+    }
 
     /// <summary>The creature type <c>0x004F2B80</c> tests (<c>+0x36F == 4</c>): the Mistress, whose
     /// missing Torture Chamber is message 99, not 41, when its owner (<c>+0x28</c>) is the searching
@@ -775,15 +777,18 @@ public static class RoomNeedRules
     /// <remarks>DK2 stores the flag when the pass runs, at a rebuild; ours reads the furniture now.
     /// The same in practice: the player cannot place this furniture, which follows the room's size
     /// (owner, 2026-10-05), and <see cref="Systems.AutoFurnitureSystem"/> changes it only with the shape.</remarks>
-    public static bool IsEquipped(WorldState world, RoomInstance room) => room.Definition.TypeId switch
+    public static bool IsEquipped(WorldState world, RoomInstance room)
     {
-        RoomTypeId.TrainingRoom => HasAttached(world, room, 14, 29),
-        RoomTypeId.TortureChamber => HasAttached(world, room, TortureRules.WheelObjectId, TortureRules.ElectricChairObjectId),
-        RoomTypeId.Casino or RoomTypeId.Library or RoomTypeId.CombatPit => room.InteriorTileCount > 0,
-        RoomTypeId.Workshop => HasAttached(world, room, AnvilObjectId, SteelBucketObjectId)
-            || HasAttached(world, room, WorkBenchObjectId, WorkBenchObjectId),
-        _ => false,
-    };
+        return room.Definition.TypeId switch
+        {
+            RoomTypeId.TrainingRoom => HasAttached(world, room, 14, 29),
+            RoomTypeId.TortureChamber => HasAttached(world, room, TortureRules.WheelObjectId, TortureRules.ElectricChairObjectId),
+            RoomTypeId.Casino or RoomTypeId.Library or RoomTypeId.CombatPit => room.InteriorTileCount > 0,
+            RoomTypeId.Workshop => HasAttached(world, room, AnvilObjectId, SteelBucketObjectId)
+                || HasAttached(world, room, WorkBenchObjectId, WorkBenchObjectId),
+            _ => false,
+        };
+    }
 
     private const byte AnvilObjectId = 15, SteelBucketObjectId = 16, WorkBenchObjectId = 46;
 
@@ -833,8 +838,10 @@ public static class RoomNeedRules
     }
 
     /// <summary>Posts, and reports a new record; a retained duplicate comes back unchanged and unreported.</summary>
-    internal static PlayerMessage? Post(SimulationContext context, PlayerId player, PlayerMessageKind kind, RoomTypeId room, int roomTag = 0) =>
-        PostReported(context.World, player, kind, room, roomTag, nameof(RoomNeedRules), context.Emit);
+    internal static PlayerMessage? Post(SimulationContext context, PlayerId player, PlayerMessageKind kind, RoomTypeId room, int roomTag = 0)
+    {
+        return PostReported(context.World, player, kind, room, roomTag, nameof(RoomNeedRules), context.Emit);
+    }
 
     /// <summary>Posts a room message and passes a new record to <paramref name="emit"/> as a
     /// <c>room_message</c> from <paramref name="system"/>; a retained duplicate is not reported.</summary>

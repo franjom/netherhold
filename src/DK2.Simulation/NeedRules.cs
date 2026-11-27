@@ -82,7 +82,10 @@ public static class NeedRules
     /// thing id (creature <c>+4</c>, ours' native tag), so creatures spawned together fall due across
     /// eight turns (Q102).
     /// The rounding is on DK2's turn, our tick + 1 (ADR-0119); the stamp comes back as our tick.</summary>
-    public static long SpawnStamp(long tick, int thingTag) => (((tick + 1) & ~7L) | (uint)(thingTag & 7)) - 1;
+    public static long SpawnStamp(long tick, int thingTag)
+    {
+        return (((tick + 1) & ~7L) | (uint)(thingTag & 7)) - 1;
+    }
 
     /// <summary>How long a creature dropped on a room is left alone: five seconds of
     /// <c>LastDroppedCounter</c> (<c>+0x46D</c>, <c>5 ×</c> variable 19 turns).</summary>
@@ -96,11 +99,13 @@ public static class NeedRules
     /// timer <c>+0x45B</c>, a Call To Arms (player <c>+0x76</c> bit 2, <c>CallToArmsOn</c>,
     /// states 190–192), <c>RebelActive</c>, <c>Leaving</c> and the Casino's big-winner countdown.
     /// Each is either one of our activities, which the needs never ask, or unbuilt.</remarks>
-    public static bool IsBusy(WorldState world, CreatureState creature, long now) =>
-        creature.CombatPitFighter
+    public static bool IsBusy(WorldState world, CreatureState creature, long now)
+    {
+        return creature.CombatPitFighter
         || creature.FollowLeaderId != 0
         || CallToArmsRules.IsUnderCallToArms(world, creature)
         || (creature.DroppedOnARoom && now - creature.PickupTick < DroppedOnARoomGraceTicks);
+    }
 
     /// <summary>The health a tired creature that is not asleep loses a second:
     /// <c>CannotSleepModifyCreatureHealthPerSecond</c> ÷ variable 19 a turn (a truncating
@@ -130,18 +135,25 @@ public static class NeedRules
 
     /// <summary>Whether the needs routine runs for this creature at all: the dispatcher skips
     /// workers (definition flag bit 0) and the hero and neutral players' creatures.</summary>
-    public static bool IsAsked(CreatureDef definition, CreatureState creature) =>
-        (definition.Flags & CreatureFlags.IsWorker) == 0 && RunsNeeds(creature);
+    public static bool IsAsked(CreatureDef definition, CreatureState creature)
+    {
+        return (definition.Flags & CreatureFlags.IsWorker) == 0 && RunsNeeds(creature);
+    }
 
     /// <summary>The dispatcher's owner test (<c>0x00476FC0</c>): the hero player's creatures
     /// (<c>[0x006F254C]</c>) skip the need-anger routine, the needs routine and the mood choosers
     /// outright, and the neutral player's (<c>[0x006F2548]</c>) run <c>0x004790A0</c> instead; only a
     /// keeper's creatures are asked (Q599, ADR-0485).</summary>
-    public static bool RunsNeeds(CreatureState creature) => PlayerIds.IsKeeper(creature.OwnerPlayerId);
+    public static bool RunsNeeds(CreatureState creature)
+    {
+        return PlayerIds.IsKeeper(creature.OwnerPlayerId);
+    }
 
     /// <summary>The persistent native sleep latch, independent of the current clock flag.</summary>
-    public static bool IsTired(CreatureDef definition, CreatureState creature) =>
-        definition.TimeSleep != 0 && creature.SleepDebtTicks > 0;
+    public static bool IsTired(CreatureDef definition, CreatureState creature)
+    {
+        return definition.TimeSleep != 0 && creature.SleepDebtTicks > 0;
+    }
 
     /// <summary>Loads one period of sleep debt when LastSleptTime is overdue; busy creatures still update.</summary>
     public static void UpdateSleepClock(CreatureDef definition, CreatureState creature, GameTick now)
@@ -163,8 +175,10 @@ public static class NeedRules
 
     /// <summary>The category DK2 judges a creature by: its state's, or through a walk the state
     /// the walk resumes (<c>+0xDF</c>).</summary>
-    public static CreatureStateCategory ResolvedCategory(CreatureState creature) =>
-        CreatureStateTable.Get(ResolvedStateId(creature)).Category;
+    public static CreatureStateCategory ResolvedCategory(CreatureState creature)
+    {
+        return CreatureStateTable.Get(ResolvedStateId(creature)).Category;
+    }
 
     /// <summary>The state behind <see cref="ResolvedCategory"/>: the current one, or through a
     /// walk the one it resumes (<c>0x00478050</c> reads <c>+0xDF</c> when the category is 2).</summary>
@@ -177,18 +191,24 @@ public static class NeedRules
     /// <summary>Whether the overdue hunger update runs: outside group 7 and states flagged
     /// <see cref="CreatureStateFlags.SuppressHungerClock"/>, the Casino's. The clock's time
     /// still passes, so a helping overdue on leaving lands at once.</summary>
-    public static bool HungerClockRuns(CreatureState creature) =>
-        !InNeedGroup(creature) && !Flagged(creature, CreatureStateFlags.SuppressHungerClock);
+    public static bool HungerClockRuns(CreatureState creature)
+    {
+        return !InNeedGroup(creature) && !Flagged(creature, CreatureStateFlags.SuppressHungerClock);
+    }
 
     /// <summary>Whether overdue sleep debt may reload: outside group 7 and states flagged
     /// <see cref="CreatureStateFlags.SuppressTirednessClock"/>, the Casino's.</summary>
-    public static bool TirednessClockRuns(CreatureState creature) =>
-        !InNeedGroup(creature) && !Flagged(creature, CreatureStateFlags.SuppressTirednessClock);
+    public static bool TirednessClockRuns(CreatureState creature)
+    {
+        return !InNeedGroup(creature) && !Flagged(creature, CreatureStateFlags.SuppressTirednessClock);
+    }
 
     /// <summary>State-flag bit 1 gates the need-anger routine and the angry/unhappy dispatcher
     /// prelude (0x00478D0C, 0x00477169); the happy idle handler is separate.</summary>
-    public static bool NeedAngerRuns(CreatureState creature) =>
-        !Flagged(creature, CreatureStateFlags.SuppressNeedAnger);
+    public static bool NeedAngerRuns(CreatureState creature)
+    {
+        return !Flagged(creature, CreatureStateFlags.SuppressNeedAnger);
+    }
 
     /// <summary>A need has taken the creature off its job: no job and no job tile. The need's own
     /// route, already set, is kept.</summary>
@@ -202,14 +222,20 @@ public static class NeedRules
 
     /// <summary>Whether the creature is at a job or on its way to one, the case a need
     /// interrupts rather than starts from idle.</summary>
-    public static bool IsAtAJob(CreatureState creature) =>
-        creature.Activity is CreatureActivity.AtWork or CreatureActivity.GoingToJob;
+    public static bool IsAtAJob(CreatureState creature)
+    {
+        return creature.Activity is CreatureActivity.AtWork or CreatureActivity.GoingToJob;
+    }
 
-    private static bool InNeedGroup(CreatureState creature) =>
-        CreatureStateMachine.HasState(creature)
+    private static bool InNeedGroup(CreatureState creature)
+    {
+        return CreatureStateMachine.HasState(creature)
         && CreatureStateTable.Get(creature.Dk2StateId).Group == NeedGroup;
+    }
 
-    private static bool Flagged(CreatureState creature, CreatureStateFlags flag) =>
-        CreatureStateMachine.HasState(creature)
+    private static bool Flagged(CreatureState creature, CreatureStateFlags flag)
+    {
+        return CreatureStateMachine.HasState(creature)
         && (CreatureStateTable.Get(creature.Dk2StateId).Flags & flag) != 0;
+    }
 }

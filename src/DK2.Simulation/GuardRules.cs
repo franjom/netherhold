@@ -119,8 +119,10 @@ public static class GuardRules
         }
     }
 
-    private static bool IsPost(WorldState world, GameDatabase database, int x, int y, PlayerId owner) =>
-        world.Contains(new TilePos(x, y)) && Slot(world, database, x, y, owner, out _) != NoSlot;
+    private static bool IsPost(WorldState world, GameDatabase database, int x, int y, PlayerId owner)
+    {
+        return world.Contains(new TilePos(x, y)) && Slot(world, database, x, y, owner, out _) != NoSlot;
+    }
 
     /// <summary>State 97's target for a post whose slot gave <paramref name="facing"/>: <c>0x00462BB0</c>
     /// returns the pair's facing, not its index (<c>0x00462CD3</c>), and state 97 reads the offsets four
@@ -138,8 +140,10 @@ public static class GuardRules
 
     /// <summary>State 98's target for a leg ending on <paramref name="at"/> with
     /// <paramref name="facing"/>: the quarter of the tile against its wall.</summary>
-    public static (int X, int Y) LegPoint(TilePos at, int facing) =>
-        ((at.X << 12) | Offsets[2 * facing], (at.Y << 12) | Offsets[(2 * facing) + 1]);
+    public static (int X, int Y) LegPoint(TilePos at, int facing)
+    {
+        return ((at.X << 12) | Offsets[2 * facing], (at.Y << 12) | Offsets[(2 * facing) + 1]);
+    }
 
     /// <summary>One leg of state 98's left-hand wall follow from (x, y) with
     /// <paramref name="facing"/>: the tile it ends on and the new facing.</summary>
@@ -168,11 +172,14 @@ public static class GuardRules
 
     /// <summary>The jump table at <c>0x00463120</c>: step, wall side, and the facings for a
     /// blocked step and an opening in the wall.</summary>
-    private static (int Dx, int Dy, int Wx, int Wy, int Blocked, int Opens) Heading(int facing) => facing switch
+    private static (int Dx, int Dy, int Wx, int Wy, int Blocked, int Opens) Heading(int facing)
     {
-        0 or 5 => (1, 0, 0, -1, 1, 4),
-        1 or 6 => (0, 1, 1, 0, 2, 5),
-        2 or 7 => (-1, 0, 0, 1, 3, 6),
-        _ => (0, -1, -1, 0, 0, 7),
-    };
+        return facing switch
+        {
+            0 or 5 => (1, 0, 0, -1, 1, 4),
+            1 or 6 => (0, 1, 1, 0, 2, 5),
+            2 or 7 => (-1, 0, 0, 1, 3, 6),
+            _ => (0, -1, -1, 0, 0, 7),
+        };
+    }
 }

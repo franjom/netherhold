@@ -97,7 +97,16 @@ public sealed class KeeperKnowledge
         }
     }
 
-    public RoomFacts? Room(RoomTypeId room) => _rooms.TryGetValue(room, out RoomFacts? facts) ? facts : null;
+    public RoomFacts? Room(RoomTypeId room)
+    {
+        return _rooms.TryGetValue(room, out RoomFacts? facts) ? facts : null;
+    }
 
-    public int Count => _rooms.Count;
+    public int Count
+    {
+        get
+        {
+            return _rooms.Count;
+        }
+    }
 }

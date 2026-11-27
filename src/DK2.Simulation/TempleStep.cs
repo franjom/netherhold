@@ -53,7 +53,10 @@ public static class TempleStep
 
     private static readonly (int Dx, int Dy)[] Eight = [(0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1)];
 
-    public static bool IsTempleState(int state) => state is >= EnteringState and <= ReturningState;
+    public static bool IsTempleState(int state)
+    {
+        return state is >= EnteringState and <= ReturningState;
+    }
 
     /// <summary>One turn of a worshipper. False when it is left idle, which ends the job.</summary>
     public static bool Turn(SimulationContext context, string system, CreatureState creature)
@@ -146,8 +149,10 @@ public static class TempleStep
     /// <summary>The Temple's pool: its floor slots, the interior tiles whose eight neighbours are all
     /// of the room. A creature in 101 is offered on one (<c>0x004545C0</c>, <c>0x00454110</c>); an
     /// object's landing state 4 asks the same of the tile's byte <c>+0xC</c> (<c>0x0049F632</c>).</summary>
-    public static bool InThePool(WorldState world, RoomInstance temple, int tile) =>
-        temple.Definition.TypeId == RoomTypeId.Temple && AutoFurnitureRules.IsFloorSlot(world, temple, tile);
+    public static bool InThePool(WorldState world, RoomInstance temple, int tile)
+    {
+        return temple.Definition.TypeId == RoomTypeId.Temple && AutoFurnitureRules.IsFloorSlot(world, temple, tile);
+    }
 
     // ----------------------------------------------------------------------------- 103
 
@@ -354,7 +359,10 @@ public static class TempleStep
 
     // --------------------------------------------------------------------------- shared
 
-    private static int Here(WorldState world, CreatureState creature) => (creature.Tile.Y * world.Width) + creature.Tile.X;
+    private static int Here(WorldState world, CreatureState creature)
+    {
+        return (creature.Tile.Y * world.Width) + creature.Tile.X;
+    }
 
     private static RoomInstance? TempleUnder(WorldState world, GameDatabase database, CreatureState creature)
     {
@@ -368,8 +376,10 @@ public static class TempleStep
     }
 
     /// <summary><c>0x00454110</c> on a tile: a floor slot of the room it is in.</summary>
-    private static bool FloorSlot(WorldState world, GameDatabase database, int tile) =>
-        RoomIndex.RoomAt(world, database, tile) is { } room && AutoFurnitureRules.IsFloorSlot(world, room, tile);
+    private static bool FloorSlot(WorldState world, GameDatabase database, int tile)
+    {
+        return RoomIndex.RoomAt(world, database, tile) is { } room && AutoFurnitureRules.IsFloorSlot(world, room, tile);
+    }
 
     /// <summary>The tile's thing list holds a creature (kind 0) other than this one. A corpse is DK2's
     /// <c>CDeadBody</c>, another kind of thing (dying-states.md §2), so it is not counted; a dying

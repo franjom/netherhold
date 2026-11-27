@@ -14,8 +14,9 @@ public static class SimulationSystems
 {
     /// <param name="storedPickups">Execute recorded pick-ups as DK2's stored-command path does, without the
     /// cursor's permission (<see cref="HandSystem.StoredCommandPickups"/>, ADR-0616). Off for play.</param>
-    public static ISimulationSystem[] Default(bool storedPickups = false) =>
-    [
+    public static ISimulationSystem[] Default(bool storedPickups = false)
+    {
+        return [
         .. Commands(storedPickups),
         .. RoomLifecycle(),
         .. KeeperActions(),
@@ -26,10 +27,12 @@ public static class SimulationSystems
         .. Needs(),
         .. Verdict(),
     ];
+    }
 
     /// <summary>The player's own hand and marks, before anything moves.</summary>
-    private static ISimulationSystem[] Commands(bool storedPickups) =>
-    [
+    private static ISimulationSystem[] Commands(bool storedPickups)
+    {
+        return [
         // Hand first: one being lifted this tick takes no step, and one dropped onto
         // marked work starts on it at once (ADR-0062).
         new HandSystem { StoredCommandPickups = storedPickups, LandsInCreatureUpdate = true },
@@ -37,10 +40,12 @@ public static class SimulationSystems
         // A picked Special changes levels before this tick's movement and combat.
         new SpecialSystem(),
     ];
+    }
 
     /// <summary>Tiles marked, rooms sold and built, and everything that follows a room's shape.</summary>
-    private static ISimulationSystem[] RoomLifecycle() =>
-    [
+    private static ISimulationSystem[] RoomLifecycle()
+    {
+        return [
         // A tile marked on tick N is marked for all of N; sell before build, so one
         // room can pay for another on one tick; build after tag, so both land as room.
         new TileTagSystem(),
@@ -57,10 +62,12 @@ public static class SimulationSystems
         new GraveyardSystem(),
         new CasinoLeverSystem(), // the owner's lever command, with the frame's actions (0x00513E50)
     ];
+    }
 
     /// <summary>Pacts, doors, spells and possession: what a keeper does to the world this tick.</summary>
-    private static ISimulationSystem[] KeeperActions() =>
-    [
+    private static ISimulationSystem[] KeeperActions()
+    {
+        return [
         // Alliances before doors: a door opens for an ally, so a pact made this tick is
         // honoured on the tick it was made.
         new AllianceSystem(),
@@ -70,11 +77,13 @@ public static class SimulationSystems
         new CreateImpCastSystem(), // before the thing pass: its shot makes the imp this turn (ADR-0635)
         new PossessionSystem(),
     ];
+    }
 
     /// <summary>DK2's thing pass: creatures, shots, objects, traps, doors and action points, then
     /// the second walk that removes whatever died.</summary>
-    private static ISimulationSystem[] ThingPass() =>
-    [
+    private static ISimulationSystem[] ThingPass()
+    {
+        return [
         new FootprintSystem(),
         CreatureUpdate(),
         new CollapseSystem(), // a creature the sweep's blows felled (0x004B2FB5 collapses in the damage call)
@@ -106,6 +115,7 @@ public static class SimulationSystems
         new FogOfWarSystem(), // after every creature has moved: an arrival is noticed on its own tick
         new WalkOverGoldSystem(), // gold underfoot, after movement (ADR-0300)
     ];
+    }
 
     /// <summary>One creature's whole update before the next one's, newest first (<c>0x004B7830</c>,
     /// ADR-0554): the fight scan, the dispatcher's needs routine and mood chooser, the state handler,
@@ -152,13 +162,15 @@ public static class SimulationSystems
     }
 
     /// <summary>Tile work queued this tick and not yet resolved, and what burns after it.</summary>
-    private static ISimulationSystem[] Work() =>
-    [
+    private static ISimulationSystem[] Work()
+    {
+        return [
         // Each worker resolved its own work in its update; this drains any other orders.
         // Bridges burn after the work (Q67), which makes the fire final.
         new TileWorkSystem(),
         new BridgeBurnSystem(),
     ];
+    }
 
     /// <summary>DK2's room ticks (<c>0x004EC450</c>): one walk over every room, newest first and all types
     /// together, each room's handler, border step and health step before the next room's
@@ -167,8 +179,9 @@ public static class SimulationSystems
     /// laying is in the walk, its eggs' and coops' object steps are in the thing pass. The Dungeon
     /// Heart handler (<c>0x004D9A60</c>) is in the walk whole; the player frame's tail it shares a system with
     /// stays at the tick's end.</summary>
-    private static ISimulationSystem[] RoomTicks() =>
-    [
+    private static ISimulationSystem[] RoomTicks()
+    {
+        return [
         new RoomTickSystem(
             new StoreSweepSystem(), // the Treasury's handler and the Heart's: loose gold goes in every 16th turn
             new HeartDefenceSystem(), // the heart update's tail: its owner's creatures run to an intruder (0x004D9690)
@@ -182,11 +195,13 @@ public static class SimulationSystems
             new RoomBorderFlameSystem(), // the room tick's border flames (0x004E7CD0), before its health step
             new RoomHealthSystem()), // the room tick's health step (0x004E4B00)
     ];
+    }
 
     /// <summary>DK2's player frame: mana, imps and research, after every change of ownership this
     /// tick and after the room ticks.</summary>
-    private static ISimulationSystem[] PlayerFrame() =>
-    [
+    private static ISimulationSystem[] PlayerFrame()
+    {
+        return [
         // The removal countdown reads the stamp and the mana of the last payment before this
         // tick's payment, as DK2's thing update precedes its player update (ADR-0277).
         new PlayerTriggerSystem(), // player root before the player's counters and mana
@@ -201,11 +216,13 @@ public static class SimulationSystems
         new ResearchSystem(), // the same player frame chooses a research target when it has none
         new ManufactureDecaySystem(), // the player update's manufacture loss (0x004C3340, ADR-0203)
     ];
+    }
 
     /// <summary>The hatchery's laying, health, and a prisoner's lot. The needs routine itself runs
     /// in each creature's update (<see cref="ThingPass"/>).</summary>
-    private static ISimulationSystem[] Needs() =>
-    [
+    private static ISimulationSystem[] Needs()
+    {
+        return [
         new ObjectReactionSystem(), // the casino lever's 48/49 only, still outside the object pass (residual, Q803)
 
         // Health, prison: one asleep this tick heals this second; health settles damage before
@@ -223,12 +240,15 @@ public static class SimulationSystems
         new PrisonerEatSystem(),
         new PrisonerWanderSystem(),
     ];
+    }
 
     /// <summary>The level's verdict, then the world's own records.</summary>
-    private static ISimulationSystem[] Verdict() =>
-    [
+    private static ISimulationSystem[] Verdict()
+    {
+        return [
         new DungeonHeartSystem(frames: false), // verdict is the last thing DK2's player frame does
         new NeutralAmbientEffectSystem(), // the neutral player's frame, after the keepers' in the active list (ADR-0646)
         new TremorSystem(), // world records after the entity and player passes
     ];
+    }
 }

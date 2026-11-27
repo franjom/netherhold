@@ -30,16 +30,22 @@ public static class RoomHealthRules
 {
     /// <summary>The terrain's StartingHealth for one tile (terrain <c>+0x1AB</c>, reached through
     /// the room definition's terrain, def <c>+0x44E</c>).</summary>
-    public static int StartPerTile(GameDatabase database, RoomDef room) =>
-        database.TerrainById(room.TerrainId).StartingHealth;
+    public static int StartPerTile(GameDatabase database, RoomDef room)
+    {
+        return database.TerrainById(room.TerrainId).StartingHealth;
+    }
 
     /// <summary>The terrain's MaxHealth for one tile (terrain <c>+0x1AD</c>).</summary>
-    public static int MaxPerTile(GameDatabase database, RoomDef room) =>
-        database.TerrainById(room.TerrainId).MaxHealth;
+    public static int MaxPerTile(GameDatabase database, RoomDef room)
+    {
+        return database.TerrainById(room.TerrainId).MaxHealth;
+    }
 
     /// <summary>MaxHealth × Size, the positive arm's clamp (<c>0x004E6C60</c>).</summary>
-    public static int Cap(GameDatabase database, RoomInstance room) =>
-        MaxPerTile(database, room.Definition) * room.TileCount;
+    public static int Cap(GameDatabase database, RoomInstance room)
+    {
+        return MaxPerTile(database, room.Definition) * room.TileCount;
+    }
 
     /// <summary>The room's health now.</summary>
     public static int Health(WorldState world, GameDatabase database, RoomInstance room)
@@ -55,8 +61,10 @@ public static class RoomHealthRules
 
     /// <summary>Writes the room's health outright (<c>Room_SetHealth</c>, <c>0x004E53A0</c>): the
     /// whole deficit on the room's first tile, none on the rest.</summary>
-    public static void Set(WorldState world, GameDatabase database, RoomInstance room, int health) =>
+    public static void Set(WorldState world, GameDatabase database, RoomInstance room, int health)
+    {
         Set(world, room.TileIndices, StartPerTile(database, room.Definition), health);
+    }
 
     private static void Set(WorldState world, IReadOnlyList<int> tiles, int startPerTile, int health)
     {
@@ -172,15 +180,19 @@ public static class RoomHealthRules
     /// <summary>The variable action 10 (<c>0x00497BF0</c>) reads for a tile with this owner: a
     /// neutral tile <c>ConvertNeutralRoomHealth</c> (136, <c>0x006F257C</c>), anyone else's
     /// <c>ConvertRoomHealth</c> (14).</summary>
-    public static VariableTypeId ConvertVariable(PlayerId tileOwner) =>
-        tileOwner == PlayerIds.Neutral ? VariableTypeId.ConvertNeutralRoomHealth : VariableTypeId.ConvertRoomHealth;
+    public static VariableTypeId ConvertVariable(PlayerId tileOwner)
+    {
+        return tileOwner == PlayerIds.Neutral ? VariableTypeId.ConvertNeutralRoomHealth : VariableTypeId.ConvertRoomHealth;
+    }
 
     /// <summary>One conversion application at <paramref name="efficiency"/> 4096ths: the tabled
     /// per-second value over variable 19, times the rate, floored (−5000 × 0xCCC ≫ 12 = −4000, the
     /// captures' step).</summary>
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/room-health.md")]
-    public static int ConvertPerApplication(GameDatabase database, PlayerId tileOwner, int efficiency) =>
-        SimulationTiming.WorkApplication(database[ConvertVariable(tileOwner)], efficiency);
+    public static int ConvertPerApplication(GameDatabase database, PlayerId tileOwner, int efficiency)
+    {
+        return SimulationTiming.WorkApplication(database[ConvertVariable(tileOwner)], efficiency);
+    }
 
     /// <summary>
     /// One application of action 10 (<c>0x00497BF0</c>) by <paramref name="playerId"/>'s worker on
@@ -245,13 +257,17 @@ public static class RoomHealthRules
 
     /// <summary>One repair application (action 12, <c>0x00498120</c>): <c>RepairRoomHealth</c> the
     /// same way.</summary>
-    public static int RepairPerApplication(GameDatabase database, int efficiency) =>
-        SimulationTiming.WorkApplication(database[VariableTypeId.RepairRoomHealth], efficiency);
+    public static int RepairPerApplication(GameDatabase database, int efficiency)
+    {
+        return SimulationTiming.WorkApplication(database[VariableTypeId.RepairRoomHealth], efficiency);
+    }
 
     /// <summary><c>Room_NeedsRepair</c> (<c>0x004E6C00</c>): the room is the player's and below its
     /// cap. Action 12's gate; nothing in v1.70 starts action 12 (Q500).</summary>
-    public static bool NeedsRepair(WorldState world, GameDatabase database, RoomInstance room, PlayerId playerId) =>
-        room.OwnerPlayerId == playerId && Health(world, database, room) < Cap(database, room);
+    public static bool NeedsRepair(WorldState world, GameDatabase database, RoomInstance room, PlayerId playerId)
+    {
+        return room.OwnerPlayerId == playerId && Health(world, database, room) < Cap(database, room);
+    }
 
     /// <summary>
     /// The removal rebuild's share (<c>0x004ED440</c>): the old room's health as whole percent of
@@ -270,12 +286,16 @@ public static class RoomHealthRules
     }
 
     /// <summary>A piece's health after a removal, from <see cref="SharePercent"/>.</summary>
-    public static int PieceHealth(int maxPerTile, int size, int percent) =>
-        Math.Max(1, (int)((uint)(maxPerTile * size * percent) / 100u));
+    public static int PieceHealth(int maxPerTile, int size, int percent)
+    {
+        return Math.Max(1, (int)((uint)(maxPerTile * size * percent) / 100u));
+    }
 
     /// <summary>Sets a piece of a rebuilt room (tiles in any order) to its share.</summary>
-    internal static void SetPiece(WorldState world, GameDatabase database, RoomDef room, IReadOnlyList<int> tiles, int percent) =>
+    internal static void SetPiece(WorldState world, GameDatabase database, RoomDef room, IReadOnlyList<int> tiles, int percent)
+    {
         Set(world, tiles, StartPerTile(database, room), PieceHealth(MaxPerTile(database, room), tiles.Count, percent));
+    }
 
     /// <summary>
     /// The room tick's health step (<c>0x004E4B00</c>): under its cap a room gains its definition's

@@ -14,7 +14,14 @@ public sealed partial class TileHighlightState
 {
     public const int Capacity = 4;
     private readonly TileHighlightSlot[] _slots = new TileHighlightSlot[Capacity];
-    public ReadOnlySpan<TileHighlightSlot> Slots => _slots;
+    public ReadOnlySpan<TileHighlightSlot> Slots
+    {
+        get
+        {
+            return _slots;
+        }
+    }
+
     public bool HasActive
     {
         get

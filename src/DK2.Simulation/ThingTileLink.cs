@@ -16,7 +16,13 @@ public readonly record struct ThingTileLink(int TileIndex, int Order)
 {
     public static readonly ThingTileLink None = new(-1, 0);
 
-    public bool IsLinked => TileIndex >= 0;
+    public bool IsLinked
+    {
+        get
+        {
+            return TileIndex >= 0;
+        }
+    }
 
     public void HashInto(ref Hash64 hash)
     {

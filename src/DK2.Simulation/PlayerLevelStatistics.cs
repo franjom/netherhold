@@ -92,15 +92,29 @@ public struct PlayerLevelStatistics
         return stats;
     }
 
-    private static PlayerLevelStatistics ReadCounters(BinaryReader r) => new()
+    private static PlayerLevelStatistics ReadCounters(BinaryReader r)
     {
-        DungeonHeartsDestroyed = r.ReadInt32(), EnemyCreaturesKilled = r.ReadInt32(), RoomsTakenOver = r.ReadInt32(),
-        RoomExtraPoints = r.ReadInt32(), CreaturesConverted = r.ReadInt32(), OwnCreaturesKilled = r.ReadInt32(),
-        MoneySpent = r.ReadInt32(), ThingsResearched = r.ReadInt32(), SpecialsFound = r.ReadInt32(),
-        Sampled = r.ReadBoolean(), LandOwned = r.ReadInt32(), ManaStored = r.ReadInt32(),
-        CreaturesCommanded = r.ReadInt32(), CreatureTraining = r.ReadInt32(), LevelWon = r.ReadBoolean(),
-        EndTurn = r.ReadInt64(), AtVerdict = LevelCounters.Read(r),
-    };
+        return new()
+        {
+            DungeonHeartsDestroyed = r.ReadInt32(),
+            EnemyCreaturesKilled = r.ReadInt32(),
+            RoomsTakenOver = r.ReadInt32(),
+            RoomExtraPoints = r.ReadInt32(),
+            CreaturesConverted = r.ReadInt32(),
+            OwnCreaturesKilled = r.ReadInt32(),
+            MoneySpent = r.ReadInt32(),
+            ThingsResearched = r.ReadInt32(),
+            SpecialsFound = r.ReadInt32(),
+            Sampled = r.ReadBoolean(),
+            LandOwned = r.ReadInt32(),
+            ManaStored = r.ReadInt32(),
+            CreaturesCommanded = r.ReadInt32(),
+            CreatureTraining = r.ReadInt32(),
+            LevelWon = r.ReadBoolean(),
+            EndTurn = r.ReadInt64(),
+            AtVerdict = LevelCounters.Read(r),
+        };
+    }
 }
 
 /// <summary><c>player+0x19E</c>'s sixteen unsigned words, a value type so a copied player keeps its own
@@ -112,7 +126,11 @@ public struct KillTally
 
     public ushort this[int index]
     {
-        readonly get => (ushort)(Quad(index >> 2) >> ((index & 3) * 16));
+        readonly get
+        {
+            return (ushort)(Quad(index >> 2) >> ((index & 3) * 16));
+        }
+
         set
         {
             int shift = (index & 3) * 16;
@@ -128,11 +146,17 @@ public struct KillTally
         }
     }
 
-    private readonly ulong Quad(int quad) => quad switch
+    private readonly ulong Quad(int quad)
     {
-        0 => _0, 1 => _1, 2 => _2, 3 => _3,
-        _ => throw new ArgumentOutOfRangeException(nameof(quad)),
-    };
+        return quad switch
+        {
+            0 => _0,
+            1 => _1,
+            2 => _2,
+            3 => _3,
+            _ => throw new ArgumentOutOfRangeException(nameof(quad)),
+        };
+    }
 }
 
 /// <summary>The block's running counters at one moment, the three kept on <see cref="PlayerState"/> included.</summary>
@@ -141,9 +165,12 @@ public struct LevelCounters
     public int DungeonHeartsDestroyed, EnemyCreaturesKilled, HeroesDestroyed, RoomsTakenOver, RoomExtraPoints, GoldMined,
         ItemsManufactured, CreaturesConverted, OwnCreaturesKilled, MoneySpent, ThingsResearched, SpecialsFound;
 
-    private readonly int[] Values() => [DungeonHeartsDestroyed, EnemyCreaturesKilled, HeroesDestroyed, RoomsTakenOver,
+    private readonly int[] Values()
+    {
+        return [DungeonHeartsDestroyed, EnemyCreaturesKilled, HeroesDestroyed, RoomsTakenOver,
         RoomExtraPoints, GoldMined, ItemsManufactured, CreaturesConverted, OwnCreaturesKilled, MoneySpent, ThingsResearched,
         SpecialsFound];
+    }
 
     public readonly void HashInto(ref Hash64 hash) { foreach (int value in Values())
         {
@@ -156,11 +183,22 @@ public struct LevelCounters
         }
     }
 
-    public static LevelCounters Read(BinaryReader r) => new()
+    public static LevelCounters Read(BinaryReader r)
     {
-        DungeonHeartsDestroyed = r.ReadInt32(), EnemyCreaturesKilled = r.ReadInt32(), HeroesDestroyed = r.ReadInt32(),
-        RoomsTakenOver = r.ReadInt32(), RoomExtraPoints = r.ReadInt32(), GoldMined = r.ReadInt32(),
-        ItemsManufactured = r.ReadInt32(), CreaturesConverted = r.ReadInt32(), OwnCreaturesKilled = r.ReadInt32(),
-        MoneySpent = r.ReadInt32(), ThingsResearched = r.ReadInt32(), SpecialsFound = r.ReadInt32(),
-    };
+        return new()
+        {
+            DungeonHeartsDestroyed = r.ReadInt32(),
+            EnemyCreaturesKilled = r.ReadInt32(),
+            HeroesDestroyed = r.ReadInt32(),
+            RoomsTakenOver = r.ReadInt32(),
+            RoomExtraPoints = r.ReadInt32(),
+            GoldMined = r.ReadInt32(),
+            ItemsManufactured = r.ReadInt32(),
+            CreaturesConverted = r.ReadInt32(),
+            OwnCreaturesKilled = r.ReadInt32(),
+            MoneySpent = r.ReadInt32(),
+            ThingsResearched = r.ReadInt32(),
+            SpecialsFound = r.ReadInt32(),
+        };
+    }
 }

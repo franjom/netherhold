@@ -16,7 +16,10 @@ public static class ManaRules
 {
     // 0x455C2A tests these exact terrain ids, not room-placement flags. Mods with
     // bridge-like flags on other ids do not earn this bonus (00455B90.md).
-    private static bool HasBridgeBonus(byte terrainId) => terrainId is 0x11 or 0x1A;
+    private static bool HasBridgeBonus(byte terrainId)
+    {
+        return terrainId is 0x11 or 0x1A;
+    }
 
     /// <summary>Terrain-write half of player +0x10E2; must run before any owner change.</summary>
     public static void SetTerrain(WorldState world, GameDatabase database, ref TileState tile, byte terrainId)
@@ -119,14 +122,18 @@ public static class ManaRules
     /// <summary>The most mana any one keeper may gain in a second, whatever they own. The cap is
     /// per keeper, not level-wide: one keeper's dungeon does not throttle another's.
     /// CONFIRMED (owner, 2026-08-29, Q38).</summary>
-    public static int MaxGainPerSecond(GameDatabase database) =>
-        database[VariableTypeId.MaximumManaGainPerSecond];
+    public static int MaxGainPerSecond(GameDatabase database)
+    {
+        return database[VariableTypeId.MaximumManaGainPerSecond];
+    }
 
     /// <summary>What a keeper's dungeon heart generates per second, on top of their
     /// land. Counted once per keeper, not per heart tile, so a 5×5 heart is worth 30 a
     /// second and not 750.</summary>
-    public static int HeartGainPerSecond(GameDatabase database) =>
-        database[VariableTypeId.DungeonHeartManaGenerationIncreasePerSecond];
+    public static int HeartGainPerSecond(GameDatabase database)
+    {
+        return database[VariableTypeId.DungeonHeartManaGenerationIncreasePerSecond];
+    }
 
     /// <summary>The terrain a dungeon heart is made of, or null if this database has
     /// none (only a synthetic one). Names the room <i>type</i>, as
@@ -150,8 +157,10 @@ public static class ManaRules
     /// it, and the next second whose net is not negative cuts it back in one step
     /// (<see cref="ApplyOneSecond"/>, Q545). <c>ExcessManaDecreaseRatePerSecond</c> has no
     /// absolute-address reader but its loader; a table-relative one is not excluded.</summary>
-    public static int Threshold(GameDatabase database) =>
-        database[VariableTypeId.MaximumManaThreshold];
+    public static int Threshold(GameDatabase database)
+    {
+        return database[VariableTypeId.MaximumManaThreshold];
+    }
 
     /// <summary>Running terrain rate plus the heart, capped per keeper; indexed like <see cref="WorldState.PlayerAtIndex"/>.</summary>
     public static int[] GainPerSecondByPlayerIndex(WorldState world, GameDatabase database)
@@ -199,31 +208,40 @@ public static class ManaRules
 
     /// <summary>A keeper's income cap, player <c>+0x10DE</c>: <see cref="MaxGainPerSecond"/> plus the
     /// <c>MaxManaGain</c> its tiles add (ADR-0334).</summary>
-    public static int GainCapPerSecond(GameDatabase database, in PlayerState player) =>
-        MaxGainPerSecond(database) + player.TerrainManaGainCapBonus;
+    public static int GainCapPerSecond(GameDatabase database, in PlayerState player)
+    {
+        return MaxGainPerSecond(database) + player.TerrainManaGainCapBonus;
+    }
 
     /// <summary>What one imp costs its keeper per second, for as long as it is alive:
     /// <b>7</b>, CONFIRMED (owner, 2026-08-30, Q53) from the mana orb reading 28 with
     /// four imps and 35 with five, which fixes the rate and the per-second unit at once.
     /// Read from the <b>Create Imp spell record</b> rather than written here — the upkeep
     /// is not on the CREATURES record at all, and the giveaway is that the same column holds 2000 for Summon Horny, the figure the community reports for a Horned Reaper.</summary>
-    public static int ImpUpkeepPerSecond(GameDatabase database) =>
-        database.RequireKeeperSpell(KeeperSpellName.CreateImp).ManaUpkeepPerSecond;
+    public static int ImpUpkeepPerSecond(GameDatabase database)
+    {
+        return database.RequireKeeperSpell(KeeperSpellName.CreateImp).ManaUpkeepPerSecond;
+    }
 
     /// <summary>What one completed trap costs its keeper per second: definition <c>+0x96</c>
     /// (<c>Traps.kwd</c> <c>0x202</c>, a signed word), added to the player's <c>+0x10D6</c> at
     /// completion (<c>0x004C1B60</c>) and taken off at its cleanup (<c>0x004C1B90</c>), so the
     /// sum over the completed traps standing. Owner-measured (Q59): Spike and Sentry 5,
     /// Fireburst and Freeze 10, Lightning 25.</summary>
-    public static int TrapUpkeepPerSecond(TrapDef definition) => (short)definition.ManaUpkeepPerSecond;
+    public static int TrapUpkeepPerSecond(TrapDef definition)
+    {
+        return (short)definition.ManaUpkeepPerSecond;
+    }
 
     /// <summary>What every player pays per second to keep the imps and traps they have, indexed
     /// to match <see cref="WorldState.PlayerAtIndex"/>. Charged for <b>every</b> imp,
     /// including the free ones a keeper never paid for — the owner's four starting imps
     /// drain 28 — so the floor is free to fill and not free to keep, which is the
     /// pressure the imp economy is built around.</summary>
-    public static int[] UpkeepPerSecondByPlayerIndex(WorldState world, GameDatabase database) =>
-        UpkeepPerSecondByPlayerIndex(world, database, world.CurrentTick.Next);
+    public static int[] UpkeepPerSecondByPlayerIndex(WorldState world, GameDatabase database)
+    {
+        return UpkeepPerSecondByPlayerIndex(world, database, world.CurrentTick.Next);
+    }
 
     /// <summary>Upkeep evaluated at a specific turn, including the prepaid Call to Arms boundary.</summary>
     public static int[] UpkeepPerSecondByPlayerIndex(WorldState world, GameDatabase database, GameTick atTick)

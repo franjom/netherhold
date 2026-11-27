@@ -51,8 +51,10 @@ public sealed partial class ImpTaskSystem
     /// take (<c>0x00466850</c>).</summary>
     private const int PileReach = 0x555;
 
-    private static bool InReach(CreatureState creature, (long X, long Y) pile) =>
-        Math.Abs(pile.X - creature.PosX) < PileReach && Math.Abs(pile.Y - creature.PosY) < PileReach;
+    private static bool InReach(CreatureState creature, (long X, long Y) pile)
+    {
+        return Math.Abs(pile.X - creature.PosX) < PileReach && Math.Abs(pile.Y - creature.PosY) < PileReach;
+    }
 
     /// <summary>
     /// The worker arm of DK2's walk-over pick-up (<c>0x0048904E</c>), which the creature update

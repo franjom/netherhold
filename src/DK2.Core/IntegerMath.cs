@@ -19,7 +19,10 @@ public static class IntegerMath
     ];
 
     /// <summary>The seed table, exposed so a test can hold it to the original's bytes.</summary>
-    public static int SquareRootSeedEntry(int i) => SquareRootSeed[i];
+    public static int SquareRootSeedEntry(int i)
+    {
+        return SquareRootSeed[i];
+    }
 
     /// <summary>The original's integer square root (<c>0x0065FAE0</c>): seed by the highest set
     /// bit, then halve the guess toward the quotient until the quotient stops being smaller. It
@@ -84,5 +87,8 @@ public static class IntegerMath
     }
 
     /// <summary>|v| as the original's CDQ/XOR/SUB forms it: int.MinValue stays 2^31, read unsigned.</summary>
-    private static uint Magnitude(int v) => unchecked((uint)(v < 0 ? -v : v));
+    private static uint Magnitude(int v)
+    {
+        return unchecked((uint)(v < 0 ? -v : v));
+    }
 }

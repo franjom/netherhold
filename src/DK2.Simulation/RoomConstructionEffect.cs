@@ -12,5 +12,11 @@ namespace DK2.Simulation;
 public readonly record struct RoomConstructionEffect(PlayerId Owner, TilePos Tile)
 {
     public const ushort DefinitionId = 81;
-    public Fp32 Height => new(0x1800);
+    public Fp32 Height
+    {
+        get
+        {
+            return new(0x1800);
+        }
+    }
 }

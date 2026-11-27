@@ -566,7 +566,10 @@ public sealed partial class ImpTaskSystem
         }
         return owned && open;
 
-        static bool IsOwned(PlayerId owner) => owner.Value is not (PlayerIds.Unowned or PlayerIds.Neutral);
+        static bool IsOwned(PlayerId owner)
+        {
+            return owner.Value is not (PlayerIds.Unowned or PlayerIds.Neutral);
+        }
     }
 
     /// <summary>
@@ -575,7 +578,10 @@ public sealed partial class ImpTaskSystem
     /// side slot on entry, before anything else (<c>0x00468d54</c>, <c>0x00468d60</c>), on every
     /// call (ADR-0351, Q526; ADR-0294 had dropped it on a wrong reading of that slot).
     /// </summary>
-    private static int DrawnStartSide(SimulationContext context) => context.Rng.NextInt(4);
+    private static int DrawnStartSide(SimulationContext context)
+    {
+        return context.Rng.NextInt(4);
+    }
 
     /// <summary>A scan with a chooser still makes <see cref="DrawnStartSide"/>'s draw on entry; the
     /// chooser then overwrites the side (<c>0x00468deb</c>).</summary>
@@ -1610,15 +1616,19 @@ public sealed partial class ImpTaskSystem
     /// The test is <see cref="OwnFloorRules"/>, shared with bridge placement.</para>
     /// </summary>
     internal static bool TouchesOwnLand(
-        SimulationContext context, WorldState world, TilePos target, PlayerId playerId) =>
-        OwnFloorRules.Touches(context.Database, world, target, playerId);
+        SimulationContext context, WorldState world, TilePos target, PlayerId playerId)
+    {
+        return OwnFloorRules.Touches(context.Database, world, target, playerId);
+    }
 
     /// <summary>Both claim handlers (<c>0x0046967F</c>, <c>0x0046ABCF</c>) refuse a tile whose owner is
     /// an ally, the keeper included, before choosing between claim, attack and conversion; a neutral
     /// tile skips the test, so the level's keeper-with-neutral alliances (Q576) leave it claimable.
     /// Owner 0 counts as neutral here, where the binary compares the neutral tag only; no tile has it.</summary>
-    private static bool IsAlliedFloor(WorldState world, in TileState tile, PlayerId playerId) =>
-        !TileWorkRules.IsNeutralTile(tile) && world.AreAllied(playerId, tile.OwnerPlayerId);
+    private static bool IsAlliedFloor(WorldState world, in TileState tile, PlayerId playerId)
+    {
+        return !TileWorkRules.IsNeutralTile(tile) && world.AreAllied(playerId, tile.OwnerPlayerId);
+    }
 
     /// <summary>
     /// Whether any of the eight tiles around <paramref name="target"/> is
@@ -1770,8 +1780,10 @@ public sealed partial class ImpTaskSystem
     /// removes nothing, so only a goldless wall's tag cancels (0x00512D20's kind-1 arm). Each keeper
     /// has its own pool (player <c>+0x1105</c>): only the Imp's own keeper's tag counts.
     /// </summary>
-    private static bool DigMarkCancelsWallWork(GameDatabase database, in TileState tile, PlayerId owner) =>
-        tile.IsTaggedBy(owner) && database.TerrainById(tile.TerrainId).GoldValue == 0;
+    private static bool DigMarkCancelsWallWork(GameDatabase database, in TileState tile, PlayerId owner)
+    {
+        return tile.IsTaggedBy(owner) && database.TerrainById(tile.TerrainId).GoldValue == 0;
+    }
 
     /// <summary>
     /// Whether this kind of work can only have come from a dig marker.

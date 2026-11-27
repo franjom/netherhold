@@ -22,8 +22,10 @@ public static class VictoryRules
     /// <summary>The celebration's length: one play of art slot 35, or 8 when 35 is absent, by the
     /// action clock (<see cref="AnimationTimingRules.VictoryHoldTicks"/>, Q376). STRONGLY INFERRED:
     /// the clock is Tremor's, which reproduces the six captured get-up holds.</summary>
-    public static int PauseTicks(GameDatabase database, CreatureState me) =>
-        AnimationTimingRules.VictoryHoldTicks(database.CreatureById(me.CreatureTypeId));
+    public static int PauseTicks(GameDatabase database, CreatureState me)
+    {
+        return AnimationTimingRules.VictoryHoldTicks(database.CreatureById(me.CreatureTypeId));
+    }
 
     /// <summary>The body search's reach (§5): fixed-point squared distance strictly under <c>0x2000</c>,
     /// two square tiles — about one and a half tiles.</summary>
@@ -32,12 +34,18 @@ public static class VictoryRules
     /// <summary>The death unlink's mark on an attacker whose target has died (combat-fight-state.md
     /// §6): the target is let go and the attack nibble becomes <c>0xF</c>, which the next
     /// <c>spFighting</c> tick reads as the victory arm.</summary>
-    public static void TargetDied(SimulationContext context, CreatureState me) => Unlink(context, me, victory: true);
+    public static void TargetDied(SimulationContext context, CreatureState me)
+    {
+        Unlink(context, me, victory: true);
+    }
 
     /// <summary>A victim that has collapsed rather than died: step 5 finds it not attackable
     /// (<c>0x0045F2DB</c>, its <c>CreatureDying</c> bit) and the attacker lets it go with no nibble,
     /// to seek another target (combat-category-hooks.md §5, Q511).</summary>
-    public static void TargetDown(SimulationContext context, CreatureState me) => Unlink(context, me, victory: false);
+    public static void TargetDown(SimulationContext context, CreatureState me)
+    {
+        Unlink(context, me, victory: false);
+    }
 
     private static void Unlink(SimulationContext context, CreatureState me, bool victory)
     {

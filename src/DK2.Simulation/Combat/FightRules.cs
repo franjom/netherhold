@@ -65,9 +65,11 @@ public static class FightRules
     /// <see cref="CreatureState.DyingTicks"/>, so it is the window not yet elapsed) and that is on the map:
     /// <c>spFighting</c> drops a nibble 2 or 3 target whose <c>+0x16</c> is 2, and <c>Combat_InReach</c>
     /// (<c>0x0045E8F0</c>) refuses it (<see cref="CombatPitRules.IsOnTheMap"/>, the carried or held reading).</summary>
-    public static bool IsLyingBody(GameDatabase database, CreatureState body) =>
-        CreatureDeathRules.IsCorpse(body) && !CreatureDeathRules.BodyWindowElapsed(database, body)
+    public static bool IsLyingBody(GameDatabase database, CreatureState body)
+    {
+        return CreatureDeathRules.IsCorpse(body) && !CreatureDeathRules.BodyWindowElapsed(database, body)
         && CombatPitRules.IsOnTheMap(body);
+    }
 
     /// <summary>Where the target stands, in position units.</summary>
     public static bool TargetPosition(WorldState world, GameDatabase database, CreatureState me, out int x, out int y, out TilePos tile)
@@ -151,8 +153,10 @@ public static class FightRules
 
     /// <summary>The common busy gate (00496D00): handler completion alone does not
     /// release a counted cast's animation hold (00496AA0).</summary>
-    public static bool ActionIsRunning(CreatureState creature, CreatureDef definition, GameTick tick) =>
-        creature.ClaimAction.Kind != ClaimActionKind.None || creature.ReinforcementAction.Active || tick.Value < creature.ActionUntilTick || MeleeActionIsRunning(creature, definition, tick);
+    public static bool ActionIsRunning(CreatureState creature, CreatureDef definition, GameTick tick)
+    {
+        return creature.ClaimAction.Kind != ClaimActionKind.None || creature.ReinforcementAction.Active || tick.Value < creature.ActionUntilTick || MeleeActionIsRunning(creature, definition, tick);
+    }
 
     /// <summary>Mode-3 melee holds past impact until the animation completion poll
     /// (kmf-animation-playback.md §7). <see cref="AnimationTimingRules.ActionHoldTicks"/> counts the
@@ -518,10 +522,12 @@ public static class FightRules
     /// <summary>Action 16's wind-up (combat-spells.md §7 step 2): the shot leaves once the turn is
     /// past the start plus the slot's delay — strictly, so a zero delay fires the next tick.
     /// Possession bypasses the delay.</summary>
-    public static bool CastFires(CreatureState me, CreatureDef mine, long tick) =>
-        me.SwingInProgress && me.SwingKind is SpellRules.SpellCast or SpellRules.FreeAimCast
+    public static bool CastFires(CreatureState me, CreatureDef mine, long tick)
+    {
+        return me.SwingInProgress && me.SwingKind is SpellRules.SpellCast or SpellRules.FreeAimCast
         && me.SwingSpellSlot < mine.Spells.Count
         && (me.Possessed || tick > me.SwingStartTick + SpellRules.DelayTicks(mine, me.SwingSpellSlot));
+    }
 
     /// <summary>Action 16's shot (combat-spells.md §7 steps 3–7): from the slot's origin turned by the
     /// caster's heading (<see cref="ShotOrigin"/>, ADR-0489) — at the target's centre led by its last move
@@ -724,10 +730,12 @@ public static class FightRules
             $"creature={me.Id} spell={spell.CreatureSpellId} shot={shot.Id} type={shotDef.ShotId} aim={me.SwingPointX},{me.SwingPointY} vel={shot.VelX},{shot.VelY} data1={shot.Data1}");
     }
 
-    private static int Blow(GameDatabase database, CreatureState me, CreatureDef mine, int targetX, int targetY) =>
-        MeleeDamageRules.Blow(database, mine, me.Level,
+    private static int Blow(GameDatabase database, CreatureState me, CreatureDef mine, int targetX, int targetY)
+    {
+        return MeleeDamageRules.Blow(database, mine, me.Level,
             MeleeDamageRules.StanceOf(me),
             Bearing.Of(me.PosX - targetX, me.PosY - targetY), 0, 0);
+    }
 
     /// <summary><c>0x0045AA20</c>, the target's side of a swing beginning, for an attacker that is not a
     /// trap. A creature already fighting turns on its attacker when it has no live target of its own
@@ -836,5 +844,11 @@ public static class FightRules
     // Per thread, not per process: the original is single-threaded, the test host is not.
     [ThreadStatic] private static List<Fixed16Vector>? s_routeScratch;
 
-    private static List<Fixed16Vector> RouteScratch => s_routeScratch ??= [];
+    private static List<Fixed16Vector> RouteScratch
+    {
+        get
+        {
+            return s_routeScratch ??= [];
+        }
+    }
 }

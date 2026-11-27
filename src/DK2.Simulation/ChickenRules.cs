@@ -30,7 +30,10 @@ public static class ChickenRules
     private static readonly int[] SubTile = [0x2AA, 0x7FF, 0xD54];
 
     /// <summary>Whether the creature is a chicken now: the timer runs.</summary>
-    public static bool IsChicken(CreatureState creature) => creature.ChickenTicks > 0;
+    public static bool IsChicken(CreatureState creature)
+    {
+        return creature.ChickenTicks > 0;
+    }
 
     /// <summary>Process 15, <c>0x004AE2A0</c>, on the creature struck: a live creature whose kind lacks
     /// <c>IsImmuneToChicken</c> takes the timer (data1 seconds, a store, so a second cast restarts it)

@@ -296,7 +296,11 @@ public sealed partial class CreatureState
     /// on its own, so a diagonal crossing takes two link orders (<see cref="WorldState.Relink(CreatureState)"/>).</para></summary>
     public int PosX
     {
-        get => _posX;
+        get
+        {
+            return _posX;
+        }
+
         set
         {
             if (_posX == value)
@@ -311,7 +315,11 @@ public sealed partial class CreatureState
 
     public int PosY
     {
-        get => _posY;
+        get
+        {
+            return _posY;
+        }
+
         set
         {
             if (_posY == value)
@@ -480,8 +488,14 @@ public sealed partial class CreatureState
     public GameTick PitTransportAfter;
     /// <summary>The retained native floor word during raw pit transport position writes.</summary>
     public Fp32 PitTransportFloorHeight;
-    public bool IsPitTransporting => Dk2StateId == CreatureDeathRules.DyingState
+    public bool IsPitTransporting
+    {
+        get
+        {
+            return Dk2StateId == CreatureDeathRules.DyingState
         && PitTransportPhase != PitTransportPhase.None;
+        }
+    }
 
     /// <summary>How cross this creature is — six counters, one per grievance, each
     /// running from 0 to <see cref="CreatureAngerRules.Saturation"/> (65533).
@@ -613,7 +627,11 @@ public sealed partial class CreatureState
     /// which is how <c>AngerInHand</c> reaches it (ADR-0062).</summary>
     public bool InHand
     {
-        get => _inHand;
+        get
+        {
+            return _inHand;
+        }
+
         set
         {
             if (_inHand == value)
@@ -734,7 +752,11 @@ public sealed partial class CreatureState
     /// <see cref="CarryRules.PutDown"/>, the only two writers of either.</summary>
     public int CarriedByCreatureId
     {
-        get => _carriedByCreatureId;
+        get
+        {
+            return _carriedByCreatureId;
+        }
+
         set
         {
             if (_carriedByCreatureId == value)
@@ -783,9 +805,14 @@ public sealed partial class CreatureState
 
     /// <summary>What the creature is doing, named by its DK2 state (<see cref="ActivityRules"/>,
     /// ADR-0211). Not stored: the systems move the state, and this follows it.</summary>
-    public CreatureActivity Activity =>
-        ActivityRules.Of(this)
+    public CreatureActivity Activity
+    {
+        get
+        {
+            return ActivityRules.Of(this)
         ?? throw new InvalidOperationException($"Creature {Id} is in state {Dk2StateId}, which names no activity.");
+        }
+    }
 
     /// <summary>DK2's own state id, 0–280 (<c>creature-state-table.md</c>), and the
     /// authoritative representation of what a creature is doing (ADR-0135);
@@ -1007,8 +1034,15 @@ public sealed partial class CreatureState
     /// (<c>0x004887D0(0)</c>). A fight's run speed is state 199's, on its entry turn.</summary>
     public bool Running
     {
-        get => SpeedMode == CreatureSpeedMode.Run;
-        set => SpeedMode = value ? CreatureSpeedMode.Run : CreatureSpeedMode.Walk;
+        get
+        {
+            return SpeedMode == CreatureSpeedMode.Run;
+        }
+
+        set
+        {
+            SpeedMode = value ? CreatureSpeedMode.Run : CreatureSpeedMode.Walk;
+        }
     }
 
     /// <summary>The tick the current combat activity was entered — DK2's <c>state+0x18</c>;
@@ -1323,7 +1357,14 @@ public sealed partial class CreatureState
     /// <summary>The previous position the update's tile-entry flag (<c>0x00488F61</c>) compares against, for a
     /// reader that runs after ours' copy and before the mover (the room attack): last turn's copy, which DK2
     /// reads before this turn's is taken.</summary>
-    internal (int X, int Y) TileEntryLastPos => LastPosBeforeCopy ?? (LastPosX, LastPosY);
+    internal (int X, int Y) TileEntryLastPos
+    {
+        get
+        {
+            return LastPosBeforeCopy ?? (LastPosX, LastPosY);
+        }
+    }
+
     public int LastPosZ;
 
     /// <summary>The status words of creature-status-effects.md §1, tick countdowns stepped by
@@ -1343,7 +1384,14 @@ public sealed partial class CreatureState
     /// <summary>Original words +0x469 and +0x46B: fire countdown and the burner's player tag.</summary>
     public ushort BurningTicks;
     public ushort BurningOwnerTag;
-    public bool IsBurning => BurningTicks != 0;
+    public bool IsBurning
+    {
+        get
+        {
+            return BurningTicks != 0;
+        }
+    }
+
     public int StunTicks;
 
     /// <summary>DK2's <c>ChickenTimer</c> (<c>+0x44B</c>): set to data1 × ticks-a-second by the Chicken
@@ -1423,7 +1471,14 @@ public sealed partial class CreatureState
     /// is the state's <c>+0xF5</c>, <see cref="ChaseTicks"/> the creature's <c>+0x53D</c>, and
     /// <see cref="RetreatingCreature"/> DK2's own name for the target given up (combat-approach-and-victory.md), its
     /// <c>+0x53B</c>, which <see cref="AvoidRetreatersCounter"/> (<c>+0x53E</c>) clears after 60 turns (ADR-0584).</summary>
-    public bool Approaching => Dk2StateId == Combat.CombatStates.Approaching;
+    public bool Approaching
+    {
+        get
+        {
+            return Dk2StateId == Combat.CombatStates.Approaching;
+        }
+    }
+
     public int RouteRefreshCountdown;
     public int ChaseTicks;
     public int RetreatingCreature;
@@ -1476,13 +1531,31 @@ public sealed partial class CreatureState
 
     /// <summary>Walking somewhere it has not reached: a route of nonzero length with <c>path_finished</c>
     /// clear; a zero-length one, a stop's self-point too, is whole progress (<c>0x004D54F0</c>).</summary>
-    public bool HasRoute => Body.PathTotalCount != 0 && !Body.PathFinished && Body.PathTotalDist != 0;
+    public bool HasRoute
+    {
+        get
+        {
+            return Body.PathTotalCount != 0 && !Body.PathFinished && Body.PathTotalDist != 0;
+        }
+    }
 
     /// <summary>A route was requested and found, arrived or not; retained self-routes count.</summary>
-    public bool IsRouted => Body.PathTotalCount != 0;
+    public bool IsRouted
+    {
+        get
+        {
+            return Body.PathTotalCount != 0;
+        }
+    }
 
     /// <summary>The tile the loaded route ends on.</summary>
-    public TilePos Destination => new((Body.PathTargetPos.X >> 4) / Fp32.One, (Body.PathTargetPos.Y >> 4) / Fp32.One);
+    public TilePos Destination
+    {
+        get
+        {
+            return new((Body.PathTargetPos.X >> 4) / Fp32.One, (Body.PathTargetPos.Y >> 4) / Fp32.One);
+        }
+    }
 
     /// <summary>Stops the body where the creature stands, with zero velocity:
     /// <c>Creature_StopMoving</c> (<c>0x0048ECE0</c>) through <c>0x004D1070</c>, which requests a
@@ -1499,10 +1572,19 @@ public sealed partial class CreatureState
     }
 
     /// <summary>The tile the creature is standing on.</summary>
-    public TilePos Tile => new(PosX / Fp32.One, PosY / Fp32.One);
+    public TilePos Tile
+    {
+        get
+        {
+            return new(PosX / Fp32.One, PosY / Fp32.One);
+        }
+    }
 
     /// <summary>The centre of a tile, in position units.</summary>
-    public static int CentreOf(int tile) => (tile * Fp32.One) + (Fp32.One / 2);
+    public static int CentreOf(int tile)
+    {
+        return (tile * Fp32.One) + (Fp32.One / 2);
+    }
 
     /// <summary>Forgets what this creature was doing. Deliberately leaves
     /// <see cref="GoldHeld"/> alone: what is in an imp's hands is not part of

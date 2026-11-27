@@ -81,8 +81,10 @@ public static class HeroLairRules
         return true;
     }
 
-    private static bool HasPlainMask(TerrainDef terrain) =>
-        (terrain.Flags & (TerrainFlags.Solid | TerrainFlags.ConstructionTypeWater)) == 0;
+    private static bool HasPlainMask(TerrainDef terrain)
+    {
+        return (terrain.Flags & (TerrainFlags.Solid | TerrainFlags.ConstructionTypeWater)) == 0;
+    }
 
     private static HashSet<int> TrestleTiles(WorldState world)
     {

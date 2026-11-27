@@ -13,7 +13,10 @@ public enum SoundSourceKind : byte { Creature, Object, Door, Trap, Shot, Room, T
 /// <summary>The thing a world sound belongs to, so that its next request replaces its last one.</summary>
 public readonly record struct SoundSourceId(SoundSourceKind Kind, int Value)
 {
-    public static SoundSourceId Of(CreatureId creature) => new(SoundSourceKind.Creature, creature.Value);
+    public static SoundSourceId Of(CreatureId creature)
+    {
+        return new(SoundSourceKind.Creature, creature.Value);
+    }
 }
 
 /// <summary>An event number as DK2 passes it to the sound manager: an SFX.map group in the
@@ -312,9 +315,11 @@ public static class ThingSoundRules
 
     /// <summary>A creature's request with handle 0, which DK2 passes when lifting and dropping it.</summary>
     public static void RequestUnvoiced(SimulationContext context, string system, CreatureState creature,
-        ThingSoundEvent sound, FpPosition3 position) =>
+        ThingSoundEvent sound, FpPosition3 position)
+    {
         Request(context, system, SoundSourceId.Of(new CreatureId(creature.Id)),
             context.Database.CreatureById(creature.CreatureTypeId).SoundCategory, sound, position, voiced: false);
+    }
 
     /// <summary>A creature's request in the category of an object definition (<c>+0x10E</c>) at its position,
     /// with handle 0 unless <paramref name="voiced"/>: the imp's gold deposit asks the gold object's
@@ -334,10 +339,12 @@ public static class ThingSoundRules
     }
 
     public static void Request(SimulationContext context, string system, CreatureState creature, ThingSoundEvent sound,
-        PlayerId? viewerOnlyFor = null) =>
+        PlayerId? viewerOnlyFor = null)
+    {
         Request(context, system, SoundSourceId.Of(new CreatureId(creature.Id)),
             context.Database.CreatureById(creature.CreatureTypeId).SoundCategory, sound,
             new(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ)), viewerOnlyFor: viewerOnlyFor);
+    }
 
     public static void Request(SimulationContext context, string system, SoundSourceId source, string category,
         ThingSoundEvent sound, FpPosition3 position, bool voiced = true, PlayerId? viewerOnlyFor = null, bool alternating = false, bool listenerRelative = false)

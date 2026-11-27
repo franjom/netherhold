@@ -27,12 +27,19 @@ public sealed partial class EffectGeneratorState
     public byte GeneratorId { get; init; }
     public required ReadOnlyMemory<byte> Unknown_001E
     {
-        get => _unknown001E;
-        init => _unknown001E = value.Length == Unknown001ELength
-            ? value
-            : throw new ArgumentException(
-                $"An effect generator's trailing unknown is {Unknown001ELength} bytes, not {value.Length}.",
-                nameof(Unknown_001E));
+        get
+        {
+            return _unknown001E;
+        }
+
+        init
+        {
+            _unknown001E = value.Length == Unknown001ELength
+                    ? value
+                    : throw new ArgumentException(
+                        $"An effect generator's trailing unknown is {Unknown001ELength} bytes, not {value.Length}.",
+                        nameof(Unknown_001E));
+        }
     }
 
     private readonly ReadOnlyMemory<byte> _unknown001E;

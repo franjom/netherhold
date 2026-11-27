@@ -66,7 +66,13 @@ public static partial class CreatureActionCoverage
     private static readonly ActionCoverageRow[] Rows = Build();
 
     /// <summary>All 81 rows, by action id.</summary>
-    public static IReadOnlyList<ActionCoverageRow> All => Rows;
+    public static IReadOnlyList<ActionCoverageRow> All
+    {
+        get
+        {
+            return Rows;
+        }
+    }
 
     public static ActionCoverageRow Get(int actionId)
     {
@@ -104,15 +110,23 @@ public static partial class CreatureActionCoverage
         return byId;
     }
 
-    private static ActionCoverageRow Built(int id, Type handler, string member, string starters, string? notMirrored = null) =>
-        new(id, ActionStatus.Built, handler, member, starters, notMirrored);
+    private static ActionCoverageRow Built(int id, Type handler, string member, string starters, string? notMirrored = null)
+    {
+        return new(id, ActionStatus.Built, handler, member, starters, notMirrored);
+    }
 
-    private static ActionCoverageRow Unbuilt(int id, string starters, string blocker) =>
-        new(id, ActionStatus.Unbuilt, null, blocker, starters, null);
+    private static ActionCoverageRow Unbuilt(int id, string starters, string blocker)
+    {
+        return new(id, ActionStatus.Unbuilt, null, blocker, starters, null);
+    }
 
-    private static ActionCoverageRow Unreachable(int id, string starters, string evidence) =>
-        new(id, ActionStatus.Unreachable, null, evidence, starters, null);
+    private static ActionCoverageRow Unreachable(int id, string starters, string evidence)
+    {
+        return new(id, ActionStatus.Unreachable, null, evidence, starters, null);
+    }
 
-    private static ActionCoverageRow NeverBegun(int id, string evidence) =>
-        new(id, ActionStatus.NeverBegun, null, evidence, "", null);
+    private static ActionCoverageRow NeverBegun(int id, string evidence)
+    {
+        return new(id, ActionStatus.NeverBegun, null, evidence, "", null);
+    }
 }

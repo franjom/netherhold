@@ -90,9 +90,15 @@ public static class TrapRules
         return table;
     }
 
-    public static int Sine(int heading) => SineTable[heading & Bearing.Mask];
+    public static int Sine(int heading)
+    {
+        return SineTable[heading & Bearing.Mask];
+    }
 
-    public static int Cosine(int heading) => SineTable[(heading & Bearing.Mask) + 512];
+    public static int Cosine(int heading)
+    {
+        return SineTable[(heading & Bearing.Mask) + 512];
+    }
 
     // ------------------------------------------------------------------ scope
 
@@ -145,8 +151,10 @@ public static class TrapRules
             && Chained(database, shot.HitThingShotId, depth);
     }
 
-    private static bool Chained(GameDatabase database, byte shotId, int depth) =>
-        shotId == 0 || ShotBuilt(database, shotId, depth + 1);
+    private static bool Chained(GameDatabase database, byte shotId, int depth)
+    {
+        return shotId == 0 || ShotBuilt(database, shotId, depth + 1);
+    }
 
     private static readonly byte[] BuiltProcesses =
     [
@@ -446,15 +454,23 @@ public static class TrapRules
         }
     }
 
-    private static byte Selector(GameDatabase database, TrapState trap) =>
-        database.Traps.TryGetValue(trap.TrapId, out TrapDef? definition) ? definition.TriggerType : (byte)0;
+    private static byte Selector(GameDatabase database, TrapState trap)
+    {
+        return database.Traps.TryGetValue(trap.TrapId, out TrapDef? definition) ? definition.TriggerType : (byte)0;
+    }
 
-    public static bool IsDead(TrapState trap) => trap.Health <= 0;
+    public static bool IsDead(TrapState trap)
+    {
+        return trap.Health <= 0;
+    }
 
     /// <summary><c>0x004B2CE0</c> on a trap: the signed delta applied flat. Its callers that reach a
     /// trap here are the recovery, a shot's contact damage (<c>0x004AC420</c>) and area damage type 2
     /// (<c>0x004AC6D0</c>) and the swing's trap arm (<c>0x0049916D</c>) on a trap scan D chose (traps.md §10).</summary>
-    public static void Damage(TrapState trap, int delta) => trap.Health += delta;
+    public static void Damage(TrapState trap, int delta)
+    {
+        trap.Health += delta;
+    }
 
     // ------------------------------------------------------------------ the tile chain
 
@@ -683,9 +699,11 @@ public static class TrapRules
     /// <summary>Message 53's Data1 a trap short of mana passes (<c>0x004C1A53</c>).</summary>
     public const int TrapNoManaSubtype = 1;
 
-    public static TrapReadiness Readiness(WorldState world, TrapState trap, TrapDef definition, long now) =>
-        TrapActivationRules.Readiness(definition, trap.PlayerId, trap.UnderConstruction, now, trap.RechargeAt,
+    public static TrapReadiness Readiness(WorldState world, TrapState trap, TrapDef definition, long now)
+    {
+        return TrapActivationRules.Readiness(definition, trap.PlayerId, trap.UnderConstruction, now, trap.RechargeAt,
             world.HasPlayer(trap.PlayerId) ? world.Player(trap.PlayerId).Mana : 0, beingDisarmed: false); // +0x115 is never set (Q455)
+    }
 
     /// <summary>The turn (definition flag <c>0x80</c>): toward the sight finder's target at range plus
     /// two (<c>0x004B2AE0</c>), or, with nobody, ten steps on (<c>0x004B2C10</c>), at most
@@ -744,8 +762,10 @@ public static class TrapRules
     /// <summary>The flying slot, vtable <c>+0x88</c> (<c>0x0048ED40</c>): for a non-worker, primary kind 3
     /// uses flag 11 before the <c>CanFly</c> arm outside states 217 and 218. A worker's bit-8 answer
     /// and the five animation exclusions remain unsupported by <see cref="WaterSpeedRules.IsFlying"/>.</summary>
-    private static bool IsFlying(CreatureState creature, CreatureDef type) =>
-        WaterSpeedRules.IsFlying(type, creature);
+    private static bool IsFlying(CreatureState creature, CreatureDef type)
+    {
+        return WaterSpeedRules.IsFlying(type, creature);
+    }
 
     /// <summary>The sight finder <c>0x004A9400</c>: once a turn, the strictly nearest attackable,
     /// visible creature of a hostile player inside the range (plus two when the turn asks), never an
@@ -954,8 +974,10 @@ public static class TrapRules
     /// sight, then give each one inside a radius a tile smaller (at least one) the threat over that
     /// count, into its <c>TempFear</c> through <c>0x0045C5D0</c>, which names the trap as its
     /// <c>ThreatThing</c> (ADR-0678). Its owner discount is the one <see cref="FearRules"/> does not hold (Q375).</summary>
-    public static void ShareThreat(WorldState world, ISightBlocker sight, TrapState trap, int amount, int radius) =>
+    public static void ShareThreat(WorldState world, ISightBlocker sight, TrapState trap, int amount, int radius)
+    {
         ShareThreat(world, sight, trap.PlayerId, trap.PosX, trap.PosY, amount, radius, ThreatSource.OfTrap(trap));
+    }
 
     /// <summary><c>0x004B32A0</c> for any thing: <paramref name="owner"/>'s enemies around a point.</summary>
     public static void ShareThreat(WorldState world, ISightBlocker sight, PlayerId owner, int x, int y, int amount, int radius,
@@ -997,9 +1019,11 @@ public static class TrapRules
 
     /// <summary>A creature a player list walk reaches: on the map, not yet a body (class 6 in DK2).
     /// One held in a hand is on its owner's list in DK2; ours leaves it out.</summary>
-    private static bool IsHostileOnMap(WorldState world, PlayerId owner, CreatureState creature) =>
-        CombatRules.IsHostile(world, owner.Value, creature.OwnerPlayerId) && !CreatureDeathRules.IsCorpse(creature)
+    private static bool IsHostileOnMap(WorldState world, PlayerId owner, CreatureState creature)
+    {
+        return CombatRules.IsHostile(world, owner.Value, creature.OwnerPlayerId) && !CreatureDeathRules.IsCorpse(creature)
         && CombatPitRules.IsOnTheMap(creature);
+    }
 
     // ------------------------------------------------------------------ the Trigger
 

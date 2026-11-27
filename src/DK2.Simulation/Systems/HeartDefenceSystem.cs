@@ -27,12 +27,21 @@ public sealed class HeartDefenceSystem : IRoomTickStep
     /// heart on Level 11A is room 1100, so it dispatches on turns 0 mod 4 (capture rows 1 mod 4).</summary>
     public const int RoomIdPhase = 1100 % PeriodTurns;
 
-    public string Name => "heart defence";
+    public string Name
+    {
+        get
+        {
+            return "heart defence";
+        }
+    }
 
     private bool _dispatches;
     private int _reporting, _gathering;
 
-    public void Execute(SimulationContext context) => RoomTickSystem.RunAlone(context, this);
+    public void Execute(SimulationContext context)
+    {
+        RoomTickSystem.RunAlone(context, this);
+    }
 
     public void BeginTurn(SimulationContext context)
     {
@@ -48,10 +57,12 @@ public sealed class HeartDefenceSystem : IRoomTickStep
             && variables.TryGet(VariableTypeId.DungeonHeartCreatureGatheringDistanceTiles, out _gathering);
     }
 
-    public bool Applies(SimulationContext context, RoomInstance room) =>
-        _dispatches && room.Definition.TypeId == RoomTypeId.DungeonHeart
+    public bool Applies(SimulationContext context, RoomInstance room)
+    {
+        return _dispatches && room.Definition.TypeId == RoomTypeId.DungeonHeart
         && PlayerIds.IsKeeper(room.OwnerPlayerId) && context.World.HasPlayer(room.OwnerPlayerId)
         && !RoomRules.IsRuined(context.World, room);
+    }
 
     public void Tick(SimulationContext context, RoomInstance room)
     {

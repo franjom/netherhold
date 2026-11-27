@@ -26,13 +26,17 @@ internal static class ClaimActionRules
     private const byte ArtSlot = 13;
     private static readonly TileWorkSystem Work = new();
 
-    internal static bool UsesClock(CreatureState creature, CreatureDef definition) =>
-        creature.TargetTileIndex >= 0 && IsFamily(creature.TargetWork)
+    internal static bool UsesClock(CreatureState creature, CreatureDef definition)
+    {
+        return creature.TargetTileIndex >= 0 && IsFamily(creature.TargetWork)
         && creature.Dk2StateId == ImpStates.For(creature.TargetWork).Work
         && ActionAnimationClock.CanPlay(definition, ArtSlot);
+    }
 
-    internal static bool IsFamily(TileWorkKind kind) =>
-        kind is TileWorkKind.Claim or TileWorkKind.AttackTile or TileWorkKind.ConvertRoom;
+    internal static bool IsFamily(TileWorkKind kind)
+    {
+        return kind is TileWorkKind.Claim or TileWorkKind.AttackTile or TileWorkKind.ConvertRoom;
+    }
 
     internal static void Begin(SimulationContext context, CreatureState creature, CreatureDef definition, TilePos target)
     {
@@ -138,20 +142,25 @@ internal static class ClaimActionRules
         }
     }
 
-    private static TileWorkKind WorkKind(ClaimActionKind kind) => kind switch
+    private static TileWorkKind WorkKind(ClaimActionKind kind)
     {
-        ClaimActionKind.Claim => TileWorkKind.Claim,
-        ClaimActionKind.AttackFloor => TileWorkKind.AttackTile,
-        ClaimActionKind.ConvertRoom => TileWorkKind.ConvertRoom,
-        _ => throw new InvalidOperationException("No claim action is running."),
-    };
+        return kind switch
+        {
+            ClaimActionKind.Claim => TileWorkKind.Claim,
+            ClaimActionKind.AttackFloor => TileWorkKind.AttackTile,
+            ClaimActionKind.ConvertRoom => TileWorkKind.ConvertRoom,
+            _ => throw new InvalidOperationException("No claim action is running."),
+        };
+    }
 
-    private static bool Workable(SimulationContext context, CreatureState creature, ClaimActionState action) =>
-        context.World.Contains(action.Target)
+    private static bool Workable(SimulationContext context, CreatureState creature, ClaimActionState action)
+    {
+        return context.World.Contains(action.Target)
         && (action.Kind == ClaimActionKind.Claim
             ? TileWorkRules.IsClaimablePath(context.Database, context.World.Tile(action.Target))
             : TileWorkRules.Applies(context.World, context.Database, context.World.Tile(action.Target),
                 WorkKind(action.Kind), creature.OwnerPlayerId));
+    }
 
     internal static void Advance(SimulationContext context, CreatureState creature)
     {

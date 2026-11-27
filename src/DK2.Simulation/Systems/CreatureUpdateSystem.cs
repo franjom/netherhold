@@ -36,13 +36,27 @@ public sealed class CreatureUpdateSystem : ISimulationSystem
 {
     private readonly ICreatureUpdateStep[] _steps;
 
-    public CreatureUpdateSystem(params ICreatureUpdateStep[] steps) =>
+    public CreatureUpdateSystem(params ICreatureUpdateStep[] steps)
+    {
         _steps = steps ?? throw new ArgumentNullException(nameof(steps));
+    }
 
-    public string Name => "CreatureUpdate";
+    public string Name
+    {
+        get
+        {
+            return "CreatureUpdate";
+        }
+    }
 
     /// <summary>The steps, in the order each creature takes them.</summary>
-    public IReadOnlyList<ICreatureUpdateStep> Steps => _steps;
+    public IReadOnlyList<ICreatureUpdateStep> Steps
+    {
+        get
+        {
+            return _steps;
+        }
+    }
 
     public void Execute(SimulationContext context)
     {

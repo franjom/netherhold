@@ -69,10 +69,12 @@ public static class ManufactureRules
     }
 
     /// <summary>The crate object a trap or door order produces, or 0.</summary>
-    public static byte CrateObjectId(GameDatabase database, ManufactureOrder order) =>
-        order.Kind == TrapKind
+    public static byte CrateObjectId(GameDatabase database, ManufactureOrder order)
+    {
+        return order.Kind == TrapKind
             ? database.Traps.TryGetValue(order.TypeId, out TrapDef? trap) ? trap.CrateObjectId : (byte)0
             : database.Doors.TryGetValue(order.TypeId, out DoorDef? door) ? door.CrateObjectId : (byte)0;
+    }
 
     /// <summary>The door loader's push (<c>0x00520F40</c>) for the authored door just placed: a
     /// blueprint makes an order through <c>0x005066E0</c> while the keeper's door blueprints of its
@@ -260,9 +262,11 @@ public static class ManufactureRules
         return best;
     }
 
-    private static bool IsAttached(WorldState world, RoomInstance room, CreatureState c) =>
-        CreatureStateMachine.UpdatingCategory(c) == CreatureStateCategory.Manufacture
+    private static bool IsAttached(WorldState world, RoomInstance room, CreatureState c)
+    {
+        return CreatureStateMachine.UpdatingCategory(c) == CreatureStateCategory.Manufacture
         && EatingRules.Contains(room, (c.Tile.Y * world.Width) + c.Tile.X);
+    }
 
     private static bool Occupied(WorldState world, RoomInstance room, byte keeper)
     {

@@ -28,7 +28,10 @@ public static class CreatureDeathRules
     public const int DyingState = 217;
 
     /// <summary>Whether this creature has run out of health — not the same as dead.</summary>
-    public static bool HasCollapsed(CreatureState creature) => creature.Health <= 0;
+    public static bool HasCollapsed(CreatureState creature)
+    {
+        return creature.Health <= 0;
+    }
 
     /// <summary>Whether running out of health puts this creature on the floor at all, or simply
     /// ends it. <b>Four gates, in DK2's own order</b>, read from <c>ModifyHealth</c>
@@ -77,15 +80,19 @@ public static class CreatureDeathRules
     /// and refuses kinds 11 and 12 (<c>0x004B2F81</c>), which are the Prison and the Torture
     /// Chamber. Both have their own way to end a creature — the Prison's is built
     /// (ADR-0064, a Skeleton for the jailer) and the Torture Chamber's is not.</summary>
-    public static bool RoomRefusesTheDyingWindow(RoomDef room) =>
-        room.RoomId is (byte)RoomTypeId.Prison or (byte)RoomTypeId.TortureChamber;
+    public static bool RoomRefusesTheDyingWindow(RoomDef room)
+    {
+        return room.RoomId is (byte)RoomTypeId.Prison or (byte)RoomTypeId.TortureChamber;
+    }
 
     /// <summary>Whether this creature skips the collapsed window when it dies out of doors.
     /// <c>0x0048E110</c> answers true for creature types 21, 28 and 29 — King Reginald,
     /// Stone Knight and Lord Of The Land — <b>before</b> it looks at the flag at all, so
     /// those three carry it whatever a script asked for.</summary>
-    public static bool DiesInstantly(CreatureDef creature, CreatureState state) =>
-        creature.CreatureId is 21 or 28 or 29 || state.DieInstantly;
+    public static bool DiesInstantly(CreatureDef creature, CreatureState state)
+    {
+        return creature.CreatureId is 21 or 28 or 29 || state.DieInstantly;
+    }
 
     /// <summary>Whether any keeper is possessing this creature. Its own gate in DK2
     /// (<c>0x004B2F37</c>): a possessed creature dies outright. PossessionRules
@@ -109,8 +116,10 @@ public static class CreatureDeathRules
     /// permanently dead. The data agrees — the Graveyard's <c>CreatedCreatureId</c> is 8, the
     /// Vampire, and its object ids 31-34 are not the Vampire's <c>LairObjectId</c> of 26, so
     /// reincarnation is a Graveyard tile and not <see cref="Rescue"/> (<see cref="TryReincarnate"/>).</summary>
-    public static bool CanBeResurrected(CreatureDef creature) =>
-        ((creature.Flags & CreatureFlags.CanBeResurrected) == CreatureFlags.CanBeResurrected);
+    public static bool CanBeResurrected(CreatureDef creature)
+    {
+        return ((creature.Flags & CreatureFlags.CanBeResurrected) == CreatureFlags.CanBeResurrected);
+    }
 
     /// <summary>The reincarnation <c>0x0048FFC0</c> (creature-death.md §2.3, Q329), tried for a
     /// <see cref="CanBeResurrected"/> creature whose health has run out. Its guards, in order: not on
@@ -173,40 +182,54 @@ public static class CreatureDeathRules
     }
 
     /// <summary>Whether this creature is in the collapsed, rescuable window.</summary>
-    public static bool IsDying(CreatureState creature) =>
-        creature.Activity == CreatureActivity.Dying;
+    public static bool IsDying(CreatureState creature)
+    {
+        return creature.Activity == CreatureActivity.Dying;
+    }
 
     /// <summary>Whether this creature is dead and lying as a corpse — the second window, and the one an imp carries to a graveyard.</summary>
-    public static bool IsCorpse(CreatureState creature) =>
-        creature.Activity == CreatureActivity.Dead;
+    public static bool IsCorpse(CreatureState creature)
+    {
+        return creature.Activity == CreatureActivity.Dead;
+    }
 
     /// <summary>Whether this creature is off its feet: out of health, or already dying. Every system
     /// guards on this, not <see cref="IsDying"/>: the damage books the collapse and
     /// <see cref="Systems.CollapseSystem"/> runs it after the creature sweep (ADR-0765), so a creature can have no health and still be idle until then;
     /// guarding on <c>IsDying</c> alone let a creature at zero health walk to its bed under
     /// <c>CreatureSleepsWhenBelowPercentHealth</c> and heal, and let an Imp regenerate 67 a second on its own land back to 500.</summary>
-    public static bool IsDown(CreatureState creature) =>
-        HasCollapsed(creature) || IsDying(creature);
+    public static bool IsDown(CreatureState creature)
+    {
+        return HasCollapsed(creature) || IsDying(creature);
+    }
 
     /// <summary>How long a collapsed creature lies there before it dies —
     /// <c>CreatureDyingStateDurationSeconds</c>, 60. From the database: levels are free to differ.</summary>
-    public static int DyingWindowTicks(GameDatabase database) =>
-        SimulationTiming.TicksFromSeconds(
+    public static int DyingWindowTicks(GameDatabase database)
+    {
+        return SimulationTiming.TicksFromSeconds(
             database[VariableTypeId.CreatureDyingStateDurationSeconds]);
+    }
 
     /// <summary>How long a corpse lies there before it rots away — <c>DeadBodyDiesAfterSeconds</c>,
     /// also 60. The window an imp has to carry it to a graveyard (ADR-0063, <see cref="CarryRules"/>).</summary>
-    public static int BodyWindowTicks(GameDatabase database) =>
-        SimulationTiming.TicksFromSeconds(
+    public static int BodyWindowTicks(GameDatabase database)
+    {
+        return SimulationTiming.TicksFromSeconds(
             database[VariableTypeId.DeadBodyDiesAfterSeconds]);
+    }
 
     /// <summary>Whether the dying window has run out and this creature is now dead.</summary>
-    public static bool DyingWindowElapsed(GameDatabase database, CreatureState creature) =>
-        creature.DyingTicks >= DyingWindowTicks(database);
+    public static bool DyingWindowElapsed(GameDatabase database, CreatureState creature)
+    {
+        return creature.DyingTicks >= DyingWindowTicks(database);
+    }
 
     /// <summary>Whether a corpse has lain there long enough to disappear.</summary>
-    public static bool BodyWindowElapsed(GameDatabase database, CreatureState creature) =>
-        creature.DyingTicks >= BodyWindowTicks(database);
+    public static bool BodyWindowElapsed(GameDatabase database, CreatureState creature)
+    {
+        return creature.DyingTicks >= BodyWindowTicks(database);
+    }
 
     /// <summary>Turns a collapsed creature into a corpse: the second state of the owner's pipeline.
     /// Only for creatures that leave a body (<see cref="LeavesBody"/>) — an Imp and a Vampire skip
@@ -239,14 +262,18 @@ public static class CreatureDeathRules
     /// exactly, the set that never gets hungry, which holds the Unique Firefly and not Jack. There
     /// is no undead flag; <c>CreatureNeedsOnRealDataTests</c> asserts all three sets by name. Trap:
     /// this flag governs and <c>DecomposeValue</c> does not — Horny and Jack carry a decompose value of 200 while generating no body, so a graveyard counting it would be fed by corpses that never exist.</summary>
-    public static bool LeavesBody(CreatureDef creature) =>
-        ((creature.Flags & CreatureFlags.GenerateDeadBody) == CreatureFlags.GenerateDeadBody);
+    public static bool LeavesBody(CreatureDef creature)
+    {
+        return ((creature.Flags & CreatureFlags.GenerateDeadBody) == CreatureFlags.GenerateDeadBody);
+    }
 
     /// <summary>The death bookkeeping's gate (<c>0x00487C70</c>): the definition flag and its
     /// runtime copy, which mana-removal selection clears (<see cref="CreatureState.CorpseSuppressed"/>).
     /// <see cref="HasDyingState"/> reads the definition alone, as <c>ModifyHealth</c> does.</summary>
-    public static bool LeavesBody(CreatureDef creature, CreatureState state) =>
-        LeavesBody(creature) && !state.CorpseSuppressed;
+    public static bool LeavesBody(CreatureDef creature, CreatureState state)
+    {
+        return LeavesBody(creature) && !state.CorpseSuppressed;
+    }
 
     /// <summary>Drops a creature to the ground at zero health, starting the rescue window. Returns
     /// false if it was already dying. It keeps its bed on purpose: the rescue path is an imp

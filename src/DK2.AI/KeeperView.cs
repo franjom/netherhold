@@ -207,13 +207,17 @@ public sealed class KeeperView : INavByteGrid
 
     /// <summary>Two tiles east of the heart tile, at its centre: where the battle step's route test
     /// starts (<c>0x00503060</c>, heart x + 2).</summary>
-    public static Fixed16Vector StagingPoint(TilePos heart) =>
-        new(CreatureState.CentreOf(heart.X + 2) << 4, CreatureState.CentreOf(heart.Y) << 4);
+    public static Fixed16Vector StagingPoint(TilePos heart)
+    {
+        return new(CreatureState.CentreOf(heart.X + 2) << 4, CreatureState.CentreOf(heart.Y) << 4);
+    }
 
     /// <summary>The route test's mover (<c>0x004D1700</c> with options 1, 0, 0, 0): the player's
     /// own locked doors pass, no lava; its water flag is a stale global, taken as off.</summary>
-    public static MoverProfile StagingWalker(PlayerId playerId) =>
-        new(false, false, playerId.Value, RespectDoors: false, PassOwnLockedDoors: true, EntersPortalHole: false);
+    public static MoverProfile StagingWalker(PlayerId playerId)
+    {
+        return new(false, false, playerId.Value, RespectDoors: false, PassOwnLockedDoors: true, EntersPortalHole: false);
+    }
 
     internal KeeperView(GameDatabase database, PlayerId playerId, GameTick tick, byte status, byte alliedWith, PlayerId[] playerIds,
         int width, int height, int gold, int impCount, TilePos? heart,
@@ -269,18 +273,58 @@ public sealed class KeeperView : INavByteGrid
         OwnedTiles = tiles.Count(t => t.OwnerPlayerId == playerId);
     }
 
-    internal IReadOnlyList<AvailabilityState> AvailabilityEntries => _availability;
-    internal IReadOnlyList<byte> StatusEntries => _statuses;
-    internal IReadOnlyList<bool> HeartRuinedEntries => _heartRuined;
+    internal IReadOnlyList<AvailabilityState> AvailabilityEntries
+    {
+        get
+        {
+            return _availability;
+        }
+    }
+
+    internal IReadOnlyList<byte> StatusEntries
+    {
+        get
+        {
+            return _statuses;
+        }
+    }
+
+    internal IReadOnlyList<bool> HeartRuinedEntries
+    {
+        get
+        {
+            return _heartRuined;
+        }
+    }
 
     /// <summary>Whether a player's own heart is gone (<see cref="PlayerState.HeartRuined"/>). The random
     /// room draw reads the room's ruin instead (<see cref="KeeperRoomView.Ruined"/>, ADR-0662).</summary>
-    public bool HeartRuined(PlayerId playerId) => playerId.Value < _heartRuined.Length && _heartRuined[playerId.Value];
-    internal IEnumerable<int> CallRefusedTiles => _callRefusedTiles.OrderBy(i => i);
-    internal IEnumerable<int> SightRefusedTiles => _sightRefusedTiles.OrderBy(i => i);
+    public bool HeartRuined(PlayerId playerId)
+    {
+        return playerId.Value < _heartRuined.Length && _heartRuined[playerId.Value];
+    }
+
+    internal IEnumerable<int> CallRefusedTiles
+    {
+        get
+        {
+            return _callRefusedTiles.OrderBy(i => i);
+        }
+    }
+
+    internal IEnumerable<int> SightRefusedTiles
+    {
+        get
+        {
+            return _sightRefusedTiles.OrderBy(i => i);
+        }
+    }
 
     /// <summary>Every player's status (<c>player+0x19A</c>) by id, 0 for an id the world lacks.</summary>
-    public byte StatusOf(PlayerId playerId) => playerId.Value < _statuses.Length ? _statuses[playerId.Value] : (byte)0;
+    public byte StatusOf(PlayerId playerId)
+    {
+        return playerId.Value < _statuses.Length ? _statuses[playerId.Value] : (byte)0;
+    }
 
     /// <summary>A player's <c>DungeonHeartPosition</c>: the middle of its Dungeon Heart room, or null
     /// when it has none; the attack planner reads a missing one as tile (0, 0), as DK2's zeroed
@@ -299,8 +343,10 @@ public sealed class KeeperView : INavByteGrid
     }
 
     /// <summary>A room's first slab (<c>+0x2D</c>), kept here as the first tile listed.</summary>
-    public TilePos FirstSlabOf(KeeperRoomView room) =>
-        room.TileIndices.Count == 0 ? Centre(room) : FromIndex(room.TileIndices[0]);
+    public TilePos FirstSlabOf(KeeperRoomView room)
+    {
+        return room.TileIndices.Count == 0 ? Centre(room) : FromIndex(room.TileIndices[0]);
+    }
 
     /// <summary>A room's <c>CentrePos</c> (<c>+0x27</c>) as <c>0x004E4590</c> writes it: the first slab
     /// plus one for a Portal, plus three for the Heart, the first slab itself for ids 18 to 24, and
@@ -359,17 +405,25 @@ public sealed class KeeperView : INavByteGrid
     /// <summary>The place validators of a Call to Arms cast at a tile (<c>0x004BB8A0</c>): location
     /// 4's navigation solid bit, and target 4's exclusions on the keeper's own room tiles, captured
     /// with the observation.</summary>
-    public bool CallToArmsPlaceAllowed(TilePos at) =>
-        InBounds(at) && !NavBytes.IsSolid(Tile(at).NavigationByte) && !_callRefusedTiles.Contains(IndexOf(at));
+    public bool CallToArmsPlaceAllowed(TilePos at)
+    {
+        return InBounds(at) && !NavBytes.IsSolid(Tile(at).NavigationByte) && !_callRefusedTiles.Contains(IndexOf(at));
+    }
 
     /// <summary>The place validators of a Sight of Evil cast at a tile (<c>0x004BB8A0</c>): location 5
     /// admits anything, so only target 4's exclusions on the keeper's own room tiles refuse; captured
     /// only while spell 1 is at availability 3, the one case the Sight step asks.</summary>
-    public bool SightPlaceAllowed(TilePos at) => InBounds(at) && !_sightRefusedTiles.Contains(IndexOf(at));
+    public bool SightPlaceAllowed(TilePos at)
+    {
+        return InBounds(at) && !_sightRefusedTiles.Contains(IndexOf(at));
+    }
 
     /// <summary>A tile whose owner <c>0x004BF390</c> calls an enemy: not this keeper and not allied,
     /// unowned land included, since DK2 holds it for the neutral player.</summary>
-    public bool IsEnemyLand(TilePos at) => InBounds(at) && !AreAllied(Tile(at).OwnerPlayerId);
+    public bool IsEnemyLand(TilePos at)
+    {
+        return InBounds(at) && !AreAllied(Tile(at).OwnerPlayerId);
+    }
 
     /// <summary><c>0x004FDB90</c>: enemy land on any of the nine tiles around and under a tile.</summary>
     public bool EnemyLandAround(TilePos at)
@@ -430,8 +484,12 @@ public sealed class KeeperView : INavByteGrid
     public byte AlliedWith { get; }
     public IReadOnlyList<PlayerId> PlayerOrder { get; }
 
-    public bool AreAllied(PlayerId otherId) => otherId == PlayerId
+    public bool AreAllied(PlayerId otherId)
+    {
+        return otherId == PlayerId
         || (otherId.Value < 8 && (AlliedWith & (1 << otherId.Value)) != 0);
+    }
+
     public IReadOnlyList<KeeperCreatureView> Creatures { get; }
     public IReadOnlyList<KeeperTrapView> Traps { get; }
     public IReadOnlyList<KeeperDoorView> Doors { get; }
@@ -458,13 +516,22 @@ public sealed class KeeperView : INavByteGrid
     public int ImpCount { get; }
 
     /// <summary>Things in this keeper's hand, against <see cref="HandRules.Capacity"/>.</summary>
-    public int HandCount => HandItems.Count;
+    public int HandCount
+    {
+        get
+        {
+            return HandItems.Count;
+        }
+    }
 
     /// <summary>The hand's list in pick-up order (<c>player+0xB2</c>); a drop takes the last.</summary>
     public IReadOnlyList<HandItem> HandItems { get; }
 
     /// <summary>The navigation byte captured for a tile (<see cref="INavByteGrid"/>).</summary>
-    public byte NavByte(int x, int y) => _tiles[(y * Width) + x].NavigationByte;
+    public byte NavByte(int x, int y)
+    {
+        return _tiles[(y * Width) + x].NavigationByte;
+    }
 
     /// <summary>The availability row for a kind and type, or null when the player has none.</summary>
     public AvailabilityState? AvailabilityRow(AvailabilityKind kind, int typeId)
@@ -482,11 +549,28 @@ public sealed class KeeperView : INavByteGrid
 
     public int Width { get; }
     public int Height { get; }
-    public int TileCount => _tiles.Length;
+    public int TileCount
+    {
+        get
+        {
+            return _tiles.Length;
+        }
+    }
 
-    public bool InBounds(TilePos p) => p.X >= 0 && p.Y >= 0 && p.X < Width && p.Y < Height;
-    public int IndexOf(TilePos p) => (p.Y * Width) + p.X;
-    public TilePos FromIndex(int index) => new(index % Width, index / Width);
+    public bool InBounds(TilePos p)
+    {
+        return p.X >= 0 && p.Y >= 0 && p.X < Width && p.Y < Height;
+    }
+
+    public int IndexOf(TilePos p)
+    {
+        return (p.Y * Width) + p.X;
+    }
+
+    public TilePos FromIndex(int index)
+    {
+        return new(index % Width, index / Width);
+    }
 
     public KeeperTileView Tile(TilePos p)
     {
@@ -524,7 +608,10 @@ public sealed class KeeperView : INavByteGrid
         return false;
     }
 
-    public TerrainDef Terrain(TilePos p) => Database.TerrainById(Tile(p).TerrainId);
+    public TerrainDef Terrain(TilePos p)
+    {
+        return Database.TerrainById(Tile(p).TerrainId);
+    }
 
     /// <summary>The simulation's placement verdict, predicted over the captured tiles.</summary>
     public RoomPlacement CanBuild(TilePos p, RoomDef room)
@@ -573,10 +660,20 @@ public sealed class KeeperView : INavByteGrid
     }
 
     /// <summary>Solid, or off the map.</summary>
-    public bool IsSolid(TilePos p) => !InBounds(p) || Terrain(p).IsSolid;
+    public bool IsSolid(TilePos p)
+    {
+        return !InBounds(p) || Terrain(p).IsSolid;
+    }
 
-    public bool IsWater(TilePos p) => InBounds(p) && Terrain(p).IsWater;
-    public bool IsLava(TilePos p) => InBounds(p) && Terrain(p).IsLava;
+    public bool IsWater(TilePos p)
+    {
+        return InBounds(p) && Terrain(p).IsWater;
+    }
+
+    public bool IsLava(TilePos p)
+    {
+        return InBounds(p) && Terrain(p).IsLava;
+    }
 
     /// <summary>Open ground a creature walks on: not solid, not water, not lava.</summary>
     public bool IsPassable(TilePos p)
@@ -590,13 +687,23 @@ public sealed class KeeperView : INavByteGrid
         return !t.IsSolid && !t.IsWater && !t.IsLava;
     }
 
-    public bool IsMine(TilePos p) => InBounds(p) && Tile(p).OwnerPlayerId == PlayerId;
+    public bool IsMine(TilePos p)
+    {
+        return InBounds(p) && Tile(p).OwnerPlayerId == PlayerId;
+    }
 
     /// <summary>Threat-reader candidate gate: ownership and navigation bit 3 (0x00509200).</summary>
-    public bool IsThreatDropCandidate(TilePos p) => IsMine(p) && !NavBytes.IsSolid(Tile(p).NavigationByte);
+    public bool IsThreatDropCandidate(TilePos p)
+    {
+        return IsMine(p) && !NavBytes.IsSolid(Tile(p).NavigationByte);
+    }
+
     /// <summary>World slot <c>+0x208</c> (<c>0x00509200</c>): the route map's solid bit; off the map
     /// is solid.</summary>
-    public bool IsNavSolid(TilePos p) => !InBounds(p) || NavBytes.IsSolid(Tile(p).NavigationByte);
+    public bool IsNavSolid(TilePos p)
+    {
+        return !InBounds(p) || NavBytes.IsSolid(Tile(p).NavigationByte);
+    }
 
     /// <summary><see cref="BlueprintPlacementRules.CanTrap"/> (<c>0x00450EB0</c>) over the captured
     /// tiles, things and the <paramref name="pending"/> ones this tick has placed.</summary>
@@ -655,9 +762,20 @@ public sealed class KeeperView : INavByteGrid
             || (IsSolid(new TilePos(p.X + 1, p.Y)) && IsSolid(new TilePos(p.X - 1, p.Y)));
     }
 
-    public bool HasRoom(TilePos p) => InBounds(p) && Terrain(p).IsRoom;
-    public bool IsTaggedByMe(TilePos p) => InBounds(p) && Tile(p).IsTaggedBy(PlayerId);
-    public bool IsTaggedByAnyone(TilePos p) => InBounds(p) && Tile(p).IsTaggedByAnyone;
+    public bool HasRoom(TilePos p)
+    {
+        return InBounds(p) && Terrain(p).IsRoom;
+    }
+
+    public bool IsTaggedByMe(TilePos p)
+    {
+        return InBounds(p) && Tile(p).IsTaggedBy(PlayerId);
+    }
+
+    public bool IsTaggedByAnyone(TilePos p)
+    {
+        return InBounds(p) && Tile(p).IsTaggedByAnyone;
+    }
 
     /// <summary>Solid rock that yields gold when dug.</summary>
     public bool IsGoldRock(TilePos p)
@@ -672,11 +790,15 @@ public sealed class KeeperView : INavByteGrid
     }
 
     /// <summary>A room instance may be dug into or built on when it is nobody's or the neutral side's.</summary>
-    public static bool IsNeutral(KeeperRoomView room) =>
-        room.OwnerPlayerId == PlayerIds.Unowned || room.OwnerPlayerId == PlayerIds.Neutral;
+    public static bool IsNeutral(KeeperRoomView room)
+    {
+        return room.OwnerPlayerId == PlayerIds.Unowned || room.OwnerPlayerId == PlayerIds.Neutral;
+    }
 
-    public static TilePos Centre(KeeperRoomView room) =>
-        new((room.MinX + room.MaxX) / 2, (room.MinY + room.MaxY) / 2);
+    public static TilePos Centre(KeeperRoomView room)
+    {
+        return new((room.MinX + room.MaxX) / 2, (room.MinY + room.MaxY) / 2);
+    }
 
     public static int DistanceSquared(TilePos a, TilePos b)
     {

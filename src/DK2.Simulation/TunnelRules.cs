@@ -351,8 +351,10 @@ public static class TunnelRules
 
     /// <summary>A clip asked to stop is done once it has run into its End and completed; with no clip
     /// (ours, art the creature lacks) at once.</summary>
-    private static bool StoppedClipDone(CreatureState creature) =>
-        creature.ActionAnimationRate == 0 || (creature.ActionAnimationFlags & ActionAnimationFlags.Complete) != 0;
+    private static bool StoppedClipDone(CreatureState creature)
+    {
+        return creature.ActionAnimationRate == 0 || (creature.ActionAnimationFlags & ActionAnimationFlags.Complete) != 0;
+    }
 
     /// <summary>The runner's poll of the swing (<c>0x00496AA0</c>, mode 3): the handler is called until it
     /// returns done, and the action ends when the handler and the clip are both done. The handler strikes
@@ -678,13 +680,18 @@ public static class TunnelRules
     }
 
     /// <summary><c>0x00471630</c>, the route test.</summary>
-    private static bool Reachable(SimulationContext context, CreatureState creature, int x, int y) =>
-        Combat.CombatTargetRules.CanReach(context.Navigation, creature, context.Database.CreatureById(creature.CreatureTypeId),
+    private static bool Reachable(SimulationContext context, CreatureState creature, int x, int y)
+    {
+        return Combat.CombatTargetRules.CanReach(context.Navigation, creature, context.Database.CreatureById(creature.CreatureTypeId),
             x, y, int.MaxValue, []);
+    }
 
     /// <summary>World slot <c>+0x208</c>, bit 3 of the route map (<c>0x00509200</c>): ours, the terrain's
     /// <c>Solid</c>. Off the map counts as solid and impenetrable.</summary>
-    private static bool IsSolid(SimulationContext context, int x, int y) => Terrain(context, x, y).IsSolid;
+    private static bool IsSolid(SimulationContext context, int x, int y)
+    {
+        return Terrain(context, x, y).IsSolid;
+    }
 
     /// <summary><c>0x00453D10</c>: solid and not impenetrable.</summary>
     private static bool IsDiggable(SimulationContext context, int x, int y)
@@ -713,8 +720,10 @@ public static class TunnelRules
         return !fullWall || tile.OwnerPlayerId != creature.OwnerPlayerId;
     }
 
-    private static byte Owner(SimulationContext context, int x, int y) =>
-        context.World.Contains(new TilePos(x, y)) ? context.World.Tile(x, y).OwnerPlayerId : (byte)0;
+    private static byte Owner(SimulationContext context, int x, int y)
+    {
+        return context.World.Contains(new TilePos(x, y)) ? context.World.Tile(x, y).OwnerPlayerId : (byte)0;
+    }
 
     private static TerrainDef Terrain(SimulationContext context, int x, int y)
     {
@@ -740,8 +749,13 @@ public static class TunnelRules
         throw new InvalidOperationException("No impenetrable terrain in the database.");
     }
 
-    private static bool IsWorker(SimulationContext context, CreatureState creature) =>
-        ((context.Database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker);
+    private static bool IsWorker(SimulationContext context, CreatureState creature)
+    {
+        return ((context.Database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker);
+    }
 
-    private static int Centre(int tile) => CreatureState.CentreOf(tile);
+    private static int Centre(int tile)
+    {
+        return CreatureState.CentreOf(tile);
+    }
 }

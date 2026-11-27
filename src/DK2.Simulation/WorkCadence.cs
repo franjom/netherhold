@@ -26,31 +26,41 @@ public static class WorkCadence
     /// <summary>The first application to the second. Ordinary dig art advances 1365 per tick:
     /// three advances reach 4095, so its first cycle takes four (mining-cadence.md §5).
     /// Conversion, attack and repair retain their unconfirmed family defaults.</summary>
-    public static int SecondApplicationGap(TileWorkKind kind) => kind switch
+    public static int SecondApplicationGap(TileWorkKind kind)
     {
-        TileWorkKind.MineGold => 4,
-        TileWorkKind.Dig or TileWorkKind.DigOwnWall or TileWorkKind.DigEnemyWall => 4,
-        TileWorkKind.Reinforce or TileWorkKind.RepairWall => 3,
-        _ => 1,
-    };
+        return kind switch
+        {
+            TileWorkKind.MineGold => 4,
+            TileWorkKind.Dig or TileWorkKind.DigOwnWall or TileWorkKind.DigEnemyWall => 4,
+            TileWorkKind.Reinforce or TileWorkKind.RepairWall => 3,
+            _ => 1,
+        };
+    }
 
     /// <summary>The ticks until the next application, just after one lands at
     /// <paramref name="now"/> for a worker whose work state began at
     /// <paramref name="enteredWorkState"/>.</summary>
-    public static int AfterApplication(TileWorkKind kind, long now, long enteredWorkState) =>
-        now - enteredWorkState == FirstApplicationTicks - 1 ? SecondApplicationGap(kind) : 1;
+    public static int AfterApplication(TileWorkKind kind, long now, long enteredWorkState)
+    {
+        return now - enteredWorkState == FirstApplicationTicks - 1 ? SecondApplicationGap(kind) : 1;
+    }
 
     /// <summary>How long one work action lasts. Dig 6: a one-strike dig runs E to E+5, and a
     /// wall's 42 ticks are seven actions. Claim 2: runs of 6 and 8 after last applications at
     /// E+5 and E+6. UNKNOWN for the rest, which leave as soon as the task is gone.</summary>
-    public static int ActionTicks(TileWorkKind kind) => kind switch
+    public static int ActionTicks(TileWorkKind kind)
     {
-        TileWorkKind.Dig or TileWorkKind.DigOwnWall or TileWorkKind.DigEnemyWall => 6,
-        TileWorkKind.Claim => 2,
-        _ => 1,
-    };
+        return kind switch
+        {
+            TileWorkKind.Dig or TileWorkKind.DigOwnWall or TileWorkKind.DigEnemyWall => 6,
+            TileWorkKind.Claim => 2,
+            _ => 1,
+        };
+    }
 
     /// <summary>Whether an action ends at <paramref name="now"/>, so a finished task is noticed.</summary>
-    public static bool ActionEnded(TileWorkKind kind, long now, long enteredWorkState) =>
-        (now - enteredWorkState) % ActionTicks(kind) == 0;
+    public static bool ActionEnded(TileWorkKind kind, long now, long enteredWorkState)
+    {
+        return (now - enteredWorkState) % ActionTicks(kind) == 0;
+    }
 }

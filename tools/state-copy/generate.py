@@ -199,18 +199,25 @@ def generate(name: str, spec: dict) -> tuple[str, list[str]]:
     ctor = spec.get("ctor")
     out = [f"{access} sealed partial class {name}" + (f" : IStateCopy<{name}>" if ctor else ""), "{"]
     if ctor:
-        out.append(f"    int IStateCopy<{name}>.Key => {key};" if key else f"    int IStateCopy<{name}>.Key => 0;")
-        out.append("")
+        out.extend([
+            f"    int IStateCopy<{name}>.Key",
+            "    {",
+            "        get",
+            "        {",
+            f"            return {key or 0};",
+            "        }",
+            "    }",
+            "",
+            f"    public {name} Clone()",
+            "    {",
+        ])
         if ctor == "memberwise":
-            out.append(f"    public {name} Clone() => ({name})MemberwiseClone();")
+            out.append(f"        return ({name})MemberwiseClone();")
         else:
-            out.append(f"    public {name} Clone()")
-            out.append("    {")
             out.append(f"        var copy = {ctor};")
             out.append("        copy.CopyFrom(this);")
             out.append("        return copy;")
-            out.append("    }")
-        out.append("")
+        out.extend(["    }", ""])
     out.append(f"    public void CopyFrom({name} other)")
     out.append("    {")
     out.extend(f"        {line}" for line in lines)

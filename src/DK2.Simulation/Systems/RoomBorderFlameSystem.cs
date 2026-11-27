@@ -20,11 +20,20 @@ public sealed class RoomBorderFlameSystem : IRoomTickStep
 {
     private readonly List<RoomBorderCursor> _next = [];
 
-    public string Name => "RoomBorderFlames";
+    public string Name
+    {
+        get
+        {
+            return "RoomBorderFlames";
+        }
+    }
 
     private bool _births;
 
-    public void Execute(SimulationContext context) => RoomTickSystem.RunAlone(context, this);
+    public void Execute(SimulationContext context)
+    {
+        RoomTickSystem.RunAlone(context, this);
+    }
 
     public void BeginTurn(SimulationContext context)
     {
@@ -32,8 +41,10 @@ public sealed class RoomBorderFlameSystem : IRoomTickStep
         _next.Clear();
     }
 
-    public bool Applies(SimulationContext context, RoomInstance room) =>
-        (room.Definition.Flags & RoomFlags.HasFlame) != 0 && room.OwnerPlayerId != 0;
+    public bool Applies(SimulationContext context, RoomInstance room)
+    {
+        return (room.Definition.Flags & RoomFlags.HasFlame) != 0 && room.OwnerPlayerId != 0;
+    }
 
     public void Tick(SimulationContext context, RoomInstance room)
     {

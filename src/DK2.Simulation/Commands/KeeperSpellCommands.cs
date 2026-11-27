@@ -30,7 +30,10 @@ public sealed record CastSpellAtPlaceCommand(PlayerId PlayerId, byte SpellId, in
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/call-to-arms.md")]
 public sealed record RemoveCallToArmsCommand(PlayerId PlayerId) : PlayerCommand(PlayerId)
 {
-    public override void HashInto(ref Hash64 hash) => base.HashInto(ref hash);
+    public override void HashInto(ref Hash64 hash)
+    {
+        base.HashInto(ref hash);
+    }
 }
 
 /// <summary>Packet action 55: a keeper spell cast at a creature. Thunderbolt (6, ADR-0260) and

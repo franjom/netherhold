@@ -57,11 +57,19 @@ public sealed class KeeperAI
 
     /// <summary>How many routing meshes this keeper has built: one per change of the navigation
     /// bytes between turns that ask a route, not one per turn.</summary>
-    public int RouteMeshBuilds => _routes.Builds;
+    public int RouteMeshBuilds
+    {
+        get
+        {
+            return _routes.Builds;
+        }
+    }
 
     /// <summary>One player tick (§5.1). Returns the commands to put in the next input frame.</summary>
     public IReadOnlyList<PlayerCommand> Think(GameDatabase database, WorldState world, KeeperStaging? staging = null)
-        => Think(new KeeperView(database, world, PlayerId, _playerActivationOrder, staging));
+    {
+        return Think(new KeeperView(database, world, PlayerId, _playerActivationOrder, staging));
+    }
 
     public IReadOnlyList<PlayerCommand> Think(KeeperView view)
     {
@@ -232,8 +240,10 @@ public sealed class KeeperAI
     }
 
     /// <summary>Availability 3 (<c>0x004BAB20</c>), or the caller's override.</summary>
-    private Func<byte, bool> RoomAvailable(KeeperView view) =>
-        _isRoomAvailable ?? (id => view.Availability(AvailabilityKind.Room, id) == RoomNeedRules.Available);
+    private Func<byte, bool> RoomAvailable(KeeperView view)
+    {
+        return _isRoomAvailable ?? (id => view.Availability(AvailabilityKind.Room, id) == RoomNeedRules.Available);
+    }
 
     private void CreateImps(KeeperView view, List<PlayerCommand> commands, ref int budget)
     {
@@ -266,10 +276,12 @@ public sealed class KeeperAI
     /// Level 17's Harkan has (1,1)-(40,64), which refuses the neutral Portals at (53,6) and (16,70)
     /// (Q546). Deviates: a record with no rectangle gets the whole map where DK2 would store zeros;
     /// none of the 121 shipped computer records has one.</summary>
-    private static BuildArea RecordArea(KeeperAIParameters p, KeeperView view) =>
-        p.MaxBuildAreaMaxX == 0 && p.MaxBuildAreaMaxY == 0
+    private static BuildArea RecordArea(KeeperAIParameters p, KeeperView view)
+    {
+        return p.MaxBuildAreaMaxX == 0 && p.MaxBuildAreaMaxY == 0
             ? BuildArea.WholeMap(view.Width, view.Height)
             : new BuildArea(p.MaxBuildAreaMinX, p.MaxBuildAreaMinY, p.MaxBuildAreaMaxX, p.MaxBuildAreaMaxY);
+    }
 
     private void Slap(KeeperView view, List<PlayerCommand> commands, ref int budget)
     {
@@ -664,10 +676,12 @@ public sealed class KeeperAI
 
     // ----------------------------------------------------------------- gold
 
-    private bool WantsGold(KeeperView view) =>
-        view.Gold < _p.TendancyMoney
+    private bool WantsGold(KeeperView view)
+    {
+        return view.Gold < _p.TendancyMoney
         && State.Task is not (KeeperTask.RouteToGold or KeeperTask.MineSeam)
         && State.NextTask != KeeperTask.MineSeam;
+    }
 
     /// <summary>The gold step (<c>0x004FD590</c>, §5.10): a stored deposit becomes task 5's target;
     /// with none stored the keeper casts Create Gold beside the heart, spending no allowance and
@@ -739,10 +753,12 @@ public sealed class KeeperAI
     }
 
     /// <summary>The slot <c>CurrentGoldArea</c> names, when its gold total is nonzero.</summary>
-    private GoldDeposit? StoredDeposit() =>
-        State.CurrentGoldArea < State.GoldDeposits.Count && State.GoldDeposits[State.CurrentGoldArea].GoldAmount != 0
+    private GoldDeposit? StoredDeposit()
+    {
+        return State.CurrentGoldArea < State.GoldDeposits.Count && State.GoldDeposits[State.CurrentGoldArea].GoldAmount != 0
             ? State.GoldDeposits[State.CurrentGoldArea]
             : null;
+    }
 
     /// <summary>Task 5 (<c>0x004FD660</c>): dig from the stored position (<c>+0x27</c>) of the own room
     /// nearest the target, or from the heart's, then mine it (task 6).</summary>
@@ -887,10 +903,12 @@ public sealed class KeeperAI
     /// the triangle a route starts in, so from gold or rock it leaves through any side, and
     /// Level 17's seam (19,2) routed past walls to the Portal; DK2's Harkan digs to it, so its
     /// query probably fails there (inferred from the outcome, Q561).</summary>
-    private bool TargetRoutesToCursor(KeeperView view) =>
-        !view.IsSolid(State.DigRoomAt) && view.CanRoute(CreatureState.CentreOf(State.DigRoomAt.X), CreatureState.CentreOf(State.DigRoomAt.Y),
+    private bool TargetRoutesToCursor(KeeperView view)
+    {
+        return !view.IsSolid(State.DigRoomAt) && view.CanRoute(CreatureState.CentreOf(State.DigRoomAt.X), CreatureState.CentreOf(State.DigRoomAt.Y),
             CreatureState.CentreOf(State.DigRoomAtCurrent.X), CreatureState.CentreOf(State.DigRoomAtCurrent.Y),
             new MoverProfile(CanWalkOnWater: false, CanWalkOnLava: false, Owner: PlayerId.Value, PassOwnLockedDoors: true));
+    }
 
     /// <summary>Task 7's exit: <c>Task</c> takes <c>NextTask</c>, which is left at 4 (0x004FDC50).</summary>
     private void EndPath()

@@ -8,12 +8,27 @@ namespace DK2.Pathfinding;
 /// is a creature position in 1/4096 tiles shifted right by four, as the original's request does.</summary>
 public readonly record struct NavPoint(int X, int Y)
 {
-    public static NavPoint FromTileCentre(int tileX, int tileY) =>
-        new((tileX * NavMesh.UnitsPerTile) + (NavMesh.UnitsPerTile / 2),
+    public static NavPoint FromTileCentre(int tileX, int tileY)
+    {
+        return new((tileX * NavMesh.UnitsPerTile) + (NavMesh.UnitsPerTile / 2),
             (tileY * NavMesh.UnitsPerTile) + (NavMesh.UnitsPerTile / 2));
+    }
 
-    public int TileX => X / NavMesh.UnitsPerTile;
-    public int TileY => Y / NavMesh.UnitsPerTile;
+    public int TileX
+    {
+        get
+        {
+            return X / NavMesh.UnitsPerTile;
+        }
+    }
+
+    public int TileY
+    {
+        get
+        {
+            return Y / NavMesh.UnitsPerTile;
+        }
+    }
 }
 
 /// <summary>What the original's request setup (`0x004D0E60`) reads off the mover before routing:

@@ -150,18 +150,26 @@ public static class TriggerConditionEvaluator
     /// </remarks>
     private static TriggerConditionResult EvaluateLevelTime(
         IReadOnlyDictionary<string, long> parameters,
-        int currentTick) =>
-        Result(TriggerState.Compare(
+        int currentTick)
+    {
+        return Result(TriggerState.Compare(
             Byte(parameters, "Comparison"),
             currentTick,
             SimulationTiming.TicksFromSeconds(Int(parameters, "Value"))));
+    }
 
-    private static byte Byte(IReadOnlyDictionary<string, long> parameters, string name) =>
-        checked((byte)parameters[name]);
+    private static byte Byte(IReadOnlyDictionary<string, long> parameters, string name)
+    {
+        return checked((byte)parameters[name]);
+    }
 
-    private static int Int(IReadOnlyDictionary<string, long> parameters, string name) =>
-        checked((int)parameters[name]);
+    private static int Int(IReadOnlyDictionary<string, long> parameters, string name)
+    {
+        return checked((int)parameters[name]);
+    }
 
-    private static TriggerConditionResult Result(bool value) =>
-        value ? TriggerConditionResult.Satisfied : TriggerConditionResult.Unsatisfied;
+    private static TriggerConditionResult Result(bool value)
+    {
+        return value ? TriggerConditionResult.Satisfied : TriggerConditionResult.Unsatisfied;
+    }
 }

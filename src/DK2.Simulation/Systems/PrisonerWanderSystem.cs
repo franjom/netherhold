@@ -24,7 +24,13 @@ public sealed class PrisonerWanderSystem : ISimulationSystem
 {
     private const string SystemName = "PrisonerWander";
 
-    public string Name => SystemName;
+    public string Name
+    {
+        get
+        {
+            return SystemName;
+        }
+    }
 
     public void Execute(SimulationContext context)
     {

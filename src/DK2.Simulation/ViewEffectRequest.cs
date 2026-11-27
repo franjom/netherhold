@@ -12,12 +12,24 @@ public enum EffectHeightSpace : byte { Absolute, AboveGround }
 
 public readonly record struct ShotId(int Value)
 {
-    public static ShotId None => default;
+    public static ShotId None
+    {
+        get
+        {
+            return default;
+        }
+    }
 }
 
 public readonly record struct CreatureId(int Value)
 {
-    public static CreatureId None => default;
+    public static CreatureId None
+    {
+        get
+        {
+            return default;
+        }
+    }
 }
 
 /// <summary>A visual effect requested by a completed simulation change, in native position units.
@@ -46,11 +58,26 @@ public readonly record struct ViewEffectRequest(
     /// <c>0x00441060</c>); null for every other effect. A request carrying one is shown only to its
     /// <see cref="Owner"/>'s own view (<see cref="CostNumberRules"/>).</summary>
     public int? Amount { get; init; }
-    public TilePos Tile => new(Position.X.Raw >> 12, Position.Y.Raw >> 12);
-    public Fp32 Height => Position.Z;
+    public TilePos Tile
+    {
+        get
+        {
+            return new(Position.X.Raw >> 12, Position.Y.Raw >> 12);
+        }
+    }
+
+    public Fp32 Height
+    {
+        get
+        {
+            return Position.Z;
+        }
+    }
 
     public static ViewEffectRequest AtTileCentre(
-        EffectId effectId, PlayerId owner, TilePos tile, Fp32 height, Dk2Angle heading = default) =>
-        new(effectId, owner, new FpPosition3(new Fp32(CreatureState.CentreOf(tile.X)),
+        EffectId effectId, PlayerId owner, TilePos tile, Fp32 height, Dk2Angle heading = default)
+    {
+        return new(effectId, owner, new FpPosition3(new Fp32(CreatureState.CentreOf(tile.X)),
             new Fp32(CreatureState.CentreOf(tile.Y)), height), heading);
+    }
 }

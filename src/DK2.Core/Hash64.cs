@@ -23,7 +23,10 @@ public struct Hash64
 
     private ulong _h;
 
-    public static Hash64 Start() => new() { _h = Prime5 };
+    public static Hash64 Start()
+    {
+        return new() { _h = Prime5 };
+    }
 
     public readonly ulong Value
     {
@@ -46,15 +49,50 @@ public struct Hash64
         _h = (((x << 31) | (x >> 33)) * Prime1) + Prime4;
     }
 
-    public void Add(byte b) => Add((ulong)b);
-    public void Add(long v) => Add(unchecked((ulong)v));
-    public void Add(int v) => Add(unchecked((ulong)(long)v));
-    public void Add(uint v) => Add((ulong)v);
-    public void Add(short v) => Add((long)v);
-    public void Add(ushort v) => Add((ulong)v);
-    public void Add(bool v) => Add(v ? 1UL : 0UL);
-    public void Add(GameTick t) => Add(t.Value);
-    public void Add(Fp32 f) => Add(f.Raw);
+    public void Add(byte b)
+    {
+        Add((ulong)b);
+    }
+
+    public void Add(long v)
+    {
+        Add(unchecked((ulong)v));
+    }
+
+    public void Add(int v)
+    {
+        Add(unchecked((ulong)(long)v));
+    }
+
+    public void Add(uint v)
+    {
+        Add((ulong)v);
+    }
+
+    public void Add(short v)
+    {
+        Add((long)v);
+    }
+
+    public void Add(ushort v)
+    {
+        Add((ulong)v);
+    }
+
+    public void Add(bool v)
+    {
+        Add(v ? 1UL : 0UL);
+    }
+
+    public void Add(GameTick t)
+    {
+        Add(t.Value);
+    }
+
+    public void Add(Fp32 f)
+    {
+        Add(f.Raw);
+    }
 
     /// <summary>Hashes a string by its characters, never by <c>GetHashCode</c>.</summary>
     public void Add(string? s)

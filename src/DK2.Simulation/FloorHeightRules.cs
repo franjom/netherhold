@@ -60,8 +60,10 @@ public static class FloorHeightRules
 
     /// <summary><see cref="At"/> less the ordinary floor: the floor in the frame of
     /// <see cref="CreatureState.PosZ"/>, whose zero is the ordinary floor.</summary>
-    public static int RelativeAt(WorldState world, GameDatabase database, int x, int y) =>
-        At(world, database, x, y) - Ordinary;
+    public static int RelativeAt(WorldState world, GameDatabase database, int x, int y)
+    {
+        return At(world, database, x, y) - Ordinary;
+    }
 
     private static int RoomFloor(WorldState world, GameDatabase database, RoomDef room, TilePos at, int x, int y)
     {
@@ -117,10 +119,12 @@ public static class FloorHeightRules
 
     /// <summary>The neighbour bits a sub-tile zone needs (<c>0x00454735</c>-<c>0x00454949</c>): the
     /// corner zones three, the edge strips one, the centre none.</summary>
-    private static int RequiredBits(int fx, int fy) =>
-        fx < 0x400 ? fy < 0x400 ? 0xC1 : fy > 0xC00 ? 0x70 : 0x40
+    private static int RequiredBits(int fx, int fy)
+    {
+        return fx < 0x400 ? fy < 0x400 ? 0xC1 : fy > 0xC00 ? 0x70 : 0x40
         : fx > 0xC00 ? fy < 0x400 ? 0x07 : fy > 0xC00 ? 0x1C : 0x04
         : fy < 0x400 ? 0x01 : fy > 0xC00 ? 0x10 : 0;
+    }
 
     /// <summary>A liquid tile's floor: open liquid, or a bank sloping from the ordinary floor at the
     /// dry side's edge down to <see cref="Liquid"/> at the centre.</summary>

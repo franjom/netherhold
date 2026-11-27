@@ -13,12 +13,17 @@ public static class FloorGoldLandingRules
     private enum LandingState : byte { ImplicitPosition = 0, Temple = 4, Store = 5, Standing = 16, Idle = 31 }
     private const int BandWidth = 0x555, PositionMask = Fp32.One - 1;
 
-    public static bool Handles(ObjectState pile) => pile.ObjectTypeId is 1 or 2 or 3;
+    public static bool Handles(ObjectState pile)
+    {
+        return pile.ObjectTypeId is 1 or 2 or 3;
+    }
 
     // Our encoding: nonzero Z marks explicit scatter coordinates before landing.
     // Falling code must preserve that distinction when lowering a pile; implicit piles use Z zero.
-    public static bool HasPosition(ObjectState pile) =>
-        Handles(pile) && (pile.ProcessState != (byte)LandingState.ImplicitPosition || pile.PosZ != 0);
+    public static bool HasPosition(ObjectState pile)
+    {
+        return Handles(pile) && (pile.ProcessState != (byte)LandingState.ImplicitPosition || pile.PosZ != 0);
+    }
 
     /// <summary>The gold arm of 0x0049EF90. Height is collapsed; positions and strict candidate
     /// bounds are retained. Legacy floor piles use their represented cell or tile centre.</summary>

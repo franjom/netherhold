@@ -28,7 +28,13 @@ public enum PlayerTileFlags : byte
 /// <summary>One tile as its player sees it: flags, owner and room type (default when not a room).</summary>
 public readonly record struct PlayerTile(PlayerTileFlags Flags, PlayerId Owner, RoomTypeId Room)
 {
-    public bool IsKnown => (Flags & PlayerTileFlags.Known) != 0;
+    public bool IsKnown
+    {
+        get
+        {
+            return (Flags & PlayerTileFlags.Known) != 0;
+        }
+    }
 }
 
 /// <summary>An immutable copy of the player's tile view, row-major.</summary>
@@ -65,11 +71,20 @@ public sealed class PlayerTileGrid
     public int Width { get; }
     public int Height { get; }
 
-    public bool Contains(TilePos tile) => (uint)tile.X < (uint)Width && (uint)tile.Y < (uint)Height;
+    public bool Contains(TilePos tile)
+    {
+        return (uint)tile.X < (uint)Width && (uint)tile.Y < (uint)Height;
+    }
 
-    public PlayerTile this[TilePos tile] => Contains(tile)
+    public PlayerTile this[TilePos tile]
+    {
+        get
+        {
+            return Contains(tile)
         ? _tiles[tile.Y * Width + tile.X]
         : throw new ArgumentOutOfRangeException(nameof(tile), tile, "Outside the grid.");
+        }
+    }
 }
 
 /// <summary>An owned room type as the HUD shows it: its tiles, and for the rooms whose hover text gives a fill (schema 7)
@@ -99,7 +114,13 @@ public readonly record struct PlayerCreatureSummary(
     int Level = 0, int Petals = 0, PlayerCreatureMood? Mood = null, bool Hungry = false)
 {
     /// <summary>Whether the flower's level, petals and mood are known.</summary>
-    public bool FlowerKnown => Level > 0;
+    public bool FlowerKnown
+    {
+        get
+        {
+            return Level > 0;
+        }
+    }
 }
 
 public enum PlayerThingKind : byte { Creature, Object, Special, StoreGold, Door }
@@ -224,18 +245,18 @@ public sealed class PlayerOffers
     public PlayerActionKinds Actions { get; init; }
 
 #pragma warning disable IDE0301 // Preserve the cached read-only wrapper used by the init setter.
-    public IReadOnlyList<PlayerRoomOffer> Rooms { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerRoomOffer>();
+    public IReadOnlyList<PlayerRoomOffer> Rooms { get; init { field = ReadOnly.Copy(value); } } = ReadOnly.Empty<PlayerRoomOffer>();
 
-    public IReadOnlyList<GuiButtonTarget> Panels { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<GuiButtonTarget>();
+    public IReadOnlyList<GuiButtonTarget> Panels { get; init { field = ReadOnly.Copy(value); } } = ReadOnly.Empty<GuiButtonTarget>();
 
     /// <summary>Create Imp's displayed price, when offered.</summary>
     public ManaAmount? CreateImpCost { get; init; }
 
     /// <summary>Every door, then every trap, the Workshop panel offers, by id (Task 4).</summary>
-    public IReadOnlyList<PlayerWorkshopOffer> Workshop { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerWorkshopOffer>();
+    public IReadOnlyList<PlayerWorkshopOffer> Workshop { get; init { field = ReadOnly.Copy(value); } } = ReadOnly.Empty<PlayerWorkshopOffer>();
 
     /// <summary>Every spell the Spell panel offers, by spell id (Task 4).</summary>
-    public IReadOnlyList<PlayerSpellOffer> Spells { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerSpellOffer>();
+    public IReadOnlyList<PlayerSpellOffer> Spells { get; init { field = ReadOnly.Copy(value); } } = ReadOnly.Empty<PlayerSpellOffer>();
 #pragma warning restore IDE0301
 }
 
@@ -273,23 +294,26 @@ public sealed class PlayerObservation
     /// <summary>The coming payday's total wages, as the payday gauge's hover text and the gold counter's warning show
     /// it (<c>CasinoJackpotRules.WageBill</c>, hud-resources.md; schema 7).</summary>
     public GoldAmount WageBill { get; init; }
-    public PlayerTileGrid Tiles { get; init => field = value ?? throw new ArgumentNullException(nameof(value)); } = PlayerTileGrid.Empty;
+    public PlayerTileGrid Tiles { get; init { field = value ?? throw new ArgumentNullException(nameof(value)); } } = PlayerTileGrid.Empty;
 #pragma warning disable IDE0301 // Preserve the cached read-only wrapper used by the init setter.
-    public IReadOnlyList<PlayerRoomSummary> Rooms { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerRoomSummary>();
-    public IReadOnlyList<PlayerCreatureSummary> Creatures { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerCreatureSummary>();
-    public IReadOnlyList<PlayerVisibleThing> Things { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerVisibleThing>();
+    public IReadOnlyList<PlayerRoomSummary> Rooms { get; init { field = ReadOnly.Copy(value); } } = ReadOnly.Empty<PlayerRoomSummary>();
+    public IReadOnlyList<PlayerCreatureSummary> Creatures { get; init { field = ReadOnly.Copy(value); } } = ReadOnly.Empty<PlayerCreatureSummary>();
+    public IReadOnlyList<PlayerVisibleThing> Things { get; init { field = ReadOnly.Copy(value); } } = ReadOnly.Empty<PlayerVisibleThing>();
     /// <summary>Other players' traps in view (schema 7).</summary>
-    public IReadOnlyList<PlayerVisibleTrap> EnemyTraps { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerVisibleTrap>();
-    public IReadOnlyList<PlayerNotice> Notices { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerNotice>();
-    public IReadOnlyList<PlayerReceipt> Receipts { get; init => field = ReadOnly.Copy(value); } = ReadOnly.Empty<PlayerReceipt>();
+    public IReadOnlyList<PlayerVisibleTrap> EnemyTraps { get; init { field = ReadOnly.Copy(value); } } = ReadOnly.Empty<PlayerVisibleTrap>();
+    public IReadOnlyList<PlayerNotice> Notices { get; init { field = ReadOnly.Copy(value); } } = ReadOnly.Empty<PlayerNotice>();
+    public IReadOnlyList<PlayerReceipt> Receipts { get; init { field = ReadOnly.Copy(value); } } = ReadOnly.Empty<PlayerReceipt>();
 #pragma warning restore IDE0301
-    public PlayerOffers Offers { get; init => field = value ?? throw new ArgumentNullException(nameof(value)); } = PlayerOffers.None;
+    public PlayerOffers Offers { get; init { field = value ?? throw new ArgumentNullException(nameof(value)); } } = PlayerOffers.None;
 }
 
 /// <summary>Copies into read-only storage that a consumer cannot cast back to a writable list.</summary>
 internal static class ReadOnly
 {
-    public static IReadOnlyList<T> Empty<T>() => EmptyOf<T>.Value;
+    public static IReadOnlyList<T> Empty<T>()
+    {
+        return EmptyOf<T>.Value;
+    }
 
     public static IReadOnlyList<T> Copy<T>(IReadOnlyList<T> source)
     {

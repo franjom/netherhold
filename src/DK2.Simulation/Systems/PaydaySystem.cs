@@ -27,14 +27,28 @@ public sealed class PaydaySystem : ICreatureUpdateStep
 
     public PaydaySystem() : this(new GridPathfinder()) { }
 
-    public PaydaySystem(IPathfinder pathfinder) =>
+    public PaydaySystem(IPathfinder pathfinder)
+    {
         _pathfinder = pathfinder ?? throw new ArgumentNullException(nameof(pathfinder));
+    }
 
-    public string Name => SystemName;
+    public string Name
+    {
+        get
+        {
+            return SystemName;
+        }
+    }
 
-    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+    public void Execute(SimulationContext context)
+    {
+        CreatureUpdateSystem.RunAlone(context, this);
+    }
 
-    public void BeginTurn(SimulationContext context) => Clock(context);
+    public void BeginTurn(SimulationContext context)
+    {
+        Clock(context);
+    }
 
     // ------------------------------------------------------------- the clock
 

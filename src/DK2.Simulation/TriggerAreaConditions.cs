@@ -20,7 +20,10 @@ public static class TriggerAreaConditions
 {
     /// <summary>The types the area dispatcher owns. The rest reach the world evaluator
     /// through its default arm, so they mean there what they mean anywhere.</summary>
-    public static bool Owns(byte type) => type is 39 or 40 or 41 or 42 or 62 or 69 or 70;
+    public static bool Owns(byte type)
+    {
+        return type is 39 or 40 or 41 or 42 or 62 or 69 or 70;
+    }
 
     /// <summary>Evaluates one area-owned condition against <paramref name="area"/>'s
     /// rectangle.</summary>
@@ -170,8 +173,10 @@ public static class TriggerAreaConditions
 
         return count;
 
-        bool Matches(PlayerId owner, byte type) =>
-            (player == 0 || owner == player) && (typeId == 0 || type == typeId);
+        bool Matches(PlayerId owner, byte type)
+        {
+            return (player == 0 || owner == player) && (typeId == 0 || type == typeId);
+        }
     }
 
     /// <summary>Whether the rectangle contains a possessed creature matching the owner
@@ -212,9 +217,11 @@ public static class TriggerAreaConditions
         return false;
     }
 
-    private static bool Contains(ActionPointState area, TilePos pos) =>
-        pos.X >= area.StartX && pos.X <= area.EndX &&
+    private static bool Contains(ActionPointState area, TilePos pos)
+    {
+        return pos.X >= area.StartX && pos.X <= area.EndX &&
         pos.Y >= area.StartY && pos.Y <= area.EndY;
+    }
 
     /// <summary>Tiles in the rectangle carrying one player's excavation task — DK2's
     /// <c>FUN_004B0960</c>, behind types 62 and 69.</summary>
@@ -260,10 +267,15 @@ public static class TriggerAreaConditions
     }
 
     /// <summary>The rectangle's tile count, inclusive of both bounds.</summary>
-    private static int Size(ActionPointState area) =>
-        Span(area.StartX, area.EndX) * Span(area.StartY, area.EndY);
+    private static int Size(ActionPointState area)
+    {
+        return Span(area.StartX, area.EndX) * Span(area.StartY, area.EndY);
+    }
 
-    private static int Span(ushort from, ushort to) => to < from ? 0 : to - from + 1;
+    private static int Span(ushort from, ushort to)
+    {
+        return to < from ? 0 : to - from + 1;
+    }
 
     /// <summary>Every tile of the rectangle that is on the map, row by row.</summary>
     /// <remarks>DK2 strides the tile array without a bound check and an inverted or
@@ -283,12 +295,18 @@ public static class TriggerAreaConditions
         }
     }
 
-    private static byte Byte(IReadOnlyDictionary<string, long> parameters, string name) =>
-        checked((byte)parameters[name]);
+    private static byte Byte(IReadOnlyDictionary<string, long> parameters, string name)
+    {
+        return checked((byte)parameters[name]);
+    }
 
-    private static int Int(IReadOnlyDictionary<string, long> parameters, string name) =>
-        checked((int)parameters[name]);
+    private static int Int(IReadOnlyDictionary<string, long> parameters, string name)
+    {
+        return checked((int)parameters[name]);
+    }
 
-    private static TriggerConditionResult Result(bool value) =>
-        value ? TriggerConditionResult.Satisfied : TriggerConditionResult.Unsatisfied;
+    private static TriggerConditionResult Result(bool value)
+    {
+        return value ? TriggerConditionResult.Satisfied : TriggerConditionResult.Unsatisfied;
+    }
 }

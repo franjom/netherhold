@@ -357,12 +357,21 @@ public static class TrainingStep
         return -1;
     }
 
-    private static ObjectState? OnTile(WorldState world, TilePos at, byte type) => world.Objects.LastOrDefault(
+    private static ObjectState? OnTile(WorldState world, TilePos at, byte type)
+    {
+        return world.Objects.LastOrDefault(
         thing => !thing.InHand && thing.TileIndex == at.Y * world.Width + at.X && thing.ObjectTypeId == type);
+    }
 
-    private static RoomInstance? Room(SimulationContext context, CreatureState trainee) => context.World.Contains(trainee.Tile)
+    private static RoomInstance? Room(SimulationContext context, CreatureState trainee)
+    {
+        return context.World.Contains(trainee.Tile)
         && RoomIndex.RoomAt(context.World, context.Database, trainee.Tile.Y * context.World.Width + trainee.Tile.X) is { } room
         && room.Definition.TypeId == RoomTypeId.TrainingRoom && room.OwnerPlayerId == trainee.OwnerPlayerId ? room : null;
+    }
 
-    private static uint Distance(int dx, int dy) => unchecked((uint)(((long)dx * dx) >> 12) + (uint)(((long)dy * dy) >> 12));
+    private static uint Distance(int dx, int dy)
+    {
+        return unchecked((uint)(((long)dx * dx) >> 12) + (uint)(((long)dy * dy) >> 12));
+    }
 }

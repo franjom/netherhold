@@ -15,9 +15,18 @@ namespace DK2.Simulation.Systems;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/functions/0048B5F0.md")]
 public sealed class CarriedThingAttachSystem : ICreatureUpdateStep
 {
-    public string Name => "carried thing attach";
+    public string Name
+    {
+        get
+        {
+            return "carried thing attach";
+        }
+    }
 
-    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+    public void Execute(SimulationContext context)
+    {
+        CreatureUpdateSystem.RunAlone(context, this);
+    }
 
     public void Update(SimulationContext context, CreatureState creature)
     {

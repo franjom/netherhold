@@ -6,6 +6,16 @@ namespace DK2.Simulation.Systems;
 
 public sealed class TremorSystem : ISimulationSystem
 {
-    public string Name => "tremor";
-    public void Execute(SimulationContext context) => TremorRules.Update(context);
+    public string Name
+    {
+        get
+        {
+            return "tremor";
+        }
+    }
+
+    public void Execute(SimulationContext context)
+    {
+        TremorRules.Update(context);
+    }
 }

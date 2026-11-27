@@ -69,17 +69,23 @@ public static class TortureRules
     /// five turns have passed since it began, spawning effect <c>0xED</c> at the victim.</summary>
     public const int WhipTurns = 6;
 
-    public static bool IsDevice(byte objectTypeId) =>
-        objectTypeId is WheelObjectId or ElectricChairObjectId;
+    public static bool IsDevice(byte objectTypeId)
+    {
+        return objectTypeId is WheelObjectId or ElectricChairObjectId;
+    }
 
     /// <summary>Whether this creature is on a device.</summary>
-    public static bool IsBeingTortured(CreatureState creature) =>
-        creature.Activity == CreatureActivity.BeingTortured;
+    public static bool IsBeingTortured(CreatureState creature)
+    {
+        return creature.Activity == CreatureActivity.BeingTortured;
+    }
 
     /// <summary>The keeper whose chamber a creature on a device is in: its jailer if it is a
     /// captive, else its own, a Mistress who got on by herself.</summary>
-    public static byte KeeperOf(CreatureState creature) =>
-        PrisonRules.IsImprisoned(creature) ? (byte)creature.PrisonOwnerPlayerId : creature.OwnerPlayerId;
+    public static byte KeeperOf(CreatureState creature)
+    {
+        return PrisonRules.IsImprisoned(creature) ? (byte)creature.PrisonOwnerPlayerId : creature.OwnerPlayerId;
+    }
 
     /// <summary>Whether the device kills this creature. Neither the free-device search
     /// (<c>0x004F2180</c>) nor 136's nearest pick tests the flag, so any creature is strapped onto
@@ -87,16 +93,20 @@ public static class TortureRules
     /// Electric Chair, calls the victim's slot <c>+0x20</c> (<c>0x004B2AD0</c>, health to 0) for one
     /// without <see cref="CreatureFlags.CanBeElectrocuted"/> (definition <c>+0x686</c> bit 19). The
     /// wheel takes anyone.</summary>
-    public static bool KillsOnChair(ObjectState device, CreatureDef creature) =>
-        device.ObjectTypeId == ElectricChairObjectId && (creature.Flags & CreatureFlags.CanBeElectrocuted) == 0;
+    public static bool KillsOnChair(ObjectState device, CreatureDef creature)
+    {
+        return device.ObjectTypeId == ElectricChairObjectId && (creature.Flags & CreatureFlags.CanBeElectrocuted) == 0;
+    }
 
     /// <summary>The time served that converts: the definition's <c>TortureTimeToConvert</c> in
     /// turns (the loader stores seconds × variable 19, <c>0x0049391A</c>), scaled by the level row
     /// 24. A Goblin's is 80 seconds, 320 turns of duration, reached after 80 acts.</summary>
-    public static int ConversionThreshold(GameDatabase database, CreatureDef creature, int level) =>
-        CreatureLevelRules.Scale(
+    public static int ConversionThreshold(GameDatabase database, CreatureDef creature, int level)
+    {
+        return CreatureLevelRules.Scale(
             (int)(((long)creature.TortureTimeToConvert.Raw * CreatureStateMachine.HookCountdownSeed) >> 12),
             CreatureLevelRules.Percent(database, CreatureStatId.TortureTimeToConvert, level));
+    }
 
     /// <summary>The free device on this tile of one of this keeper's Torture Chambers, or null. A
     /// device is taken while another creature is on it (<c>0x004F2180</c>'s 131/136 test).</summary>
@@ -293,8 +303,10 @@ public static class TortureRules
 
     /// <summary>A wheel on a wall slot: the arm of 130 and 131 that turns its victim (a wheel on a
     /// floor slot turns itself, <c>0x0049EF60</c>, and a chair does neither).</summary>
-    public static bool OnWallWheel(WorldState world, RoomInstance room, ObjectState device) =>
-        device.ObjectTypeId == WheelObjectId && !AutoFurnitureRules.IsFloorSlot(world, room, device.TileIndex);
+    public static bool OnWallWheel(WorldState world, RoomInstance room, ObjectState device)
+    {
+        return device.ObjectTypeId == WheelObjectId && !AutoFurnitureRules.IsFloorSlot(world, room, device.TileIndex);
+    }
 
     /// <summary>The wheel's turn a step, from its tile: <c>((x + y) &amp; 3) + 4</c> (<c>0x004F2930</c>),
     /// forward when x + y is odd and back when even (<c>0x004F2910</c>).</summary>
@@ -306,8 +318,10 @@ public static class TortureRules
     }
 
     /// <summary>Adds one step to the victim's roll, masked to a turn.</summary>
-    public static void Roll(WorldState world, CreatureState creature, int tileIndex) =>
+    public static void Roll(WorldState world, CreatureState creature, int tileIndex)
+    {
         creature.TortureRoll = (ushort)((creature.TortureRoll + WheelStep(world, tileIndex)) & 0x7FF);
+    }
 
     private static void StrapOn(in StateHookContext hooks, CreatureState creature, ObjectState device)
     {

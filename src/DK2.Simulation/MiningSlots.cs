@@ -29,8 +29,9 @@ public static class MiningSlots
     /// <summary>The face a worker standing at <paramref name="standing"/> works of the wall at
     /// <paramref name="target"/>: 0 wall above, 1 wall left, 2 wall right, 3 wall below; -1 if
     /// the two are not orthogonal neighbours.</summary>
-    public static int Face(TilePos standing, TilePos target) =>
-        (target.X - standing.X, target.Y - standing.Y) switch
+    public static int Face(TilePos standing, TilePos target)
+    {
+        return (target.X - standing.X, target.Y - standing.Y) switch
         {
             (0, -1) => 0,
             (-1, 0) => 1,
@@ -38,6 +39,7 @@ public static class MiningSlots
             (0, 1) => 3,
             _ => -1,
         };
+    }
 
     /// <summary>The cell of the standing tile a slot covers, <c>cy × 3 + cx</c>: the strip of
     /// thirds along the wall's edge, the slot counting along it.</summary>
@@ -87,8 +89,10 @@ public static class MiningSlots
         return None;
     }
 
-    private static bool Held(WorldState world, int targetIndex, byte slot, int askingCreatureId) =>
-        Holder(world, targetIndex, slot, askingCreatureId) is not null;
+    private static bool Held(WorldState world, int targetIndex, byte slot, int askingCreatureId)
+    {
+        return Holder(world, targetIndex, slot, askingCreatureId) is not null;
+    }
 
     /// <summary>The worker digging or mining this wall from this slot, other than the asker.
     /// Digs hold slots as mines do: the dig handler walks the same twelve (ADR-0289).</summary>

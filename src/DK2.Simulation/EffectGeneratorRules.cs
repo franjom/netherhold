@@ -22,17 +22,22 @@ public static class EffectGeneratorRules
     /// <c>+0x7239</c> bit 0x40 (a restore) is set: corner (0x1800, 0x1800, 0x2000), the map's width and
     /// height less two, frequency 1, effect 90 in slot 0. Its id is the number of generators already
     /// linked (the length of list <c>+0x16</c>).</summary>
-    internal static void InitializeLevelStart(WorldState world) =>
+    internal static void InitializeLevelStart(WorldState world)
+    {
         world.AddEffectGenerator(new EffectGeneratorState
         {
             // DK2 gives it no THINGS tile; X and Y stay zero and nothing reads them.
-            Unknown_0010 = (ushort)(world.Width - 2), Unknown_0012 = (ushort)(world.Height - 2),
+            Unknown_0010 = (ushort)(world.Width - 2),
+            Unknown_0012 = (ushort)(world.Height - 2),
             EffectIds = [LevelStartEffectId, 0, 0, 0],
             Frequency = 1,
             GeneratorId = (byte)world.EffectGenerators.Count,
             Unknown_001E = new byte[EffectGeneratorState.Unknown001ELength],
-            PosX = 0x1800, PosY = 0x1800, PosZ = 0x2000,
+            PosX = 0x1800,
+            PosY = 0x1800,
+            PosZ = 0x2000,
         });
+    }
 
     /// <summary>One generator's turn. Once the turn is past its due turn: <c>random(4)</c> picks a slot
     /// (EffectGenerator.cpp line 173), and an empty one ends the turn without restamping. Then the

@@ -82,8 +82,10 @@ public enum RoomSale
 public static class RoomRules
 {
     /// <summary>The room a tile is part of, or null if the tile is not room terrain.</summary>
-    public static RoomDef? RoomOn(GameDatabase database, in TileState tile) =>
-        database.RoomByTerrain(tile.TerrainId);
+    public static RoomDef? RoomOn(GameDatabase database, in TileState tile)
+    {
+        return database.RoomByTerrain(tile.TerrainId);
+    }
 
     /// <summary>Whether this terrain is ground the room may sit on, ignoring
     /// ownership, cost and buildability: the room's placement flags against the
@@ -153,7 +155,10 @@ public static class RoomRules
     /// <summary>0x0044F630 refuses terrain ids 31–34 and 37 before anything else; DK2's code names the
     /// ids, which on shipped data are Mana Vault, Claimed Vault and the three Hero Gates
     /// (<c>RoomsOnRealDataTests</c> guards them). The gates are rooms anyway; the vaults are not.</summary>
-    public static bool RefusesByTerrainId(byte terrainId) => terrainId is >= 31 and <= 34 or 37;
+    public static bool RefusesByTerrainId(byte terrainId)
+    {
+        return terrainId is >= 31 and <= 34 or 37;
+    }
 
     /// <summary><see cref="CanBuild(GameDatabase, in TileState, RoomDef, byte, bool)"/> for a world
     /// tile, asking its neighbours for the adjacency and its things for <see cref="IsObstructed"/>;
@@ -266,7 +271,10 @@ public static class RoomRules
     /// rooms in the original and each matched the record's <c>Cost</c> charged per
     /// tile — DK2 charges as the keeper paints. Pinned by
     /// <c>RoomsOnRealDataTests.ARoomCostsWhatTheOriginalChargesForIt_PerTile</c>.</summary>
-    public static int CostPerTile(RoomDef room) => room.Cost;
+    public static int CostPerTile(RoomDef room)
+    {
+        return room.Cost;
+    }
 
     /// <summary>Turns a tile into part of <paramref name="room"/>, owned by
     /// <paramref name="playerId"/>. The tile takes the room's terrain and that
@@ -395,8 +403,10 @@ public static class RoomRules
     /// <summary>Whether this room is a ruin, DK2's room <c>+0x9A</c> bit 0: a Dungeon Heart whose heart was
     /// destroyed, or a gate trigger action 32 collapsed. Kept on the room's tiles, so it goes with the room
     /// to a new owner: a captured ruined Heart stays one (ADR-0662).</summary>
-    public static bool IsRuined(WorldState world, RoomInstance room) =>
-        room.TileIndices.Count > 0 && world.TileAtIndex(room.TileIndices[0]).RoomRuined;
+    public static bool IsRuined(WorldState world, RoomInstance room)
+    {
+        return room.TileIndices.Count > 0 && world.TileAtIndex(room.TileIndices[0]).RoomRuined;
+    }
 
     /// <summary>Makes the room a ruin (<c>0x004E9130</c> with 1).</summary>
     public static void Ruin(WorldState world, RoomInstance room)

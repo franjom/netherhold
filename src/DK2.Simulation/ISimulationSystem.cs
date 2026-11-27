@@ -64,10 +64,13 @@ public sealed class SimulationContext
     /// <summary>The creature is in state 1 because a combat, home or eating handler set it this turn, so 1's own
     /// handler waits for the next turn. A host sweeping steps alone on a context of its own
     /// (<see cref="Systems.CreatureUpdateSystem.RunAlone"/>) never clears the set.</summary>
-    internal bool IdleHandlerWaits(CreatureState creature) =>
-        creature.Dk2StateId == CreatureStateMachine.Idle
+    internal bool IdleHandlerWaits(CreatureState creature)
+    {
+        return creature.Dk2StateId == CreatureStateMachine.Idle
             && (IdledByCombatHandlerThisTick.Contains(creature) || IdledByLairHandlerThisTick.Contains(creature)
                 || IdledByEatHandlerThisTick.Contains(creature));
+    }
+
     internal HashSet<CreatureState> TremorRebellionStartedThisTick { get; } = [];
 
     /// <summary>The state the creature being updated held when its update began
@@ -89,7 +92,11 @@ public sealed class SimulationContext
     /// <summary>Where to time spans of work; see <see cref="ISimulationProfiler"/>. Behaviour-neutral.</summary>
     public ISimulationProfiler Profiler
     {
-        get => _profiler;
+        get
+        {
+            return _profiler;
+        }
+
         internal set
         {
             _profiler = value;
@@ -105,7 +112,11 @@ public sealed class SimulationContext
     /// <summary>Commands issued for the tick currently being executed.</summary>
     public InputFrame Input
     {
-        get => _input;
+        get
+        {
+            return _input;
+        }
+
         internal set
         {
             _input = value;
@@ -119,10 +130,15 @@ public sealed class SimulationContext
     /// <summary>The tick's commands of type <typeparamref name="T"/>, in input order. A system that
     /// handles one command type reads this; one whose types must keep their order among each other
     /// (the hand, keeper spells, blueprints, possession) reads <see cref="Input"/>.</summary>
-    public IReadOnlyList<T> Commands<T>() where T : PlayerCommand => _commands.Of<T>();
+    public IReadOnlyList<T> Commands<T>() where T : PlayerCommand
+    {
+        return _commands.Of<T>();
+    }
 
-    public void Emit(string system, string kind, string detail) =>
+    public void Emit(string system, string kind, string detail)
+    {
         Events.Emit(new SimEvent(Tick, system, kind, detail));
+    }
 
     public void RequestEffect(string system, ViewEffectRequest request)
     {
@@ -157,12 +173,14 @@ public sealed class SimulationContext
     }
 
     /// <summary>Asks the player's view to do something (<see cref="ScriptedViewRequest"/>); observation only.</summary>
-    public void RequestView(string system, ScriptedViewRequest request) =>
+    public void RequestView(string system, ScriptedViewRequest request)
+    {
         Events.Emit(new SimEvent(Tick, system, "scripted_view",
             $"player={request.Player} kind={request.Kind} value={request.Value} tile=({request.Tile.X},{request.Tile.Y}) flag={request.Flag}")
         {
             ScriptedView = request,
         });
+    }
 
     /// <summary>The level's trigger executor, when the simulation has one: the systems fire DK2's
     /// creature and player trigger events through it at the moment they happen, as the binary
@@ -171,20 +189,36 @@ public sealed class SimulationContext
 
     /// <summary>DK2's turn number for a trigger walk fired now: the executor's own
     /// <c>Run</c> takes <c>CurrentTick + 1</c>, and an event during this tick belongs to that turn.</summary>
-    private int TriggerTurn => unchecked((int)(Tick.Value + 1));
+    private int TriggerTurn
+    {
+        get
+        {
+            return unchecked((int)(Tick.Value + 1));
+        }
+    }
 
     private readonly Action<string, ViewEffectRequest> _requestEffect;
     private readonly Action<string, ThingSoundRequest> _requestSound;
     private readonly Action<string, string, string> _emit;
 
     /// <summary>The world, database, triggers and presentation requests available to a state hook.</summary>
-    public StateHookContext Hooks => new(World, Database, Triggers, _requestEffect, _requestSound) { Rng = Rng, EmitEvent = _emit };
+    public StateHookContext Hooks
+    {
+        get
+        {
+            return new(World, Database, Triggers, _requestEffect, _requestSound) { Rng = Rng, EmitEvent = _emit };
+        }
+    }
 
-    public void FireCreatureEvent(CreatureState creature, CreatureTriggerEvent type) =>
+    public void FireCreatureEvent(CreatureState creature, CreatureTriggerEvent type)
+    {
         Triggers?.FireCreatureEvent(creature, type, TriggerTurn);
+    }
 
-    public void FirePlayerEvent(PlayerId playerId, PlayerTriggerEvent type, byte targetType = 0, byte targetId = 0) =>
+    public void FirePlayerEvent(PlayerId playerId, PlayerTriggerEvent type, byte targetType = 0, byte targetId = 0)
+    {
         Triggers?.FirePlayerEvent(playerId, type, TriggerTurn, targetType, targetId);
+    }
 }
 
 /// <summary>One unit of per-tick simulation work.</summary>

@@ -24,22 +24,39 @@ public sealed class PortalSystem : IRoomTickStep
 {
     private const string SystemName = "Portal";
 
-    public string Name => SystemName;
+    public string Name
+    {
+        get
+        {
+            return SystemName;
+        }
+    }
 
-    public void Execute(SimulationContext context) => RoomTickSystem.RunAlone(context, this);
+    public void Execute(SimulationContext context)
+    {
+        RoomTickSystem.RunAlone(context, this);
+    }
 
     /// <summary>Only a keeper's portals run. An unclaimed portal belongs to the neutral player
     /// (<see cref="PlayerIds.Neutral"/>) — 167 of the campaign's are — and its clock does not run, so a keeper
     /// who claims one waits a full interval for the first arrival (Q86). This decides only the clock: no
     /// shipped level grants a creature pool or availability below player 3, so Pick would refuse every
     /// candidate. The owner is read from the tile now, not from the room found at the walk's start.</summary>
-    public bool Applies(SimulationContext context, RoomInstance room) =>
-        PortalRules.IsEntrance(room.Definition)
+    public bool Applies(SimulationContext context, RoomInstance room)
+    {
+        return PortalRules.IsEntrance(room.Definition)
         && PlayerIds.IsKeeper(Owner(context.World, room)) && PortalRules.CanProduce(context.World, room);
+    }
 
-    public void Tick(SimulationContext context, RoomInstance room) => TickPortal(context, room);
+    public void Tick(SimulationContext context, RoomInstance room)
+    {
+        TickPortal(context, room);
+    }
 
-    private static byte Owner(WorldState world, RoomInstance room) => world.TileAtIndex(room.TileIndices[0]).OwnerPlayerId;
+    private static byte Owner(WorldState world, RoomInstance room)
+    {
+        return world.TileAtIndex(room.TileIndices[0]).OwnerPlayerId;
+    }
 
     /// <summary>The owner's rooms and how many portals it holds, counted now: DK2's capacity routine walks the
     /// owner's room list and tests the room type only — not size, not whether the room still has its centre. A

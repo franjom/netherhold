@@ -35,14 +35,19 @@ public static class TaskStealing
     /// keeper's, since each keeper has its own (<c>player+0x1105</c>, player-task-pool.md), so a
     /// rival's imp on the same tile neither fills a side nor can be robbed of its task (ADR-0388).
     /// <see cref="AnyPool"/> when the asker is not a live creature. Resolve once, outside a scan.</summary>
-    public static int PoolOf(WorldState world, int askingCreatureId) =>
-        world.CreatureById(askingCreatureId) is { } asking ? asking.OwnerPlayerId : AnyPool;
+    public static int PoolOf(WorldState world, int askingCreatureId)
+    {
+        return world.CreatureById(askingCreatureId) is { } asking ? asking.OwnerPlayerId : AnyPool;
+    }
 
     /// <summary>No asker: every worker counts.</summary>
     public const int AnyPool = -1;
 
     /// <summary>Whether <paramref name="other"/>'s task is in <paramref name="pool"/> (<see cref="PoolOf"/>).</summary>
-    public static bool InPool(int pool, CreatureState other) => pool == AnyPool || other.OwnerPlayerId == pool;
+    public static bool InPool(int pool, CreatureState other)
+    {
+        return pool == AnyPool || other.OwnerPlayerId == pool;
+    }
 
     /// <summary>Whether a holder can lose its task: the tests every handler makes before it
     /// measures. Nothing protects a task taken this tick: no handler reads the state stamp or

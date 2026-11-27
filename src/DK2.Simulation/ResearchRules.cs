@@ -60,8 +60,10 @@ public static class ResearchRules
     /// <see cref="CreatureState.LastSlapTick"/>; the other is Efficiency +10 for 25 game
     /// seconds from a hardcoded 100 ticks (<see cref="EfficiencyRules.SlapBonusSeconds"/>, Q159). The owner's "after a minute" was this effect, not a mis-timing of that one.</summary>
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/library-and-research.md")]
-    public static int SlapBonusSeconds(GameDatabase database) =>
-        database[VariableTypeId.IncreasedWorkRateDurationFromSlappingSeconds];
+    public static int SlapBonusSeconds(GameDatabase database)
+    {
+        return database[VariableTypeId.IncreasedWorkRateDurationFromSlappingSeconds];
+    }
 
     /// <summary>The bonus a recently slapped researcher earns, added <b>once a game second</b>
     /// on top of the per-tick base, or zero. The arithmetic is the original's and is not what the

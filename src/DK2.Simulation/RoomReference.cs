@@ -11,7 +11,13 @@ namespace DK2.Simulation;
 public readonly record struct RoomReference(RoomListPosition Position, TilePos Tile)
 {
     public static readonly RoomReference None = new(default, new TilePos(-1, -1));
-    public bool IsNone => Tile.X < 0;
+    public bool IsNone
+    {
+        get
+        {
+            return Tile.X < 0;
+        }
+    }
 
     public static RoomReference Capture(WorldState world, RoomInstance room)
     {
@@ -19,9 +25,12 @@ public readonly record struct RoomReference(RoomListPosition Position, TilePos T
         return new(world.TileAtIndex(first).RoomListPosition, new TilePos(first % world.Width, first / world.Width));
     }
 
-    public bool RefersTo(WorldState world, RoomInstance room) => !IsNone &&
+    public bool RefersTo(WorldState world, RoomInstance room)
+    {
+        return !IsNone &&
         (Position.Value != 0 ? world.TileAtIndex(room.TileIndices[0]).RoomListPosition == Position
             : world.Contains(Tile) && room.Contains(world.TileIndex(Tile)));
+    }
 
     public RoomInstance? Resolve(WorldState world, GameDatabase database, PlayerId owner, RoomTypeId type)
     {

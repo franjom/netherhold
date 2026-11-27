@@ -21,13 +21,18 @@ public static class SimulationTiming
     public const int TicksPerSecond = 4;
 
     /// <summary>Ticks in <paramref name="seconds"/> seconds of game time, rounded down.</summary>
-    public static int TicksFromSeconds(int seconds) => seconds * TicksPerSecond;
+    public static int TicksFromSeconds(int seconds)
+    {
+        return seconds * TicksPerSecond;
+    }
 
     /// <summary>TRAPS loader 0x004AA440: retain the low dword of the product, then shift logically.
     /// The authored value is seconds in 1/4096 units; overflow and negative inputs stay unsigned.</summary>
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/traps.md")]
-    public static uint LoaderFixedSecondsToTicks(int secondsRaw) =>
-        unchecked((uint)(secondsRaw * OriginalTicksPerGameSecond)) >> 12;
+    public static uint LoaderFixedSecondsToTicks(int secondsRaw)
+    {
+        return unchecked((uint)(secondsRaw * OriginalTicksPerGameSecond)) >> 12;
+    }
 
     /// <summary>DK2's own ticks per game second: four (Q1, Q132). Read, not chosen — variable 19,
     /// the seconds-to-ticks multiplier the engine divides and multiplies by, is copied out of the
@@ -47,8 +52,10 @@ public static class SimulationTiming
     /// <summary>Whether this tick is one of the original's. Phased on the last of each group, like
     /// every per-second system here, so an original tick and a game-second boundary coincide and one
     /// pass does both kinds of work, in the order the original's dispatcher uses.</summary>
-    public static bool OnOriginalTick(long tick) =>
-        (tick + 1) % OriginalTickPeriodTicks == 0;
+    public static bool OnOriginalTick(long tick)
+    {
+        return (tick + 1) % OriginalTickPeriodTicks == 0;
+    }
 
     /// <summary>DK2's load-time conversion of a tabled per-second rate into the per-tick rate its
     /// engine adds: integer divide by <see cref="OriginalTicksPerGameSecond"/>, floored at one for a
@@ -73,7 +80,10 @@ public static class SimulationTiming
     /// (<c>0x004B2AE0</c>) steps its heading by. Guard 256, Thief 512 and Dwarf 341 of the 2048 a
     /// circle, as DK2's Level 4 captures turn them (ADR-0602).</summary>
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/steering-behaviours.md#53-turning-comes-first")]
-    public static int TurnRatePerTick(CreatureDef definition) => LoaderRatePerTick(definition.TurnRate);
+    public static int TurnRatePerTick(CreatureDef definition)
+    {
+        return LoaderRatePerTick(definition.TurnRate);
+    }
 
     /// <summary>How many times a game second a worker applies work to a tile: four, once a tick,
     /// which is the creature update's own rate (Q1, Q47, ADR-0089). An imp mining a gold seam frees

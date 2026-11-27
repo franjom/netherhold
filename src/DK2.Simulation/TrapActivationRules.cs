@@ -47,9 +47,13 @@ public static class TrapActivationRules
         return beingDisarmed ? TrapReadiness.BeingDisarmed : TrapReadiness.Ready;
     }
 
-    public static byte AdvanceCharge(byte charge, bool hasTarget) =>
-        hasTarget ? unchecked((byte)(charge + 1)) : (byte)0;
+    public static byte AdvanceCharge(byte charge, bool hasTarget)
+    {
+        return hasTarget ? unchecked((byte)(charge + 1)) : (byte)0;
+    }
 
-    public static bool ChargeReached(TrapDef definition, byte charge) =>
-        charge >= SimulationTiming.LoaderFixedSecondsToTicks(definition.ChargeSecondsRaw);
+    public static bool ChargeReached(TrapDef definition, byte charge)
+    {
+        return charge >= SimulationTiming.LoaderFixedSecondsToTicks(definition.ChargeSecondsRaw);
+    }
 }

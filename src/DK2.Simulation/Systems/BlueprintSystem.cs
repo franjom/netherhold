@@ -14,7 +14,13 @@ public sealed class BlueprintSystem : ISimulationSystem
 {
     private const string SystemName = "Blueprint";
 
-    public string Name => SystemName;
+    public string Name
+    {
+        get
+        {
+            return SystemName;
+        }
+    }
 
     public void Execute(SimulationContext context)
     {

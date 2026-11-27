@@ -14,7 +14,13 @@ public static class DiscoverySight
 {
     private readonly record struct Entry(int X, int Y, int First, int Last)
     {
-        public int DistanceSquared => X * X + Y * Y;
+        public int DistanceSquared
+        {
+            get
+            {
+                return X * X + Y * Y;
+            }
+        }
     }
 
     private static readonly Entry[] Entries = BuildEntries();

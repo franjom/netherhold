@@ -16,7 +16,13 @@ namespace DK2.Simulation.Systems;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/research-tree.md")]
 public sealed class ResearchSystem : ISimulationSystem
 {
-    public string Name => "Research";
+    public string Name
+    {
+        get
+        {
+            return "Research";
+        }
+    }
 
     public void Execute(SimulationContext context)
     {

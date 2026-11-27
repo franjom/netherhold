@@ -28,33 +28,46 @@ public static class CreatureLevelRules
 
     /// <summary>Clamps a level into the range the table can describe: a snapshot from another
     /// build, or a scenario asking for level 12, still gets an answer.</summary>
-    public static int Clamp(int level) => Math.Clamp(level, FirstLevel, MaxLevel);
+    public static int Clamp(int level)
+    {
+        return Math.Clamp(level, FirstLevel, MaxLevel);
+    }
 
     /// <summary>Applies one of the table's percentages to a record value. 64-bit intermediate: the
     /// experience threshold reaches 1000 %, overflowing an <c>int</c> mid-multiply though the result fits.</summary>
-    public static int Scale(int recordValue, int percent) =>
-        (int)Math.Clamp((long)recordValue * percent / 100, int.MinValue, int.MaxValue);
+    public static int Scale(int recordValue, int percent)
+    {
+        return (int)Math.Clamp((long)recordValue * percent / 100, int.MinValue, int.MaxValue);
+    }
 
     /// <summary>The percentage this stat carries at this level. 100 at level 1.</summary>
-    public static int Percent(GameDatabase database, CreatureStatId stat, int level) =>
-        database.StatPercent(stat, Clamp(level));
+    public static int Percent(GameDatabase database, CreatureStatId stat, int level)
+    {
+        return database.StatPercent(stat, Clamp(level));
+    }
 
     /// <summary>Maximum health at this level: the record's <c>Hp</c> scaled by the Health row.</summary>
-    public static int MaxHealth(GameDatabase database, CreatureDef creature, int level) =>
-        Scale(creature.Hp, Percent(database, CreatureStatId.Health, level));
+    public static int MaxHealth(GameDatabase database, CreatureDef creature, int level)
+    {
+        return Scale(creature.Hp, Percent(database, CreatureStatId.Health, level));
+    }
 
     /// <summary>The most gold this creature can carry at this level: the record's
     /// <c>MaxGoldHeld</c> scaled by the MaxGoldHeld row: 105, 110 and 115% at levels 2 to 4, 120% from level 5.</summary>
-    public static int MaxGoldHeld(GameDatabase database, CreatureDef creature, int level) =>
-        Scale(creature.MaxGoldHeld, Percent(database, CreatureStatId.MaxGoldHeld, level));
+    public static int MaxGoldHeld(GameDatabase database, CreatureDef creature, int level)
+    {
+        return Scale(creature.MaxGoldHeld, Percent(database, CreatureStatId.MaxGoldHeld, level));
+    }
 
     /// <summary>What one work hit earns (ADR-0386): the raw, undivided <c>ImpExperienceGainPerSecond</c>
     /// of 20. Its nine readers are the work actions' callbacks (dig <c>0x00496E00</c>, mining
     /// <c>0x004971D0</c>, claim <c>0x004974C0</c>, reinforce <c>0x00497960</c>, and the floor attack,
     /// conversion, room attack and repair), each paying once per hit whose tile test passes.</summary>
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-levels.md")]
-    public static int WorkExperiencePerHit(GameDatabase database) =>
-        database[VariableTypeId.ImpExperienceGainPerSecond];
+    public static int WorkExperiencePerHit(GameDatabase database)
+    {
+        return database[VariableTypeId.ImpExperienceGainPerSecond];
+    }
 
     /// <summary>Adds experience and promotes at most one level, reproducing DK2's adder
     /// (<c>FUN_00457880</c>, Q127). Returns true if a level was gained. A threshold of zero refuses
@@ -152,7 +165,9 @@ public static class CreatureLevelRules
     /// would make it 3900. Not reproduced: the clamp of the scaled threshold to <c>0xFFFE</c>, which
     /// cannot bite, the largest shipped product being 3000 at 1000 %.</summary>
     public static int ExperienceForNextLevel(
-        GameDatabase database, CreatureDef creature, int level) =>
-        Scale(creature.ExpForNextLevel,
+        GameDatabase database, CreatureDef creature, int level)
+    {
+        return Scale(creature.ExpForNextLevel,
               Percent(database, CreatureStatId.ExperienceForNextLevel, level));
+    }
 }

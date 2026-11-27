@@ -35,7 +35,10 @@ public sealed record FrightenPossessedCreatureCommand(PlayerId PlayerId, Creatur
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/keeper-spell-possession.md")]
 public sealed record LeavePossessionCommand(PlayerId PlayerId) : PlayerCommand(PlayerId)
 {
-    public override void HashInto(ref Hash64 hash) => base.HashInto(ref hash);
+    public override void HashInto(ref Hash64 hash)
+    {
+        base.HashInto(ref hash);
+    }
 }
 
 /// <summary>Action 26 (<c>0x00514830</c>): the possessed creature strikes (<paramref name="Melee"/>)
@@ -57,7 +60,10 @@ public sealed record ActPossessedCreatureCommand(PlayerId PlayerId, PossessionAi
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/possession-arms-and-inputs.md")]
 public sealed record DismissFollowersCommand(PlayerId PlayerId) : PlayerCommand(PlayerId)
 {
-    public override void HashInto(ref Hash64 hash) => base.HashInto(ref hash);
+    public override void HashInto(ref Hash64 hash)
+    {
+        base.HashInto(ref hash);
+    }
 }
 
 /// <summary>Command 0x1D (<c>0x00517270</c>): the possessed creature disguises itself as the owner

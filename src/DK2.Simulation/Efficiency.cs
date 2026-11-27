@@ -47,13 +47,17 @@ public static class EfficiencyRules
     /// found, not merely "was dropped" — ADR-0069), or for a non-worker the job of the room it was
     /// dropped on (<see cref="CreatureState.DroppedToDoJob"/>, ADR-0215). Not implemented: a third
     /// term of 0.05 per keeper-held counter unit, most likely the torture tally.</summary>
-    public static int Percent(CreatureState creature, CreatureDef definition) =>
-        BasePercent + (BonusPercent * Bonuses(creature, definition));
+    public static int Percent(CreatureState creature, CreatureDef definition)
+    {
+        return BasePercent + (BonusPercent * Bonuses(creature, definition));
+    }
 
     /// <summary>The same creature's multiplier in 4096ths, which is what work arithmetic uses:
     /// <see cref="BaseModifier"/> plus <see cref="BonusModifier"/> a bonus.</summary>
-    public static int Modifier(CreatureState creature, CreatureDef definition) =>
-        BaseModifier + (BonusModifier * Bonuses(creature, definition));
+    public static int Modifier(CreatureState creature, CreatureDef definition)
+    {
+        return BaseModifier + (BonusModifier * Bonuses(creature, definition));
+    }
 
     /// <summary>How many of the two bonuses this creature has, so the percent the status bar shows
     /// and the 4096ths the arithmetic uses can never drift apart.</summary>

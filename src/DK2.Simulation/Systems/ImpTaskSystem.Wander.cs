@@ -27,9 +27,11 @@ public sealed partial class ImpTaskSystem
 
     /// <summary>A worker in state 12 playing its counted idle clip (installed, loop bit clear); a
     /// looping work clip carried into 12 is not one, and the step clears it.</summary>
-    private static bool PlaysIdleAction(CreatureState creature) =>
-        creature.Dk2StateId == ImpStates.Resting && creature.ActionArtSlot != 0
+    private static bool PlaysIdleAction(CreatureState creature)
+    {
+        return creature.Dk2StateId == ImpStates.Resting && creature.ActionArtSlot != 0
         && (creature.ActionAnimationFlags & ActionAnimationFlags.Loop) == 0;
+    }
 
     /// <summary><c>0x00480A00</c>'s room branch: the room types a wander may go to.</summary>
     private static readonly RoomTypeId[] WanderRooms =
@@ -305,7 +307,10 @@ public sealed partial class ImpTaskSystem
         return null;
     }
 
-    private static bool IsWanderRoom(RoomDef room) => room.TypeId is RoomTypeId t && Array.IndexOf(WanderRooms, t) >= 0;
+    private static bool IsWanderRoom(RoomDef room)
+    {
+        return room.TypeId is RoomTypeId t && Array.IndexOf(WanderRooms, t) >= 0;
+    }
 
     private static bool Wanderable(SimulationContext context, CreatureState creature, int x, int y, bool heartTest)
     {
@@ -336,7 +341,9 @@ public sealed partial class ImpTaskSystem
 
     /// <summary><c>0x00453600</c>: an object on the tile whose definition is an obstacle.</summary>
     private static bool HasObstacle(SimulationContext context, int tileIndex)
-        => HasObstacle(context.World, context.Database, tileIndex);
+    {
+        return HasObstacle(context.World, context.Database, tileIndex);
+    }
 
     private static bool HasObstacle(WorldState world, GameDatabase database, int tileIndex)
     {

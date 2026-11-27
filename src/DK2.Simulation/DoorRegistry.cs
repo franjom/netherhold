@@ -10,9 +10,21 @@ internal sealed class DoorRegistry
 {
     private readonly List<DoorState> _doors = [];
 
-    public IReadOnlyList<DoorState> All => _doors;
+    public IReadOnlyList<DoorState> All
+    {
+        get
+        {
+            return _doors;
+        }
+    }
 
-    public List<DoorState> Raw => _doors;
+    public List<DoorState> Raw
+    {
+        get
+        {
+            return _doors;
+        }
+    }
 
     /// <summary>The last door id given; a snapshot restores it so ids stay unique.</summary>
     public int NextId { get; set; }

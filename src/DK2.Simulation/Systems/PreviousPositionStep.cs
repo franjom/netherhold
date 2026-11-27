@@ -21,9 +21,18 @@ namespace DK2.Simulation.Systems;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/functions/00488930.md")]
 public sealed class PreviousPositionStep : ICreatureUpdateStep
 {
-    public string Name => "previous position";
+    public string Name
+    {
+        get
+        {
+            return "previous position";
+        }
+    }
 
-    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+    public void Execute(SimulationContext context)
+    {
+        CreatureUpdateSystem.RunAlone(context, this);
+    }
 
     public void Update(SimulationContext context, CreatureState creature)
     {

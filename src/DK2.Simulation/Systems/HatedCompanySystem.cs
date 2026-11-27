@@ -26,16 +26,27 @@ public sealed class HatedCompanySystem : IRoomTickStep
     private readonly List<CreatureState> _holders = [];
     private readonly List<RoomInstance> _rooms = [];
 
-    public string Name => "hated company";
+    public string Name
+    {
+        get
+        {
+            return "hated company";
+        }
+    }
 
     /// <summary>The room types whose tick handler calls <c>0x004E8C60</c>.</summary>
-    public static bool Applies(RoomTypeId? type) =>
-        type is RoomTypeId.Library or RoomTypeId.TrainingRoom or RoomTypeId.GuardRoom or RoomTypeId.Workshop;
+    public static bool Applies(RoomTypeId? type)
+    {
+        return type is RoomTypeId.Library or RoomTypeId.TrainingRoom or RoomTypeId.GuardRoom or RoomTypeId.Workshop;
+    }
 
     private bool _active;
     private int _delta;
 
-    public void Execute(SimulationContext context) => RoomTickSystem.RunAlone(context, this);
+    public void Execute(SimulationContext context)
+    {
+        RoomTickSystem.RunAlone(context, this);
+    }
 
     public void BeginTurn(SimulationContext context)
     {
@@ -100,8 +111,10 @@ public sealed class HatedCompanySystem : IRoomTickStep
         _active = true;
     }
 
-    public bool Applies(SimulationContext context, RoomInstance room) =>
-        _active && Applies(room.Definition.TypeId) && InKnownRoom(room);
+    public bool Applies(SimulationContext context, RoomInstance room)
+    {
+        return _active && Applies(room.Definition.TypeId) && InKnownRoom(room);
+    }
 
     public void Tick(SimulationContext context, RoomInstance room)
     {
@@ -188,6 +201,8 @@ public sealed class HatedCompanySystem : IRoomTickStep
         return false;
     }
 
-    private static bool IsEvil(GameDatabase database, CreatureState c) =>
-        ((database.CreatureById(c.CreatureTypeId).Flags & CreatureFlags.IsEvil) == CreatureFlags.IsEvil);
+    private static bool IsEvil(GameDatabase database, CreatureState c)
+    {
+        return ((database.CreatureById(c.CreatureTypeId).Flags & CreatureFlags.IsEvil) == CreatureFlags.IsEvil);
+    }
 }

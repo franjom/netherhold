@@ -28,10 +28,12 @@ public static class TempleSacrificeRules
     public const byte FailedSpeechId = 1;
     public const byte GoldSpeechId = 7;
 
-    public static bool IsTemple(RoomInstance? room, PlayerId playerId) =>
-        room is not null
+    public static bool IsTemple(RoomInstance? room, PlayerId playerId)
+    {
+        return room is not null
         && room.Definition.TypeId == RoomTypeId.Temple
         && room.OwnerPlayerId == playerId;
+    }
 
     /// <summary>Removes histories whose lowest tile is no longer the lowest tile
     /// of a Temple owned by the same player. The identity policy is ADR-0149.</summary>
@@ -87,10 +89,12 @@ public static class TempleSacrificeRules
     /// any keeper-spell cost; this method only records and resolves the offering.</summary>
     public static SacrificeResult OfferKeeperSpell(
         WorldState world, GameDatabase database, RoomInstance temple,
-        byte keeperSpellId, int offeringTileIndex) =>
-        Offer(world, database, temple,
+        byte keeperSpellId, int offeringTileIndex)
+    {
+        return Offer(world, database, temple,
             new SacrificeIngredient(KeeperSpellIngredient, keeperSpellId, 0),
             offeringTileIndex);
+    }
 
     private static SacrificeResult Offer(
         WorldState world, GameDatabase database, RoomInstance temple,
@@ -206,11 +210,14 @@ public static class TempleSacrificeRules
         return recipe.Type3 == 0 ? 2 : 3;
     }
 
-    private static (byte Type, byte Id) IngredientAt(SacrificeEntry recipe, int index) => index switch
+    private static (byte Type, byte Id) IngredientAt(SacrificeEntry recipe, int index)
     {
-        0 => (recipe.Type1, recipe.Id1),
-        1 => (recipe.Type2, recipe.Id2),
-        2 => (recipe.Type3, recipe.Id3),
-        _ => throw new ArgumentOutOfRangeException(nameof(index)),
-    };
+        return index switch
+        {
+            0 => (recipe.Type1, recipe.Id1),
+            1 => (recipe.Type2, recipe.Id2),
+            2 => (recipe.Type3, recipe.Id3),
+            _ => throw new ArgumentOutOfRangeException(nameof(index)),
+        };
+    }
 }

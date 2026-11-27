@@ -19,7 +19,13 @@ public sealed class CreatureStatusSystem : ICreatureUpdateStep
 {
     private const string SystemName = "status";
 
-    public string Name => SystemName;
+    public string Name
+    {
+        get
+        {
+            return SystemName;
+        }
+    }
 
     /// <summary>The handlers of 255, 256 and 257. They are state handlers, so in the creature's update
     /// they follow its fight scan (<c>0x00488930</c>): the turn 255 ends has no scan, and a scan that
@@ -27,13 +33,25 @@ public sealed class CreatureStatusSystem : ICreatureUpdateStep
     public ICreatureUpdateStep Recovery { get; } = new RecoveryStep();
 
     /// <summary>Alone, the timed effects and then the stun's handlers for each creature.</summary>
-    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this, Recovery);
+    public void Execute(SimulationContext context)
+    {
+        CreatureUpdateSystem.RunAlone(context, this, Recovery);
+    }
 
     private sealed class RecoveryStep : ICreatureUpdateStep
     {
-        public string Name => "stun states";
+        public string Name
+        {
+            get
+            {
+                return "stun states";
+            }
+        }
 
-        public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+        public void Execute(SimulationContext context)
+        {
+            CreatureUpdateSystem.RunAlone(context, this);
+        }
 
         public void Update(SimulationContext context, CreatureState creature)
         {

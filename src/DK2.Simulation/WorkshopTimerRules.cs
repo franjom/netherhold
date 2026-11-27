@@ -44,9 +44,11 @@ public static class WorkshopTimerRules
     /// <summary>The room constructor's draws (<c>Workshop.cpp</c> lines 0x22 to 0x25): steam
     /// (<c>+0x49</c>), smoke (<c>+0x4D</c>), lava bubbling (<c>+0x51</c>) then lava spill (<c>+0x55</c>),
     /// each <c>random(4 x ticks)</c>.</summary>
-    public static WorkshopTimers Construct(SimRandom rng) =>
-        new(rng.NextInt(StartRangeSeconds * Ticks), rng.NextInt(StartRangeSeconds * Ticks),
+    public static WorkshopTimers Construct(SimRandom rng)
+    {
+        return new(rng.NextInt(StartRangeSeconds * Ticks), rng.NextInt(StartRangeSeconds * Ticks),
             rng.NextInt(StartRangeSeconds * Ticks), rng.NextInt(StartRangeSeconds * Ticks));
+    }
 
     /// <summary>Puts a room's countdowns on its lowest tile and clears them from the rest of
     /// <paramref name="chain"/>.</summary>
@@ -72,7 +74,10 @@ public static class WorkshopTimerRules
     }
 
     /// <summary>Whether a room of this definition is a Workshop.</summary>
-    internal static bool IsWorkshop(RoomDef? room) => room?.TypeId == RoomTypeId.Workshop;
+    internal static bool IsWorkshop(RoomDef? room)
+    {
+        return room?.TypeId == RoomTypeId.Workshop;
+    }
 
     /// <summary>The rooms a level's map starts with are constructed as the world is made, row by row
     /// (<see cref="RoomLists.Initialize"/> records them); DK2 loads a level after setting the seed, so
@@ -187,8 +192,10 @@ public static class WorkshopTimerRules
     }
 
     /// <summary>A reload: <c>random(16 x ticks a second) + 8 x ticks a second</c>.</summary>
-    private static int Reload(SimRandom rng) =>
-        rng.NextInt(ReloadRangeSeconds * Ticks) + (ReloadFloorSeconds * Ticks);
+    private static int Reload(SimRandom rng)
+    {
+        return rng.NextInt(ReloadRangeSeconds * Ticks) + (ReloadFloorSeconds * Ticks);
+    }
 
     /// <summary>The room's auto-placed objects, newest first (<c>room+0xE</c>, pushed at the head by
     /// <c>0x004E6220</c>), whoever owns them. Ordered by object id: DK2's list order is insertion order and its
@@ -238,9 +245,11 @@ public static class WorkshopTimerRules
         return slots.Length == 0 ? null : slots[context.Rng.NextInt(slots.Length)];
     }
 
-    private static void Request(SimulationContext context, RoomInstance room, ushort effect, int x, int y, int z, Dk2Angle heading) =>
+    private static void Request(SimulationContext context, RoomInstance room, ushort effect, int x, int y, int z, Dk2Angle heading)
+    {
         context.RequestEffect(SystemName, new ViewEffectRequest(new EffectId(effect), room.OwnerPlayerId,
             new FpPosition3(new Fp32(x), new Fp32(y), new Fp32(z)), heading));
+    }
 
     /// <summary>A Workshop sound (<c>0x004F4C27</c>, <c>0x004F4DC7</c>, <c>0x004F4F03</c>), asked straight after its effect: the room's handle (<c>+0x14</c>, ours a
     /// <see cref="SoundSourceKind.Room"/> voice by its first tile), in the category of the terrain at the effect's position (<c>+0x195</c> of the

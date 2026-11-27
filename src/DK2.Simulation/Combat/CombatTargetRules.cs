@@ -40,7 +40,13 @@ public sealed class HeartSites
 
     private readonly List<Site> _sites = [];
 
-    public IReadOnlyList<Site> Sites => _sites;
+    public IReadOnlyList<Site> Sites
+    {
+        get
+        {
+            return _sites;
+        }
+    }
 
     /// <summary>The site of this player's heart, standing or fallen; none for a player without one.</summary>
     public Site? SiteOf(PlayerId owner)
@@ -149,7 +155,10 @@ public static class CombatTargetRules
     public const int MeleeDecisionDistance = 0x1000;
 
     /// <summary>Every arm runs: the four fighting arms since ADR-0163/0164, the NonFighter since ADR-0166.</summary>
-    public static bool IsBuilt(FightStyle style) => true;
+    public static bool IsBuilt(FightStyle style)
+    {
+        return true;
+    }
 
     /// <summary>A worker within this of its own heart, squared, fights anything (NonFighter §3.1).</summary>
     public const int HeartDefenceRadiusSquared = 0xD000;
@@ -258,8 +267,10 @@ public static class CombatTargetRules
     /// spell whether or not it has recharged, so it keeps the spell nibble and its range while the
     /// spell cools — standing off and stepping back rather than closing to melee. A cornered one,
     /// and every other fight style, needs the spell ready.</summary>
-    private static bool SpellWhileRecharging(SimulationContext context, CreatureState me, CreatureDef definition, List<Fixed16Vector> scratch) =>
-        definition.FightStyle == FightStyle.Support && !FearRules.Cornered(context, me, definition, scratch);
+    private static bool SpellWhileRecharging(SimulationContext context, CreatureState me, CreatureDef definition, List<Fixed16Vector> scratch)
+    {
+        return definition.FightStyle == FightStyle.Support && !FearRules.Cornered(context, me, definition, scratch);
+    }
 
     /// <summary>The thing reach a door adds to <c>MeleeRange</c>, and a Secret Door's.</summary>
     public const int DoorReach = 0x800;
@@ -849,8 +860,10 @@ public static class CombatTargetRules
     }
 
     /// <summary>DK2's <c>0x00494360</c>: a unique definition's ordinary archetype, any other's own id.</summary>
-    private static byte BaseTypeId(CreatureDef definition) =>
-        (definition.Flags & CreatureFlags.IsUnique) != 0 ? definition.UniqueBaseCreatureId : definition.CreatureId;
+    private static byte BaseTypeId(CreatureDef definition)
+    {
+        return (definition.Flags & CreatureFlags.IsUnique) != 0 ? definition.UniqueBaseCreatureId : definition.CreatureId;
+    }
 
     /// <summary>Scan C: registered attackers precede the fight-style arm. Imps bypass its
     /// sight/hearing distance cap, but still need visibility and a route (combat-acquisition.md §6).
@@ -1038,17 +1051,26 @@ public static class CombatTargetRules
         return chosen;
     }
 
-    public static int TileCentreX(WorldState world, int tileIndex) => CreatureState.CentreOf(tileIndex % world.Width);
-    public static int TileCentreY(WorldState world, int tileIndex) => CreatureState.CentreOf(tileIndex / world.Width);
+    public static int TileCentreX(WorldState world, int tileIndex)
+    {
+        return CreatureState.CentreOf(tileIndex % world.Width);
+    }
+
+    public static int TileCentreY(WorldState world, int tileIndex)
+    {
+        return CreatureState.CentreOf(tileIndex / world.Width);
+    }
 
     /// <summary><c>0x0045AFF0</c>: not a distance but a route. Asks the mesh for a path to the
     /// point and sums its legs with the octile length; true when the squared length is under
     /// <paramref name="rangeSq"/>. Standing on the point, or an empty route, is true; no route is
     /// false. The Imp respects doors (<c>0x80</c>), everyone else routes with 0 (<c>0x0045B03E</c>, ADR-0332).</summary>
     public static bool CanReach(
-        WorldSteering navigation, CreatureState me, CreatureDef definition, int toX, int toY, int rangeSq, List<Fixed16Vector> scratch) =>
-        CanReach(navigation, me, definition, toX, toY, rangeSq, scratch,
+        WorldSteering navigation, CreatureState me, CreatureDef definition, int toX, int toY, int rangeSq, List<Fixed16Vector> scratch)
+    {
+        return CanReach(navigation, me, definition, toX, toY, rangeSq, scratch,
             me.CreatureTypeId == CombatRules.ImpCreatureTypeId ? MoveOptions.Loose : MoveOptions.Plain);
+    }
 
     /// <summary>The same with the caller's route word. The fight's own tests use the Imp's 0 or
     /// 0x80, which refuses a foreign door; a hero job's arm passes its own word, 3 for StealGold

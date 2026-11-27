@@ -41,7 +41,10 @@ public static class StateEntryLog
     /// <summary>The scope <see cref="Unrecorded"/> opens.</summary>
     public readonly struct Suspension : IDisposable
     {
-        public void Dispose() => s_suspended--;
+        public void Dispose()
+        {
+            s_suspended--;
+        }
     }
 
     // A set bit is never cleared, so the loop ends.
@@ -89,8 +92,10 @@ public static class StateEntryLog
 
     /// <summary>The first method outside this assembly that led to the state's first entry,
     /// such as the test that ran it, or null if the state was never entered.</summary>
-    public static string? FirstEnteredBy(int stateId) =>
-        FirstCaller.TryGetValue(stateId, out string? who) ? who : null;
+    public static string? FirstEnteredBy(int stateId)
+    {
+        return FirstCaller.TryGetValue(stateId, out string? who) ? who : null;
+    }
 
     private static string OutsideCaller()
     {

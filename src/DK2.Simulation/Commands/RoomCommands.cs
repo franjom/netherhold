@@ -20,18 +20,24 @@ public sealed record BuildRoomCommand(PlayerId PlayerId, RoomTypeId RoomId, IRea
     public TilePos Press { get; init; }
     public TilePos Release { get; init; }
     /// <summary>Immediate tile-builder input for computer keepers and scenario setup.</summary>
-    public static BuildRoomCommand At(PlayerId playerId, RoomTypeId roomId, params TilePos[] tiles) =>
-        new(playerId, roomId, tiles);
+    public static BuildRoomCommand At(PlayerId playerId, RoomTypeId roomId, params TilePos[] tiles)
+    {
+        return new(playerId, roomId, tiles);
+    }
 
     /// <summary>Every tile in a rectangle dragged from (<paramref name="x0"/>, <paramref name="y0"/>)
     /// to (<paramref name="x1"/>, <paramref name="y1"/>), in the order DK2's build wave lays them
     /// (<see cref="SlabChain.Wave"/>): from the corner released, which is where the room's slab
     /// chain starts (room-slab-chain.md §2).</summary>
-    public static BuildRoomCommand Rect(PlayerId playerId, RoomTypeId roomId, int x0, int y0, int x1, int y1) =>
-        new(playerId, roomId, SlabChain.Wave(x0, y0, x1, y1))
+    public static BuildRoomCommand Rect(PlayerId playerId, RoomTypeId roomId, int x0, int y0, int x1, int y1)
+    {
+        return new(playerId, roomId, SlabChain.Wave(x0, y0, x1, y1))
         {
-            Mode = RoomBuildMode.PlayerWave, Press = new TilePos(x0, y0), Release = new TilePos(x1, y1),
+            Mode = RoomBuildMode.PlayerWave,
+            Press = new TilePos(x0, y0),
+            Release = new TilePos(x1, y1),
         };
+    }
 
     public override void HashInto(ref Hash64 hash)
     {
@@ -70,8 +76,10 @@ public sealed record SellRoomCommand(PlayerId PlayerId, IReadOnlyList<TilePos> T
     /// <summary>The rectangle's maximum corner, where a wave starts.</summary>
     public TilePos Max { get; init; }
 
-    public static SellRoomCommand At(PlayerId playerId, params TilePos[] tiles) =>
-        new(playerId, tiles);
+    public static SellRoomCommand At(PlayerId playerId, params TilePos[] tiles)
+    {
+        return new(playerId, tiles);
+    }
 
     /// <summary>A dragged rectangle, normalised as the Hand's sell release sends it (<c>0x004075E0</c>), so the
     /// wave (<c>0x004C7160</c>) starts at the maximum corner whichever way it was dragged. <see cref="Tiles"/>

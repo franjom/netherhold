@@ -26,7 +26,13 @@ public sealed class TileTagSystem : ISimulationSystem
 {
     private const string SystemName = "TileTag";
 
-    public string Name => SystemName;
+    public string Name
+    {
+        get
+        {
+            return SystemName;
+        }
+    }
 
     public void Execute(SimulationContext context)
     {

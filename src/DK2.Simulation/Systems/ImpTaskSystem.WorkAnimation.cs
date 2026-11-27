@@ -14,12 +14,14 @@ public sealed partial class ImpTaskSystem
     /// <summary>Whether the creature's work runs on the looping slot-5 action whose end the stored
     /// animation clock decides: digging (all three kinds) and mining, in their work states, for a
     /// creature whose slot 5 has timing data.</summary>
-    private static bool PlaysWorkLoop(CreatureState creature, CreatureDef definition) =>
-        creature.TargetTileIndex >= 0
+    private static bool PlaysWorkLoop(CreatureState creature, CreatureDef definition)
+    {
+        return creature.TargetTileIndex >= 0
         && creature.TargetWork is TileWorkKind.Dig or TileWorkKind.DigOwnWall
             or TileWorkKind.DigEnemyWall or TileWorkKind.MineGold
         && creature.Dk2StateId == ImpStates.For(creature.TargetWork).Work
         && ActionAnimationClock.CanPlay(definition, WorkArtSlot);
+    }
 
     /// <summary>What the action handler tests before striking: dig needs a diggable wall
     /// (<c>0x00496E00</c>), mining a workable seam (<c>0x004971D0</c>).</summary>
@@ -105,9 +107,11 @@ public sealed partial class ImpTaskSystem
     /// previous turn's), which are our two begin points: the first, and the next once a wrap has left the handler and the clip both
     /// done. Ours strikes every turn after the second application, so the cycle is the clip's (the previous phase DK2 tests is not
     /// kept: a phase under one step stands for a wrap) (docs/research/sound-effects-continuous.md section 2).</summary>
-    private static void AskActionSound(SimulationContext context, CreatureState creature) =>
+    private static void AskActionSound(SimulationContext context, CreatureState creature)
+    {
         CreatureActionSounds.Begin(context, SystemName, creature,
             creature.TargetWork == TileWorkKind.MineGold ? CreatureActionTable.Mine : CreatureActionTable.Dig);
+    }
 
     /// <summary>The end of the creature's update: the work action starts on the turn after the
     /// work state is entered and its clip advances every turn after that (mining-finish.md).

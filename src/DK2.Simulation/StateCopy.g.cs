@@ -28,7 +28,13 @@ namespace DK2.Simulation
 {
     public sealed partial class CreatureState : IStateCopy<CreatureState>
     {
-        int IStateCopy<CreatureState>.Key => Id;
+        int IStateCopy<CreatureState>.Key
+        {
+            get
+            {
+                return Id;
+            }
+        }
 
         public CreatureState Clone()
         {
@@ -333,7 +339,13 @@ namespace DK2.Simulation
 {
     public sealed partial class ObjectState : IStateCopy<ObjectState>
     {
-        int IStateCopy<ObjectState>.Key => Id;
+        int IStateCopy<ObjectState>.Key
+        {
+            get
+            {
+                return Id;
+            }
+        }
 
         public ObjectState Clone()
         {
@@ -403,7 +415,13 @@ namespace DK2.Simulation
 {
     public sealed partial class ShotState : IStateCopy<ShotState>
     {
-        int IStateCopy<ShotState>.Key => Id;
+        int IStateCopy<ShotState>.Key
+        {
+            get
+            {
+                return Id;
+            }
+        }
 
         public ShotState Clone()
         {
@@ -450,9 +468,18 @@ namespace DK2.Simulation
 {
     public sealed partial class DoorState : IStateCopy<DoorState>
     {
-        int IStateCopy<DoorState>.Key => Id;
+        int IStateCopy<DoorState>.Key
+        {
+            get
+            {
+                return Id;
+            }
+        }
 
-        public DoorState Clone() => (DoorState)MemberwiseClone();
+        public DoorState Clone()
+        {
+            return (DoorState)MemberwiseClone();
+        }
 
         public void CopyFrom(DoorState other)
         {
@@ -473,9 +500,18 @@ namespace DK2.Simulation
 {
     public sealed partial class TrapState : IStateCopy<TrapState>
     {
-        int IStateCopy<TrapState>.Key => Id;
+        int IStateCopy<TrapState>.Key
+        {
+            get
+            {
+                return Id;
+            }
+        }
 
-        public TrapState Clone() => (TrapState)MemberwiseClone();
+        public TrapState Clone()
+        {
+            return (TrapState)MemberwiseClone();
+        }
 
         public void CopyFrom(TrapState other)
         {
@@ -504,9 +540,18 @@ namespace DK2.Simulation
 {
     public sealed partial class ActionPointState : IStateCopy<ActionPointState>
     {
-        int IStateCopy<ActionPointState>.Key => Id;
+        int IStateCopy<ActionPointState>.Key
+        {
+            get
+            {
+                return Id;
+            }
+        }
 
-        public ActionPointState Clone() => (ActionPointState)MemberwiseClone();
+        public ActionPointState Clone()
+        {
+            return (ActionPointState)MemberwiseClone();
+        }
 
         public void CopyFrom(ActionPointState other)
         {
@@ -520,9 +565,18 @@ namespace DK2.Simulation
 {
     public sealed partial class HeroPartyState : IStateCopy<HeroPartyState>
     {
-        int IStateCopy<HeroPartyState>.Key => 0;
+        int IStateCopy<HeroPartyState>.Key
+        {
+            get
+            {
+                return 0;
+            }
+        }
 
-        public HeroPartyState Clone() => (HeroPartyState)MemberwiseClone();
+        public HeroPartyState Clone()
+        {
+            return (HeroPartyState)MemberwiseClone();
+        }
 
         public void CopyFrom(HeroPartyState other)
         {
@@ -535,9 +589,18 @@ namespace DK2.Simulation
 {
     public sealed partial class EffectGeneratorState : IStateCopy<EffectGeneratorState>
     {
-        int IStateCopy<EffectGeneratorState>.Key => 0;
+        int IStateCopy<EffectGeneratorState>.Key
+        {
+            get
+            {
+                return 0;
+            }
+        }
 
-        public EffectGeneratorState Clone() => (EffectGeneratorState)MemberwiseClone();
+        public EffectGeneratorState Clone()
+        {
+            return (EffectGeneratorState)MemberwiseClone();
+        }
 
         public void CopyFrom(EffectGeneratorState other)
         {
@@ -550,7 +613,13 @@ namespace DK2.Simulation
 {
     public sealed partial class TempleSacrificeState : IStateCopy<TempleSacrificeState>
     {
-        int IStateCopy<TempleSacrificeState>.Key => AnchorTileIndex;
+        int IStateCopy<TempleSacrificeState>.Key
+        {
+            get
+            {
+                return AnchorTileIndex;
+            }
+        }
 
         public TempleSacrificeState Clone()
         {
@@ -572,7 +641,13 @@ namespace DK2.Simulation
 {
     public sealed partial class GraveyardState : IStateCopy<GraveyardState>
     {
-        int IStateCopy<GraveyardState>.Key => AnchorTileIndex;
+        int IStateCopy<GraveyardState>.Key
+        {
+            get
+            {
+                return AnchorTileIndex;
+            }
+        }
 
         public GraveyardState Clone()
         {

@@ -22,9 +22,15 @@ public sealed partial class NavMesh
     /// slot of -1, which the original's three-way compare yields for a neighbour that does not link
     /// back, reads the word before each table (<c>0x0066DA10</c> is [0, 1, 2] and the tables overlap by
     /// one word), so next(-1) is 0 and prev(-1) is 1; nothing consistent reaches it.</summary>
-    private static int Next(int k) => k < 0 ? 0 : (k + 1) % 3;
+    private static int Next(int k)
+    {
+        return k < 0 ? 0 : (k + 1) % 3;
+    }
 
-    private static int Prev(int k) => k < 0 ? 1 : (k + 2) % 3;
+    private static int Prev(int k)
+    {
+        return k < 0 ? 1 : (k + 2) % 3;
+    }
 
     /// <summary>The slot of <c>u</c> whose neighbour is <c>t</c>, or -1 (the original's compare of the
     /// three words, which returns -1 when none matches).</summary>
@@ -45,20 +51,35 @@ public sealed partial class NavMesh
 
     /// <summary>The original's edge at vertex slot <paramref name="s"/>, the one leaving the corner
     /// there: our edge before <paramref name="s"/>, which arrives at it.</summary>
-    private static int EdgeLeaving(int s) => Prev(s);
+    private static int EdgeLeaving(int s)
+    {
+        return Prev(s);
+    }
 
     /// <summary>The original's corner after the one at slot <paramref name="s"/>: ours before it.</summary>
-    private int CornerAfter(int t, int s) => Vertex(t, Prev(s));
+    private int CornerAfter(int t, int s)
+    {
+        return Vertex(t, Prev(s));
+    }
 
     /// <summary>The original's corner before the one at slot <paramref name="s"/>: ours after it.</summary>
-    private int CornerBefore(int t, int s) => Vertex(t, Next(s));
+    private int CornerBefore(int t, int s)
+    {
+        return Vertex(t, Next(s));
+    }
 
     /// <summary>Sets edge <c>i</c>'s constraint bit on <c>t</c> alone, as the original's side marker
     /// `0x004CE380` does; the flip tests both triangles' bits, so one side refuses both.</summary>
-    public void MarkConstraint(int t, int i) => SetConstraint(t, i, true);
+    public void MarkConstraint(int t, int i)
+    {
+        SetConstraint(t, i, true);
+    }
 
     /// <summary>Clears edge <c>i</c>'s constraint bit on <c>t</c> alone (`0x004CE410`).</summary>
-    public void ClearConstraint(int t, int i) => SetConstraint(t, i, false);
+    public void ClearConstraint(int t, int i)
+    {
+        SetConstraint(t, i, false);
+    }
 
     private void FreeTriangle(int t)
     {

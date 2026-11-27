@@ -22,7 +22,13 @@ public sealed class SimRandom
         _algorithm = algorithm ?? throw new ArgumentNullException(nameof(algorithm));
     }
 
-    public IRandomAlgorithm Algorithm => _algorithm;
+    public IRandomAlgorithm Algorithm
+    {
+        get
+        {
+            return _algorithm;
+        }
+    }
 
     public ulong NextUInt64()
     {

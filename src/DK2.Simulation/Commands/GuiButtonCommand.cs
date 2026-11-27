@@ -14,10 +14,25 @@ public enum GuiButtonCategory : byte { Widget = 0, Room = 1, Creature = 2, Door 
 /// <see cref="GuiButtonCategory.Widget"/> the pressed HUD widget's <c>+0x74</c> (record dword +1).</summary>
 public readonly record struct GuiButtonTarget(GuiButtonCategory Category, byte Id)
 {
-    public static GuiButtonTarget Room(RoomTypeId room) => new(GuiButtonCategory.Room, (byte)room);
-    public static GuiButtonTarget Door(byte doorId) => new(GuiButtonCategory.Door, doorId);
-    public static GuiButtonTarget Trap(byte trapId) => new(GuiButtonCategory.Trap, trapId);
-    public static GuiButtonTarget Spell(byte spellId) => new(GuiButtonCategory.Spell, spellId);
+    public static GuiButtonTarget Room(RoomTypeId room)
+    {
+        return new(GuiButtonCategory.Room, (byte)room);
+    }
+
+    public static GuiButtonTarget Door(byte doorId)
+    {
+        return new(GuiButtonCategory.Door, doorId);
+    }
+
+    public static GuiButtonTarget Trap(byte trapId)
+    {
+        return new(GuiButtonCategory.Trap, trapId);
+    }
+
+    public static GuiButtonTarget Spell(byte spellId)
+    {
+        return new(GuiButtonCategory.Spell, spellId);
+    }
 
     /// <summary>The Sell tool (record <c>0x690ED8</c>, <c>0x004163F0</c>).</summary>
     public static readonly GuiButtonTarget Sell = new(GuiButtonCategory.Widget, 0xFF);

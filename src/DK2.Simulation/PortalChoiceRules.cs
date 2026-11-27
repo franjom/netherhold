@@ -198,8 +198,10 @@ public static class PortalChoiceRules
         };
     }
 
-    private static bool IsLairAttracted(CreatureDef creature) =>
-        creature.Attractions.Count > 0 && creature.Attractions[0].RoomId == (byte)RoomTypeId.Lair;
+    private static bool IsLairAttracted(CreatureDef creature)
+    {
+        return creature.Attractions.Count > 0 && creature.Attractions[0].RoomId == (byte)RoomTypeId.Lair;
+    }
 
     /// <summary>Binary search by type id: the row's index, or the complement of where it goes.</summary>
     private static int IndexOf(List<EntranceInfoState> rows, byte creatureTypeId)

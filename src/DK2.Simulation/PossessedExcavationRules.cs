@@ -96,10 +96,12 @@ internal static class PossessedExcavationRules
         }
     }
 
-    private static bool Workable(SimulationContext context, PossessedExcavationState action) =>
-        context.World.Contains(action.Target) && (action.Kind == PossessedExcavationKind.Mine
+    private static bool Workable(SimulationContext context, PossessedExcavationState action)
+    {
+        return context.World.Contains(action.Target) && (action.Kind == PossessedExcavationKind.Mine
             ? TileWorkRules.IsMinableGold(context.Database, context.World.Tile(action.Target))
             : TileWorkRules.IsDiggableWall(context.Database.TerrainById(context.World.Tile(action.Target).TerrainId)));
+    }
 
     internal static void Advance(SimulationContext context, CreatureState creature)
     {

@@ -13,7 +13,13 @@ namespace DK2.Simulation.Systems;
 public sealed class FootprintSystem : ISimulationSystem
 {
     private readonly HashSet<TilePos> _corpseTiles = [];
-    public string Name => "footprints";
+    public string Name
+    {
+        get
+        {
+            return "footprints";
+        }
+    }
 
     public void Execute(SimulationContext context)
     {

@@ -17,13 +17,15 @@ public sealed record ResyncReport(
     int CreaturesAdded = 0, int CreaturesRemoved = 0, IReadOnlyList<(int Slot, int Ours)>? Pairs = null,
     int PortalClocksSet = 0)
 {
-    public override string ToString() =>
-        $"tiles changed {TilesChanged}, marks set {MarksSet}, doors and traps changed {DoorsAndTrapsChanged}, "
+    public override string ToString()
+    {
+        return $"tiles changed {TilesChanged}, marks set {MarksSet}, doors and traps changed {DoorsAndTrapsChanged}, "
         + $"crates placed {CratesPlaced}, trigger flags and timers changed {TriggerValuesChanged}, portal clocks set {PortalClocksSet}, "
         + $"creatures added {CreaturesAdded}, removed {CreaturesRemoved}, "
         + $"placed {CreaturesPlaced} (paired by type and point {CreaturesPaired}), jobs reissued {JobsReissued} "
         + $"(crate trips {CrateTripsReissued}), workers set choosing {WorkersSetChoosing}, others set idle {CreaturesSetIdle}, "
         + $"creatures left as they were {CreaturesLeft}, unmapped {Unmapped}, floor piles replaced {PilesReplaced}";
+    }
 }
 
 /// <summary>
@@ -474,12 +476,16 @@ public static class WorldResync
 
     /// <summary>Same player and type, and alive as DK2's is: one of DK2's lying in the dying
     /// window may be ours standing or dying, never a corpse.</summary>
-    private static bool Same(ResyncCreature native, CreatureState ours) =>
-        ours.OwnerPlayerId == native.Owner && ours.CreatureTypeId == native.Type
+    private static bool Same(ResyncCreature native, CreatureState ours)
+    {
+        return ours.OwnerPlayerId == native.Owner && ours.CreatureTypeId == native.Type
         && (IsDown(native) ? !CreatureDeathRules.IsCorpse(ours) : ours.Health > 0 && !CreatureDeathRules.IsDown(ours));
+    }
 
-    private static bool IsDown(ResyncCreature native) =>
-        native.State is CreatureDeathRules.FallingState or CreatureDeathRules.DyingState;
+    private static bool IsDown(ResyncCreature native)
+    {
+        return native.State is CreatureDeathRules.FallingState or CreatureDeathRules.DyingState;
+    }
 
     /// <summary>Live creatures of ours DK2 has no counterpart for (a death DK2 had and ours did not,
     /// a party ours raised and DK2 did not) are removed by the health system's removal, which puts
@@ -891,12 +897,15 @@ public static class WorldResync
     }
 
     /// <summary>The crate kind a crate-trip state is for, or null for another state.</summary>
-    private static byte? CrateKindOf(int state) => state switch
+    private static byte? CrateKindOf(int state)
     {
-        CrateRules.FetchTrapCrateState or CrateRules.InstallTrapState => CrateRules.TrapKind,
-        CrateRules.FetchDoorCrateState or CrateRules.InstallDoorState => CrateRules.DoorKind,
-        _ => null,
-    };
+        return state switch
+        {
+            CrateRules.FetchTrapCrateState or CrateRules.InstallTrapState => CrateRules.TrapKind,
+            CrateRules.FetchDoorCrateState or CrateRules.InstallDoorState => CrateRules.DoorKind,
+            _ => null,
+        };
+    }
 
     /// <summary>Each marking keeper's marks become the list's, in the list's order (the marking
     /// ticks), each filed after everything marked before the resync.</summary>
@@ -935,21 +944,26 @@ public static class WorldResync
         return set;
     }
 
-    private static ImpTaskKind KindOrNone(int kind) =>
-        kind is >= 0 and <= byte.MaxValue && Enum.IsDefined(typeof(ImpTaskKind), (byte)kind) ? (ImpTaskKind)kind : ImpTaskKind.None;
+    private static ImpTaskKind KindOrNone(int kind)
+    {
+        return kind is >= 0 and <= byte.MaxValue && Enum.IsDefined(typeof(ImpTaskKind), (byte)kind) ? (ImpTaskKind)kind : ImpTaskKind.None;
+    }
 
     /// <summary>The tile work a worker state names, or null for a state that is not one.</summary>
-    public static TileWorkKind? WorkOf(int state) => state switch
+    public static TileWorkKind? WorkOf(int state)
     {
-        13 or 14 => TileWorkKind.Dig,
-        15 or 16 => TileWorkKind.Claim,
-        17 or 18 => TileWorkKind.ConvertRoom,
-        19 or 20 => TileWorkKind.AttackTile,
-        21 or 22 => TileWorkKind.Reinforce,
-        23 or 24 => TileWorkKind.RepairWall,
-        25 or 26 => TileWorkKind.MineGold,
-        _ => null,
-    };
+        return state switch
+        {
+            13 or 14 => TileWorkKind.Dig,
+            15 or 16 => TileWorkKind.Claim,
+            17 or 18 => TileWorkKind.ConvertRoom,
+            19 or 20 => TileWorkKind.AttackTile,
+            21 or 22 => TileWorkKind.Reinforce,
+            23 or 24 => TileWorkKind.RepairWall,
+            25 or 26 => TileWorkKind.MineGold,
+            _ => null,
+        };
+    }
 
     private static int ApplyTiles(WorldState world, GameDatabase database, ResyncState state)
     {

@@ -16,9 +16,15 @@ public sealed record ResyncState(
     ResyncDoor[]? Doors = null, ResyncTrap[]? Traps = null, int[]? Flags = null, int[]? Timers = null,
     ResyncRoom[]? Rooms = null)
 {
-    public int Terrain(int index) => Tiles[3 * index];
+    public int Terrain(int index)
+    {
+        return Tiles[3 * index];
+    }
 
-    public int Owner(int index) => Tiles[(3 * index) + 1];
+    public int Owner(int index)
+    {
+        return Tiles[(3 * index) + 1];
+    }
 }
 
 /// <summary><c>money</c> is player <c>+0x7E</c>, <c>mana</c> <c>+0x82</c> (player-object.md).</summary>
@@ -86,9 +92,21 @@ public sealed record ResyncMark(int X, int Y, int Player, int Order);
 /// <c>room[0x4D]</c>, its live arrivals (portals-interval.md). <see cref="Active"/> is the slot's byte.</summary>
 public sealed record ResyncRoom(int? Slot, bool Active, int Type, int Owner, int MinX, int MaxX, int MinY, int MaxY)
 {
-    public int PortalStamp => MinX | (MaxX << 16);
+    public int PortalStamp
+    {
+        get
+        {
+            return MinX | (MaxX << 16);
+        }
+    }
 
-    public int PortalTally => MinY | (MaxY << 16);
+    public int PortalTally
+    {
+        get
+        {
+            return MinY | (MaxY << 16);
+        }
+    }
 }
 
 /// <summary>An object thing: its type id, owner, point, flags <c>+0x146</c> and the dword at

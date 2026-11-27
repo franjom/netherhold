@@ -127,7 +127,10 @@ public sealed class KeeperPrisonerStep
     }
 
     /// <summary><c>0x004BF390</c> on the occupant's owner: not this keeper and not allied.</summary>
-    private bool IsEnemy(KeeperCreatureView creature) => !_view.AreAllied(creature.OwnerPlayerId);
+    private bool IsEnemy(KeeperCreatureView creature)
+    {
+        return !_view.AreAllied(creature.OwnerPlayerId);
+    }
 
     /// <summary>The guards every move tests after its room draw, in order: the dropped-counter guard,
     /// not in this hand, not landing (76), not stunned, the pick-up permission.</summary>
@@ -155,9 +158,11 @@ public sealed class KeeperPrisonerStep
 
     /// <summary>A creature an earlier step prepared is, in DK2, landing (76) when the hand took and
     /// dropped it, or still in 75 when the hand refused it.</summary>
-    private int StateOf(KeeperCreatureView creature) =>
-        !_prepared.Contains(creature.Id) ? creature.StateId
+    private int StateOf(KeeperCreatureView creature)
+    {
+        return !_prepared.Contains(creature.Id) ? creature.StateId
             : creature.CanPickUp ? DropLandingRules.LandingState : KeeperTrainingStep.PreparedState;
+    }
 
     /// <summary><c>0x004BFBD0</c> prepares, <c>0x004BC500</c> lifts unless the hand refuses, and the
     /// drop follows only a lift.</summary>

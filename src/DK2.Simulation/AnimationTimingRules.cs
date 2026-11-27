@@ -13,26 +13,40 @@ public static class AnimationTimingRules
     private const int One = 4096;
     [ThreadStatic] private static CreatureState? s_countedClock;
 
-    public static int KnockdownHoldTicks(CreatureDef definition) => ActionHoldTicks(
+    public static int KnockdownHoldTicks(CreatureDef definition)
+    {
+        return ActionHoldTicks(
         SlotOrFallback(definition.KnockdownAnimation, definition.KnockdownFallbackAnimation));
+    }
 
-    public static int GetUpHoldTicks(CreatureDef definition) => ActionHoldTicks(
+    public static int GetUpHoldTicks(CreatureDef definition)
+    {
+        return ActionHoldTicks(
         SlotOrFallback(definition.GetUpAnimation, definition.GetUpFallbackAnimation));
+    }
 
     /// <summary>The victory pause (action 55, art slot 35 or its fallback 8): one play of the clip,
     /// 1 to 22 turns by creature (combat-approach-and-victory.md §7, Q376).</summary>
-    public static int VictoryHoldTicks(CreatureDef definition) => ActionHoldTicks(
+    public static int VictoryHoldTicks(CreatureDef definition)
+    {
+        return ActionHoldTicks(
         SlotOrFallback(definition.ReaperSummonAnimation, definition.ReaperSummonFallbackAnimation));
+    }
 
     /// <summary>An art slot falls back when its runtime bit 0 is clear (<c>0x00494880</c>); the loader
     /// <c>0x00504D80</c> copies the file flags only for types 1 to 8 and sets the bit for any non-zero
     /// type, so a slot is present exactly when its type is non-zero.</summary>
-    public static CreatureAnimationTiming SlotOrFallback(CreatureAnimationTiming slot, CreatureAnimationTiming fallback) =>
-        slot.ResourceType != 0 ? slot : fallback;
+    public static CreatureAnimationTiming SlotOrFallback(CreatureAnimationTiming slot, CreatureAnimationTiming fallback)
+    {
+        return slot.ResourceType != 0 ? slot : fallback;
+    }
 
     /// <summary><c>CreatureDef_HasArt</c> (<c>0x00494A00</c>): the slot's own record is present, with
     /// no fallback.</summary>
-    public static bool HasArt(CreatureDef definition, int slot) => definition.ArtSlot(slot).ResourceType != 0;
+    public static bool HasArt(CreatureDef definition, int slot)
+    {
+        return definition.ArtSlot(slot).ResourceType != 0;
+    }
 
     /// <summary><c>0x00494880</c>: a missing slot's fallback, unchecked (casino.md §7). Slots 37 to 41
     /// fall back to 1; the rest by the binary's literal switch, 0 for a slot it does not list.</summary>
@@ -59,8 +73,10 @@ public static class AnimationTimingRules
 
     /// <summary><c>0x00494860</c>'s record tested for bit 0, as states 146, 152 and 153 ask: whether
     /// the slot, or its fallback when it is missing, is present.</summary>
-    public static bool ResolvesPresent(CreatureDef definition, int slot) =>
-        HasArt(definition, ResolveArtSlot(definition, slot));
+    public static bool ResolvesPresent(CreatureDef definition, int slot)
+    {
+        return HasArt(definition, ResolveArtSlot(definition, slot));
+    }
 
     /// <summary>How long an action started through <c>0x004969D0</c> with <paramref name="count"/>
     /// holds on a fresh resolved base clip. Count 0 or 1 plays once; larger values step the
@@ -238,17 +254,25 @@ public static class AnimationTimingRules
         }
     }
 
-    internal static int Duration(int frames, int framesPerSecond) =>
-        checked((int)(((long)frames * One) / framesPerSecond));
+    internal static int Duration(int frames, int framesPerSecond)
+    {
+        return checked((int)(((long)frames * One) / framesPerSecond));
+    }
 
-    internal static int AdvanceRate(int duration) =>
-        Math.Min(One - 1, Divide(One, checked(duration * SimulationTiming.OriginalTicksPerGameSecond)));
+    internal static int AdvanceRate(int duration)
+    {
+        return Math.Min(One - 1, Divide(One, checked(duration * SimulationTiming.OriginalTicksPerGameSecond)));
+    }
 
-    internal static int Carry(int overshoot, int previousDuration, int nextDuration) =>
-        Divide(overshoot, Divide(nextDuration, previousDuration));
+    internal static int Carry(int overshoot, int previousDuration, int nextDuration)
+    {
+        return Divide(overshoot, Divide(nextDuration, previousDuration));
+    }
 
-    private static int Divide(int numerator, int denominator) =>
-        checked((int)(((long)numerator * One) / denominator));
+    private static int Divide(int numerator, int denominator)
+    {
+        return checked((int)(((long)numerator * One) / denominator));
+    }
 
     private enum Segment { Start, Main, End }
 }

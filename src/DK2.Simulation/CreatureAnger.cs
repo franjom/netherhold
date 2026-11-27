@@ -111,16 +111,20 @@ public struct CreatureAnger : IEquatable<CreatureAnger>
     /// <summary>One bucket by index, in the original's own order.</summary>
     public int this[AngerBucket bucket]
     {
-        get => bucket switch
+        get
         {
-            AngerBucket.Company => Company,
-            AngerBucket.Hunger => Hunger,
-            AngerBucket.Lair => Lair,
-            AngerBucket.Work => Work,
-            AngerBucket.Pay => Pay,
-            AngerBucket.Treatment => Treatment,
-            _ => throw new ArgumentOutOfRangeException(nameof(bucket)),
-        };
+            return bucket switch
+            {
+                AngerBucket.Company => Company,
+                AngerBucket.Hunger => Hunger,
+                AngerBucket.Lair => Lair,
+                AngerBucket.Work => Work,
+                AngerBucket.Pay => Pay,
+                AngerBucket.Treatment => Treatment,
+                _ => throw new ArgumentOutOfRangeException(nameof(bucket)),
+            };
+        }
+
         set
         {
             switch (bucket)
@@ -178,8 +182,13 @@ public struct CreatureAnger : IEquatable<CreatureAnger>
     }
 
     /// <summary>Every bucket at zero — a creature with nothing to complain about.</summary>
-    public bool IsCalm =>
-        (Company | Hunger | Lair | Work | Pay | Treatment) == 0;
+    public bool IsCalm
+    {
+        get
+        {
+            return (Company | Hunger | Lair | Work | Pay | Treatment) == 0;
+        }
+    }
 
     /// <summary>
     /// The bucket the mood is currently coming from, which is what a report
@@ -216,16 +225,25 @@ public struct CreatureAnger : IEquatable<CreatureAnger>
         hash.Add(Treatment);
     }
 
-    public bool Equals(CreatureAnger other) =>
-        Company == other.Company && Hunger == other.Hunger && Lair == other.Lair
+    public bool Equals(CreatureAnger other)
+    {
+        return Company == other.Company && Hunger == other.Hunger && Lair == other.Lair
         && Work == other.Work && Pay == other.Pay && Treatment == other.Treatment;
+    }
 
-    public override bool Equals(object? obj) => obj is CreatureAnger other && Equals(other);
+    public override bool Equals(object? obj)
+    {
+        return obj is CreatureAnger other && Equals(other);
+    }
 
-    public override int GetHashCode() =>
-        (((((Company * 397) ^ Hunger) * 397 ^ Lair) * 397 ^ Work) * 397 ^ Pay) * 397 ^ Treatment;
+    public override int GetHashCode()
+    {
+        return (((((Company * 397) ^ Hunger) * 397 ^ Lair) * 397 ^ Work) * 397 ^ Pay) * 397 ^ Treatment;
+    }
 
-    public override string ToString() =>
-        $"company={Company} hunger={Hunger} lair={Lair} " +
+    public override string ToString()
+    {
+        return $"company={Company} hunger={Hunger} lair={Lair} " +
         $"work={Work} pay={Pay} treatment={Treatment}";
+    }
 }

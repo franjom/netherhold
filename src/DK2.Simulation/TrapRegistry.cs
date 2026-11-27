@@ -12,9 +12,21 @@ internal sealed class TrapRegistry
 {
     private readonly List<TrapState> _traps = [];
 
-    public IReadOnlyList<TrapState> All => _traps;
+    public IReadOnlyList<TrapState> All
+    {
+        get
+        {
+            return _traps;
+        }
+    }
 
-    public List<TrapState> Raw => _traps;
+    public List<TrapState> Raw
+    {
+        get
+        {
+            return _traps;
+        }
+    }
 
     /// <summary>The last trap id given; a snapshot restores it so ids stay unique.</summary>
     public int NextId { get; set; }
@@ -31,7 +43,10 @@ internal sealed class TrapRegistry
         _traps.Add(trap);
     }
 
-    public void Remove(TrapState trap) => _traps.Remove(trap);
+    public void Remove(TrapState trap)
+    {
+        _traps.Remove(trap);
+    }
 
     public TrapState? ById(int id)
     {

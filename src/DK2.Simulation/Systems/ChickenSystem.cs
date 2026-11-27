@@ -15,7 +15,13 @@ public sealed class ChickenSystem : ISimulationSystem
 {
     private const string SystemName = "chicken";
 
-    public string Name => SystemName;
+    public string Name
+    {
+        get
+        {
+            return SystemName;
+        }
+    }
 
     public void Execute(SimulationContext context)
     {

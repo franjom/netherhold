@@ -19,14 +19,18 @@ public static class ImpSupplyRules
 
     /// <summary>The replenishment floor: MinimumImpThreshold, four in the shipped data.
     /// Starting rosters belong to the level's THINGS records.</summary>
-    public static int MinimumImps(GameDatabase database) =>
-        database[VariableTypeId.MinimumImpThreshold];
+    public static int MinimumImps(GameDatabase database)
+    {
+        return database[VariableTypeId.MinimumImpThreshold];
+    }
 
     /// <summary>How long between free imps: <c>TimeBeforeFreeImpGeneratedSeconds</c>, 5 — the
     /// interval the owner measured by dropping every imp into a dungeon heart.</summary>
-    public static int FreeImpIntervalTicks(GameDatabase database) =>
-        SimulationTiming.TicksFromSeconds(
+    public static int FreeImpIntervalTicks(GameDatabase database)
+    {
+        return SimulationTiming.TicksFromSeconds(
             database[VariableTypeId.TimeBeforeFreeImpGeneratedSeconds]);
+    }
 
     /// <summary>How many imps this player has right now. An imp held in the Hand of Evil still
     /// counts: CONFIRMED (owner, 2026-09-05) — holding one of exactly four produces no fifth, and
@@ -69,8 +73,10 @@ public static class ImpSupplyRules
     /// rather than written here. <c>KwdKeeperSpells</c> (DK2.Data, not referenced from here) reads
     /// the cost at offset <c>0x11C</c>, where all thirteen spells hold a price that ranks the way
     /// the game plays, and Create Imp's 1500 is what the owner measured.</summary>
-    public static int CreateImpBaseCost(GameDatabase database) =>
-        database.RequireKeeperSpell(KeeperSpellName.CreateImp).ManaCost;
+    public static int CreateImpBaseCost(GameDatabase database)
+    {
+        return database.RequireKeeperSpell(KeeperSpellName.CreateImp).ManaCost;
+    }
 
     /// <summary>Finds this keeper's first Heart tile in storage order, or none.
     /// Used for a <see cref="CreateImpCommand"/> without a tile and by callers that only need

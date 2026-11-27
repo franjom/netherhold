@@ -17,11 +17,14 @@ namespace DK2.Simulation;
 public static class RoomMembershipRules
 {
     /// <summary>The categories whose enter hooks claim a room slot: 4, 5, 11 to 17 and 31.</summary>
-    public static bool IsRoomCategory(CreatureStateCategory category) => category is
+    public static bool IsRoomCategory(CreatureStateCategory category)
+    {
+        return category is
         CreatureStateCategory.Research or CreatureStateCategory.Manufacture or CreatureStateCategory.GuardPost
         or CreatureStateCategory.Temple or CreatureStateCategory.Training or CreatureStateCategory.Prison
         or CreatureStateCategory.Torture or CreatureStateCategory.CombatPit or CreatureStateCategory.Casino
         or CreatureStateCategory.Spectating;
+    }
 
     /// <summary>Whether the creature holds a room id: its state is in a room category, or it is a
     /// walk whose saved caller (<c>StateBeforeUtilityState</c>) was.</summary>

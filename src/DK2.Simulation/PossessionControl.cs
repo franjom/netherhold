@@ -20,8 +20,13 @@ public readonly record struct PossessionPose(FpPosition3 Position, Dk2Angle Head
 public readonly record struct PossessionAim(FpPosition3 Origin, Dk2Angle Yaw, Dk2Angle Pitch)
 {
     /// <summary>The packet widths: X and Y in 20 bits, Z in 14, all unsigned.</summary>
-    public (int X, int Y, int Z) PacketOrigin =>
-        (Origin.X.Raw & 0xFFFFF, Origin.Y.Raw & 0xFFFFF, Origin.Z.Raw & 0x3FFF);
+    public (int X, int Y, int Z) PacketOrigin
+    {
+        get
+        {
+            return (Origin.X.Raw & 0xFFFFF, Origin.Y.Raw & 0xFFFFF, Origin.Z.Raw & 0x3FFF);
+        }
+    }
 
     public void HashInto(ref Hash64 hash)
     {

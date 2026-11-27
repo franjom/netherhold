@@ -95,7 +95,11 @@ public static class GoldScanner
 
     private static TilePos CorrectCentroid(KeeperView view, TilePos centre, int sumY)
     {
-        bool Accepts(TilePos p) => view.InBounds(p) && !view.Terrain(p).IsImpenetrable;
+        bool Accepts(TilePos p)
+        {
+            return view.InBounds(p) && !view.Terrain(p).IsImpenetrable;
+        }
+
         if (Accepts(centre))
         {
             return centre;

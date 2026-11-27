@@ -29,7 +29,10 @@ public sealed class Dk2Lcg : IRandomAlgorithm
     /// <summary>Sets the state to a value read from DK2's world record, so a run continued from a
     /// capture draws what DK2 drew next (<c>WorldResync</c>). A measurement tool's write, not a
     /// rule of the game.</summary>
-    public void Reseed(uint seed) => Seed = seed;
+    public void Reseed(uint seed)
+    {
+        Seed = seed;
+    }
 
     public static uint Step(uint seed)
     {

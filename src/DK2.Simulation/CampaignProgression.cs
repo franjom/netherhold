@@ -10,11 +10,15 @@ namespace DK2.Simulation;
 public static class CampaignProgression
 {
     public static bool CanSelect(CampaignProfile profile, CampaignSlot slot, bool secretFiveAvailable)
-        => slot.IsCampaign ? profile.PlayerLevelStatus[slot.Value - 1] is CampaignLevelStatus.Open or CampaignLevelStatus.Won
-            : slot.IsSecret && (slot.Value == 30 ? secretFiveAvailable : profile.SecretLevels[slot.Value - 26] != 0);
+    {
+        return slot.IsCampaign ? profile.PlayerLevelStatus[slot.Value - 1] is CampaignLevelStatus.Open or CampaignLevelStatus.Won
+                : slot.IsSecret && (slot.Value == 30 ? secretFiveAvailable : profile.SecretLevels[slot.Value - 26] != 0);
+    }
 
     public static bool NeedsResetConfirmation(CampaignProfile profile)
-        => profile.PlayerLevelStatus[0] != CampaignLevelStatus.Open || profile.LevelAttempts[0] != 0;
+    {
+        return profile.PlayerLevelStatus[0] != CampaignLevelStatus.Open || profile.LevelAttempts[0] != 0;
+    }
 
     public static CampaignProfile NewCampaign(CampaignProfile profile)
     {
@@ -183,8 +187,16 @@ public static class CampaignProgression
             default: Open(won + 1); break;
         }
         return profile with { PlayerLevelStatus = Array.AsReadOnly(statuses) };
-        void Open(int value) => Set(value, CampaignLevelStatus.Open);
-        void Close(int value) => Set(value, CampaignLevelStatus.ClosedBranch);
+        void Open(int value)
+        {
+            Set(value, CampaignLevelStatus.Open);
+        }
+
+        void Close(int value)
+        {
+            Set(value, CampaignLevelStatus.ClosedBranch);
+        }
+
         void Set(int value, CampaignLevelStatus status)
         {
             if (statuses[value - 1] is not (CampaignLevelStatus.Won or CampaignLevelStatus.ClosedBranch))

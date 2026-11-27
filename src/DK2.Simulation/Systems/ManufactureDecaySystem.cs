@@ -11,7 +11,13 @@ namespace DK2.Simulation.Systems;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/state-category-hooks.md")]
 public sealed class ManufactureDecaySystem : ISimulationSystem
 {
-    public string Name => "ManufactureDecay";
+    public string Name
+    {
+        get
+        {
+            return "ManufactureDecay";
+        }
+    }
 
     public void Execute(SimulationContext context)
     {

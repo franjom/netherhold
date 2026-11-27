@@ -17,14 +17,41 @@ public readonly record struct GameTick(long Value) : IComparable<GameTick>
 {
     public static readonly GameTick Zero = new(0);
 
-    public GameTick Next => new(Value + 1);
+    public GameTick Next
+    {
+        get
+        {
+            return new(Value + 1);
+        }
+    }
 
-    public int CompareTo(GameTick other) => Value.CompareTo(other.Value);
+    public int CompareTo(GameTick other)
+    {
+        return Value.CompareTo(other.Value);
+    }
 
-    public static bool operator <(GameTick a, GameTick b) => a.Value < b.Value;
-    public static bool operator >(GameTick a, GameTick b) => a.Value > b.Value;
-    public static bool operator <=(GameTick a, GameTick b) => a.Value <= b.Value;
-    public static bool operator >=(GameTick a, GameTick b) => a.Value >= b.Value;
+    public static bool operator <(GameTick a, GameTick b)
+    {
+        return a.Value < b.Value;
+    }
 
-    public override string ToString() => $"t{Value}";
+    public static bool operator >(GameTick a, GameTick b)
+    {
+        return a.Value > b.Value;
+    }
+
+    public static bool operator <=(GameTick a, GameTick b)
+    {
+        return a.Value <= b.Value;
+    }
+
+    public static bool operator >=(GameTick a, GameTick b)
+    {
+        return a.Value >= b.Value;
+    }
+
+    public override string ToString()
+    {
+        return $"t{Value}";
+    }
 }

@@ -8,7 +8,13 @@ namespace DK2.Simulation.Systems;
 
 public sealed class ObjectReactionSystem : ISimulationSystem
 {
-    public string Name => "ObjectReactions";
+    public string Name
+    {
+        get
+        {
+            return "ObjectReactions";
+        }
+    }
 
     public void Execute(SimulationContext context)
     {

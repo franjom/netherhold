@@ -15,8 +15,10 @@ public static class HandRules
     /// <summary>How many things one keeper may hold: <c>MaxNumberOfThingsInHand</c>, shipped at
     /// <b>64</b>. From the table, not pinned: the original compares against a per-keeper field this
     /// variable seeds.</summary>
-    public static int Capacity(GameDatabase database) =>
-        database[VariableTypeId.MaxNumberOfThingsInHand];
+    public static int Capacity(GameDatabase database)
+    {
+        return database[VariableTypeId.MaxNumberOfThingsInHand];
+    }
 
     /// <summary>How long a creature is held before the hand starts to affect its mood: <b>20 game
     /// seconds</b>, hardcoded in the original as <c>PickupTick + 20 x</c> variable 19, so moving a
@@ -42,21 +44,28 @@ public static class HandRules
     /// <summary>Whether this creature is in somebody's hand — DK2's <c>StateFlags1.InHand</c>.
     /// Belongs beside <see cref="CreatureDeathRules.IsDown"/> wherever a system makes a creature act: a held creature does not walk, work, sleep or look for a lair.
     /// A creature falling from the hand (state 76's turn) does not act either.</summary>
-    public static bool IsHeld(CreatureState creature) => creature.InHand || creature.LandingPending;
+    public static bool IsHeld(CreatureState creature)
+    {
+        return creature.InHand || creature.LandingPending;
+    }
 
     /// <summary>DK2's <c>LastDroppedCounter</c> (<c>+0x46D</c>): counted up once a turn
     /// (<c>0x00489A4D</c>) and held at zero only in state 76, the drop's landing (<c>0x00489A5F</c>), not in
     /// the hand's state 78; ours reads zero in the hand and counts from the drop (Q768). Wraps as the word does. Read by the
     /// keeper's hand routines, which leave a creature alone for 300 turns after a drop.</summary>
-    public static ushort LastDroppedCounter(CreatureState creature, long now) =>
-        creature.InHand ? (ushort)0 : unchecked((ushort)(now - creature.DroppedTick));
+    public static ushort LastDroppedCounter(CreatureState creature, long now)
+    {
+        return creature.InHand ? (ushort)0 : unchecked((ushort)(now - creature.DroppedTick));
+    }
 
     /// <summary>Creature permission plus hand capacity. Remaining binary gates needing
     /// missing lifecycle state are listed in hand-of-evil.md §3.</summary>
     public static bool CanPickUp(
         WorldState world, GameDatabase database, CreatureState creature, PlayerId playerId)
-        => HasPickupPermission(world, database, creature, playerId)
-            && world.Player(playerId).Hand.Count < Capacity(database);
+    {
+        return HasPickupPermission(world, database, creature, playerId)
+                && world.Player(playerId).Hand.Count < Capacity(database);
+    }
 
     /// <summary>What DK2's stored pick-up command refuses on its own, without the cursor's permission
     /// (<see cref="HandSystem.StoredCommandPickups"/>, ADR-0616): a creature the thing's virtual <c>+0x28</c>
@@ -64,10 +73,12 @@ public static class HandRules
     /// held, one dying (<c>+0x3E6</c> bit 21) and states 51 and 52 (<c>0x004BC500</c>). The owner, the
     /// <c>CanBePickedUp</c> flag and the rest of <c>0x0048E6A0</c> are the cursor's. Capacity and the disguise
     /// follow in <see cref="HandSystem"/> as for every pick-up; state 75's refusal and 78's kick are not modelled.</summary>
-    public static bool StoredPickupAccepts(CreatureState creature) =>
-        creature.Health >= 1 && !creature.InHand && !CreatureDeathRules.HasCollapsed(creature)
+    public static bool StoredPickupAccepts(CreatureState creature)
+    {
+        return creature.Health >= 1 && !creature.InHand && !CreatureDeathRules.HasCollapsed(creature)
         && creature.Dk2StateId is not (CreatureDeathRules.FallingState or CreatureDeathRules.DyingState
             or CreatureStateMachine.NoState or 51 or 52);
+    }
 
     /// <summary>The represented creature-permission gates, independent of hand capacity.
     /// State exclusions inspect the current state, not a travel resume slot.</summary>
@@ -126,7 +137,10 @@ public static class HandRules
     }
 
     /// <summary>Whether this object is in somebody's hand.</summary>
-    public static bool IsHeld(ObjectState thing) => thing.InHand;
+    public static bool IsHeld(ObjectState thing)
+    {
+        return thing.InHand;
+    }
 
     /// <summary>Whether <paramref name="thing"/> may be lifted by <paramref name="playerId"/> now.
     /// CONFIRMED (owner, Q196): the eligible set is <see cref="ObjectDef.CanBePickedUp"/>, 26 of
@@ -161,9 +175,11 @@ public static class HandRules
     /// <b>gold only from the keeper's own claimed tile</b> (owner, Q196), a rival's floor
     /// refusing too. An input rule: DK2's own replay of <c>l2live2</c> (seed 2, ticks 232 to
     /// 234) lifts two piles off unclaimed dirt, as the recorded action carries no test (ADR-0310).</summary>
-    public static bool MayReachObject(WorldState world, GameDatabase database, ObjectState thing, PlayerId playerId) =>
-        database.ObjectById(thing.ObjectTypeId)?.IsGold != true
+    public static bool MayReachObject(WorldState world, GameDatabase database, ObjectState thing, PlayerId playerId)
+    {
+        return database.ObjectById(thing.ObjectTypeId)?.IsGold != true
         || world.TileAtIndex(thing.TileIndex).OwnerPlayerId == playerId;
+    }
 
     /// <summary>Whether <paramref name="playerId"/> may lift the store pile on <paramref name="tile"/>
     /// now: a Treasury or Heart tile holding gold (one Gold Pile 1, <c>0x004F3C60</c>), the pile's
@@ -193,8 +209,10 @@ public static class HandRules
     /// <summary>Whether the cursor offers a store pile to <paramref name="playerId"/>'s hand: the pile
     /// is the room owner's (<c>0x004F3C60</c> creates it with the room's <c>+0x1D</c>), and
     /// <c>0x0049CBB0</c> publishes an object only to its owner.</summary>
-    public static bool MayReachStoreGold(WorldState world, TilePos tile, PlayerId playerId) =>
-        world.Contains(tile) && world.Tile(tile).OwnerPlayerId == playerId;
+    public static bool MayReachStoreGold(WorldState world, TilePos tile, PlayerId playerId)
+    {
+        return world.Contains(tile) && world.Tile(tile).OwnerPlayerId == playerId;
+    }
 
     /// <summary>Whether a drop of <paramref name="item"/> on <paramref name="tile"/> lands: the one
     /// rule the drop cage's colour and <see cref="Systems.HandSystem"/> both ask. DK2's gate
@@ -308,8 +326,10 @@ public static class HandRules
     /// state 216 (<c>0x00459560</c> and <c>0x004596D0</c>), and cleared by nothing found. Ours keeps no
     /// such bit: a prisoner was knocked out to be taken, and a creature still on the floor is; one
     /// that got up again is missed.</summary>
-    private static bool HasBeenKnockedOut(CreatureState creature) =>
-        PrisonRules.HasKeeperBinding(creature) || CreatureDeathRules.HasCollapsed(creature);
+    private static bool HasBeenKnockedOut(CreatureState creature)
+    {
+        return PrisonRules.HasKeeperBinding(creature) || CreatureDeathRules.HasCollapsed(creature);
+    }
 
     /// <summary><c>0x00450910</c> (CWorld slot <c>+0x230</c>): whether a creature of this type may be
     /// dropped here. A worker goes onto allied ground or neutral roomless dry floor, a non-worker
@@ -427,9 +447,11 @@ public static class HandRules
     }
 
     /// <summary>Whether the tile and its neighbour belong to one room: same terrain, same owner.</summary>
-    private static bool SameRoom(WorldState world, in TileState cell, int x, int y) =>
-        world.Contains(x, y) && world.Tile(x, y).TerrainId == cell.TerrainId
+    private static bool SameRoom(WorldState world, in TileState cell, int x, int y)
+    {
+        return world.Contains(x, y) && world.Tile(x, y).TerrainId == cell.TerrainId
         && world.Tile(x, y).OwnerPlayerId == cell.OwnerPlayerId;
+    }
 
     /// <summary><c>Room_IsFloorSlot</c> (<c>0x00454110</c>) for Prison, Temple and Combat Pit, whose
     /// type rule accepts every interior cell (<c>+0x0C == 0xFF</c>: all eight neighbours in the room).</summary>

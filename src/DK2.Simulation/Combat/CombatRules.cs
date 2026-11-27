@@ -81,19 +81,26 @@ public static class CombatRules
         Victorious = 0xF,
     }
 
-    public static bool IsFighting(CreatureState creature) => creature.Activity == CreatureActivity.Fighting;
+    public static bool IsFighting(CreatureState creature)
+    {
+        return creature.Activity == CreatureActivity.Fighting;
+    }
 
     /// <summary>DK2's state group 22 with the walks it sends creatures on: fighting, fleeing,
     /// withdrawing, raising the alarm, reporting danger, celebrating a kill or walking to a body
     /// to celebrate over — the states the job systems leave alone.</summary>
-    public static bool InCombat(CreatureState creature) =>
-        creature.Activity is CreatureActivity.Fighting or CreatureActivity.Fleeing or CreatureActivity.Withdrawing
+    public static bool InCombat(CreatureState creature)
+    {
+        return creature.Activity is CreatureActivity.Fighting or CreatureActivity.Fleeing or CreatureActivity.Withdrawing
             or CreatureActivity.RaisingAlarm or CreatureActivity.Reporting
             or CreatureActivity.Celebrating or CreatureActivity.GoingToBody;
+    }
 
     /// <summary>What the job systems leave alone: possession, the combat group and incapacitation.</summary>
-    public static bool Preoccupied(CreatureState creature) =>
-        creature.Possessed || InCombat(creature) || StatusEffectRules.IsIncapacitated(creature);
+    public static bool Preoccupied(CreatureState creature)
+    {
+        return creature.Possessed || InCombat(creature) || StatusEffectRules.IsIncapacitated(creature);
+    }
 
     /// <summary>The engagement's registration on its target: the first free slot of the melee or
     /// the ranged array. False when all eight are taken, and then the attacker does not engage.</summary>
@@ -209,20 +216,27 @@ public static class CombatRules
     /// dead creature is freed). A held creature keeps the bit it had until its own next update clears it
     /// (the pick-up does not call <c>0x0045A8B0</c>), so the selectors and the nearest-attacker scan, which
     /// test only the bit, can still choose it (ADR-0763); <see cref="IsAttackableOnMap"/> adds the off-map test.</summary>
-    public static bool IsAttackable(CreatureState creature) =>
-        creature.Attackable && !CreatureDeathRules.IsCorpse(creature);
+    public static bool IsAttackable(CreatureState creature)
+    {
+        return creature.Attackable && !CreatureDeathRules.IsCorpse(creature);
+    }
 
     /// <summary>The bit and the off-map test DK2 puts first where it reads one: <c>spFighting</c> tests
     /// <c>+0x16 == 2</c> (<c>0x0045F2BE</c>, set by <c>0x004B4F60</c> when the hand takes the creature)
     /// before the bit. Also what the trap, tremor, heart-defence and fear-guard readers use, whose own
     /// order DK2 has not been read for: they kept the old held refusal.</summary>
-    public static bool IsAttackableOnMap(CreatureState creature) =>
-        IsAttackable(creature) && !HandRules.IsHeld(creature);
+    public static bool IsAttackableOnMap(CreatureState creature)
+    {
+        return IsAttackable(creature) && !HandRules.IsHeld(creature);
+    }
 
     /// <summary><c>0x0045A8B0</c>: stores <see cref="ComputeAttackable"/> in the bit. Called at the end of
     /// the creature's own update (<c>0x0048A037</c>), on a target whose registration took
     /// (<c>0x0045AA08</c>), after the invisible drop (<c>0x0045EF39</c>) and a defection (<c>0x0047511B</c>).</summary>
-    public static void RefreshAttackable(CreatureState creature) => creature.Attackable = ComputeAttackable(creature);
+    public static void RefreshAttackable(CreatureState creature)
+    {
+        creature.Attackable = ComputeAttackable(creature);
+    }
 
     /// <summary>The recompute's test (<c>0x0045A8B0</c>). Cleared for a dying creature, a captive, one leaving, one
     /// in a state whose table flag says so (<see cref="CreatureStateFlags.NotAttackable"/>, tested on
@@ -230,8 +244,9 @@ public static class CombatRules
     /// sixteen slots taken, one whose invisible word runs (creature-status-effects.md §2), and a
     /// Combat Pit fighter, which only its forced opponent reaches (combat-pit.md §4).
     /// State 76 and involuntary torture also prevent attackability.</summary>
-    public static bool ComputeAttackable(CreatureState creature) =>
-        !CreatureDeathRules.IsDown(creature)
+    public static bool ComputeAttackable(CreatureState creature)
+    {
+        return !CreatureDeathRules.IsDown(creature)
         // 76 carries the flag too; DK2 also tests it by number (0x0045A8CC).
         && creature.Dk2StateId != DropLandingRules.LandingState
         && (creature.TortureVoluntary || !OnTortureDevice(creature))
@@ -244,12 +259,15 @@ public static class CombatRules
         && !(CreatureStateMachine.HasState(creature) && CreatureStateTable.Get(creature.Dk2StateId).Has(CreatureStateFlags.NotAttackable))
         && !StatusEffectRules.IsInvisible(creature)
         && !AllSlotsTaken(creature);
+    }
 
     /// <summary><c>0x00485210</c>: state 136, or the Torture category through a walk.</summary>
-    public static bool OnTortureDevice(CreatureState creature) =>
-        creature.Dk2StateId == TortureRules.ReleasedState
+    public static bool OnTortureDevice(CreatureState creature)
+    {
+        return creature.Dk2StateId == TortureRules.ReleasedState
         || (CreatureStateMachine.HasState(creature)
             && NeedRules.ResolvedCategory(creature) == CreatureStateCategory.Torture);
+    }
 
     /// <summary>The gate <c>0x0045A6D0</c>: may this creature look for a fight? Refused for a Prison inmate or involuntary torturee,
     /// one asleep, one leaving unless forced, one in the hand or with <c>+0x46F</c> bit 0 clear (a sprung
@@ -261,8 +279,9 @@ public static class CombatRules
     /// <c>CallToArmsFightDistanceTiles</c> from the flag unless forced (Q361), and a chicken
     /// (<c>ChickenTimer</c> <c>+0x44B</c> running). Not modelled: hypnosis, the threat-response state
     /// and Horny's non-arrival scratch guard.</summary>
-    public static bool MayLookForAFight(WorldState world, GameDatabase database, CreatureState creature, bool force) =>
-        !PrisonRules.IsPrisonInmate(creature)
+    public static bool MayLookForAFight(WorldState world, GameDatabase database, CreatureState creature, bool force)
+    {
+        return !PrisonRules.IsPrisonInmate(creature)
         && (creature.TortureVoluntary || !OnTortureDevice(creature))
         && (!((database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)
             || ((force || creature.ReaperCanAcquireFight) && creature.Activity != CreatureActivity.ReaperArriving))
@@ -278,10 +297,13 @@ public static class CombatRules
         && !StatusEffectRules.IsFrozen(creature)
         && !ChickenRules.IsChicken(creature)
         && !CreatureDeathRules.IsDown(creature);
+    }
 
-    private static bool NoFightLookup(CreatureState creature) =>
-        CreatureStateMachine.HasState(creature)
+    private static bool NoFightLookup(CreatureState creature)
+    {
+        return CreatureStateMachine.HasState(creature)
         && CreatureStateTable.Get(creature.Dk2StateId).Has(CreatureStateFlags.NoFightLookup);
+    }
 
     /// <summary>The throttle at the top of <c>ProcessFight</c>: bump the counter; a creature on a
     /// new tile looks now, one standing still looks when the counter reaches its period. Either
@@ -317,48 +339,72 @@ public static class CombatRules
     }
 
     /// <summary>The alignment discount: a target of the opposite alignment reads an eighth nearer.</summary>
-    public static int Discounted(int distanceSquared) => (7 * distanceSquared) >> 3;
+    public static int Discounted(int distanceSquared)
+    {
+        return (7 * distanceSquared) >> 3;
+    }
 
-    public static bool OppositeAlignment(CreatureDef me, CreatureDef candidate) =>
-        ((me.Flags & CreatureFlags.IsGood) == CreatureFlags.IsGood)
+    public static bool OppositeAlignment(CreatureDef me, CreatureDef candidate)
+    {
+        return ((me.Flags & CreatureFlags.IsGood) == CreatureFlags.IsGood)
             ? ((candidate.Flags & CreatureFlags.IsEvil) == CreatureFlags.IsEvil)
             : ((candidate.Flags & CreatureFlags.IsGood) == CreatureFlags.IsGood);
+    }
 
     /// <summary><c>0x004BF390</c>: another player's creature is an enemy unless allied.</summary>
-    public static bool IsHostile(WorldState world, byte mySide, byte theirSide) => !world.AreAllied(mySide, theirSide);
+    public static bool IsHostile(WorldState world, byte mySide, byte theirSide)
+    {
+        return !world.AreAllied(mySide, theirSide);
+    }
 
     /// <summary>The one line the four fighting arms differ in (combat-target-selection.md §5):
     /// <c>d</c> the discounted distance, <c>r</c> the squared sight range, <c>melee</c> and
     /// <c>ranged</c> the counts of <see cref="CountEngaged"/>. Lower wins.</summary>
-    public static int Score(FightStyle style, int d, int r, int melee, int ranged, bool candidateIsSupport) => style switch
+    public static int Score(FightStyle style, int d, int r, int melee, int ranged, bool candidateIsSupport)
     {
-        FightStyle.Blocker => d,
-        FightStyle.Blitzer => candidateIsSupport ? d : d + r,
-        FightStyle.Support => melee > 0 ? (melee * r) + d : d + (9 * r),
-        FightStyle.Flanker => melee > 0 ? (melee * r) + d : ranged > 0 ? ((ranged + 8) * r) + d : d + (17 * r),
-        _ => throw new ArgumentOutOfRangeException(nameof(style), style, "No scoring arm for this fight style."),
-    };
+        return style switch
+        {
+            FightStyle.Blocker => d,
+            FightStyle.Blitzer => candidateIsSupport ? d : d + r,
+            FightStyle.Support => melee > 0 ? (melee * r) + d : d + (9 * r),
+            FightStyle.Flanker => melee > 0 ? (melee * r) + d : ranged > 0 ? ((ranged + 8) * r) + d : d + (17 * r),
+            _ => throw new ArgumentOutOfRangeException(nameof(style), style, "No scoring arm for this fight style."),
+        };
+    }
 
     /// <summary>The fight-starter's melee reach: my <c>MeleeRange</c> plus half the target's
     /// footprint, squared and shifted down twelve.</summary>
-    public static int MeleeReachSquared(CreatureDef me, CreatureDef target) =>
-        ReachSquared(me.MeleeRange + new Fp32(target.FootprintRadius.Raw >> 1));
+    public static int MeleeReachSquared(CreatureDef me, CreatureDef target)
+    {
+        return ReachSquared(me.MeleeRange + new Fp32(target.FootprintRadius.Raw >> 1));
+    }
 
     /// <summary>The same reach against a thing: <c>MeleeRange</c> plus the thing's allowance.</summary>
-    public static int ReachSquared(int reach) => unchecked(reach * reach) >> 12;
+    public static int ReachSquared(int reach)
+    {
+        return unchecked(reach * reach) >> 12;
+    }
 
-    public static int ReachSquared(Fp32 reach) => ReachSquared(reach.Raw);
+    public static int ReachSquared(Fp32 reach)
+    {
+        return ReachSquared(reach.Raw);
+    }
 
     /// <summary>Seconds in the record to ticks, as the loader converts both melee clocks
     /// (combat-cadence.md §3): multiply by the tick rate, shift the fixed point away, truncate.</summary>
-    public static int TicksOf(Fp32 seconds) => (seconds.Raw * SimulationTiming.OriginalTicksPerGameSecond) >> 12;
+    public static int TicksOf(Fp32 seconds)
+    {
+        return (seconds.Raw * SimulationTiming.OriginalTicksPerGameSecond) >> 12;
+    }
 
     /// <summary>Gate B (<c>0x0048C9B0</c>): a melee swing may begin when <c>MeleeRecharge</c> ticks
     /// have passed since the last one began, after possession scaling and the work-rate divisor.</summary>
-    public static bool SwingMayBegin(GameDatabase database, CreatureState creature, CreatureDef definition, long tick) =>
-        creature.TimeLastUsedMelee == CreatureState.NeverUsed
+    public static bool SwingMayBegin(GameDatabase database, CreatureState creature, CreatureDef definition, long tick)
+    {
+        return creature.TimeLastUsedMelee == CreatureState.NeverUsed
         || creature.TimeLastUsedMelee + Scaled(
             RechargeTicks(database, creature, TicksOf(definition.MeleeRecharge)), creature, definition) < tick;
+    }
 
     /// <summary>Possession's recharge factor, with each fixed-point division truncated separately.</summary>
     public static Fp32 RechargeMultiplier(GameDatabase database, CreatureState creature)
@@ -381,21 +427,27 @@ public static class CombatRules
         return new(factor);
     }
 
-    public static int RechargeTicks(GameDatabase database, CreatureState creature, int rechargeTicks) =>
-        (RechargeMultiplier(database, creature) * new Fp32(unchecked(rechargeTicks << 12))).Raw >> 12;
+    public static int RechargeTicks(GameDatabase database, CreatureState creature, int rechargeTicks)
+    {
+        return (RechargeMultiplier(database, creature) * new Fp32(unchecked(rechargeTicks << 12))).Raw >> 12;
+    }
 
     /// <summary>The cooldown divisor Gate B and the spell gate share (<c>0x0043D750</c> over
     /// <c>+0x3AF</c>/<c>+0x3B3</c>): the interval in ticks × 4096 over the creature's work rate and
     /// enhancement — 0.8 fresh, so a fresh creature waits a quarter longer than the file's seconds
     /// (creature-status-effects.md §4, Q393).</summary>
-    public static int Scaled(int ticks, CreatureState creature, CreatureDef definition) =>
-        (int)(((long)ticks << 12) / EfficiencyRules.Modifier(creature, definition));
+    public static int Scaled(int ticks, CreatureState creature, CreatureDef definition)
+    {
+        return (int)(((long)ticks << 12) / EfficiencyRules.Modifier(creature, definition));
+    }
 
     /// <summary>Gate A (<c>0x00498E30</c>): the blow lands <see cref="CreatureDef.MeleeHitDelay"/>
     /// ticks after the swing began, the original's <c>now &gt; start + interval - 1</c>.
     /// Possession bypasses this wind-up; influence does not.</summary>
-    public static bool BlowLands(CreatureState creature, CreatureDef definition, long tick) =>
-        creature.Possessed || tick >= creature.SwingStartTick + TicksOf(definition.MeleeHitDelay);
+    public static bool BlowLands(CreatureState creature, CreatureDef definition, long tick)
+    {
+        return creature.Possessed || tick >= creature.SwingStartTick + TicksOf(definition.MeleeHitDelay);
+    }
 
     /// <summary>Lets go of the engagement: struck out of the target's arrays, target and reach
     /// cleared, and a creature that was fighting stands idle with no job. A swing already begun
@@ -508,7 +560,10 @@ public static class CombatRules
     /// <summary><c>0x0045EF50</c>: the engagement is let go and the attacker slot on its target
     /// freed, and the state is left as it is. A held forced target goes with an engagement
     /// (<c>0x0045EFD8</c>-<c>0x0045EFF5</c>, <c>0x0048F3F0</c>), whose own unlink then finds none.</summary>
-    public static void Unlink(WorldState world, CreatureState creature) => Unlink(world, creature, dropForced: true);
+    public static void Unlink(WorldState world, CreatureState creature)
+    {
+        Unlink(world, creature, dropForced: true);
+    }
 
     /// <summary>Ours: <see cref="Disengage"/>'s two arms that run no Combat hook have no DK2 site
     /// read, and keep a forced target as they did before ADR-0591.</summary>

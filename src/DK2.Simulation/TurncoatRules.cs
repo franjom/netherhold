@@ -14,17 +14,26 @@ public static class TurncoatRules
     public const byte SpellId = 7;
     public const byte ProcessType = 13;
 
-    public static bool IsActive(CreatureState creature) => creature.TurncoatTicks != 0;
+    public static bool IsActive(CreatureState creature)
+    {
+        return creature.TurncoatTicks != 0;
+    }
 
-    public static bool AreCombatEnemies(WorldState world, CreatureState attacker, CreatureState target) =>
-        !world.AreAllied(CombatPlayer(world, attacker).PlayerId, CombatPlayer(world, target).PlayerId.Value);
+    public static bool AreCombatEnemies(WorldState world, CreatureState attacker, CreatureState target)
+    {
+        return !world.AreAllied(CombatPlayer(world, attacker).PlayerId, CombatPlayer(world, target).PlayerId.Value);
+    }
 
-    private static ref PlayerState CombatPlayer(WorldState world, CreatureState creature) =>
-        ref world.Player(CombatSide(creature));
+    private static ref PlayerState CombatPlayer(WorldState world, CreatureState creature)
+    {
+        return ref world.Player(CombatSide(creature));
+    }
 
     /// <summary>The side a creature fights for: <c>+0x455</c> while Turncoat runs, else its owner.</summary>
-    public static PlayerId CombatSide(CreatureState creature) =>
-        IsActive(creature) ? unchecked((byte)creature.TurncoatPlayerId) : creature.OwnerPlayerId;
+    public static PlayerId CombatSide(CreatureState creature)
+    {
+        return IsActive(creature) ? unchecked((byte)creature.TurncoatPlayerId) : creature.OwnerPlayerId;
+    }
 
     public static void Strike(SimulationContext context, ShotState shot, CreatureState target, CreatureDef definition)
     {

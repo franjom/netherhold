@@ -73,7 +73,13 @@ public sealed class HookSlot
     public bool SeedsCountdown { get; internal init; }
 
     /// <summary>Whether <see cref="CreatureStateMachine"/> runs code of ours from this slot.</summary>
-    public bool IsDispatched => Enter is not null || Leave is not null;
+    public bool IsDispatched
+    {
+        get
+        {
+            return Enter is not null || Leave is not null;
+        }
+    }
 }
 
 /// <summary>An enter hook. False refuses the move: <c>SetState</c> then leaves the creature in
@@ -306,7 +312,13 @@ public static class CategoryHooks
     private static readonly bool[] OwnSeed = OwnSeeds();
 
     /// <summary>Every filled slot of DK2's table, by category, then enter, update, leave.</summary>
-    public static IReadOnlyList<HookSlot> Slots => All;
+    public static IReadOnlyList<HookSlot> Slots
+    {
+        get
+        {
+            return All;
+        }
+    }
 
     /// <summary>The target category's enter hook, after the seed every countdown enter hook writes
     /// (variable 19, <see cref="CreatureStateMachine.HookCountdownSeed"/>). Ours has one countdown
@@ -328,40 +340,53 @@ public static class CategoryHooks
     /// for a refusal that is not the room's (ADR-0313). The tests are pure, so asking again after
     /// the hook refused gives its answer.</summary>
     internal static string? RefusedBeforeClaim(
-        in StateHookContext hooks, CreatureStateCategory category, CreatureState creature) => category switch
+        in StateHookContext hooks, CreatureStateCategory category, CreatureState creature)
     {
-        CreatureStateCategory.Training =>
-            TrainingRules.CanAfford(hooks.World, hooks.Database, creature.OwnerPlayerId) ? null : "keeper_cannot_pay",
-        CreatureStateCategory.Casino => CasinoRules.EnterRefusal(hooks.World, hooks.Database, creature),
-        _ => null,
-    };
+        return category switch
+        {
+            CreatureStateCategory.Training =>
+                TrainingRules.CanAfford(hooks.World, hooks.Database, creature.OwnerPlayerId) ? null : "keeper_cannot_pay",
+            CreatureStateCategory.Casino => CasinoRules.EnterRefusal(hooks.World, hooks.Database, creature),
+            _ => null,
+        };
+    }
 
     /// <summary>The old category's leave hook, if it has one.</summary>
-    internal static void RunLeave(in StateHookContext hooks, CreatureStateCategory category, CreatureState creature) =>
+    internal static void RunLeave(in StateHookContext hooks, CreatureStateCategory category, CreatureState creature)
+    {
         Leaves[(int)category]?.Invoke(in hooks, creature);
+    }
 
     private static HookSlot Slot(
-        CreatureStateCategory category, HookKind kind, uint address, HookStatus status, string note) =>
-        new(category, kind, address, status, note);
+        CreatureStateCategory category, HookKind kind, uint address, HookStatus status, string note)
+    {
+        return new(category, kind, address, status, note);
+    }
 
     /// <summary>An enter slot whose only dispatched step is the room claim.</summary>
     private static HookSlot Claiming(
-        CreatureStateCategory category, uint address, HookStatus status, string note) =>
-        new(category, HookKind.Enter, address, status, note)
+        CreatureStateCategory category, uint address, HookStatus status, string note)
+    {
+        return new(category, HookKind.Enter, address, status, note)
         {
             Enter = static (in StateHookContext hooks, CreatureState creature) => RoomCapacityRules.Claim(in hooks, creature),
         };
+    }
 
     /// <summary>A leave slot whose only dispatched step is the room release.</summary>
-    private static HookSlot Releasing(CreatureStateCategory category, uint address, string note) =>
-        new(category, HookKind.Leave, address, HookStatus.Partial, note)
+    private static HookSlot Releasing(CreatureStateCategory category, uint address, string note)
+    {
+        return new(category, HookKind.Leave, address, HookStatus.Partial, note)
         {
             Leave = static (in StateHookContext _, CreatureState creature) => RoomCapacityRules.Release(creature),
         };
+    }
 
     private static HookSlot Arm(
-        CreatureStateCategory category, uint address, HookStatus status, string note, Type arm, string member) =>
-        new(category, HookKind.Update, address, status, note) { UpdateArm = arm, UpdateArmMember = member };
+        CreatureStateCategory category, uint address, HookStatus status, string note, Type arm, string member)
+    {
+        return new(category, HookKind.Update, address, status, note) { UpdateArm = arm, UpdateArmMember = member };
+    }
 
     private static bool[] OwnSeeds()
     {

@@ -17,7 +17,13 @@ public sealed class RoomBuildSystem : ISimulationSystem
 {
     private const string SystemName = "RoomBuild";
 
-    public string Name => SystemName;
+    public string Name
+    {
+        get
+        {
+            return SystemName;
+        }
+    }
 
     public void Execute(SimulationContext context)
     {
@@ -194,12 +200,14 @@ public sealed class RoomBuildSystem : ISimulationSystem
         return true;
     }
 
-    private static void EmitConstructionEffect(SimulationContext context, PlayerId playerId, TilePos pos) =>
+    private static void EmitConstructionEffect(SimulationContext context, PlayerId playerId, TilePos pos)
+    {
         context.Events.Emit(new SimEvent(context.Tick, SystemName, "construction_effect",
             $"player={playerId} effect={RoomConstructionEffect.DefinitionId} tile=({pos.X},{pos.Y}) height=6144")
         {
             ConstructionEffect = new RoomConstructionEffect(playerId, pos),
         });
+    }
 
     private static void Apply(SimulationContext context, BuildRoomCommand command)
     {
@@ -294,22 +302,28 @@ public sealed class RoomBuildSystem : ISimulationSystem
 
     private static RoomPlacement Verdict(
         SimulationContext context, WorldState world, HashSet<TilePos>? spans, TilePos pos,
-        RoomDef room, PlayerId playerId) =>
-        spans is not null && spans.Contains(pos)
+        RoomDef room, PlayerId playerId)
+    {
+        return spans is not null && spans.Contains(pos)
             ? RoomRules.CanBuild(context.Database, world.Tile(pos), room, playerId, touchesOwnLand: true)
             : RoomRules.CanBuild(context.Database, world, pos, room, playerId);
+    }
 
-    private static void Count(Dictionary<RoomPlacement, int> refusals, RoomPlacement reason) =>
+    private static void Count(Dictionary<RoomPlacement, int> refusals, RoomPlacement reason)
+    {
         refusals[reason] = refusals.TryGetValue(reason, out int n) ? n + 1 : 1;
+    }
 
     /// <summary>
     /// Refusals as "reason=count" pairs, ordered by the enum so that two runs of
     /// the same scenario produce byte-identical event text.
     /// </summary>
-    private static string Describe(Dictionary<RoomPlacement, int> refusals) =>
-        refusals.Count == 0
+    private static string Describe(Dictionary<RoomPlacement, int> refusals)
+    {
+        return refusals.Count == 0
             ? "0"
             : string.Join(",", refusals
                 .OrderBy(kv => (int)kv.Key)
                 .Select(kv => $"{kv.Key}={kv.Value}"));
+    }
 }

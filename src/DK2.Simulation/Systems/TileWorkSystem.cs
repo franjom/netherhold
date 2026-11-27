@@ -25,7 +25,13 @@ public sealed class TileWorkSystem : ISimulationSystem
     private const string SystemName = "TileWork";
     private const byte ReinforcedWallTerrainId = 9;
 
-    public string Name => SystemName;
+    public string Name
+    {
+        get
+        {
+            return SystemName;
+        }
+    }
 
     public void Execute(SimulationContext context)
     {

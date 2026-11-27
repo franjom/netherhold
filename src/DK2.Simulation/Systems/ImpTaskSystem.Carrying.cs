@@ -598,8 +598,10 @@ public sealed partial class ImpTaskSystem
                 < TaskStealing.DistanceSquared(holder.PosX, holder.PosY, body.PosX, body.PosY);
     }
 
-    private static bool IsOwnCasualty(CreatureState worker, CreatureState body) =>
-        !CreatureDeathRules.IsCorpse(body) && body.OwnerPlayerId == worker.OwnerPlayerId;
+    private static bool IsOwnCasualty(CreatureState worker, CreatureState body)
+    {
+        return !CreatureDeathRules.IsCorpse(body) && body.OwnerPlayerId == worker.OwnerPlayerId;
+    }
 
     /// <summary>The casualty chooser <c>0x0046E610</c> for the keeper's own creature, routed: its bed
     /// when a route reaches it, else a room point (<see cref="RoomWalkRules.RoomPoint"/>, a draw) in
@@ -1092,10 +1094,12 @@ public sealed partial class ImpTaskSystem
         return true;
     }
 
-    private static bool IsLeavingThePrison(CreatureState creature) =>
-        creature.CarriedCreatureId < 0
+    private static bool IsLeavingThePrison(CreatureState creature)
+    {
+        return creature.CarriedCreatureId < 0
         && (creature.Dk2StateId == ImpStates.LeavingThePrisoner
             || (StateShadow.IsTravelling(creature) && creature.UtilityNewState == ImpStates.LeavingThePrisoner));
+    }
 
     /// <summary>State 46 (<c>0x004683F0</c>): the imp has walked out to the door; its fight bits come back
     /// and it sets 10. A lost route ends the errand where the imp stands.</summary>

@@ -22,11 +22,23 @@ public sealed class HeroSystem : ICreatureUpdateStep
 
     private bool _onOriginalTick;
 
-    public string Name => SystemName;
+    public string Name
+    {
+        get
+        {
+            return SystemName;
+        }
+    }
 
-    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+    public void Execute(SimulationContext context)
+    {
+        CreatureUpdateSystem.RunAlone(context, this);
+    }
 
-    public void BeginTurn(SimulationContext context) => _onOriginalTick = SimulationTiming.OnOriginalTick(context.Tick.Value);
+    public void BeginTurn(SimulationContext context)
+    {
+        _onOriginalTick = SimulationTiming.OnOriginalTick(context.Tick.Value);
+    }
 
     /// <summary>The hero's state handler in its update. Newest first, so followers choose before an
     /// older leader reroutes.</summary>
@@ -177,10 +189,13 @@ public sealed class HeroSystem : ICreatureUpdateStep
 
     /// <summary>A walk this system started, and so one it finishes: the other systems' walks resume
     /// their own states.</summary>
-    private static bool IsHeroResume(int state) => state is CreatureStateMachine.Idle or HeroJobRules.WaitingState
+    private static bool IsHeroResume(int state)
+    {
+        return state is CreatureStateMachine.Idle or HeroJobRules.WaitingState
         or HeroJobRules.AtThePointState or HeroJobRules.RoamingState or HeroJobRules.HuntingState
         or HeroJobRules.AtTheHeartState or HeroJobRules.FollowingState
         or StealGoldRules.InTheTreasuryState or StealGoldRules.AtTheGoldState or StealGoldRules.EscapingState
         or TunnelRules.TunnellingState or TunnelRules.AdvancingState or TunnelRules.HandBackState
         or RoomAttackRules.DestroyingRoomsState;
+    }
 }

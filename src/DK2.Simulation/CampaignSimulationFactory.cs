@@ -24,7 +24,9 @@ public static class CampaignSimulationFactory
 
     /// <summary>A level's trigger tree, fresh: one per simulation, since the tree holds state.</summary>
     public static TriggerTree Triggers(LevelDef level, IReadOnlyList<PlayerDef> players,
-        IReadOnlyList<ThingRecord> things, IReadOnlyList<TriggerRecord> triggers) =>
-        new TriggerTree(triggers, level.TriggerId, things.OfType<HeroPartyThing>(),
+        IReadOnlyList<ThingRecord> things, IReadOnlyList<TriggerRecord> triggers)
+    {
+        return new TriggerTree(triggers, level.TriggerId, things.OfType<HeroPartyThing>(),
             players.Select(p => new TriggerPlayerRoot(p.PlayerId, p.TriggerId)));
+    }
 }

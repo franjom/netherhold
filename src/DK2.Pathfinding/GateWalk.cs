@@ -324,11 +324,19 @@ public static class GateWalk
         return new Gate { A = right, B = left };
     }
 
-    private static bool InBox(NavPoint p, NavPoint a, NavPoint b) =>
-        p.X >= Math.Min(a.X, b.X) && p.X <= Math.Max(a.X, b.X) &&
+    private static bool InBox(NavPoint p, NavPoint a, NavPoint b)
+    {
+        return p.X >= Math.Min(a.X, b.X) && p.X <= Math.Max(a.X, b.X) &&
         p.Y >= Math.Min(a.Y, b.Y) && p.Y <= Math.Max(a.Y, b.Y);
+    }
 
-    private static int MulQ14(int a, int b) => (int)(((long)a * b) >> 14);
+    private static int MulQ14(int a, int b)
+    {
+        return (int)(((long)a * b) >> 14);
+    }
 
-    private static int DivQ14(int a, int den) => (int)(((long)a << 14) / den);
+    private static int DivQ14(int a, int den)
+    {
+        return (int)(((long)a << 14) / den);
+    }
 }

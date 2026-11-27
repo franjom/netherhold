@@ -20,16 +20,19 @@ namespace DK2.Simulation;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hatchery.md")]
 public static class HatcheryRules
 {
-    public static int StartupIntervalSeconds(int tiles) => tiles switch
+    public static int StartupIntervalSeconds(int tiles)
     {
-        <= 0 => 0,
-        <= 3 => 15,
-        <= 6 => 13,
-        <= 9 => 12,
-        <= 16 => 21 - tiles,
-        <= 19 => 4,
-        _ => 3,
-    };
+        return tiles switch
+        {
+            <= 0 => 0,
+            <= 3 => 15,
+            <= 6 => 13,
+            <= 9 => 12,
+            <= 16 => 21 - tiles,
+            <= 19 => 4,
+            _ => 3,
+        };
+    }
 
     internal static void InitializeLevelStart(WorldState world, GameDatabase database, SimRandom? rng = null)
     {
@@ -199,15 +202,19 @@ public static class HatcheryRules
         return count;
     }
 
-    private static bool BelongsToHatchery(ObjectState bird, RoomInstance hatchery) =>
-        !bird.InHand && bird.CarriedByCreatureId < 0
+    private static bool BelongsToHatchery(ObjectState bird, RoomInstance hatchery)
+    {
+        return !bird.InHand && bird.CarriedByCreatureId < 0
         && hatchery.Contains(bird.HatcheryRoomAnchorTileIndex >= 0
             ? bird.HatcheryRoomAnchorTileIndex : bird.TileIndex);
+    }
 
     /// <summary>Whether this hatchery is holding as many birds as it can.</summary>
     public static bool FlockIsFull(
-        WorldState world, GameDatabase database, RoomInstance hatchery) =>
-        Flock(world, hatchery) >= FlockCapacity(database, hatchery);
+        WorldState world, GameDatabase database, RoomInstance hatchery)
+    {
+        return Flock(world, hatchery) >= FlockCapacity(database, hatchery);
+    }
 
     /// <summary>The smallest squared distance, <b>in whole tiles</b>, that two coops may
     /// be apart: 3, so 0, 1 or 2 is refused — not the same tile, not
@@ -220,8 +227,10 @@ public static class HatcheryRules
     public const int MinCoopSeparationSquared = 3;
 
     /// <summary>How many coops this room is entitled to.</summary>
-    public static int CoopCount(RoomInstance hatchery) =>
-        Math.Min(hatchery.TileIndices.Count / TilesPerCoop, MaxCoops);
+    public static int CoopCount(RoomInstance hatchery)
+    {
+        return Math.Min(hatchery.TileIndices.Count / TilesPerCoop, MaxCoops);
+    }
 
     /// <summary>Which tiles of this room should hold coops, in the order they are taken:
     /// <c>Hatchery_PlaceCoops</c> <c>0x004DE220</c> (hatchery.md §2). It walks the slab chain
@@ -538,8 +547,10 @@ public static class HatcheryRules
 
     /// <summary>The room's <c>ChickensGenerated</c> (<c>room+0x51</c>): eggs laid since it was made
     /// (<see cref="TileState.ChickensGenerated"/>).</summary>
-    public static int ChickensGenerated(WorldState world, RoomInstance hatchery) =>
-        hatchery.TileIndices.Count == 0 ? 0 : world.TileAtIndex(hatchery.TileIndices[0]).ChickensGenerated;
+    public static int ChickensGenerated(WorldState world, RoomInstance hatchery)
+    {
+        return hatchery.TileIndices.Count == 0 ? 0 : world.TileAtIndex(hatchery.TileIndices[0]).ChickensGenerated;
+    }
 
     /// <summary>Turns an egg into a chicken on the same tile, and hands back the chicken.
     /// Throws if handed something that is not an egg.
@@ -654,8 +665,10 @@ public static class HatcheryRules
     /// exponent is typed rather than derived — not <c>log 2 / log 9</c> — and
     /// <c>pow(9, e)</c> is 2.00006, a hair above two, so 16/2.00006 is 7.99977
     /// and the truncation takes <b>7</b> where 8 looks right (Q134).</para></summary>
-    public static int LayIntervalSeconds(GameDatabase database, RoomInstance hatchery) =>
-        LayIntervalSecondsForTiles(database, hatchery.TileCount);
+    public static int LayIntervalSeconds(GameDatabase database, RoomInstance hatchery)
+    {
+        return LayIntervalSecondsForTiles(database, hatchery.TileCount);
+    }
 
     /// <summary><see cref="LayIntervalSeconds"/> by tile count alone — the room is only
     /// ever consulted for its size, and a rule that takes the number it uses is
@@ -676,6 +689,8 @@ public static class HatcheryRules
     /// census <c>+0x1C1</c>, the owner's chickens still eligible to escape, which a bird joining a room's list
     /// leaves (<c>0x004C0010</c>) and leaving one rejoins (<c>0x004BFFD0</c>). <see cref="TryLayEgg"/> counts it
     /// so.</para></summary>
-    public static int FreeRangeCap(GameDatabase database) =>
-        database[VariableTypeId.MaxFreeRangeChickensPerPlayer];
+    public static int FreeRangeCap(GameDatabase database)
+    {
+        return database[VariableTypeId.MaxFreeRangeChickensPerPlayer];
+    }
 }

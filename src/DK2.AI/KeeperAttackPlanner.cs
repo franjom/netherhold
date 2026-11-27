@@ -501,9 +501,11 @@ public sealed class KeeperAttackPlanner
 
     /// <summary><c>0x004D0E60</c> with option 1: the creature's own water and lava flags, no door
     /// bits, from its position to the point.</summary>
-    private bool Routes(KeeperCreatureView creature, int x, int y) =>
-        _view.CanRoute(creature.PosX, creature.PosY, x, y,
+    private bool Routes(KeeperCreatureView creature, int x, int y)
+    {
+        return _view.CanRoute(creature.PosX, creature.PosY, x, y,
             WorldSteering.ProfileOf(_view.Database.CreatureById(creature.CreatureTypeId), _view.PlayerId, 0));
+    }
 
     /// <summary>The whole owned list's level-scaled threat, workers and held creatures included; an
     /// own creature granted a level this tick counts at the level predicted, as DK2's test sees
@@ -522,20 +524,35 @@ public sealed class KeeperAttackPlanner
     }
 
     /// <summary>A player's <c>DungeonHeartPosition</c>, tile (0, 0) for a player without a heart.</summary>
-    private TilePos HeartPosition(PlayerId player) => _view.HeartOf(player) ?? new TilePos(0, 0);
+    private TilePos HeartPosition(PlayerId player)
+    {
+        return _view.HeartOf(player) ?? new TilePos(0, 0);
+    }
 
-    private static Fixed16Vector PointOf(TilePos tile) => new(CreatureState.CentreOf(tile.X), CreatureState.CentreOf(tile.Y));
+    private static Fixed16Vector PointOf(TilePos tile)
+    {
+        return new(CreatureState.CentreOf(tile.X), CreatureState.CentreOf(tile.Y));
+    }
 
     /// <summary>The room's stored position (<c>+0x27</c>, <see cref="KeeperView.PositionOf"/>).</summary>
-    private TilePos Position(KeeperRoomView room) => _view.PositionOf(room);
+    private TilePos Position(KeeperRoomView room)
+    {
+        return _view.PositionOf(room);
+    }
 
     /// <summary>The room's first slab (<c>+0x2D</c>, <see cref="KeeperView.FirstSlabOf"/>).</summary>
-    private TilePos FirstSlab(KeeperRoomView room) => _view.FirstSlabOf(room);
+    private TilePos FirstSlab(KeeperRoomView room)
+    {
+        return _view.FirstSlabOf(room);
+    }
 
     /// <summary>A player's room list in DK2's order: <c>Room_Construct</c> (<c>0x004E3800</c>) links a
     /// new room at the head, so the walk runs newest first; the capture's scan order stands in for
     /// the order the level's rooms were made.</summary>
-    private IEnumerable<KeeperRoomView> RoomsOf(PlayerId player) => _view.RoomsOf(player);
+    private IEnumerable<KeeperRoomView> RoomsOf(PlayerId player)
+    {
+        return _view.RoomsOf(player);
+    }
 
     /// <summary><c>0x004C6010</c>: the player's non-bridge room whose first slab lies nearest a
     /// point by the shifted square, the first kept on a tie.</summary>
@@ -562,9 +579,15 @@ public sealed class KeeperAttackPlanner
         return best;
     }
 
-    private KeeperRoomView? RandomNonBridgeRoom(PlayerId player) => _view.RandomNonBridgeRoom(player, _rng);
+    private KeeperRoomView? RandomNonBridgeRoom(PlayerId player)
+    {
+        return _view.RandomNonBridgeRoom(player, _rng);
+    }
 
-    private KeeperRoomView? RandomRoomOfType(PlayerId player, RoomTypeId type) => _view.RandomRoomOfType(player, type, _rng);
+    private KeeperRoomView? RandomRoomOfType(PlayerId player, RoomTypeId type)
+    {
+        return _view.RandomRoomOfType(player, type, _rng);
+    }
 
     /// <summary>IAFirstEnd 2 and 3: the enemy room with the least or the greatest strength of its own
     /// creatures within five tiles of its position; the least from 0x7FFFFFFF strictly below, the
@@ -611,10 +634,14 @@ public sealed class KeeperAttackPlanner
     }
 
     /// <summary>An owner's creature list in DK2's order; a corpse is a different thing there.</summary>
-    private IEnumerable<KeeperCreatureView> Owned(PlayerId player) =>
-        _view.Creatures.Where(c => c.OwnerPlayerId == player && c.OwnershipRank >= 0 && c.Activity != CreatureActivity.Dead)
+    private IEnumerable<KeeperCreatureView> Owned(PlayerId player)
+    {
+        return _view.Creatures.Where(c => c.OwnerPlayerId == player && c.OwnershipRank >= 0 && c.Activity != CreatureActivity.Dead)
             .OrderBy(c => c.OwnershipRank);
+    }
 
-    private bool IsWorker(KeeperCreatureView creature) =>
-        ((_view.Database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker);
+    private bool IsWorker(KeeperCreatureView creature)
+    {
+        return ((_view.Database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker);
+    }
 }

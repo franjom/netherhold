@@ -94,5 +94,8 @@ public static class RoomExpansion
     }
 
     /// <summary>Terrain byte <c>+0x1CB</c> bit 0 (<see cref="TileWorkRules.HealsIntoAnother"/>).</summary>
-    public static bool HealsIntoAnother(TerrainDef terrain) => TileWorkRules.HealsIntoAnother(terrain);
+    public static bool HealsIntoAnother(TerrainDef terrain)
+    {
+        return TileWorkRules.HealsIntoAnother(terrain);
+    }
 }

@@ -175,5 +175,8 @@ public static class TortureInformationRules
         return RevealResult.None;
     }
 
-    private static ulong Bit(int reward, PlayerId victimOwner) => 1UL << (((reward - 3) * 8) + (victimOwner.Value & 7));
+    private static ulong Bit(int reward, PlayerId victimOwner)
+    {
+        return 1UL << (((reward - 3) * 8) + (victimOwner.Value & 7));
+    }
 }

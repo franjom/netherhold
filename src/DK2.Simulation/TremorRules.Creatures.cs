@@ -17,8 +17,10 @@ public static partial class TremorRules
     public const int GettingUpState = 264;
     private const string CreatureSystem = "tremor-creatures";
 
-    public static bool IsRecovering(CreatureState creature) =>
-        creature.Dk2StateId is KnockdownState or WaitingState or GettingUpState;
+    public static bool IsRecovering(CreatureState creature)
+    {
+        return creature.Dk2StateId is KnockdownState or WaitingState or GettingUpState;
+    }
 
     /// <summary>One creature's knockdown recovery (210, 263, 264), in its update before the mover.
     /// <see cref="Systems.TremorCreatureSystem"/> clears the tick's finished set first.</summary>
@@ -199,19 +201,32 @@ public static partial class TremorRules
         return false;
     }
 
-    private static int Clamp(int value, int size) => Math.Min(Math.Max(value, 0), size - 1);
+    private static int Clamp(int value, int size)
+    {
+        return Math.Min(Math.Max(value, 0), size - 1);
+    }
 
-    private static bool OwnedFloor(SimulationContext context, CreatureState creature, TilePos at) =>
-        !NavBytes.IsSolid(context.Navigation.NavByte(at.X, at.Y))
+    private static bool OwnedFloor(SimulationContext context, CreatureState creature, TilePos at)
+    {
+        return !NavBytes.IsSolid(context.Navigation.NavByte(at.X, at.Y))
         && context.World.Tile(at).OwnerPlayerId == creature.OwnerPlayerId;
+    }
 
-    private static bool Route(SimulationContext context, CreatureState creature, EscapePoint target) =>
-        TunnelRules.RouteOrTunnel(context, CreatureSystem, creature, x: target.X.Raw, y: target.Y.Raw,
+    private static bool Route(SimulationContext context, CreatureState creature, EscapePoint target)
+    {
+        return TunnelRules.RouteOrTunnel(context, CreatureSystem, creature, x: target.X.Raw, y: target.Y.Raw,
             travelState: StateShadow.TravelToPoint, resume: CreatureStateMachine.Idle, options: Navigation.MoveOptions.Loose,
             tunnelX: target.Tile.X, tunnelY: target.Tile.Y);
+    }
 
     private readonly record struct EscapePoint(Fp32 X, Fp32 Y)
     {
-        public TilePos Tile => new(X.Raw >> 12, Y.Raw >> 12);
+        public TilePos Tile
+        {
+            get
+            {
+                return new(X.Raw >> 12, Y.Raw >> 12);
+            }
+        }
     }
 }

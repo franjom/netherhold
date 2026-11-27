@@ -15,7 +15,13 @@ namespace DK2.Simulation.Systems;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/door-blocking.md")]
 public sealed class DoorHealthSystem : ISimulationSystem
 {
-    public string Name => "door_health";
+    public string Name
+    {
+        get
+        {
+            return "door_health";
+        }
+    }
 
     public void Execute(SimulationContext context)
     {
@@ -64,7 +70,13 @@ public sealed class DoorHealthSystem : ISimulationSystem
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/door-blocking.md")]
 public sealed class DoorRemovalSystem : ISimulationSystem
 {
-    public string Name => "door_removal";
+    public string Name
+    {
+        get
+        {
+            return "door_removal";
+        }
+    }
 
     public void Execute(SimulationContext context)
     {

@@ -53,11 +53,13 @@ public static class ImpStates
     /// <summary>The state a carried object walks into, by the flag the destination helper tests
     /// first: 31 a spell book, 33 a Special, 32 a crate (<c>travel-state-call-sites.md</c> §3).
     /// Each stores the object and sets 10, or re-routes through the helper.</summary>
-    public static int CarryingStateFor(ObjectFlags flags) =>
-        ((flags & ObjectFlags.TypeSpellBook) == ObjectFlags.TypeSpellBook) ? 31
+    public static int CarryingStateFor(ObjectFlags flags)
+    {
+        return ((flags & ObjectFlags.TypeSpellBook) == ObjectFlags.TypeSpellBook) ? 31
         : ((flags & ObjectFlags.TypeSpecial) == ObjectFlags.TypeSpecial) ? 33
         : ((flags & ObjectFlags.TypeCrate) == ObjectFlags.TypeCrate) ? 32
         : throw new ArgumentOutOfRangeException(nameof(flags), flags, "Not a carried object.");
+    }
 
     /// <summary>State 40: takes the corpse on its tile and walks it to a Graveyard in 6.</summary>
     public const int PickingUpCorpse = 40;
@@ -94,15 +96,18 @@ public static class ImpStates
     /// (<c>balance-variables-in-the-binary.md</c>): action 1 reads all three dig rates, 2
     /// mining, 4 claiming, 5 attacking a floor, 7 reinforcing, 8 repairing and 10 converting a
     /// room.</summary>
-    public static (int Entry, int Work) For(TileWorkKind kind) => kind switch
+    public static (int Entry, int Work) For(TileWorkKind kind)
     {
-        TileWorkKind.Dig or TileWorkKind.DigOwnWall or TileWorkKind.DigEnemyWall => (13, 14),
-        TileWorkKind.MineGold => (25, 26),
-        TileWorkKind.Claim => (15, 16),
-        TileWorkKind.ConvertRoom => (17, 18),
-        TileWorkKind.AttackTile => (19, 20),
-        TileWorkKind.Reinforce => (21, 22),
-        TileWorkKind.RepairWall => (23, 24),
-        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "No worker state pair."),
-    };
+        return kind switch
+        {
+            TileWorkKind.Dig or TileWorkKind.DigOwnWall or TileWorkKind.DigEnemyWall => (13, 14),
+            TileWorkKind.MineGold => (25, 26),
+            TileWorkKind.Claim => (15, 16),
+            TileWorkKind.ConvertRoom => (17, 18),
+            TileWorkKind.AttackTile => (19, 20),
+            TileWorkKind.Reinforce => (21, 22),
+            TileWorkKind.RepairWall => (23, 24),
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "No worker state pair."),
+        };
+    }
 }

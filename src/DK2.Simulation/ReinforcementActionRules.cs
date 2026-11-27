@@ -24,9 +24,11 @@ public static class ReinforcementActionRules
     private const ActionAnimationFlags Cycle = ActionAnimationFlags.Complete | ActionAnimationFlags.Wrapped;
     private static readonly TileWorkSystem Work = new();
 
-    internal static bool UsesClock(CreatureState creature, CreatureDef definition) =>
-        creature.TargetTileIndex >= 0 && creature.TargetWork == TileWorkKind.Reinforce
+    internal static bool UsesClock(CreatureState creature, CreatureDef definition)
+    {
+        return creature.TargetTileIndex >= 0 && creature.TargetWork == TileWorkKind.Reinforce
         && creature.Dk2StateId == 22 && ActionAnimationClock.CanPlay(definition, ArtSlot);
+    }
 
     internal static void Begin(SimulationContext context, CreatureState creature, CreatureDef definition, TilePos target)
     {
@@ -71,10 +73,12 @@ public static class ReinforcementActionRules
         }
     }
 
-    private static bool Workable(SimulationContext context, CreatureState creature, TilePos target) =>
-        context.World.Contains(target)
+    private static bool Workable(SimulationContext context, CreatureState creature, TilePos target)
+    {
+        return context.World.Contains(target)
         && TileWorkRules.Applies(context.Database, context.World.Tile(target), TileWorkKind.Reinforce, creature.OwnerPlayerId)
         && OwnFloorRules.Touches(context.Database, context.World, target, creature.OwnerPlayerId);
+    }
 
     // 00496AA0 mode3: completion is sticky; a nonzero count is not an immediate end.
     private static void PollAnimation(CreatureState creature)

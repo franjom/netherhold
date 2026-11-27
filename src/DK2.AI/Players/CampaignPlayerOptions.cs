@@ -40,7 +40,10 @@ public sealed record CampaignPlayerOptions
     /// <summary>Creature types that dig and claim; never picked up to fight.</summary>
     public IReadOnlyList<CreatureTypeId> WorkerTypes { get; }
 
-    public bool IsWorker(CreatureTypeId type) => _workers.Contains(type);
+    public bool IsWorker(CreatureTypeId type)
+    {
+        return _workers.Contains(type);
+    }
 
     /// <summary>Each creature type's fighting style (<c>CreatureDef.FightStyle</c>), heroes' included: public data a
     /// player reads in the creature's description, supplied by the host (campaign bot defence plan, D1). A type not
@@ -52,19 +55,30 @@ public sealed record CampaignPlayerOptions
     /// creature's description, supplied by the host; they go first at a Fear trap (R15).</summary>
     public IReadOnlyCollection<CreatureTypeId> Fearless { get; init; } = [];
 
-    public FightStyle StyleOf(CreatureTypeId type) =>
-        FightStyles.Count == 0 ? FightStyle.Blocker : FightStyles.TryGetValue(type, out FightStyle style) ? style : FightStyle.NonFighter;
+    public FightStyle StyleOf(CreatureTypeId type)
+    {
+        return FightStyles.Count == 0 ? FightStyle.Blocker : FightStyles.TryGetValue(type, out FightStyle style) ? style : FightStyle.NonFighter;
+    }
 
     /// <summary>Special box types to activate; null activates any offered special.</summary>
     public IReadOnlyList<ObjectTypeId>? SpecialTypes
     {
-        get => _specials is null ? null : new ReadOnlyCollection<ObjectTypeId>([.. _specials]);
+        get
+        {
+            return _specials is null ? null : new ReadOnlyCollection<ObjectTypeId>([.. _specials]);
+        }
 #pragma warning disable IDE0306 // Preserve HashSet construction for caller-supplied collections.
-        init => _specials = value is null ? null : new HashSet<ObjectTypeId>(value);
+        init
+        {
+            _specials = value is null ? null : new HashSet<ObjectTypeId>(value);
+        }
 #pragma warning restore IDE0306
     }
 
-    public bool AllowsSpecial(ObjectTypeId type) => _specials is null || _specials.Contains(type);
+    public bool AllowsSpecial(ObjectTypeId type)
+    {
+        return _specials is null || _specials.Contains(type);
+    }
 
     /// <summary>Gold one Treasury tile holds (definition data, the host's <c>MaxGoldPerTreasuryTile</c>);
     /// null when unknown, and then no Treasury grows for want of room.</summary>

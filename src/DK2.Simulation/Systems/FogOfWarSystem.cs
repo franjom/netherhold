@@ -17,7 +17,13 @@ namespace DK2.Simulation.Systems;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/fog-reveal-sources.md")]
 public sealed class FogOfWarSystem : ISimulationSystem
 {
-    public string Name => "FogOfWar";
+    public string Name
+    {
+        get
+        {
+            return "FogOfWar";
+        }
+    }
 
     public void Execute(SimulationContext context)
     {

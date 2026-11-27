@@ -9,7 +9,13 @@ namespace DK2.Simulation.Systems;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hatchery-roaming.md")]
 public sealed class ChickenMovementSystem : ISimulationSystem
 {
-    public string Name => "ChickenMovement";
+    public string Name
+    {
+        get
+        {
+            return "ChickenMovement";
+        }
+    }
 
     public void Execute(SimulationContext context)
     {

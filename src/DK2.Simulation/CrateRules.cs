@@ -56,8 +56,10 @@ public static class CrateRules
     public const int CrateMadeState = 68;
 
     /// <summary>Whether the object is a crate.</summary>
-    public static bool IsCrate(GameDatabase database, ObjectState thing) =>
-        database.ObjectById(thing.ObjectTypeId) is { } def && ((def.Flags & ObjectFlags.TypeCrate) == ObjectFlags.TypeCrate);
+    public static bool IsCrate(GameDatabase database, ObjectState thing)
+    {
+        return database.ObjectById(thing.ObjectTypeId) is { } def && ((def.Flags & ObjectFlags.TypeCrate) == ObjectFlags.TypeCrate);
+    }
 
     /// <summary>A crate's kind: a door's when a door definition names its object, else a trap's
     /// when a trap definition does, else null.</summary>
@@ -94,10 +96,12 @@ public static class CrateRules
     }
 
     /// <summary>Whether a blueprint entry still names a thing under construction.</summary>
-    public static bool IsBlueprint(WorldState world, BlueprintRef blueprint) =>
-        blueprint.Kind == DoorKind
+    public static bool IsBlueprint(WorldState world, BlueprintRef blueprint)
+    {
+        return blueprint.Kind == DoorKind
             ? world.DoorById(blueprint.Id) is { UnderConstruction: true }
             : world.TrapById(blueprint.Id) is { UnderConstruction: true };
+    }
 
     /// <summary>The blueprint's tile index, or -1 when its thing is gone.</summary>
     public static int TileOf(WorldState world, BlueprintRef blueprint)
@@ -111,10 +115,12 @@ public static class CrateRules
     }
 
     /// <summary>The blueprint's owner, or 0 when its thing is gone.</summary>
-    public static byte OwnerOf(WorldState world, BlueprintRef blueprint) =>
-        blueprint.Kind == DoorKind
+    public static byte OwnerOf(WorldState world, BlueprintRef blueprint)
+    {
+        return blueprint.Kind == DoorKind
             ? world.DoorById(blueprint.Id)?.PlayerId ?? 0
             : world.TrapById(blueprint.Id)?.PlayerId ?? 0;
+    }
 
     /// <summary><c>0x00505680</c>: appends a blueprint unless it is already there or the list is full.</summary>
     public static void Register(WorldState world, PlayerId playerId, BlueprintRef blueprint)
@@ -198,9 +204,11 @@ public static class CrateRules
     // ------------------------------------------------------------------ the Workshop
 
     /// <summary>Whether <paramref name="thing"/> is listed in <paramref name="workshop"/>.</summary>
-    public static bool IsListedIn(WorldState world, GameDatabase database, RoomInstance workshop, ObjectState thing) =>
-        thing.OwnerPlayerId == workshop.OwnerPlayerId && thing.CarriedByCreatureId < 0 && !thing.InHand
+    public static bool IsListedIn(WorldState world, GameDatabase database, RoomInstance workshop, ObjectState thing)
+    {
+        return thing.OwnerPlayerId == workshop.OwnerPlayerId && thing.CarriedByCreatureId < 0 && !thing.InHand
         && workshop.Contains(thing.TileIndex) && IsCrate(database, thing);
+    }
 
     /// <summary>The crates listed in <paramref name="workshop"/>, newest first.</summary>
     public static void CratesIn(WorldState world, GameDatabase database, RoomInstance workshop, List<ObjectState> into)

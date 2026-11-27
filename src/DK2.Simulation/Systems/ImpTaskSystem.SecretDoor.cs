@@ -11,9 +11,11 @@ namespace DK2.Simulation.Systems;
 
 public sealed partial class ImpTaskSystem
 {
-    private static bool IsSecretDoorState(CreatureState creature) =>
-        creature.Dk2StateId is ImpStates.SecretDoorApproach or ImpStates.SecretDoorWork
+    private static bool IsSecretDoorState(CreatureState creature)
+    {
+        return creature.Dk2StateId is ImpStates.SecretDoorApproach or ImpStates.SecretDoorWork
         || creature.Dk2StateId == StateShadow.TravelToPoint && creature.UtilityNewState == ImpStates.SecretDoorApproach;
+    }
 
     private bool TryTakeSecretDoor(SimulationContext context, CreatureState creature)
     {
@@ -89,7 +91,10 @@ public sealed partial class ImpTaskSystem
         return TakeSecretDoorSlot(context, creature, at, chosenSlot);
     }
 
-    private static int SecretDoorSide(byte slot) => (slot / MiningSlots.PerFace) switch { 0 => 2, 1 => 1, 2 => 3, _ => 0 };
+    private static int SecretDoorSide(byte slot)
+    {
+        return (slot / MiningSlots.PerFace) switch { 0 => 2, 1 => 1, 2 => 3, _ => 0 };
+    }
 
     private static CreatureState? SecretDoorHolder(WorldState world, CreatureState creature, int index, byte slot)
     {

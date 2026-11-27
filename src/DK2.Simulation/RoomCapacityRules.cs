@@ -27,12 +27,14 @@ public static class RoomCapacityRules
     /// <summary>The categories whose enter hook claims a place: Research and Guard Post
     /// (<c>0x0047AFB0</c>), Manufacture, Temple, Training, Prison, Torture, Combat Pit, Casino
     /// and Spectating.</summary>
-    public static bool Claims(CreatureStateCategory category) =>
-        category is CreatureStateCategory.Research or CreatureStateCategory.Manufacture
+    public static bool Claims(CreatureStateCategory category)
+    {
+        return category is CreatureStateCategory.Research or CreatureStateCategory.Manufacture
             or CreatureStateCategory.GuardPost or CreatureStateCategory.Temple
             or CreatureStateCategory.Training or CreatureStateCategory.Prison
             or CreatureStateCategory.Torture or CreatureStateCategory.CombatPit
             or CreatureStateCategory.Casino or CreatureStateCategory.Spectating;
+    }
 
     /// <summary>The room's <c>UsedCapacity</c> (<c>+0x6B</c>): the units of the places held in
     /// <paramref name="room"/>, leaving out <paramref name="exceptId"/>'s.</summary>
@@ -167,8 +169,10 @@ public static class RoomCapacityRules
 
     /// <summary>Whether a refused claim raises 42: a Guard Room with a place-holder standing outside
     /// it raises it at once; otherwise only when <see cref="AnotherHasRoom"/> finds nothing.</summary>
-    internal static bool RaisesFull(WorldState world, GameDatabase database, RoomInstance room, CreatureState creature) =>
-        !SearchesElsewhere(world, room) || !AnotherHasRoom(world, database, room, creature);
+    internal static bool RaisesFull(WorldState world, GameDatabase database, RoomInstance room, CreatureState creature)
+    {
+        return !SearchesElsewhere(world, room) || !AnotherHasRoom(world, database, room, creature);
+    }
 
     /// <summary>The failure tail's Guard Room test in <c>0x004E5A70</c>: it searches other rooms only
     /// when every creature holding a place in it stands on one of its tiles.</summary>
@@ -209,14 +213,19 @@ public static class RoomCapacityRules
     /// <summary>The release <c>0x004E5E00</c>, behind the leave hooks' <c>+0x3B9</c> test.</summary>
     /// <remarks>DK2 subtracts the definition's units only while the room's count holds them, so a
     /// fighter's release takes a spectator's unit; ours frees what the place added (Q504).</remarks>
-    internal static void Release(CreatureState creature) => creature.HeldPlace = RoomPlace.None;
+    internal static void Release(CreatureState creature)
+    {
+        creature.HeldPlace = RoomPlace.None;
+    }
 
     /// <summary><c>0x004E7F80</c>: the creature's own keeper's room, or any keeper's Prison,
     /// Torture Chamber, Temple, Combat Pit or Crypt.</summary>
-    private static bool Admits(RoomInstance room, CreatureState creature) =>
-        room.OwnerPlayerId == creature.OwnerPlayerId
+    private static bool Admits(RoomInstance room, CreatureState creature)
+    {
+        return room.OwnerPlayerId == creature.OwnerPlayerId
         || room.Definition.TypeId is RoomTypeId.Prison or RoomTypeId.TortureChamber or RoomTypeId.Temple
             or RoomTypeId.CombatPit or RoomTypeId.Crypt;
+    }
 
     /// <summary>The claim's fallback <c>0x004C6AE0</c>: whether another of the keeper's rooms
     /// of <paramref name="full"/>'s type has a place the creature can route to (<c>0x004D0E60</c>,
@@ -226,8 +235,10 @@ public static class RoomCapacityRules
     /// not change the answer. Deviates: the route goes to the room's first slab, not to its
     /// floor-slot position <c>+0x2B</c> (<c>0x004E4590</c>), which ours does not keep.</summary>
     public static bool AnotherHasRoom(
-        WorldState world, GameDatabase database, RoomInstance full, CreatureState creature) =>
-        AnotherHasRoom(new StateHookContext(world, database), full, creature);
+        WorldState world, GameDatabase database, RoomInstance full, CreatureState creature)
+    {
+        return AnotherHasRoom(new StateHookContext(world, database), full, creature);
+    }
 
     private static bool AnotherHasRoom(in StateHookContext hooks, RoomInstance full, CreatureState creature)
     {

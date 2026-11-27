@@ -193,8 +193,10 @@ public sealed class KeeperResearchStep
     }
 
     /// <summary>The happy table in order, the descriptor's <c>+0x78B</c> entries.</summary>
-    private IEnumerable<JobType> Jobs(KeeperCreatureView creature) =>
-        _view.Database.CreatureById(creature.CreatureTypeId).HappyJobs.Select(j => j.Job);
+    private IEnumerable<JobType> Jobs(KeeperCreatureView creature)
+    {
+        return _view.Database.CreatureById(creature.CreatureTypeId).HappyJobs.Select(j => j.Job);
+    }
 
     /// <summary>A held creature, the thing class job placement drops; a body or an object is none.</summary>
     private KeeperCreatureView? Creature(HandItem item)
@@ -232,14 +234,18 @@ public sealed class KeeperResearchStep
     }
 
     /// <summary>The owner's list in DK2's order, held ones included; a corpse is a different thing.</summary>
-    internal static IEnumerable<KeeperCreatureView> Owned(KeeperView view) =>
-        view.Creatures.Where(c => c.OwnerPlayerId == view.PlayerId && c.OwnershipRank >= 0
+    internal static IEnumerable<KeeperCreatureView> Owned(KeeperView view)
+    {
+        return view.Creatures.Where(c => c.OwnerPlayerId == view.PlayerId && c.OwnershipRank >= 0
                 && c.Activity != CreatureActivity.Dead)
             .OrderBy(c => c.OwnershipRank);
+    }
 
     /// <summary>A creature an earlier step prepared is, in DK2, landing (76) when the hand took and
     /// dropped it, or still in 75 when the hand refused it.</summary>
-    internal static int StateOf(KeeperCreatureView creature, HashSet<int> prepared) =>
-        !prepared.Contains(creature.Id) ? creature.StateId
+    internal static int StateOf(KeeperCreatureView creature, HashSet<int> prepared)
+    {
+        return !prepared.Contains(creature.Id) ? creature.StateId
             : creature.CanPickUp ? DropLandingRules.LandingState : KeeperTrainingStep.PreparedState;
+    }
 }

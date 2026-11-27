@@ -20,12 +20,27 @@ public static class OwnFloorRules
     private static readonly int[] Dy = [-1, 0, 0, 1];
 
     /// <summary>North, west, east, south; the order does not matter to a yes-or-no answer.</summary>
-    public static ReadOnlySpan<int> NeighbourDx => Dx;
-    public static ReadOnlySpan<int> NeighbourDy => Dy;
+    public static ReadOnlySpan<int> NeighbourDx
+    {
+        get
+        {
+            return Dx;
+        }
+    }
+
+    public static ReadOnlySpan<int> NeighbourDy
+    {
+        get
+        {
+            return Dy;
+        }
+    }
 
     /// <summary>One neighbour's test: owned by <paramref name="playerId"/>, Ownable, not Solid.</summary>
-    public static bool IsOwnFloor(TerrainDef terrain, PlayerId ownerPlayerId, PlayerId playerId) =>
-        ownerPlayerId == playerId && terrain.IsOwnable && !terrain.IsSolid;
+    public static bool IsOwnFloor(TerrainDef terrain, PlayerId ownerPlayerId, PlayerId playerId)
+    {
+        return ownerPlayerId == playerId && terrain.IsOwnable && !terrain.IsSolid;
+    }
 
     /// <summary>True when any in-bounds orthogonal neighbour of <paramref name="at"/> is
     /// <paramref name="playerId"/>'s own floor.</summary>

@@ -21,8 +21,10 @@ public readonly record struct RoomSite(TilePos Origin, int Width, int Height)
         }
     }
 
-    public bool Contains(TilePos p) =>
-        p.X >= Origin.X && p.X < Origin.X + Width && p.Y >= Origin.Y && p.Y < Origin.Y + Height;
+    public bool Contains(TilePos p)
+    {
+        return p.X >= Origin.X && p.X < Origin.X + Width && p.Y >= Origin.Y && p.Y < Origin.Y + Height;
+    }
 }
 
 /// <summary>A site the search accepted, as <c>0x005012A0</c> stores it: the rectangle, the point where
@@ -34,9 +36,15 @@ public readonly record struct SiteChoice(RoomSite Site, TilePos JoinPoint, TileP
 /// <summary>The keeper's build area in tiles, inclusive on both ends.</summary>
 public readonly record struct BuildArea(int MinX, int MinY, int MaxX, int MaxY)
 {
-    public static BuildArea WholeMap(int width, int height) => new(0, 0, width - 1, height - 1);
+    public static BuildArea WholeMap(int width, int height)
+    {
+        return new(0, 0, width - 1, height - 1);
+    }
 
-    public bool Contains(TilePos p) => p.X >= MinX && p.X <= MaxX && p.Y >= MinY && p.Y <= MaxY;
+    public bool Contains(TilePos p)
+    {
+        return p.X >= MinX && p.X <= MaxX && p.Y >= MinY && p.Y <= MaxY;
+    }
 }
 
 /// <summary>
@@ -54,8 +62,10 @@ public static class SiteFinder
 {
     public static RoomSite? Find(
         KeeperView view, TilePos origin, int startDirection, int roomSize,
-        int tilesBetweenRooms, int opennessPercent, BuildArea area) =>
-        Search(view, origin, startDirection, roomSize, tilesBetweenRooms, opennessPercent, area)?.Site;
+        int tilesBetweenRooms, int opennessPercent, BuildArea area)
+    {
+        return Search(view, origin, startDirection, roomSize, tilesBetweenRooms, opennessPercent, area)?.Site;
+    }
 
     /// <summary><see cref="Find"/> with the join point and walking order task 2 needs.</summary>
     public static SiteChoice? Search(
@@ -166,8 +176,10 @@ public static class SiteFinder
         return view.IsMine(p) && !t.IsRoom && !t.IsSolid;
     }
 
-    private static TilePos Lay(TilePos start, int i, int j, int sx, int sy) =>
-        new(start.X + (i * sx), start.Y + (j * sy));
+    private static TilePos Lay(TilePos start, int i, int j, int sx, int sy)
+    {
+        return new(start.X + (i * sx), start.Y + (j * sy));
+    }
 
     private static bool Acceptable(KeeperView view, TilePos start, int w, int h, int sx, int sy)
     {

@@ -22,7 +22,10 @@ public static class ManaRemovalLifecycle
 
     /// <summary>DK2's turn for the tick being executed: the clocks compare against it and the
     /// removal stamp stores it, as the trigger walk's turn already does.</summary>
-    public static uint Turn(GameTick tick) => unchecked((uint)(tick.Value + 1));
+    public static uint Turn(GameTick tick)
+    {
+        return unchecked((uint)(tick.Value + 1));
+    }
 
     /// <summary>Owned creatures whose definition carries both the worker and the evil bit, held
     /// ones included (<c>0x004C15C0</c>).</summary>
@@ -40,8 +43,10 @@ public static class ManaRemovalLifecycle
         return count;
     }
 
-    public static bool IsEvilWorker(CreatureDef definition) =>
-        ((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker) && ((definition.Flags & CreatureFlags.IsEvil) == CreatureFlags.IsEvil);
+    public static bool IsEvilWorker(CreatureDef definition)
+    {
+        return ((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker) && ((definition.Flags & CreatureFlags.IsEvil) == CreatureFlags.IsEvil);
+    }
 
     /// <summary>The owner's creatures in acquisition order, as the selector walks them.</summary>
     public static List<ManaRemovalCandidate> Candidates(WorldState world, GameDatabase database, PlayerId playerId)

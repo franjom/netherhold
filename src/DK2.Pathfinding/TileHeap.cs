@@ -12,7 +12,13 @@ internal sealed class TileHeap
     private readonly List<int> _tile = [];
     private readonly List<int> _key = [];
 
-    public int Count => _tile.Count;
+    public int Count
+    {
+        get
+        {
+            return _tile.Count;
+        }
+    }
 
     public void Clear()
     {
@@ -72,8 +78,10 @@ internal sealed class TileHeap
         return result;
     }
 
-    private bool Less(int a, int b) =>
-        _key[a] != _key[b] ? _key[a] < _key[b] : _tile[a] < _tile[b];
+    private bool Less(int a, int b)
+    {
+        return _key[a] != _key[b] ? _key[a] < _key[b] : _tile[a] < _tile[b];
+    }
 
     private void Swap(int a, int b)
     {

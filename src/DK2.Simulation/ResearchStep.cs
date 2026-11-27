@@ -52,9 +52,11 @@ public static class ResearchStep
     /// 4096: three tiles.</summary>
     public const uint DisturbReach = 0x9000;
 
-    public static bool IsResearchState(int state) =>
-        state is ChoosingState or AtTheShelfState or ReadingLongState or ReadingShortState or DisturbedState
+    public static bool IsResearchState(int state)
+    {
+        return state is ChoosingState or AtTheShelfState or ReadingLongState or ReadingShortState or DisturbedState
             or CelebratingState or ReturningState;
+    }
 
     /// <summary>One turn of a researcher. False when it is left idle, which ends the job.</summary>
     public static bool Turn(SimulationContext context, string system, CreatureState creature)
@@ -303,8 +305,10 @@ public static class ResearchStep
         return false;
     }
 
-    private static bool IsBare(WorldState world, GameDatabase database, RoomInstance room, int tile) =>
-        !AutoFurnitureRules.IsFloorSlot(world, room, tile) && AutoFurnitureRules.WallSide(world, database, room, tile) < 0;
+    private static bool IsBare(WorldState world, GameDatabase database, RoomInstance room, int tile)
+    {
+        return !AutoFurnitureRules.IsFloorSlot(world, room, tile) && AutoFurnitureRules.WallSide(world, database, room, tile) < 0;
+    }
 
     private static bool Targeted(WorldState world, RoomInstance room, int x, int y)
     {
@@ -334,9 +338,11 @@ public static class ResearchStep
     }
 
     /// <summary>World slot <c>+0x200</c>: the target point lies on the map.</summary>
-    private static bool HasTarget(WorldState world, CreatureState c) =>
-        c.StateTargetX >= 0 && c.StateTargetY >= 0
+    private static bool HasTarget(WorldState world, CreatureState c)
+    {
+        return c.StateTargetX >= 0 && c.StateTargetY >= 0
         && world.Contains(new TilePos(c.StateTargetX >> 12, c.StateTargetY >> 12));
+    }
 
     /// <summary>A bookcase is taken while a creature stands on its stand point's tile (<c>0x00453670</c>).</summary>
     private static bool SomeoneOnTheSpot(WorldState world, GameDatabase database, CreatureState seeker, ObjectState thing)
@@ -364,12 +370,16 @@ public static class ResearchStep
     }
 
     /// <summary>The floor pass's angle (library-states.md §4): a book 0, a bookcase <c>(y &amp; 1) &lt;&lt; 10</c>.</summary>
-    private static int Angle(WorldState world, ObjectState thing) =>
-        thing.ObjectTypeId == BookCaseObjectId ? ((thing.TileIndex / world.Width) & 1) << 10 : 0;
+    private static int Angle(WorldState world, ObjectState thing)
+    {
+        return thing.ObjectTypeId == BookCaseObjectId ? ((thing.TileIndex / world.Width) & 1) << 10 : 0;
+    }
 
     /// <summary>A bookcase's variant byte <c>+0x14A</c>, the coordinate-seeded <c>random(3)</c>; 0 for a book.</summary>
-    private static int Variant(WorldState world, ObjectState thing) =>
-        thing.ObjectTypeId == BookCaseObjectId ? AutoFurnitureRules.Choice(thing.TileIndex % world.Width, thing.TileIndex / world.Width, 3) : 0;
+    private static int Variant(WorldState world, ObjectState thing)
+    {
+        return thing.ObjectTypeId == BookCaseObjectId ? AutoFurnitureRules.Choice(thing.TileIndex % world.Width, thing.TileIndex / world.Width, 3) : 0;
+    }
 
     // ----------------------------------------------------------------------- 54, 56, 57
 
@@ -617,8 +627,10 @@ public static class ResearchStep
     // --------------------------------------------------------------------------- shared
 
     /// <summary><c>0x00478B80(3, AngerNoWork, 3)</c>.</summary>
-    private static void ChargeNoWork(WorldState world, CreatureDef definition, CreatureState creature) =>
+    private static void ChargeNoWork(WorldState world, CreatureDef definition, CreatureState creature)
+    {
         CreatureAngerRules.Apply(world, definition, creature, AngerBucket.Work, definition.AngerNoWork, AngerComplaint.NoWork);
+    }
 
     public static CreatureStateCategory? ResolvedCategory(CreatureState creature)
     {
@@ -663,9 +675,15 @@ public static class ResearchStep
         return ((width >> 1) + (footprint >> 1)) * 100 / 100;
     }
 
-    private static int CentreX(WorldState world, ObjectState thing) => CreatureState.CentreOf(thing.TileIndex % world.Width);
+    private static int CentreX(WorldState world, ObjectState thing)
+    {
+        return CreatureState.CentreOf(thing.TileIndex % world.Width);
+    }
 
-    private static int CentreY(WorldState world, ObjectState thing) => CreatureState.CentreOf(thing.TileIndex / world.Width);
+    private static int CentreY(WorldState world, ObjectState thing)
+    {
+        return CreatureState.CentreOf(thing.TileIndex / world.Width);
+    }
 
     private static uint Distance(int dx, int dy)
     {

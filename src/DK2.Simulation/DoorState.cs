@@ -62,7 +62,13 @@ public sealed partial class DoorState
     public bool SeenWhileOpen { get; set; }
 
     /// <summary>Whether the navigation bytes show this door's tile as plain floor.</summary>
-    public bool ReadsAsFloor => Open && !SeenWhileOpen;
+    public bool ReadsAsFloor
+    {
+        get
+        {
+            return Open && !SeenWhileOpen;
+        }
+    }
 
     /// <summary>0, 1 or 2, fixed when the door is made
     /// (<see cref="BlueprintPlacementRules.Orientation"/>): which pair of neighbours are its
@@ -88,12 +94,19 @@ public sealed partial class DoorState
     /// are separate fields (Q252).</summary>
     public required ReadOnlyMemory<byte> Unknown_0011
     {
-        get => _unknown0011;
-        init => _unknown0011 = value.Length == Unknown0011Length
-            ? value
-            : throw new ArgumentException(
-                $"A door's trailing unknown is {Unknown0011Length} bytes, not {value.Length}.",
-                nameof(Unknown_0011));
+        get
+        {
+            return _unknown0011;
+        }
+
+        init
+        {
+            _unknown0011 = value.Length == Unknown0011Length
+                    ? value
+                    : throw new ArgumentException(
+                        $"A door's trailing unknown is {Unknown0011Length} bytes, not {value.Length}.",
+                        nameof(Unknown_0011));
+        }
     }
 
     private readonly ReadOnlyMemory<byte> _unknown0011;

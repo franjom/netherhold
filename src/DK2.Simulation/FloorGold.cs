@@ -64,10 +64,12 @@ public static class FloorGold
     /// — and nothing clamps a pile to it: a sold treasury tile makes a pile of up to
     /// <c>MaxGoldPerTreasuryTile</c> (3000), and an overflowing deposit one of whatever was left
     /// over.</summary>
-    public static int MaxPile(GameDatabase database) =>
-        database is null
+    public static int MaxPile(GameDatabase database)
+    {
+        return database is null
             ? throw new ArgumentNullException(nameof(database))
             : database[VariableTypeId.MaxGoldPileOutsideTreasury];
+    }
 
     /// <summary>Whether an imp looking for somewhere to put gold down would accept this pile —
     /// <see cref="MaxPile"/>'s only meaning. Strictly greater is what the original tests, so a
@@ -172,8 +174,10 @@ public static class FloorGold
     /// <summary>The neutral-owner overload, matching the floor-pile creation sites
     /// (gold-on-the-floor.md §8, Q136). Fetch tasks test this owner.</summary>
     public static ObjectState? Drop(
-        WorldState world, GameDatabase database, int tileIndex, int amount) =>
-        Drop(world, database, tileIndex, amount, PlayerIds.Neutral);
+        WorldState world, GameDatabase database, int tileIndex, int amount)
+    {
+        return Drop(world, database, tileIndex, amount, PlayerIds.Neutral);
+    }
 
     /// <summary>Puts gold down at a point, DK2's <c>0x004510C0</c>: onto a floor pile already
     /// within 1/64 of a tile of it (<c>0x40</c>, Chebyshev), else as a new pile owned by the
@@ -235,9 +239,11 @@ public static class FloorGold
         return largest;
     }
 
-    private static bool IsLoosePile(ObjectState instance, int tileIndex) =>
-        instance.TileIndex == tileIndex && instance.ObjectTypeId == FloorGoldObjectId
+    private static bool IsLoosePile(ObjectState instance, int tileIndex)
+    {
+        return instance.TileIndex == tileIndex && instance.ObjectTypeId == FloorGoldObjectId
         && !instance.InHand && instance.CarriedByCreatureId < 0;
+    }
 
     /// <summary>Takes up to <paramref name="amount"/> off a pile and returns how much came off,
     /// destroying the pile when it empties.</summary>
@@ -277,11 +283,13 @@ public static class FloorGold
     /// <summary>How many piles a creature carrying <paramref name="gold"/> leaves behind when it
     /// is destroyed: <b>one below 1000, two below 3000, three at 3000 and above</b>, and none at
     /// all with empty hands.</summary>
-    public static int PileCount(int gold) =>
-        gold <= 0 ? 0
+    public static int PileCount(int gold)
+    {
+        return gold <= 0 ? 0
         : gold < TwoPilesAbove ? 1
         : gold < ThreePilesAbove ? 2
         : 3;
+    }
 
     /// <summary>Drops a creature's gold on the tile it is standing on, empties its hands, and
     /// returns how much actually reached the floor — sometimes less than it was carrying, because

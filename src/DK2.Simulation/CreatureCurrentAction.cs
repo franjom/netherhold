@@ -18,12 +18,14 @@ public static class CreatureCurrentAction
     /// <summary>The stand-ins <see cref="CreatureStateMachine"/> clears when it ends an action: a swing, an action hold
     /// (idle, flourish, a cast, the Workshop's work), the tunnel's dig, a trainee's swing, an imp's dig or mine loop,
     /// or an ordinary claim, floor-attack or room-conversion action.</summary>
-    public static bool IsRunning(CreatureState creature, GameTick tick) =>
-        creature.PossessedMelee.Active || creature.PossessedExcavation.Kind != PossessedExcavationKind.None
+    public static bool IsRunning(CreatureState creature, GameTick tick)
+    {
+        return creature.PossessedMelee.Active || creature.PossessedExcavation.Kind != PossessedExcavationKind.None
         || creature.ClaimAction.Kind != ClaimActionKind.None
         || creature.CombatPitAction != CombatPitActionId.None
         || creature.IdleAction != IdleActionId.None || creature.SwingInProgress || tick.Value < creature.ActionUntilTick || creature.Tunnel.Digging
         || creature.TrainingActionId != 0 || WorkLoopIndex(creature) != 0;
+    }
 
     /// <summary>The index of the action that runs when ours names it: 30 and 31 for a trainee's, 1 and 2 for an imp's dig and
     /// mine, 4, 5 and 10 for ordinary claim-family actions, 1 or 2 for a tunneller's dig, 17, 16 or 15 for a swing, cast
@@ -93,14 +95,16 @@ public static class CreatureCurrentAction
         return 0;
     }
 
-    private static int WorkLoopIndex(CreatureState creature) =>
-        creature.ActionArtSlot != ImpWorkSlot || creature.TargetTileIndex < 0 ? 0
+    private static int WorkLoopIndex(CreatureState creature)
+    {
+        return creature.ActionArtSlot != ImpWorkSlot || creature.TargetTileIndex < 0 ? 0
             : creature.TargetWork switch
             {
                 TileWorkKind.MineGold => CreatureActionTable.Mine,
                 TileWorkKind.Dig or TileWorkKind.DigOwnWall or TileWorkKind.DigEnemyWall => CreatureActionTable.Dig,
                 _ => 0,
             };
+    }
 
     /// <summary>The art slot of the imp's dig and mine actions (<c>ImpTaskSystem</c>'s <c>WorkArtSlot</c>).</summary>
     private const byte ImpWorkSlot = 5;

@@ -150,8 +150,10 @@ public sealed class KeeperTrapDoorStep
         return allowance;
     }
 
-    private int Try(int allowance, int x, int y) =>
-        ValidSite(x, y) && Spaced(x, y) ? Place(allowance, new TilePos(x, y)) : allowance;
+    private int Try(int allowance, int x, int y)
+    {
+        return ValidSite(x, y) && Spaced(x, y) ? Place(allowance, new TilePos(x, y)) : allowance;
+    }
 
     /// <summary><c>0x004FFA50</c>: an interior tile, open, between two solid tiles west and east (or
     /// failing that north and south), neither of which this keeper has tagged.</summary>
@@ -218,7 +220,10 @@ public sealed class KeeperTrapDoorStep
 
         return true;
 
-        bool Near(int tx, int ty) => ((tx - x) * (tx - x)) + ((ty - y) * (ty - y)) < limit;
+        bool Near(int tx, int ty)
+        {
+            return ((tx - x) * (tx - x)) + ((ty - y) * (ty - y)) < limit;
+        }
     }
 
     /// <summary><c>0x004FFD80</c>: <c>random(4) &lt; TrapVsDoorPreference</c> makes it a door.</summary>

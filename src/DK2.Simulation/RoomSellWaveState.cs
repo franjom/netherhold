@@ -25,6 +25,8 @@ public static class RoomSellWaveRules
     public const int SlotsPerPlayer = 3;
 
     /// <summary>This turn's diagonal of <paramref name="wave"/> (<c>0x004C7160</c>), from the maximum corner.</summary>
-    public static IEnumerable<TilePos> Diagonal(RoomSellWaveState wave, GameTick now, WorldState world) =>
-        RoomBuildWaveRules.Diagonal(wave.Min, wave.Max, wave.QueuedTick, now, world);
+    public static IEnumerable<TilePos> Diagonal(RoomSellWaveState wave, GameTick now, WorldState world)
+    {
+        return RoomBuildWaveRules.Diagonal(wave.Min, wave.Max, wave.QueuedTick, now, world);
+    }
 }

@@ -66,21 +66,27 @@ public sealed class PlayerDecision
     }
 
     /// <summary>Requests nothing and waits <paramref name="advanceTicks"/>.</summary>
-    public static PlayerDecision Wait(int advanceTicks, string reason) => new([], advanceTicks, reason);
+    public static PlayerDecision Wait(int advanceTicks, string reason)
+    {
+        return new([], advanceTicks, reason);
+    }
 
     /// <summary>The controller cannot go on: the host ends the run as a controller limitation, a
     /// diagnostic result rather than an engine failure.</summary>
-    public static PlayerDecision Limited(string reason) => new([], 1, reason) { IsLimitation = true };
+    public static PlayerDecision Limited(string reason)
+    {
+        return new([], 1, reason) { IsLimitation = true };
+    }
 
     public bool IsLimitation { get; private init; }
 
     /// <summary>Each routine's verdict this decision, in the order it ran: what it did, or why it did nothing
     /// (diagnostics only; the host logs it and never acts on it).</summary>
-    public IReadOnlyList<PlayerThought> Thoughts { get; init => field = value?.ToArray() ?? throw new ArgumentNullException(nameof(value)); } = [];
+    public IReadOnlyList<PlayerThought> Thoughts { get; init { field = value?.ToArray() ?? throw new ArgumentNullException(nameof(value)); } } = [];
 
     /// <summary>The numbers the controller decided on this decision, as it read them from its observation
     /// (diagnostics only).</summary>
-    public IReadOnlyList<PlayerBelief> Beliefs { get; init => field = value?.ToArray() ?? throw new ArgumentNullException(nameof(value)); } = [];
+    public IReadOnlyList<PlayerBelief> Beliefs { get; init { field = value?.ToArray() ?? throw new ArgumentNullException(nameof(value)); } } = [];
 
     public IReadOnlyList<PlayerAction> Actions { get; }
     public int AdvanceTicks { get; }

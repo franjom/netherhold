@@ -41,20 +41,31 @@ public readonly struct StateHookContext
     internal TriggerExecutor? Triggers { get; }
     private readonly Action<string, ViewEffectRequest>? _requestEffect;
 
-    public void RequestEffect(string system, ViewEffectRequest request) => _requestEffect?.Invoke(system, request);
+    public void RequestEffect(string system, ViewEffectRequest request)
+    {
+        _requestEffect?.Invoke(system, request);
+    }
 
     private readonly Action<string, ThingSoundRequest>? _requestSound;
 
     /// <summary>The simulation's event sink (system, kind, detail); null for detached hooks, which emit nothing.</summary>
     internal Action<string, string, string>? EmitEvent { get; init; }
 
-    internal void Emit(string system, string kind, string detail) => EmitEvent?.Invoke(system, kind, detail);
+    internal void Emit(string system, string kind, string detail)
+    {
+        EmitEvent?.Invoke(system, kind, detail);
+    }
 
     /// <summary>A world sound a hook asks for; nothing without a simulation context behind it, as with effects.</summary>
-    public void RequestSound(string system, ThingSoundRequest request) => _requestSound?.Invoke(system, request);
+    public void RequestSound(string system, ThingSoundRequest request)
+    {
+        _requestSound?.Invoke(system, request);
+    }
 
     /// <summary>A creature trigger event, on the turn <see cref="SimulationContext.FireCreatureEvent"/>
     /// would give it: the world's tick is the context's while a tick runs.</summary>
-    public void FireCreatureEvent(CreatureState creature, CreatureTriggerEvent type) =>
+    public void FireCreatureEvent(CreatureState creature, CreatureTriggerEvent type)
+    {
         Triggers?.FireCreatureEvent(creature, type, unchecked((int)(World.CurrentTick.Value + 1)));
+    }
 }

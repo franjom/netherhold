@@ -28,7 +28,13 @@ public sealed class NeutralAmbientEffectSystem : ISimulationSystem
     private const int CommonEffect = 302;
     private static readonly Fp32 CommonEffectHeight = new(0x1000);
 
-    public string Name => "neutral ambient";
+    public string Name
+    {
+        get
+        {
+            return "neutral ambient";
+        }
+    }
 
     public void Execute(SimulationContext context)
     {

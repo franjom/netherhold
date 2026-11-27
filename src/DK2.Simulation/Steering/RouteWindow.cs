@@ -14,7 +14,10 @@ namespace DK2.Simulation.Steering;
 public static class RouteWindow
 {
     /// <summary>Sixteenths of a tile from a 16.16 distance, the window's bookkeeping unit.</summary>
-    public static int Sixteenths(int distance) => distance >> 12;
+    public static int Sixteenths(int distance)
+    {
+        return distance >> 12;
+    }
 
     /// <summary>Route from the body's position and load the window. True when a route exists.</summary>
     public static bool Request(SteeringBody body, ISteeringWorld world, MoverProfile mover, Fixed16Vector target, byte flags)

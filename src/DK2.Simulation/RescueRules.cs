@@ -41,8 +41,10 @@ public static class RescueRules
 
     /// <summary>Whether stepping onto <paramref name="tileIndex"/> sends this creature to 134:
     /// <c>0x004E8660</c>'s Torture Chamber arm.</summary>
-    public static bool StartsARescue(WorldState world, GameDatabase database, CreatureState creature, int tileIndex) =>
-        StateFor(world, database, creature, tileIndex) == RescuingState;
+    public static bool StartsARescue(WorldState world, GameDatabase database, CreatureState creature, int tileIndex)
+    {
+        return StateFor(world, database, creature, tileIndex) == RescuingState;
+    }
 
     /// <summary><c>0x004E8660</c>: 134 for its Torture Chamber arm, 122 for its Prison arm
     /// (<see cref="JailBreakRules.StartsABreakOut"/>, ADR-0229), or null.</summary>

@@ -12,13 +12,34 @@ namespace DK2.Simulation;
 /// Assignable to <see cref="IReadOnlyList{T}"/> where a caller wants the interface.</summary>
 public readonly struct EntityList<T>(List<T> items) : IReadOnlyList<T>
 {
-    public int Count => items.Count;
+    public int Count
+    {
+        get
+        {
+            return items.Count;
+        }
+    }
 
-    public T this[int index] => items[index];
+    public T this[int index]
+    {
+        get
+        {
+            return items[index];
+        }
+    }
 
-    public List<T>.Enumerator GetEnumerator() => items.GetEnumerator();
+    public List<T>.Enumerator GetEnumerator()
+    {
+        return items.GetEnumerator();
+    }
 
-    IEnumerator<T> IEnumerable<T>.GetEnumerator() => items.GetEnumerator();
+    IEnumerator<T> IEnumerable<T>.GetEnumerator()
+    {
+        return items.GetEnumerator();
+    }
 
-    IEnumerator IEnumerable.GetEnumerator() => items.GetEnumerator();
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return items.GetEnumerator();
+    }
 }

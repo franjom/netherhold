@@ -149,16 +149,20 @@ public static class KeeperSpellRules
 
     /// <summary>The position permission helper <c>0x004BB8A0</c> for the spells read: cost,
     /// cooldown, then the location and target validators the record selects.</summary>
-    public static KeeperSpellRefusal CanCastAtPlace(SimulationContext context, CastSpellAtPlaceCommand cast) =>
-        CanCastAtPlace(context.World, context.Database, context.Navigation, context.Navigation, context.Tick, cast);
+    public static KeeperSpellRefusal CanCastAtPlace(SimulationContext context, CastSpellAtPlaceCommand cast)
+    {
+        return CanCastAtPlace(context.World, context.Database, context.Navigation, context.Navigation, context.Tick, cast);
+    }
 
     /// <summary><see cref="CanCastAtPlace(SimulationContext, CastSpellAtPlaceCommand)"/> for a reader
     /// between turns, such as the placement cursor: the same verdict for a cast executed at
     /// <paramref name="tick"/>, against <paramref name="navigation"/> as last refreshed. It never
     /// refreshes the grid, because the mesh behind it is hashed state.</summary>
     public static KeeperSpellRefusal CanCastAtPlace(WorldState world, GameDatabase database, INavByteGrid navigation,
-        GameTick tick, CastSpellAtPlaceCommand cast) =>
-        CanCastAtPlace(world, database, navigation, null, tick, cast);
+        GameTick tick, CastSpellAtPlaceCommand cast)
+    {
+        return CanCastAtPlace(world, database, navigation, null, tick, cast);
+    }
 
     // The context path refreshes the grid at the same point as before the split, so a refusal
     // ahead of it still leaves the mesh untouched.
@@ -260,19 +264,31 @@ public static class KeeperSpellRules
 
     /// <summary>Whether a target selector casts at a thing (<c>0x005177B0</c>: entries 1, 2, 3 and 6
     /// of the runtime table at <c>0x006FCE40</c>) rather than at a place (4 and 5).</summary>
-    public static bool TargetsAThing(byte targetSelector) => targetSelector is 1 or 2 or 3 or 6;
+    public static bool TargetsAThing(byte targetSelector)
+    {
+        return targetSelector is 1 or 2 or 3 or 6;
+    }
 
     /// <summary>The spells whose casts this simulation executes: Sight of Evil, Call to Arms, Inferno, Create Gold, Tremor and both Reaper spells at a place,
     /// Thunderbolt, Heal, Chicken and Turncoat at a creature. Create Imp keeps its own command.</summary>
-    public static bool ExecutesAtPlace(byte spellId) => spellId is SightOfEvil or CallToArmsRules.SpellId or Inferno or CreateGold or TremorRules.SpellId or ReaperRules.OneShotSpellId or ReaperRules.SpellId;
-    public static bool ExecutesOnCreature(byte spellId) => spellId is Thunderbolt or Heal or Chicken or TurncoatRules.SpellId or PossessionRules.SpellId;
+    public static bool ExecutesAtPlace(byte spellId)
+    {
+        return spellId is SightOfEvil or CallToArmsRules.SpellId or Inferno or CreateGold or TremorRules.SpellId or ReaperRules.OneShotSpellId or ReaperRules.SpellId;
+    }
+
+    public static bool ExecutesOnCreature(byte spellId)
+    {
+        return spellId is Thunderbolt or Heal or Chicken or TurncoatRules.SpellId or PossessionRules.SpellId;
+    }
 
     /// <summary>The place validators of <c>0x004BB8A0</c> for one spell at one tile: its location
     /// selector (1, 4 or 5 read) and target selector 4 or 5. The caller's grid must be current.</summary>
     public static bool PlaceAllowed(WorldState world, GameDatabase database, INavByteGrid navigation,
-        PlayerId playerId, KeeperSpellDef spell, TilePos at) =>
-        LocationAllowed(world, database, navigation, playerId, spell, at, default)
+        PlayerId playerId, KeeperSpellDef spell, TilePos at)
+    {
+        return LocationAllowed(world, database, navigation, playerId, spell, at, default)
         && PlaceTargetAllowed(world, database, playerId, spell, at, default);
+    }
 
     /// <summary><see cref="PlaceAllowed"/> at a tile of <paramref name="room"/>, for a caller sweeping
     /// a room's own tiles: <paramref name="room"/> must be the room <see cref="RoomIndex.RoomAt"/>
@@ -290,62 +306,78 @@ public static class KeeperSpellRules
     {
         private readonly RoomInstance? _room = room;
 
-        public RoomInstance? At(WorldState world, GameDatabase database, int index) =>
-            _room ?? RoomIndex.RoomAt(world, database, index);
+        public RoomInstance? At(WorldState world, GameDatabase database, int index)
+        {
+            return _room ?? RoomIndex.RoomAt(world, database, index);
+        }
     }
 
     /// <summary>The place arm of the target validator: 4 (<c>0x005179D0</c>) applies the caster's own
     /// room exclusions; 5 (<c>0x00517F60</c>) admits anything; any other fails closed.</summary>
     private static bool PlaceTargetAllowed(WorldState world, GameDatabase database, PlayerId playerId, KeeperSpellDef spell,
-        TilePos at, KnownRoom known) =>
-        spell.TargetSelector switch
+        TilePos at, KnownRoom known)
+    {
+        return spell.TargetSelector switch
         {
             4 => TargetFour(world, database, playerId, at, known),
             5 => world.Contains(at),
             _ => false,
         };
+    }
 
     /// <summary>The creature validators of <c>0x004BBA40</c>: the record's location selector at the
     /// target's tile, then its target selector on the creature.</summary>
     public static bool CreatureTargetAllowed(WorldState world, GameDatabase database, INavByteGrid navigation,
-        PlayerId playerId, KeeperSpellDef spell, CreatureState target) =>
-        LocationAllowed(world, database, navigation, playerId, spell, target.Tile)
+        PlayerId playerId, KeeperSpellDef spell, CreatureState target)
+    {
+        return LocationAllowed(world, database, navigation, playerId, spell, target.Tile)
         && TargetAllowed(world, database, playerId, spell, target);
+    }
 
     /// <summary>The location validator the record selects (<c>0x005176B0</c>) at one tile: 1
     /// (<c>0x00517B80</c>) and 4 (<c>0x00517F10</c>) are read; any other fails closed.</summary>
     public static bool LocationAllowed(WorldState world, GameDatabase database, INavByteGrid navigation,
-        PlayerId playerId, KeeperSpellDef spell, TilePos at) =>
-        LocationAllowed(world, database, navigation, playerId, spell, at, default);
+        PlayerId playerId, KeeperSpellDef spell, TilePos at)
+    {
+        return LocationAllowed(world, database, navigation, playerId, spell, at, default);
+    }
 
     private static bool LocationAllowed(WorldState world, GameDatabase database, INavByteGrid navigation,
-        PlayerId playerId, KeeperSpellDef spell, TilePos at, KnownRoom known) => spell.LocationSelector switch
+        PlayerId playerId, KeeperSpellDef spell, TilePos at, KnownRoom known)
     {
-        1 => LocationOne(world, database, navigation, playerId, at, known),
-        4 => LocationFour(world, navigation, at),
-        5 => true,
-        _ => false,
-    };
+        return spell.LocationSelector switch
+        {
+            1 => LocationOne(world, database, navigation, playerId, at, known),
+            4 => LocationFour(world, navigation, at),
+            5 => true,
+            _ => false,
+        };
+    }
 
     /// <summary>The target validator the record selects (<c>0x00517730</c>) on a creature: 1
     /// (<c>0x00517800</c>), 2 (<c>0x00517930</c>), 3 (<c>0x00517990</c>) and6 are read; any other fails
     /// closed.</summary>
     public static bool TargetAllowed(WorldState world, GameDatabase database, PlayerId playerId, KeeperSpellDef spell,
-        CreatureState target) => spell.TargetSelector switch
+        CreatureState target)
     {
-        1 => TargetOne(world, database, playerId, target),
-        2 => TargetTwo(playerId, target),
-        3 => target.OwnerPlayerId != PlayerIds.Neutral,
-        6 => TargetSix(database, playerId, target),
-        _ => false,
-    };
+        return spell.TargetSelector switch
+        {
+            1 => TargetOne(world, database, playerId, target),
+            2 => TargetTwo(playerId, target),
+            3 => target.OwnerPlayerId != PlayerIds.Neutral,
+            6 => TargetSix(database, playerId, target),
+            _ => false,
+        };
+    }
 
-    private static bool TargetSix(GameDatabase database, PlayerId playerId, CreatureState target) =>
-        !StatusEffectRules.IsStunned(target) && !target.InHand
+    private static bool TargetSix(GameDatabase database, PlayerId playerId, CreatureState target)
+    {
+        return !StatusEffectRules.IsStunned(target) && !target.InHand
         && target.Dk2StateId is not (193 or 278 or 279 or 280)
         && !target.CombatPitFighter && !ChickenRules.IsChicken(target)
         && !((database.CreatureById(target.CreatureTypeId).Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)
         && !target.RebelActive && target.OwnerPlayerId == playerId;
+    }
 
     /// <summary>Target 1, flags zero: a creature holding a room id is admitted when that room is the
     /// caster's; a Combat Pit fighter when the room under it is; otherwise the caster's own creature,
@@ -371,8 +403,10 @@ public static class KeeperSpellRules
 
     /// <summary>Target 2, flags zero: a creature owned by neither the caster nor neutral; allies and
     /// dying creatures included.</summary>
-    private static bool TargetTwo(PlayerId playerId, CreatureState target) =>
-        target.OwnerPlayerId != playerId && target.OwnerPlayerId != PlayerIds.Neutral;
+    private static bool TargetTwo(PlayerId playerId, CreatureState target)
+    {
+        return target.OwnerPlayerId != playerId && target.OwnerPlayerId != PlayerIds.Neutral;
+    }
 
     /// <summary>Location 4 (<c>0x00517F10</c>): no ownership; the navigation grid's solid bit
     /// refuses, and cast flag bit 1 would also want tile flag <c>0x2000</c>.</summary>
@@ -407,15 +441,19 @@ public static class KeeperSpellRules
 
     /// <summary>The creature permission helper <c>0x004BBA40</c> for the spells read, then the
     /// cast helper's own maximum-health test: what the command would refuse before paying.</summary>
-    public static KeeperSpellRefusal CanCast(SimulationContext context, CastSpellOnCreatureCommand cast) =>
-        CanCast(context.World, context.Database, context.Navigation, context.Navigation, context.Tick, cast);
+    public static KeeperSpellRefusal CanCast(SimulationContext context, CastSpellOnCreatureCommand cast)
+    {
+        return CanCast(context.World, context.Database, context.Navigation, context.Navigation, context.Tick, cast);
+    }
 
     /// <summary><see cref="CanCast(SimulationContext, CastSpellOnCreatureCommand)"/> for a reader between
     /// turns, such as the placement cursor: the same verdict for a cast executed at <paramref name="tick"/>,
     /// against <paramref name="navigation"/> as last refreshed, which it never refreshes.</summary>
     public static KeeperSpellRefusal CanCast(WorldState world, GameDatabase database, INavByteGrid navigation,
-        GameTick tick, CastSpellOnCreatureCommand cast) =>
-        CanCast(world, database, navigation, null, tick, cast);
+        GameTick tick, CastSpellOnCreatureCommand cast)
+    {
+        return CanCast(world, database, navigation, null, tick, cast);
+    }
 
     private static KeeperSpellRefusal CanCast(WorldState world, GameDatabase database, INavByteGrid navigation,
         Navigation.WorldSteering? refresh, GameTick tick, CastSpellOnCreatureCommand cast)

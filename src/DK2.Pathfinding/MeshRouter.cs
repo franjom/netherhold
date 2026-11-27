@@ -35,7 +35,10 @@ public sealed class MeshRouter
     private readonly GateRecord[] _records = new GateRecord[GateWalk.MaxRecords + 1];
     private readonly FunnelBuffers _funnel = new();
 
-    public MeshRouter(NavMesh mesh) => _mesh = mesh ?? throw new ArgumentNullException(nameof(mesh));
+    public MeshRouter(NavMesh mesh)
+    {
+        _mesh = mesh ?? throw new ArgumentNullException(nameof(mesh));
+    }
 
     /// <summary>The whole request: locate both ends, search from the destination toward the
     /// mover and from the mover toward the destination, funnel both, keep the shorter. Either
@@ -43,7 +46,9 @@ public sealed class MeshRouter
     /// funnelled again in walking order and re-walked by <see cref="GateWalk"/>: the waypoints are
     /// the midpoint of each kept gate, then the destination.</summary>
     public bool TryRoute(NavPoint from, NavPoint to, MoverProfile mover, List<NavPoint> waypoints)
-        => TryRoute(from, to, mover, waypoints, RoutePointKind.GateMidpoints);
+    {
+        return TryRoute(from, to, mover, waypoints, RoutePointKind.GateMidpoints);
+    }
 
     /// <summary>The same corridor selection, with funnel corners for a plain query or gate
     /// midpoints for movement (navigation-mesh-and-search.md).</summary>

@@ -91,18 +91,23 @@ public static class PrisonRules
     /// <summary>Whether state 116's <c>CreatureDef_HasArt(9)</c> holds. <c>0x00494A00</c> tests runtime
     /// bit 0, which <c>0x00504D80</c> sets for an Angry type of 1..8 (39 shipped creatures, Q188). We have
     /// no resource loader, so every shipped Angry resource is assumed to load; the file's bit 0 is not read.</summary>
-    public static bool HasAngryFlourish(CreatureDef definition) => definition.AngryArtType is >= 1 and <= 8;
+    public static bool HasAngryFlourish(CreatureDef definition)
+    {
+        return definition.AngryArtType is >= 1 and <= 8;
+    }
 
     /// <summary>How long action 41 holds a prisoner: state 116 passes <c>rand(3) + 2</c>, the wrapper
     /// <c>0x00496A30</c> stores one more as the cycle count (<c>+0x3AE</c>), and the runner
     /// <c>0x00496AA0</c> lets the animation loop until the count runs down, so the Angry animation
     /// plays <paramref name="variant"/> + 1 times at its frames and rate, rounded up as for action 49.
     /// HYPOTHESIS: the count and the end come from the renderer's flags, which are not read.</summary>
-    public static int FlourishTicks(CreatureDef definition, int variant) =>
-        definition.AngryFrames <= 0 || definition.AngryFramesPerSecond <= 0
+    public static int FlourishTicks(CreatureDef definition, int variant)
+    {
+        return definition.AngryFrames <= 0 || definition.AngryFramesPerSecond <= 0
             ? 0
             : (((variant + 1) * definition.AngryFrames * SimulationTiming.OriginalTicksPerGameSecond)
                + definition.AngryFramesPerSecond - 1) / definition.AngryFramesPerSecond;
+    }
 
     /// <summary>The four orthogonal steps <b>in DK2's own table order</b> — north,
     /// east, south, west — as stored at <c>0x006BC350</c>. The order is behaviour, not
@@ -204,14 +209,18 @@ public static class PrisonRules
     /// each arrival its own tile is about where a body is dropped, not what limits the
     /// room. The rim is counted rather than derived from the bounding box
     /// (<see cref="RoomInstance.InteriorTileCount"/>) so an L-shape answers sensibly; whether DK2 furnishes one the same way is UNKNOWN.</para></summary>
-    public static int Capacity(RoomInstance prison) =>
-        prison.InteriorTileCount == 0 ? 0 : prison.InteriorTileCount + 1;
+    public static int Capacity(RoomInstance prison)
+    {
+        return prison.InteriorTileCount == 0 ? 0 : prison.InteriorTileCount + 1;
+    }
 
     /// <summary>Whether this prisoner's health drains at all: a neutral creature in an
     /// unclaimed prison waits there for ever (Q308, ADR-0142).</summary>
-    public static bool Withers(CreatureState creature) =>
-        creature.OwnerPlayerId != PlayerIds.Neutral
+    public static bool Withers(CreatureState creature)
+    {
+        return creature.OwnerPlayerId != PlayerIds.Neutral
         || creature.PrisonOwnerPlayerId != PlayerIds.Neutral;
+    }
 
     /// <summary>How many Skeletons this keeper's prisons may have standing at once: the
     /// <b>sum of every one of that keeper's prisons' capacities</b>. Per keeper and over
@@ -253,26 +262,37 @@ public static class PrisonRules
     }
 
     /// <summary>The native keeper binding at +0x3CB, shared by prisoners, torture victims and pit fighters.</summary>
-    public static bool HasKeeperBinding(CreatureState creature) =>
-        creature.PrisonOwnerPlayerId != NoPrison;
+    public static bool HasKeeperBinding(CreatureState creature)
+    {
+        return creature.PrisonOwnerPlayerId != NoPrison;
+    }
 
     /// <summary>Compatibility name for <see cref="HasKeeperBinding"/>; this does not test Prison membership.</summary>
-    public static bool IsImprisoned(CreatureState creature) => HasKeeperBinding(creature);
+    public static bool IsImprisoned(CreatureState creature)
+    {
+        return HasKeeperBinding(creature);
+    }
 
     /// <summary>Native 0x00473990: resolved Prison category or raw state 126, independently of the binding.</summary>
-    public static bool IsPrisonInmate(CreatureState creature) =>
-        CreatureStateMachine.HasState(creature)
+    public static bool IsPrisonInmate(CreatureState creature)
+    {
+        return CreatureStateMachine.HasState(creature)
         && (NeedRules.ResolvedCategory(creature) == CreatureStateCategory.Prison
             || creature.Dk2StateId == ReturningState);
+    }
 
     /// <summary>Whether <paramref name="room"/> is a prison belonging to <paramref name="playerId"/>.</summary>
-    public static bool IsPrisonOf(RoomInstance room, PlayerId playerId) =>
-        room.OwnerPlayerId == playerId && room.Definition.TypeId == RoomTypeId.Prison;
+    public static bool IsPrisonOf(RoomInstance room, PlayerId playerId)
+    {
+        return room.OwnerPlayerId == playerId && room.Definition.TypeId == RoomTypeId.Prison;
+    }
 
     /// <summary>Whether the Prison's <c>Activation</c> (<c>+0x59</c>) is on, which the routed room search
     /// <c>0x004C6610</c> requires of a Prison.</summary>
-    public static bool IsActivated(WorldState world, RoomInstance prison) =>
-        (JailBreakRules.DoorOf(world, prison) & JailBreakRules.Activated) != 0;
+    public static bool IsActivated(WorldState world, RoomInstance prison)
+    {
+        return (JailBreakRules.DoorOf(world, prison) & JailBreakRules.Activated) != 0;
+    }
 
     /// <summary>A free tile in <paramref name="playerId"/>'s nearest prison, or -1
     /// when every prison is full and -1 when there is no prison at all — the manual's
@@ -283,8 +303,10 @@ public static class PrisonRules
     /// <para>The carry's destination: with none, no imp sets off (ADR-0354: the owner, 2026-10-05,
     /// and the rescue selector <c>0x0046D810</c>'s no-place result).</para></summary>
     public static int FreeTileIn(
-        WorldState world, GameDatabase database, PlayerId playerId, TilePos from) =>
-        NearestWithSpace(world, database, playerId, from, out _);
+        WorldState world, GameDatabase database, PlayerId playerId, TilePos from)
+    {
+        return NearestWithSpace(world, database, playerId, from, out _);
+    }
 
     /// <summary>Where an imp carrying an enemy sets off to: the <b>door tile</b> of
     /// <paramref name="playerId"/>'s nearest Prison with space (<see cref="FreeTileIn"/>'s choice), or -1
@@ -357,8 +379,10 @@ public static class PrisonRules
     /// <c>0x004E8430</c>, a uniform draw from the world stream among the Prison's tiles in slab-chain
     /// order that are neither a floor slot (<c>0x00454110</c>) nor a wall slot (<c>0x00454230</c>),
     /// so a rim tile; null with none, where DK2 puts it down where the imp stands.</summary>
-    public static int? RefusedBodyPoint(WorldState world, GameDatabase database, RoomInstance room, SimRandom rng) =>
-        RoomWalkRules.RoomPoint(world, database, room, rng);
+    public static int? RefusedBodyPoint(WorldState world, GameDatabase database, RoomInstance room, SimRandom rng)
+    {
+        return RoomWalkRules.RoomPoint(world, database, room, rng);
+    }
 
     /// <summary>State 44's admission test on the tile the imp stands on (<c>0x00468010</c>): a Prison
     /// of any owner, an interior cell (<c>Room_IsFloorSlot</c> <c>0x00454110</c>), its door's
@@ -547,10 +571,12 @@ public static class PrisonRules
     /// four seconds (ADR-0171), so <see cref="WitherPerApplication"/> is what lands.</para>
     /// </summary>
     public static int WitherPerSecond(
-        GameDatabase database, CreatureDef creature) =>
-        CreatureHealthRules.CanGetHungry(creature)
+        GameDatabase database, CreatureDef creature)
+    {
+        return CreatureHealthRules.CanGetHungry(creature)
             ? database[VariableTypeId.PrisonModifyCreatureHealthPerSecond]
             : 0;
+    }
 
     /// <summary>Game seconds' worth in one bite: <b>four</b>, DK2's <c>variable19 &lt;&lt; 2</c>.</summary>
     public const int WitherIntervalSeconds = 4;
@@ -561,8 +587,10 @@ public static class PrisonRules
 
     /// <summary>What one bite takes off — four seconds' worth in a lump, so -12.</summary>
     public static int WitherPerApplication(
-        GameDatabase database, CreatureDef creature) =>
-        WitherPerSecond(database, creature) * WitherIntervalSeconds;
+        GameDatabase database, CreatureDef creature)
+    {
+        return WitherPerSecond(database, creature) * WitherIntervalSeconds;
+    }
 
     /// <summary>The anger a cell adds in the same breath as the health:
     /// <c>ModifyAngerInCompanyOfHatedCreaturesPerSecond</c> (150) into bucket
@@ -572,8 +600,10 @@ public static class PrisonRules
     /// (ADR-0171; <c>state-category-hooks.md</c> §3). The name is the variable's, and
     /// the prison is a second reader of it; the mixed-company rule is the other.</para>
     /// </summary>
-    public static int CellAngerPerApplication(GameDatabase database) =>
-        database[VariableTypeId.ModifyAngerInCompanyOfHatedCreaturesPerSecond];
+    public static int CellAngerPerApplication(GameDatabase database)
+    {
+        return database[VariableTypeId.ModifyAngerInCompanyOfHatedCreaturesPerSecond];
+    }
 
     /// <summary>The chance in percent that an overcrowded prison breaks out this game
     /// second: <c>OvercrowdingJailBreakPercentagePerExtraCreature</c>, which ships at
@@ -582,6 +612,8 @@ public static class PrisonRules
     /// (ADR-0017). Q168. A prison only becomes overcrowded because a keeper made it so,
     /// imps refusing to deliver into a full one (the manual's "manual overcrowding"),
     /// or because part of a prison in use was sold under its prisoners.</summary>
-    public static int JailBreakPercent(GameDatabase database, int over) =>
-        over <= 0 ? 0 : over * database[VariableTypeId.OvercrowdingJailBreakPercentagePerExtraCreature];
+    public static int JailBreakPercent(GameDatabase database, int over)
+    {
+        return over <= 0 ? 0 : over * database[VariableTypeId.OvercrowdingJailBreakPercentagePerExtraCreature];
+    }
 }

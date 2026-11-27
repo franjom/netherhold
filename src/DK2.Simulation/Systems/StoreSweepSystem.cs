@@ -32,12 +32,21 @@ public sealed class StoreSweepSystem : IRoomTickStep
     /// ordinary room floor <c>0x1000</c>).</summary>
     public const int StoreFloorHeight = Fp32.One;
 
-    public string Name => "store sweep";
+    public string Name
+    {
+        get
+        {
+            return "store sweep";
+        }
+    }
 
     private bool _sweepTurn;
     private ObjectDef? _pile;
 
-    public void Execute(SimulationContext context) => RoomTickSystem.RunAlone(context, this);
+    public void Execute(SimulationContext context)
+    {
+        RoomTickSystem.RunAlone(context, this);
+    }
 
     public void BeginTurn(SimulationContext context)
     {
@@ -46,7 +55,10 @@ public sealed class StoreSweepSystem : IRoomTickStep
         _pile = context.Database.ObjectById(FloorGold.TreasuryPileObjectId);
     }
 
-    public bool Applies(SimulationContext context, RoomInstance room) => IsLiveStore(context.World, room);
+    public bool Applies(SimulationContext context, RoomInstance room)
+    {
+        return IsLiveStore(context.World, room);
+    }
 
     public void Tick(SimulationContext context, RoomInstance room)
     {
@@ -59,12 +71,15 @@ public sealed class StoreSweepSystem : IRoomTickStep
 
     /// <summary>A Treasury, or a Heart that is not a ruin: the rooms whose update
     /// reaches the sparkle (the Heart's returns on <c>+0x9A</c> bit 0 first).</summary>
-    private static bool IsLiveStore(WorldState world, RoomInstance room) => room.Definition.TypeId switch
+    private static bool IsLiveStore(WorldState world, RoomInstance room)
     {
-        RoomTypeId.Treasury => true,
-        RoomTypeId.DungeonHeart => !RoomRules.IsRuined(world, room),
-        _ => false,
-    };
+        return room.Definition.TypeId switch
+        {
+            RoomTypeId.Treasury => true,
+            RoomTypeId.DungeonHeart => !RoomRules.IsRuined(world, room),
+            _ => false,
+        };
+    }
 
     /// <summary><c>0x004F3A00</c>: <c>random(100) &lt; 30</c> on the world stream, then along the chain
     /// each store pile draws <c>random(100)</c> and below 10 asks for its definition's idle effect
@@ -142,9 +157,11 @@ public sealed class StoreSweepSystem : IRoomTickStep
         return held < (long)room.TileIndices.Count * database[VariableTypeId.MaxGoldPerTreasuryTile];
     }
 
-    private static bool IsLoosePile(ObjectState thing) =>
-        thing.ObjectTypeId == FloorGold.FloorGoldObjectId && !thing.InHand
+    private static bool IsLoosePile(ObjectState thing)
+    {
+        return thing.ObjectTypeId == FloorGold.FloorGoldObjectId && !thing.InHand
         && thing.CarriedByCreatureId < 0 && thing.GoldHeld > 0;
+    }
 
     // A cheap first pass, so the chains are walked only on a turn with something to sweep.
     private static bool AnyLoosePileInAStore(WorldState world, GameDatabase database)

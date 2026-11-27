@@ -37,7 +37,13 @@ public sealed class HatcherySystem : ISimulationSystem
         _stepObjects = stepObjects;
     }
 
-    public string Name => SystemName;
+    public string Name
+    {
+        get
+        {
+            return SystemName;
+        }
+    }
 
     public void Execute(SimulationContext context)
     {
@@ -213,8 +219,10 @@ public sealed class HatcherySystem : ISimulationSystem
         }
     }
 
-    private static string Describe(WorldState world, int tileIndex) =>
-        tileIndex < 0 ? "(none)" : $"({tileIndex % world.Width},{tileIndex / world.Width})";
+    private static string Describe(WorldState world, int tileIndex)
+    {
+        return tileIndex < 0 ? "(none)" : $"({tileIndex % world.Width},{tileIndex / world.Width})";
+    }
 }
 
 /// <summary>The Hatchery's part of the room tick (<c>Hatchery_Tick</c>, <c>0x004DE0A0</c>, which only lays when its clock is
@@ -222,12 +230,26 @@ public sealed class HatcherySystem : ISimulationSystem
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hatchery.md")]
 public sealed class HatcheryLayStep : IRoomTickStep
 {
-    public string Name => "Hatchery";
+    public string Name
+    {
+        get
+        {
+            return "Hatchery";
+        }
+    }
 
-    public void Execute(SimulationContext context) => RoomTickSystem.RunAlone(context, this);
+    public void Execute(SimulationContext context)
+    {
+        RoomTickSystem.RunAlone(context, this);
+    }
 
-    public bool Applies(SimulationContext context, RoomInstance room) =>
-        room.Definition.TypeId == RoomTypeId.Hatchery && room.TileIndices.Count != 0;
+    public bool Applies(SimulationContext context, RoomInstance room)
+    {
+        return room.Definition.TypeId == RoomTypeId.Hatchery && room.TileIndices.Count != 0;
+    }
 
-    public void Tick(SimulationContext context, RoomInstance room) => HatcherySystem.LayRoom(context, room);
+    public void Tick(SimulationContext context, RoomInstance room)
+    {
+        HatcherySystem.LayRoom(context, room);
+    }
 }

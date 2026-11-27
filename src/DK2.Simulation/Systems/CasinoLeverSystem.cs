@@ -12,7 +12,16 @@ namespace DK2.Simulation.Systems;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/state-category-hooks.md")]
 public sealed class CasinoLeverSystem : ISimulationSystem
 {
-    public string Name => "Casino lever";
+    public string Name
+    {
+        get
+        {
+            return "Casino lever";
+        }
+    }
 
-    public void Execute(SimulationContext context) => CasinoSystem.PullLevers(context);
+    public void Execute(SimulationContext context)
+    {
+        CasinoSystem.PullLevers(context);
+    }
 }

@@ -179,9 +179,11 @@ public static class CreaturePhysicsRules
 
     /// <summary>Whether the generic height rules own this creature's height: not while the imp's creation
     /// fall, a party's arrival, a hand drop's landing, the hand or possession move it by their own rules.</summary>
-    public static bool OwnsHeight(CreatureState creature) =>
-        !creature.ArrivalHeightActive && !creature.LandingPending && !creature.InHand && !creature.Possessed
+    public static bool OwnsHeight(CreatureState creature)
+    {
+        return !creature.ArrivalHeightActive && !creature.LandingPending && !creature.InHand && !creature.Possessed
         && creature.Dk2StateId != ImpCreationRules.FallingState;
+    }
 
     /// <summary>One sub-step's stop test (<c>0x004B2150</c>–<c>0x004B2340</c>): off the map, a creature not
     /// standing in a portal hole stepping into one, terrain with the Solid flag, or a door body entered
@@ -219,8 +221,10 @@ public static class CreaturePhysicsRules
     }
 
     /// <summary>The thing-position test <c>0x004B35C0</c>: on the map and not Solid in the navigation grid.</summary>
-    private static bool Allows(WorldState world, WorldSteering navigation, int x, int y) =>
-        world.Contains(x >> 12, y >> 12) && !NavBytes.IsSolid(navigation.NavByte(x >> 12, y >> 12));
+    private static bool Allows(WorldState world, WorldSteering navigation, int x, int y)
+    {
+        return world.Contains(x >> 12, y >> 12) && !NavBytes.IsSolid(navigation.NavByte(x >> 12, y >> 12));
+    }
 
     /// <summary>The commit's last gate (<c>0x004B263D</c>, <c>0x004B265C</c>): the creature may step from its own
     /// tile to its own, or to the tile it ends on (<c>0x0048EBF0</c>, with option bits 1 and 2 clear and respect-doors

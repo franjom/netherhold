@@ -138,5 +138,8 @@ public static class JackInTheBoxRules
         context.Emit(SystemName, "jack_exploded", $"jack={jack.Id} shot={shot.Id} at={jack.PosX >> 12},{jack.PosY >> 12}");
     }
 
-    public static bool IsJack(CreatureState creature) => creature.CreatureTypeId == JackCreatureId;
+    public static bool IsJack(CreatureState creature)
+    {
+        return creature.CreatureTypeId == JackCreatureId;
+    }
 }

@@ -83,9 +83,16 @@ public sealed class CampaignPlayer : IPlayerController
     /// <summary>What counts as progress: each only when it rises.</summary>
     private readonly record struct Gains(int Floor, int RoomTiles, int Creatures, int Gold)
     {
-        public bool Beats(in Gains best) => Floor > best.Floor || RoomTiles > best.RoomTiles || Creatures > best.Creatures || Gold > best.Gold;
-        public Gains Max(in Gains other) => new(Math.Max(Floor, other.Floor), Math.Max(RoomTiles, other.RoomTiles),
-            Math.Max(Creatures, other.Creatures), Math.Max(Gold, other.Gold));
+        public bool Beats(in Gains best)
+        {
+            return Floor > best.Floor || RoomTiles > best.RoomTiles || Creatures > best.Creatures || Gold > best.Gold;
+        }
+
+        public Gains Max(in Gains other)
+        {
+            return new(Math.Max(Floor, other.Floor), Math.Max(RoomTiles, other.RoomTiles),
+                    Math.Max(Creatures, other.Creatures), Math.Max(Gold, other.Gold));
+        }
     }
 
     public CampaignPlayer(CampaignPlayerOptions options)
@@ -102,10 +109,22 @@ public sealed class CampaignPlayer : IPlayerController
         _best = new Gains(-1, -1, -1, -1);
     }
 
-    public CampaignPlayerOptions Options => _options;
+    public CampaignPlayerOptions Options
+    {
+        get
+        {
+            return _options;
+        }
+    }
 
     /// <summary>The strategy the routines read now.</summary>
-    public PlayerStrategy Strategy => _strategy;
+    public PlayerStrategy Strategy
+    {
+        get
+        {
+            return _strategy;
+        }
+    }
 
     /// <summary>Makes <paramref name="next"/> the strategy from the next decision on (campaign bot stage 3
     /// plan, Task 1). Refused, leaving the current one, with every problem named, when it does not
@@ -248,7 +267,10 @@ public sealed class CampaignPlayer : IPlayerController
     }
 
     /// <summary>Leaves the running routine's note for the decision's thoughts; the last note of a routine wins.</summary>
-    private void Note(string note) => _note = note;
+    private void Note(string note)
+    {
+        _note = note;
+    }
 
     private string? _note;
     private readonly List<PlayerThought> _thoughts = [];
@@ -288,7 +310,10 @@ public sealed class CampaignPlayer : IPlayerController
 
     /// <summary>Whether a tile <paramref name="dx"/>, <paramref name="dy"/> from a trap may lie within its reach
     /// <paramref name="r"/>: centre distance at most r plus half a tile (4·(dx²+dy²) ≤ (2r+1)²).</summary>
-    private static bool InReach(int dx, int dy, int r) => 4L * (dx * dx + dy * dy) <= (2L * r + 1) * (2L * r + 1);
+    private static bool InReach(int dx, int dy, int r)
+    {
+        return 4L * (dx * dx + dy * dy) <= (2L * r + 1) * (2L * r + 1);
+    }
 
     private void RefreshNoDrop()
     {
@@ -365,7 +390,10 @@ public sealed class CampaignPlayer : IPlayerController
         Add("treasury_tiles", OwnedTiles(observation, RoomTypeId.Treasury));
         Add("pending_rooms", _pendingRooms.Count);
 
-        void Add(string name, long value) => _beliefs.Add(new PlayerBelief(name, value));
+        void Add(string name, long value)
+        {
+            _beliefs.Add(new PlayerBelief(name, value));
+        }
     }
 
     /// <summary>Reads receipts for builds refused because of their square, and releases rooms the
@@ -861,7 +889,10 @@ public sealed class CampaignPlayer : IPlayerController
     }
 
     /// <summary>Adds to the running routine's note.</summary>
-    private void NoteMore(string more) => _note = _note is null ? more : _note + "; " + more;
+    private void NoteMore(string more)
+    {
+        _note = _note is null ? more : _note + "; " + more;
+    }
 
     /// <summary>Whether a missing listed room is offered but costs more than the gold: priced at the side
     /// <see cref="Build"/> waits for (its target, while a free square of it exists), else its smallest.</summary>
@@ -908,8 +939,10 @@ public sealed class CampaignPlayer : IPlayerController
 
     /// <summary>The smallest side a room of this type is built at: the strategy's square, or the smallest at
     /// which the room does anything when that is larger.</summary>
-    private int SmallestSide(RoomTypeId room) =>
-        Math.Max(_strategy.RoomSide, _options.Knowledge.Room(room)?.SmallestUsefulSide ?? 0);
+    private int SmallestSide(RoomTypeId room)
+    {
+        return Math.Max(_strategy.RoomSide, _options.Knowledge.Room(room)?.SmallestUsefulSide ?? 0);
+    }
 
     /// <summary>Builds <paramref name="room"/> at its target side, or, only with no free square that big, the
     /// largest smaller side down to its smallest useful one; a free square it cannot yet pay for is waited
@@ -1343,11 +1376,16 @@ public sealed class CampaignPlayer : IPlayerController
     private const int BankGapTicks = 40;
 
     /// <summary>The gold the budget keeps (E2): the coming payday's wage bill plus the strategy's margin.</summary>
-    private long GoldNeed(PlayerObservation observation) => (long)observation.WageBill.Value * (100 + _strategy.GoldMarginPercent) / 100;
+    private long GoldNeed(PlayerObservation observation)
+    {
+        return (long)observation.WageBill.Value * (100 + _strategy.GoldMarginPercent) / 100;
+    }
 
     /// <summary>Whether gold is below the budget (never while no wages are due).</summary>
-    private bool Short(PlayerObservation observation) =>
-        _strategy.GoldBudget == 1 && observation.WageBill.Value > 0 && observation.Gold.Value < GoldNeed(observation);
+    private bool Short(PlayerObservation observation)
+    {
+        return _strategy.GoldBudget == 1 && observation.WageBill.Value > 0 && observation.Gold.Value < GoldNeed(observation);
+    }
 
     /// <summary>The rooms the Work routine fills: the strategy's, or, with none named, an owned Training Room once gold is at
     /// least <see cref="PlayerStrategy.TrainGold"/> and three wage bills (E2).</summary>
@@ -2534,7 +2572,10 @@ public sealed class CampaignPlayer : IPlayerController
     /// <summary>The fewest own Imps the keeper must have before one is taken from work to scout.</summary>
     private const int MinImpsToScout = 3;
 
-    private static int Chebyshev(TilePos a, TilePos b) => Math.Max(Math.Abs(a.X - b.X), Math.Abs(a.Y - b.Y));
+    private static int Chebyshev(TilePos a, TilePos b)
+    {
+        return Math.Max(Math.Abs(a.X - b.X), Math.Abs(a.Y - b.Y));
+    }
 
     /// <summary>The Imp creation routine, rule R8 (owner direction, 2026-11-15; the plan has the reasons). One Create Imp
     /// per cast gap, on own floor nearest the dig mark nearest home, while: no fewer own Imps than the free ones
@@ -3077,8 +3118,11 @@ public sealed class CampaignPlayer : IPlayerController
         }
         return reached;
 
-        static bool Open(PlayerTile tile) => tile.IsKnown
+        static bool Open(PlayerTile tile)
+        {
+            return tile.IsKnown
             && (tile.Flags & (PlayerTileFlags.Solid | PlayerTileFlags.Water | PlayerTileFlags.Lava)) == 0;
+        }
     }
 
     /// <summary>Without a gain for the stall window while work is pending: give up pending squares,
@@ -3321,7 +3365,10 @@ public sealed class CampaignPlayer : IPlayerController
         return marks;
     }
 
-    private static bool Owns(PlayerObservation observation, RoomTypeId room) => OwnedTiles(observation, room) > 0;
+    private static bool Owns(PlayerObservation observation, RoomTypeId room)
+    {
+        return OwnedTiles(observation, room) > 0;
+    }
 
     private static int OwnedTiles(PlayerObservation observation, RoomTypeId room)
     {
@@ -3347,5 +3394,8 @@ public sealed class CampaignPlayer : IPlayerController
         return tried;
     }
 
-    private bool Fits(List<PlayerAction> actions, int more) => actions.Count + more <= _options.MaxActionsPerDecision;
+    private bool Fits(List<PlayerAction> actions, int more)
+    {
+        return actions.Count + more <= _options.MaxActionsPerDecision;
+    }
 }

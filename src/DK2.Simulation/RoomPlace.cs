@@ -15,8 +15,17 @@ public readonly record struct RoomPlace(int TileIndex, int Units)
     /// <summary>No place: DK2's <c>+0x3B9</c> of 0.</summary>
     public static readonly RoomPlace None = new(-1, 0);
 
-    public bool IsHeld => TileIndex >= 0;
+    public bool IsHeld
+    {
+        get
+        {
+            return TileIndex >= 0;
+        }
+    }
 
     /// <summary>Whether this place is one of <paramref name="room"/>'s.</summary>
-    public bool In(RoomInstance room) => IsHeld && room.Contains(TileIndex);
+    public bool In(RoomInstance room)
+    {
+        return IsHeld && room.Contains(TileIndex);
+    }
 }

@@ -10,8 +10,10 @@ namespace DK2.Simulation;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-pickup.md")]
 internal static class WorkerPickupRules
 {
-    public static void SetEnabled(CreatureState creature, bool enabled) =>
+    public static void SetEnabled(CreatureState creature, bool enabled)
+    {
         creature.Flags = enabled ? (byte)(creature.Flags | 9) : (byte)(creature.Flags & ~9);
+    }
 
     /// <summary><c>WorkerJob_Leave</c> (<c>0x004647D0</c>): ends a running action, drops what the worker holds
     /// (<see cref="DropHeld"/>), then releases by the state it leaves.</summary>

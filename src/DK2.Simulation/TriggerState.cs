@@ -66,27 +66,56 @@ public sealed partial class TriggerState
     private byte _worldOptions = 0x07;
 
     /// <summary>Whether anger deltas may change a creature's six counters.</summary>
-    public bool CreatureAngerEnabled => (_worldOptions & 0x01) != 0;
+    public bool CreatureAngerEnabled
+    {
+        get
+        {
+            return (_worldOptions & 0x01) != 0;
+        }
+    }
 
     /// <summary>Whether ordinary player messages, including keeper AI inputs, may be created.</summary>
-    public bool NotificationsEnabled => (_worldOptions & 0x02) != 0;
+    public bool NotificationsEnabled
+    {
+        get
+        {
+            return (_worldOptions & 0x02) != 0;
+        }
+    }
 
-    internal void SetCreatureAngerEnabled(bool enabled) => SetWorldOption(0x01, enabled);
+    internal void SetCreatureAngerEnabled(bool enabled)
+    {
+        SetWorldOption(0x01, enabled);
+    }
 
-    internal void SetNotificationsEnabled(bool enabled) => SetWorldOption(0x02, enabled);
+    internal void SetNotificationsEnabled(bool enabled)
+    {
+        SetWorldOption(0x02, enabled);
+    }
 
     /// <summary>Bit <c>0x04</c> of the world options: on by default (world initialisation
     /// <c>0x005099A0</c> ORs in <c>0x07</c> at <c>0x00509CE5</c>), set or cleared by world action
     /// 51 (<c>0x0051986C</c>). <c>0x004B9740</c> does nothing while it is clear; of that function
     /// ours mirrors only the time-limit countdown (<see cref="TimeLimitCountdown"/>).</summary>
-    public bool TimerSpeechEnabled => (_worldOptions & 0x04) != 0;
+    public bool TimerSpeechEnabled
+    {
+        get
+        {
+            return (_worldOptions & 0x04) != 0;
+        }
+    }
 
-    internal void SetTimerSpeechEnabled(bool enabled) => SetWorldOption(0x04, enabled);
+    internal void SetTimerSpeechEnabled(bool enabled)
+    {
+        SetWorldOption(0x04, enabled);
+    }
 
-    private void SetWorldOption(byte mask, bool enabled) =>
+    private void SetWorldOption(byte mask, bool enabled)
+    {
         _worldOptions = enabled
             ? (byte)(_worldOptions | mask)
             : (byte)(_worldOptions & ~mask);
+    }
 
     /// <summary>The value written when an action names <see cref="SpecialFlagId"/>.
     /// Opaque: see that constant.</summary>
@@ -105,7 +134,13 @@ public sealed partial class TriggerState
 
     /// <summary>Bit <c>0x08</c> of the world options (<c>world+0x72A1</c>): set when
     /// <see cref="LevelTimeLimit"/> runs out (<c>0x0050A671</c>).</summary>
-    public bool LevelTimeUp => (_worldOptions & 0x08) != 0;
+    public bool LevelTimeUp
+    {
+        get
+        {
+            return (_worldOptions & 0x08) != 0;
+        }
+    }
 
     /// <summary>One turn of <c>0x0050A64E</c>: a non-zero limit drops by one, and on reaching
     /// zero sets <see cref="LevelTimeUp"/>. Returns whether it ran out this turn. What DK2 does
@@ -221,26 +256,41 @@ public sealed partial class TriggerState
     /// <summary>A timer's stored stamp. <b>A timer holds the moment it was started, not
     /// a countdown</b>: the condition side compares the clock against
     /// <c>stamp + value</c>, so elapsed time is derived.</summary>
-    public int ReadTimer(byte timerId) => _timers[CheckTimer(timerId)];
+    public int ReadTimer(byte timerId)
+    {
+        return _timers[CheckTimer(timerId)];
+    }
 
     /// <summary>Stamps a timer with <paramref name="now"/> — DK2's action type 8.</summary>
-    public void StartTimer(byte timerId, int now) => _timers[CheckTimer(timerId)] = now;
+    public void StartTimer(byte timerId, int now)
+    {
+        _timers[CheckTimer(timerId)] = now;
+    }
 
     /// <summary>Sets a timer to an explicit stamp. <b>Not DK2's action type 23</b>, which sets
     /// <see cref="LevelTimeLimit"/>; the bank's only indexed store is type 8's. This exists for
     /// tests and for a snapshot restore.</summary>
-    public void SetTimer(byte timerId, int value) => _timers[CheckTimer(timerId)] = value;
+    public void SetTimer(byte timerId, int value)
+    {
+        _timers[CheckTimer(timerId)] = value;
+    }
 
     /// <summary>Ticks elapsed since the timer was stamped. <b>Only meaningful when
     /// <see cref="IsStarted"/></b> — see it for why.</summary>
-    public int Elapsed(byte timerId, int now) => now - _timers[CheckTimer(timerId)];
+    public int Elapsed(byte timerId, int now)
+    {
+        return now - _timers[CheckTimer(timerId)];
+    }
 
     /// <summary>Whether the timer has ever been stamped. <b>A stamp of zero means "not
     /// started"</b>, and it is DK2's distinction rather than a convention: the condition
     /// path tests the stored stamp and bails before comparing anything, so an unstarted
     /// timer does not read as "a very long time ago" — its condition simply does not
     /// hold, and tick 0 is not a usable stamp.</summary>
-    public bool IsStarted(byte timerId) => _timers[CheckTimer(timerId)] != 0;
+    public bool IsStarted(byte timerId)
+    {
+        return _timers[CheckTimer(timerId)] != 0;
+    }
 
     /// <summary>Whether <paramref name="seconds"/> <b>seconds</b> have passed since the
     /// timer was stamped — the whole condition, in the shape DK2 evaluates it. <b>A
@@ -251,9 +301,11 @@ public sealed partial class TriggerState
     /// campaign level 1 (trigger-state.md §5), where the residual against the specific
     /// flag each subtree writes is a constant +1 tick — the sampler's lag — in four of
     /// four measurements, while a ticks reading leaves exactly <c>3 * threshold + 1</c>, the signature of a missing multiply by variable 19. So 600 is ten minutes, not 150 seconds.</para></summary>
-    public bool HasElapsed(byte timerId, int seconds, int now) =>
-        IsStarted(timerId)
+    public bool HasElapsed(byte timerId, int seconds, int now)
+    {
+        return IsStarted(timerId)
         && now >= _timers[CheckTimer(timerId)] + SimulationTiming.TicksFromSeconds(seconds);
+    }
 
     /// <summary>Compares two values with DK2's comparison codes: the routine at
     /// <c>0x00519980</c> implements 1 to 6 as <b>signed</b> <c>&lt;</c>, <c>&lt;=</c>,
@@ -266,27 +318,56 @@ public sealed partial class TriggerState
     /// address order and sends 4 to <c>SETG</c> (<c>0x005199D9</c>) and 5 to <c>SETGE</c>
     /// (<c>0x005199C7</c>). Verified against the table 2026-09-09 while chasing a one-tick
     /// timer discrepancy that this would have explained — it was not this.</remarks>
-    public static bool Compare(byte comparison, int left, int right) => comparison switch
+    public static bool Compare(byte comparison, int left, int right)
     {
-        1 => left < right,
-        2 => left <= right,
-        3 => left == right,
-        4 => left > right,
-        5 => left >= right,
-        6 => left != right,
-        _ => throw new ArgumentOutOfRangeException(
-                 nameof(comparison), comparison, "DK2 defines comparison codes 1 to 6."),
-    };
+        return comparison switch
+        {
+            1 => left < right,
+            2 => left <= right,
+            3 => left == right,
+            4 => left > right,
+            5 => left >= right,
+            6 => left != right,
+            _ => throw new ArgumentOutOfRangeException(
+                     nameof(comparison), comparison, "DK2 defines comparison codes 1 to 6."),
+        };
+    }
 
-    internal byte[] RawFlags => _flags;
-    internal int[] RawTimers => _timers;
+    internal byte[] RawFlags
+    {
+        get
+        {
+            return _flags;
+        }
+    }
+
+    internal int[] RawTimers
+    {
+        get
+        {
+            return _timers;
+        }
+    }
+
     internal byte RawWorldOptions
     {
-        get => _worldOptions;
-        set => _worldOptions = value;
+        get
+        {
+            return _worldOptions;
+        }
+
+        set
+        {
+            _worldOptions = value;
+        }
     }
-    internal IEnumerable<KeyValuePair<(int Tag, ushort Id), TriggerRecordState>> RawRecords =>
-        _records.OrderBy(p => p.Key.Tag).ThenBy(p => p.Key.Id);
+    internal IEnumerable<KeyValuePair<(int Tag, ushort Id), TriggerRecordState>> RawRecords
+    {
+        get
+        {
+            return _records.OrderBy(p => p.Key.Tag).ThenBy(p => p.Key.Id);
+        }
+    }
 
     internal void InitializeRecords(IEnumerable<DK2.Data.Model.TriggerRecord> records)
     {
@@ -298,11 +379,15 @@ public sealed partial class TriggerState
         }
     }
 
-    internal bool IsRecordActive(DK2.Data.Model.TriggerRecord record) =>
-        _records[(record.Tag, record.TriggerId)].Active;
+    internal bool IsRecordActive(DK2.Data.Model.TriggerRecord record)
+    {
+        return _records[(record.Tag, record.TriggerId)].Active;
+    }
 
-    internal byte RecordRepeat(DK2.Data.Model.TriggerRecord record) =>
-        _records[(record.Tag, record.TriggerId)].Repeat;
+    internal byte RecordRepeat(DK2.Data.Model.TriggerRecord record)
+    {
+        return _records[(record.Tag, record.TriggerId)].Repeat;
+    }
 
     internal void SetRecordActive(
         DK2.Data.Model.TriggerRecord record, bool active, byte? repeat)
@@ -315,8 +400,10 @@ public sealed partial class TriggerState
         };
     }
 
-    internal void RestoreRecord(int tag, ushort id, bool active, byte repeat) =>
+    internal void RestoreRecord(int tag, ushort id, bool active, byte repeat)
+    {
         _records[(tag, id)] = new TriggerRecordState(active, repeat);
+    }
 
     public void HashInto(ref Hash64 hash)
     {

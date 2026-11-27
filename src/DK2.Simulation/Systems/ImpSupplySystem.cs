@@ -20,11 +20,20 @@ public sealed class ImpSupplySystem : ISimulationSystem
 {
     private const string SystemName = "ImpSupply";
 
-    public string Name => SystemName;
+    public string Name
+    {
+        get
+        {
+            return SystemName;
+        }
+    }
 
     /// <summary>The free supply, in the player update. Bought casts are
     /// <see cref="CreateImpCastSystem"/>'s, with the keeper actions.</summary>
-    public void Execute(SimulationContext context) => TopUp(context);
+    public void Execute(SimulationContext context)
+    {
+        TopUp(context);
+    }
 
     /// <summary>Hands a short-handed keeper a free imp when one is due.</summary>
     /// <remarks>The deadline stores native turns (our tick + 1). The Heart opening arms it;
@@ -249,7 +258,9 @@ public sealed class ImpSupplySystem : ISimulationSystem
         return shot;
     }
 
-    private static bool IsUpgraded(SimulationContext context, PlayerId playerId, KeeperSpellDef spell) =>
-        context.World.IsUpgraded(playerId, ResearchTreeRules.AvailabilityKindOf(ResearchTreeRules.KindSpell),
+    private static bool IsUpgraded(SimulationContext context, PlayerId playerId, KeeperSpellDef spell)
+    {
+        return context.World.IsUpgraded(playerId, ResearchTreeRules.AvailabilityKindOf(ResearchTreeRules.KindSpell),
             spell.KeeperSpellId);
+    }
 }

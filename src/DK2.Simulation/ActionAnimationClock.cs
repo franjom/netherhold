@@ -122,10 +122,12 @@ public static class ActionAnimationClock
     }
 
     /// <summary>The clip the creature is playing: its slot's, or the alternate swapped in at install.</summary>
-    public static CreatureAnimationTiming ArtOf(CreatureState creature, CreatureDef definition) =>
-        (creature.ActionAnimationFlags & ActionAnimationFlags.Alternate) != 0
+    public static CreatureAnimationTiming ArtOf(CreatureState creature, CreatureDef definition)
+    {
+        return (creature.ActionAnimationFlags & ActionAnimationFlags.Alternate) != 0
             ? definition.AlternateArt
             : definition.ArtSlot(AnimationTimingRules.ResolveArtSlot(definition, creature.ActionArtSlot));
+    }
 
     /// <summary>Whether <paramref name="slot"/> has the data the clock needs.</summary>
     public static bool CanPlay(CreatureDef definition, int slot)
@@ -147,9 +149,11 @@ public static class ActionAnimationClock
     }
 
     /// <summary>The animation half of the runner's completion test (<c>0x00496AA0</c>).</summary>
-    public static bool AnimationDone(CreatureState creature) =>
-        creature.ActionAnimationRate == 0
+    public static bool AnimationDone(CreatureState creature)
+    {
+        return creature.ActionAnimationRate == 0
         || (creature.ActionAnimationFlags & (ActionAnimationFlags.Complete | ActionAnimationFlags.Wrapped)) != 0;
+    }
 
     /// <summary>One turn of <c>0x004B3C10</c>.</summary>
     public static void Advance(CreatureState creature, CreatureDef definition)

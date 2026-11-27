@@ -130,8 +130,10 @@ public static partial class PossessionRules
     /// <summary>Actions 1 (an Imp's), 2 and 4 multiply the floored delta by
     /// <c>Combat_MeleeRechargeTicks</c> (<c>0x00494EF0</c>) while the worker is possessed, so one
     /// press is worth the AI strikes of one recharge.</summary>
-    internal static int PossessedMultiplier(GameDatabase database, CreatureState me, CreatureDef mine) =>
-        me.Possessed ? CombatRules.RechargeTicks(database, me, CombatRules.TicksOf(mine.MeleeRecharge)) : 1;
+    internal static int PossessedMultiplier(GameDatabase database, CreatureState me, CreatureDef mine)
+    {
+        return me.Possessed ? CombatRules.RechargeTicks(database, me, CombatRules.TicksOf(mine.MeleeRecharge)) : 1;
+    }
 
     /// <summary>Action 4's runner (<c>0x004974C0</c>, mode 3): while the begin tile is claimable, one
     /// strike every tick, each paying experience, until it converts. On shipped data one possessed

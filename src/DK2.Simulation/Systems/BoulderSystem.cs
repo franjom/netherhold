@@ -19,7 +19,13 @@ public sealed class BoulderSystem : ISimulationSystem
     private readonly List<ObjectState> _boulders = [];
     private readonly List<ObjectState> _destroyed = [];
 
-    public string Name => "boulders";
+    public string Name
+    {
+        get
+        {
+            return "boulders";
+        }
+    }
 
     public void Execute(SimulationContext context)
     {

@@ -51,9 +51,21 @@ public sealed class WorldPathGrid : IPathGrid
         _canCrossLava = ((mover.Flags & CreatureFlags.CanWalkOnLava) == CreatureFlags.CanWalkOnLava);
     }
 
-    public int Width => _world.Width;
+    public int Width
+    {
+        get
+        {
+            return _world.Width;
+        }
+    }
 
-    public int Height => _world.Height;
+    public int Height
+    {
+        get
+        {
+            return _world.Height;
+        }
+    }
 
     /// <summary>Whether this creature may stand on the tile; <see cref="Navigation.WorldSteering.ByteOf"/>
     /// derives the mover's navigation byte from the same flags.</summary>

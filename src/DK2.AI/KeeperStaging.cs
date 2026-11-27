@@ -17,7 +17,13 @@ public sealed class KeeperStaging
     private WorldState? _world;
     private GameDatabase? _database;
 
-    public int Builds => _steering?.Rebuilds ?? 0;
+    public int Builds
+    {
+        get
+        {
+            return _steering?.Rebuilds ?? 0;
+        }
+    }
 
     internal WorldSteering SteeringFor(GameDatabase database, WorldState world)
     {

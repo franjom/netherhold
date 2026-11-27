@@ -48,11 +48,26 @@ public readonly record struct PlayerRunId
         _value = value;
     }
 
-    public string Value => _value ?? "";
+    public string Value
+    {
+        get
+        {
+            return _value ?? "";
+        }
+    }
 
-    public bool IsValid => _value is not null;
+    public bool IsValid
+    {
+        get
+        {
+            return _value is not null;
+        }
+    }
 
-    public override string ToString() => Value;
+    public override string ToString()
+    {
+        return Value;
+    }
 }
 
 /// <summary>A controller's request identity, unique within its run; a retried request repeats it.
@@ -71,9 +86,18 @@ public readonly record struct PlayerActionId
 
     public long Value { get; }
 
-    public bool IsValid => Value > 0;
+    public bool IsValid
+    {
+        get
+        {
+            return Value > 0;
+        }
+    }
 
-    public override string ToString() => Value.ToString(CultureInfo.InvariantCulture);
+    public override string ToString()
+    {
+        return Value.ToString(CultureInfo.InvariantCulture);
+    }
 }
 
 /// <summary>The completed-tick observation a request depends on; increases by one per capture.
@@ -92,16 +116,43 @@ public readonly record struct PlayerRevision : IComparable<PlayerRevision>
 
     public long Value { get; }
 
-    public bool IsValid => Value > 0;
+    public bool IsValid
+    {
+        get
+        {
+            return Value > 0;
+        }
+    }
 
-    public int CompareTo(PlayerRevision other) => Value.CompareTo(other.Value);
+    public int CompareTo(PlayerRevision other)
+    {
+        return Value.CompareTo(other.Value);
+    }
 
-    public static bool operator <(PlayerRevision a, PlayerRevision b) => a.Value < b.Value;
-    public static bool operator >(PlayerRevision a, PlayerRevision b) => a.Value > b.Value;
-    public static bool operator <=(PlayerRevision a, PlayerRevision b) => a.Value <= b.Value;
-    public static bool operator >=(PlayerRevision a, PlayerRevision b) => a.Value >= b.Value;
+    public static bool operator <(PlayerRevision a, PlayerRevision b)
+    {
+        return a.Value < b.Value;
+    }
 
-    public override string ToString() => Value.ToString(CultureInfo.InvariantCulture);
+    public static bool operator >(PlayerRevision a, PlayerRevision b)
+    {
+        return a.Value > b.Value;
+    }
+
+    public static bool operator <=(PlayerRevision a, PlayerRevision b)
+    {
+        return a.Value <= b.Value;
+    }
+
+    public static bool operator >=(PlayerRevision a, PlayerRevision b)
+    {
+        return a.Value >= b.Value;
+    }
+
+    public override string ToString()
+    {
+        return Value.ToString(CultureInfo.InvariantCulture);
+    }
 }
 
 /// <summary>An opaque name for a visible thing, valid only in the observation that issued it. It is
@@ -128,16 +179,31 @@ public readonly record struct PlayerThingHandle
     public PlayerRevision Revision { get; }
     public int Ordinal { get; }
 
-    public bool IsValid => Revision.IsValid;
+    public bool IsValid
+    {
+        get
+        {
+            return Revision.IsValid;
+        }
+    }
 
-    public override string ToString() => $"{Revision}:{Ordinal}";
+    public override string ToString()
+    {
+        return $"{Revision}:{Ordinal}";
+    }
 }
 
 /// <summary>What an observation or request belongs to: run, player, completed tick and revision.</summary>
 public readonly record struct PlayerStamp(PlayerRunId RunId, PlayerId Player, GameTick Tick, PlayerRevision Revision)
 {
     /// <summary>False for <c>default</c> or a stamp with a default run or revision.</summary>
-    public bool IsValid => RunId.IsValid && Revision.IsValid;
+    public bool IsValid
+    {
+        get
+        {
+            return RunId.IsValid && Revision.IsValid;
+        }
+    }
 }
 
 /// <summary>Where the player's level is: a skippable intro camera path, ordinary play, or ended.</summary>
@@ -188,7 +254,14 @@ public sealed record PlayerRequest
 
     public PlayerStamp BasedOn { get; init; }
     public PlayerActionId Id { get; init; }
-    public PlayerAction Action { get; init => field = value ?? throw new ArgumentNullException(nameof(value)); }
+    public PlayerAction Action
+    {
+        get;
+        init
+        {
+            field = value ?? throw new ArgumentNullException(nameof(value));
+        }
+    }
 }
 
 /// <summary>The host's answer to a request. Refused and Cancelled carry a reason, the others none;

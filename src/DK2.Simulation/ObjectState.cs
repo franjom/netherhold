@@ -33,7 +33,11 @@ public sealed partial class ObjectState
     /// <summary>The occupancy tile; a moving object's position writer updates it when crossing a tile.</summary>
     public int TileIndex
     {
-        get => _tileIndex;
+        get
+        {
+            return _tileIndex;
+        }
+
         set
         {
             if (_tileIndex == value)
@@ -77,7 +81,11 @@ public sealed partial class ObjectState
     /// carrier is asked what it holds on arrival, the object whether anybody already has it, so two imps do not cross the dungeon for one book.</summary>
     public int CarriedByCreatureId
     {
-        get => _carriedByCreatureId;
+        get
+        {
+            return _carriedByCreatureId;
+        }
+
         set
         {
             if (_carriedByCreatureId == value)
@@ -102,7 +110,11 @@ public sealed partial class ObjectState
     /// <b>Nothing may find, eat or decay a held object</b>, and every search that could see it tests this first, because <see cref="TileIndex"/> stays where the object was lifted from. Which keeper holds it is in <see cref="PlayerState.Hand"/>.</summary>
     public bool InHand
     {
-        get => _inHand;
+        get
+        {
+            return _inHand;
+        }
+
         set
         {
             if (_inHand == value)

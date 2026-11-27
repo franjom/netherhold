@@ -17,13 +17,17 @@ public static class LowHealthSpeedRules
 {
     /// <summary>The branch's test: a worker (definition flag bit 0) is skipped (<c>0x00489639</c>);
     /// otherwise <c>max × 20 / 100</c> above the health.</summary>
-    public static bool IsWeak(GameDatabase database, CreatureDef definition, CreatureState creature) =>
-        (definition.Flags & CreatureFlags.IsWorker) != CreatureFlags.IsWorker
+    public static bool IsWeak(GameDatabase database, CreatureDef definition, CreatureState creature)
+    {
+        return (definition.Flags & CreatureFlags.IsWorker) != CreatureFlags.IsWorker
         && CreatureLevelRules.MaxHealth(database, definition, creature.Level) * 20 / 100 > creature.Health;
+    }
 
     /// <summary>The cap halved in entity units (<c>speed × 50 / 100</c>) for a weak creature.</summary>
-    public static int SpeedCap(GameDatabase database, CreatureDef definition, CreatureState creature, int cap) =>
-        IsWeak(database, definition, creature) ? ((cap >> 4) * 50 / 100) << 4 : cap;
+    public static int SpeedCap(GameDatabase database, CreatureDef definition, CreatureState creature, int cap)
+    {
+        return IsWeak(database, definition, creature) ? ((cap >> 4) * 50 / 100) << 4 : cap;
+    }
 
     /// <summary>The stamp half (<c>0x004896C8..0x00489705</c>): on an odd turn each of
     /// <c>+0x41B</c>, <c>+0x41F</c>, <c>+0x423</c> and <c>+0x427</c> goes up one. DK2's never-used

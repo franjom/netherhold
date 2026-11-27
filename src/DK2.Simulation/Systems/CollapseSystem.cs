@@ -16,7 +16,13 @@ public sealed class CollapseSystem : ISimulationSystem
 {
     private readonly List<CreatureState> _due = [];
 
-    public string Name => "Collapse";
+    public string Name
+    {
+        get
+        {
+            return "Collapse";
+        }
+    }
 
     public void Execute(SimulationContext context)
     {

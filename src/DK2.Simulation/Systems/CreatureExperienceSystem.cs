@@ -15,9 +15,18 @@ public sealed class CreatureExperienceSystem : ICreatureUpdateStep
 {
     private const string SystemName = "CreatureExperience";
 
-    public string Name => SystemName;
+    public string Name
+    {
+        get
+        {
+            return SystemName;
+        }
+    }
 
-    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+    public void Execute(SimulationContext context)
+    {
+        CreatureUpdateSystem.RunAlone(context, this);
+    }
 
     public void Update(SimulationContext context, CreatureState state)
     {

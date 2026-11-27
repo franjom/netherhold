@@ -22,7 +22,13 @@ public sealed class PrisonSystem : ISimulationSystem
 {
     private const string SystemName = "Prison";
 
-    public string Name => SystemName;
+    public string Name
+    {
+        get
+        {
+            return SystemName;
+        }
+    }
 
     public void Execute(SimulationContext context)
     {
@@ -449,6 +455,8 @@ public sealed class PrisonSystem : ISimulationSystem
             $"raised={context.Database.CreatureById(raises).Name} as={skeleton.Id}");
     }
 
-    private static string Describe(WorldState world, int tileIndex) =>
-        tileIndex < 0 ? "(none)" : $"({tileIndex % world.Width},{tileIndex / world.Width})";
+    private static string Describe(WorldState world, int tileIndex)
+    {
+        return tileIndex < 0 ? "(none)" : $"({tileIndex % world.Width},{tileIndex / world.Width})";
+    }
 }

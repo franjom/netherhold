@@ -221,8 +221,10 @@ public sealed class GridPathfinder : IPathfinder
     /// refuses two floors that touch at one vertex; the Level 2 capture's dig sides at 3063-3082 agree,
     /// and so does our mesh router (ADR-0157). One open side is enough, as for the mesh (ADR-0339).
     /// </summary>
-    internal static bool CornerOnly(IPathGrid grid, int cx, int cy, int i) =>
-        !grid.IsWalkable(cx + NeighbourDx[i], cy) && !grid.IsWalkable(cx, cy + NeighbourDy[i]);
+    internal static bool CornerOnly(IPathGrid grid, int cx, int cy, int i)
+    {
+        return !grid.IsWalkable(cx + NeighbourDx[i], cy) && !grid.IsWalkable(cx, cy + NeighbourDy[i]);
+    }
 
     /// <summary>
     /// Octile distance: the exact cost of the cheapest unobstructed route, so it
@@ -257,12 +259,20 @@ public sealed class GridPathfinder : IPathfinder
         _heap.Clear();
     }
 
-    private int Index(TilePos p) => (p.Y * _width) + p.X;
+    private int Index(TilePos p)
+    {
+        return (p.Y * _width) + p.X;
+    }
 
-    private static bool InBounds(IPathGrid grid, TilePos p) => InBounds(grid, p.X, p.Y);
+    private static bool InBounds(IPathGrid grid, TilePos p)
+    {
+        return InBounds(grid, p.X, p.Y);
+    }
 
-    private static bool InBounds(IPathGrid grid, int x, int y) =>
-        (uint)x < (uint)grid.Width && (uint)y < (uint)grid.Height;
+    private static bool InBounds(IPathGrid grid, int x, int y)
+    {
+        return (uint)x < (uint)grid.Width && (uint)y < (uint)grid.Height;
+    }
 
     /// <summary>Walks the parent chain back to the start, then reverses it. The start tile is not included.</summary>
     private void BuildPath(int goal, List<TilePos> path)

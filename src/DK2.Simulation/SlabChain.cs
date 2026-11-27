@@ -100,8 +100,10 @@ public static class SlabChain
     /// through the kicked creature's own link, which its release (<c>0x004E5E00</c>) has zeroed, so it
     /// takes the list's head, the latest claimant, and stops. A live Library change kicks immediately;
     /// other rooms and detached setup mark the holder for its next turn (<see cref="RoomEvictRules"/>).</summary>
-    internal static void KickNeighbours(WorldState world, GameDatabase database, int tileIndex) =>
+    internal static void KickNeighbours(WorldState world, GameDatabase database, int tileIndex)
+    {
         KickNeighbours(world, database, tileIndex, null);
+    }
 
     private static void KickNeighbours(WorldState world, GameDatabase database, int tileIndex, SimulationContext? context)
     {
@@ -646,11 +648,15 @@ public static class SlabChain
         return oa != ob ? oa < ob : a < b;
     }
 
-    private static void Sort(WorldState world, int[] tiles) =>
+    private static void Sort(WorldState world, int[] tiles)
+    {
         Array.Sort(tiles, (a, b) => Before(world, a, b) ? -1 : a == b ? 0 : 1);
+    }
 
-    private static void Sort(WorldState world, List<int> tiles) =>
+    private static void Sort(WorldState world, List<int> tiles)
+    {
         tiles.Sort((a, b) => Before(world, a, b) ? -1 : a == b ? 0 : 1);
+    }
 
     private static int Neighbour(WorldState world, int tile, int d)
     {

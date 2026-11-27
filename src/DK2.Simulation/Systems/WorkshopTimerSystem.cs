@@ -12,11 +12,26 @@ namespace DK2.Simulation.Systems;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/workshop-timers.md")]
 public sealed class WorkshopTimerSystem : IRoomTickStep
 {
-    public string Name => "workshop timers";
+    public string Name
+    {
+        get
+        {
+            return "workshop timers";
+        }
+    }
 
-    public void Execute(SimulationContext context) => RoomTickSystem.RunAlone(context, this);
+    public void Execute(SimulationContext context)
+    {
+        RoomTickSystem.RunAlone(context, this);
+    }
 
-    public bool Applies(SimulationContext context, RoomInstance room) => WorkshopTimerRules.IsWorkshop(room.Definition);
+    public bool Applies(SimulationContext context, RoomInstance room)
+    {
+        return WorkshopTimerRules.IsWorkshop(room.Definition);
+    }
 
-    public void Tick(SimulationContext context, RoomInstance room) => WorkshopTimerRules.Tick(context, room);
+    public void Tick(SimulationContext context, RoomInstance room)
+    {
+        WorkshopTimerRules.Tick(context, room);
+    }
 }

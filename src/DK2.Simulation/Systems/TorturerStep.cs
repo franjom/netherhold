@@ -229,9 +229,13 @@ public static class TorturerStep
             && room.OwnerPlayerId == creature.OwnerPlayerId ? room : null;
     }
 
-    private static int TileOf(WorldState world, CreatureState creature) =>
-        (creature.Tile.Y * world.Width) + creature.Tile.X;
+    private static int TileOf(WorldState world, CreatureState creature)
+    {
+        return (creature.Tile.Y * world.Width) + creature.Tile.X;
+    }
 
-    private static TilePos TilePosOf(WorldState world, int tileIndex) =>
-        new(tileIndex % world.Width, tileIndex / world.Width);
+    private static TilePos TilePosOf(WorldState world, int tileIndex)
+    {
+        return new(tileIndex % world.Width, tileIndex / world.Width);
+    }
 }

@@ -36,5 +36,8 @@ public static class PurseRules
 
     /// <summary>The share of a wage that goes into the purse: half, rounded down
     /// (<c>taken / 2</c> in state 189).</summary>
-    public static int PocketedFromWage(int taken) => taken / 2;
+    public static int PocketedFromWage(int taken)
+    {
+        return taken / 2;
+    }
 }

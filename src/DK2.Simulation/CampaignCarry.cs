@@ -30,11 +30,16 @@ public struct CampaignCarry
         w.Write(HiddenLandFound); w.Write(TransferStored); w.Write(TransferCreatureTypeId); w.Write(TransferCreatureLevel);
     }
 
-    public static CampaignCarry Read(BinaryReader r) => new()
+    public static CampaignCarry Read(BinaryReader r)
     {
-        HiddenLandFound = r.ReadInt32(), TransferStored = r.ReadBoolean(),
-        TransferCreatureTypeId = r.ReadByte(), TransferCreatureLevel = r.ReadByte(),
-    };
+        return new()
+        {
+            HiddenLandFound = r.ReadInt32(),
+            TransferStored = r.ReadBoolean(),
+            TransferCreatureTypeId = r.ReadByte(),
+            TransferCreatureLevel = r.ReadByte(),
+        };
+    }
 }
 
 /// <summary>The campaign's carry-over creature (docs/research/campaign-map-and-progression.md §4).</summary>

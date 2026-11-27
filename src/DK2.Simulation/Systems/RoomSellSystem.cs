@@ -22,7 +22,13 @@ public sealed class RoomSellSystem : ISimulationSystem
 {
     private const string SystemName = "RoomSell";
 
-    public string Name => SystemName;
+    public string Name
+    {
+        get
+        {
+            return SystemName;
+        }
+    }
 
     public void Execute(SimulationContext context)
     {
@@ -257,17 +263,21 @@ public sealed class RoomSellSystem : ISimulationSystem
         }
     }
 
-    private static void Count(Dictionary<RoomSale, int> refusals, RoomSale reason) =>
+    private static void Count(Dictionary<RoomSale, int> refusals, RoomSale reason)
+    {
         refusals[reason] = refusals.TryGetValue(reason, out int n) ? n + 1 : 1;
+    }
 
     /// <summary>
     /// Refusals as "reason=count" pairs, ordered by the enum so that two runs of
     /// the same scenario produce byte-identical event text.
     /// </summary>
-    private static string Describe(Dictionary<RoomSale, int> refusals) =>
-        refusals.Count == 0
+    private static string Describe(Dictionary<RoomSale, int> refusals)
+    {
+        return refusals.Count == 0
             ? "0"
             : string.Join(",", refusals
                 .OrderBy(kv => (int)kv.Key)
                 .Select(kv => $"{kv.Key}={kv.Value}"));
+    }
 }

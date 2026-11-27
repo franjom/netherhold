@@ -16,7 +16,13 @@ namespace DK2.Simulation.Systems;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/functions/0050A450.md")]
 public sealed class CreateImpCastSystem : ISimulationSystem
 {
-    public string Name => "CreateImpCast";
+    public string Name
+    {
+        get
+        {
+            return "CreateImpCast";
+        }
+    }
 
     public void Execute(SimulationContext context)
     {

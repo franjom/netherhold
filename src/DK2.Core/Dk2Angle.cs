@@ -7,5 +7,11 @@ namespace DK2.Core;
 /// <summary>A DK2 11-bit angle as carried on the wire; <see cref="Value"/> masks it to 0x7FF.</summary>
 public readonly record struct Dk2Angle(ushort Raw)
 {
-    public int Value => Raw & 0x7FF;
+    public int Value
+    {
+        get
+        {
+            return Raw & 0x7FF;
+        }
+    }
 }

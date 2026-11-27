@@ -74,8 +74,10 @@ public static partial class PossessionRules
     /// <summary>The combat scans' skip (<c>0x0045B350</c> in the fight-style arms, and in scan C, the
     /// NonFighter and the nearest-attacker scans): a candidate disguised as the searcher's own side
     /// is not seen as an enemy.</summary>
-    public static bool IsDisguisedFrom(CreatureState searcher, CreatureState candidate) =>
-        candidate.SneakingAs != 0 && candidate.SneakingAs == TurncoatRules.CombatSide(searcher).Value;
+    public static bool IsDisguisedFrom(CreatureState searcher, CreatureState candidate)
+    {
+        return candidate.SneakingAs != 0 && candidate.SneakingAs == TurncoatRules.CombatSide(searcher).Value;
+    }
 
     /// <summary><c>0x0051496E</c>/<c>0x00515156</c>: striking or casting at a thing whose owner is
     /// allied to the disguise ends it.</summary>
@@ -236,13 +238,19 @@ public static partial class PossessionRules
 
     /// <summary>Command 39 (<c>0x005171D0</c>): the flag takes the packet's value, for any possessed
     /// creature.</summary>
-    public static void SetSniperMode(CreatureState me, bool on) => me.SniperMode = on;
+    public static void SetSniperMode(CreatureState me, bool on)
+    {
+        me.SniperMode = on;
+    }
 
     // ------------------------------------------------------------------ creep
 
     /// <summary>Game action 0x22 (<c>0x00517310</c>): the possessed creature's Creeping bit takes
     /// the packet's bit 0, with no other test.</summary>
-    public static void SetCreeping(CreatureState me, bool on) => me.Creeping = on;
+    public static void SetCreeping(CreatureState me, bool on)
+    {
+        me.Creeping = on;
+    }
 
     /// <summary>The weighting every combat scan and the sneak's watcher test apply straight after
     /// the squared distance, before the alignment discount (<c>0x0045B282</c>-<c>0x0045B2E8</c> and

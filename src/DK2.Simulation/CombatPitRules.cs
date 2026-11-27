@@ -14,9 +14,11 @@ namespace DK2.Simulation;
 public static class CombatPitRules
 {
     /// <summary>LEVEL configuration precedes referenced VARIABLES. Fixtures without either use the shipped rate.</summary>
-    public static int NativeTicksPerGameSecond(GameDatabase database) =>
-        database.Variables.Misc.TryGetValue(VariableTypeId.TicksPerSecond, out MiscVariable? value)
+    public static int NativeTicksPerGameSecond(GameDatabase database)
+    {
+        return database.Variables.Misc.TryGetValue(VariableTypeId.TicksPerSecond, out MiscVariable? value)
             ? value.Value : database.Level?.TicksPerSecond ?? SimulationTiming.OriginalTicksPerGameSecond;
+    }
 
     /// <summary>137, the arrival: every fighter already in the pit is placed again.</summary>
     public const int ArrivingState = 137;
@@ -57,7 +59,10 @@ public static class CombatPitRules
 
     /// <summary>The pit's floor: floor height <c>0x400</c>, which <c>0x004545C0</c> gives an
     /// interior tile of a Combat Pit and nothing else (§5).</summary>
-    public static bool IsFloor(RoomInstance? pit, int tileIndex) => pit != null && pit.IsInterior(tileIndex);
+    public static bool IsFloor(RoomInstance? pit, int tileIndex)
+    {
+        return pit != null && pit.IsInterior(tileIndex);
+    }
 
     /// <summary>The distinct Combat Pits standing on any of <paramref name="tiles"/>.</summary>
     public static List<RoomInstance> PitsUnder(WorldState world, GameDatabase database, IEnumerable<TilePos> tiles)
@@ -87,8 +92,10 @@ public static class CombatPitRules
     }
 
     /// <summary>Whether this is a state the pit's step runs.</summary>
-    public static bool IsPitState(int stateId) =>
-        stateId is ArrivingState or PlacingState or WaitingState or VictoryState or ThrownOutState;
+    public static bool IsPitState(int stateId)
+    {
+        return stateId is ArrivingState or PlacingState or WaitingState or VictoryState or ThrownOutState;
+    }
 
     /// <summary><c>0x0048F390</c>, both ways: each drops its old forced target and the engagement it
     /// drove, and takes the other, and both are fighters.</summary>
@@ -199,8 +206,10 @@ public static class CombatPitRules
     }
 
     /// <summary><c>+0x16 != 2</c>: not in a hand and not carried (<c>combat-pit.md</c> §6).</summary>
-    public static bool IsOnTheMap(CreatureState creature) =>
-        !creature.InHand && creature.CarriedByCreatureId < 0;   // the layer: a falling creature is on the map
+    public static bool IsOnTheMap(CreatureState creature)
+    {
+        return !creature.InHand && creature.CarriedByCreatureId < 0;   // the layer: a falling creature is on the map
+    }
 
     /// <summary><c>0x004E50F0(position, out, count, rimOnly, empty)</c>: from a random start, the
     /// first of the <paramref name="count"/> neighbours (4: orthogonal; 8: all round) that is the
@@ -284,6 +293,8 @@ public static class CombatPitRules
 
     /// <summary>The level increment <c>0x0048B120</c> and the adder <c>0x00457880</c>: a fighter
     /// at <c>CombatPitMaxExperienceLevel</c> or above.</summary>
-    public static bool AtTheCap(GameDatabase database, CreatureState creature) =>
-        creature.CombatPitFighter && creature.Level >= database[VariableTypeId.CombatPitMaxExperienceLevel];
+    public static bool AtTheCap(GameDatabase database, CreatureState creature)
+    {
+        return creature.CombatPitFighter && creature.Level >= database[VariableTypeId.CombatPitMaxExperienceLevel];
+    }
 }

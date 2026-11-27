@@ -50,20 +50,43 @@ public static class SpellRules
     }
 
     /// <summary>The file's fixed-point seconds as the loader's ticks (§1).</summary>
-    public static int RechargeTicks(CreatureSpellDef spell) => CombatRules.TicksOf(new Fp32(spell.RechargeTime));
+    public static int RechargeTicks(CreatureSpellDef spell)
+    {
+        return CombatRules.TicksOf(new Fp32(spell.RechargeTime));
+    }
 
     /// <summary>The slot's wind-up in ticks — the same multiply the loader gives it (§3).</summary>
-    public static int DelayTicks(CreatureDef definition, int slot) => CombatRules.TicksOf(definition.Spells[slot].ShotDelay);
+    public static int DelayTicks(CreatureDef definition, int slot)
+    {
+        return CombatRules.TicksOf(definition.Spells[slot].ShotDelay);
+    }
 
     /// <summary>The engagement's reach for a spell: <c>(range >> 12) × range</c> (§5).</summary>
-    public static int RangeSquared(CreatureSpellDef spell) => (spell.Range >> 12) * spell.Range;
+    public static int RangeSquared(CreatureSpellDef spell)
+    {
+        return (spell.Range >> 12) * spell.Range;
+    }
 
-    public static bool IsAttack(CreatureSpellDef spell) => (spell.Flags & AttackFlag) != 0;
-    public static bool IsFriendly(CreatureSpellDef spell) => (spell.Flags & FriendlyFlag) != 0;
-    public static bool IsSelfOnly(CreatureSpellDef spell) => (spell.Flags & SelfOnlyFlag) != 0;
+    public static bool IsAttack(CreatureSpellDef spell)
+    {
+        return (spell.Flags & AttackFlag) != 0;
+    }
+
+    public static bool IsFriendly(CreatureSpellDef spell)
+    {
+        return (spell.Flags & FriendlyFlag) != 0;
+    }
+
+    public static bool IsSelfOnly(CreatureSpellDef spell)
+    {
+        return (spell.Flags & SelfOnlyFlag) != 0;
+    }
 
     /// <summary>A status spell without damage: melee is taken against a thing instead (§2).</summary>
-    public static bool IsStatus(CreatureSpellDef spell) => (spell.Flags & StatusFlag) != 0;
+    public static bool IsStatus(CreatureSpellDef spell)
+    {
+        return (spell.Flags & StatusFlag) != 0;
+    }
 
     /// <summary><c>0x0048C800</c>: castable when never cast, or when the last cast plus the recharge
     /// — over the creature's work rate, <see cref="CombatRules.Scaled"/> — is strictly before now.</summary>
@@ -128,9 +151,11 @@ public static class SpellRules
 
     /// <summary>The body spell's slot test (<c>0x0045CB00</c>'s branch at <c>0x0045E12E</c>, combat-spells.md
     /// §12): flag bit 1 set, bit 0 and the friendly bit clear, and a shot whose collide type is 4.</summary>
-    public static bool IsBodySpell(GameDatabase database, CreatureSpellDef spell) =>
-        (spell.Flags & (AttackFlag | ThingTargetFlag | FriendlyFlag)) == ThingTargetFlag
+    public static bool IsBodySpell(GameDatabase database, CreatureSpellDef spell)
+    {
+        return (spell.Flags & (AttackFlag | ThingTargetFlag | FriendlyFlag)) == ThingTargetFlag
         && database.Shots.TryGetValue(spell.ShotTypeId, out ShotDef? shot) && shot.CollideType == ShotRules.CollideBodies;
+    }
 
     /// <summary>The survey's body slot (Raise Dead, combat-acquisition.md §6.3): over the slots the level
     /// allows that pass the generic castability gate (or <paramref name="whileRecharging"/>, the Support

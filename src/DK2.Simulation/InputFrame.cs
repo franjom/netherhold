@@ -44,9 +44,18 @@ public readonly record struct InputFrame(IReadOnlyList<PlayerCommand>? Commands)
 
     private static readonly PlayerCommand[] None = [];
 
-    public IReadOnlyList<PlayerCommand> All => Commands ?? None;
+    public IReadOnlyList<PlayerCommand> All
+    {
+        get
+        {
+            return Commands ?? None;
+        }
+    }
 
-    public static InputFrame Of(params PlayerCommand[] commands) => new(commands);
+    public static InputFrame Of(params PlayerCommand[] commands)
+    {
+        return new(commands);
+    }
 
     public void HashInto(ref Hash64 hash)
     {

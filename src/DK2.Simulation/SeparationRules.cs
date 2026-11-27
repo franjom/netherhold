@@ -48,15 +48,22 @@ public static class SeparationRules
     /// <summary>The original's integer square root, shared with the router's path length through
     /// <see cref="IntegerMath.SquareRoot"/>: it stops at its first converged guess, and that is
     /// what the force curve is fed.</summary>
-    public static int IntegerSquareRoot(int value) => IntegerMath.SquareRoot(value);
+    public static int IntegerSquareRoot(int value)
+    {
+        return IntegerMath.SquareRoot(value);
+    }
 
     /// <summary>Bodies push only while overlapping, and never at zero distance (no direction).</summary>
-    public static bool Applies(int distance, int radiusSum) =>
-        distance > 0 && distance <= radiusSum;
+    public static bool Applies(int distance, int radiusSum)
+    {
+        return distance > 0 && distance <= radiusSum;
+    }
 
     /// <summary>Distance over summed radii in 16.16: 0 concentric, <see cref="One"/> just touching.</summary>
-    public static int Ratio(int distance, int radiusSum) =>
-        (int)(((long)distance << 16) / radiusSum);
+    public static int Ratio(int distance, int radiusSum)
+    {
+        return (int)(((long)distance << 16) / radiusSum);
+    }
 
     /// <summary>The force's size. Three arms: saturated when almost concentric; a plain reciprocal
     /// against a body that blocks, unless this one ignores blockers; otherwise the same reciprocal
@@ -78,7 +85,10 @@ public static class SeparationRules
     }
 
     /// <summary>2^32 over the divisor, less one — the original's expression, exact in 64 bits.</summary>
-    public static int Reciprocal(int divisor) => (int)((1L << 32) / divisor - One);
+    public static int Reciprocal(int divisor)
+    {
+        return (int)((1L << 32) / divisor - One);
+    }
 
     /// <summary>The 5x5 table at <c>[0x006ED420]</c>, rows the neighbour's size class, columns the
     /// pusher's: <c>B / (A + B)</c> in 16.16, except (A 4, B 5), where the initialiser reused a
@@ -94,8 +104,10 @@ public static class SeparationRules
 
     /// <summary>The neighbour's share of the pair's size, for size classes 1..5 (definition
     /// <c>+0x624</c>, KWD <c>0xEA8</c>).</summary>
-    public static int SizeShare(int pusherSize, int neighbourSize) =>
-        SizeShareTable[((neighbourSize - 1) * 5) + (pusherSize - 1)];
+    public static int SizeShare(int pusherSize, int neighbourSize)
+    {
+        return SizeShareTable[((neighbourSize - 1) * 5) + (pusherSize - 1)];
+    }
 
     /// <summary>The factor the push is finally scaled by: <c>((cosine + 1) / 2 + 0.2) x share</c> as
     /// the original's plain 32-bit multiply, with no 16.16 shift. It is about 65536 times a proper

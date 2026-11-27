@@ -43,9 +43,15 @@ public static class WorkshopStep
     /// <summary>70 (<c>0x00470C10</c>): back into a Workshop that changed.</summary>
     public const int ReturningState = 70;
 
-    public static bool IsWorkshopState(int state) => state is ChoosingState or AtTheMachineState or WorkingState or ReturningState;
+    public static bool IsWorkshopState(int state)
+    {
+        return state is ChoosingState or AtTheMachineState or WorkingState or ReturningState;
+    }
 
-    public static bool IsMachine(byte type) => type is Anvil or Machine16 or Machine46;
+    public static bool IsMachine(byte type)
+    {
+        return type is Anvil or Machine16 or Machine46;
+    }
 
     /// <summary>One turn of a manufacturer. False when it is left idle, which ends the job.</summary>
     public static bool Turn(SimulationContext context, string system, CreatureState creature)

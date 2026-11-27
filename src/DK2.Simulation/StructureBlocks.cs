@@ -38,17 +38,35 @@ public sealed class StructureBlocks
     public IReadOnlyList<int> HeartCentres { get; private init; } = [];
 
     /// <summary>How many tiles are blocked. Zero on a map with no portal or heart.</summary>
-    public int Count => _blocked.Count;
+    public int Count
+    {
+        get
+        {
+            return _blocked.Count;
+        }
+    }
 
     /// <summary>Whether a room's structure stands on this tile index.</summary>
-    public bool Blocks(int tileIndex) => _blocked.Contains(tileIndex);
+    public bool Blocks(int tileIndex)
+    {
+        return _blocked.Contains(tileIndex);
+    }
 
     /// <summary>Whether this tile is a portal's centre hole — byte 4 in DK2's navigation cache,
     /// where a heart's platform is plain floor (<see cref="Navigation.WorldSteering.ByteOf"/>).</summary>
-    public bool IsPortalCentre(int tileIndex) => _portalCentres.Contains(tileIndex);
+    public bool IsPortalCentre(int tileIndex)
+    {
+        return _portalCentres.Contains(tileIndex);
+    }
 
     /// <summary>Every portal centre, for a caller that visits them rather than asking per tile.</summary>
-    public IReadOnlyCollection<int> PortalCentres => _portalCentres;
+    public IReadOnlyCollection<int> PortalCentres
+    {
+        get
+        {
+            return _portalCentres;
+        }
+    }
 
     /// <summary>Works out which tiles a portal's or a heart's structure occupies. Scans for the two
     /// room terrains first and returns the shared empty instance when there are none — the common

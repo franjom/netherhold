@@ -11,7 +11,13 @@ namespace DK2.Simulation.Systems;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/room-slab-chain.md")]
 public sealed class RoomSellWaveSystem : ISimulationSystem
 {
-    public string Name => "RoomSellWave";
+    public string Name
+    {
+        get
+        {
+            return "RoomSellWave";
+        }
+    }
 
     public void Execute(SimulationContext context)
     {

@@ -13,19 +13,40 @@ namespace DK2.Pathfinding;
 /// the decompile and walks the same slots.</summary>
 public sealed partial class NavMesh
 {
-    private static int DkV(int s) => s == 0 ? 0 : 3 - s;
+    private static int DkV(int s)
+    {
+        return s == 0 ? 0 : 3 - s;
+    }
 
-    private static int DkE(int s) => 2 - s;
+    private static int DkE(int s)
+    {
+        return 2 - s;
+    }
 
-    private int DkVertex(int t, int s) => _v[(3 * t) + DkV(s)];
+    private int DkVertex(int t, int s)
+    {
+        return _v[(3 * t) + DkV(s)];
+    }
 
-    private void DkSetVertex(int t, int s, int p) => SetVertex(t, DkV(s), p);
+    private void DkSetVertex(int t, int s, int p)
+    {
+        SetVertex(t, DkV(s), p);
+    }
 
-    private int DkNeighbour(int t, int s) => _n[(3 * t) + DkE(s)];
+    private int DkNeighbour(int t, int s)
+    {
+        return _n[(3 * t) + DkE(s)];
+    }
 
-    private void DkSetNeighbour(int t, int s, int u) => _n[(3 * t) + DkE(s)] = u;
+    private void DkSetNeighbour(int t, int s, int u)
+    {
+        _n[(3 * t) + DkE(s)] = u;
+    }
 
-    private void DkSetConstraint(int t, int s, bool on) => SetConstraint(t, DkE(s), on);
+    private void DkSetConstraint(int t, int s, bool on)
+    {
+        SetConstraint(t, DkE(s), on);
+    }
 
     /// <summary>The original's three-way compare: the slot of <c>u</c> whose neighbour is
     /// <c>t</c>, or −1.</summary>

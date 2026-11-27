@@ -10,8 +10,16 @@ namespace DK2.Simulation.Systems;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/sacrifice.md")]
 public sealed class TempleSacrificeSystem : ISimulationSystem
 {
-    public string Name => "TempleSacrifice";
+    public string Name
+    {
+        get
+        {
+            return "TempleSacrifice";
+        }
+    }
 
-    public void Execute(SimulationContext context) =>
+    public void Execute(SimulationContext context)
+    {
         TempleSacrificeRules.Reconcile(context.World, context.Database);
+    }
 }

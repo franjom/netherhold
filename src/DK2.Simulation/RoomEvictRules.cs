@@ -22,16 +22,19 @@ namespace DK2.Simulation;
 public static class RoomEvictRules
 {
     /// <summary>The room's return state for its holders, or null for a type with no such slot built.</summary>
-    public static int? ReturnStateOf(RoomTypeId type) => type switch
+    public static int? ReturnStateOf(RoomTypeId type)
     {
-        RoomTypeId.Temple => TempleStep.ReturningState,
-        RoomTypeId.Prison => PrisonRules.ReturningState,
-        RoomTypeId.TrainingRoom => TrainingRules.ReturningState,
-        RoomTypeId.Library => ResearchStep.ReturningState,
-        RoomTypeId.Workshop => WorkshopStep.ReturningState,
-        RoomTypeId.Casino => CasinoStep.ReturningState,
-        _ => null,
-    };
+        return type switch
+        {
+            RoomTypeId.Temple => TempleStep.ReturningState,
+            RoomTypeId.Prison => PrisonRules.ReturningState,
+            RoomTypeId.TrainingRoom => TrainingRules.ReturningState,
+            RoomTypeId.Library => ResearchStep.ReturningState,
+            RoomTypeId.Workshop => WorkshopStep.ReturningState,
+            RoomTypeId.Casino => CasinoStep.ReturningState,
+            _ => null,
+        };
+    }
 
     /// <summary>The return states' shared body (62 <c>0x00476320</c>, 70 <c>0x00470C10</c>, 154
     /// <c>0x00456FB0</c>): at <c>Age</c> 1 or less 1; then on a tile of its own keeper's room of

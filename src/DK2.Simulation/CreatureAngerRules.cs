@@ -40,8 +40,10 @@ public static class CreatureAngerRules
 
     /// <summary>Anger at which a creature becomes unhappy — <c>UnhappyThreshold</c> percent of
     /// <see cref="Ceiling"/>, which is <b>16383</b> for all 46 creatures, every one carrying 50.</summary>
-    public static int UnhappyAt(CreatureDef creature) =>
-        Ceiling * creature.UnhappyThreshold / 100;
+    public static int UnhappyAt(CreatureDef creature)
+    {
+        return Ceiling * creature.UnhappyThreshold / 100;
+    }
 
     /// <summary>Applies a change to one bucket and clamps it to
     /// <c>[0, <see cref="Saturation"/>]</c>. Returns what actually landed. Per bucket because DK2's
@@ -114,8 +116,10 @@ public static class CreatureAngerRules
     /// taken in full (state 189), so both are forgotten at once rather than cooled
     /// (<c>payday.md</c> §4.4, <c>lair-acquisition.md</c> §9.1). A negative amount posts nothing.</summary>
     public static int Forget(
-        WorldState world, CreatureDef creature, CreatureState state, AngerBucket bucket) =>
-        world.Triggers.CreatureAngerEnabled ? Apply(creature, state, bucket, -state.Anger[bucket]) : 0;
+        WorldState world, CreatureDef creature, CreatureState state, AngerBucket bucket)
+    {
+        return world.Triggers.CreatureAngerEnabled ? Apply(creature, state, bucket, -state.Anger[bucket]) : 0;
+    }
 
     /// <summary>Wipes all six grievances: DK2's <c>0x00486E20</c>, each counter less itself through
     /// the clamp, behind the same world switch, as a torture conversion does (<c>0x004F283E</c>).</summary>
@@ -145,11 +149,17 @@ public static class CreatureAngerRules
 
     /// <summary>The anger a creature must <b>exceed</b> to be angry: the ceiling itself. No variable
     /// states it — it is the owner's 2:1 ratio, angry at twice the time unhappy took.</summary>
-    public static int AngryAt(CreatureDef creature) => Ceiling;
+    public static int AngryAt(CreatureDef creature)
+    {
+        return Ceiling;
+    }
 
     /// <summary>Where this creature sits on the ladder, from the largest bucket and never from their
     /// sum (ADR-0081): two half-grievances leave it unhappy where a pool would say angry.</summary>
-    public static CreatureMood MoodOf(CreatureDef creature, CreatureState state) => MoodOf(creature, state.Anger);
+    public static CreatureMood MoodOf(CreatureDef creature, CreatureState state)
+    {
+        return MoodOf(creature, state.Anger);
+    }
 
     /// <summary>The band of a set of counters, for an observation that holds a copy.</summary>
     public static CreatureMood MoodOf(CreatureDef creature, in CreatureAnger anger)
@@ -237,8 +247,10 @@ public static class CreatureAngerRules
     /// <summary>A need charge's game second: the loader's per-tick rate (<see cref="SimulationTiming.LoaderRatePerTick"/>,
     /// non-zero floored at 1), added each of the second's four turns (ADR-0667). Bile Demon 150 is 148;
     /// a tabled 1 is 4.</summary>
-    private static int Loaded(short perSecond) =>
-        SimulationTiming.LoaderRatePerTick(perSecond) * SimulationTiming.OriginalTicksPerGameSecond;
+    private static int Loaded(short perSecond)
+    {
+        return SimulationTiming.LoaderRatePerTick(perSecond) * SimulationTiming.OriginalTicksPerGameSecond;
+    }
 
     /// <summary>The room clause of the lair and food charges in <c>0x00478D00</c>: the room's
     /// availability is 3 (<c>Player_RoomAvailability</c>), else the keeper owns one
@@ -346,28 +358,38 @@ public static class CreatureAngerRules
     /// the exempt set from the values made him calmable by slapping (Q210, ADR-0087). The Imp, the
     /// Dwarf and Horny are unflagged and carry 1 against a Goblin's 100 — a lairless Imp takes nine hours.</summary>
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-anger.md")]
-    public static bool CanBeAngered(CreatureDef creature) =>
-        !((creature.Flags2 & CreatureFlags2.NeverAngered) == CreatureFlags2.NeverAngered);
+    public static bool CanBeAngered(CreatureDef creature)
+    {
+        return !((creature.Flags2 & CreatureFlags2.NeverAngered) == CreatureFlags2.NeverAngered);
+    }
 
     /// <summary>A slap: <c>AngerSlap</c>, +3000 for a Goblin and <b>−5000 for Jack</b>, whose whole
     /// record runs backwards. Called by <see cref="Systems.HandSystem"/> (ADR-0062). Six slaps make
     /// a content creature sulk and 11 make it leave at 3000 — CONFIRMED by the owner's Salamander
     /// (Q114). No cooldown: <see cref="HandRules.KnockBackWindowSeconds"/>.</summary>
-    public static int Slap(CreatureDef creature, CreatureState state) =>
-        Apply(creature, state, AngerBucket.Treatment, creature.AngerSlap);
+    public static int Slap(CreatureDef creature, CreatureState state)
+    {
+        return Apply(creature, state, AngerBucket.Treatment, creature.AngerSlap);
+    }
 
-    public static int Slap(WorldState world, CreatureDef creature, CreatureState state) =>
-        Apply(world, creature, state, AngerBucket.Treatment, creature.AngerSlap, AngerComplaint.Slapped);
+    public static int Slap(WorldState world, CreatureDef creature, CreatureState state)
+    {
+        return Apply(world, creature, state, AngerBucket.Treatment, creature.AngerSlap, AngerComplaint.Slapped);
+    }
 
     /// <summary>Being held in the Hand of Evil: <c>AngerInHand</c>, which <b>calms</b> most
     /// creatures (−250 for a Goblin, −500 for a Warlock) and annoys Jack (+500). A rate, not a
     /// one-shot (ADR-0062): once a game second, from twenty seconds after the pick-up
     /// (<see cref="HandRules.AngerDueThisTick"/>), so parking a creature in the hand calms it.</summary>
-    public static int Held(CreatureDef creature, CreatureState state) =>
-        Apply(creature, state, AngerBucket.Treatment, creature.AngerInHand);
+    public static int Held(CreatureDef creature, CreatureState state)
+    {
+        return Apply(creature, state, AngerBucket.Treatment, creature.AngerInHand);
+    }
 
-    public static int Held(WorldState world, CreatureDef creature, CreatureState state) =>
-        Apply(world, creature, state, AngerBucket.Treatment, creature.AngerInHand, AngerComplaint.Held);
+    public static int Held(WorldState world, CreatureDef creature, CreatureState state)
+    {
+        return Apply(world, creature, state, AngerBucket.Treatment, creature.AngerInHand, AngerComplaint.Held);
+    }
 
     /// <summary>How long an angry creature must wait between selections that came to something:
     /// <b>five game seconds</b>, the original's <c>5 x</c> variable 19 (Q122, ADR-0061). What the
@@ -379,7 +401,10 @@ public static class CreatureAngerRules
     /// than 1..100 — the original's random helper ends in <c>% param</c>, so the top of the last
     /// cumulative range is unreachable when a table's chances sum to 100
     /// (<see cref="CumulativeRanges"/>).</summary>
-    public static int RollPercent(SimRandom rng) => rng.NextInt(100);
+    public static int RollPercent(SimRandom rng)
+    {
+        return rng.NextInt(100);
+    }
 
     /// <summary>A job table as the original's choosers build it: a running total per entry, in
     /// <b>record order</b>, with <b>inclusive</b> bounds at both ends. The inclusive bounds are a

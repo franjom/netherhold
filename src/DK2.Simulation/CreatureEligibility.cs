@@ -37,10 +37,12 @@ public enum CreatureGuards
 /// the order they are tested in changes nothing but how soon the test stops.</summary>
 public static class CreatureEligibility
 {
-    public static bool IsExcluded(CreatureState creature, CreatureGuards guards) =>
-        ((guards & CreatureGuards.Possessed) != 0 && creature.Possessed)
+    public static bool IsExcluded(CreatureState creature, CreatureGuards guards)
+    {
+        return ((guards & CreatureGuards.Possessed) != 0 && creature.Possessed)
         || ((guards & CreatureGuards.Held) != 0 && HandRules.IsHeld(creature))
         || ((guards & CreatureGuards.Imprisoned) != 0 && PrisonRules.IsImprisoned(creature))
         || ((guards & CreatureGuards.Down) != 0 && CreatureDeathRules.IsDown(creature))
         || ((guards & CreatureGuards.Preoccupied) != 0 && CombatRules.Preoccupied(creature));
+    }
 }

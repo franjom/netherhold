@@ -73,7 +73,10 @@ public static class SlapRules
     /// <c>+0x14</c> at <c>0x006E43D3</c>, written by the filler at <c>0x004956A0</c>).</summary>
     public const int ReactionAction = 19, ReactionArtSlot = 4;
 
-    public static bool IsReaction(int state) => state is WorkshopState or ReactionState or PrisonState;
+    public static bool IsReaction(int state)
+    {
+        return state is WorkshopState or ReactionState or PrisonState;
+    }
 
     /// <summary>The slap's speed-up, after its damage: <c>0x0048CAD0</c>'s body inlined with 150 percent
     /// and 100 game seconds (<c>+0x459 = var19 × 100</c>, 400 ticks), refused while a speed effect

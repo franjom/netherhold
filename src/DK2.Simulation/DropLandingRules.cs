@@ -45,12 +45,14 @@ public static class DropLandingRules
     /// Entrance animation. STRONGLY INFERRED: the formula is fitted, and reproduces every 257 run the
     /// Level 1–3 captures measured: Warlock 8, Goblin 11, Troll 5, Firefly 13, Dwarf 4, Lord of the
     /// Land 4 (Q527, ADR-0348). A creature with no Getup art waits one tick.</summary>
-    public static int GetUpTicks(CreatureDef definition) =>
-        (definition.GetUpFrames <= 0 || definition.GetUpFramesPerSecond <= 0
+    public static int GetUpTicks(CreatureDef definition)
+    {
+        return (definition.GetUpFrames <= 0 || definition.GetUpFramesPerSecond <= 0
             ? 0
             : ((definition.GetUpFrames * SimulationTiming.OriginalTicksPerGameSecond)
                + definition.GetUpFramesPerSecond - 1) / definition.GetUpFramesPerSecond)
         + 1;
+    }
 
     /// <summary>257's step (0x00481200): vector 2 along the facing, on non-solid terrain with
     /// the same floor-slot classification. The target scan uses the resulting tile.</summary>
@@ -90,26 +92,29 @@ public static class DropLandingRules
 
     /// <summary>A room record's drop state, <c>+0x19</c> (portals-room-handler-table.md); null for
     /// a room with none.</summary>
-    public static int? RoomDropState(RoomTypeId type) => type switch
+    public static int? RoomDropState(RoomTypeId type)
     {
-        RoomTypeId.Treasury => 188,
-        RoomTypeId.Lair => 79,
-        RoomTypeId.Portal => 197,
-        RoomTypeId.Hatchery => 92,
-        RoomTypeId.DungeonHeart => 71,
-        RoomTypeId.Library => 53,
-        RoomTypeId.TrainingRoom => 108,
-        RoomTypeId.GuardRoom => 97,
-        RoomTypeId.Workshop => 63,
-        RoomTypeId.Prison => 114,
-        RoomTypeId.TortureChamber => 130,
-        RoomTypeId.Temple => 101,
-        RoomTypeId.Casino => 145,
-        RoomTypeId.CombatPit => 137,
-        RoomTypeId.HeroPortal => 197,
-        RoomTypeId.Crypt => 274,
-        _ => null,
-    };
+        return type switch
+        {
+            RoomTypeId.Treasury => 188,
+            RoomTypeId.Lair => 79,
+            RoomTypeId.Portal => 197,
+            RoomTypeId.Hatchery => 92,
+            RoomTypeId.DungeonHeart => 71,
+            RoomTypeId.Library => 53,
+            RoomTypeId.TrainingRoom => 108,
+            RoomTypeId.GuardRoom => 97,
+            RoomTypeId.Workshop => 63,
+            RoomTypeId.Prison => 114,
+            RoomTypeId.TortureChamber => 130,
+            RoomTypeId.Temple => 101,
+            RoomTypeId.Casino => 145,
+            RoomTypeId.CombatPit => 137,
+            RoomTypeId.HeroPortal => 197,
+            RoomTypeId.Crypt => 274,
+            _ => null,
+        };
+    }
 
     /// <summary>257's tail, <c>0x004E8DA0(0)</c>. On a room with a drop state: the job rooms' state
     /// through 1, with the job remembered (<see cref="JobRules.TryDropOnARoom"/>); the Lair's 79
@@ -275,6 +280,8 @@ public static class DropLandingRules
     }
 
     /// <summary>State 250: true while it stands (<c>now &lt; +0x7E + 50</c>).</summary>
-    public static bool Stands(SimulationContext context, CreatureState creature) =>
-        context.Tick.Value < creature.StateDeadlineTick + StandTicks;
+    public static bool Stands(SimulationContext context, CreatureState creature)
+    {
+        return context.Tick.Value < creature.StateDeadlineTick + StandTicks;
+    }
 }

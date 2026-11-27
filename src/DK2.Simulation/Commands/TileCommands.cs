@@ -22,11 +22,15 @@ namespace DK2.Simulation.Commands;
 public sealed record TagTilesCommand(PlayerId PlayerId, IReadOnlyList<TilePos> Tiles, bool Tagged)
     : PlayerCommand(PlayerId)
 {
-    public static TagTilesCommand Tag(PlayerId playerId, params TilePos[] tiles) =>
-        new(playerId, tiles, true);
+    public static TagTilesCommand Tag(PlayerId playerId, params TilePos[] tiles)
+    {
+        return new(playerId, tiles, true);
+    }
 
-    public static TagTilesCommand Untag(PlayerId playerId, params TilePos[] tiles) =>
-        new(playerId, tiles, false);
+    public static TagTilesCommand Untag(PlayerId playerId, params TilePos[] tiles)
+    {
+        return new(playerId, tiles, false);
+    }
 
     /// <summary>Every tile in a rectangle, in row-major order.</summary>
     public static TagTilesCommand Rect(

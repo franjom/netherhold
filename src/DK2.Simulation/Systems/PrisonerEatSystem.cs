@@ -28,10 +28,18 @@ public sealed class PrisonerEatSystem : ISimulationSystem
 
     public PrisonerEatSystem() : this(new GridPathfinder()) { }
 
-    public PrisonerEatSystem(IPathfinder pathfinder) =>
+    public PrisonerEatSystem(IPathfinder pathfinder)
+    {
         _pathfinder = pathfinder ?? throw new ArgumentNullException(nameof(pathfinder));
+    }
 
-    public string Name => SystemName;
+    public string Name
+    {
+        get
+        {
+            return SystemName;
+        }
+    }
 
     public void Execute(SimulationContext context)
     {

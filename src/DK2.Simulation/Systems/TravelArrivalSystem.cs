@@ -24,9 +24,18 @@ public sealed class TravelArrivalSystem : ICreatureUpdateStep
     private const int ImpTypeId = 1;
     private const int ApproachState = 8;
 
-    public string Name => "travel arrival";
+    public string Name
+    {
+        get
+        {
+            return "travel arrival";
+        }
+    }
 
-    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+    public void Execute(SimulationContext context)
+    {
+        CreatureUpdateSystem.RunAlone(context, this);
+    }
 
     public void Update(SimulationContext context, CreatureState creature)
     {

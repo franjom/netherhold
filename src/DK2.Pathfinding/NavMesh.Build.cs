@@ -170,14 +170,21 @@ public sealed partial class NavMesh
     private int _fillGeneration;
     private readonly List<int> _fill = [];
 
-    private void Stamp(int t, byte nav) => _nav[t] = nav;
+    private void Stamp(int t, byte nav)
+    {
+        _nav[t] = nav;
+    }
 
-    private bool AllInside(int t, int x0, int y0, int x1, int y1) =>
-        Inside(Vertex(t, 0), x0, y0, x1, y1) && Inside(Vertex(t, 1), x0, y0, x1, y1)
+    private bool AllInside(int t, int x0, int y0, int x1, int y1)
+    {
+        return Inside(Vertex(t, 0), x0, y0, x1, y1) && Inside(Vertex(t, 1), x0, y0, x1, y1)
         && Inside(Vertex(t, 2), x0, y0, x1, y1);
+    }
 
-    private bool Inside(int p, int x0, int y0, int x1, int y1) =>
-        _px[p] >= x0 && _px[p] <= x1 && _py[p] >= y0 && _py[p] <= y1;
+    private bool Inside(int p, int x0, int y0, int x1, int y1)
+    {
+        return _px[p] >= x0 && _px[p] <= x1 && _py[p] >= y0 && _py[p] <= y1;
+    }
 
     /// <summary>The original's constraint insertion (`0x004CBD10`), transcribed in its slots
     /// (NavMesh.Slots.cs). From the target end it turns the fan toward the other end; if the edge
@@ -374,7 +381,10 @@ public sealed partial class NavMesh
     /// <c>k</c> and the apex <c>c</c> in <c>t</c>, writing <c>u</c>'s apex over <c>a</c>, and <c>u</c>
     /// keeps <c>a</c> and its apex, taking <c>c</c> over <c>b</c> (the translation in NavMesh.Edit.cs).
     /// The new diagonal comes back as <paramref name="c"/>–<paramref name="d"/>.</summary>
-    public bool TryFlip(int t, int edge) => TryFlip(t, edge, out _, out _);
+    public bool TryFlip(int t, int edge)
+    {
+        return TryFlip(t, edge, out _, out _);
+    }
 
     public bool TryFlip(int t, int k, out int c, out int d)
     {

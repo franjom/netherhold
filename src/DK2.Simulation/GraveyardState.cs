@@ -23,9 +23,15 @@ public sealed partial class GraveyardState
 
     public int DecomposeValue { get; private set; }
 
-    internal void Add(int value) => DecomposeValue += value;
+    internal void Add(int value)
+    {
+        DecomposeValue += value;
+    }
 
-    internal void Zero() => DecomposeValue = 0;
+    internal void Zero()
+    {
+        DecomposeValue = 0;
+    }
 
     internal void Restore(int decomposeValue)
     {

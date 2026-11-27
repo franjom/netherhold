@@ -10,7 +10,13 @@ namespace DK2.Simulation.Systems;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/training-actions.md#3-action-gates--strongly-inferred")]
 public sealed class TrainingActionSystem : ISimulationSystem
 {
-    public string Name => "TrainingActions";
+    public string Name
+    {
+        get
+        {
+            return "TrainingActions";
+        }
+    }
 
     public void Execute(SimulationContext context)
     {

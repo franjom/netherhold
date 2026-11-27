@@ -24,8 +24,10 @@ public static class CreatureHealthRules
     /// (<see cref="CreatureLevelRules"/>), which is why it takes the state and the database. There
     /// is deliberately no level-free overload — one would cap a level-10 Goblin at 1500, not 9000.</summary>
     public static int MaxHealth(
-        GameDatabase database, CreatureDef creature, CreatureState state) =>
-        CreatureLevelRules.MaxHealth(database, creature, state.Level);
+        GameDatabase database, CreatureDef creature, CreatureState state)
+    {
+        return CreatureLevelRules.MaxHealth(database, creature, state.Level);
+    }
 
     /// <summary>A health change as <c>Thing_ModifyHealth</c> (<c>0x004B2CE0</c>) makes it: the delta is added with
     /// no lower clamp (<c>0x004B2EEC..0x004B2F03</c>), so a blow's overkill stays and a heal lifts it from there.
@@ -85,19 +87,23 @@ public static class CreatureHealthRules
     /// every initialised block for the variable's cached global finds one reference, the loader
     /// writing it (ADR-0085). Kept because the variable is shipped and named.</summary>
     public static bool IsCriticallyHurt(
-        GameDatabase database, CreatureDef creature, CreatureState state) =>
-        state.Health * 100
+        GameDatabase database, CreatureDef creature, CreatureState state)
+    {
+        return state.Health * 100
             <= MaxHealth(database, creature, state)
                * database[VariableTypeId.CreatureCriticalHealthPercentageOfMax];
+    }
 
     /// <summary>Whether this creature is hurt enough that DK2 sends it to bed —
     /// <c>CreatureSleepsWhenBelowPercentHealth</c>, 50. Puts a bedless creature to sleep untired (state 80, <c>0x0046F785</c>);
     /// with a bed it also needs tiredness (ADR-0543). Read by <see cref="Systems.CreatureSleepSystem"/>.</summary>
     public static bool ShouldSleepFromWounds(
-        GameDatabase database, CreatureDef creature, CreatureState state) =>
-        state.Health * 100
+        GameDatabase database, CreatureDef creature, CreatureState state)
+    {
+        return state.Health * 100
             < MaxHealth(database, creature, state)
               * database[VariableTypeId.CreatureSleepsWhenBelowPercentHealth];
+    }
 
     /// <summary>The creature update's own-land regeneration (<c>0x00488A73..0x00488C32</c>), every turn:
     /// on a tile its owner holds (<c>[tile+8] &amp; 0xFFF</c> == <c>+0x28</c>), the record's per-second value
@@ -181,15 +187,20 @@ public static class CreatureHealthRules
     /// one per tile and one per creature (<see cref="LairRules"/>), so a bedless creature never
     /// heals here. A Goblin's <c>TimeSleep</c> of 9 seconds is worth 900 health of its 1500 (Q103).</summary>
     public static int LairHealPerSecond(
-        WorldState world, GameDatabase database, CreatureState state) =>
-        LairRules.AsleepInOwnBed(world, database, state)
+        WorldState world, GameDatabase database, CreatureState state)
+    {
+        return LairRules.AsleepInOwnBed(world, database, state)
             ? database[VariableTypeId.ModifyHealthOfCreatureInLairPerSecond]
             : 0;
+    }
 
     /// <summary>Whether this creature ever gets hungry — false for the eight at
     /// <see cref="Never"/>. Tested on <c>HungerFill</c> rather than the 32767 sentinel: a creature
     /// needing zero chickens can never be hungry, and the two encodings agree on all 46 (<c>CreatureNeedsOnRealDataTests</c> checks that).</summary>
-    public static bool CanGetHungry(CreatureDef creature) => creature.HungerFill > 0;
+    public static bool CanGetHungry(CreatureDef creature)
+    {
+        return creature.HungerFill > 0;
+    }
 
     /// <summary>One chicken eaten in a hatchery: pays off one of the <c>HungerNeed</c>, restarts
     /// the hunger clock and restores <c>HpFromChicken</c>, capped at the level-scaled maximum. The

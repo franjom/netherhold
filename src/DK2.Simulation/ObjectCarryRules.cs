@@ -62,13 +62,15 @@ public static class ObjectCarryRules
     /// floor pile is owned by the level's floor-gold id, which is kind 7's business (Q144). An object
     /// in a keeper's hand is not on the map in DK2, so no tile scan meets it; ours keeps its tile, so
     /// tests <see cref="ObjectState.InHand"/>.</summary>
-    public static bool IsLoose(GameDatabase database, ObjectState thing) =>
-        !thing.InHand
+    public static bool IsLoose(GameDatabase database, ObjectState thing)
+    {
+        return !thing.InHand
         && thing.OwnerPlayerId == PlayerIds.Unowned
         && thing.CarriedByCreatureId < 0
         && thing.CreatureId == 0
         && thing.GoldHeld == 0
         && HomeRoomFor(database, thing.ObjectTypeId) is not null;
+    }
 
     /// <summary>Whether <paramref name="worker"/> may pick <paramref name="thing"/> up. The same
     /// shape and the same one-slot rule as <see cref="CarryRules.CanCarry"/>: a worker already
@@ -289,10 +291,16 @@ public static class ObjectCarryRules
 
     /// <summary>Whether a thing a creature holds is the take-hold's (<c>0x0048B4A0</c>, attached by
     /// <c>0x0048B5F0</c> every update) and not the Portal Gem, held through <c>0x0048B350</c>.</summary>
-    public static bool IsAttachable(ObjectState thing) => thing.ObjectTypeId != TriggerExecutor.PortalGemObjectId;
+    public static bool IsAttachable(ObjectState thing)
+    {
+        return thing.ObjectTypeId != TriggerExecutor.PortalGemObjectId;
+    }
 
     /// <summary>A held thing that follows its carrier: carried, and not the Portal Gem.</summary>
-    public static bool IsAttached(ObjectState thing) => thing.CarriedByCreatureId >= 0 && IsAttachable(thing);
+    public static bool IsAttached(ObjectState thing)
+    {
+        return thing.CarriedByCreatureId >= 0 && IsAttachable(thing);
+    }
 
     /// <summary>Attaches a carried object to its carrier, as <c>Creature_UpdateCarriedThing</c>
     /// (<c>0x0048B5F0</c>) does on every update of a creature holding one: the thing's position
@@ -320,10 +328,12 @@ public static class ObjectCarryRules
     /// <summary>Whether a loose crate, book or Special is drawn at its own point and heading (DK2 draws every
     /// thing at <c>+0x1A</c>, object-drawing.md §4) and not on its tile's centre: a carrier set it down, which
     /// leaves its point, and that point still lies on its tile. A thing never held keeps none.</summary>
-    public static bool StandsAtOwnPoint(GameDatabase database, int width, ObjectState thing) =>
-        thing.CarriedByCreatureId < 0 && (thing.PosX != 0 || thing.PosY != 0)
+    public static bool StandsAtOwnPoint(GameDatabase database, int width, ObjectState thing)
+    {
+        return thing.CarriedByCreatureId < 0 && (thing.PosX != 0 || thing.PosY != 0)
         && HomeRoomFor(database, thing.ObjectTypeId) is not null
         && ((thing.PosY >> 12) * width) + (thing.PosX >> 12) == thing.TileIndex;
+    }
 
     /// <summary>Makes <paramref name="worker"/> let go of whatever it was carrying, wherever it is
     /// standing, and says whether it was holding anything. Called wherever a worker stops being a

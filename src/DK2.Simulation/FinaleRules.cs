@@ -47,13 +47,23 @@ public struct PlayerFinale
         w.Write(CameraGlideEndTick); w.Write(FireworksTick); w.Write(PickupTick); w.Write(PickupStage);
     }
 
-    public static PlayerFinale Read(BinaryReader r) => new()
+    public static PlayerFinale Read(BinaryReader r)
     {
-        Flags = r.ReadUInt32(), PointX = r.ReadInt32(), PointY = r.ReadInt32(), PointZ = r.ReadInt32(),
-        GemTileX = r.ReadInt32(), GemTileY = r.ReadInt32(), GemObjectId = r.ReadInt32(),
-        CameraGlideEndTick = r.ReadInt64(), FireworksTick = r.ReadInt64(), PickupTick = r.ReadInt64(),
-        PickupStage = r.ReadByte(),
-    };
+        return new()
+        {
+            Flags = r.ReadUInt32(),
+            PointX = r.ReadInt32(),
+            PointY = r.ReadInt32(),
+            PointZ = r.ReadInt32(),
+            GemTileX = r.ReadInt32(),
+            GemTileY = r.ReadInt32(),
+            GemObjectId = r.ReadInt32(),
+            CameraGlideEndTick = r.ReadInt64(),
+            FireworksTick = r.ReadInt64(),
+            PickupTick = r.ReadInt64(),
+            PickupStage = r.ReadByte(),
+        };
+    }
 }
 
 /// <summary>The campaign win (campaign-win-sequence.md): the dispatch at the end of
@@ -295,10 +305,12 @@ public static class FinaleRules
 
     /// <summary>The jump table at <c>0x004BF9C8</c>: Portal, Dungeon Heart, Prison, Temple, Combat
     /// Pit and the six hero rooms 18-23.</summary>
-    private static bool ExcludedRoom(WorldState world, GameDatabase database, TilePos tile) =>
-        RoomIndex.RoomAt(world, database, tile.Y * world.Width + tile.X)?.Definition.TypeId is
+    private static bool ExcludedRoom(WorldState world, GameDatabase database, TilePos tile)
+    {
+        return RoomIndex.RoomAt(world, database, tile.Y * world.Width + tile.X)?.Definition.TypeId is
             RoomTypeId.Portal or RoomTypeId.DungeonHeart or RoomTypeId.Prison or RoomTypeId.Temple
             or RoomTypeId.CombatPit or (>= RoomTypeId.HeroGateFinal and <= RoomTypeId.HeroGate3By1);
+    }
 
     /// <summary>A creature, object, trap or door on the tile (thing classes 0, 2, 3 and 4).</summary>
     private static bool HoldsAThing(WorldState world, TilePos tile)
@@ -777,8 +789,10 @@ public static class FinaleRules
         }
     }
 
-    private static void Enter(SimulationContext context, CreatureState reaper, int state) =>
+    private static void Enter(SimulationContext context, CreatureState reaper, int state)
+    {
         CreatureStateMachine.TrySetState(context.Hooks, reaper, state, context.Tick.Value);
+    }
 
     private static void BeginAction(SimulationContext context, CreatureState creature, int action, int art)
     {
@@ -807,10 +821,14 @@ public static class FinaleRules
     }
 
     private static void View(SimulationContext context, ScriptedViewKind kind, PlayerId playerId, int value,
-        TilePos tile = default, bool flag = false, int value2 = 0) =>
+        TilePos tile = default, bool flag = false, int value2 = 0)
+    {
         context.RequestView(SystemName, new ScriptedViewRequest(kind, playerId, value, tile, flag, Value2: value2));
+    }
 
-    private static void Effect(SimulationContext context, CreatureState creature, int effect, int heading = 0) =>
+    private static void Effect(SimulationContext context, CreatureState creature, int effect, int heading = 0)
+    {
         context.RequestEffect(SystemName, new ViewEffectRequest(new EffectId(unchecked((ushort)effect)), creature.OwnerPlayerId,
             new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(0)), new Dk2Angle(unchecked((ushort)heading))));
+    }
 }

@@ -141,8 +141,14 @@ public readonly record struct PlayerMessage(
     uint Age, uint Timeout, bool NeedsTab, bool Handled)
 {
     /// <summary>The room type a room message (41 to 43) carries in Data1; null for any other kind.</summary>
-    public RoomTypeId? Room => PlayerMessageQueue.IsRoomMessage(Kind) || PlayerMessageQueue.IsOwnershipMessage(Kind)
+    public RoomTypeId? Room
+    {
+        get
+        {
+            return PlayerMessageQueue.IsRoomMessage(Kind) || PlayerMessageQueue.IsOwnershipMessage(Kind)
         ? (RoomTypeId)Data1 : null;
+        }
+    }
 
     internal void HashInto(ref Hash64 hash)
     {
@@ -161,22 +167,36 @@ public sealed partial class PlayerMessageQueue
     public const int Capacity = 256;
     private readonly List<PlayerMessage> _entries = new();
     private uint _nextId = 1;
-    internal uint NextMessageId => _nextId;
+    internal uint NextMessageId
+    {
+        get
+        {
+            return _nextId;
+        }
+    }
 
-    public PlayerMessageQueue() => Entries = _entries.AsReadOnly();
+    public PlayerMessageQueue()
+    {
+        Entries = _entries.AsReadOnly();
+    }
+
     public IReadOnlyList<PlayerMessage> Entries { get; }
 
     /// <summary>Kinds whose table flag bit 15 is set: the lifetime comes from a subtype row
     /// selected by Data1, and a duplicate must match Data1 as well as recipient and kind.</summary>
-    public static bool HasSubtypes(PlayerMessageKind kind) =>
-        kind is PlayerMessageKind.LowManaWarning or PlayerMessageKind.ManaShortfall
+    public static bool HasSubtypes(PlayerMessageKind kind)
+    {
+        return kind is PlayerMessageKind.LowManaWarning or PlayerMessageKind.ManaShortfall
             or PlayerMessageKind.TrainingUnpaid or PlayerMessageKind.CasinoRowdy
         || IsRoomMessage(kind) || IsOwnershipMessage(kind);
+    }
 
     /// <summary>The room-ownership family 32 to 35, whose subtables share one shape.</summary>
-    public static bool IsOwnershipMessage(PlayerMessageKind kind) =>
-        kind is PlayerMessageKind.RoomCaptured or PlayerMessageKind.NeutralRoomCaptured
+    public static bool IsOwnershipMessage(PlayerMessageKind kind)
+    {
+        return kind is PlayerMessageKind.RoomCaptured or PlayerMessageKind.NeutralRoomCaptured
             or PlayerMessageKind.RoomAttacked or PlayerMessageKind.RoomLost;
+    }
 
     /// <summary>The lifetime of a 32 to 35 subtype row: room types 1 to 4, 6 to 17, 22 and 287 at 20
     /// seconds, 34's without 287 at 30. Null for a type off the table, which takes the terminator's
@@ -199,9 +219,11 @@ public sealed partial class PlayerMessageQueue
         return Post(world, recipient, kind, (int)room, roomTag);
     }
 
-    public static bool IsRoomMessage(PlayerMessageKind kind) =>
-        kind is PlayerMessageKind.RoomNeeded or PlayerMessageKind.RoomFull or PlayerMessageKind.RoomUnreachable
+    public static bool IsRoomMessage(PlayerMessageKind kind)
+    {
+        return kind is PlayerMessageKind.RoomNeeded or PlayerMessageKind.RoomFull or PlayerMessageKind.RoomUnreachable
             or PlayerMessageKind.RoomUnequipped or PlayerMessageKind.RoomStorageFull or PlayerMessageKind.RoomWanted;
+    }
 
     /// <summary>A room message as the producers post it: the room type in Data1; zero in Data2, or
     /// for 44 and 45 the room (ours: its first slab's tile).</summary>
@@ -219,26 +241,29 @@ public sealed partial class PlayerMessageQueue
     /// <summary>The lifetime in seconds of a room message's subtype row: the rows of <c>0x006A03D8</c>
     /// (41), <c>0x006A04B8</c> (42) and <c>0x006A0528</c> (43), eight bytes each (subtype, seconds,
     /// string). Null for a type the table does not list.</summary>
-    public static int? RoomLifetimeSeconds(PlayerMessageKind kind, RoomTypeId room) => (kind, (int)room) switch
+    public static int? RoomLifetimeSeconds(PlayerMessageKind kind, RoomTypeId room)
     {
-        (PlayerMessageKind.RoomNeeded, 1) => 420,
-        (PlayerMessageKind.RoomNeeded, 2 or 4) => 180,
-        (PlayerMessageKind.RoomNeeded, 11 or 14) => 600,
-        (PlayerMessageKind.RoomNeeded, 6 or 7 or 9 or 10 or 12 or 13 or 15 or 16) => 300,
-        (PlayerMessageKind.RoomFull, 1 or 4) => 240,
-        (PlayerMessageKind.RoomFull, 2) => 90,
-        (PlayerMessageKind.RoomFull, 6 or 7 or 9 or 10 or 11 or 12 or 13 or 14 or 15 or 16) => 300,
-        (PlayerMessageKind.RoomUnreachable, 11 or 12) => 360,
-        (PlayerMessageKind.RoomUnreachable, 1 or 2 or 3 or 4 or 6 or 7 or 9 or 10 or 13 or 14 or 15 or 16) => 300,
-        (PlayerMessageKind.RoomUnequipped, 1 or 2 or 4) => 120,
-        (PlayerMessageKind.RoomUnequipped, 6 or 7 or 9 or 10 or 11 or 12 or 13 or 14 or 15 or 16) => 240,
-        (PlayerMessageKind.RoomStorageFull, 6 or 10) => 120,
-        (PlayerMessageKind.RoomWanted, 1) => 420,
-        (PlayerMessageKind.RoomWanted, 2 or 4) => 180,
-        (PlayerMessageKind.RoomWanted, 11 or 14) => 600,
-        (PlayerMessageKind.RoomWanted, 6 or 7 or 9 or 10 or 12 or 13 or 15 or 16) => 300,
-        _ => null,
-    };
+        return (kind, (int)room) switch
+        {
+            (PlayerMessageKind.RoomNeeded, 1) => 420,
+            (PlayerMessageKind.RoomNeeded, 2 or 4) => 180,
+            (PlayerMessageKind.RoomNeeded, 11 or 14) => 600,
+            (PlayerMessageKind.RoomNeeded, 6 or 7 or 9 or 10 or 12 or 13 or 15 or 16) => 300,
+            (PlayerMessageKind.RoomFull, 1 or 4) => 240,
+            (PlayerMessageKind.RoomFull, 2) => 90,
+            (PlayerMessageKind.RoomFull, 6 or 7 or 9 or 10 or 11 or 12 or 13 or 14 or 15 or 16) => 300,
+            (PlayerMessageKind.RoomUnreachable, 11 or 12) => 360,
+            (PlayerMessageKind.RoomUnreachable, 1 or 2 or 3 or 4 or 6 or 7 or 9 or 10 or 13 or 14 or 15 or 16) => 300,
+            (PlayerMessageKind.RoomUnequipped, 1 or 2 or 4) => 120,
+            (PlayerMessageKind.RoomUnequipped, 6 or 7 or 9 or 10 or 11 or 12 or 13 or 14 or 15 or 16) => 240,
+            (PlayerMessageKind.RoomStorageFull, 6 or 10) => 120,
+            (PlayerMessageKind.RoomWanted, 1) => 420,
+            (PlayerMessageKind.RoomWanted, 2 or 4) => 180,
+            (PlayerMessageKind.RoomWanted, 11 or 14) => 600,
+            (PlayerMessageKind.RoomWanted, 6 or 7 or 9 or 10 or 12 or 13 or 15 or 16) => 300,
+            _ => null,
+        };
+    }
 
     public PlayerMessage? Post(WorldState world, byte recipient, PlayerMessageKind kind, int data1, int data2)
     {

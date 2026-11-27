@@ -32,7 +32,10 @@ public readonly record struct SimEvent(GameTick Tick, string System, string Kind
     public CreatureId? ElectrifiedCreature { get; init; }
     public SightRegionRequest? SightRegion { get; init; }
     public ScriptedViewRequest? ScriptedView { get; init; }
-    public override string ToString() => $"{Tick} [{System}] {Kind}: {Detail}";
+    public override string ToString()
+    {
+        return $"{Tick} [{System}] {Kind}: {Detail}";
+    }
 }
 
 public interface ISimulationEventSink
@@ -55,9 +58,21 @@ public sealed class ListEventSink : ISimulationEventSink
 {
     private readonly List<SimEvent> _events = [];
 
-    public IReadOnlyList<SimEvent> Events => _events;
+    public IReadOnlyList<SimEvent> Events
+    {
+        get
+        {
+            return _events;
+        }
+    }
 
-    public void Emit(in SimEvent simEvent) => _events.Add(simEvent);
+    public void Emit(in SimEvent simEvent)
+    {
+        _events.Add(simEvent);
+    }
 
-    public void Clear() => _events.Clear();
+    public void Clear()
+    {
+        _events.Clear();
+    }
 }

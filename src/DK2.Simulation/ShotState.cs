@@ -22,7 +22,11 @@ public sealed partial class ShotState
     /// axis write relinks on its own, so a diagonal crossing takes two link orders (<see cref="WorldState.Relink(CreatureState)"/>).</summary>
     public int PosX
     {
-        get => _posX;
+        get
+        {
+            return _posX;
+        }
+
         set
         {
             if (_posX == value)
@@ -37,7 +41,11 @@ public sealed partial class ShotState
 
     public int PosY
     {
-        get => _posY;
+        get
+        {
+            return _posY;
+        }
+
         set
         {
             if (_posY == value)
@@ -77,16 +85,29 @@ public sealed partial class ShotState
     private Dk2Angle? _viewHeading;
     public Dk2Angle ViewHeading
     {
-        get => _viewHeading ?? new Dk2Angle((ushort)Steering.Bearing.Of(
+        get
+        {
+            return _viewHeading ?? new Dk2Angle((ushort)Steering.Bearing.Of(
             VelX != 0 || VelY != 0 ? VelX : TargetX - PosX,
             VelX != 0 || VelY != 0 ? VelY : TargetY - PosY));
-        internal set => _viewHeading = value;
+        }
+
+        internal set
+        {
+            _viewHeading = value;
+        }
     }
     // Save files omit view metadata: restore uses the ordinary floor and a derived bearing.
     public Fp32 ViewHeight { get; internal set; } = new(Fp32.One);
     public FpPosition3? PreviousViewPosition { get; internal set; }
     internal bool HasLaunchHeading;
-    public FpPosition3 ViewPosition => new(new Fp32(PosX), new Fp32(PosY), ViewHeight);
+    public FpPosition3 ViewPosition
+    {
+        get
+        {
+            return new(new Fp32(PosX), new Fp32(PosY), ViewHeight);
+        }
+    }
 
     /// <summary>The definition's <c>Health</c>: a lifetime in ticks when its flags count it down, a
     /// number of hits otherwise (shots.md §4).</summary>

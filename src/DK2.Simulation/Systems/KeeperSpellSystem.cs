@@ -10,7 +10,13 @@ namespace DK2.Simulation.Systems;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/keeper-spell-thunderbolt.md")]
 public sealed class KeeperSpellSystem : ISimulationSystem
 {
-    public string Name => "keeper_spells";
+    public string Name
+    {
+        get
+        {
+            return "keeper_spells";
+        }
+    }
 
     public void Execute(SimulationContext context)
     {

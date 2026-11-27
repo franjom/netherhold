@@ -18,7 +18,13 @@ public sealed class TrapSystem : ISimulationSystem
     private WorldState? _sightWorld;
     private RoomCache _rooms = new();
 
-    public string Name => "traps";
+    public string Name
+    {
+        get
+        {
+            return "traps";
+        }
+    }
 
     public void Execute(SimulationContext context)
     {
@@ -54,7 +60,13 @@ public sealed class TrapSystem : ISimulationSystem
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/traps.md")]
 public sealed class TrapRemovalSystem : ISimulationSystem
 {
-    public string Name => "trap_removal";
+    public string Name
+    {
+        get
+        {
+            return "trap_removal";
+        }
+    }
 
     public void Execute(SimulationContext context)
     {

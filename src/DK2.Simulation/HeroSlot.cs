@@ -18,7 +18,13 @@ public record struct HeroSlot
     public int CreatureId;
     public byte Value;
 
-    public readonly bool IsFree => CreatureId == 0;
+    public readonly bool IsFree
+    {
+        get
+        {
+            return CreatureId == 0;
+        }
+    }
 
     internal readonly void HashInto(ref Hash64 hash)
     {

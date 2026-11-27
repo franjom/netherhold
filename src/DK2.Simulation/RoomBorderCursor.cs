@@ -41,13 +41,18 @@ public static class RoomBorderRules
     /// <summary><c>0x006A22F8</c>: per orientation, three neighbour probes and the fallthrough
     /// taken when all three are the room's. Each entry is the probe's offset, the move and the
     /// next orientation.</summary>
-    private static ReadOnlySpan<sbyte> Walk =>
-    [
+    private static ReadOnlySpan<sbyte> Walk
+    {
+        get
+        {
+            return [
         1, 0, 0, 0, 1,    1, -1, 1, 0, 0,    0, -1, 1, -1, 3,    0, 0, 1, 0, 0,
         0, 1, 0, 0, 2,    1, 1, 0, 1, 1,     1, 0, 1, 1, 0,      0, 0, 0, 1, 1,
         -1, 0, 0, 0, 3,   -1, 1, -1, 0, 2,   0, 1, -1, 1, 1,     0, 0, -1, 0, 2,
         0, -1, 0, 0, 0,   -1, -1, 0, -1, 3,  -1, 0, -1, -1, 2,   0, 0, 0, -1, 3,
     ];
+        }
+    }
 
     /// <summary>A new room's cursor (<c>0x004E7CA0</c>): its first slab, orientation 3, phase 0.
     /// DK2's first slab is the tile the room was started with; ours is the room's lowest tile

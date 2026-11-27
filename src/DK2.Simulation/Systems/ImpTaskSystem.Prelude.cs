@@ -13,12 +13,29 @@ public sealed partial class ImpTaskSystem
     private ICreatureUpdateStep? _prelude;
 
     /// <summary>Reinforcement's claim/pickup block (0048904E), before the action poll at00489A68.</summary>
-    public ICreatureUpdateStep Prelude => _prelude ??= new WorkerPrelude(this);
+    public ICreatureUpdateStep Prelude
+    {
+        get
+        {
+            return _prelude ??= new WorkerPrelude(this);
+        }
+    }
 
     internal sealed class WorkerPrelude(ImpTaskSystem owner) : ICreatureUpdateStep
     {
-        public string Name => "WorkerPrelude";
-        public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+        public string Name
+        {
+            get
+            {
+                return "WorkerPrelude";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            CreatureUpdateSystem.RunAlone(context, this);
+        }
+
         public void Update(SimulationContext context, CreatureState creature)
         {
             CreatureDef definition = context.Database.CreatureById(creature.CreatureTypeId);

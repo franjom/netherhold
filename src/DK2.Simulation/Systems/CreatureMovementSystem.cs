@@ -32,7 +32,13 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
     /// <summary>The Imp's creature type id, the one the update's mover gate names.</summary>
     private const int ImpTypeId = 1;
 
-    public string Name => SystemName;
+    public string Name
+    {
+        get
+        {
+            return SystemName;
+        }
+    }
 
     // The door contact's SelectAVictim needs the fight's caches; ours, as CombatSystem keeps its own.
     private readonly List<Fixed16Vector> _scratch = [];
@@ -43,7 +49,10 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
     private WorldSight? _sight;
     private WorldState? _sightWorld;
 
-    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+    public void Execute(SimulationContext context)
+    {
+        CreatureUpdateSystem.RunAlone(context, this);
+    }
 
     public void BeginTurn(SimulationContext context)
     {
@@ -228,8 +237,10 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
     /// tick rate as the loader does it, clamped, shifted up four. <c>0x004887D0</c> takes it from
     /// the shared definition (<c>+0x5B4</c> walking, <c>+0x5B8</c> running), so level never
     /// changes it (ADR-0518).</summary>
-    public static int MaxSpeedOf(CreatureDef definition, bool running = false) =>
-        MaxSpeedOf(definition, running ? CreatureSpeedMode.Run : CreatureSpeedMode.Walk);
+    public static int MaxSpeedOf(CreatureDef definition, bool running = false)
+    {
+        return MaxSpeedOf(definition, running ? CreatureSpeedMode.Run : CreatureSpeedMode.Walk);
+    }
 
     /// <summary>The cap for a speed mode: <c>+0x5BC</c> is the shuffle's.</summary>
     public static int MaxSpeedOf(CreatureDef definition, CreatureSpeedMode mode)

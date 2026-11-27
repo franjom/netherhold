@@ -62,21 +62,78 @@ public sealed partial class NavMesh
     public int MaxX { get; private set; }
     public int MaxY { get; private set; }
 
-    public int Width => MaxX - MinX;
-    public int Height => MaxY - MinY;
+    public int Width
+    {
+        get
+        {
+            return MaxX - MinX;
+        }
+    }
+
+    public int Height
+    {
+        get
+        {
+            return MaxY - MinY;
+        }
+    }
 
     /// <summary>Slots ever allocated, live or dead; the index bound for iteration.</summary>
-    public int TriangleSlots => _triCount;
-    public int PointSlots => _pointCount;
+    public int TriangleSlots
+    {
+        get
+        {
+            return _triCount;
+        }
+    }
 
-    public bool IsTriangleLive(int t) => _nav[t] != NavBytes.Dead;
-    public bool IsPointLive(int p) => !_pointDead[p];
-    public int Vertex(int t, int i) => _v[(3 * t) + i];
-    public int Neighbour(int t, int i) => _n[(3 * t) + i];
-    public byte NavByte(int t) => _nav[t];
-    public bool IsConstraint(int t, int i) => (_constraint[t] & (1 << i)) != 0;
-    public int PointX(int p) => _px[p];
-    public int PointY(int p) => _py[p];
+    public int PointSlots
+    {
+        get
+        {
+            return _pointCount;
+        }
+    }
+
+    public bool IsTriangleLive(int t)
+    {
+        return _nav[t] != NavBytes.Dead;
+    }
+
+    public bool IsPointLive(int p)
+    {
+        return !_pointDead[p];
+    }
+
+    public int Vertex(int t, int i)
+    {
+        return _v[(3 * t) + i];
+    }
+
+    public int Neighbour(int t, int i)
+    {
+        return _n[(3 * t) + i];
+    }
+
+    public byte NavByte(int t)
+    {
+        return _nav[t];
+    }
+
+    public bool IsConstraint(int t, int i)
+    {
+        return (_constraint[t] & (1 << i)) != 0;
+    }
+
+    public int PointX(int p)
+    {
+        return _px[p];
+    }
+
+    public int PointY(int p)
+    {
+        return _py[p];
+    }
 
     public int LiveTriangleCount()
     {
@@ -101,7 +158,10 @@ public sealed partial class NavMesh
     }
 
     /// <summary>A canvas from the origin, for a mesh assembled by hand.</summary>
-    public void Reset(int width, int height) => Reset(0, 0, width, height);
+    public void Reset(int width, int height)
+    {
+        Reset(0, 0, width, height);
+    }
 
     /// <summary>The original's reset (`0x004C8D10`): four corner points and two triangles over the
     /// given rectangle, both stamped <see cref="NavBytes.Outside"/>, everything else dead, both free
@@ -206,7 +266,10 @@ public sealed partial class NavMesh
 
     /// <summary>A copy of the locate cache. Independent questioners restore the build's copy
     /// before routing so each sees the edge and vertex answers of a fresh build (ADR-0486).</summary>
-    public int[] CaptureLocateCache() => (int[])_locateCache.Clone();
+    public int[] CaptureLocateCache()
+    {
+        return (int[])_locateCache.Clone();
+    }
 
     public void RestoreLocateCache(int[] cache)
     {
@@ -220,9 +283,15 @@ public sealed partial class NavMesh
 
     /// <summary>The cell of the original's locate cache for a position in 1/256-tile units: the
     /// canvas in 64-tile squares, clamped to a 4 by 4 grid.</summary>
-    private static int CellOf(int x, int y) => Math.Clamp(x >> 14, 0, 3) + (4 * Math.Clamp(y >> 14, 0, 3));
+    private static int CellOf(int x, int y)
+    {
+        return Math.Clamp(x >> 14, 0, 3) + (4 * Math.Clamp(y >> 14, 0, 3));
+    }
 
-    private bool LiveSlot(int t) => t >= 0 && t < _triCount && IsTriangleLive(t);
+    private bool LiveSlot(int t)
+    {
+        return t >= 0 && t < _triCount && IsTriangleLive(t);
+    }
 
     /// <summary>`0x004C97B0`: a live triangle for a cell whose cached one died: the entries of the
     /// cell's left, right, upper and lower neighbours in that order, then every entry in order,
@@ -313,7 +382,10 @@ public sealed partial class NavMesh
     /// for our winding, which is the original's reversed: stop where the far point is strictly
     /// inside the edge leaving the vertex and inside or on the edge arriving at it; otherwise cross
     /// the arriving edge and keep the same vertex. −1 when the fan reaches the hull.</summary>
-    private int FanToward(int t, int k, long qx, long qy) => TurnFan(ref t, ref k, qx, qy) ? t : -1;
+    private int FanToward(int t, int k, long qx, long qy)
+    {
+        return TurnFan(ref t, ref k, qx, qy) ? t : -1;
+    }
 
     /// <summary>The fan walk with both results: the triangle and the vertex's slot in it. False
     /// at the hull, where the original's loop would read a −1 slot.</summary>
@@ -362,8 +434,15 @@ public sealed partial class NavMesh
         return true;
     }
 
-    private long Sx(int p) => (long)_px[p] * UnitsPerTile;
-    private long Sy(int p) => (long)_py[p] * UnitsPerTile;
+    private long Sx(int p)
+    {
+        return (long)_px[p] * UnitsPerTile;
+    }
+
+    private long Sy(int p)
+    {
+        return (long)_py[p] * UnitsPerTile;
+    }
 
     /// <summary>The original's point insertion (`0x004CAA50`): nothing if the tile corner is
     /// already a vertex of the triangle located under it; a split of the two triangles sharing an

@@ -27,7 +27,13 @@ public sealed class HandSystem : ISimulationSystem
     /// <summary>Effect 32, Gold From Hand: the glint of gold leaving the hand (<c>0x004BC9CA</c>).</summary>
     public static readonly EffectId GoldFromHandEffect = new(32);
 
-    public string Name => SystemName;
+    public string Name
+    {
+        get
+        {
+            return SystemName;
+        }
+    }
 
     private readonly List<CreatureState> _landing = [];
 
@@ -286,8 +292,10 @@ public sealed class HandSystem : ISimulationSystem
     /// <summary>Entering a hand state leaves the current one first (<c>0x004C09F0</c>, <c>0x004C0B50</c>):
     /// a lift still pending is taken. Each action enters a state only once its own test has passed, so
     /// the callers run this after that test.</summary>
-    private static void LeaveHandState(SimulationContext context, PlayerId playerId) =>
+    private static void LeaveHandState(SimulationContext context, PlayerId playerId)
+    {
         CompleteLift(context, playerId, context.Tick.Value);
+    }
 
     /// <summary>Hand state 1's exit (<c>0x004C0EA0</c>, <c>Hand_PickUp</c> <c>0x004BC500</c>): the prepared
     /// creature enters the hand, stamped with the turn DK2 took it. Its own refusals are tested here, not
@@ -478,11 +486,13 @@ public sealed class HandSystem : ISimulationSystem
 
     // ------------------------------------------------------------------- drop
 
-    private static void AcceptedDrop(SimulationContext context, PlayerId player, bool gold) =>
+    private static void AcceptedDrop(SimulationContext context, PlayerId player, bool gold)
+    {
         context.Events.Emit(new SimEvent(context.Tick, SystemName, "hand_drop_accepted", $"player={player} gold={gold}")
         {
             HandDrop = new HandDropFeedback(player, gold),
         });
+    }
 
     private static void Drop(SimulationContext context, DropCommand command)
     {

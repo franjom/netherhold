@@ -35,7 +35,10 @@ public sealed class ReachableTiles
     public TilePos From { get; private set; }
 
     /// <summary>Whether the last flood was over this very grid instance from this tile.</summary>
-    public bool IsFor(IPathGrid grid, TilePos from) => ReferenceEquals(Grid, grid) && From == from;
+    public bool IsFor(IPathGrid grid, TilePos from)
+    {
+        return ReferenceEquals(Grid, grid) && From == from;
+    }
 
     /// <summary>Reaches every tile <paramref name="from"/> can walk to, recording the cheapest
     /// route to each. A start outside the grid reaches nothing.</summary>
@@ -118,7 +121,10 @@ public sealed class ReachableTiles
 
     /// <summary>The cost of the route the last flood found to <paramref name="to"/>, in the
     /// pathfinder's units (<see cref="GridPathfinder.StraightCost"/>); -1 when it did not reach it.</summary>
-    public int CostTo(TilePos to) => Reaches(to) ? _cost[(to.Y * _width) + to.X] : -1;
+    public int CostTo(TilePos to)
+    {
+        return Reaches(to) ? _cost[(to.Y * _width) + to.X] : -1;
+    }
 
     /// <summary>The nearest of <paramref name="candidates"/> that satisfies <paramref name="isGoal"/>,
     /// with its route, as <c>TryFindNearest(grid, from, p =&gt; candidates.Contains(p) &amp;&amp; isGoal(p), path)</c>
@@ -203,6 +209,8 @@ public sealed class ReachableTiles
         return true;
     }
 
-    private static bool InBounds(IPathGrid grid, int x, int y) =>
-        (uint)x < (uint)grid.Width && (uint)y < (uint)grid.Height;
+    private static bool InBounds(IPathGrid grid, int x, int y)
+    {
+        return (uint)x < (uint)grid.Width && (uint)y < (uint)grid.Height;
+    }
 }

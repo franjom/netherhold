@@ -19,14 +19,18 @@ namespace DK2.Simulation;
 public static class WalkerResetRules
 {
     /// <summary>The states <c>0x004E8D30</c> resets: 3, 4 and 7, and 6 while its resume is 1.</summary>
-    public static bool Resets(CreatureState creature) =>
-        creature.Dk2StateId is 3 or 4 or StateShadow.TravelToRoom
+    public static bool Resets(CreatureState creature)
+    {
+        return creature.Dk2StateId is 3 or 4 or StateShadow.TravelToRoom
         || (creature.Dk2StateId == StateShadow.TravelToPoint && creature.UtilityNewState == CreatureStateMachine.Idle);
+    }
 
-    public static void Reset(SimulationContext context, string system, PlayerId player) =>
+    public static void Reset(SimulationContext context, string system, PlayerId player)
+    {
         Reset(context.Hooks, context.World, context.Tick.Value, player,
             (creature, from, taken) => context.Emit(system, "walker_reset",
                 $"creature={creature.Id} player={player} from={from} refused={(taken ? 0 : 1)}"));
+    }
 
     /// <summary>The reset for a caller holding only the hooks, a trigger action's.</summary>
     public static void Reset(

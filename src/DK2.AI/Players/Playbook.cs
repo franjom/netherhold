@@ -17,9 +17,15 @@ public enum PlaybookItemKind : byte { Room, Spell, Door, Trap, Creature }
 /// <see cref="RoomTypeId"/> name).</summary>
 public readonly record struct PlaybookItem(PlaybookItemKind Kind, string Name)
 {
-    public static PlaybookItem Room(RoomTypeId room) => new(PlaybookItemKind.Room, room.ToString());
+    public static PlaybookItem Room(RoomTypeId room)
+    {
+        return new(PlaybookItemKind.Room, room.ToString());
+    }
 
-    public override string ToString() => Kind.ToString().ToLowerInvariant() + ":" + Name;
+    public override string ToString()
+    {
+        return Kind.ToString().ToLowerInvariant() + ":" + Name;
+    }
 
     /// <summary>Reads <c>kind:Name</c>; the kind exactly as written by <see cref="ToString"/>, the name non-empty.</summary>
     public static bool TryParse(string? text, out PlaybookItem item)
@@ -308,5 +314,8 @@ public sealed record Playbook
         return strategy;
     }
 
-    private static string Invariant(FormattableString text) => text.ToString(CultureInfo.InvariantCulture);
+    private static string Invariant(FormattableString text)
+    {
+        return text.ToString(CultureInfo.InvariantCulture);
+    }
 }

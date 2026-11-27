@@ -47,14 +47,30 @@ public static class NavBytes
     /// as "tagged" (`0x00450FC0`); a foreign door carrying it stops every mover.</summary>
     public const byte DoorTagged = 2;
 
-    public static bool IsSolid(byte nav) => (nav & Solid) != 0;
-    public static int Category(byte nav) => nav & 3;
+    public static bool IsSolid(byte nav)
+    {
+        return (nav & Solid) != 0;
+    }
+
+    public static int Category(byte nav)
+    {
+        return nav & 3;
+    }
 
     /// <summary>A closed, completed door: the owner's id in the high nibble, so never zero.</summary>
-    public static bool IsDoor(byte nav) => (nav & 0xF0) != 0;
-    public static int Owner(byte nav) => nav >> 4;
+    public static bool IsDoor(byte nav)
+    {
+        return (nav & 0xF0) != 0;
+    }
+
+    public static int Owner(byte nav)
+    {
+        return nav >> 4;
+    }
 
     /// <summary>The byte `0x004A66F0` writes for a closed door; an open one writes plain floor.</summary>
-    public static byte Door(byte owner, bool locked, bool tagged) =>
-        (byte)(((owner & 0xF) << 4) | (locked ? DoorLocked : 0) | (tagged ? DoorTagged : 0));
+    public static byte Door(byte owner, bool locked, bool tagged)
+    {
+        return (byte)(((owner & 0xF) << 4) | (locked ? DoorLocked : 0) | (tagged ? DoorTagged : 0));
+    }
 }

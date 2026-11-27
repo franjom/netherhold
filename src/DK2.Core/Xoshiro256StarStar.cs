@@ -28,7 +28,9 @@ public sealed class Xoshiro256StarStar : IRandomAlgorithm
     }
 
     private Xoshiro256StarStar(ulong s0, ulong s1, ulong s2, ulong s3)
-        => (_s0, _s1, _s2, _s3) = (s0, s1, s2, s3);
+    {
+        (_s0, _s1, _s2, _s3) = (s0, s1, s2, s3);
+    }
 
     private static ulong SplitMix64(ref ulong x)
     {
@@ -39,7 +41,10 @@ public sealed class Xoshiro256StarStar : IRandomAlgorithm
         return z ^ (z >> 31);
     }
 
-    private static ulong Rotl(ulong v, int k) => (v << k) | (v >> (64 - k));
+    private static ulong Rotl(ulong v, int k)
+    {
+        return (v << k) | (v >> (64 - k));
+    }
 
     public ulong NextUInt64()
     {
@@ -82,8 +87,13 @@ public sealed class Xoshiro256StarStar : IRandomAlgorithm
         hash.Add(_s3);
     }
 
-    public (ulong S0, ulong S1, ulong S2, ulong S3) SaveState() => (_s0, _s1, _s2, _s3);
+    public (ulong S0, ulong S1, ulong S2, ulong S3) SaveState()
+    {
+        return (_s0, _s1, _s2, _s3);
+    }
 
     public static Xoshiro256StarStar Restore((ulong S0, ulong S1, ulong S2, ulong S3) state)
-        => new(state.S0, state.S1, state.S2, state.S3);
+    {
+        return new(state.S0, state.S1, state.S2, state.S3);
+    }
 }

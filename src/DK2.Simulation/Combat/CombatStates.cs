@@ -53,12 +53,16 @@ internal static class CombatStates
     public const int Celebrating = 260;
 
     /// <summary>A move into <paramref name="state"/>.</summary>
-    public static void Enter(SimulationContext context, CreatureState me, int state) =>
+    public static void Enter(SimulationContext context, CreatureState me, int state)
+    {
         StateShadow.Move(context, SystemName, me, state);
+    }
 
     /// <summary>The route helper <c>0x00471890</c>: state 6, resuming <paramref name="resume"/>.</summary>
-    public static void Travel(SimulationContext context, CreatureState me, int resume) =>
+    public static void Travel(SimulationContext context, CreatureState me, int resume)
+    {
         CreatureStateMachine.BeginTravel(context.Hooks, me, StateShadow.TravelToPoint, resume);
+    }
 
     /// <summary>The withdraw and the alarm's first step: "in the combat group, or
     /// <c>SetState(199)</c>" (combat-fear.md §5, combat-alarm.md §2). True when it entered 199,
@@ -75,8 +79,10 @@ internal static class CombatStates
     }
 
     /// <summary>The travel state's handover, if the creature is in one.</summary>
-    public static void Arrive(SimulationContext context, CreatureState me) =>
+    public static void Arrive(SimulationContext context, CreatureState me)
+    {
         StateShadow.Arrive(context, SystemName, me);
+    }
 
     /// <summary>A handler returning zero, or one that sets 1: state 1, which no state refuses.</summary>
     public static void Idle(in StateHookContext hooks, CreatureState me)

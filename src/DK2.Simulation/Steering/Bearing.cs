@@ -40,7 +40,10 @@ public static class Bearing
 
     /// <summary>The original's <c>atan(i/256)</c> table, exposed so a test can hold it to its
     /// formula.</summary>
-    public static int ArctangentEntry(int i) => Arctangent[i];
+    public static int ArctangentEntry(int i)
+    {
+        return Arctangent[i];
+    }
 
     /// <summary>The bearing of a difference vector by octant: +x is 0x200, +y 0x400, -x 0x600 and
     /// -y 0, with the origin itself 0. Any single unit will do; the mover passes 1/4096 tiles.
@@ -114,7 +117,13 @@ public static class Bearing
         return Distance(heading, target);
     }
 
-    private static int Arc(int smaller, int larger) => Arctangent[(int)(((uint)smaller << 8) / (uint)larger)];
+    private static int Arc(int smaller, int larger)
+    {
+        return Arctangent[(int)(((uint)smaller << 8) / (uint)larger)];
+    }
 
-    private static int Wrap(int angle) => angle & Mask;
+    private static int Wrap(int angle)
+    {
+        return angle & Mask;
+    }
 }

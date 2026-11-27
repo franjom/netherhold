@@ -167,8 +167,11 @@ public static class ReaperRules
     }
 
     /// <summary>How long action 46, the roar, holds: one first cycle of art 35 or its fallback 8.</summary>
-    internal static int SummonHoldTicks(CreatureDef definition) => AnimationTimingRules.FirstCycleHoldTicks(
+    internal static int SummonHoldTicks(CreatureDef definition)
+    {
+        return AnimationTimingRules.FirstCycleHoldTicks(
         AnimationTimingRules.SlotOrFallback(definition.ReaperSummonAnimation, definition.ReaperSummonFallbackAnimation));
+    }
 
     public static void Create(SimulationContext context, ShotState shot)
     {

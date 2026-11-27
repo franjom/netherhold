@@ -61,7 +61,13 @@ public static partial class CreatureStateCoverage
     private static readonly StateCoverageRow[] Rows = Build();
 
     /// <summary>All 281 rows, by state id.</summary>
-    public static IReadOnlyList<StateCoverageRow> All => Rows;
+    public static IReadOnlyList<StateCoverageRow> All
+    {
+        get
+        {
+            return Rows;
+        }
+    }
 
     public static StateCoverageRow Get(int stateId)
     {
@@ -95,12 +101,18 @@ public static partial class CreatureStateCoverage
         return byId;
     }
 
-    private static StateCoverageRow Built(int id, Type handler, string member, string? unexercisedBecause = null) =>
-        new(id, StateStatus.Built, handler, member, unexercisedBecause);
+    private static StateCoverageRow Built(int id, Type handler, string member, string? unexercisedBecause = null)
+    {
+        return new(id, StateStatus.Built, handler, member, unexercisedBecause);
+    }
 
-    private static StateCoverageRow Unreachable(int id, string evidence) =>
-        new(id, StateStatus.Unreachable, null, evidence, null);
+    private static StateCoverageRow Unreachable(int id, string evidence)
+    {
+        return new(id, StateStatus.Unreachable, null, evidence, null);
+    }
 
-    private static StateCoverageRow Unbuilt(int id, string blocker) =>
-        new(id, StateStatus.Unbuilt, null, blocker, null);
+    private static StateCoverageRow Unbuilt(int id, string blocker)
+    {
+        return new(id, StateStatus.Unbuilt, null, blocker, null);
+    }
 }

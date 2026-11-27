@@ -78,8 +78,21 @@ public sealed partial class TrapState
     public int GuardRoomTile = -1;
 
     /// <summary>The trap's position, the tile's centre as the loader <c>0x00520E50</c> puts it.</summary>
-    public int PosX => (X << 12) + 0x800;
-    public int PosY => (Y << 12) + 0x800;
+    public int PosX
+    {
+        get
+        {
+            return (X << 12) + 0x800;
+        }
+    }
+
+    public int PosY
+    {
+        get
+        {
+            return (Y << 12) + 0x800;
+        }
+    }
 
     public void HashInto(ref Hash64 hash)
     {

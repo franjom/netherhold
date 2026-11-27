@@ -20,5 +20,8 @@ public static class PlayerStatus
     public const byte Won = 2;
     public const byte Lost = 3;
 
-    public static bool HasEnded(byte status) => status != Playing;
+    public static bool HasEnded(byte status)
+    {
+        return status != Playing;
+    }
 }

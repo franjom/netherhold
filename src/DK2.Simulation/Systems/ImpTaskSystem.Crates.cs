@@ -486,8 +486,10 @@ public sealed partial class ImpTaskSystem
     }
 
     /// <summary>The imp's pick-up <c>0x0048B4A0</c> refuses while it holds something.</summary>
-    private static bool CanTakeACrate(CreatureState creature) =>
-        creature.CarriedObjectId < 0 && creature.CarriedCreatureId < 0 && creature.GoldHeld <= 0;
+    private static bool CanTakeACrate(CreatureState creature)
+    {
+        return creature.CarriedObjectId < 0 && creature.CarriedCreatureId < 0 && creature.GoldHeld <= 0;
+    }
 
     /// <summary>For a crate going home: a random tile of the nearest Workshop with space that no
     /// furniture slot takes, as the destination helper's <c>0x004E8430</c> picks, or -1.</summary>
@@ -502,22 +504,34 @@ public sealed partial class ImpTaskSystem
         return _crateTiles.Count == 0 ? -1 : _crateTiles[context.Rng.NextInt(_crateTiles.Count)];
     }
 
-    private static bool IsCrateState(int state) =>
-        state is CrateRules.FetchTrapCrateState or CrateRules.InstallTrapState
+    private static bool IsCrateState(int state)
+    {
+        return state is CrateRules.FetchTrapCrateState or CrateRules.InstallTrapState
             or CrateRules.FetchDoorCrateState or CrateRules.InstallDoorState;
+    }
 
-    private static bool IsCrateJob(CreatureState creature) =>
-        IsCrateState(StateShadow.IsTravelling(creature) ? creature.UtilityNewState : creature.Dk2StateId);
+    private static bool IsCrateJob(CreatureState creature)
+    {
+        return IsCrateState(StateShadow.IsTravelling(creature) ? creature.UtilityNewState : creature.Dk2StateId);
+    }
 
-    private static byte KindOfState(int state) =>
-        state is CrateRules.FetchDoorCrateState or CrateRules.InstallDoorState ? CrateRules.DoorKind : CrateRules.TrapKind;
+    private static byte KindOfState(int state)
+    {
+        return state is CrateRules.FetchDoorCrateState or CrateRules.InstallDoorState ? CrateRules.DoorKind : CrateRules.TrapKind;
+    }
 
-    private static int FetchStateOf(byte kind) =>
-        kind == CrateRules.DoorKind ? CrateRules.FetchDoorCrateState : CrateRules.FetchTrapCrateState;
+    private static int FetchStateOf(byte kind)
+    {
+        return kind == CrateRules.DoorKind ? CrateRules.FetchDoorCrateState : CrateRules.FetchTrapCrateState;
+    }
 
-    private static int InstallStateOf(byte kind) =>
-        kind == CrateRules.DoorKind ? CrateRules.InstallDoorState : CrateRules.InstallTrapState;
+    private static int InstallStateOf(byte kind)
+    {
+        return kind == CrateRules.DoorKind ? CrateRules.InstallDoorState : CrateRules.InstallTrapState;
+    }
 
-    private static ImpTaskKind TaskKindOf(byte kind) =>
-        kind == CrateRules.DoorKind ? ImpTaskKind.BuildDoor : ImpTaskKind.BuildTrap;
+    private static ImpTaskKind TaskKindOf(byte kind)
+    {
+        return kind == CrateRules.DoorKind ? ImpTaskKind.BuildDoor : ImpTaskKind.BuildTrap;
+    }
 }

@@ -40,9 +40,18 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
         _moodJobs = new CreatureAngerSystem(_pathfinder);
     }
 
-    public string Name => SystemName;
+    public string Name
+    {
+        get
+        {
+            return SystemName;
+        }
+    }
 
-    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+    public void Execute(SimulationContext context)
+    {
+        CreatureUpdateSystem.RunAlone(context, this);
+    }
 
     /// <summary>A non-worker's state handler in its update: the walks and jobs it is in, and the
     /// happy and unhappy choosers when it is idle.</summary>
@@ -1429,17 +1438,22 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
             && room.OwnerPlayerId == creature.OwnerPlayerId;
     }
 
-    private static bool HoldsAVictim(WorldState world, RoomInstance room) =>
-        world.Creatures.Any(c => TortureRules.IsBeingTortured(c)
+    private static bool HoldsAVictim(WorldState world, RoomInstance room)
+    {
+        return world.Creatures.Any(c => TortureRules.IsBeingTortured(c)
             && EatingRules.Contains(room, (c.Tile.Y * world.Width) + c.Tile.X));
+    }
 
     /// <summary>The last tick of a game second, which is the phase every
     /// per-second system in this simulation shares.</summary>
-    private static bool OnTheSecond(SimulationContext context) =>
-        (context.Tick.Value + 1) % SimulationTiming.TicksPerSecond == 0;
+    private static bool OnTheSecond(SimulationContext context)
+    {
+        return (context.Tick.Value + 1) % SimulationTiming.TicksPerSecond == 0;
+    }
 
-    private static int CentreTileIndex(WorldState world, RoomInstance room) =>
-        ((room.MinY + ((room.MaxY - room.MinY) / 2)) * world.Width)
+    private static int CentreTileIndex(WorldState world, RoomInstance room)
+    {
+        return ((room.MinY + ((room.MaxY - room.MinY) / 2)) * world.Width)
         + room.MinX + ((room.MaxX - room.MinX) / 2);
-
+    }
 }

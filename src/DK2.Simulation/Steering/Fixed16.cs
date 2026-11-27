@@ -12,29 +12,59 @@ public readonly record struct Fixed16Vector(int X, int Y)
 {
     public static readonly Fixed16Vector Zero = new(0, 0);
 
-    public static Fixed16Vector operator +(Fixed16Vector a, Fixed16Vector b) => new(a.X + b.X, a.Y + b.Y);
+    public static Fixed16Vector operator +(Fixed16Vector a, Fixed16Vector b)
+    {
+        return new(a.X + b.X, a.Y + b.Y);
+    }
 
-    public static Fixed16Vector operator -(Fixed16Vector a, Fixed16Vector b) => new(a.X - b.X, a.Y - b.Y);
+    public static Fixed16Vector operator -(Fixed16Vector a, Fixed16Vector b)
+    {
+        return new(a.X - b.X, a.Y - b.Y);
+    }
 
-    public static Fixed16Vector operator -(Fixed16Vector a) => new(-a.X, -a.Y);
+    public static Fixed16Vector operator -(Fixed16Vector a)
+    {
+        return new(-a.X, -a.Y);
+    }
 
     /// <summary>Both components times a 16.16 scalar (<c>0x004D1E70</c>).</summary>
-    public Fixed16Vector Scale(int k) => new(Fixed16.Mul(X, k), Fixed16.Mul(Y, k));
+    public Fixed16Vector Scale(int k)
+    {
+        return new(Fixed16.Mul(X, k), Fixed16.Mul(Y, k));
+    }
 
     /// <summary>Both components over a 16.16 scalar (<c>0x004D1EC0</c>).</summary>
-    public Fixed16Vector Over(int k) => new(Fixed16.Div(X, k), Fixed16.Div(Y, k));
+    public Fixed16Vector Over(int k)
+    {
+        return new(Fixed16.Div(X, k), Fixed16.Div(Y, k));
+    }
 
     /// <summary>The left perpendicular (<c>0x004D5060</c>): x takes -y, y takes x.</summary>
-    public Fixed16Vector Perpendicular() => new(-Y, X);
+    public Fixed16Vector Perpendicular()
+    {
+        return new(-Y, X);
+    }
 
-    public int Dot(Fixed16Vector o) => Fixed16.Mul(X, o.X) + Fixed16.Mul(Y, o.Y);
+    public int Dot(Fixed16Vector o)
+    {
+        return Fixed16.Mul(X, o.X) + Fixed16.Mul(Y, o.Y);
+    }
 
-    public int Octile() => Fixed16.Octile(X, Y);
+    public int Octile()
+    {
+        return Fixed16.Octile(X, Y);
+    }
 
-    public int Length() => Fixed16.Length(X, Y);
+    public int Length()
+    {
+        return Fixed16.Length(X, Y);
+    }
 
     /// <summary>The tile this position is on: the integer part of each component.</summary>
-    public (int X, int Y) Tile() => (X >> 16, Y >> 16);
+    public (int X, int Y) Tile()
+    {
+        return (X >> 16, Y >> 16);
+    }
 }
 
 /// <summary>The steering layer's 16.16 arithmetic, operation for operation as the original does
@@ -46,11 +76,20 @@ public static class Fixed16
 {
     public const int One = 1 << 16;
 
-    public static int Mul(int a, int b) => (int)(((long)a * b) >> 16);
+    public static int Mul(int a, int b)
+    {
+        return (int)(((long)a * b) >> 16);
+    }
 
-    public static int Div(int a, int b) => (int)(((long)a << 16) / b);
+    public static int Div(int a, int b)
+    {
+        return (int)(((long)a << 16) / b);
+    }
 
-    public static int Abs(int v) => v < 0 ? -v : v;
+    public static int Abs(int v)
+    {
+        return v < 0 ? -v : v;
+    }
 
     /// <summary>The longer axis plus half the shorter (<c>0x004D4570</c>).</summary>
     public static int Octile(int dx, int dy)

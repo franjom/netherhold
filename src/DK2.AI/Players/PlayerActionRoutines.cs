@@ -19,8 +19,10 @@ public static class PlayerActionRoutines
 {
     /// <summary>A visible creature of another side: heroes or a rival keeper. The observation carries
     /// no alliances, so an allied rival keeper also counts.</summary>
-    public static bool IsEnemy(in PlayerVisibleThing thing, PlayerId self) =>
-        thing.Kind == PlayerThingKind.Creature && thing.Owner != self && thing.Owner != PlayerIds.Neutral && thing.Owner != PlayerIds.Unowned;
+    public static bool IsEnemy(in PlayerVisibleThing thing, PlayerId self)
+    {
+        return thing.Kind == PlayerThingKind.Creature && thing.Owner != self && thing.Owner != PlayerIds.Neutral && thing.Owner != PlayerIds.Unowned;
+    }
 
     /// <summary>An enemy (<see cref="IsEnemy"/>) that is not a captive: one standing on the player's own
     /// Prison or Torture Chamber is taken for its prisoner, since a visible creature keeps its owner. The
@@ -45,11 +47,16 @@ public static class PlayerActionRoutines
 
     /// <summary>A creature whose flower shows one petal: collapsed or dying (status-flowers.md section 3), so no threat;
     /// an enemy collapsed on own ground is a body to capture (R16). A flower not shown (level 0) says nothing.</summary>
-    public static bool IsDown(in PlayerVisibleThing thing) => thing.Level > 0 && thing.Petals <= 1;
+    public static bool IsDown(in PlayerVisibleThing thing)
+    {
+        return thing.Level > 0 && thing.Petals <= 1;
+    }
 
     /// <summary>Own claimed ground a creature can stand on: known, not solid or liquid, the player's.</summary>
-    public static bool IsOwnFloor(in PlayerTile tile, PlayerId self) =>
-        tile.IsKnown && (tile.Flags & (PlayerTileFlags.Solid | PlayerTileFlags.Water | PlayerTileFlags.Lava)) == 0 && tile.Owner == self;
+    public static bool IsOwnFloor(in PlayerTile tile, PlayerId self)
+    {
+        return tile.IsKnown && (tile.Flags & (PlayerTileFlags.Solid | PlayerTileFlags.Water | PlayerTileFlags.Lava)) == 0 && tile.Owner == self;
+    }
 
     /// <summary>Where distances are measured from: the own Dungeon Heart's centre, else the own
     /// floor's, else the map's.</summary>
@@ -688,7 +695,10 @@ public static class PlayerActionRoutines
         }
         return false;
 
-        bool Shows(int x, int y) => grid.Contains(new TilePos(x, y)) && grid[new TilePos(x, y)] is var t && t.Room == room && t.Owner == self;
+        bool Shows(int x, int y)
+        {
+            return grid.Contains(new TilePos(x, y)) && grid[new TilePos(x, y)] is var t && t.Room == room && t.Owner == self;
+        }
     }
 
     /// <summary>Whether a 4-neighbour is known open ground of another side: a hero or rival keeper,

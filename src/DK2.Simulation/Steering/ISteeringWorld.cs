@@ -69,7 +69,10 @@ public sealed class SteeringMover
     /// <c>(footprintRadius >> 1) &lt;&lt; 4</c> from definition <c>+0x63A</c> (KWD <c>0xEA0</c>, 1/4096 tile).</summary>
     public int CrowdWord { get; set; }
 
-    public static int CrowdWordOf(int footprintRadius) => (footprintRadius >> 1) << 4;
+    public static int CrowdWordOf(int footprintRadius)
+    {
+        return (footprintRadius >> 1) << 4;
+    }
 
     public MoverProfile Profile { get; set; } = MoverProfile.Walker;
 }

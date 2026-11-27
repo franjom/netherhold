@@ -28,9 +28,18 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
         _seeker = new LairSeeker(_pathfinder);
     }
 
-    public string Name => SystemName;
+    public string Name
+    {
+        get
+        {
+            return SystemName;
+        }
+    }
 
-    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+    public void Execute(SimulationContext context)
+    {
+        CreatureUpdateSystem.RunAlone(context, this);
+    }
 
     /// <summary>The sleep branch of the needs routine (<c>0x00477C20</c>), after hunger, and the
     /// lair states, in the creature's update before its state handler.</summary>
@@ -378,8 +387,10 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
 
     /// <summary>Routes a creature to its own bed.</summary>
     private static void SetOff(
-        SimulationContext context, CreatureState creature, CreatureDef definition) =>
+        SimulationContext context, CreatureState creature, CreatureDef definition)
+    {
         GoToBed(context, creature, definition);
+    }
 
     /// <summary>The bed route of Job_Sleep (<c>0x0046F440</c>): the room helper with resume 81. Shared
     /// by the needs routine's tired attempt and the chooser's Sleep job

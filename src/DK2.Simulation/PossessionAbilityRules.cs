@@ -54,10 +54,13 @@ public static class PossessionAbilityRules
             FearEffect(context, creature, new EffectId(336), new Fp32(creature.PosZ + Fp32.One));
         }
     }
-    private static void FearEffect(SimulationContext context, CreatureState creature, EffectId effect, Fp32 height) =>
+    private static void FearEffect(SimulationContext context, CreatureState creature, EffectId effect, Fp32 height)
+    {
         context.RequestEffect("possession", new ViewEffectRequest(effect, new PlayerId(PlayerIds.Neutral),
             new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), height),
             new Dk2Angle(0), creature.Id));
+    }
+
     public static void ToggleForm(SimulationContext context, CreatureState creature)
     {
         creature.PossessionFlightForm = !creature.PossessionFlightForm;
@@ -65,8 +68,11 @@ public static class PossessionAbilityRules
             new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ + Fp32.One)),
             new Dk2Angle(0)));
     }
-    internal static void TogglePrayer(CreatureState creature) =>
+    internal static void TogglePrayer(CreatureState creature)
+    {
         creature.PossessionPraying = !creature.PossessionPraying;
+    }
+
     internal static void BeginPrayer(SimulationContext context, CreatureState creature)
     {
         if (!creature.Possessed || !creature.PossessionPraying || creature.PossessionPrayerAction)

@@ -133,8 +133,10 @@ public static class GraveyardRules
 
     /// <summary><c>Room_HasCapacity</c> for a corpse (one unit, <c>+0x672</c>) in a Graveyard: its used
     /// count (<c>+0x6B</c>, the corpses lying in it, <c>0x004E6490</c>) within its floor slots.</summary>
-    public static bool HasPlace(WorldState world, RoomInstance graveyard) =>
-        Lying(world, graveyard) + RoomCapacityRules.Units <= AutoFurnitureRules.FloorSlotCount(world, graveyard);
+    public static bool HasPlace(WorldState world, RoomInstance graveyard)
+    {
+        return Lying(world, graveyard) + RoomCapacityRules.Units <= AutoFurnitureRules.FloorSlotCount(world, graveyard);
+    }
 
     /// <summary>The corpses lying in a Graveyard (<see cref="CreatureState.GraveyardSlot"/>).</summary>
     public static int Lying(WorldState world, RoomInstance graveyard)
@@ -468,7 +470,9 @@ public static class GraveyardRules
 
     /// <summary>A sale frees the room and rebuilds what is left as new rooms with nothing copied for a
     /// Graveyard (room-object.md), so any sale of one of its tiles loses the tally (Q321).</summary>
-    public static void Forget(WorldState world, RoomInstance graveyard) =>
+    public static void Forget(WorldState world, RoomInstance graveyard)
+    {
         world.RawGraveyards.RemoveAll(state =>
             state.AnchorTileIndex == graveyard.TileIndices[0] && state.OwnerPlayerId == graveyard.OwnerPlayerId);
+    }
 }

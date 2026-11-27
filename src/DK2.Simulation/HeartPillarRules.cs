@@ -11,8 +11,10 @@ public enum HeartPillar { First, Second, Third }
 
 public readonly record struct HeartPillarId(int Value)
 {
-    public static HeartPillarId For(WorldState world, HeartPillarTarget target) =>
-        new(((target.Tile.Y * world.Width + target.Tile.X) * 3) + (int)target.Pillar);
+    public static HeartPillarId For(WorldState world, HeartPillarTarget target)
+    {
+        return new(((target.Tile.Y * world.Width + target.Tile.X) * 3) + (int)target.Pillar);
+    }
 }
 
 public readonly record struct HeartPillarTarget(HeartPillar Pillar, TilePos Tile, Fp32 X, Fp32 Y);

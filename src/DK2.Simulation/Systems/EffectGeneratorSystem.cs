@@ -11,7 +11,13 @@ namespace DK2.Simulation.Systems;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hero-parties-and-effect-generators.md")]
 public sealed class EffectGeneratorSystem : ISimulationSystem
 {
-    public string Name => "effect generator";
+    public string Name
+    {
+        get
+        {
+            return "effect generator";
+        }
+    }
 
     public void Execute(SimulationContext context)
     {

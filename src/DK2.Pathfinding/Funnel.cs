@@ -19,8 +19,10 @@ public static class Funnel
     /// <summary>Appends the turn points strictly between <paramref name="from"/> and
     /// <paramref name="to"/>, then <paramref name="to"/> itself, and returns the accumulated
     /// Euclidean length through the original's integer square root.</summary>
-    public static int Reduce(NavMesh mesh, NavPoint from, NavPoint to, List<int> corridor, List<NavPoint> waypoints) =>
-        Reduce(mesh, from, to, corridor, waypoints, new FunnelBuffers());
+    public static int Reduce(NavMesh mesh, NavPoint from, NavPoint to, List<int> corridor, List<NavPoint> waypoints)
+    {
+        return Reduce(mesh, from, to, corridor, waypoints, new FunnelBuffers());
+    }
 
     /// <summary>The same reduction with the bound arrays taken from <paramref name="buffers"/>, so a
     /// router that funnels several corridors a request allocates them once.</summary>
@@ -113,8 +115,10 @@ public static class Funnel
         throw new InvalidOperationException($"triangles {t} and {next} are not neighbours");
     }
 
-    private static int Orient(NavPoint a, NavPoint b, NavPoint c) =>
-        NavMesh.Orient(a.X, a.Y, b.X, b.Y, c.X, c.Y);
+    private static int Orient(NavPoint a, NavPoint b, NavPoint c)
+    {
+        return NavMesh.Orient(a.X, a.Y, b.X, b.Y, c.X, c.Y);
+    }
 }
 
 /// <summary>The left and right bound arrays <see cref="Funnel.Reduce(NavMesh, NavPoint, NavPoint, List{int}, List{NavPoint}, FunnelBuffers)"/>

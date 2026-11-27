@@ -16,7 +16,13 @@ public abstract record PlayerAction
     private protected PlayerAction() { }
 
     /// <summary>The action's family, in which capability offers are expressed.</summary>
-    public PlayerActionKinds Kind => Family;
+    public PlayerActionKinds Kind
+    {
+        get
+        {
+            return Family;
+        }
+    }
 
     // Only this assembly can override it, so no type elsewhere can derive: a record keeps a
     // protected copy constructor and cannot close itself by constructor access alone.
@@ -25,61 +31,121 @@ public abstract record PlayerAction
     /// <summary>Tags (or untags) the rectangle between two corners for digging.</summary>
     public sealed record TagArea(TilePos From, TilePos To, bool Untag = false) : PlayerAction
     {
-        private protected override PlayerActionKinds Family => PlayerActionKinds.TagArea;
+        private protected override PlayerActionKinds Family
+        {
+            get
+            {
+                return PlayerActionKinds.TagArea;
+            }
+        }
     }
 
     /// <summary>Builds a room over the rectangle between two corners, as a dragged build does.</summary>
     public sealed record BuildRoom(RoomTypeId Room, TilePos From, TilePos To) : PlayerAction
     {
-        private protected override PlayerActionKinds Family => PlayerActionKinds.BuildRoom;
+        private protected override PlayerActionKinds Family
+        {
+            get
+            {
+                return PlayerActionKinds.BuildRoom;
+            }
+        }
     }
 
     /// <summary>Presses a bottom-panel button; campaign scripts observe these presses.</summary>
     public sealed record SelectPanel(GuiButtonTarget Button) : PlayerAction
     {
-        private protected override PlayerActionKinds Family => PlayerActionKinds.SelectPanel;
+        private protected override PlayerActionKinds Family
+        {
+            get
+            {
+                return PlayerActionKinds.SelectPanel;
+            }
+        }
     }
 
     /// <summary>Picks a visible thing up into the hand.</summary>
     public sealed record PickUp(PlayerThingHandle Thing) : PlayerAction
     {
-        private protected override PlayerActionKinds Family => PlayerActionKinds.PickUp;
+        private protected override PlayerActionKinds Family
+        {
+            get
+            {
+                return PlayerActionKinds.PickUp;
+            }
+        }
     }
 
     /// <summary>Drops the hand's top item on a tile.</summary>
     public sealed record DropAt(TilePos Tile) : PlayerAction
     {
-        private protected override PlayerActionKinds Family => PlayerActionKinds.DropAt;
+        private protected override PlayerActionKinds Family
+        {
+            get
+            {
+                return PlayerActionKinds.DropAt;
+            }
+        }
     }
 
     /// <summary>Slaps a visible creature.</summary>
     public sealed record Slap(PlayerThingHandle Thing) : PlayerAction
     {
-        private protected override PlayerActionKinds Family => PlayerActionKinds.Slap;
+        private protected override PlayerActionKinds Family
+        {
+            get
+            {
+                return PlayerActionKinds.Slap;
+            }
+        }
     }
 
     /// <summary>Activates a visible special's box with the hand.</summary>
     public sealed record ActivateSpecial(PlayerThingHandle Special) : PlayerAction
     {
-        private protected override PlayerActionKinds Family => PlayerActionKinds.ActivateSpecial;
+        private protected override PlayerActionKinds Family
+        {
+            get
+            {
+                return PlayerActionKinds.ActivateSpecial;
+            }
+        }
     }
 
     /// <summary>Casts Create Imp on a tile.</summary>
     public sealed record CreateImpAt(TilePos Tile) : PlayerAction
     {
-        private protected override PlayerActionKinds Family => PlayerActionKinds.CreateImpAt;
+        private protected override PlayerActionKinds Family
+        {
+            get
+            {
+                return PlayerActionKinds.CreateImpAt;
+            }
+        }
     }
 
     /// <summary>Places an offered door's blueprint on a tile (Task 4), as a click with the door selected sends it.</summary>
     public sealed record PlaceDoor(byte Door, TilePos Tile) : PlayerAction
     {
-        private protected override PlayerActionKinds Family => PlayerActionKinds.PlaceDoor;
+        private protected override PlayerActionKinds Family
+        {
+            get
+            {
+                return PlayerActionKinds.PlaceDoor;
+            }
+        }
     }
 
     /// <summary>Places an offered trap's blueprint on a tile (Task 4), as a click with the trap selected sends it.</summary>
     public sealed record PlaceTrap(byte Trap, TilePos Tile) : PlayerAction
     {
-        private protected override PlayerActionKinds Family => PlayerActionKinds.PlaceTrap;
+        private protected override PlayerActionKinds Family
+        {
+            get
+            {
+                return PlayerActionKinds.PlaceTrap;
+            }
+        }
     }
 
     /// <summary>Casts an offered spell (Task 4): a creature spell on a visible creature
@@ -87,12 +153,24 @@ public abstract record PlayerAction
     /// on the hovered creature or ground sends it (<c>PlacementCursor.Spell</c>). Exactly one of the two.</summary>
     public sealed record CastSpell(byte Spell, PlayerThingHandle? Target = null, TilePos? Tile = null) : PlayerAction
     {
-        private protected override PlayerActionKinds Family => PlayerActionKinds.CastSpell;
+        private protected override PlayerActionKinds Family
+        {
+            get
+            {
+                return PlayerActionKinds.CastSpell;
+            }
+        }
     }
 
     /// <summary>Skips the level's intro camera path; offered only while it plays.</summary>
     public sealed record SkipIntro : PlayerAction
     {
-        private protected override PlayerActionKinds Family => PlayerActionKinds.SkipIntro;
+        private protected override PlayerActionKinds Family
+        {
+            get
+            {
+                return PlayerActionKinds.SkipIntro;
+            }
+        }
     }
 }

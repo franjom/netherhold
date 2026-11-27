@@ -55,8 +55,10 @@ public static class GoldStore
     /// the geometry is asked of the room <i>instance</i>, so a partly destroyed
     /// heart answers sensibly rather than by a hardcoded 16.</para>
     /// </summary>
-    public static int Capacity(WorldState world, GameDatabase database, int tileIndex) =>
-        Capacity(world, database, tileIndex, RoomIndex.RoomAt(world, database, tileIndex));
+    public static int Capacity(WorldState world, GameDatabase database, int tileIndex)
+    {
+        return Capacity(world, database, tileIndex, RoomIndex.RoomAt(world, database, tileIndex));
+    }
 
     /// <summary>
     /// The same, for a caller that has already worked out which room the tile is
@@ -101,17 +103,23 @@ public static class GoldStore
     }
 
     /// <summary>Room left in the tile at <paramref name="tileIndex"/>.</summary>
-    public static int SpaceIn(WorldState world, GameDatabase database, int tileIndex) =>
-        Math.Max(0, Capacity(world, database, tileIndex) - world.TileAtIndex(tileIndex).GoldHeld);
+    public static int SpaceIn(WorldState world, GameDatabase database, int tileIndex)
+    {
+        return Math.Max(0, Capacity(world, database, tileIndex) - world.TileAtIndex(tileIndex).GoldHeld);
+    }
 
     private static int SpaceIn(
-        WorldState world, GameDatabase database, int tileIndex, RoomInstance? room) =>
-        Math.Max(0, Capacity(world, database, tileIndex, room)
+        WorldState world, GameDatabase database, int tileIndex, RoomInstance? room)
+    {
+        return Math.Max(0, Capacity(world, database, tileIndex, room)
                     - world.TileAtIndex(tileIndex).GoldHeld);
+    }
 
     /// <summary>Room left in one tile, ignoring room shape. See the note on <see cref="Capacity(GameDatabase, in TileState)"/>.</summary>
-    public static int SpaceIn(GameDatabase database, in TileState tile) =>
-        Math.Max(0, Capacity(database, tile) - tile.GoldHeld);
+    public static int SpaceIn(GameDatabase database, in TileState tile)
+    {
+        return Math.Max(0, Capacity(database, tile) - tile.GoldHeld);
+    }
 
 
     /// <summary>
@@ -284,8 +292,10 @@ public static class GoldStore
     /// <see cref="FillAlongChainFrom"/>, and what the tiles cannot take goes down as a new neutral
     /// pile on <paramref name="tile"/> at one of eight points drawn on the world stream (line 0x196,
     /// table <c>0x006A2FA0</c>). Returns what went into the store.</summary>
-    public static int DepositFrom(SimulationContext context, RoomInstance room, int tile, int amount) =>
-        DepositFrom(context.World, context.Database, room, tile, amount, context.Rng, context);
+    public static int DepositFrom(SimulationContext context, RoomInstance room, int tile, int amount)
+    {
+        return DepositFrom(context.World, context.Database, room, tile, amount, context.Rng, context);
+    }
 
     /// <summary>The same with the world stream passed in; with none, no angle or overflow point is drawn.</summary>
     public static int DepositFrom(WorldState world, GameDatabase database, RoomInstance room, int tile, int amount,
@@ -433,8 +443,10 @@ public static class GoldStore
 
     /// <summary>The ruin test both deposits and the gold store state <c>0x0049F730</c> make first
     /// (room <c>+0x9A</c> bit 0): a ruined Heart takes nothing.</summary>
-    public static bool Accepts(WorldState world, RoomInstance room) =>
-        room.Definition.TypeId != RoomTypeId.DungeonHeart || !RoomRules.IsRuined(world, room);
+    public static bool Accepts(WorldState world, RoomInstance room)
+    {
+        return room.Definition.TypeId != RoomTypeId.DungeonHeart || !RoomRules.IsRuined(world, room);
+    }
 
     /// <summary>The eight points a deposit's leftover is put at, in DK2's table order
     /// (<c>0x006A2FA0</c>: each coordinate 0x3FF, 0x7FF or 0xBFF, never both 0x7FF), as the

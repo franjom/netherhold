@@ -105,23 +105,59 @@ public sealed partial class SteeringBody
         hash.Add(EscapeStuckMode);
     }
 
-    public Fixed16Vector CurrentPoint => Subpath[SubpathIndex];
+    public Fixed16Vector CurrentPoint
+    {
+        get
+        {
+            return Subpath[SubpathIndex];
+        }
+    }
 
-    public bool OnLastPoint => SubpathIndex == PathTotalCount - 1;
+    public bool OnLastPoint
+    {
+        get
+        {
+            return SubpathIndex == PathTotalCount - 1;
+        }
+    }
 
     /// <summary><c>path_flags</c> bit 0 (our name): arrival within a tenth of the radius, not half.</summary>
-    public bool TightArrival => (PathFlags & 1) != 0;
+    public bool TightArrival
+    {
+        get
+        {
+            return (PathFlags & 1) != 0;
+        }
+    }
 
     /// <summary><c>path_flags</c> bit 1 (our name): the last point is sought like any other.</summary>
-    public bool NoFinalApproach => (PathFlags & 2) != 0;
+    public bool NoFinalApproach
+    {
+        get
+        {
+            return (PathFlags & 2) != 0;
+        }
+    }
 
     /// <summary><c>path_flags</c> bit 2 (our name): repulsion stops near the last point and the
     /// integrator snaps onto it.</summary>
-    public bool SnapsOnArrival => (PathFlags & 4) != 0;
+    public bool SnapsOnArrival
+    {
+        get
+        {
+            return (PathFlags & 4) != 0;
+        }
+    }
 
     /// <summary><c>path_flags</c> bit 3 (our name): Separation stops within half a tile of the
     /// last point.</summary>
-    public bool SeparatesUntilArrival => (PathFlags & 8) != 0;
+    public bool SeparatesUntilArrival
+    {
+        get
+        {
+            return (PathFlags & 8) != 0;
+        }
+    }
 }
 
 /// <summary>A recorded solid obstacle: the unit direction from it to the body and its flag bit 1,

@@ -14,9 +14,18 @@ public struct Fnv1a64
 
     private ulong _h;
 
-    public static Fnv1a64 Start() => new() { _h = Offset };
+    public static Fnv1a64 Start()
+    {
+        return new() { _h = Offset };
+    }
 
-    public readonly ulong Value => _h;
+    public readonly ulong Value
+    {
+        get
+        {
+            return _h;
+        }
+    }
 
     public void Add(byte b)
     {
@@ -32,14 +41,45 @@ public struct Fnv1a64
         }
     }
 
-    public void Add(long v) => Add(unchecked((ulong)v));
-    public void Add(int v) => Add(unchecked((ulong)(long)v));
-    public void Add(uint v) => Add((ulong)v);
-    public void Add(short v) => Add((long)v);
-    public void Add(ushort v) => Add((ulong)v);
-    public void Add(bool v) => Add((byte)(v ? 1 : 0));
-    public void Add(GameTick t) => Add(t.Value);
-    public void Add(Fp32 f) => Add(f.Raw);
+    public void Add(long v)
+    {
+        Add(unchecked((ulong)v));
+    }
+
+    public void Add(int v)
+    {
+        Add(unchecked((ulong)(long)v));
+    }
+
+    public void Add(uint v)
+    {
+        Add((ulong)v);
+    }
+
+    public void Add(short v)
+    {
+        Add((long)v);
+    }
+
+    public void Add(ushort v)
+    {
+        Add((ulong)v);
+    }
+
+    public void Add(bool v)
+    {
+        Add((byte)(v ? 1 : 0));
+    }
+
+    public void Add(GameTick t)
+    {
+        Add(t.Value);
+    }
+
+    public void Add(Fp32 f)
+    {
+        Add(f.Raw);
+    }
 
     /// <summary>Hashes a string by its bytes, never by <c>GetHashCode</c>.</summary>
     public void Add(string? s)

@@ -95,9 +95,13 @@ public static class VerdictRules
     }
 
     /// <summary>A keeper still in the game for the loss branch's count: playing, or already won.</summary>
-    private static bool StillIn(WorldState world, PlayerId id) =>
-        PlayerIds.IsKeeper(id.Value) && world.Player(id).Status is PlayerStatus.Playing or PlayerStatus.Won;
+    private static bool StillIn(WorldState world, PlayerId id)
+    {
+        return PlayerIds.IsKeeper(id.Value) && world.Player(id).Status is PlayerStatus.Playing or PlayerStatus.Won;
+    }
 
-    private static bool MutualAllies(WorldState world, PlayerId a, PlayerId b) =>
-        world.AreAllied(a, b.Value) && world.AreAllied(b, a.Value);
+    private static bool MutualAllies(WorldState world, PlayerId a, PlayerId b)
+    {
+        return world.AreAllied(a, b.Value) && world.AreAllied(b, a.Value);
+    }
 }

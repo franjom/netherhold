@@ -157,7 +157,13 @@ public sealed class WorldSight : ISightBlocker
     }
 
     /// <summary>The same walk with the door test switched off: only a solid tile stops it.</summary>
-    public ISightBlocker SolidOnly => _solid;
+    public ISightBlocker SolidOnly
+    {
+        get
+        {
+            return _solid;
+        }
+    }
 
     /// <summary>Whether any door, barricades included, stands on the tile.</summary>
     public bool DoorOn(int x, int y)
@@ -220,6 +226,9 @@ public sealed class WorldSight : ISightBlocker
 
     private sealed class SolidSight(WorldSteering navigation) : ISightBlocker
     {
-        public bool Blocks(int x, int y) => NavBytes.IsSolid(navigation.NavByte(x, y));
+        public bool Blocks(int x, int y)
+        {
+            return NavBytes.IsSolid(navigation.NavByte(x, y));
+        }
     }
 }

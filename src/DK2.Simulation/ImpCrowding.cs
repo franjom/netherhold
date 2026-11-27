@@ -28,10 +28,12 @@ public static class ImpCrowding
     public const int MaxWorkersOnTheTile = 1;
 
     /// <summary>The worker cap for a job and stance.</summary>
-    public static int MaxWorkers(bool workedFromTheTile, TileWorkKind? kind = null) =>
-        workedFromTheTile ? MaxWorkersOnTheTile
+    public static int MaxWorkers(bool workedFromTheTile, TileWorkKind? kind = null)
+    {
+        return workedFromTheTile ? MaxWorkersOnTheTile
         : kind is TileWorkKind.Reinforce or TileWorkKind.RepairWall
             ? MaxReinforcersPerFace : MaxWorkersPerFace;
+    }
 
     /// <summary>Whether <paramref name="face"/> already has its full complement of workers on
     /// <paramref name="targetTileIndex"/>. A worker's face is where it will be standing when it
@@ -101,9 +103,11 @@ public static class ImpCrowding
     /// <paramref name="kind"/> would need. Reinforce and repair are two pool entries with their own
     /// slots (0x0046AEA0: <c>TaskPool_Find(6)</c>, <c>TaskPool_Find(0x10)</c>), so neither crowds the
     /// other; every other kind counts every worker on the face, as before.</summary>
-    public static bool SharesSlots(TileWorkKind? kind, TileWorkKind held) =>
-        kind is not (TileWorkKind.Reinforce or TileWorkKind.RepairWall)
+    public static bool SharesSlots(TileWorkKind? kind, TileWorkKind held)
+    {
+        return kind is not (TileWorkKind.Reinforce or TileWorkKind.RepairWall)
         || held == kind;
+    }
 
     /// <summary>The tile a worker intends to swing from: the end of its route, or the tile it
     /// stands on when it has none. Derived rather than stored, so it cannot disagree with the route

@@ -54,17 +54,32 @@ public sealed class RoomInstance
     /// anything iterating a room is reproducible, which matters when a rule picks one tile of several.</summary>
     public IReadOnlyList<int> TileIndices { get; }
 
-    public int TileCount => TileIndices.Count;
+    public int TileCount
+    {
+        get
+        {
+            return TileIndices.Count;
+        }
+    }
 
     /// <summary>The same tiles as <see cref="TileIndices"/>, for a loop that must not allocate.</summary>
-    public ReadOnlySpan<int> Tiles => _tileIndices;
+    public ReadOnlySpan<int> Tiles
+    {
+        get
+        {
+            return _tileIndices;
+        }
+    }
 
     /// <summary><see cref="AutoFurnitureRules.WallSide"/>'s answer for this instance, computed once:
     /// it depends only on the map, and a map change replaces the instance. Derived, never hashed.</summary>
     internal (int Tile, int Side)[]? WallSlots { get; set; }
 
     /// <summary>Whether a tile is one of this room's.</summary>
-    public bool Contains(int tileIndex) => Array.BinarySearch((int[])TileIndices, tileIndex) >= 0;
+    public bool Contains(int tileIndex)
+    {
+        return Array.BinarySearch((int[])TileIndices, tileIndex) >= 0;
+    }
 
     // The smallest axis-aligned box containing the room; a room need not fill it (an L-shaped treasury has empty corners), so a shape rule must ask the tiles.
     public int MinX { get; }
@@ -72,17 +87,48 @@ public sealed class RoomInstance
     public int MaxX { get; }
     public int MaxY { get; }
 
-    public int Width => MaxX - MinX + 1;
-    public int Height => MaxY - MinY + 1;
+    public int Width
+    {
+        get
+        {
+            return MaxX - MinX + 1;
+        }
+    }
+
+    public int Height
+    {
+        get
+        {
+            return MaxY - MinY + 1;
+        }
+    }
 
     /// <summary>Room position words +0x27/+0x29: ordinary centroid and owned-tile spiral
     /// (004E4590). Special rooms retain the existing bounding-box adapters.</summary>
-    public int CentreFieldX => _centre.X;
+    public int CentreFieldX
+    {
+        get
+        {
+            return _centre.X;
+        }
+    }
 
-    public int CentreFieldY => _centre.Y;
+    public int CentreFieldY
+    {
+        get
+        {
+            return _centre.Y;
+        }
+    }
 
     /// <summary>Whether the room fills its own bounding box — i.e. it is a solid rectangle.</summary>
-    public bool IsRectangular => TileCount == Width * Height;
+    public bool IsRectangular
+    {
+        get
+        {
+            return TileCount == Width * Height;
+        }
+    }
 
     /// <summary>Whether this room is big enough to do anything: the bounding box is at least
     /// <see cref="RoomDef.RecommendedSizeX"/> by <c>RecommendedSizeY</c>. STRONGLY INFERRED, and the
@@ -92,14 +138,25 @@ public sealed class RoomInstance
     /// 5x5 yet a working 3x3 prison holds two and raises Skeletons (Q179), so this is not yet the
     /// rule. Measured on the box, not the tile count; which the original uses is UNKNOWN. Read only
     /// by <c>PortalRules</c>; a prison's capacity is its own geometry (<see cref="PrisonRules.Capacity"/>).</summary>
-    public bool IsFunctional =>
-        Width >= Definition.RecommendedSizeX && Height >= Definition.RecommendedSizeY;
+    public bool IsFunctional
+    {
+        get
+        {
+            return Width >= Definition.RecommendedSizeX && Height >= Definition.RecommendedSizeY;
+        }
+    }
 
     /// <summary>Tiles with at least one orthogonal neighbour outside the room — the rim, and a
     /// temple's capacity (Q60). CONFIRMED against three tooltip readings: 3x3 holds 8, 4x4 holds 12,
     /// 5x5 holds 16, which is <c>2(w+h) − 4</c> for a solid rectangle. Counting the boundary rather
     /// than evaluating the formula lets an L-shaped temple answer too; the room is a pool with a walkway, and creatures stand on the walkway.</summary>
-    public int EdgeTileCount => TileCount - InteriorTileIndices.Count;
+    public int EdgeTileCount
+    {
+        get
+        {
+            return TileCount - InteriorTileIndices.Count;
+        }
+    }
 
     /// <summary>The tiles wholly surrounded by the room, in ascending order. <b>A set, not a
     /// count</b>, because a prison's rim is where its bars are: a prisoner is confined to these
@@ -107,7 +164,13 @@ public sealed class RoomInstance
     public IReadOnlyList<int> InteriorTileIndices { get; internal set; } = [];
 
     /// <summary>Tiles wholly surrounded by the room — <see cref="TileCount"/> less the rim.</summary>
-    public int InteriorTileCount => InteriorTileIndices.Count;
+    public int InteriorTileCount
+    {
+        get
+        {
+            return InteriorTileIndices.Count;
+        }
+    }
 
     /// <summary>The rim of the <i>interior</i>: interior tiles not themselves wholly
     /// surrounded by interior tiles. <b>A graveyard's graves sit here</b>, on five printed
@@ -115,7 +178,10 @@ public sealed class RoomInstance
     public int InteriorRimTileCount { get; internal set; }
 
     /// <summary>Whether this tile of the room is one of the wholly surrounded ones.</summary>
-    public bool IsInterior(int tileIndex) => InteriorTileIndices.Contains(tileIndex);
+    public bool IsInterior(int tileIndex)
+    {
+        return InteriorTileIndices.Contains(tileIndex);
+    }
 
     /// <summary>Whether a tile is one of the middle nine — the raised platform a dungeon heart's
     /// structure stands on, and what makes a heart hold 16000 and not 25000 (Q52). CONFIRMED: a

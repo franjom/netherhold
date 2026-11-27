@@ -10,7 +10,14 @@ namespace DK2.Simulation.Systems;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/prison-rats.md")]
 public sealed class ObjectMovementSystem : ISimulationSystem
 {
-    public string Name => "ObjectMovement";
+    public string Name
+    {
+        get
+        {
+            return "ObjectMovement";
+        }
+    }
+
     public void Execute(SimulationContext context)
     {
         if (context.World.Objects.Any(o => o.ObjectTypeId == RatRules.RatObjectId))

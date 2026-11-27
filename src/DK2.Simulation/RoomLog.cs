@@ -39,8 +39,10 @@ public sealed class RoomLog
 
     public RoomLogTally Tally { get; }
 
-    public InputFrame At(long turn) =>
-        _frames.TryGetValue(turn, out InputFrame frame) ? frame : InputFrame.Empty;
+    public InputFrame At(long turn)
+    {
+        return _frames.TryGetValue(turn, out InputFrame frame) ? frame : InputFrame.Empty;
+    }
 
     public static RoomLog Read(string path, long lag = 1, long origin = 1)
     {
@@ -184,8 +186,10 @@ public sealed class RoomLog
         return null;
     }
 
-    private static TilePos[] Sorted(IEnumerable<TilePos> tiles) =>
-        [.. tiles.OrderBy(t => t.Y).ThenBy(t => t.X)];
+    private static TilePos[] Sorted(IEnumerable<TilePos> tiles)
+    {
+        return [.. tiles.OrderBy(t => t.Y).ThenBy(t => t.X)];
+    }
 
     /// <summary><paramref name="Disowned"/>: the room's own PlayerId disagrees
     /// with the player whose list the walk found it in, so one of the two is
@@ -196,11 +200,13 @@ public sealed class RoomLog
     {
         public static Row Parse(string[] c, string name, int number)
         {
-            long N(int i) =>
-                long.TryParse(c[i], NumberStyles.Integer, CultureInfo.InvariantCulture, out long v)
+            long N(int i)
+            {
+                return long.TryParse(c[i], NumberStyles.Integer, CultureInfo.InvariantCulture, out long v)
                     ? v
                     : throw new InvalidDataException(
                         $"'{name}' line {number} has '{c[i]}' where a number was expected.");
+            }
 
             if (c[3] is not ("build" or "grow" or "shrink" or "gone"))
             {
@@ -224,7 +230,13 @@ public sealed class RoomLog
     /// </summary>
     private readonly record struct Rect(int X0, int Y0, int X1, int Y1, int Size)
     {
-        public int Area => (Math.Abs(X1 - X0) + 1) * (Math.Abs(Y1 - Y0) + 1);
+        public int Area
+        {
+            get
+            {
+                return (Math.Abs(X1 - X0) + 1) * (Math.Abs(Y1 - Y0) + 1);
+            }
+        }
 
         public TilePos[] Tiles()
         {
@@ -249,8 +261,10 @@ public sealed class RoomLog
         public int Before;
         public int Disowned;
 
-        public RoomLogTally Freeze() =>
-            new(Rows, Commands, Unsettled, Before, Disowned);
+        public RoomLogTally Freeze()
+        {
+            return new(Rows, Commands, Unsettled, Before, Disowned);
+        }
     }
 }
 

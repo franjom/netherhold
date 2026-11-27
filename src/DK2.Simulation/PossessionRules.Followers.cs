@@ -253,7 +253,10 @@ public static partial class PossessionRules
     }
 
     /// <summary>Fear in a fight (<c>0x0045F425</c>): the follower lets go and its leader's count drops.</summary>
-    public static void DropFollowFromFear(WorldState world, CreatureState c) => LeaderLosesFollower(world, c);
+    public static void DropFollowFromFear(WorldState world, CreatureState c)
+    {
+        LeaderLosesFollower(world, c);
+    }
 
     /// <summary><c>0x0045D5BF</c>: a follower whose leader and its last melee target are both live
     /// takes that target ahead of its fight-style arm; owner, age and class are not tested. Only a

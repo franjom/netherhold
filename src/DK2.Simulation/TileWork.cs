@@ -283,21 +283,24 @@ public static class TileWorkRules
 
     /// <summary>The global variable each kind draws its per-application health
     /// delta from. STRONGLY INFERRED — these are DK2's own variable names.</summary>
-    public static VariableTypeId Variable(TileWorkKind kind) => kind switch
+    public static VariableTypeId Variable(TileWorkKind kind)
     {
-        TileWorkKind.Dig => VariableTypeId.DigRockHealth,
-        TileWorkKind.MineGold => VariableTypeId.MineGoldHealth,
-        TileWorkKind.DigOwnWall => VariableTypeId.DigOwnWallHealth,
-        TileWorkKind.DigEnemyWall => VariableTypeId.DigEnemyWallHealth,
-        TileWorkKind.Claim => VariableTypeId.ClaimTileHealth,
-        TileWorkKind.AttackTile => VariableTypeId.AttackTileHealth,
-        TileWorkKind.Reinforce => VariableTypeId.ReinforceWallHealth,
-        TileWorkKind.RepairWall => VariableTypeId.RepairWallHealth,
-        TileWorkKind.ConvertRoom => VariableTypeId.ConvertRoomHealth,
-        TileWorkKind.AttackRoom => VariableTypeId.AttackRoomHealth,
-        TileWorkKind.RepairRoom => VariableTypeId.RepairRoomHealth,
-        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown tile work kind."),
-    };
+        return kind switch
+        {
+            TileWorkKind.Dig => VariableTypeId.DigRockHealth,
+            TileWorkKind.MineGold => VariableTypeId.MineGoldHealth,
+            TileWorkKind.DigOwnWall => VariableTypeId.DigOwnWallHealth,
+            TileWorkKind.DigEnemyWall => VariableTypeId.DigEnemyWallHealth,
+            TileWorkKind.Claim => VariableTypeId.ClaimTileHealth,
+            TileWorkKind.AttackTile => VariableTypeId.AttackTileHealth,
+            TileWorkKind.Reinforce => VariableTypeId.ReinforceWallHealth,
+            TileWorkKind.RepairWall => VariableTypeId.RepairWallHealth,
+            TileWorkKind.ConvertRoom => VariableTypeId.ConvertRoomHealth,
+            TileWorkKind.AttackRoom => VariableTypeId.AttackRoomHealth,
+            TileWorkKind.RepairRoom => VariableTypeId.RepairRoomHealth,
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown tile work kind."),
+        };
+    }
 
     /// <summary>
     /// The ceiling DK2's tile applier clamps a tile's health to: <b>32000</b>.
@@ -338,8 +341,10 @@ public static class TileWorkRules
     /// <summary>What a creature of the Good player applies in action 11's first arm: the cached
     /// <c>AttackRoomHealth</c> (the tabled value over variable 19, a truncating divide) times
     /// <see cref="HeroAttackRoomMultiplier"/>, with no rate: −1500 / 4 × 10 = −3750.</summary>
-    public static int HeroAttackRoomPerApplication(GameDatabase database) =>
-        database[VariableTypeId.AttackRoomHealth] / SimulationTiming.OriginalTicksPerGameSecond * HeroAttackRoomMultiplier;
+    public static int HeroAttackRoomPerApplication(GameDatabase database)
+    {
+        return database[VariableTypeId.AttackRoomHealth] / SimulationTiming.OriginalTicksPerGameSecond * HeroAttackRoomMultiplier;
+    }
 
     /// <summary>The engine's own ×10 in action 11's hero arm (<c>0x00497EC1</c>: LEA ×5, SHL 1).</summary>
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/room-health.md")]
@@ -351,8 +356,10 @@ public static class TileWorkRules
     /// guard; its callers make the distinction, and no positive path heals floor
     /// (Q215, docs/research/tile-work.md).
     /// </summary>
-    public static bool CompletesUpward(TileWorkKind kind) =>
-        kind is TileWorkKind.Claim or TileWorkKind.Reinforce;
+    public static bool CompletesUpward(TileWorkKind kind)
+    {
+        return kind is TileWorkKind.Claim or TileWorkKind.Reinforce;
+    }
 
     /// <summary>
     /// Whether the work ends by taking the room over rather than destroying the tile,
@@ -361,19 +368,26 @@ public static class TileWorkRules
     /// data's (<c>ClaimTileHealth</c> +825 up, <c>ConvertRoomHealth</c> −4000
     /// down). It runs the room's health down, not the tile's, so the terrain at
     /// completion is the terrain now.</summary>
-    public static bool CompletesAsTakeover(TileWorkKind kind) =>
-        kind is TileWorkKind.ConvertRoom;
+    public static bool CompletesAsTakeover(TileWorkKind kind)
+    {
+        return kind is TileWorkKind.ConvertRoom;
+    }
 
     /// <summary>Kinds applied to a room's one health (<see cref="RoomHealthRules"/>) rather than
     /// to a tile's: they need the world, so <see cref="Apply"/> refuses them.</summary>
-    public static bool IsRoomScoped(TileWorkKind kind) => kind is TileWorkKind.ConvertRoom or TileWorkKind.RepairRoom;
+    public static bool IsRoomScoped(TileWorkKind kind)
+    {
+        return kind is TileWorkKind.ConvertRoom or TileWorkKind.RepairRoom;
+    }
 
     /// <summary>The per-second health delta the balance table gives this kind of work,
     /// after <see cref="ObservedCorrections"/> and unscaled by Efficiency. The sign is
     /// what callers outside the application loop want — negative work ends at the
     /// terrain's <see cref="TerrainDef.DestroyedTypeTerrainId"/>.</summary>
-    public static int PerSecond(GameDatabase database, TileWorkKind kind) =>
-        ObservedCorrections.TileWorkPerSecond(database, Variable(kind));
+    public static int PerSecond(GameDatabase database, TileWorkKind kind)
+    {
+        return ObservedCorrections.TileWorkPerSecond(database, Variable(kind));
+    }
 
     /// <summary>The terrain this tile will be once <paramref name="kind"/> has run
     /// to completion — for a repair job, the terrain it already is. Answers what a
@@ -411,10 +425,12 @@ public static class TileWorkRules
     /// changes — following the field there would turn a rival's Claimed Path into
     /// Rock, an inert transition nothing in DK2 triggers (Q18, Q219). Keyed on
     /// <c>Ownable</c>, so floor, bridge and room read alike.</summary>
-    private static byte UpwardDestination(TerrainDef terrain, TileWorkKind kind) =>
-        kind == TileWorkKind.Claim && terrain.IsOwnable
+    private static byte UpwardDestination(TerrainDef terrain, TileWorkKind kind)
+    {
+        return kind == TileWorkKind.Claim && terrain.IsOwnable
             ? terrain.TerrainId
             : terrain.MaxHealthTypeTerrainId;
+    }
 
     /// <summary>
     /// Whether <paramref name="kind"/> can be applied to this tile at all.
@@ -423,13 +439,17 @@ public static class TileWorkRules
     /// about the reference install, not about DK2.
     /// </summary>
     public static bool Applies(GameDatabase database, in TileState tile, TileWorkKind kind, PlayerId playerId)
-        => Applies(database, tile, kind, playerId, ruinedHeart: false);
+    {
+        return Applies(database, tile, kind, playerId, ruinedHeart: false);
+    }
 
     /// <summary>The same, knowing whether the tile's room is a ruin (room <c>+0x9A</c> bit 0, kept on its
     /// tiles, ADR-0662): a ruined heart is claimable like any room (Q93, ADR-0162), a live one never is.</summary>
     public static bool Applies(
         WorldState world, GameDatabase database, in TileState tile, TileWorkKind kind, PlayerId playerId)
-        => Applies(database, tile, kind, playerId, tile.RoomRuined);
+    {
+        return Applies(database, tile, kind, playerId, tile.RoomRuined);
+    }
 
     private static bool Applies(
         GameDatabase database, in TileState tile, TileWorkKind kind, PlayerId playerId, bool ruinedHeart)
@@ -504,14 +524,19 @@ public static class TileWorkRules
 
     /// <summary>A tile of the neutral player, DK2's <c>[0x006F2548]</c>: ours carries 0 or 2 there, as
     /// <c>ImpTaskSystem</c>'s selection reads it.</summary>
-    public static bool IsNeutralTile(in TileState tile) => tile.OwnerPlayerId is PlayerIds.Unowned or PlayerIds.Neutral;
+    public static bool IsNeutralTile(in TileState tile)
+    {
+        return tile.OwnerPlayerId is PlayerIds.Unowned or PlayerIds.Neutral;
+    }
 
     /// <summary>Terrain byte <c>+0x1CB</c> bit 0, set by the loader (<c>0x004F7759</c>) for a type that
     /// is not Ownable, starts below its maximum health and names another type for full health: the
     /// neutral paths that heal into an owned floor (imp-claim-path.md).</summary>
-    public static bool HealsIntoAnother(TerrainDef terrain) =>
-        !terrain.IsOwnable && terrain.StartingHealth < terrain.MaxHealth
+    public static bool HealsIntoAnother(TerrainDef terrain)
+    {
+        return !terrain.IsOwnable && terrain.StartingHealth < terrain.MaxHealth
         && terrain.TerrainId != terrain.MaxHealthTypeTerrainId;
+    }
 
     /// <summary><c>Tile_IsClaimablePath</c> (<c>0x00453FC0</c>): the neutral player's tile, its terrain
     /// <see cref="HealsIntoAnother"/>, not Solid.</summary>
@@ -530,17 +555,22 @@ public static class TileWorkRules
     }
 
     /// <summary><c>Tile_IsDiggableWall</c> (<c>0x00453D10</c>): Solid and not Impenetrable, any owner.</summary>
-    public static bool IsDiggableWall(TerrainDef terrain) => terrain.IsSolid && !terrain.IsImpenetrable;
+    public static bool IsDiggableWall(TerrainDef terrain)
+    {
+        return terrain.IsSolid && !terrain.IsImpenetrable;
+    }
 
     /// <summary>Ground an imp attacks rather than claims: owned by anyone but
     /// <paramref name="playerId"/>, the unowned player included, <c>Ownable</c> and
     /// <c>Attackable</c>, neither <c>Solid</c> nor <c>Room</c>. The original's own
     /// predicate (<c>0x00454000</c>), which both attack handlers re-test after every
     /// application. Claimed Path is the one shipped terrain it admits.</summary>
-    private static bool IsHostileFloor(TerrainDef terrain, in TileState tile, PlayerId playerId) =>
-        tile.OwnerPlayerId != playerId
+    private static bool IsHostileFloor(TerrainDef terrain, in TileState tile, PlayerId playerId)
+    {
+        return tile.OwnerPlayerId != playerId
         && terrain.IsOwnable && terrain.IsAttackable
         && !terrain.IsSolid && !terrain.IsRoom;
+    }
 
     /// <summary>
     /// The kinds of work a dig marker can be asking for. The order is not a
@@ -566,7 +596,13 @@ public static class TileWorkRules
     ];
 
     /// <summary>Every kind of work a dig marker can call for. Order carries no meaning.</summary>
-    public static IReadOnlyList<TileWorkKind> TaggedWork => TaggedWorkKinds;
+    public static IReadOnlyList<TileWorkKind> TaggedWork
+    {
+        get
+        {
+            return TaggedWorkKinds;
+        }
+    }
 
     /// <summary>Re-resolves a continuing kind-1 dig task against the tile as it
     /// exists now. DK2 selects the rock, own-wall or enemy-wall rate before every
@@ -826,8 +862,10 @@ public static class TileWorkRules
     /// On the shipped seam (3000 gold over 660 health, 60 a swing, Q47) that is
     /// 273 on eight of eleven swings and 272 on three — the owner saw 273.
     /// </summary>
-    private static int ExtractedBy(TerrainDef terrain, int health) =>
-        (int)((long)terrain.GoldValue * Math.Max(0, terrain.MaxHealth - health) / terrain.MaxHealth);
+    private static int ExtractedBy(TerrainDef terrain, int health)
+    {
+        return (int)((long)terrain.GoldValue * Math.Max(0, terrain.MaxHealth - health) / terrain.MaxHealth);
+    }
 
     /// <summary>
     /// Turns a tile into another terrain type at that type's starting health.

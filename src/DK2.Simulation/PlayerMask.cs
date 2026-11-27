@@ -15,12 +15,26 @@ public readonly record struct PlayerMask(ushort Bits)
     /// <summary>Highest player id that has a bit.</summary>
     public const int MaxPlayerId = 15;
 
-    public static PlayerMask None => default;
+    public static PlayerMask None
+    {
+        get
+        {
+            return default;
+        }
+    }
 
-    public bool IsEmpty => Bits == 0;
+    public bool IsEmpty
+    {
+        get
+        {
+            return Bits == 0;
+        }
+    }
 
-    public bool Contains(PlayerId playerId) =>
-        playerId.Value <= MaxPlayerId && (Bits & (1 << playerId.Value)) != 0;
+    public bool Contains(PlayerId playerId)
+    {
+        return playerId.Value <= MaxPlayerId && (Bits & (1 << playerId.Value)) != 0;
+    }
 
     public PlayerMask With(PlayerId playerId)
     {
@@ -33,6 +47,8 @@ public readonly record struct PlayerMask(ushort Bits)
         return new PlayerMask((ushort)(Bits | (1 << playerId.Value)));
     }
 
-    public PlayerMask Without(PlayerId playerId) =>
-        playerId.Value > MaxPlayerId ? this : new PlayerMask((ushort)(Bits & ~(1 << playerId.Value)));
+    public PlayerMask Without(PlayerId playerId)
+    {
+        return playerId.Value > MaxPlayerId ? this : new PlayerMask((ushort)(Bits & ~(1 << playerId.Value)));
+    }
 }

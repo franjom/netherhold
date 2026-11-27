@@ -107,8 +107,10 @@ public static class DyingStateRules
         return CombatPitRules.IsFloor(pit, tile) ? pit : null;
     }
 
-    private static void RequestEffect(SimulationContext context, CreatureState creature) =>
+    private static void RequestEffect(SimulationContext context, CreatureState creature)
+    {
         context.RequestEffect(SystemName, new ViewEffectRequest(TransportEffect, creature.OwnerPlayerId,
             new FpPosition3(new(creature.PosX), new(creature.PosY), new(creature.PosZ + FloorHeightRules.Ordinary)),
             new Dk2Angle((ushort)creature.Heading)));
+    }
 }

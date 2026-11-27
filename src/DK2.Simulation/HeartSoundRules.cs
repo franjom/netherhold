@@ -42,15 +42,19 @@ public static class HeartSoundRules
 
     /// <summary>The local player's heart opening (<c>0x004D9E00</c>): <c>0xF1</c>, handle 0, at height
     /// 0x1000, played only when <paramref name="owner"/> is the viewer.</summary>
-    internal static void RequestOpened(SimulationContext context, PlayerId owner) =>
+    internal static void RequestOpened(SimulationContext context, PlayerId owner)
+    {
         Request(context, "HeartIntro", owner, ThingSoundEvent.HeartOpened, voiced: false, height: HeartIntroRules.RequestHeight,
             viewerOnlyFor: owner);
+    }
 
     /// <summary>The fallen keeper's heart tile on the turn the consequences run (<c>0x004DAC38</c>): <c>0xF4</c>,
     /// the player's own handle (<c>+0x10A2</c>, so a <see cref="SoundSourceKind.Player"/> voice, not the room's
     /// that the blow and destruction share), height 0.</summary>
-    internal static void RequestCollapse(SimulationContext context, string system, PlayerId owner) =>
+    internal static void RequestCollapse(SimulationContext context, string system, PlayerId owner)
+    {
         Request(context, system, owner, ThingSoundEvent.HeartCollapsed, voiced: true, height: 0, player: true);
+    }
 
     private static void Request(SimulationContext context, string system, PlayerId owner, ThingSoundEvent sound,
         bool voiced, int? height, PlayerId? viewerOnlyFor = null, bool player = false)

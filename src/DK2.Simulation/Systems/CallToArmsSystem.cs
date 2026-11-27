@@ -19,7 +19,13 @@ namespace DK2.Simulation.Systems;
 public sealed class CallToArmsSystem : ISimulationSystem
 {
     public const string SystemName = "call_to_arms";
-    public string Name => SystemName;
+    public string Name
+    {
+        get
+        {
+            return SystemName;
+        }
+    }
 
     /// <summary>The 192 wander's four directions in table order (<c>0x006BC350</c>): up, right,
     /// down, left; the walk starts at a random one and tries the next three.</summary>

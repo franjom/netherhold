@@ -478,7 +478,9 @@ public static class HeroPartyRules
         heir.PositionInParty = k;
     }
 
-    private static bool InPartyAsFollower(CreatureState c, byte party) =>
-        c.OwnerPlayerId == PlayerIds.Good && c.PartyId == party && (c.Flags & 0x04) != 0
+    private static bool InPartyAsFollower(CreatureState c, byte party)
+    {
+        return c.OwnerPlayerId == PlayerIds.Good && c.PartyId == party && (c.Flags & 0x04) != 0
         && !CreatureDeathRules.IsCorpse(c);
+    }
 }

@@ -69,12 +69,16 @@ public static partial class ShotRules
     // [[world]+4]+8, initialized by 0x00526020, independent of level variable19.
     private const int SessionTurnRate = 4;
 
-    private static FpPosition3 LaunchEffectVelocity(ShotState shot, int ticksPerSecond) =>
-        new(new Fp32(unchecked(shot.VelX * 16 * ticksPerSecond) / 20),
+    private static FpPosition3 LaunchEffectVelocity(ShotState shot, int ticksPerSecond)
+    {
+        return new(new Fp32(unchecked(shot.VelX * 16 * ticksPerSecond) / 20),
             new Fp32(unchecked(shot.VelY * 16 * ticksPerSecond) / 20), default);
+    }
 
-    internal static FpPosition3 AimPoint(ShotState shot) =>
-        new(new Fp32(shot.TargetX), new Fp32(shot.TargetY), shot.ViewHeight);
+    internal static FpPosition3 AimPoint(ShotState shot)
+    {
+        return new(new Fp32(shot.TargetX), new Fp32(shot.TargetY), shot.ViewHeight);
+    }
 
     internal static void RequestTimedEffect(SimulationContext context, ShotState shot, ShotDef definition,
         FpPosition3 point)
@@ -118,7 +122,8 @@ public static partial class ShotRules
     }
 
     internal static void RequestShotEffect(SimulationContext context, ShotState shot, EffectId effect,
-        FpPosition3 position, CreatureId attachedCreatureId = default, bool aimed = false, bool carryVelocity = false) =>
+        FpPosition3 position, CreatureId attachedCreatureId = default, bool aimed = false, bool carryVelocity = false)
+    {
         context.RequestEffect(SystemName, new ViewEffectRequest(effect, shot.OwnerPlayerId, position, shot.ViewHeading,
             AttachedCreatureId: attachedCreatureId.Value)
         {
@@ -126,4 +131,5 @@ public static partial class ShotRules
             CarriedVelocity = carryVelocity ? LaunchEffectVelocity(shot,
                 context.Database.Level?.TicksPerSecond ?? SimulationTiming.OriginalTicksPerGameSecond) : null,
         });
+    }
 }

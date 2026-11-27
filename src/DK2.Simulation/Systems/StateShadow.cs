@@ -17,12 +17,16 @@ internal static class StateShadow
     public const int TravelToPoint = 6;
     public const int TravelToRoom = 7;
 
-    public static bool IsTravelling(CreatureState creature) =>
-        CreatureStateMachine.HasState(creature)
+    public static bool IsTravelling(CreatureState creature)
+    {
+        return CreatureStateMachine.HasState(creature)
         && CreatureStateTable.Get(creature.Dk2StateId).IsUtility;
+    }
 
-    public static void Move(SimulationContext context, string system, CreatureState creature, int state) =>
+    public static void Move(SimulationContext context, string system, CreatureState creature, int state)
+    {
         TryMove(context, system, creature, state);
+    }
 
     /// <summary><see cref="Move"/>, returning whether the rule took it.</summary>
     public static bool TryMove(SimulationContext context, string system, CreatureState creature, int state)
@@ -85,7 +89,9 @@ internal static class StateShadow
     /// <summary><c>state_refused</c> when the rule refused and the creature kept its state;
     /// <c>enter_refused</c> when the target's enter hook did, leaving it in state 1 (a full room).</summary>
     private static void Refused(
-        SimulationContext context, string system, CreatureState creature, int state, bool byRule) =>
+        SimulationContext context, string system, CreatureState creature, int state, bool byRule)
+    {
         context.Emit(system, byRule ? "state_refused" : "enter_refused",
             $"creature={creature.Id} from={creature.Dk2StateId} to={state}");
+    }
 }

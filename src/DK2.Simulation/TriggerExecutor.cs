@@ -81,22 +81,52 @@ public sealed class TriggerRunResult
     /// <see cref="TriggerExecutor"/>.</summary>
     public IReadOnlyList<BlockedTrigger> Assumed { get; }
 
-    public IEnumerable<TriggerCensusRow> Summary => Census(Blocked);
+    public IEnumerable<TriggerCensusRow> Summary
+    {
+        get
+        {
+            return Census(Blocked);
+        }
+    }
 
-    public IEnumerable<TriggerCensusRow> PartialSummary => Census(Partial);
+    public IEnumerable<TriggerCensusRow> PartialSummary
+    {
+        get
+        {
+            return Census(Partial);
+        }
+    }
 
-    public IEnumerable<TriggerCensusRow> AssumedSummary => Census(Assumed);
+    public IEnumerable<TriggerCensusRow> AssumedSummary
+    {
+        get
+        {
+            return Census(Assumed);
+        }
+    }
 
-    public IEnumerable<TriggerCensusRow> UnhandledSummary => Census(Unhandled);
+    public IEnumerable<TriggerCensusRow> UnhandledSummary
+    {
+        get
+        {
+            return Census(Unhandled);
+        }
+    }
 
-    private static BlockedTrigger[] Order(IEnumerable<BlockedTrigger> records) => [.. records
+    private static BlockedTrigger[] Order(IEnumerable<BlockedTrigger> records)
+    {
+        return [.. records
         .OrderBy(b => b.Tag).ThenBy(b => b.Type).ThenBy(b => b.Context)
         .ThenBy(b => b.TriggerId)];
+    }
 
     private static IEnumerable<TriggerCensusRow> Census(
-        IReadOnlyList<BlockedTrigger> records) => records
+        IReadOnlyList<BlockedTrigger> records)
+    {
+        return records
         .GroupBy(b => (b.Tag, b.Type, b.Context))
         .Select(g => new TriggerCensusRow(g.Key.Tag, g.Key.Type, g.Key.Context, g.Count()));
+    }
 }
 
 /// <summary>One member slot of a party: the subtree it arms, and whether a creature
@@ -218,8 +248,10 @@ public sealed class TriggerTree
     /// <c>FUN_00518090</c>. The player frame uses it on the root id before checking that
     /// the id is positive, so an action id as a player root would take the first
     /// condition's repeat byte. No shipped level does that.</summary>
-    internal TriggerRecord? ResolveCondition(ushort id) =>
-        id == 0 ? null : _conditions.GetValueOrDefault(id) ?? FirstCondition;
+    internal TriggerRecord? ResolveCondition(ushort id)
+    {
+        return id == 0 ? null : _conditions.GetValueOrDefault(id) ?? FirstCondition;
+    }
 
     private static TriggerPartySlot[] BuildParties(IEnumerable<HeroPartyThing>? parties)
     {
@@ -345,8 +377,10 @@ internal sealed class TriggerRun(int currentTick)
     public List<BlockedTrigger> Unhandled { get; } = [];
     public List<BlockedTrigger> CreatureActions { get; } = [];
 
-    public TriggerRunResult Result() =>
-        new(Blocked, Partial, Assumed, Unhandled, Reached, Unsatisfied, CreatureActions);
+    public TriggerRunResult Result()
+    {
+        return new(Blocked, Partial, Assumed, Unhandled, Reached, Unsatisfied, CreatureActions);
+    }
 }
 
 /// <summary>Walks every level trigger root once a game turn — world, 24 parties, action
@@ -492,14 +526,25 @@ public sealed class TriggerExecutor
         }
     }
 
-    private static bool PairMatches(TriggerRecord record, (byte Type, byte Id)? pair) =>
-        pair is null
+    private static bool PairMatches(TriggerRecord record, (byte Type, byte Id)? pair)
+    {
+        return pair is null
         || (record.Parameters.TryGetValue("TargetType", out long t) && t == pair.Value.Type
             && record.Parameters.TryGetValue("TargetId", out long i) && i == pair.Value.Id);
+    }
 
-    internal TriggerExecutor(TriggerState state) => _state = state;
+    internal TriggerExecutor(TriggerState state)
+    {
+        _state = state;
+    }
 
-    public TriggerTree? Tree => _tree;
+    public TriggerTree? Tree
+    {
+        get
+        {
+            return _tree;
+        }
+    }
 
     /// <summary>Runs one game turn: the world tree's twenty-five roots, then entity roots,
     /// then every player's — the frame's own order (<c>0x0050A75B</c> onward).
@@ -633,10 +678,13 @@ public sealed class TriggerExecutor
 
     /// <summary>Each action point that carries a root, with the repeat byte its frame
     /// would have cached — see <see cref="TriggerAreaRoot"/>.</summary>
-    private TriggerAreaRoot[] BuildAreaRoots(WorldState world) => [.. world.ActionPoints
+    private TriggerAreaRoot[] BuildAreaRoots(WorldState world)
+    {
+        return [.. world.ActionPoints
         .Where(point => point.TriggerId != 0)
         .Select(point => new TriggerAreaRoot(
             point, _tree!.ResolveCondition(point.TriggerId)?.RepeatCount ?? 0))];
+    }
 
     /// <summary>Models the creature root setter at <c>0x0049A950</c>: attach the id,
     /// resolve it in the condition array regardless of sign, and snapshot byte
@@ -665,8 +713,10 @@ public sealed class TriggerExecutor
         }
     }
 
-    private void SetSubtreeActive(ushort triggerId, bool active) =>
+    private void SetSubtreeActive(ushort triggerId, bool active)
+    {
         SetSubtreeActive(unchecked((short)triggerId), active);
+    }
 
     private void SetSubtreeActive(short id, bool active)
     {
@@ -876,8 +926,10 @@ public sealed class TriggerExecutor
 
     /// <summary>Creature condition types whose jump-table entries return zero without
     /// reading their bodies. Their event-filter path is separate and out of scope.</summary>
-    private static bool CreatureConditionIsConstantFalse(byte type) =>
-        type is >= 3 and <= 16 or 50 or 54 or 55 or 63 or 65;
+    private static bool CreatureConditionIsConstantFalse(byte type)
+    {
+        return type is >= 3 and <= 16 or 50 or 54 or 55 or 63 or 65;
+    }
 
     /// <summary>The player quantity a condition type compares, or null for a type whose
     /// arm we cannot answer. Types 19, 24, 25, 27, 28 and 52 walk owned things; type 24 assumes
@@ -893,25 +945,28 @@ public sealed class TriggerExecutor
         WorldState world,
         GameDatabase database,
         PlayerId playerId,
-        TriggerRun run) => type switch
+        TriggerRun run)
     {
-        19 => CreatureCount(parameters, world, database, playerId),
-        20 => MoodCount(parameters, world, database, playerId, CreatureMood.Content),
-        21 => MoodCount(parameters, world, database, playerId, CreatureMood.Angry),
-        22 => CreaturesKilledBy(world, playerId, Byte(parameters, "PlayerId")),
-        23 => KillsOf(world, playerId, Byte(parameters, "PlayerSlot")),
-        24 => Rooms(parameters, world, database, playerId, run).Sum(room => room.TileCount),
-        25 when Byte(parameters, "Comparison") != 0 =>
-            Rooms(parameters, world, database, playerId, run).Count(),
-        27 when Byte(parameters, "Comparison") != 0 => DoorCount(parameters, world, playerId),
-        28 when Byte(parameters, "Comparison") != 0 => TrapCount(parameters, world, database, playerId),
-        30 => GoldStore.Total(world, playerId),        // +0x7E "Money"
-        31 => world.Player(playerId).GoldMined,        // +0x15A "GoldMined"
-        32 => world.Player(playerId).Mana,             // +0x82 "CurrentMana"
-        52 => LeveledCreatureCount(parameters, world, database, playerId),
-        71 => world.Player(playerId).SlapCount,        // +0xEE6 "NumberOfSlaps"
-        _ => null,
-    };
+        return type switch
+        {
+            19 => CreatureCount(parameters, world, database, playerId),
+            20 => MoodCount(parameters, world, database, playerId, CreatureMood.Content),
+            21 => MoodCount(parameters, world, database, playerId, CreatureMood.Angry),
+            22 => CreaturesKilledBy(world, playerId, Byte(parameters, "PlayerId")),
+            23 => KillsOf(world, playerId, Byte(parameters, "PlayerSlot")),
+            24 => Rooms(parameters, world, database, playerId, run).Sum(room => room.TileCount),
+            25 when Byte(parameters, "Comparison") != 0 =>
+                Rooms(parameters, world, database, playerId, run).Count(),
+            27 when Byte(parameters, "Comparison") != 0 => DoorCount(parameters, world, playerId),
+            28 when Byte(parameters, "Comparison") != 0 => TrapCount(parameters, world, database, playerId),
+            30 => GoldStore.Total(world, playerId),        // +0x7E "Money"
+            31 => world.Player(playerId).GoldMined,        // +0x15A "GoldMined"
+            32 => world.Player(playerId).Mana,             // +0x82 "CurrentMana"
+            52 => LeveledCreatureCount(parameters, world, database, playerId),
+            71 => world.Player(playerId).SlapCount,        // +0xEE6 "NumberOfSlaps"
+            _ => null,
+        };
+    }
 
     /// <summary>Type 22, PLAYER_CREATURES_KILLED (<c>0x004C7D0F</c>): selector 0 is my own dead
     /// (<c>+0x173</c>); player <paramref name="by"/> otherwise, how many of mine it is credited with
@@ -1136,8 +1191,10 @@ public sealed class TriggerExecutor
     /// sets the field, so today this is always false and the decline below is unreachable;
     /// it exists so that adding possession turns type 73 into an honest gap rather than a
     /// silent wrong answer.</remarks>
-    private static bool Possessing(WorldState world, PlayerId playerId) =>
-        world.Player(playerId).PossessedCreatureId != 0;
+    private static bool Possessing(WorldState world, PlayerId playerId)
+    {
+        return world.Player(playerId).PossessedCreatureId != 0;
+    }
 
     /// <summary>Condition type 19 — how many creatures this keeper owns
     /// (<c>0x004C7B9D</c>). <b>The two paths are not the same count</b>: a named type
@@ -1221,8 +1278,10 @@ public sealed class TriggerExecutor
     /// which is file offset <c>0xEFC</c> — <see cref="CreatureFlags.IsWorker"/>. Imp and
     /// Dwarf are the only two shipped creatures that set it, which is the roster a worker
     /// flag should select.</summary>
-    private static bool IsWorker(GameDatabase database, byte creatureTypeId) =>
-        (database.CreatureById(creatureTypeId).Flags & CreatureFlags.IsWorker) != 0;
+    private static bool IsWorker(GameDatabase database, byte creatureTypeId)
+    {
+        return (database.CreatureById(creatureTypeId).Flags & CreatureFlags.IsWorker) != 0;
+    }
 
     private static IEnumerable<RoomInstance> Rooms(
         IReadOnlyDictionary<string, long> parameters,
@@ -1238,12 +1297,17 @@ public sealed class TriggerExecutor
             && (roomId == 0 || room.Definition.RoomId == roomId));
     }
 
-    private static TriggerConditionResult Result(bool held) => held
+    private static TriggerConditionResult Result(bool held)
+    {
+        return held
         ? TriggerConditionResult.Satisfied
         : TriggerConditionResult.Unsatisfied;
+    }
 
-    private static byte Byte(IReadOnlyDictionary<string, long> p, string name) =>
-        checked((byte)p[name]);
+    private static byte Byte(IReadOnlyDictionary<string, long> p, string name)
+    {
+        return checked((byte)p[name]);
+    }
 
     /// <summary>The eight player condition types whose jump-table entry <b>is</b> the
     /// dispatcher's zero-return epilogue (<c>0x004C850C</c>): they read nothing and answer
@@ -1252,8 +1316,10 @@ public sealed class TriggerExecutor
     /// <remarks>Type 73 shares the epilogue but not the entry: its arm starts six
     /// instructions earlier at <c>0x004C8500</c> and falls into the zero return only when
     /// the player's <c>+0x134</c> is clear. These eight skip that test.</remarks>
-    private static bool PlayerConditionIsConstantFalse(byte type) =>
-        type is 48 or 53 or (>= 56 and <= 61);
+    private static bool PlayerConditionIsConstantFalse(byte type)
+    {
+        return type is 48 or 53 or (>= 56 and <= 61);
+    }
 
     /// <summary>Runs one action, or answers for one this executor does not perform.</summary>
     /// <remarks>
@@ -1532,60 +1598,76 @@ public sealed class TriggerExecutor
     /// <c>0x00519930</c> indexed by <c>type - 1</c>, a jump table at <c>0x005198C4</c>,
     /// and a range check that sends type 0 and anything past 51 to the failure exit with
     /// the other 25.</summary>
-    private static bool WorldActionSucceeds(byte type) => type switch
+    private static bool WorldActionSucceeds(byte type)
     {
-        < 1 or > 51 => false,
-        3 or 15 or 24 => false,
-        >= 10 and <= 13 => false,
-        >= 19 and <= 21 => false,
-        >= 26 and <= 31 => false,
-        >= 33 and <= 38 => false,
-        42 or 43 or 50 => false,
-        _ => true,
-    };
+        return type switch
+        {
+            < 1 or > 51 => false,
+            3 or 15 or 24 => false,
+            >= 10 and <= 13 => false,
+            >= 19 and <= 21 => false,
+            >= 26 and <= 31 => false,
+            >= 33 and <= 38 => false,
+            42 or 43 or 50 => false,
+            _ => true,
+        };
+    }
 
     /// <summary>The 30 condition types the player dispatcher computes itself
     /// (<c>0x004C7B20</c>, base 19, range <c>0x37</c>). Everything else it delegates.
     /// </summary>
-    private static bool PlayerOwnsCondition(byte type) => type switch
+    private static bool PlayerOwnsCondition(byte type)
     {
-        >= 19 and <= 33 => true,
-        47 or 48 or 52 or 53 => true,
-        >= 56 and <= 61 => true,
-        68 or 71 or 72 or 73 or 74 => true,
-        _ => false,
-    };
+        return type switch
+        {
+            >= 19 and <= 33 => true,
+            47 or 48 or 52 or 53 => true,
+            >= 56 and <= 61 => true,
+            68 or 71 or 72 or 73 or 74 => true,
+            _ => false,
+        };
+    }
 
     /// <summary>The 13 action types the player dispatcher computes itself
     /// (<c>0x004C8620</c>, base 10, range <c>0x28</c>). Note 7, 8 and 14 are <b>not</b>
     /// among them — they fall below the base and reach the world dispatcher.</summary>
-    private static bool PlayerOwnsAction(byte type) => type switch
+    private static bool PlayerOwnsAction(byte type)
     {
-        10 or 11 or 31 or 34 or 37 or 38 or 42 or 50 => true,
-        >= 24 and <= 28 => true,
-        _ => false,
-    };
+        return type switch
+        {
+            10 or 11 or 31 or 34 or 37 or 38 or 42 or 50 => true,
+            >= 24 and <= 28 => true,
+            _ => false,
+        };
+    }
 
     /// <summary>The creature condition dispatcher computes three per-instance counters
     /// and gives its constant-false event types an answer of its own.</summary>
-    private static bool CreatureOwnsCondition(byte type) =>
-        CreatureConditionIsConstantFalse(type) || type is 36 or 37 or 49;
+    private static bool CreatureOwnsCondition(byte type)
+    {
+        return CreatureConditionIsConstantFalse(type) || type is 36 or 37 or 49;
+    }
 
     /// <summary>The ten action types owned by the creature dispatcher
     /// (<c>0x0049AC80</c>, base 15, range <c>0x1C</c>). Every other type delegates
     /// to the owning player's dispatcher, whose default delegates to the world.</summary>
-    private static bool CreatureOwnsAction(byte type) => type switch
+    private static bool CreatureOwnsAction(byte type)
     {
-        15 or 20 or 21 or 29 or 30 or 33 or 35 or 36 or 42 or 43 => true,
-        _ => false,
-    };
+        return type switch
+        {
+            15 or 20 or 21 or 29 or 30 or 33 or 35 or 36 or 42 or 43 => true,
+            _ => false,
+        };
+    }
 
     /// <summary>Whether this executor carries out an action type. Of these only action 22,
     /// the terrain change, and action 49, the room handover, invalidate
     /// <see cref="TriggerRun.Rooms"/>; each scheduled walk also clears that cache as it starts,
     /// after intervening simulation work.</summary>
-    public static bool Performs(byte type) =>
-        type is 1 or 2 or 6 or 7 or 8 or 9 or 10 or 11 or 14 or 16 or 17 or 18 or 22 or 23 or 28 or 32 or 37 or 44 or 45 or 46 or 47 or 49 or 50 or 51;
+    public static bool Performs(byte type)
+    {
+        return type is 1 or 2 or 6 or 7 or 8 or 9 or 10 or 11 or 14 or 16 or 17 or 18 or 22 or 23 or 28 or 32 or 37 or 44 or 45 or 46 or 47 or 49 or 50 or 51;
+    }
 
     private bool ExecuteAction(TriggerRecord record, TriggerContext context, TriggerRun run)
     {

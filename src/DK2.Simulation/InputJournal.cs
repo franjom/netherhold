@@ -141,14 +141,35 @@ public sealed class InputJournal
     /// <summary>"completed" or the failure the run recorded; null when there is no end record.</summary>
     public string? EndReason { get; }
 
-    public bool Truncated => TicksRun is null;
+    public bool Truncated
+    {
+        get
+        {
+            return TicksRun is null;
+        }
+    }
 
     /// <summary>The last tick count with a recorded hash, which a cut-short journal is replayable up to.</summary>
-    public long LastHashedTick => Hashes.Count == 0 ? -1 : Hashes.Keys.Max();
+    public long LastHashedTick
+    {
+        get
+        {
+            return Hashes.Count == 0 ? -1 : Hashes.Keys.Max();
+        }
+    }
 
-    public IEnumerable<long> FrameTicks => _frames.Keys.OrderBy(t => t);
+    public IEnumerable<long> FrameTicks
+    {
+        get
+        {
+            return _frames.Keys.OrderBy(t => t);
+        }
+    }
 
-    public InputFrame FrameAt(long tick) => _frames.TryGetValue(tick, out InputFrame f) ? f : InputFrame.Empty;
+    public InputFrame FrameAt(long tick)
+    {
+        return _frames.TryGetValue(tick, out InputFrame f) ? f : InputFrame.Empty;
+    }
 
     /// <summary>Reads every whole record. Fails on a wrong magic or format version, a cut-off header
     /// and an unknown record or command; a record cut off by the end of the stream ends the read.</summary>

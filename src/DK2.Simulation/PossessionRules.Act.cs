@@ -48,7 +48,10 @@ public static partial class PossessionRules
 
     internal readonly record struct Vec3(int X, int Y, int Z)
     {
-        public static Vec3 operator -(Vec3 a, Vec3 b) => new(unchecked(a.X - b.X), unchecked(a.Y - b.Y), unchecked(a.Z - b.Z));
+        public static Vec3 operator -(Vec3 a, Vec3 b)
+        {
+            return new(unchecked(a.X - b.X), unchecked(a.Y - b.Y), unchecked(a.Z - b.Z));
+        }
     }
 
     internal enum ChainClass : byte { Creature, Object, Trap, Door, Shot, Body }
@@ -72,8 +75,10 @@ public static partial class PossessionRules
 
     /// <summary>The unnormalised aim: sin yaw, −cos yaw, −cos pitch, each the 16.16 table times 4096
     /// shifted 16 (an arithmetic shift), negated after the shift. The horizontal is not scaled by pitch.</summary>
-    internal static Vec3 RawAim(Dk2Angle yaw, Dk2Angle pitch) =>
-        new(TrapRules.Sine(yaw.Value) >> 4, -(TrapRules.Cosine(yaw.Value) >> 4), -(TrapRules.Cosine(pitch.Value) >> 4));
+    internal static Vec3 RawAim(Dk2Angle yaw, Dk2Angle pitch)
+    {
+        return new(TrapRules.Sine(yaw.Value) >> 4, -(TrapRules.Cosine(yaw.Value) >> 4), -(TrapRules.Cosine(pitch.Value) >> 4));
+    }
 
     /// <summary>The 4096-length direction <c>0x00516670</c>/<c>0x00515520</c> compute: squares in
     /// 32 bits shifted 12, the root of 16 times their sum (<c>0x0065FAE0</c>) shifted 4, and each
@@ -90,7 +95,10 @@ public static partial class PossessionRules
         return new(unchecked(v.X * 16) / length, unchecked(v.Y * 16) / length, unchecked(v.Z * 16) / length);
     }
 
-    internal static int Dot(Vec3 a, Vec3 b) => unchecked((a.X * b.X >> 12) + (a.Y * b.Y >> 12) + (a.Z * b.Z >> 12));
+    internal static int Dot(Vec3 a, Vec3 b)
+    {
+        return unchecked((a.X * b.X >> 12) + (a.Y * b.Y >> 12) + (a.Z * b.Z >> 12));
+    }
 
     /// <summary><c>0x00516950</c>: the bearing from the pose to the point, moved by a turn when it is
     /// more than half a turn from the yaw, strictly inside yaw ± 0x155.</summary>
@@ -376,10 +384,12 @@ public static partial class PossessionRules
 
     /// <summary>An object's position: its own when it keeps one (a boulder, spell gold), else its tile's
     /// centre, as the boulder's sweep takes it. Height is the floor's (Q398).</summary>
-    internal static Vec3 ObjectPosition(WorldState world, ObjectState o) =>
-        o.PosX != 0 || o.PosY != 0
+    internal static Vec3 ObjectPosition(WorldState world, ObjectState o)
+    {
+        return o.PosX != 0 || o.PosY != 0
             ? new(o.PosX, o.PosY, FloorHeight)
             : new(CreatureState.CentreOf(o.TileIndex % world.Width), CreatureState.CentreOf(o.TileIndex / world.Width), FloorHeight);
+    }
 
     /// <summary><c>0x00516050</c>. Same owner: objects only, in reach, of a listed type. Another owner:
     /// objects without definition flag bit 20, in reach, of a listed type or 94; traps not hidden;
@@ -533,8 +543,10 @@ public static partial class PossessionRules
 
     /// <summary><c>0x00515364</c>: 0x3000 when the spell's <c>Range</c> plus SniperMode's bit is
     /// nonzero, else 0, which the shot reads as no limit. So sniper mode caps a Range-0 spell.</summary>
-    public static int FreeAimRangeOf(CreatureSpellDef spell, CreatureState me) =>
-        unchecked((int)spell.Range + (me.SniperMode ? 1 : 0)) != 0 ? FreeAimRange : 0;
+    public static int FreeAimRangeOf(CreatureSpellDef spell, CreatureState me)
+    {
+        return unchecked((int)spell.Range + (me.SniperMode ? 1 : 0)) != 0 ? FreeAimRange : 0;
+    }
 
     /// <summary>The scan's pick; <see cref="Player"/> is a pillar's heart owner.</summary>
     internal readonly record struct SpellTarget(FightTargetKind Kind, int Id, byte Player);
@@ -542,8 +554,9 @@ public static partial class PossessionRules
     /// <summary>The spell's target's owner for the unmask test (a self spell's target is the caster).
     /// With no target DK2 reads the owner of thing slot 0 unchecked (<c>0x0051513B</c>), UNKNOWN: ours
     /// does not unmask then.</summary>
-    private static byte? TargetOwner(WorldState world, SpellTarget target) =>
-        target.Kind switch
+    private static byte? TargetOwner(WorldState world, SpellTarget target)
+    {
+        return target.Kind switch
         {
             FightTargetKind.Heart => target.Player,
             FightTargetKind.Creature => world.CreatureById(target.Id)?.OwnerPlayerId,
@@ -551,6 +564,7 @@ public static partial class PossessionRules
             FightTargetKind.Door => world.DoorById(target.Id)?.PlayerId,
             _ => null,
         };
+    }
 
     /// <summary><c>0x00515520</c>: players in list order, those hostile to the creature's owner (the
     /// friendly ones for a friendly spell); per player its creatures, traps, doors and type-94 objects,

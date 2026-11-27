@@ -78,22 +78,25 @@ public static class RoomPlanner
     }
 
     /// <summary>The original's ideal-neighbour table: which own room a new room is sited from.</summary>
-    public static RoomTypeId? IdealNeighbour(byte roomId) => (RoomTypeId)roomId switch
+    public static RoomTypeId? IdealNeighbour(byte roomId)
     {
-        RoomTypeId.Treasury => RoomTypeId.DungeonHeart,
-        RoomTypeId.Lair => RoomTypeId.Hatchery,
-        RoomTypeId.Hatchery => RoomTypeId.Lair,
-        RoomTypeId.Library => RoomTypeId.Lair,
-        RoomTypeId.TrainingRoom => RoomTypeId.DungeonHeart,
-        RoomTypeId.Workshop => RoomTypeId.DungeonHeart,
-        RoomTypeId.Prison => RoomTypeId.TrainingRoom,
-        RoomTypeId.TortureChamber => RoomTypeId.Prison,
-        RoomTypeId.Temple => RoomTypeId.TortureChamber,
-        RoomTypeId.Graveyard => RoomTypeId.TortureChamber,
-        RoomTypeId.Casino => RoomTypeId.Treasury,
-        RoomTypeId.CombatPit => RoomTypeId.Prison,
-        _ => null,
-    };
+        return (RoomTypeId)roomId switch
+        {
+            RoomTypeId.Treasury => RoomTypeId.DungeonHeart,
+            RoomTypeId.Lair => RoomTypeId.Hatchery,
+            RoomTypeId.Hatchery => RoomTypeId.Lair,
+            RoomTypeId.Library => RoomTypeId.Lair,
+            RoomTypeId.TrainingRoom => RoomTypeId.DungeonHeart,
+            RoomTypeId.Workshop => RoomTypeId.DungeonHeart,
+            RoomTypeId.Prison => RoomTypeId.TrainingRoom,
+            RoomTypeId.TortureChamber => RoomTypeId.Prison,
+            RoomTypeId.Temple => RoomTypeId.TortureChamber,
+            RoomTypeId.Graveyard => RoomTypeId.TortureChamber,
+            RoomTypeId.Casino => RoomTypeId.Treasury,
+            RoomTypeId.CombatPit => RoomTypeId.Prison,
+            _ => null,
+        };
+    }
 
     /// <summary>
     /// Where the site search for <paramref name="roomId"/> starts (<c>0x004FC690</c>), always a room's
@@ -122,8 +125,10 @@ public static class RoomPlanner
 
     /// <summary>The search direction a room prefers (<c>0x004FC690</c>, <c>0x004FCE70</c>): the defend
     /// direction for ids below 6, else the open direction, before any jitter.</summary>
-    public static int PreferredDirection(byte roomId, KeeperAIState state) =>
-        roomId < 6 ? state.DefendDirection : state.OpenDirection;
+    public static int PreferredDirection(byte roomId, KeeperAIState state)
+    {
+        return roomId < 6 ? state.DefendDirection : state.OpenDirection;
+    }
 
     /// <summary><c>0x004FCE70</c> after a failed direction: preferred, then +1, then -1, then +2; null
     /// once +2 has failed, when the caller reseeds or gives up.</summary>
@@ -167,12 +172,16 @@ public static class RoomPlanner
     }
 
     /// <summary>Rooms with id below 6 go in the defend direction; the rest in the open one, jittered by one step.</summary>
-    public static int DirectionFor(byte roomId, KeeperAIState state, SimRandom rng) =>
-        roomId < 6 ? state.DefendDirection : (state.OpenDirection + rng.NextInt(3) - 1) & 3;
+    public static int DirectionFor(byte roomId, KeeperAIState state, SimRandom rng)
+    {
+        return roomId < 6 ? state.DefendDirection : (state.OpenDirection + rng.NextInt(3) - 1) & 3;
+    }
 
     /// <summary>Nearest neutral candidate, then the planner's range and boundary gates.</summary>
-    public static KeeperRoomView? ClaimableNeutralRoom(KeeperView view, KeeperAIParameters p, byte roomId, BuildArea area) =>
-        ClaimableNeutralRoom(view, p, roomId, area, out _);
+    public static KeeperRoomView? ClaimableNeutralRoom(KeeperView view, KeeperAIParameters p, byte roomId, BuildArea area)
+    {
+        return ClaimableNeutralRoom(view, p, roomId, area, out _);
+    }
 
     public static KeeperRoomView? ClaimableNeutralRoom(
         KeeperView view, KeeperAIParameters p, byte roomId, BuildArea area, out TilePos origin)
@@ -234,8 +243,10 @@ public static class RoomPlanner
         return best;
     }
 
-    public static bool HasOwnLandOnBoundary(KeeperView view, TilePos centre, int claimedRange) =>
-        OwnLandOnBoundary(view, centre, claimedRange) is not null;
+    public static bool HasOwnLandOnBoundary(KeeperView view, TilePos centre, int claimedRange)
+    {
+        return OwnLandOnBoundary(view, centre, claimedRange) is not null;
+    }
 
     /// <summary>0x004FC3B0: left, right, top, bottom; each edge extends one tile beyond its positive end.</summary>
     public static TilePos? OwnLandOnBoundary(KeeperView view, TilePos centre, int claimedRange)

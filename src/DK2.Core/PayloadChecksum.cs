@@ -60,7 +60,18 @@ public static class PayloadChecksum
         }
     }
 
-    private static ulong Rotate(ulong value, int bits) => (value << bits) | (value >> (64 - bits));
-    private static ulong Round(ulong accumulator, ulong value) => unchecked(Rotate(accumulator + value * P2, 31) * P1);
-    private static ulong Merge(ulong hash, ulong value) => unchecked((hash ^ Round(0, value)) * P1 + P4);
+    private static ulong Rotate(ulong value, int bits)
+    {
+        return (value << bits) | (value >> (64 - bits));
+    }
+
+    private static ulong Round(ulong accumulator, ulong value)
+    {
+        return unchecked(Rotate(accumulator + value * P2, 31) * P1);
+    }
+
+    private static ulong Merge(ulong hash, ulong value)
+    {
+        return unchecked((hash ^ Round(0, value)) * P1 + P4);
+    }
 }

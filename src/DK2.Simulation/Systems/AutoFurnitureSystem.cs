@@ -11,7 +11,13 @@ namespace DK2.Simulation.Systems;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/auto-placed-furniture.md")]
 public sealed class AutoFurnitureSystem : ISimulationSystem
 {
-    public string Name => "AutoFurniture";
+    public string Name
+    {
+        get
+        {
+            return "AutoFurniture";
+        }
+    }
 
     // One tick's working sets, kept across ticks: five containers a tick were 30 KB of garbage.
     private readonly List<(PlayerId Owner, int Tile, byte Type)> _desired = [];

@@ -46,23 +46,30 @@ public static class MeleeDamageRules
     /// </summary>
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/combat-damage.md")]
     public static int PossessionIncreasePercent(GameDatabase database)
-        => database.FirstPersonStat(CreatureStatId.MeleeDamage);
+    {
+        return database.FirstPersonStat(CreatureStatId.MeleeDamage);
+    }
 
-    public static Stance StanceOf(CreatureState creature) =>
-        creature.Possessed ? Stance.Possessed
+    public static Stance StanceOf(CreatureState creature)
+    {
+        return creature.Possessed ? Stance.Possessed
         : creature.InfluencedByPossessed ? Stance.InfluencedByPossessed
         : creature.CombatPitFighter ? Stance.CombatPitFighter : Stance.None;
+    }
 
     /// <summary>The stance multiplier in 12.12 fixed point: <c>(100 + value) / denominator</c>,
     /// built by a fixed-point add and divide, so it truncates.</summary>
-    public static int StanceMultiplier(GameDatabase database, Stance stance) => stance switch
+    public static int StanceMultiplier(GameDatabase database, Stance stance)
     {
-        Stance.Possessed => Ratio(PossessionIncreasePercent(database)),
-        Stance.InfluencedByPossessed => Ratio(PossessionIncreasePercent(database), denominator: 200),
-        Stance.CombatPitFighter =>
-            Ratio(unchecked((byte)database[VariableTypeId.CombatPitMeleeDamageModifierPercentage])),
-        _ => One,
-    };
+        return stance switch
+        {
+            Stance.Possessed => Ratio(PossessionIncreasePercent(database)),
+            Stance.InfluencedByPossessed => Ratio(PossessionIncreasePercent(database), denominator: 200),
+            Stance.CombatPitFighter =>
+                Ratio(unchecked((byte)database[VariableTypeId.CombatPitMeleeDamageModifierPercentage])),
+            _ => One,
+        };
+    }
 
     private static int Ratio(int add, int denominator = 100)
     {
@@ -72,15 +79,19 @@ public static class MeleeDamageRules
     }
 
     /// <summary>The record's <c>MeleeDamage</c> at this level, before any stance applies.</summary>
-    public static int BaseDamage(GameDatabase database, CreatureDef attacker, int level) =>
-        CreatureLevelRules.Scale(
+    public static int BaseDamage(GameDatabase database, CreatureDef attacker, int level)
+    {
+        return CreatureLevelRules.Scale(
             attacker.MeleeDamage,
             CreatureLevelRules.Percent(database, CreatureStatId.MeleeDamage, level));
+    }
 
     /// <summary>The accessor's signed integer result, which the swing then negates.</summary>
-    public static int Swing(GameDatabase database, CreatureDef attacker, int level, Stance stance) =>
-        (new Fp32(StanceMultiplier(database, stance))
+    public static int Swing(GameDatabase database, CreatureDef attacker, int level, Stance stance)
+    {
+        return (new Fp32(StanceMultiplier(database, stance))
             * new Fp32(unchecked(BaseDamage(database, attacker, level) << 12))).Raw >> 12;
+    }
 
     /// <summary>The bearing bonus's percentage, 0 to 51, from the raw angle between the two things.
     /// A turn is 2048, and the angle is reflected about half a turn before the divide, so the bonus
@@ -97,8 +108,10 @@ public static class MeleeDamageRules
     }
 
     /// <summary>Applies the bearing bonus, which the original skips entirely at 15 or below.</summary>
-    public static int ApplyBearing(int damage, int bearingPercent) =>
-        bearingPercent > 15 ? damage + damage * bearingPercent / 100 : damage;
+    public static int ApplyBearing(int damage, int bearingPercent)
+    {
+        return bearingPercent > 15 ? damage + damage * bearingPercent / 100 : damage;
+    }
 
     /// <summary>The two per-player modifiers, each skipped when its signed byte is zero or less.
     /// What they are is UNKNOWN — a keeper spell, a handicap and a difficulty setting would all

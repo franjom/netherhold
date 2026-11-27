@@ -64,9 +64,21 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         _wholeBuilds = wholeBuilds;
     }
 
-    public int Width => _world.Width;
+    public int Width
+    {
+        get
+        {
+            return _world.Width;
+        }
+    }
 
-    public int Height => _world.Height;
+    public int Height
+    {
+        get
+        {
+            return _world.Height;
+        }
+    }
 
     /// <summary>Refreshes that built or edited the mesh: the first build, and each refresh after
     /// which a navigation byte differed.</summary>
@@ -269,8 +281,10 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     /// <summary>What of a door the navigation bytes read.</summary>
     private readonly record struct DoorKey(int X, int Y, byte DoorId, byte PlayerId, byte LockMode, bool UnderConstruction, bool ReadsAsFloor);
 
-    private static DoorKey KeyOf(DoorState door) =>
-        new(door.X, door.Y, door.DoorId, door.PlayerId, door.LockMode, door.UnderConstruction, door.ReadsAsFloor);
+    private static DoorKey KeyOf(DoorState door)
+    {
+        return new(door.X, door.Y, door.DoorId, door.PlayerId, door.LockMode, door.UnderConstruction, door.ReadsAsFloor);
+    }
 
     private bool Unchanged()
     {
@@ -326,8 +340,10 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     /// so a change in those cannot change the mesh. <see cref="FillNavigationBytes"/> reads the
     /// terrain and, on a door's tile, the Secret Door bit; <see cref="StructureBlocks.For"/> and
     /// <see cref="RoomIndex"/> read terrain, owner and the ruin bit (ADR-0454, ADR-0466).</summary>
-    private static uint TileKeyOf(in TileState tile) =>
-        tile.TerrainId | ((uint)tile.OwnerPlayerId << 8) | (tile.RoomRuined ? 1u << 16 : 0u) | (tile.SecretDoor ? 1u << 17 : 0u);
+    private static uint TileKeyOf(in TileState tile)
+    {
+        return tile.TerrainId | ((uint)tile.OwnerPlayerId << 8) | (tile.RoomRuined ? 1u << 16 : 0u) | (tile.SecretDoor ? 1u << 17 : 0u);
+    }
 
     /// <summary>Whether every tile's <see cref="TileKeyOf"/> is what the last refresh saw. Those four fields
     /// count their changes (<see cref="TileState.KeyWriteCount"/>), so none counted since the last look is the
@@ -429,10 +445,27 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     /// the arrays may be swapped under it.</summary>
     private sealed class PlatformRoutingGrid(WorldSteering owner) : INavByteGrid
     {
-        public int Width => owner.Width;
-        public int Height => owner.Height;
-        public byte NavByte(int x, int y) => x < 0 || y < 0 || x >= owner.Width || y >= owner.Height
+        public int Width
+        {
+            get
+            {
+                return owner.Width;
+            }
+        }
+
+        public int Height
+        {
+            get
+            {
+                return owner.Height;
+            }
+        }
+
+        public byte NavByte(int x, int y)
+        {
+            return x < 0 || y < 0 || x >= owner.Width || y >= owner.Height
             ? NavBytes.Solid : owner._routingBytes[(y * owner.Width) + x];
+        }
     }
 
     /// <summary>Copies the navigation cache without constructing a routing mesh.</summary>
@@ -668,17 +701,21 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     /// the owner, the two definition flags that unlock water and lava, and the three door bits of
     /// the state's option word (<see cref="MoveOptions"/>: 7 respect doors, 1 pass own locked
     /// doors, 2 enter a portal's hole).</summary>
-    public static MoverProfile ProfileOf(CreatureDef definition, PlayerId owner, MoveOptions options) =>
-        new(((definition.Flags & CreatureFlags.CanWalkOnWater) == CreatureFlags.CanWalkOnWater), ((definition.Flags & CreatureFlags.CanWalkOnLava) == CreatureFlags.CanWalkOnLava),
+    public static MoverProfile ProfileOf(CreatureDef definition, PlayerId owner, MoveOptions options)
+    {
+        return new(((definition.Flags & CreatureFlags.CanWalkOnWater) == CreatureFlags.CanWalkOnWater), ((definition.Flags & CreatureFlags.CanWalkOnLava) == CreatureFlags.CanWalkOnLava),
             owner.Value,
             RespectDoors: ((int)options & 0x80) != 0,
             PassOwnLockedDoors: ((int)options & 0x02) != 0,
             EntersPortalHole: ((int)options & 0x04) != 0);
+    }
 
     /// <summary>The body's position from the creature's, as the original does before every mover
     /// update (<c>0x004D59A0</c>): the entity's 1/4096 units shifted up four.</summary>
-    public static void SyncBody(CreatureState creature) =>
+    public static void SyncBody(CreatureState creature)
+    {
         creature.Body.Pos = new Fixed16Vector(creature.PosX << 4, creature.PosY << 4);
+    }
 
     /// <summary>What <c>Creature_RequestRoute</c> (<c>0x004D0F60</c>) does before every route
     /// load, found or not: the body takes the entity position and a zero velocity
@@ -695,8 +732,10 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     /// a finished route and is treated as arrived. False when the mesh has no route. The word's
     /// door bits reach the cost function through <see cref="ProfileOf"/>; most requests in a
     /// running game are the imp pass, which passes none of them (Q357).</summary>
-    public bool TryRoute(CreatureState creature, TilePos to, MoveOptions options) =>
-        TryRouteTo(creature, CreatureState.CentreOf(to.X), CreatureState.CentreOf(to.Y), options);
+    public bool TryRoute(CreatureState creature, TilePos to, MoveOptions options)
+    {
+        return TryRouteTo(creature, CreatureState.CentreOf(to.X), CreatureState.CentreOf(to.Y), options);
+    }
 
     /// <summary>The same request aimed at a position rather than a tile centre — what the fight
     /// state does with its target's own position (<c>0x00471D10</c>). A creature already on the
@@ -744,13 +783,17 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         return true;
     }
 
-    public bool Route(Fixed16Vector from, Fixed16Vector to, MoverProfile mover, List<Fixed16Vector> points) =>
-        Route(from, to, mover, points, refresh: true);
+    public bool Route(Fixed16Vector from, Fixed16Vector to, MoverProfile mover, List<Fixed16Vector> points)
+    {
+        return Route(from, to, mover, points, refresh: true);
+    }
 
     /// <summary>The route query with the rebuild check left to the caller: a scan that asks many
     /// times in one tick refreshes once and passes false.</summary>
     public bool Route(Fixed16Vector from, Fixed16Vector to, MoverProfile mover, List<Fixed16Vector> points, bool refresh)
-        => Route(from, to, mover, points, refresh, RoutePointKind.GateMidpoints);
+    {
+        return Route(from, to, mover, points, refresh, RoutePointKind.GateMidpoints);
+    }
 
     /// <summary>The route with the caller's point kind; combat queries measure funnel corners. A
     /// point the router refuses is refused even where ADR-0439 would move it to a live core's edge.</summary>

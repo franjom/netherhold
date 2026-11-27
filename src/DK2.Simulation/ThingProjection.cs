@@ -26,7 +26,13 @@ public readonly record struct ThingProjectionResult(
     int RoomsAlreadyInTheGrid,
     int NotYetProjected)
 {
-    public int Placed => Creatures + Objects + ActionPoints + Doors + Traps + HeroParties + EffectGenerators;
+    public int Placed
+    {
+        get
+        {
+            return Creatures + Objects + ActionPoints + Doors + Traps + HeroParties + EffectGenerators;
+        }
+    }
 }
 
 /// <summary>Turns a level's placed THINGS records into world contents.</summary>
@@ -428,7 +434,8 @@ public static class ThingProjection
         }
     }
 
-    private static void PlaceHeroParty(WorldState world, HeroPartyThing thing) =>
+    private static void PlaceHeroParty(WorldState world, HeroPartyThing thing)
+    {
         world.AddHeroParty(new HeroPartyState
         {
             Name = thing.Name,
@@ -438,25 +445,42 @@ public static class ThingProjection
             Unknown_0027 = thing.Unknown_0027,
             Members = thing.Members.Select(member => new HeroPartyMemberState
             {
-                X = member.X, Y = member.Y, Z = member.Z,
-                GoldHeld = member.GoldHeld, Level = member.Level, Flags = member.Flags,
+                X = member.X,
+                Y = member.Y,
+                Z = member.Z,
+                GoldHeld = member.GoldHeld,
+                Level = member.Level,
+                Flags = member.Flags,
                 ObjectiveTargetActionPointId = member.ObjectiveTargetActionPointId,
-                InitialHealth = member.InitialHealth, TriggerId = member.TriggerId,
+                InitialHealth = member.InitialHealth,
+                TriggerId = member.TriggerId,
                 ObjectiveTargetPlayerId = member.ObjectiveTargetPlayerId,
-                Objective = member.Objective, CreatureId = member.CreatureId,
-                WanderRadius = member.WanderRadius, PartyId = member.PartyId, Flags2 = member.Flags2,
+                Objective = member.Objective,
+                CreatureId = member.CreatureId,
+                WanderRadius = member.WanderRadius,
+                PartyId = member.PartyId,
+                Flags2 = member.Flags2,
             }).ToArray(),
         });
+    }
 
-    private static void PlaceEffectGenerator(WorldState world, EffectGeneratorThing thing) =>
+    private static void PlaceEffectGenerator(WorldState world, EffectGeneratorThing thing)
+    {
         world.AddEffectGenerator(new EffectGeneratorState
         {
-            X = thing.X, Y = thing.Y,
-            Unknown_0008 = thing.Unknown_0008, Unknown_000C = thing.Unknown_000C,
-            Unknown_0010 = thing.Unknown_0010, Unknown_0012 = thing.Unknown_0012,
-            EffectIds = thing.EffectIds.ToArray(), Frequency = thing.Frequency,
-            GeneratorId = thing.GeneratorId, Unknown_001E = thing.Unknown_001E.ToArray(),
+            X = thing.X,
+            Y = thing.Y,
+            Unknown_0008 = thing.Unknown_0008,
+            Unknown_000C = thing.Unknown_000C,
+            Unknown_0010 = thing.Unknown_0010,
+            Unknown_0012 = thing.Unknown_0012,
+            EffectIds = thing.EffectIds.ToArray(),
+            Frequency = thing.Frequency,
+            GeneratorId = thing.GeneratorId,
+            Unknown_001E = thing.Unknown_001E.ToArray(),
             // The tag-203 handler 0x00521380 places it at the tile's centre, height 0.
-            PosX = CreatureState.CentreOf(thing.X), PosY = CreatureState.CentreOf(thing.Y),
+            PosX = CreatureState.CentreOf(thing.X),
+            PosY = CreatureState.CentreOf(thing.Y),
         });
+    }
 }

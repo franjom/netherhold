@@ -187,8 +187,10 @@ public static partial class ShotRules
     /// class admits — an enemy by alliance, a friend by owner — that <see cref="Overlaps"/> the shot.
     /// Traps are <see cref="FindTrapHit"/>; doors and objects are not looked for here; collide type 4
     /// looks only for bodies (<see cref="WalkBodies"/>); a shot aimed at a door is <see cref="HitsDoor"/>.</summary>
-    public static CreatureState? FindHit(WorldState world, GameDatabase database, ShotState shot, ShotDef definition) =>
-        FindHit(world, database, shot, definition, out _);
+    public static CreatureState? FindHit(WorldState world, GameDatabase database, ShotState shot, ShotDef definition)
+    {
+        return FindHit(world, database, shot, definition, out _);
+    }
 
     /// <summary><see cref="FindHit(WorldState, GameDatabase, ShotState, ShotDef)"/>, with the found
     /// creature's place in the walk (a forced hit's is <see cref="long.MinValue"/>).</summary>
@@ -325,16 +327,21 @@ public static partial class ShotRules
         /// <summary>Where a thing on <paramref name="tile"/> comes, lower first, or
         /// <see cref="long.MaxValue"/> outside; <paramref name="rankInTile"/> (0 up, under 2^33)
         /// orders one tile's chain from its head.</summary>
-        public long Order(TilePos tile, long rankInTile) =>
-            tile.X < _x0 || tile.X > _x1 || tile.Y < _y0 || tile.Y > _y1
+        public long Order(TilePos tile, long rankInTile)
+        {
+            return tile.X < _x0 || tile.X > _x1 || tile.Y < _y0 || tile.Y > _y1
                 ? long.MaxValue
                 : ((long)(tile.Y * _width + tile.X) << 33) + rankInTile;
+        }
     }
 
     /// <summary>A creature's rank in its tile's chain: linked later (a higher
     /// <see cref="CreatureState.ChainOrder"/>) is nearer the head. A creature that changed tiles
     /// this turn keeps its rank until the relink (<c>TrapRules.RelinkCreatures</c>).</summary>
-    private static long ChainRank(CreatureState creature) => (long)int.MaxValue - creature.ChainOrder;
+    private static long ChainRank(CreatureState creature)
+    {
+        return (long)int.MaxValue - creature.ChainOrder;
+    }
 
     /// <summary>A trap's rank, after its tile's creatures. ASSUMED: DK2 links a trap into the
     /// same chain when made, so a creature already standing there when it was built sits behind it.</summary>
@@ -396,7 +403,10 @@ public static partial class ShotRules
     public const int EnemyTrapWidth = 0x800;
 
     /// <summary><c>0x004AC420</c>'s amount: the data word, doubled for a sniper's shot (<c>+0x165</c>).</summary>
-    public static int ContactAmount(ShotState shot) => shot.Sniper ? unchecked(shot.Data1 * 2) : shot.Data1;
+    public static int ContactAmount(ShotState shot)
+    {
+        return shot.Sniper ? unchecked(shot.Data1 * 2) : shot.Data1;
+    }
 
     /// <summary>Contact damage on a trap (<c>0x004AC420</c>): the data word flat, with no owner test,
     /// whoever owns the trap.</summary>

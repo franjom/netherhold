@@ -394,7 +394,10 @@ public sealed class KeeperBattleStep
         return spell;
     }
 
-    private bool Ready(KeeperSpellDef spell) => Ready(_view, spell);
+    private bool Ready(KeeperSpellDef spell)
+    {
+        return Ready(_view, spell);
+    }
 
     /// <summary><c>0x004BE390</c>: no cooldown left on the keeper's row for the spell.</summary>
     internal static bool Ready(KeeperView view, KeeperSpellDef spell)
@@ -409,26 +412,44 @@ public sealed class KeeperBattleStep
         return view.Tick.Value - entry.LastCastTick >= cooldown;
     }
 
-    private IReadOnlyList<KeeperThreatSource> Sources => _sources ??= ThreatEvaluator.Sources(_view);
+    private IReadOnlyList<KeeperThreatSource> Sources
+    {
+        get
+        {
+            return _sources ??= ThreatEvaluator.Sources(_view);
+        }
+    }
 
     /// <summary><c>0x00478050</c> answering the combat category: an own creature fighting through a
     /// walk. A held creature is out of the category in DK2 (state 76 or 78) and excluded here, as
     /// is one the retreat prepared for the hand this tick.</summary>
-    private bool IsFighting(KeeperCreatureView creature) =>
-        creature.Activity != CreatureActivity.Dead && !creature.InHand && !_prepared.Contains(creature.Id)
+    private bool IsFighting(KeeperCreatureView creature)
+    {
+        return creature.Activity != CreatureActivity.Dead && !creature.InHand && !_prepared.Contains(creature.Id)
         && creature.ResolvedStateId >= 0
         && CreatureStateTable.Get(creature.ResolvedStateId).Category == CreatureStateCategory.Combat;
+    }
 
     /// <summary>An owner's creature list in DK2's order; a corpse is a different thing there.</summary>
-    private IEnumerable<KeeperCreatureView> Owned(PlayerId player) =>
-        _view.Creatures.Where(c => c.OwnerPlayerId == player && c.OwnershipRank >= 0 && c.Activity != CreatureActivity.Dead)
+    private IEnumerable<KeeperCreatureView> Owned(PlayerId player)
+    {
+        return _view.Creatures.Where(c => c.OwnerPlayerId == player && c.OwnershipRank >= 0 && c.Activity != CreatureActivity.Dead)
             .OrderBy(c => c.OwnershipRank);
+    }
 
     /// <summary>Map layer 2: held or carried, which the counts and the strength skip.</summary>
-    private static bool OffMap(KeeperCreatureView creature) => creature.InHand || creature.CarriedByCreatureId >= 0;
+    private static bool OffMap(KeeperCreatureView creature)
+    {
+        return creature.InHand || creature.CarriedByCreatureId >= 0;
+    }
 
-    private bool IsWorker(KeeperCreatureView creature) =>
-        ((_view.Database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker);
+    private bool IsWorker(KeeperCreatureView creature)
+    {
+        return ((_view.Database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker);
+    }
 
-    private static TilePos TileOf(KeeperCreatureView creature) => new(creature.PosX >> 12, creature.PosY >> 12);
+    private static TilePos TileOf(KeeperCreatureView creature)
+    {
+        return new(creature.PosX >> 12, creature.PosY >> 12);
+    }
 }

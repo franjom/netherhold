@@ -104,8 +104,10 @@ public static class AvoidWallsRules
 
     /// <summary>Whether this mover may step from its own tile onto another: the router's transition
     /// cost, nonzero.</summary>
-    private static bool Open(ISteeringWorld world, byte own, int tileX, int tileY, MoverProfile mover) =>
-        MeshRouter.TransitionCost(world.NavByte(tileX, tileY), own, mover) != 0;
+    private static bool Open(ISteeringWorld world, byte own, int tileX, int tileY, MoverProfile mover)
+    {
+        return MeshRouter.TransitionCost(world.NavByte(tileX, tileY), own, mover) != 0;
+    }
 }
 
 /// <summary>The original's ray–circle test (<c>0x004D20F0</c>, steering-behaviours.md §3), operation

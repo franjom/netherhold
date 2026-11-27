@@ -24,11 +24,20 @@ public sealed class CasinoSystem : IRoomTickStep
 
     private readonly List<ObjectState> _piles = [];
 
-    public string Name => SystemName;
+    public string Name
+    {
+        get
+        {
+            return SystemName;
+        }
+    }
 
     private bool _settles, _runs;
 
-    public void Execute(SimulationContext context) => RoomTickSystem.RunAlone(context, this);
+    public void Execute(SimulationContext context)
+    {
+        RoomTickSystem.RunAlone(context, this);
+    }
 
     public void BeginTurn(SimulationContext context)
     {
@@ -39,8 +48,10 @@ public sealed class CasinoSystem : IRoomTickStep
         _runs = _settles || AnyParty(context.World);   // most turns need no room at all
     }
 
-    public bool Applies(SimulationContext context, RoomInstance room) =>
-        _runs && room.Definition.TypeId == RoomTypeId.Casino && room.TileIndices.Count != 0;
+    public bool Applies(SimulationContext context, RoomInstance room)
+    {
+        return _runs && room.Definition.TypeId == RoomTypeId.Casino && room.TileIndices.Count != 0;
+    }
 
     public void Tick(SimulationContext context, RoomInstance room)
     {

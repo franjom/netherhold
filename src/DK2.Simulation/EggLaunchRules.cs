@@ -161,6 +161,8 @@ public static class EggLaunchRules
     }
 
     /// <summary>The floor height under the egg (<c>0x004545C0</c>, <see cref="FloorHeightRules"/>).</summary>
-    internal static int FloorHeight(WorldState world, GameDatabase database, Fp32 posX, Fp32 posY) =>
-        FloorHeightRules.At(world, database, posX.Raw, posY.Raw);
+    internal static int FloorHeight(WorldState world, GameDatabase database, Fp32 posX, Fp32 posY)
+    {
+        return FloorHeightRules.At(world, database, posX.Raw, posY.Raw);
+    }
 }

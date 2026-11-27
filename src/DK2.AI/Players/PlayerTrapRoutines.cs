@@ -19,22 +19,29 @@ public static class PlayerTrapRoutines
     public const int LongCorridorTiles = 4;
 
     /// <summary>Ground an attacker may walk: known, not solid, not lava.</summary>
-    public static bool IsWalkable(in PlayerTile tile) =>
-        tile.IsKnown && (tile.Flags & (PlayerTileFlags.Solid | PlayerTileFlags.Lava)) == 0;
+    public static bool IsWalkable(in PlayerTile tile)
+    {
+        return tile.IsKnown && (tile.Flags & (PlayerTileFlags.Solid | PlayerTileFlags.Lava)) == 0;
+    }
 
     /// <summary>Whether attackers come in here: a hero gate or hero portal, or a Portal a rival keeper owns (an unclaimed
     /// one is only a map resource to claim, owner 2026-11-15).</summary>
-    public static bool IsEntryRoom(in PlayerTile tile, PlayerId self) => tile.Room switch
+    public static bool IsEntryRoom(in PlayerTile tile, PlayerId self)
     {
-        RoomTypeId.HeroGateFinal or RoomTypeId.HeroGateTile or RoomTypeId.HeroGate2By2 or RoomTypeId.HeroGateFrontEnd
-            or RoomTypeId.HeroGate3By1 or RoomTypeId.HeroPortal => true,
-        RoomTypeId.Portal => IsEnemyGround(tile, self),
-        _ => false,
-    };
+        return tile.Room switch
+        {
+            RoomTypeId.HeroGateFinal or RoomTypeId.HeroGateTile or RoomTypeId.HeroGate2By2 or RoomTypeId.HeroGateFrontEnd
+                or RoomTypeId.HeroGate3By1 or RoomTypeId.HeroPortal => true,
+            RoomTypeId.Portal => IsEnemyGround(tile, self),
+            _ => false,
+        };
+    }
 
     /// <summary>Another keeper's or the heroes' claimed ground.</summary>
-    public static bool IsEnemyGround(in PlayerTile tile, PlayerId self) =>
-        tile.IsKnown && tile.Owner != self && tile.Owner != PlayerIds.Neutral && tile.Owner != PlayerIds.Unowned;
+    public static bool IsEnemyGround(in PlayerTile tile, PlayerId self)
+    {
+        return tile.IsKnown && tile.Owner != self && tile.Owner != PlayerIds.Neutral && tile.Owner != PlayerIds.Unowned;
+    }
 
     /// <summary>A corridor tile: open floor, not on the map's border, with solid ground on two opposite sides, neither
     /// side marked for digging (a marked wall will open). Modelled on DK2's own keeper test (<c>004FFA50</c>), which
@@ -303,17 +310,20 @@ public static class PlayerTrapRoutines
 
     private static readonly string[] StrikeTraps = ["Sentry", "Spike", "Freeze", "Fireburst"];
 
-    private static int Rank(TrapSite site, TrapRole role) => (site, role) switch
+    private static int Rank(TrapSite site, TrapRole role)
     {
-        (TrapSite.LongCorridor, TrapRole.Boulder) => 0,
-        (TrapSite.LongCorridor, TrapRole.Fear) => 1,
-        (TrapSite.LongCorridor, TrapRole.Strike) => 2,
-        (TrapSite.ChokePoint, TrapRole.Strike) => 0,
-        (TrapSite.ChokePoint, TrapRole.Fear) => 1,
-        (TrapSite.NarrowCorridor, TrapRole.Fear) => 0,
-        (TrapSite.NarrowCorridor, TrapRole.Strike) => 1,
-        _ => 3,
-    };
+        return (site, role) switch
+        {
+            (TrapSite.LongCorridor, TrapRole.Boulder) => 0,
+            (TrapSite.LongCorridor, TrapRole.Fear) => 1,
+            (TrapSite.LongCorridor, TrapRole.Strike) => 2,
+            (TrapSite.ChokePoint, TrapRole.Strike) => 0,
+            (TrapSite.ChokePoint, TrapRole.Fear) => 1,
+            (TrapSite.NarrowCorridor, TrapRole.Fear) => 0,
+            (TrapSite.NarrowCorridor, TrapRole.Strike) => 1,
+            _ => 3,
+        };
+    }
 
     /// <summary>The player's own traps and trap blueprints in view.</summary>
     public static int OwnTraps(PlayerTileGrid grid)
@@ -356,7 +366,10 @@ public static class PlayerTrapRoutines
         return false;
     }
 
-    private static bool IsHeart(in PlayerTile tile, PlayerId self) => tile.Room == RoomTypeId.DungeonHeart && tile.Owner == self;
+    private static bool IsHeart(in PlayerTile tile, PlayerId self)
+    {
+        return tile.Room == RoomTypeId.DungeonHeart && tile.Owner == self;
+    }
 
     private static bool Solid(PlayerTileGrid grid, int x, int y)
     {

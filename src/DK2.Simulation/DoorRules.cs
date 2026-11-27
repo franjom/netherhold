@@ -21,11 +21,16 @@ public static class DoorRules
     /// <summary>The health routine's door arm (<c>0x004B2CE0</c>): the signed delta applied flat, no
     /// multiplier and no refusal. <paramref name="source"/> is the striker's owner, which DK2 stamps
     /// at <c>+0x36</c> and nothing here reads.</summary>
-    public static void Damage(SimulationContext context, DoorState door, int delta, byte source) =>
+    public static void Damage(SimulationContext context, DoorState door, int delta, byte source)
+    {
         door.Health += delta;
+    }
 
     /// <summary>Whether DK2's death query would say the door is dead.</summary>
-    public static bool IsDead(DoorState door) => door.Health <= 0;
+    public static bool IsDead(DoorState door)
+    {
+        return door.Health <= 0;
+    }
 
     /// <summary>Whether a creature at (<paramref name="x"/>, <paramref name="y"/>, <paramref name="z"/>) is
     /// inside a closed, completed door's body (<c>0x004529A0</c>): a barricade fills its tile below a

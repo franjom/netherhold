@@ -67,7 +67,10 @@ public static class CasinoStep
     /// <summary>154 (<c>0x00456FB0</c>): back into a Casino that changed.</summary>
     public const int ReturningState = 154;
 
-    public static bool IsCasinoState(int state) => state is >= ChoosingState and <= StandingState or DancingState or ReturningState;
+    public static bool IsCasinoState(int state)
+    {
+        return state is >= ChoosingState and <= StandingState or DancingState or ReturningState;
+    }
 
     /// <summary>One turn of a gambler. False when it is left idle, which ends the job.</summary>
     public static bool Turn(SimulationContext context, string system, CreatureState creature)
@@ -584,8 +587,10 @@ public static class CasinoStep
     }
 
     /// <summary>An object's position, its <c>+0x1A</c> (<see cref="AutoFurnitureRules.FurniturePosition"/>).</summary>
-    public static (int X, int Y) FurniturePosition(WorldState world, GameDatabase database, RoomInstance room, ObjectState thing) =>
-        AutoFurnitureRules.FurniturePosition(world, database, room, thing);
+    public static (int X, int Y) FurniturePosition(WorldState world, GameDatabase database, RoomInstance room, ObjectState thing)
+    {
+        return AutoFurnitureRules.FurniturePosition(world, database, room, thing);
+    }
 
     /// <summary>The angle the wall pass gives wall furniture, <c>((side + 2) &amp; 3) &lt;&lt; 9</c>.</summary>
     private static int WallAngle(WorldState world, GameDatabase database, RoomInstance room, ObjectState thing)
@@ -628,8 +633,10 @@ public static class CasinoStep
     }
 
     /// <summary>The turn step <c>0x004B2AE0</c> toward a point: the angle still to turn.</summary>
-    internal static int TurnTo(SimulationContext context, CreatureState creature, int x, int y) =>
-        CreatureTurn.Toward(context.Database, creature, x, y);
+    internal static int TurnTo(SimulationContext context, CreatureState creature, int x, int y)
+    {
+        return CreatureTurn.Toward(context.Database, creature, x, y);
+    }
 
     /// <summary>A walk to a point resuming <paramref name="resume"/>, options <c>0x80</c>.</summary>
     private static bool Walk(SimulationContext context, string system, CreatureState creature, int x, int y, int resume)

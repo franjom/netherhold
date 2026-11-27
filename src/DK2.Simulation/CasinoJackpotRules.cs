@@ -59,17 +59,24 @@ public static class CasinoJackpotRules
         (0xD54, 0x7FF), (0x2AA, 0xD54), (0x7FF, 0xD54), (0xD54, 0xD54),
     ];
 
-    public static bool IsWinnerState(int state) =>
-        state is CelebratingState or SeekingTheGoldState or ArrivedState or CollectingState;
+    public static bool IsWinnerState(int state)
+    {
+        return state is CelebratingState or SeekingTheGoldState or ArrivedState or CollectingState;
+    }
 
     /// <summary>Whether this Casino has a party on, room <c>+0x41</c>.</summary>
-    public static bool IsPartyOn(WorldState world, RoomInstance room) =>
-        room.TileIndices.Count > 0 && (world.TileAtIndex(room.TileIndices[0]).CasinoParty & PartyBit) != 0;
+    public static bool IsPartyOn(WorldState world, RoomInstance room)
+    {
+        return room.TileIndices.Count > 0 && (world.TileAtIndex(room.TileIndices[0]).CasinoParty & PartyBit) != 0;
+    }
 
     /// <summary>The update hook's roll, once an act after the purse: 1 in variable 205 (Smiley) or 206 ($).</summary>
-    public static int Chance(GameDatabase database, byte setting) => database[setting == CasinoRules.Stingy
+    public static int Chance(GameDatabase database, byte setting)
+    {
+        return database[setting == CasinoRules.Stingy
         ? VariableTypeId.GamblingCreatureJackpotChanceMoneyPerSecond
         : VariableTypeId.GamblingCreatureJackpotChanceSmilesPerSecond];
+    }
 
     // ------------------------------------------------------------------------ the jackpot
 
@@ -478,9 +485,11 @@ public static class CasinoJackpotRules
     }
 
     /// <summary>A Treasury of the keeper's, or its Heart unless ruined (<c>+0x9A</c> bit 0).</summary>
-    private static bool IsBankOf(WorldState world, RoomInstance room, PlayerId keeper) =>
-        room.OwnerPlayerId == keeper && (room.Definition.TypeId == RoomTypeId.Treasury
+    private static bool IsBankOf(WorldState world, RoomInstance room, PlayerId keeper)
+    {
+        return room.OwnerPlayerId == keeper && (room.Definition.TypeId == RoomTypeId.Treasury
             || (room.Definition.TypeId == RoomTypeId.DungeonHeart && !world.TileAtIndex(room.TileIndices[0]).RoomRuined));
+    }
 
     /// <summary><c>0x004DA1B0</c>: a tile on the outer ring of the Heart's 5×5, from its first slab.</summary>
     private static bool OnHeartRing(WorldState world, RoomInstance room, int tile)

@@ -45,7 +45,10 @@ public sealed class KeeperMoodRemedies
     }
 
     /// <summary>Message 17: make happy when <c>UnhappyCreaturesHappy</c>, else handled.</summary>
-    public bool Unhappy(PlayerMessage message) => !_p.UnhappyCreaturesHappy || MakeHappy(message);
+    public bool Unhappy(PlayerMessage message)
+    {
+        return !_p.UnhappyCreaturesHappy || MakeHappy(message);
+    }
 
     /// <summary>Message 18: dispose when <c>AngryCreaturesDisposeOf</c>, else make happy when
     /// <c>AngryCreaturesHappy</c>, else handled.</summary>
@@ -210,14 +213,17 @@ public sealed class KeeperMoodRemedies
     }
 
     /// <summary><c>JobRooms</c> at <c>0x006ED490</c>, its room byte only (KEEPER_AI.md §2.3).</summary>
-    public static RoomTypeId? JobRoom(JobType job) => job switch
+    public static RoomTypeId? JobRoom(JobType job)
     {
-        JobType.Research => RoomTypeId.Library,
-        JobType.Train => RoomTypeId.TrainingRoom,
-        JobType.Manufacture => RoomTypeId.Workshop,
-        JobType.Torture => RoomTypeId.TortureChamber,
-        _ => null,
-    };
+        return job switch
+        {
+            JobType.Research => RoomTypeId.Library,
+            JobType.Train => RoomTypeId.TrainingRoom,
+            JobType.Manufacture => RoomTypeId.Workshop,
+            JobType.Torture => RoomTypeId.TortureChamber,
+            _ => null,
+        };
+    }
 
     private KeeperCreatureView? Creature(int id)
     {
@@ -232,5 +238,8 @@ public sealed class KeeperMoodRemedies
         return null;
     }
 
-    private static TilePos CreatureTile(KeeperCreatureView creature) => new(creature.PosX >> 12, creature.PosY >> 12);
+    private static TilePos CreatureTile(KeeperCreatureView creature)
+    {
+        return new(creature.PosX >> 12, creature.PosY >> 12);
+    }
 }

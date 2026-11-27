@@ -72,7 +72,11 @@ public static class JailBreakRules
         return -1;
     }
 
-    public static ref byte DoorOf(WorldState world, RoomInstance room) => ref world.TileAtIndex(room.TileIndices[0]).PrisonDoor;
+    public static ref byte DoorOf(WorldState world, RoomInstance room)
+    {
+        return ref world.TileAtIndex(room.TileIndices[0]).PrisonDoor;
+    }
+
     /// <summary>Action136: unlock and open the prison, then release every side (0x00514420,0x004E2E60).</summary>
     public static void OpenByPossession(SimulationContext context, RoomInstance room)
     {
@@ -270,7 +274,10 @@ public static class JailBreakRules
 
     /// <summary>The lock toggle <c>0x004E3680</c> as it unlocks: <see cref="Activated"/> on, and
     /// <see cref="Broken"/> cleared, since the toggle starts with <c>0x004E2D40(0)</c>.</summary>
-    private static byte Unlocked(byte flags) => (byte)((flags | Activated) & ~Broken);
+    private static byte Unlocked(byte flags)
+    {
+        return (byte)((flags | Activated) & ~Broken);
+    }
 
     /// <summary>121 (<c>0x004739E0</c>), once a turn. Off the cell's floor, the prisoner is free
     /// (the handler's 0, idle). South of the door it steps onto the door, unlocking and opening it;
@@ -350,10 +357,14 @@ public static class JailBreakRules
 
     /// <summary><c>0x004E8430</c>, as both callers take it (<c>0x00473A86</c>, <c>0x004E2F51</c>): one draw
     /// among the room's tiles that are neither floor nor wall slots, its centre walked to as is (ADR-0676).</summary>
-    private static int? RimTile(SimulationContext context, RoomInstance room) =>
-        RoomWalkRules.RoomPoint(context.World, context.Database, room, context.Rng);
+    private static int? RimTile(SimulationContext context, RoomInstance room)
+    {
+        return RoomWalkRules.RoomPoint(context.World, context.Database, room, context.Rng);
+    }
 
     /// <summary>Whether a prisoner is walking out, so the cell's own states leave it alone.</summary>
-    public static bool IsEscaping(CreatureState c) =>
-        c.Dk2StateId == EscapingState || (StateShadow.IsTravelling(c) && c.UtilityNewState == EscapingState);
+    public static bool IsEscaping(CreatureState c)
+    {
+        return c.Dk2StateId == EscapingState || (StateShadow.IsTravelling(c) && c.UtilityNewState == EscapingState);
+    }
 }

@@ -26,15 +26,23 @@ public static class DefeatRules
 
     /// <summary>The rooms a fallen keeper keeps: the heart — its ruin, ADR-0162 — and room ids 18 to
     /// 23, the hero gates and the hero stone bridge. Everything else, portals included, goes neutral.</summary>
-    public static bool IsKept(RoomDef room) =>
-        room.RoomId == (byte)RoomTypeId.DungeonHeart
+    public static bool IsKept(RoomDef room)
+    {
+        return room.RoomId == (byte)RoomTypeId.DungeonHeart
         || (room.RoomId >= (byte)RoomTypeId.HeroGateFinal && room.RoomId <= (byte)RoomTypeId.HeroGate3By1);
+    }
 
     /// <summary>Whether the fallen keeper's consequences run this tick for a heart that died on
     /// <paramref name="died"/>: the death turn itself, and every turn from the fifth after it.</summary>
-    public static bool IsDeathTurn(GameTick now, GameTick died) => now.Value == died.Value;
+    public static bool IsDeathTurn(GameTick now, GameTick died)
+    {
+        return now.Value == died.Value;
+    }
 
-    public static bool CreaturesGo(GameTick now, GameTick died) => now.Value > died.Value + CreatureDelayTurns - 1;
+    public static bool CreaturesGo(GameTick now, GameTick died)
+    {
+        return now.Value > died.Value + CreatureDelayTurns - 1;
+    }
 
     /// <summary>The death turn's arm, guarded as DK2 guards it: only while the heart tile still
     /// carries a heart room. Gold first (<c>0x004F38C0</c>: one neutral pile per pile, the keeper

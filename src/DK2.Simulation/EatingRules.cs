@@ -52,7 +52,13 @@ public static class EatingRules
     /// the prison's copy of the test reads
     /// <c>TimeBetweenReattemptingHungerSeconds</c>, also 4, so the two paths
     /// retry at the same rate whichever way the unit is read.</para></summary>
-    public static int RetryTicks => SimulationTiming.TicksPerSecond;
+    public static int RetryTicks
+    {
+        get
+        {
+            return SimulationTiming.TicksPerSecond;
+        }
+    }
 
     /// <summary>How much hunger one period adds, and the level of it a creature will not
     /// tolerate: the record's <c>HungerFill</c> scaled by creature stat row 9.
@@ -60,10 +66,12 @@ public static class EatingRules
     /// <c>HungerFill</c> exactly and the scaling is invisible. Applied anyway
     /// because the original applies it, and a mod that edits row 9 would show
     /// the difference.</para></summary>
-    public static int HungerFill(GameDatabase database, CreatureDef creature, int level) =>
-        CreatureLevelRules.Scale(
+    public static int HungerFill(GameDatabase database, CreatureDef creature, int level)
+    {
+        return CreatureLevelRules.Scale(
             creature.HungerFill,
             CreatureLevelRules.Percent(database, CreatureStatId.HungerFill, level));
+    }
 
     /// <summary>Seconds between one helping of hunger and the next — the record's
     /// <c>HungerRate</c>, which is 180 for a Goblin and 220 for a Bile Demon.
@@ -74,8 +82,10 @@ public static class EatingRules
     /// corroboration that variable 19 is ticks per game second, since
     /// <c>TimeAwake</c> and <c>TimeSleep</c> get the same multiply without the
     /// shift.</para></summary>
-    public static int HungerRateSeconds(CreatureDef creature) =>
-        creature.HungerRate.Raw / Fp32.One;
+    public static int HungerRateSeconds(CreatureDef creature)
+    {
+        return creature.HungerRate.Raw / Fp32.One;
+    }
 
     /// <summary>Whether this creature will <b>set out</b> to eat:
     /// <c>HungerNeed &gt;= HungerFill</c>, which is the original's own entry
@@ -99,22 +109,29 @@ public static class EatingRules
     /// again — so a Bile Demon eats five birds in a row rather than one and a
     /// long wait. UNKNOWN which state re-enters which (Q174); that the loop is
     /// keyed on this number is not.</para></summary>
-    public static bool StillOwesFood(CreatureState state) => state.HungerNeed > 0;
+    public static bool StillOwesFood(CreatureState state)
+    {
+        return state.HungerNeed > 0;
+    }
 
     /// <summary>Whether this object is food by the <b>flag</b> — the test the original's
     /// <i>prison</i> search uses, and the one that lets a Torture Pendulum
     /// count. Not used by the hatchery path; see the type summary.</summary>
-    public static bool IsFood(GameDatabase database, ObjectState thing) =>
-        database.ObjectById(thing.ObjectTypeId)?.IsFood == true;
+    public static bool IsFood(GameDatabase database, ObjectState thing)
+    {
+        return database.ObjectById(thing.ObjectTypeId)?.IsFood == true;
+    }
 
     /// <summary>Whether this object is a chicken a creature could walk up to and eat: the
     /// hatchery search's own test (object id 9) plus "not in somebody's hands",
     /// which the original applies at the moment of eating rather than of
     /// choosing.</summary>
-    public static bool IsEdibleChicken(ObjectState thing) =>
-        thing.ObjectTypeId == HatcheryRules.ChickenObjectId
+    public static bool IsEdibleChicken(ObjectState thing)
+    {
+        return thing.ObjectTypeId == HatcheryRules.ChickenObjectId
         && thing.CarriedByCreatureId < 0
         && !thing.InHand;
+    }
 
     /// <summary>The hatchery this creature is standing in, or null. The original's test
     /// is the tile underfoot: its room must be type 4 <b>and</b> owned by the
@@ -129,10 +146,12 @@ public static class EatingRules
     }
 
     /// <summary>A hatchery of this keeper's, and not of an ally's.</summary>
-    public static bool IsHatcheryOf(RoomInstance? room, int playerId) =>
-        room is not null
+    public static bool IsHatcheryOf(RoomInstance? room, int playerId)
+    {
+        return room is not null
         && room.Definition.TypeId == RoomTypeId.Hatchery
         && room.OwnerPlayerId == playerId;
+    }
 
     /// <summary>The nearest chicken in this room by <b>straight-line squared distance</b>, state 92's
     /// ranking (<c>0x00463587</c>-<c>0x00463663</c>), and deliberately not a path length.
@@ -193,8 +212,10 @@ public static class EatingRules
 
     /// <summary>As above, from the centre of <paramref name="from"/>.</summary>
     public static ObjectState? NearestChickenIn(
-        WorldState world, GameDatabase database, RoomInstance room, TilePos from) =>
-        NearestChickenIn(world, database, room, CreatureState.CentreOf(from.X), CreatureState.CentreOf(from.Y));
+        WorldState world, GameDatabase database, RoomInstance room, TilePos from)
+    {
+        return NearestChickenIn(world, database, room, CreatureState.CentreOf(from.X), CreatureState.CentreOf(from.Y));
+    }
 
     /// <summary>The nearest <b>food-flagged</b> object in this room — the <i>prison</i>
     /// search, and a different question from <see cref="NearestChickenIn"/>.
@@ -323,8 +344,10 @@ public static class EatingRules
     /// <c>LastAteTime</c> as the periodic increment does, so the next helping is
     /// a full <c>HungerRate</c> after the last bird rather than after the last
     /// <i>full</i> meal.</para></summary>
-    public static int Eat(GameDatabase database, CreatureDef creature, CreatureState state, long now) =>
-        Swallow(database, creature, state, 1, now);
+    public static int Eat(GameDatabase database, CreatureDef creature, CreatureState state, long now)
+    {
+        return Swallow(database, creature, state, 1, now);
+    }
 
     /// <summary>Eat one chicken in a prison, which pays off <b>the whole of
     /// <c>HungerFill</c></b> rather than one.
@@ -333,8 +356,10 @@ public static class EatingRules
     /// passes a literal 1, so one bird dropped into a cell fills whatever is in
     /// there. Called by <see cref="Systems.PrisonerEatSystem"/>.</para></summary>
     public static int EatInPrison(
-        GameDatabase database, CreatureDef creature, CreatureState state, long now) =>
-        Swallow(database, creature, state, HungerFill(database, creature, state.Level), now);
+        GameDatabase database, CreatureDef creature, CreatureState state, long now)
+    {
+        return Swallow(database, creature, state, HungerFill(database, creature, state.Level), now);
+    }
 
     /// <summary>The hunger clock: one helping every <c>HungerRate</c> seconds, added
     /// rather than assigned, with the clock restarted whether or not anything
@@ -368,8 +393,10 @@ public static class EatingRules
     /// (<c>0x00463A10</c>, reached from the drop's landing hook), which pays off one helping and
     /// heals only while food is still owed. Ours keeps the creature's own target: the bird came to
     /// it, and a chase for another is not this bird's business. Returns the health gained.</summary>
-    public static int EatDropped(GameDatabase database, CreatureDef creature, CreatureState state, long now) =>
-        StillOwesFood(state) ? Swallow(database, creature, state, 1, now, keepTarget: true) : 0;
+    public static int EatDropped(GameDatabase database, CreatureDef creature, CreatureState state, long now)
+    {
+        return StillOwesFood(state) ? Swallow(database, creature, state, 1, now, keepTarget: true) : 0;
+    }
 
     private static int Swallow(
         GameDatabase database, CreatureDef creature, CreatureState state, int pays, long now,

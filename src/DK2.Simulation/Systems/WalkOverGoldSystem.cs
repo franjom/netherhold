@@ -25,7 +25,13 @@ public sealed class WalkOverGoldSystem : ISimulationSystem
     private readonly List<ObjectState> _piles = [];
     private readonly List<ObjectState> _chickens = [];
 
-    public string Name => "walk-over gold";
+    public string Name
+    {
+        get
+        {
+            return "walk-over gold";
+        }
+    }
 
     public void Execute(SimulationContext context)
     {
@@ -75,21 +81,27 @@ public sealed class WalkOverGoldSystem : ISimulationSystem
 
     /// <summary>The worker arm's three tests (<c>0x0048904E</c>): not possessed, a worker
     /// definition, owned by a keeper. Everyone else is this arm's.</summary>
-    public static bool IsWorkerArm(WorldState world, CreatureDef definition, CreatureState creature) =>
-        ((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)
+    public static bool IsWorkerArm(WorldState world, CreatureDef definition, CreatureState creature)
+    {
+        return ((definition.Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker)
         && PlayerIds.IsKeeper(creature.OwnerPlayerId)
         && !CreatureDeathRules.IsPossessed(world, creature);
+    }
 
     /// <summary>A gold object (type 1, 2 or 3) owned by the neutral player and lying on a tile.
     /// Ours has only object 1 on the floor; a Treasury's or Heart's gold is tile state
     /// (ADR-0015), so a Heart's own piles are never candidates.</summary>
-    private static bool IsTakeable(ObjectState thing) =>
-        thing.ObjectTypeId is >= 1 and <= 3 && thing.OwnerPlayerId == PlayerIds.Neutral
+    private static bool IsTakeable(ObjectState thing)
+    {
+        return thing.ObjectTypeId is >= 1 and <= 3 && thing.OwnerPlayerId == PlayerIds.Neutral
         && !thing.InHand && thing.CarriedByCreatureId < 0 && thing.TileIndex >= 0 && thing.GoldHeld > 0;
+    }
 
     /// <summary>A Chicken (object 9) owned by the neutral player, on a tile and in nobody's hands.</summary>
-    private static bool IsLooseNeutralChicken(ObjectState thing) =>
-        EatingRules.IsEdibleChicken(thing) && thing.OwnerPlayerId == PlayerIds.Neutral && thing.TileIndex >= 0;
+    private static bool IsLooseNeutralChicken(ObjectState thing)
+    {
+        return EatingRules.IsEdibleChicken(thing) && thing.OwnerPlayerId == PlayerIds.Neutral && thing.TileIndex >= 0;
+    }
 
     private void TakeFromTile(SimulationContext context, CreatureState creature, CreatureDef definition)
     {

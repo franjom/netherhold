@@ -22,11 +22,13 @@ public static class CarryRules
     /// collapsed and rescuable, or dead and carryable. Says nothing about whether there is anywhere
     /// to take it; that is <see cref="TryDestinationFor"/>, kept separate because a body with
     /// nowhere to go is a body nobody should walk to.</summary>
-    public static bool IsCarryable(CreatureState body) =>
-        !body.InHand
+    public static bool IsCarryable(CreatureState body)
+    {
+        return !body.InHand
         && body.CarriedByCreatureId < 0
         && !body.HeldPlace.IsHeld
         && (CreatureDeathRules.IsDying(body) || CreatureDeathRules.IsCorpse(body));
+    }
 
     /// <summary>Whether <paramref name="worker"/> may carry <paramref name="body"/>. A carrier
     /// carries one thing, DK2's imp having one carry slot: a worker already holding a body is not

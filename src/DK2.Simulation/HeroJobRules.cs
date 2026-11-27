@@ -47,9 +47,15 @@ public static class HeroJobRules
     /// <summary>State 175's four neighbours at <c>0x006BC350</c>.</summary>
     private static readonly (int X, int Y)[] Neighbours = [(0, -1), (1, 0), (0, 1), (-1, 0)];
 
-    public static bool IsHero(CreatureState creature) => creature.OwnerPlayerId == PlayerIds.Good;
+    public static bool IsHero(CreatureState creature)
+    {
+        return creature.OwnerPlayerId == PlayerIds.Good;
+    }
 
-    public static bool IsFollower(CreatureState creature) => (creature.Flags & 0x04) != 0;
+    public static bool IsFollower(CreatureState creature)
+    {
+        return (creature.Flags & 0x04) != 0;
+    }
 
     /// <summary><c>0x0050EA20</c>: the player whose creatures carry the greatest sum of the
     /// definition byte <c>+0x787</c> (<see cref="CreatureDef.Unknown_0F4C"/>, <c>0x004BCB20</c>),
@@ -456,10 +462,15 @@ public static class HeroJobRules
     }
 
     /// <summary>One of the nine sub-tile offsets (<c>0x00698EC8</c>).</summary>
-    public static (int X, int Y) RandomSubTile(SimulationContext context) => SubTile[context.Rng.NextInt(SubTile.Length)];
+    public static (int X, int Y) RandomSubTile(SimulationContext context)
+    {
+        return SubTile[context.Rng.NextInt(SubTile.Length)];
+    }
 
     /// <summary>DK2's <c>0x00471890(point, resume, options)</c>: route, then state 6 resuming; with
     /// option bit 0 a failed route falls back to tunnelling (<see cref="TunnelRules"/>).</summary>
-    private static bool Walk(SimulationContext context, CreatureState creature, int x, int y, int resume, Navigation.MoveOptions options) =>
-        TunnelRules.RouteOrTunnel(context, "Hero", creature, x, y, Systems.StateShadow.TravelToPoint, resume, options, x >> 12, y >> 12);
+    private static bool Walk(SimulationContext context, CreatureState creature, int x, int y, int resume, Navigation.MoveOptions options)
+    {
+        return TunnelRules.RouteOrTunnel(context, "Hero", creature, x, y, Systems.StateShadow.TravelToPoint, resume, options, x >> 12, y >> 12);
+    }
 }

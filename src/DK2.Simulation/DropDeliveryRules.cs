@@ -136,6 +136,8 @@ public static class DropDeliveryRules
     }
 
     /// <summary>211's handler <c>0x00458680</c>: whether the action still runs; ended, idle.</summary>
-    public static bool Celebrating(SimulationContext context, CreatureState creature) =>
-        context.Tick.Value < creature.ActionUntilTick;
+    public static bool Celebrating(SimulationContext context, CreatureState creature)
+    {
+        return context.Tick.Value < creature.ActionUntilTick;
+    }
 }

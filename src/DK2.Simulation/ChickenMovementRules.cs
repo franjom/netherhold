@@ -248,10 +248,12 @@ public static class ChickenMovementRules
         }
     }
 
-    private static bool IsOwnedHatchery(SimulationContext context, ObjectState chicken, TilePos tile) =>
-        context.World.Contains(tile)
+    private static bool IsOwnedHatchery(SimulationContext context, ObjectState chicken, TilePos tile)
+    {
+        return context.World.Contains(tile)
         && context.World.Tile(tile).OwnerPlayerId == chicken.OwnerPlayerId
         && context.Database.RoomByTerrain(context.World.Tile(tile).TerrainId)?.TypeId == RoomTypeId.Hatchery;
+    }
 
     private static void ChooseRoomPoint(SimulationContext context, ObjectState chicken)
     {
@@ -386,10 +388,12 @@ public static class ChickenMovementRules
     /// <summary>A Treasury or Heart tile holding gold holds one Gold Pile 1 (<c>0x004F3C60</c>), an Obstacle
     /// by its definition, which <c>Tile_FirstObstacle</c> (<c>0x00453600</c>) finds; ours keeps that gold on
     /// the tile without the object (ADR-0649).</summary>
-    private static bool HasStorePile(GameDatabase database, in TileState tile) =>
-        tile.GoldHeld > 0
+    private static bool HasStorePile(GameDatabase database, in TileState tile)
+    {
+        return tile.GoldHeld > 0
         && database.RoomByTerrain(tile.TerrainId)?.TypeId is RoomTypeId.Treasury or RoomTypeId.DungeonHeart
         && ((database.ObjectById(FloorGold.TreasuryPileObjectId)?.Flags & ObjectFlags.Obstacle) == ObjectFlags.Obstacle) == true;
+    }
 
     // Heart pillars are virtual combat targets, absent from the object list that the obstacle scan walks.
     private static bool HasHeartPillar(SimulationContext context, TilePos tile)
@@ -415,8 +419,10 @@ public static class ChickenMovementRules
     }
 
     // Hatchery pillars are drawn from room geometry rather than stored as simulation objects.
-    private static bool HasHatcheryPillar(SimulationContext context, TilePos tile) =>
-        HasHatcheryPillar(context.World, context.Database, tile);
+    private static bool HasHatcheryPillar(SimulationContext context, TilePos tile)
+    {
+        return HasHatcheryPillar(context.World, context.Database, tile);
+    }
 
     /// <summary>Whether a virtual Hatchery pillar (object 78, an Obstacle) stands on this tile.</summary>
     internal static bool HasHatcheryPillar(WorldState world, GameDatabase database, TilePos tile)
@@ -498,12 +504,20 @@ public static class ChickenMovementRules
     }
 
     public static bool StartMove(SimulationContext context, ObjectState chicken, ObjectMovePoint destination,
-        ChickenProcess resume, Fp32 extraSpeed, bool interruptible) =>
-        ObjectMovementRules.StartMove(context, chicken, destination, new ObjectProcessId((byte)resume), extraSpeed, interruptible);
+        ChickenProcess resume, Fp32 extraSpeed, bool interruptible)
+    {
+        return ObjectMovementRules.StartMove(context, chicken, destination, new ObjectProcessId((byte)resume), extraSpeed, interruptible);
+    }
 
-    public static short RuntimeSpeed(ObjectDef definition) => ObjectMovementRules.RuntimeSpeed(definition);
+    public static short RuntimeSpeed(ObjectDef definition)
+    {
+        return ObjectMovementRules.RuntimeSpeed(definition);
+    }
 
-    private static void Move(SimulationContext context, ObjectState chicken) => ObjectMovementRules.StepMove(context, chicken);
+    private static void Move(SimulationContext context, ObjectState chicken)
+    {
+        ObjectMovementRules.StepMove(context, chicken);
+    }
 
     private static void React(SimulationContext context, ObjectState chicken)
     {

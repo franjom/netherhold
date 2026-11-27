@@ -245,7 +245,13 @@ public static class CallToArmsRules
     // Per thread, not per process, as FightRules' scratch: two worlds can tick at once.
     [ThreadStatic] private static List<Steering.Fixed16Vector>? s_routeScratch;
 
-    private static List<Steering.Fixed16Vector> RouteScratch => s_routeScratch ??= [];
+    private static List<Steering.Fixed16Vector> RouteScratch
+    {
+        get
+        {
+            return s_routeScratch ??= [];
+        }
+    }
 
     /// <summary>The release (<c>0x004BDFC0</c>): the clock and the flag bit go, and every owned
     /// non-worker under the call that is neither captive nor joining is idled and loses its bit

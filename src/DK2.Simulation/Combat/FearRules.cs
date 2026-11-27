@@ -119,12 +119,16 @@ public static class FearRules
     }
 
     /// <summary>The level-scaled <c>Threat</c> stat, a creature's weight in every head-count.</summary>
-    public static int ThreatAtLevel(GameDatabase database, CreatureDef definition, int level) =>
-        CreatureLevelRules.Scale(definition.Threat, CreatureLevelRules.Percent(database, CreatureStatId.Threat, level));
+    public static int ThreatAtLevel(GameDatabase database, CreatureDef definition, int level)
+    {
+        return CreatureLevelRules.Scale(definition.Threat, CreatureLevelRules.Percent(database, CreatureStatId.Threat, level));
+    }
 
     /// <summary>The level-scaled <c>Fear</c> stat: the threshold <c>CurrentFear</c> is measured against.</summary>
-    public static int FearThreshold(GameDatabase database, CreatureDef definition, int level) =>
-        CreatureLevelRules.Scale(definition.Fear, CreatureLevelRules.Percent(database, CreatureStatId.Fear, level));
+    public static int FearThreshold(GameDatabase database, CreatureDef definition, int level)
+    {
+        return CreatureLevelRules.Scale(definition.Fear, CreatureLevelRules.Percent(database, CreatureStatId.Fear, level));
+    }
 
     /// <summary>A heartless player's <c>DungeonHeartPosition</c>: the player initialiser
     /// <c>0x004B8640</c> stores 1 in both words (<c>0x004B883E</c>, <c>0x004B8845</c>), and only the
@@ -222,9 +226,11 @@ public static class FearRules
         }
         return false;
 
-        static bool IsNonImp(WorldState world, int id) =>
-            id != CombatRules.NoTarget && world.CreatureById(id) is { } attacker
+        static bool IsNonImp(WorldState world, int id)
+        {
+            return id != CombatRules.NoTarget && world.CreatureById(id) is { } attacker
             && attacker.CreatureTypeId != CombatRules.ImpCreatureTypeId;
+        }
     }
 
     /// <summary><c>0x00460C50</c>: true when every neighbouring tile I can walk to holds a hostile
@@ -365,11 +371,16 @@ public static class FearRules
     /// <summary>A withdrawal taken from the fight or the flee state: the body's ignore-blocker bit
     /// set for a keeper's creature and cleared for a hero's (<c>0x0045F3D6..0x0045F409</c>, §4 step 4),
     /// after the travel's leave hook cleared it. The NonFighter arm's own write is not built.</summary>
-    private static void WithdrawnBody(CreatureState me) =>
+    private static void WithdrawnBody(CreatureState me)
+    {
         me.Body.IgnoreBlocker = me.OwnerPlayerId != PlayerIds.Good;
+    }
 
     /// <summary>The definition's run speed per tick, as the loader keeps it (<c>def+0x5B8</c>).</summary>
-    public static int RunPerTick(CreatureDef definition) => SimulationTiming.LoaderRatePerTick(definition.RunSpeed.Raw);
+    public static int RunPerTick(CreatureDef definition)
+    {
+        return SimulationTiming.LoaderRatePerTick(definition.RunSpeed.Raw);
+    }
 
     /// <summary>State 203 (<c>0x004602E0</c>), each tick: while <c>BackOffTimer</c> runs, hold the
     /// nearest attacker at five quarters of its reach, stepping back when it closes, and return to
@@ -621,23 +632,33 @@ public static class FearRules
 
     /// <summary>The flee state's step back (<c>0x004602E0</c>): twenty-four ticks of shuffle,
     /// <c>(ShuffleSpeed·3 &amp; 0x1FFFFFFE)·−8</c> from the definition's per-tick rate (<c>def+0x5BC</c>).</summary>
-    public static int FleeStepBackLength(CreatureDef mine) =>
-        unchecked((ShufflePerTick(mine) * 3 & 0x1FFFFFFE) * -8);
+    public static int FleeStepBackLength(CreatureDef mine)
+    {
+        return unchecked((ShufflePerTick(mine) * 3 & 0x1FFFFFFE) * -8);
+    }
 
     /// <summary>The cannot-cast step back (<c>0x0045FF51</c>-<c>0x0045FF69</c>): sixteen ticks of
     /// shuffle, <c>−(ShuffleSpeed &lt;&lt; 4)</c>.</summary>
-    public static int CastStepBackLength(CreatureDef mine) => -(ShufflePerTick(mine) << 4);
+    public static int CastStepBackLength(CreatureDef mine)
+    {
+        return -(ShufflePerTick(mine) << 4);
+    }
 
     /// <summary><c>def+0x5BC</c>: the record's shuffle speed over variable 19, floored at 1
     /// (<c>CreatureDef_BuildFromRecord</c>, <c>0x00492517</c>-<c>0x00492536</c>).</summary>
-    private static int ShufflePerTick(CreatureDef mine) => SimulationTiming.LoaderRatePerTick(mine.ShuffleSpeed.Raw);
+    private static int ShufflePerTick(CreatureDef mine)
+    {
+        return SimulationTiming.LoaderRatePerTick(mine.ShuffleSpeed.Raw);
+    }
 
     /// <summary>The step's vector along my heading through the sine tables (<c>0x006C1488</c>,
     /// <c>0x006C1C88</c>): <c>x = (L·sin) &gt;&gt; 16</c>, <c>y = −((L·cos) &gt;&gt; 16)</c>, so a negative
     /// length points behind me.</summary>
-    public static (int X, int Y) StepBackVector(CreatureState me, int length) =>
-        ((int)(((long)length * TrapRules.Sine(me.Heading)) >> 16),
+    public static (int X, int Y) StepBackVector(CreatureState me, int length)
+    {
+        return ((int)(((long)length * TrapRules.Sine(me.Heading)) >> 16),
          -(int)(((long)length * TrapRules.Cosine(me.Heading)) >> 16));
+    }
 
     /// <summary><c>0x00460DA0</c>: the step allowed when a route reaches its point and the tile at
     /// <c>(x, y+vy)</c> or <c>(x+vx, y)</c> is not solid; when no route reaches it, <c>±0x3000</c> (three
@@ -877,12 +898,15 @@ public static class FearRules
     /// flee back-off keeps a live creature that cannot be attacked staged, where ours has already
     /// let it go (<see cref="FightRules.TargetIsValid"/>); spFighting drops a spell attacker's target
     /// at zero health and a target whose <c>+0x16</c> is 2, which this does not test.</summary>
-    public static TilePos? StagedTarget(WorldState world, CreatureState me) => me.FightTargetKind switch
+    public static TilePos? StagedTarget(WorldState world, CreatureState me)
     {
-        FightTargetKind.Creature when world.CreatureById(me.FightTargetId) is { } creature => creature.Tile,
-        FightTargetKind.Trap when world.TrapById(me.FightTargetId) is { } trap => new TilePos(trap.X, trap.Y),
-        _ => null,
-    };
+        return me.FightTargetKind switch
+        {
+            FightTargetKind.Creature when world.CreatureById(me.FightTargetId) is { } creature => creature.Tile,
+            FightTargetKind.Trap when world.TrapById(me.FightTargetId) is { } trap => new TilePos(trap.X, trap.Y),
+            _ => null,
+        };
+    }
 
     /// <summary>Step 5's away stage (<c>0x004614BB</c>-<c>0x0046162A</c>). The tile offsets to the target
     /// take a random(2) each when zero, x first, a zero draw meaning -1; then up to five tries of
@@ -916,7 +940,10 @@ public static class FearRules
     }
 
     /// <summary><c>0x00509050</c>: the point's tile, unsigned, under the map's width and height.</summary>
-    private static bool InWorld(WorldState world, int x, int y) => x >= 0 && y >= 0 && world.Contains(x >> 12, y >> 12);
+    private static bool InWorld(WorldState world, int x, int y)
+    {
+        return x >= 0 && y >= 0 && world.Contains(x >> 12, y >> 12);
+    }
 
     /// <summary>State 6 on the way to state 202: the walk's turn enters 202 where the route ended, or
     /// where it was lost; 202's handler (<c>0x00461850</c>) runs on the next turn, sets the walk speed
@@ -1220,8 +1247,15 @@ public static class FearRules
 
     /// <summary>The room's position as the alarm and the withdrawal take it: DK2 reads the room's
     /// own <c>+0x27</c>/<c>+0x29</c> tile, taken here as its bounding box's centre (Q391).</summary>
-    public static int RoomCentreX(RoomInstance room) => CreatureState.CentreOf((room.MinX + room.MaxX) / 2);
-    public static int RoomCentreY(RoomInstance room) => CreatureState.CentreOf((room.MinY + room.MaxY) / 2);
+    public static int RoomCentreX(RoomInstance room)
+    {
+        return CreatureState.CentreOf((room.MinX + room.MaxX) / 2);
+    }
+
+    public static int RoomCentreY(RoomInstance room)
+    {
+        return CreatureState.CentreOf((room.MinY + room.MaxY) / 2);
+    }
 
     // ------------------------------------------------------------------ transitions
 
@@ -1262,5 +1296,7 @@ public static class FearRules
 public sealed class RoomCache
 {
     public IReadOnlyList<RoomInstance> Of(SimulationContext context, PlayerId owner)
-        => RoomLists.Of(context.World, context.Database, owner);
+    {
+        return RoomLists.Of(context.World, context.Database, owner);
+    }
 }

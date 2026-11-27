@@ -156,8 +156,10 @@ public sealed class KeeperThreatResponder
         }
     }
 
-    private void Acknowledge(PlayerMessage message) =>
+    private void Acknowledge(PlayerMessage message)
+    {
         _commands.Add(new AcknowledgePlayerMessageCommand(_view.PlayerId, message.Id));
+    }
 
     /// <summary>The position reader: rerolls imprisonment when the keeper owns a Prison, sums
     /// strength at the tile, records the attacker, seeks a drop tile and reserves the event.
@@ -304,9 +306,11 @@ public sealed class KeeperThreatResponder
         _moved.Add(creature.Id);
     }
 
-    private IEnumerable<KeeperCreatureView> Owned(PlayerId player) =>
-        _view.Creatures.Where(c => c.OwnerPlayerId == player && c.OwnershipRank >= 0)
+    private IEnumerable<KeeperCreatureView> Owned(PlayerId player)
+    {
+        return _view.Creatures.Where(c => c.OwnerPlayerId == player && c.OwnershipRank >= 0)
             .OrderBy(c => c.OwnershipRank);
+    }
 
     /// <summary>The withdrawal arm's first eligible creature: within five tiles of the payload,
     /// not the Reaper, not under Call to Arms, not put down within the grace once the level is
@@ -409,16 +413,24 @@ public sealed class KeeperThreatResponder
     }
 
     /// <summary><c>0x0048F350</c>: the stunned states 209 and 255 to 257.</summary>
-    public static bool IsStunned(int stateId) => stateId is 209 or 255 or 256 or 257;
+    public static bool IsStunned(int stateId)
+    {
+        return stateId is 209 or 255 or 256 or 257;
+    }
 
     /// <summary><c>0x004888C0</c>, captured with the creature: the owner's flag, its bit 20 or
     /// the states 190 to 192 through a walk (<c>CallToArmsRules</c>).</summary>
-    public static bool UnderCallToArms(KeeperCreatureView creature) => creature.UnderCallToArms;
+    public static bool UnderCallToArms(KeeperCreatureView creature)
+    {
+        return creature.UnderCallToArms;
+    }
 
     /// <summary>Per-axis absolute differences, squared as 64-bit values, shifted down twelve,
     /// summed as 32-bit values and compared signed, as <c>0x004FE0DA</c> does.</summary>
-    public static bool WithinFiveTiles(int x, int y, int centreX, int centreY) =>
-        ShiftedDistance(x, y, centreX, centreY) < WithdrawRadiusSquared;
+    public static bool WithinFiveTiles(int x, int y, int centreX, int centreY)
+    {
+        return ShiftedDistance(x, y, centreX, centreY) < WithdrawRadiusSquared;
+    }
 
     /// <summary>The keeper's squared distance in tiles times 4096: per-axis absolute differences,
     /// squared as 64-bit values, shifted down twelve and summed as 32-bit values (also

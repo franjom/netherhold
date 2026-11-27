@@ -41,14 +41,17 @@ public static class ResearchTreeRules
 
     /// <summary>The availability kind that holds a research kind's items: room 1, door 4,
     /// trap 3, spell 5 — or 0 for a kind the original's switches have no arm for.</summary>
-    public static AvailabilityKind AvailabilityKindOf(int researchKind) => researchKind switch
+    public static AvailabilityKind AvailabilityKindOf(int researchKind)
     {
-        KindRoom => AvailabilityKind.Room,
-        KindDoor => AvailabilityKind.Door,
-        KindTrap => AvailabilityKind.Trap,
-        KindSpell => AvailabilityKind.Spell,
-        _ => AvailabilityKind.None,
-    };
+        return researchKind switch
+        {
+            KindRoom => AvailabilityKind.Room,
+            KindDoor => AvailabilityKind.Door,
+            KindTrap => AvailabilityKind.Trap,
+            KindSpell => AvailabilityKind.Spell,
+            _ => AvailabilityKind.None,
+        };
+    }
 
     /// <summary><c>0x004C30F0</c>: whether the entry's item is still RESEARCHABLE. A kind with no
     /// arm answers yes, as the original's switch falls through to <c>return 1</c>.</summary>
@@ -160,9 +163,11 @@ public static class ResearchTreeRules
 
     /// <summary>Why a target that is no longer RESEARCHABLE is kept: it is a live upgrade
     /// target, or its kind is one the original's check does not branch on.</summary>
-    private static bool StillWanted(SimulationContext context, PlayerId playerId, ResearchEntry entry) =>
-        entry.Kind is < KindRoom or > KindSpell
+    private static bool StillWanted(SimulationContext context, PlayerId playerId, ResearchEntry entry)
+    {
+        return entry.Kind is < KindRoom or > KindSpell
         || (entry.Kind == KindSpell && IsUpgradeTarget(context.World, context.Database, playerId, entry));
+    }
 
     /// <summary><c>0x004C6CF0</c> then <c>0x004E0870</c>: a random one of the keeper's taking
     /// Libraries (<see cref="ChooseLibrary"/>) takes the result if it has a shelf. False when
@@ -349,7 +354,10 @@ public static class ResearchTreeRules
     /// <summary><c>0x004E1AC0</c>: a shelf in <paramref name="library"/> — a floor slot holding
     /// fewer than <see cref="ShelfCapacity"/> books and Specials — searched along the room's
     /// chain from a random slab and wrapping once, or -1. One draw per call.</summary>
-    public static int FindShelf(SimulationContext context, RoomInstance library) => FindShelf(context.Hooks, library);
+    public static int FindShelf(SimulationContext context, RoomInstance library)
+    {
+        return FindShelf(context.Hooks, library);
+    }
 
     // Detached hooks ask only whether a shelf exists; execution starts at a world-random slab.
     internal static int FindShelf(in StateHookContext hooks, RoomInstance library)

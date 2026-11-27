@@ -11,8 +11,10 @@ namespace DK2.Simulation;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/computer-keeper-threat.md")]
 public static class RescuePriorityRules
 {
-    public static bool IsMarked(CreatureState creature, PlayerId playerId) =>
-        (creature.RescuePriorityMask & PlayerBit(playerId)) != 0;
+    public static bool IsMarked(CreatureState creature, PlayerId playerId)
+    {
+        return (creature.RescuePriorityMask & PlayerBit(playerId)) != 0;
+    }
 
     public static void Set(CreatureState creature, PlayerId playerId, bool enabled)
     {
@@ -22,9 +24,13 @@ public static class RescuePriorityRules
             : (ushort)(creature.RescuePriorityMask & ~bit);
     }
 
-    public static int Rank(CreatureState creature, byte rescuer) =>
-        creature.OwnerPlayerId == rescuer ? 1 : IsMarked(creature, rescuer) ? 0 : 2;
+    public static int Rank(CreatureState creature, byte rescuer)
+    {
+        return creature.OwnerPlayerId == rescuer ? 1 : IsMarked(creature, rescuer) ? 0 : 2;
+    }
 
-    private static ushort PlayerBit(PlayerId playerId) =>
-        playerId.Value is >= 1 and <= 7 ? (ushort)(1 << (playerId.Value - 1)) : (ushort)0;
+    private static ushort PlayerBit(PlayerId playerId)
+    {
+        return playerId.Value is >= 1 and <= 7 ? (ushort)(1 << (playerId.Value - 1)) : (ushort)0;
+    }
 }

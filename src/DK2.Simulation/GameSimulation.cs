@@ -25,7 +25,13 @@ public sealed class GameSimulation
 
     /// <summary><c>HashVersion</c>, read at run time: a const would be compiled into a caller and
     /// go stale when this assembly is replaced without it (journal headers, ADR-0552).</summary>
-    public static ulong CurrentHashVersion => HashVersion;
+    public static ulong CurrentHashVersion
+    {
+        get
+        {
+            return HashVersion;
+        }
+    }
 
     private readonly List<ISimulationSystem> _systems;
     private readonly SimulationMarker[] _systemMarkers;
@@ -63,7 +69,9 @@ public sealed class GameSimulation
         SimRandom rng,
         IEnumerable<ISimulationSystem>? systems = null,
         TriggerTree? triggers = null)
-        => new(database, world, rng, systems, triggers, levelStart: false);
+    {
+        return new(database, world, rng, systems, triggers, levelStart: false);
+    }
 
     /// <summary><paramref name="levelStart"/> false is a restore (<see cref="WorldSnapshot"/>): the
     /// trigger executor skips the level initialiser's party sweep and creature event 3.</summary>
@@ -179,17 +187,42 @@ public sealed class GameSimulation
     /// Where to send observation events. Assigning a recorder must not change
     /// behaviour — see <see cref="SimEvent"/>.
     /// </summary>
-    public ISimulationEventSink Events => _context.Events;
+    public ISimulationEventSink Events
+    {
+        get
+        {
+            return _context.Events;
+        }
+    }
 
-    public IReadOnlyList<ISimulationSystem> Systems => _systems;
+    public IReadOnlyList<ISimulationSystem> Systems
+    {
+        get
+        {
+            return _systems;
+        }
+    }
 
     /// <summary>The context the systems run in, for a tool that edits the world between ticks
     /// (<see cref="WorldResync"/>).</summary>
-    internal SimulationContext Context => _context;
+    internal SimulationContext Context
+    {
+        get
+        {
+            return _context;
+        }
+    }
 
     /// <summary>The mesh, the router and the steering probes the systems route through. The mesh
     /// is edited in place as tiles change (ADR-0461), so it is state: saved and hashed.</summary>
-    public Navigation.WorldSteering Navigation => _context.Navigation;
+    public Navigation.WorldSteering Navigation
+    {
+        get
+        {
+            return _context.Navigation;
+        }
+    }
+
     public TriggerRunResult? LastTriggerRun { get; private set; }
 
     /// <summary>Records which trigger records each turn's walk reached, so that
@@ -200,22 +233,43 @@ public sealed class GameSimulation
     /// </summary>
     public bool TrackTriggerReach
     {
-        get => _triggers.TrackReach;
-        set => _triggers.TrackReach = value;
+        get
+        {
+            return _triggers.TrackReach;
+        }
+
+        set
+        {
+            _triggers.TrackReach = value;
+        }
     }
 
     /// <summary>The next tick to be executed.</summary>
-    public GameTick CurrentTick => World.CurrentTick;
+    public GameTick CurrentTick
+    {
+        get
+        {
+            return World.CurrentTick;
+        }
+    }
 
     /// <summary>Starts sending observation events to <paramref name="events"/>. Behaviour-neutral.</summary>
-    public void ObserveWith(ISimulationEventSink events) => _context.Events = events;
+    public void ObserveWith(ISimulationEventSink events)
+    {
+        _context.Events = events;
+    }
 
     /// <summary>Starts timing ticks, systems and the spans below them with <paramref name="profiler"/>.
     /// Behaviour-neutral, as <see cref="ObserveWith"/> is.</summary>
-    public void ProfileWith(ISimulationProfiler profiler) =>
+    public void ProfileWith(ISimulationProfiler profiler)
+    {
         _context.Profiler = profiler ?? throw new ArgumentNullException(nameof(profiler));
+    }
 
-    public void EmitTriggerTurnsTo(TextWriter writer) => _triggerEmitter = new TriggerTurnCsvEmitter(writer);
+    public void EmitTriggerTurnsTo(TextWriter writer)
+    {
+        _triggerEmitter = new TriggerTurnCsvEmitter(writer);
+    }
 
     /// <summary>
     /// Advances exactly one game tick. The ONLY way simulation time moves.
@@ -362,7 +416,10 @@ public sealed class GameSimulation
         World.CurrentTick = World.CurrentTick.Next;
     }
 
-    public void Tick() => Tick(InputFrame.Empty);
+    public void Tick()
+    {
+        Tick(InputFrame.Empty);
+    }
 
     /// <summary>Runs <paramref name="ticks"/> ticks with no input.</summary>
     public void Run(int ticks)

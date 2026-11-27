@@ -23,7 +23,10 @@ public static class CreatureStateMachine
     public const int NoState = -1;
 
     /// <summary>Whether this creature holds a state: every creature but a corpse.</summary>
-    public static bool HasState(CreatureState creature) => creature.Dk2StateId != NoState;
+    public static bool HasState(CreatureState creature)
+    {
+        return creature.Dk2StateId != NoState;
+    }
 
     /// <summary>What the rule says about a move, without taking it. A corpse's move is not
     /// judged: it has no state to judge it from.</summary>

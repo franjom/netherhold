@@ -28,8 +28,10 @@ public static class RoomBuildWaveRules
 {
     public const int SlotsPerPlayer = 3;
 
-    public static IEnumerable<TilePos> Diagonal(RoomBuildWaveState wave, GameTick now, WorldState world) =>
-        Diagonal(wave.Press, wave.Release, wave.QueuedTick, now, world);
+    public static IEnumerable<TilePos> Diagonal(RoomBuildWaveState wave, GameTick now, WorldState world)
+    {
+        return Diagonal(wave.Press, wave.Release, wave.QueuedTick, now, world);
+    }
 
     /// <summary>The tiles a wave reaches on <paramref name="now"/>: <c>|x − end.X| + |y − end.Y|</c> equal to the
     /// turns since <paramref name="queued"/>, from <paramref name="end"/> back toward <paramref name="start"/>. The
@@ -54,7 +56,13 @@ public static class RoomBuildWaveRules
         }
     }
 
-    internal static TilePos ClampPress(TilePos press) => new(Math.Max(0, press.X), Math.Max(0, press.Y));
-    internal static TilePos ClampRelease(TilePos release, WorldState world) =>
-        new(Math.Min(world.Width - 1, release.X), Math.Min(world.Height - 1, release.Y));
+    internal static TilePos ClampPress(TilePos press)
+    {
+        return new(Math.Max(0, press.X), Math.Max(0, press.Y));
+    }
+
+    internal static TilePos ClampRelease(TilePos release, WorldState world)
+    {
+        return new(Math.Min(world.Width - 1, release.X), Math.Min(world.Height - 1, release.Y));
+    }
 }

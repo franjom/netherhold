@@ -20,7 +20,9 @@ public static class SaveReader
     }
 
     public static int Count(BinaryReader reader, string collection, int minBytesPerElement, int maximum = int.MaxValue)
-        => CheckCount(reader, reader.ReadInt32(), collection, minBytesPerElement, maximum);
+    {
+        return CheckCount(reader, reader.ReadInt32(), collection, minBytesPerElement, maximum);
+    }
 
     public static int CheckCount(BinaryReader reader, int count, string collection,
         int minBytesPerElement, int maximum = int.MaxValue)
@@ -71,16 +73,23 @@ public static class SaveReader
     }
 
     public static SaveIncompatibleException Error(BinaryReader reader, SaveIncompatibleReason reason, string message)
-        => new(reason, message, reader.BaseStream.CanSeek ? reader.BaseStream.Position : null);
+    {
+        return new(reason, message, reader.BaseStream.CanSeek ? reader.BaseStream.Position : null);
+    }
 
     public static SaveIncompatibleException Wrap(Exception exception, long position)
-        => new(exception is EndOfStreamException ? SaveIncompatibleReason.Truncated
-                : exception is OverflowException or ArgumentOutOfRangeException or IndexOutOfRangeException
-                    ? SaveIncompatibleReason.OutOfRange : SaveIncompatibleReason.Corrupt,
-            exception is EndOfStreamException ? "The save is truncated" : $"Invalid save data: {exception.Message}",
-            position, exception);
+    {
+        return new(exception is EndOfStreamException ? SaveIncompatibleReason.Truncated
+                    : exception is OverflowException or ArgumentOutOfRangeException or IndexOutOfRangeException
+                        ? SaveIncompatibleReason.OutOfRange : SaveIncompatibleReason.Corrupt,
+                exception is EndOfStreamException ? "The save is truncated" : $"Invalid save data: {exception.Message}",
+                position, exception);
+    }
 
-    public static bool IsMalformed(Exception exception) => exception is EndOfStreamException or InvalidDataException
+    public static bool IsMalformed(Exception exception)
+    {
+        return exception is EndOfStreamException or InvalidDataException
         or OverflowException or ArgumentException or IndexOutOfRangeException or KeyNotFoundException
         or InvalidCastException or FormatException;
+    }
 }

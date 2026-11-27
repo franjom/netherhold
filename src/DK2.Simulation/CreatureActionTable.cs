@@ -50,7 +50,10 @@ public static class CreatureActionTable
     ];
 
     /// <summary>The word of <paramref name="action"/>'s record, 0 for none or an index outside the table.</summary>
-    public static ushort SoundWord(int action) => (uint)action < Count ? Words[action] : (ushort)0;
+    public static ushort SoundWord(int action)
+    {
+        return (uint)action < Count ? Words[action] : (ushort)0;
+    }
 }
 
 /// <summary>The sound <c>CreatureAction_Begin</c> asks when an action begins (<c>0x004968BC</c>): the record's word, in the creature's

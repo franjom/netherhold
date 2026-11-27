@@ -14,7 +14,10 @@ public readonly record struct RoomListPosition(long Value);
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/room-list.md")]
 public static class RoomLists
 {
-    internal static RoomListPosition Next(WorldState world) => new(world.NextRoomListPosition++);
+    internal static RoomListPosition Next(WorldState world)
+    {
+        return new(world.NextRoomListPosition++);
+    }
 
     internal static void Set(WorldState world, IEnumerable<int> tiles, RoomListPosition position)
     {
@@ -24,10 +27,12 @@ public static class RoomLists
         }
     }
 
-    public static IReadOnlyList<RoomInstance> Of(WorldState world, GameDatabase database, PlayerId owner) =>
-        RoomIndex.Build(world, database).Where(room => room.OwnerPlayerId == owner)
+    public static IReadOnlyList<RoomInstance> Of(WorldState world, GameDatabase database, PlayerId owner)
+    {
+        return RoomIndex.Build(world, database).Where(room => room.OwnerPlayerId == owner)
             .OrderByDescending(room => world.TileAtIndex(room.TileIndices[0]).RoomListPosition.Value)
             .ThenByDescending(room => room.TileIndices[0]).ToArray();
+    }
 
     /// <summary><c>0x004C63D0</c>: with no rooms, null and no draw; otherwise one random(count) over
     /// the whole list, bridges included, and null when the drawn entry is a bridge — the walk's
@@ -57,9 +62,12 @@ public static class RoomLists
             }
             return tile;
         }
-        bool Same(int a, int b) => b >= 0 && parent[b] >= 0
+        bool Same(int a, int b)
+        {
+            return b >= 0 && parent[b] >= 0
             && world.TileAtIndex(a).TerrainId == world.TileAtIndex(b).TerrainId
             && world.TileAtIndex(a).OwnerPlayerId == world.TileAtIndex(b).OwnerPlayerId;
+        }
 
         for (int i = 0; i < world.TileCount; i++)
         {

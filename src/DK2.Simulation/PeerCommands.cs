@@ -78,8 +78,10 @@ public static class PeerCommands
         }
     }
 
-    private static bool OnMap(TilePos tile, int width, int height) =>
-        (uint)tile.X < (uint)width && (uint)tile.Y < (uint)height;
+    private static bool OnMap(TilePos tile, int width, int height)
+    {
+        return (uint)tile.X < (uint)width && (uint)tile.Y < (uint)height;
+    }
 
     /// <summary>
     /// The network allow-list (R4). A command type added later is refused until it is listed here;
@@ -93,7 +95,9 @@ public static class PeerCommands
     /// modelled: DK2's make handler (<c>0x00513FF0</c>) allies both players without reading the
     /// target's offer, and only its HUD kept that consensual.</para>
     /// </summary>
-    public static bool IsAllowedFromPeer(PlayerCommand command) => command is
+    public static bool IsAllowedFromPeer(PlayerCommand command)
+    {
+        return command is
         TagTilesCommand or BuildRoomCommand or SellRoomCommand or GuiButtonCommand or CreateImpCommand
         or PickUpCreatureCommand or PickUpObjectCommand or PickUpStoreGoldCommand or DropCommand
         or SlapCreatureCommand or CastSpellAtPlaceCommand or CastSpellOnCreatureCommand
@@ -105,4 +109,5 @@ public static class PeerCommands
         or FrightenPossessedCreatureCommand or OpenPossessedPrisonCommand
         or SetRescuePriorityCommand or ContinueAfterResultCommand
         or ActivateSpecialCommand or WithdrawCounterGoldCommand;
+    }
 }

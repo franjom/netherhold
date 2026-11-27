@@ -79,7 +79,10 @@ public readonly record struct HudFlashRequest(HudFlashTarget Target, uint Durati
 public static class CameraPathRules
 {
     /// <summary><c>0x0044A370</c>: paths 50-99, the creature intros, start at frame 7.</summary>
-    public static int FirstFrame(int pathId) => pathId is >= 50 and <= 99 ? 7 : 0;
+    public static int FirstFrame(int pathId)
+    {
+        return pathId is >= 50 and <= 99 ? 7 : 0;
+    }
 
     /// <summary>Game ticks a path of <paramref name="frames"/> frames plays at the nominal
     /// 250 ms a tick. <c>Camera_Update</c> adds 0.03 frames a wall-clock millisecond to a
@@ -94,7 +97,10 @@ public static class CameraPathRules
         return halfFrames <= 0 ? 0 : (halfFrames + 14) / 15;
     }
 
-    public static bool Playing(in PlayerState player, GameTick now) => player.CameraPathEndTick > now.Value;
+    public static bool Playing(in PlayerState player, GameTick now)
+    {
+        return player.CameraPathEndTick > now.Value;
+    }
 
     /// <summary>Action 31 for <paramref name="player"/>. <c>0x0044A370</c> refuses while a path
     /// plays or the keeper possesses, and when the file does not load; a refused start changes

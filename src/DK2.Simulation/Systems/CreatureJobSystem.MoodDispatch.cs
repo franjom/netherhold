@@ -118,9 +118,12 @@ public sealed partial class CreatureJobSystem
 
         return false;
 
-        bool TryStart(JobType job) => job is JobType.Leave or JobType.Rebel
+        bool TryStart(JobType job)
+        {
+            return job is JobType.Leave or JobType.Rebel
             ? _moodJobs.TryStartMoodJob(context, definition, creature, job)
             : TryTake(context, creature, definition, job, roll, "mood_dispatch", report: false);
+        }
 
         bool Accepted()
         {

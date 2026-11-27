@@ -150,7 +150,10 @@ public static class LevelStatisticsRules
     }
 
     /// <summary>The game turn of the verdict as DK2 numbers it: its turn 1 is our tick 0.</summary>
-    public static long NativeEndTurn(in PlayerLevelStatistics stats) => stats.EndTurn + 1;
+    public static long NativeEndTurn(in PlayerLevelStatistics stats)
+    {
+        return stats.EndTurn + 1;
+    }
 
     /// <summary>The block <c>0x00561E00</c> copies to the profile at the verdict (valid once sampled), with <c>TimeTaken</c> as the verdict
     /// turn over the level's TicksPerSecond (0 when that is 0, <c>0x004BE6BD</c>).</summary>

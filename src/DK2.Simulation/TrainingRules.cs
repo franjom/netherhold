@@ -25,8 +25,10 @@ public static class TrainingRules
     /// cap mid-session loses the state rather than earning nothing. Not implemented: a
     /// creature at the cap but below <c>CombatPitMaxExperienceLevel</c> is handed to
     /// the combat pit's finder, not refused (training.md §9).</summary>
-    public static int LevelCap(GameDatabase database) =>
-        database[VariableTypeId.TrainingRoomMaxExperienceLevel];
+    public static int LevelCap(GameDatabase database)
+    {
+        return database[VariableTypeId.TrainingRoomMaxExperienceLevel];
+    }
 
     /// <summary>The Training Room's drop and work state, 108 (<c>0x00485310</c>): a capped creature
     /// in it goes to <see cref="CapRefusalState"/>.</summary>
@@ -61,8 +63,10 @@ public static class TrainingRules
     }
 
     /// <summary>Whether this creature is still low enough to gain from training.</summary>
-    public static bool BelowCap(GameDatabase database, CreatureState state) =>
-        state.Level < LevelCap(database);
+    public static bool BelowCap(GameDatabase database, CreatureState state)
+    {
+        return state.Level < LevelCap(database);
+    }
 
     /// <summary>Experience for one of the original's ticks of training: the record's
     /// <c>ExpPerSecondTraining</c> made per-tick by the loader, then scaled by stat 16,
@@ -94,15 +98,19 @@ public static class TrainingRules
     /// shipped name and means gold). The original negates the tabled −5 and charges
     /// once a game second off a countdown reloaded from variable 19; it also pops a
     /// floating "−20" every fourth charge, which nothing here draws (training.md).</summary>
-    public static int GoldPerSecond(GameDatabase database) =>
-        -database[VariableTypeId.ModifyPlayerColdWhileTrainingPerSecond];
+    public static int GoldPerSecond(GameDatabase database)
+    {
+        return -database[VariableTypeId.ModifyPlayerColdWhileTrainingPerSecond];
+    }
 
     /// <summary>Whether the keeper can pay for another second of it. The original's
     /// test is <c>&gt;=</c> against keeper gold (<c>player+0x7E</c>, <c>Money</c>), and a keeper
     /// who cannot pay <b>loses the creature's job</b> — training is the only job poverty evicts
     /// you from. The job handler, the enter hook <c>0x0047B230</c> and the update hook each test it.</summary>
-    public static bool CanAfford(WorldState world, GameDatabase database, PlayerId playerId) =>
-        GoldStore.Total(world, playerId) >= GoldPerSecond(database);
+    public static bool CanAfford(WorldState world, GameDatabase database, PlayerId playerId)
+    {
+        return GoldStore.Total(world, playerId) >= GoldPerSecond(database);
+    }
 
     /// <summary>Data1 of message 55, <see cref="PlayerMessageKind.TrainingUnpaid"/>, as the enter
     /// hook <c>0x0047B230</c> and the update hook <c>0x0047B2D0</c> both pass it.</summary>
@@ -110,12 +118,16 @@ public static class TrainingRules
 
     /// <summary>Compatibility name for <see cref="ExperienceLostPerTickWhileNotTraining"/>;
     /// DK2's variable name says seconds, but its reader applies the value every tick.</summary>
-    public static int ExperienceLostPerSecondWhileNotTraining(GameDatabase database) =>
-        ExperienceLostPerTickWhileNotTraining(database);
+    public static int ExperienceLostPerSecondWhileNotTraining(GameDatabase database)
+    {
+        return ExperienceLostPerTickWhileNotTraining(database);
+    }
 
     /// <summary>The signed word stored for variable 132, applied raw every tick despite its name.</summary>
-    public static int ExperienceLostPerTickWhileNotTraining(GameDatabase database) =>
-        unchecked((short)database[VariableTypeId.EPLossSecondWhileNotTraining]);
+    public static int ExperienceLostPerTickWhileNotTraining(GameDatabase database)
+    {
+        return unchecked((short)database[VariableTypeId.EPLossSecondWhileNotTraining]);
+    }
 
     /// <summary>The per-creature drain after timed effects (0x00489584): category 13, including
     /// a utility state's resume slot, is exempt. Negative configured losses use the positive

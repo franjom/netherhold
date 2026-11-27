@@ -36,15 +36,19 @@ public static class LairRules
     /// and the <b>Stone Knight</b> carry the hero bed (6) with <c>TimeSleep</c> 0 and
     /// <c>TimeAwake</c> 32767, so by id alone each would take a tile it never sleeps
     /// on.</para></summary>
-    public static bool NeedsBed(CreatureDef creature) =>
-        creature.LairObjectId != 0 && creature.TimeSleep != 0;
+    public static bool NeedsBed(CreatureDef creature)
+    {
+        return creature.LairObjectId != 0 && creature.TimeSleep != 0;
+    }
 
     /// <summary>Whether this object is a bed. Asks the type flag, not the id, and so
     /// does DK2: its union dispatch tests <c>TypeLair</c> (0x20) rather than naming any
     /// of the twelve bed objects, which is how one branch serves all twelve
     /// (objects.md §7).</summary>
-    public static bool IsBed(GameDatabase database, ObjectState instance) =>
-        database.ObjectById(instance.ObjectTypeId) is { IsLair: true };
+    public static bool IsBed(GameDatabase database, ObjectState instance)
+    {
+        return database.ObjectById(instance.ObjectTypeId) is { IsLair: true };
+    }
 
     /// <summary>Whether a bed already stands on this tile.</summary>
     public static bool BedTaken(WorldState world, GameDatabase database, int tileIndex)
@@ -80,17 +84,24 @@ public static class LairRules
     /// <summary>Where this creature's bed is, as a tile index, or −1 if it has none —
     /// derived from the bed object, the one place the fact lives.</summary>
     public static int BedTileIndex(
-        WorldState world, GameDatabase database, CreatureState creature) =>
-        BedOf(world, database, creature)?.TileIndex ?? -1;
+        WorldState world, GameDatabase database, CreatureState creature)
+    {
+        return BedOf(world, database, creature)?.TileIndex ?? -1;
+    }
 
     /// <summary>Whether this creature owns a bed.</summary>
     public static bool HasBed(
-        WorldState world, GameDatabase database, CreatureState creature) =>
-        BedOf(world, database, creature) is not null;
+        WorldState world, GameDatabase database, CreatureState creature)
+    {
+        return BedOf(world, database, creature) is not null;
+    }
 
     /// <summary>How many creatures a lair can hold: one per tile — the lair's rule,
     /// not the general room rule (see the type doc).</summary>
-    public static int Capacity(RoomInstance lair) => lair.TileIndices.Count;
+    public static int Capacity(RoomInstance lair)
+    {
+        return lair.TileIndices.Count;
+    }
 
     /// <summary>How many of a lair's beds are already owned.</summary>
     public static int Occupied(WorldState world, GameDatabase database, RoomInstance lair)
@@ -108,8 +119,10 @@ public static class LairRules
     }
 
     /// <summary>Whether this room is a lair.</summary>
-    public static bool IsLairRoom(GameDatabase database, RoomInstance room) =>
-        room.Definition.TerrainId == database.Room(RoomTypeId.Lair).TerrainId;
+    public static bool IsLairRoom(GameDatabase database, RoomInstance room)
+    {
+        return room.Definition.TerrainId == database.Room(RoomTypeId.Lair).TerrainId;
+    }
 
     /// <summary>Whether this tile is lair terrain held by this keeper.</summary>
     public static bool IsLairTileOf(
@@ -132,17 +145,21 @@ public static class LairRules
     /// alignment is a preference between <i>rooms</i>
     /// (<see cref="HoldsBedOfOtherAlignment"/>).</summary>
     public static bool IsFreeLairTile(
-        WorldState world, GameDatabase database, int tileIndex, PlayerId ownerPlayerId) =>
-        IsLairTileOf(world, database, tileIndex, ownerPlayerId)
+        WorldState world, GameDatabase database, int tileIndex, PlayerId ownerPlayerId)
+    {
+        return IsLairTileOf(world, database, tileIndex, ownerPlayerId)
         && !BedTaken(world, database, tileIndex);
+    }
 
     /// <summary>
     /// Whether one more bed fits: the original's free-slot test is
     /// <c>used + 1 ≤ capacity</c>, and for a lair the capacity is the tile
     /// count (Q156, read from the binary).
     /// </summary>
-    public static bool HasFreeSlot(WorldState world, GameDatabase database, RoomInstance lair) =>
-        Occupied(world, database, lair) + 1 <= Capacity(lair);
+    public static bool HasFreeSlot(WorldState world, GameDatabase database, RoomInstance lair)
+    {
+        return Occupied(world, database, lair) + 1 <= Capacity(lair);
+    }
 
     /// <summary>Whether this lair already holds a bed whose owner is of the other
     /// side — the test that makes a creature prefer one lair over a nearer one (Q151).
@@ -202,8 +219,10 @@ public static class LairRules
     /// <b>ours</b>. For an L-shape the midpoint need not be a room tile, which is fine:
     /// this is a point to measure to, not a place to stand
     /// (<see cref="ArrivalTile"/>).</summary>
-    public static TilePos CentreTile(RoomInstance room) =>
-        new((room.MinX + room.MaxX) / 2, (room.MinY + room.MaxY) / 2);
+    public static TilePos CentreTile(RoomInstance room)
+    {
+        return new((room.MinX + room.MaxX) / 2, (room.MinY + room.MaxY) / 2);
+    }
 
     /// <summary>Squared distance, in position units, from where this creature stands
     /// to the centre of a room's centre tile. Squared so it stays an integer; only the
@@ -465,11 +484,13 @@ public static class LairRules
     /// those categories: 80's re-walk does, the walk in from idle and 81's walk to 82 do not.
     /// <para>Healing stays on <see cref="AsleepInOwnBed"/>: the same routine heals behind a
     /// predicate nobody has read.</para></summary>
-    public static bool CoolsAngerInLair(CreatureState creature) =>
-        CreatureStateMachine.UpdatingCategory(creature)
+    public static bool CoolsAngerInLair(CreatureState creature)
+    {
+        return CreatureStateMachine.UpdatingCategory(creature)
             is CreatureStateCategory.Lair
             or CreatureStateCategory.Sleeping
             or CreatureStateCategory.Sulking;
+    }
 
     /// <summary>Whether this creature is asleep in its own bed — the healing condition.</summary>
     public static bool AsleepInOwnBed(
@@ -492,8 +513,10 @@ public static class LairRules
 
     /// <summary>A bedded creature routes for unpaid sleep debt; wounds alone do not create debt.</summary>
     public static bool WantsToSleep(
-        GameDatabase database, CreatureDef definition, CreatureState creature) =>
-        NeedsBed(definition) && NeedRules.IsTired(definition, creature);
+        GameDatabase database, CreatureDef definition, CreatureState creature)
+    {
+        return NeedsBed(definition) && NeedRules.IsTired(definition, creature);
+    }
 
     /// <summary>Whether this creature may wake. DK2's state 83 leaves only when its rest
     /// need has run out <b>and</b> its health has reached the level-scaled maximum, so a
@@ -504,7 +527,9 @@ public static class LairRules
     /// cannot heal to full would sleep for ever; so would DK2's, and losing the bed is the
     /// way out either way (<see cref="BedStillValid"/>).</remarks>
     public static bool HasSleptEnough(
-        GameDatabase database, CreatureDef definition, CreatureState creature) =>
-        creature.SleepDebtTicks == 0
+        GameDatabase database, CreatureDef definition, CreatureState creature)
+    {
+        return creature.SleepDebtTicks == 0
         && creature.Health >= CreatureHealthRules.MaxHealth(database, definition, creature);
+    }
 }

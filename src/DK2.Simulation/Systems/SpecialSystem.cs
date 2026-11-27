@@ -31,24 +31,34 @@ public sealed class SpecialSystem : ISimulationSystem
 
     /// <summary>The sound each arm ends with, in the special's own category with its handle
     /// (specials.md §5); the transfer arm asks none, and the arms ours has not built never run.</summary>
-    private static ThingSoundEvent? SoundOf(byte objectTypeId) => objectTypeId switch
+    private static ThingSoundEvent? SoundOf(byte objectTypeId)
     {
-        IncreaseLevel => ThingSoundEvent.SpecialIncreasedLevel,
-        RevealMap => ThingSoundEvent.SpecialRevealedMap,
-        MakeSafe => ThingSoundEvent.SpecialMadeSafe,
-        DestroyWalls => ThingSoundEvent.SpecialDestroyedWalls,
-        IncreaseGold => ThingSoundEvent.SpecialIncreasedGold,
-        ManaBoost => ThingSoundEvent.SpecialBoostedMana,
-        StunImps => ThingSoundEvent.SpecialStunnedImps,
-        ReceiveImps => ThingSoundEvent.SpecialReceivedImps,
-        MakeHappy => ThingSoundEvent.SpecialMadeHappy,
-        MakeUnhappy => ThingSoundEvent.SpecialMadeUnhappy,
-        KillCreatures => ThingSoundEvent.SpecialKilledCreature,
-        HealAll => ThingSoundEvent.SpecialHealedAll,
-        LocateHiddenLand => ThingSoundEvent.SpecialLocatedHiddenLand,
-        _ => null,
-    };
-    public string Name => "Special";
+        return objectTypeId switch
+        {
+            IncreaseLevel => ThingSoundEvent.SpecialIncreasedLevel,
+            RevealMap => ThingSoundEvent.SpecialRevealedMap,
+            MakeSafe => ThingSoundEvent.SpecialMadeSafe,
+            DestroyWalls => ThingSoundEvent.SpecialDestroyedWalls,
+            IncreaseGold => ThingSoundEvent.SpecialIncreasedGold,
+            ManaBoost => ThingSoundEvent.SpecialBoostedMana,
+            StunImps => ThingSoundEvent.SpecialStunnedImps,
+            ReceiveImps => ThingSoundEvent.SpecialReceivedImps,
+            MakeHappy => ThingSoundEvent.SpecialMadeHappy,
+            MakeUnhappy => ThingSoundEvent.SpecialMadeUnhappy,
+            KillCreatures => ThingSoundEvent.SpecialKilledCreature,
+            HealAll => ThingSoundEvent.SpecialHealedAll,
+            LocateHiddenLand => ThingSoundEvent.SpecialLocatedHiddenLand,
+            _ => null,
+        };
+    }
+
+    public string Name
+    {
+        get
+        {
+            return "Special";
+        }
+    }
 
     public void Execute(SimulationContext context)
     {

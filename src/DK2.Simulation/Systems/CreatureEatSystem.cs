@@ -30,12 +30,23 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
 
     public CreatureEatSystem() : this(new GridPathfinder()) { }
 
-    public CreatureEatSystem(IPathfinder pathfinder) =>
+    public CreatureEatSystem(IPathfinder pathfinder)
+    {
         _pathfinder = pathfinder ?? throw new ArgumentNullException(nameof(pathfinder));
+    }
 
-    public string Name => SystemName;
+    public string Name
+    {
+        get
+        {
+            return SystemName;
+        }
+    }
 
-    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+    public void Execute(SimulationContext context)
+    {
+        CreatureUpdateSystem.RunAlone(context, this);
+    }
 
     /// <summary>The hunger branch of the needs routine (<c>0x00477C20</c>) and the eating states,
     /// in the creature's update before its state handler.</summary>
@@ -561,19 +572,27 @@ public sealed class CreatureEatSystem : ICreatureUpdateStep
         Shadow(context, creature, EatingRules.FindHatcheryState);
     }
 
-    private static void Arrive(SimulationContext context, CreatureState creature) =>
+    private static void Arrive(SimulationContext context, CreatureState creature)
+    {
         StateShadow.Arrive(context, SystemName, creature);
+    }
 
     /// <summary>State 7's arrival test: a Hatchery room, of any owner, on the creature's tile.</summary>
-    private static bool HatcheryRoomUnder(WorldState world, GameDatabase database, CreatureState creature) =>
-        RoomIndex.RoomAt(world, database, (creature.Tile.Y * world.Width) + creature.Tile.X) is { } room
+    private static bool HatcheryRoomUnder(WorldState world, GameDatabase database, CreatureState creature)
+    {
+        return RoomIndex.RoomAt(world, database, (creature.Tile.Y * world.Width) + creature.Tile.X) is { } room
         && room.Definition.TypeId == RoomTypeId.Hatchery;
+    }
 
-    private static void Shadow(SimulationContext context, CreatureState creature, int state) =>
+    private static void Shadow(SimulationContext context, CreatureState creature, int state)
+    {
         StateShadow.Move(context, SystemName, creature, state);
+    }
 
     /// <summary>The room's centre tile, rounded down — the same shape a lair uses.</summary>
-    private static int CentreTileIndex(WorldState world, RoomInstance room) =>
-        ((room.MinY + ((room.MaxY - room.MinY) / 2)) * world.Width)
+    private static int CentreTileIndex(WorldState world, RoomInstance room)
+    {
+        return ((room.MinY + ((room.MaxY - room.MinY) / 2)) * world.Width)
         + room.MinX + ((room.MaxX - room.MinX) / 2);
+    }
 }

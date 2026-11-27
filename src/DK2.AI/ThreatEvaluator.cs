@@ -40,8 +40,10 @@ public static class ThreatEvaluator
         return sources.AsReadOnly();
     }
 
-    public static int CreatureThreat(ushort baseThreat, byte level, short levelPercent) =>
-        level == 1 ? baseThreat : baseThreat * levelPercent / 100;
+    public static int CreatureThreat(ushort baseThreat, byte level, short levelPercent)
+    {
+        return level == 1 ? baseThreat : baseThreat * levelPercent / 100;
+    }
 
     /// <summary>Raw 12-bit fixed point; preserves the original's overflowing radius square.</summary>
     public static bool WithinRadius(int x, int y, int centreX, int centreY, int radius)
@@ -109,8 +111,10 @@ public static class ThreatEvaluator
     }
 
     public static KeeperThreatAssessment Assess(KeeperView view, TilePos target,
-        bool roomMessage, bool trapsStartFights) =>
-        Assess(Sources(view), view.PlayerOrder, view.AreAllied, target, roomMessage, trapsStartFights);
+        bool roomMessage, bool trapsStartFights)
+    {
+        return Assess(Sources(view), view.PlayerOrder, view.AreAllied, target, roomMessage, trapsStartFights);
+    }
 
     /// <summary>The caller supplies the audited ownership, bounds and navigation predicate.</summary>
     public static TilePos? DropSite(TilePos target, bool roomMessage, Func<TilePos, bool> eligible)

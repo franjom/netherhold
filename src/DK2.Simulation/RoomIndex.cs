@@ -188,7 +188,10 @@ public static class RoomIndex
         public IReadOnlyList<RoomInstance>? Rooms { get; private set; }
 
         /// <summary>The sweep's room holding the tile, or null for one outside every room.</summary>
-        public RoomInstance? RoomOf(int tileIndex) => _byTile[tileIndex];
+        public RoomInstance? RoomOf(int tileIndex)
+        {
+            return _byTile[tileIndex];
+        }
 
         /// <summary>Whether <see cref="Rooms"/> is what a sweep of the world would give now: the
         /// same database, and each tile's terrain and owner as the sweep saw them. No terrain or owner
@@ -252,7 +255,10 @@ public static class RoomIndex
             Rooms = rooms;
         }
 
-        private static ushort Key(in TileState tile) => (ushort)((tile.TerrainId << 8) | tile.OwnerPlayerId);
+        private static ushort Key(in TileState tile)
+        {
+            return (ushort)((tile.TerrainId << 8) | tile.OwnerPlayerId);
+        }
     }
 
     /// <summary>
@@ -362,8 +368,12 @@ public static class RoomIndex
             sumY += index / world.Width;
         }
         var point = new TilePos(sumX / indices.Length, sumY / indices.Length);
-        bool Belongs(TilePos at) => world.Contains(at.X, at.Y)
+        bool Belongs(TilePos at)
+        {
+            return world.Contains(at.X, at.Y)
             && Array.BinarySearch(indices, at.Y * world.Width + at.X) >= 0;
+        }
+
         if (Belongs(point))
         {
             return point;

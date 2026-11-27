@@ -21,11 +21,13 @@ public static class SteeringIntegrator
     public const int SlideThreshold = 0xCCC;
 
     /// <summary>The weighted sum of the four live behaviours, each clamped first (§3.3).</summary>
-    public static Fixed16Vector Combine(SteeringBody body, Fixed16Vector avoidWalls, Fixed16Vector repelObstacle, Fixed16Vector followPath, Fixed16Vector separation) =>
-        Fixed16.Truncate(avoidWalls, body.MaxForce).Scale(AvoidWallsRules.Weight)
+    public static Fixed16Vector Combine(SteeringBody body, Fixed16Vector avoidWalls, Fixed16Vector repelObstacle, Fixed16Vector followPath, Fixed16Vector separation)
+    {
+        return Fixed16.Truncate(avoidWalls, body.MaxForce).Scale(AvoidWallsRules.Weight)
         + Fixed16.Truncate(repelObstacle, body.MaxForce).Scale(RepelObstacleRules.Weight)
         + Fixed16.Truncate(followPath, body.MaxForce).Scale(FollowPathRules.Weight)
         + Fixed16.Truncate(separation, body.MaxForce).Scale(SeparationBehaviour.Weight);
+    }
 
     /// <summary>One tick of motion from a combined force.</summary>
     public static void Step(SteeringBody body, Fixed16Vector total, MoverProfile mover, ISteeringWorld world)
@@ -139,8 +141,10 @@ public static class SteeringIntegrator
         return false;
     }
 
-    private static bool Open(byte own, TilePos tile, Fixed16Vector from, Fixed16Vector to, MoverProfile mover, ISteeringWorld world) =>
-        world.CanMove(from, to) && MeshRouter.TransitionCost(world.NavByte(tile.X, tile.Y), own, mover) != 0;
+    private static bool Open(byte own, TilePos tile, Fixed16Vector from, Fixed16Vector to, MoverProfile mover, ISteeringWorld world)
+    {
+        return world.CanMove(from, to) && MeshRouter.TransitionCost(world.NavByte(tile.X, tile.Y), own, mover) != 0;
+    }
 
     /// <summary>The tick's stuck bit: shift the history and set bit 0 when progress along the route
     /// did not grow; remember the progress.</summary>

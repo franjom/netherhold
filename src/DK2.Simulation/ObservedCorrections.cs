@@ -44,5 +44,8 @@ public static class ObservedCorrections
     /// corrected number" is safe to ask on any database, including the
     /// deliberately minimal ones tests build.</para>
     /// </summary>
-    public static bool IsCorrected(GameDatabase database, VariableTypeId variable) => false;
+    public static bool IsCorrected(GameDatabase database, VariableTypeId variable)
+    {
+        return false;
+    }
 }

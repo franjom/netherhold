@@ -26,8 +26,10 @@ public static class BridgeRules
 
     /// <summary>Whether this room goes over a hazard — asked of the room's own placement flags,
     /// so nothing here knows what a bridge is called.</summary>
-    public static bool IsBridge(RoomDef room) =>
-        room.PlaceableOnWater || room.PlaceableOnLava;
+    public static bool IsBridge(RoomDef room)
+    {
+        return room.PlaceableOnWater || room.PlaceableOnLava;
+    }
 
     /// <summary>The terrain a bridge tile stands over, or null if this tile is not a bridge.</summary>
     public static TerrainDef? SpannedTerrain(GameDatabase database, in TileState tile)
@@ -44,8 +46,10 @@ public static class BridgeRules
     /// <summary>The marker to record on a tile about to be bridged, given the terrain covered.
     /// Used when a player builds a bridge: the level file's byte covers only shipped bridges, so
     /// one laid mid-game must record its own hazard or selling it reverts to the wrong thing.</summary>
-    public static byte MarkerFor(TerrainDef covered) =>
-        covered.IsLava ? SpansLava : SpansWater;
+    public static byte MarkerFor(TerrainDef covered)
+    {
+        return covered.IsLava ? SpansLava : SpansWater;
+    }
 
     /// <summary>How long a bridge laid on this terrain lasts, in ticks, or 0 for ever. A wooden
     /// bridge over lava burns away after <c>WoodBridgeLifeOnLavaSeconds</c> (30), and the clock

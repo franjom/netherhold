@@ -32,9 +32,11 @@ public static class DeathFallRules
     /// collapse on 1720 and 1864 and lie on 1726 and 1870, which the hold plus one gives. A creature
     /// felled before its own update, or one with another hold, is not in any capture.</summary>
     [Dk2Behavior(Confidence.Hypothesis, "docs/research/death-fall-heading.md")]
-    public static long FallEndsAt(SimulationContext context, CreatureDef definition) =>
-        context.Tick.Value + 1 + AnimationTimingRules.ActionHoldTicks(
+    public static long FallEndsAt(SimulationContext context, CreatureDef definition)
+    {
+        return context.Tick.Value + 1 + AnimationTimingRules.ActionHoldTicks(
             definition.ArtSlot(AnimationTimingRules.ResolveArtSlot(definition, CollapseArtSlot)));
+    }
 
     /// <summary>State 216's handler (<c>0x00459850</c>): it waits for the action, enters 217 and steps
     /// the body back along its heading by vector 3's y, onto a tile that is not solid and has its own

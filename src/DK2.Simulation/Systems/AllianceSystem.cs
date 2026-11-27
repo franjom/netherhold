@@ -17,7 +17,13 @@ namespace DK2.Simulation.Systems;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/doors-and-traps.md")]
 public sealed class AllianceSystem : ISimulationSystem
 {
-    public string Name => "alliances";
+    public string Name
+    {
+        get
+        {
+            return "alliances";
+        }
+    }
 
     public void Execute(SimulationContext context)
     {

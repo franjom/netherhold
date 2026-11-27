@@ -221,11 +221,23 @@ public sealed partial class ImpTaskSystem : ICreatureUpdateStep
         return activity >= 0 && activity < table.Length ? table[activity] : null;
     }
 
-    public string Name => SystemName;
+    public string Name
+    {
+        get
+        {
+            return SystemName;
+        }
+    }
 
-    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, Prelude, this);
+    public void Execute(SimulationContext context)
+    {
+        CreatureUpdateSystem.RunAlone(context, Prelude, this);
+    }
 
-    public void BeginTurn(SimulationContext context) => _pathfinder.Profiler = context.Profiler;
+    public void BeginTurn(SimulationContext context)
+    {
+        _pathfinder.Profiler = context.Profiler;
+    }
 
     /// <summary>A worker's state handler in its update, after its move: DK2 steps an imp inside the
     /// walk state's handler (<c>0x00470C80</c>) before that handler tests the arrival, so an imp lands

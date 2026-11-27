@@ -205,7 +205,10 @@ public static class CommandCodec
     }
 
     private static void Tile(BinaryWriter w, TilePos t) { w.Write(t.X); w.Write(t.Y); }
-    private static TilePos ReadTile(BinaryReader r) => new(r.ReadInt32(), r.ReadInt32());
+    private static TilePos ReadTile(BinaryReader r)
+    {
+        return new(r.ReadInt32(), r.ReadInt32());
+    }
 
     private static void Tiles(BinaryWriter w, IReadOnlyList<TilePos> tiles)
     {
@@ -240,11 +243,16 @@ public static class CommandCodec
     }
 
     private static void Position(BinaryWriter w, FpPosition2 p) { w.Write(p.X.Raw); w.Write(p.Y.Raw); }
-    private static FpPosition2 ReadPosition(BinaryReader r) => new(new Fp32(r.ReadInt32()), new Fp32(r.ReadInt32()));
+    private static FpPosition2 ReadPosition(BinaryReader r)
+    {
+        return new(new Fp32(r.ReadInt32()), new Fp32(r.ReadInt32()));
+    }
 
     private static void Position(BinaryWriter w, FpPosition3 p) { w.Write(p.X.Raw); w.Write(p.Y.Raw); w.Write(p.Z.Raw); }
-    private static FpPosition3 ReadPosition3(BinaryReader r) =>
-        new(new Fp32(r.ReadInt32()), new Fp32(r.ReadInt32()), new Fp32(r.ReadInt32()));
+    private static FpPosition3 ReadPosition3(BinaryReader r)
+    {
+        return new(new Fp32(r.ReadInt32()), new Fp32(r.ReadInt32()), new Fp32(r.ReadInt32()));
+    }
 
     private static void Aim(BinaryWriter w, PossessionAim a)
     {
@@ -253,6 +261,8 @@ public static class CommandCodec
         w.Write(a.Pitch.Raw);
     }
 
-    private static PossessionAim ReadAim(BinaryReader r) =>
-        new(ReadPosition3(r), new Dk2Angle(r.ReadUInt16()), new Dk2Angle(r.ReadUInt16()));
+    private static PossessionAim ReadAim(BinaryReader r)
+    {
+        return new(ReadPosition3(r), new Dk2Angle(r.ReadUInt16()), new Dk2Angle(r.ReadUInt16()));
+    }
 }

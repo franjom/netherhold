@@ -229,8 +229,10 @@ public static class AutoFurnitureRules
     /// <summary>The wall-furniture slots (<c>0x00454230</c>): room tiles with a straight wall on a
     /// side, of the parity of the first such tile in each orientation.</summary>
     private static void WallSlots(
-        WorldState world, GameDatabase database, RoomInstance room, HashSet<int> roomTiles, List<int> slots) =>
+        WorldState world, GameDatabase database, RoomInstance room, HashSet<int> roomTiles, List<int> slots)
+    {
         WallSlots(world, database, room, roomTiles, slots, sides: null);
+    }
 
     /// <summary>The side of a wall slot's wall, 0 to 3 for north, east, south and west (the wall pass's
     /// side byte, <c>casino.md</c> §3); -1 for a tile that is no wall slot of the room.</summary>
@@ -249,8 +251,10 @@ public static class AutoFurnitureRules
 
     /// <summary><see cref="WallSlotsInChainOrder"/> once per instance: the steering asks for them for
     /// every wall object near every creature, and the keeper's capture for each Torture Chamber.</summary>
-    public static (int Tile, int Side)[] WallSlotsOf(WorldState world, GameDatabase database, RoomInstance room) =>
-        room.WallSlots ??= WallSlotsInChainOrder(world, database, room);
+    public static (int Tile, int Side)[] WallSlotsOf(WorldState world, GameDatabase database, RoomInstance room)
+    {
+        return room.WallSlots ??= WallSlotsInChainOrder(world, database, room);
+    }
 
     /// <summary>The wall slots in chain order, each with its side (<c>0x004E8210</c>'s walk with only its
     /// wall flag, which counts and indexes them in the slab chain's order).</summary>
@@ -354,8 +358,10 @@ public static class AutoFurnitureRules
             && IsWall(world, database, x + sideX - alongX, y + sideY - alongY);
     }
 
-    private static bool IsRoom(WorldState world, HashSet<int> roomTiles, int x, int y) =>
-        world.Contains(x, y) && roomTiles.Contains((y * world.Width) + x);
+    private static bool IsRoom(WorldState world, HashSet<int> roomTiles, int x, int y)
+    {
+        return world.Contains(x, y) && roomTiles.Contains((y * world.Width) + x);
+    }
 
     private static bool IsWall(WorldState world, GameDatabase database, int x, int y)
     {
@@ -371,8 +377,10 @@ public static class AutoFurnitureRules
 
     /// <summary>The rooms whose floor slots are one parity of a checkerboard: Guard Room, Workshop
     /// and Casino (<c>FUN_004EF5E0</c>).</summary>
-    public static bool UsesCheckerboard(RoomTypeId? type) =>
-        type is RoomTypeId.GuardRoom or RoomTypeId.Workshop or RoomTypeId.Casino;
+    public static bool UsesCheckerboard(RoomTypeId? type)
+    {
+        return type is RoomTypeId.GuardRoom or RoomTypeId.Workshop or RoomTypeId.Casino;
+    }
 
     private static int TempleHandTile(
         WorldState world, RoomInstance room, HashSet<int> roomTiles)
@@ -629,7 +637,11 @@ public static class AutoFurnitureRules
     /// <summary>The room pillar corner slots (furniture-placement.md §5), shared with the view.</summary>
     public static IEnumerable<int> RoomPillarCorners(WorldState world, RoomInstance room, TilePos tile)
     {
-        bool InRoom(int x, int y) => world.Contains(x, y) && room.Contains(y * world.Width + x);
+        bool InRoom(int x, int y)
+        {
+            return world.Contains(x, y) && room.Contains(y * world.Width + x);
+        }
+
         for (int corner = 0; corner < 4; corner++)
         {
             int dx = corner < 2 ? 1 : -1;
@@ -659,16 +671,22 @@ public static class AutoFurnitureRules
     /// <c>0x004EF130</c>, table <c>0x004EF114</c>): the Torture Wheel <c>0x7C0</c>, Torture Coals and
     /// Water <c>0x480</c>, every other type <c>0x700</c>, the default arm <c>0x004EEE1F</c> included
     /// (<c>furniture-placement.md</c> §3, which corrects ADR-0404's centred Anvils and Buckets).</summary>
-    public static int WallInset(byte objectTypeId) => objectTypeId switch
+    public static int WallInset(byte objectTypeId)
     {
-        8 => 0x7C0,
-        62 or 63 => 0x480,
-        _ => 0x700,
-    };
+        return objectTypeId switch
+        {
+            8 => 0x7C0,
+            62 or 63 => 0x480,
+            _ => 0x700,
+        };
+    }
 
     /// <summary>The coordinate-seeded selector Room_Rebuild draws from: a furniture slot's choice, a
     /// bookcase's variant (<c>library-states.md</c> §4).</summary>
-    public static int Choice(int x, int y, int count) => CoordinateChoice(x, y, count);
+    public static int Choice(int x, int y, int count)
+    {
+        return CoordinateChoice(x, y, count);
+    }
 
     private static int CoordinateChoice(int x, int y, int count)
     {
@@ -686,7 +704,10 @@ public static class AutoFurnitureRules
     }
 
     /// <summary>The selector's next draw below <paramref name="count"/>.</summary>
-    public static int SelectorNext(ref uint seed, int count) => (int)Step(ref seed, unchecked((uint)count));
+    public static int SelectorNext(ref uint seed, int count)
+    {
+        return (int)Step(ref seed, unchecked((uint)count));
+    }
 
     private static uint Step(ref uint seed, uint modulus)
     {

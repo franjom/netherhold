@@ -39,7 +39,10 @@ public static class CombatPitSpectatorRules
     public const int MoveChance = 35;
 
 
-    public static bool IsSpectatorState(int state) => state is ChoosingState or FacingState or CheeringState;
+    public static bool IsSpectatorState(int state)
+    {
+        return state is ChoosingState or FacingState or CheeringState;
+    }
 
     /// <summary><c>0x004D7CF0</c>: whether someone on the pit's floor is fighting, that is on the
     /// map in a state of category 22 (a walk counted by the state it resumes, <c>0x00478050</c>).
@@ -75,11 +78,15 @@ public static class CombatPitSpectatorRules
     }
 
     /// <summary>The turns since the pit last had a fight (<c>now − room+0x53</c>).</summary>
-    private static uint SinceTheFight(SimulationContext context, RoomInstance room) =>
-        unchecked((uint)(context.Tick.Value - context.World.TileAtIndex(room.TileIndices[0]).PitFightSeenTick));
+    private static uint SinceTheFight(SimulationContext context, RoomInstance room)
+    {
+        return unchecked((uint)(context.Tick.Value - context.World.TileAtIndex(room.TileIndices[0]).PitFightSeenTick));
+    }
 
-    private static uint QuietLimitTicks(SimulationContext context) =>
-        unchecked((uint)(CombatPitRules.NativeTicksPerGameSecond(context.Database) * 4));
+    private static uint QuietLimitTicks(SimulationContext context)
+    {
+        return unchecked((uint)(CombatPitRules.NativeTicksPerGameSecond(context.Database) * 4));
+    }
 
     /// <summary>Job 26, <c>CombatPitSpectate</c> (<c>0x00457780</c>). On the rim of its own or an
     /// ally's Combat Pit with a fight on, or one seen less than <see cref="QuietTicks"/> ago: 142 where
@@ -369,7 +376,10 @@ public static class CombatPitSpectatorRules
     }
 
     /// <summary>The attached room's native CentrePos (<c>+0x27</c>).</summary>
-    internal static (int X, int Y) Middle(RoomInstance room) => (room.CentreFieldX, room.CentreFieldY);
+    internal static (int X, int Y) Middle(RoomInstance room)
+    {
+        return (room.CentreFieldX, room.CentreFieldY);
+    }
 
     /// <summary>144: moved since it last looked (and not at <c>Age</c> 1), it tries 142 and ends
     /// the cheer. Otherwise it remembers where it stands, waits out the cheer, and then: no fight

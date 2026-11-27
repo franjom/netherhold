@@ -78,8 +78,10 @@ public static class StealGoldRules
         return StateShadow.TryMove(context, system, creature, ToTheTreasuryState);
     }
 
-    public static bool IsStealState(int state) =>
-        state is ToTheTreasuryState or InTheTreasuryState or AtTheGoldState or EscapingState;
+    public static bool IsStealState(int state)
+    {
+        return state is ToTheTreasuryState or InTheTreasuryState or AtTheGoldState or EscapingState;
+    }
 
     /// <summary>A keeper creature's turn in these states, which the Thief reaches through its unhappy
     /// table's StealGold (job 13 has the same arm for everyone). True when the creature was in one;
@@ -237,8 +239,10 @@ public static class StealGoldRules
 
     /// <summary><c>0x004C61C0(1, position, out, 0)</c> on one player: its Treasury whose first tile's
     /// centre is nearest, by DK2's truncated squares, the first on a tie.</summary>
-    public static RoomInstance? NearestTreasury(SimulationContext context, PlayerId player, CreatureState from) =>
-        NearestRoomOfType(context, player, RoomTypeId.Treasury, from);
+    public static RoomInstance? NearestTreasury(SimulationContext context, PlayerId player, CreatureState from)
+    {
+        return NearestRoomOfType(context, player, RoomTypeId.Treasury, from);
+    }
 
     /// <summary><c>0x004C61C0(type, position, out, 0)</c> on one player: its room of that type whose
     /// first tile's centre is nearest, by DK2's truncated squares, the first on a tie.</summary>

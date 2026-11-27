@@ -41,7 +41,10 @@ public sealed partial class TempleSacrificeState
 
     internal int NextInsertionIndex { get; private set; }
 
-    internal SacrificeIngredient Slot(int index) => _entries[index];
+    internal SacrificeIngredient Slot(int index)
+    {
+        return _entries[index];
+    }
 
     internal SacrificeIngredient Newest(int offset)
     {

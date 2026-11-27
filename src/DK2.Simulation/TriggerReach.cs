@@ -155,11 +155,23 @@ public static class TriggerReach
 public readonly record struct TriggerClosure(
     byte Type, ushort TriggerId, IReadOnlyCollection<ushort> Foreclosed)
 {
-    public int Records => Foreclosed.Count;
+    public int Records
+    {
+        get
+        {
+            return Foreclosed.Count;
+        }
+    }
 }
 
 public readonly record struct TriggerGate(
     BlockedTrigger Blocked, IReadOnlyCollection<ushort> Foreclosed)
 {
-    public int Records => Foreclosed.Count;
+    public int Records
+    {
+        get
+        {
+            return Foreclosed.Count;
+        }
+    }
 }

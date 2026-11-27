@@ -28,12 +28,21 @@ public sealed class CombatSystem : ICreatureUpdateStep
     private WorldSight? _sight;
     private WorldState? _sightWorld;
 
-    public CombatSystem() => States = new StateHandlers(this);
+    public CombatSystem()
+    {
+        States = new StateHandlers(this);
+    }
 
     /// <summary>Turns a creature keeps tracking one it gave up chasing (<c>0x00489AA3</c>: 0x3C).</summary>
     public const int RetreatTrackingTicks = 60;
 
-    public string Name => SystemName;
+    public string Name
+    {
+        get
+        {
+            return SystemName;
+        }
+    }
 
     /// <summary>The combat states' handlers (<c>spFighting</c>, the flee, withdraw, alarm and
     /// victory states), which DK2's dispatcher <c>0x00476FC0</c> runs after the needs routine, in the
@@ -43,7 +52,10 @@ public sealed class CombatSystem : ICreatureUpdateStep
     public ICreatureUpdateStep States { get; }
 
     /// <summary>Alone, the scan and the handlers for each creature in turn.</summary>
-    public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this, States);
+    public void Execute(SimulationContext context)
+    {
+        CreatureUpdateSystem.RunAlone(context, this, States);
+    }
 
     public void BeginTurn(SimulationContext context)
     {
@@ -129,9 +141,12 @@ public sealed class CombatSystem : ICreatureUpdateStep
         ThreatFleeRules.Turn(context, _sight!, creature, definition);
     }
 
-    private static bool InCombatState(CreatureState creature) => creature.Activity is CreatureActivity.Fighting
+    private static bool InCombatState(CreatureState creature)
+    {
+        return creature.Activity is CreatureActivity.Fighting
         or CreatureActivity.Fleeing or CreatureActivity.Withdrawing or CreatureActivity.RaisingAlarm
         or CreatureActivity.Celebrating or CreatureActivity.GoingToBody;
+    }
 
     /// <summary>The dispatcher's turn for a combat state (<c>0x0048A030</c>), then the trap reveal that
     /// follows it (<c>0x0048A0B4</c>).</summary>
@@ -182,7 +197,14 @@ public sealed class CombatSystem : ICreatureUpdateStep
 
     private sealed class StateHandlers(CombatSystem combat) : ICreatureUpdateStep
     {
-        public string Name => "combat states";
+        public string Name
+        {
+            get
+            {
+                return "combat states";
+            }
+        }
+
         public void Execute(SimulationContext context)
         {
             combat.BeginTurn(context);
@@ -196,7 +218,10 @@ public sealed class CombatSystem : ICreatureUpdateStep
                 combat.BeginTurn(context);
             }
         }
-        public void Update(SimulationContext context, CreatureState creature) => combat.Dispatch(context, creature);
+        public void Update(SimulationContext context, CreatureState creature)
+        {
+            combat.Dispatch(context, creature);
+        }
     }
 
     private void ProcessFight(SimulationContext context, CreatureState creature, CreatureDef definition)

@@ -11,7 +11,13 @@ namespace DK2.Simulation.Systems;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/keeper-spell-possession.md")]
 public sealed class PossessionSystem : ISimulationSystem
 {
-    public string Name => "possession";
+    public string Name
+    {
+        get
+        {
+            return "possession";
+        }
+    }
 
     private readonly PossessionCombat _combat = new();
 

@@ -27,9 +27,18 @@ public sealed class DungeonHeartSystem : ISimulationSystem
     /// <c>0x004D9A60</c> own part. A host that walks the rooms in DK2's order has <see cref="HeartFrameStep"/>
     /// do it there, at the Heart's turn, and passes false: this system then runs the player frame's tail
     /// alone, at the tick's end.</param>
-    public DungeonHeartSystem(bool frames = true) => _frames = frames;
+    public DungeonHeartSystem(bool frames = true)
+    {
+        _frames = frames;
+    }
 
-    public string Name => "dungeon heart";
+    public string Name
+    {
+        get
+        {
+            return "dungeon heart";
+        }
+    }
 
     public void Execute(SimulationContext context)
     {
@@ -88,13 +97,15 @@ public sealed class DungeonHeartSystem : ISimulationSystem
     }
 
     /// <summary>The fallen keeper's own verdict names its killer; one an alliance carried does not.</summary>
-    private void Report(SimulationContext context, PlayerId id, byte status, byte fallen, byte killer) =>
+    private void Report(SimulationContext context, PlayerId id, byte status, byte fallen, byte killer)
+    {
         context.Emit(Name, status switch
         {
             PlayerStatus.Conquered => "conquered",
             PlayerStatus.Won => "won",
             _ => "lost",
         }, id == fallen ? $"player={id} by={killer}" : $"player={id} by alliance");
+    }
 
     /// <summary>DK2 counts the keepers still playing each turn a fallen keeper's tail runs, and only
     /// outside the campaign (<c>0x004BB39A</c>: mode 1 skips it); exactly one left means that one has
@@ -136,9 +147,18 @@ public sealed class HeartFrameStep : IRoomTickStep
 {
     private const string SystemName = "dungeon heart";
 
-    public string Name => SystemName;
+    public string Name
+    {
+        get
+        {
+            return SystemName;
+        }
+    }
 
-    public void Execute(SimulationContext context) => RoomTickSystem.RunAlone(context, this);
+    public void Execute(SimulationContext context)
+    {
+        RoomTickSystem.RunAlone(context, this);
+    }
 
     /// <summary>A Heart room of a keeper that has a heart tile in it: the keeper's frame runs once, whatever
     /// the room's shape.</summary>
