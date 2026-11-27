@@ -21,6 +21,19 @@ namespace DK2.Simulation.Tests;
 /// </summary>
 internal static class TestWorld
 {
+    /// <summary>Runs and gathers the states the creature is seen in, a walk named by its resume.</summary>
+    internal static HashSet<int> WatchCreatureStates(GameSimulation sim, CreatureState creature, int ticks)
+    {
+        var seen = new HashSet<int>();
+        for (int i = 0; i < ticks; i++)
+        {
+            sim.Tick();
+            seen.Add(CreatureStateTable.Get(creature.Dk2StateId).IsUtility ? creature.UtilityNewState : creature.Dk2StateId);
+        }
+
+        return seen;
+    }
+
     public const byte Impenetrable = 1;
     public const byte Rock = 2;
     public const byte DirtPath = 3;

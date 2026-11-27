@@ -61,10 +61,6 @@ public class CampaignLoadTests
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
 
             Assert.NotNull(map);
-            if (map is null)
-            {
-                continue;
-            }
 
             // Throws if any tile references a terrain type the database lacks.
             var world = WorldState.FromMap(database, map, [(byte)0]);

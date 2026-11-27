@@ -77,10 +77,6 @@ public class BridgesOnRealDataTests
         {
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
             Assert.NotNull(map);
-            if (map is null)
-            {
-                continue;
-            }
 
             for (int y = 0; y < map.Height; y++)
             {
@@ -154,10 +150,6 @@ public class BridgesOnRealDataTests
         {
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
             Assert.NotNull(map);
-            if (map is null)
-            {
-                continue;
-            }
 
             foreach (MapTile tile in map.Tiles)
             {
@@ -197,10 +189,6 @@ public class BridgesOnRealDataTests
         {
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
             Assert.NotNull(map);
-            if (map is null)
-            {
-                continue;
-            }
 
             foreach (MapTile source in map.Tiles)
             {

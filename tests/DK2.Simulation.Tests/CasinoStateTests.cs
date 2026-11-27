@@ -75,18 +75,6 @@ public class CasinoStateTests
         return RoomIndex.Build(world, db).Single(r => r.Definition.TypeId == RoomTypeId.Casino);
     }
 
-    /// <summary>Runs and gathers the states the creature is seen in, a walk named by its resume.</summary>
-    private static HashSet<int> Watch(GameSimulation sim, CreatureState creature, int ticks)
-    {
-        var seen = new HashSet<int>();
-        for (int i = 0; i < ticks; i++)
-        {
-            sim.Tick();
-            seen.Add(CreatureStateTable.Get(creature.Dk2StateId).IsUtility ? creature.UtilityNewState : creature.Dk2StateId);
-        }
-
-        return seen;
-    }
 
     // ---------------------------------------------------------------------------- 145
 
@@ -100,7 +88,7 @@ public class CasinoStateTests
         Assert.Contains(world.Objects, o => o.ObjectTypeId is 87 or 59 or 67);
         CreatureState goblin = Gambler(db, world, new TilePos(3, 2));
 
-        HashSet<int> seen = Watch(sim, goblin, 40 * SimulationTiming.TicksPerSecond);
+        HashSet<int> seen = TestWorld.WatchCreatureStates(sim, goblin, 40 * SimulationTiming.TicksPerSecond);
 
         Assert.True(seen.Contains(CasinoStep.AtTheTableState) || seen.Contains(CasinoStep.AtTheAlcoveState));
         Assert.True(seen.Contains(CasinoStep.PlayingState) || seen.Contains(CasinoStep.DrinkingState));
@@ -134,7 +122,7 @@ public class CasinoStateTests
         sim = new GameSimulation(db, world, seed: 42,
             [new CasinoSystem(), new CreatureMovementSystem(), new CasinoJackpotSystem(), new CreatureJobSystem()]);
 
-        HashSet<int> seen = Watch(sim, goblin, 30 * SimulationTiming.TicksPerSecond);
+        HashSet<int> seen = TestWorld.WatchCreatureStates(sim, goblin, 30 * SimulationTiming.TicksPerSecond);
 
         Assert.Contains(CasinoStep.AtTheAlcoveState, seen);
         Assert.Contains(CasinoStep.DrinkingState, seen);
@@ -167,7 +155,7 @@ public class CasinoStateTests
         var sim = new GameSimulation(db, world, seed: 42,
             [new CasinoSystem(), new CreatureMovementSystem(), new CasinoJackpotSystem(), new CreatureJobSystem()]);
 
-        HashSet<int> seen = Watch(sim, goblin, 10 * SimulationTiming.TicksPerSecond);
+        HashSet<int> seen = TestWorld.WatchCreatureStates(sim, goblin, 10 * SimulationTiming.TicksPerSecond);
 
         Assert.DoesNotContain(CasinoStep.AtTheAlcoveState, seen);
         Assert.Equal(CasinoStep.ChoosingState, goblin.Dk2StateId);
@@ -183,7 +171,7 @@ public class CasinoStateTests
         sim.Run(1);
         CreatureState goblin = Gambler(db, world, new TilePos(1, 1));
 
-        HashSet<int> seen = Watch(sim, goblin, 20 * SimulationTiming.TicksPerSecond);
+        HashSet<int> seen = TestWorld.WatchCreatureStates(sim, goblin, 20 * SimulationTiming.TicksPerSecond);
 
         Assert.Contains(CasinoStep.OnTheFloorState, seen);
         Assert.Contains(CasinoStep.StandingState, seen);
@@ -234,7 +222,7 @@ public class CasinoStateTests
         world.TileAtIndex(Casino(db, world).TileIndices[0]).CasinoPartyStartTick = 1;
         CreatureState goblin = Gambler(db, world, new TilePos(1, 1));
 
-        HashSet<int> seen = Watch(sim, goblin, 3);
+        HashSet<int> seen = TestWorld.WatchCreatureStates(sim, goblin, 3);
 
         Assert.Contains(CasinoStep.DancingState, seen);
         Assert.True(goblin.ActionUntilTick > sim.World.CurrentTick.Value);
@@ -370,7 +358,7 @@ public class CasinoStateTests
             }
         }));
 
-        HashSet<int> seen = Watch(sim, winner, 60 * SimulationTiming.TicksPerSecond);
+        HashSet<int> seen = TestWorld.WatchCreatureStates(sim, winner, 60 * SimulationTiming.TicksPerSecond);
 
         Assert.Contains(CasinoJackpotRules.CelebratingState, seen);
         Assert.Contains(CasinoJackpotRules.SeekingTheGoldState, seen);
@@ -578,7 +566,7 @@ public class CasinoStateTests
         sim.Run(2);
         Assert.Equal(sim.World.CurrentTick.Value - 1 + 261, dancer.ActionUntilTick);
 
-        HashSet<int> seen = Watch(sim, dancer, 262);
+        HashSet<int> seen = TestWorld.WatchCreatureStates(sim, dancer, 262);
         Assert.Contains(CasinoStep.ChoosingState, seen);
     }
 

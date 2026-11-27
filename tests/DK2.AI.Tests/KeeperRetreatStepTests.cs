@@ -22,7 +22,6 @@ public class KeeperRetreatStepTests
     private const byte Hero = PlayerIds.Good;
     private const int FightState = 199;
     private const int PrisonState = 115;
-    private const int MaxHealth = 1500;
 
     /// <summary>The 2x2 Lair's bounding-box middle, where a retreat lands.</summary>
     private static readonly TilePos LairCentre = new TilePos(13, 13);

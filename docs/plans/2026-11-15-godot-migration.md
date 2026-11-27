@@ -1209,27 +1209,17 @@ and resource upload with the scene's loading path, so the retired helper was rem
 A pass over every C# file in `src/`, `tests/` and `godot/` once Unity is gone and every assembly targets net10.0.
 Behaviour stays the same: the turn-400 hash, the replays and the frame captures are the checks.
 
-- [ ] Coding style, defined first and enforced by the build. Read the
-      [survey and owner decisions](2026-11-26-csharp-style-questions.md) for the remaining rollout and custom checks.
-      The build enforces file-scoped namespaces, file-scope `using` placement, the approved `var` policy, braces on
-      every control body, removal of optional `this.` qualification (IDE0003), preferred default literals (IDE0034), and
-      the collection expression preference `when_types_exactly_match`. Naming rules cover private fields, PascalCase
-      for constant and static readonly fields, and camelCase for locals and local constants.
-      The block-body rule covers members and local functions. Lambda style is decided separately.
-      The Roslyn checks in `CSharpStyleTests` enforce System-first import order and explicit types on object creation.
-      `dotnet format` organizes imports.
-      Land further approved rules by area using the survey's Release assembly comparison and verification steps.
-      `EnforceCodeStyleInBuild` and `TreatWarningsAsErrors` make each rule a build error, so each area lands with
-      `dotnet format` fixing every file its scoped rule flags (`.editorconfig`'s header).
-      Rules the analysers cannot express (a number cast to an enum instead of a named member, magic numbers for DK2
-      ids) go in a small Roslyn analyzer or an `ArchitectureTests` check.
-- [ ] Modern .NET performance first: spans, `stackalloc`, `ArrayPool`, `FrozenDictionary` and `FrozenSet`,
-      `SearchValues`, `CollectionsMarshal`, generic math, `[SkipLocalsInit]` where measured, source-generated regex and
-      JSON, vectorisation (`TensorPrimitives`, `Vector128/256`) on hot loops; each change measured (BenchmarkDotNet or
-      the 3o harness), kept only when it pays. Use the agents' .NET skills: analyzing-dotnet-performance, vectorization,
-      microbenchmarking, csharp-refactoring.
-- [ ] Sloppy and generated-looking code refactored: casts of numbers to enums (add the member), primitives where a
-      meaningful type belongs (AGENTS.md), duplicated helpers, dead code, over-long methods, comments that narrate
-      instead of explain, and defensive clutter.
-- [ ] One area per commit (simulation, presentation, data, tools, Godot adapter), each with the hash, tests and
-      captures unchanged; any change to DK2 behaviour is a bug, not a tidy-up.
+- [x] Coding style is enforced globally through `.editorconfig`, the build and Roslyn tests. The
+      [survey and owner decisions](2026-11-26-csharp-style-questions.md) record the rules and review guidance.
+      `CSharpStyleTests` checks System-first imports, explicit object creation, block bodies for members and local
+      functions, and explicit class and struct constructors. The named-enum analyzer has an empty baseline.
+      `dotnet format` organizes imports. IDE0051 and IDE0052 remain suggestions for unused private members.
+- [x] Measured performance work retained packed terrain normal reuse and shared database identity on save resumption.
+      See the [Godot adapter measurements](../PERFORMANCE.md#godot-adapter).
+- [x] Code cleanup replaced casts with matching enum members, named IDs, clarified same-type arguments and removed
+      reviewed duplicate helpers, dead code and redundant guards. The longest-method and redundant-comment rankings
+      are available for owner selection.
+- [x] The rollout used separate area commits for simulation, data, presentation, Tools/Harness, Godot and tests.
+      The [verification protocol](2026-11-26-csharp-style-questions.md#rollout-order) records the Release build,
+      IL comparison, formatter, suite and runtime checks. The final Release builds and test suite passed, and
+      the Level1, Level6a and Level7 turn-400 hashes matched.

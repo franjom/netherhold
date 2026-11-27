@@ -255,10 +255,6 @@ public class KwdTerrainRoomsTests
         {
             LevelMap? grid = MapGrid.Parse(KwdReader.ReadFile(file));
             Assert.NotNull(grid);
-            if (grid is null)
-            {
-                continue;
-            }
 
             gridsFound++;
 

@@ -78,17 +78,6 @@ public class LibraryStateTests
         return RoomIndex.Build(world, db).Single(r => r.Definition.TypeId == RoomTypeId.Library);
     }
 
-    private static HashSet<int> Watch(GameSimulation sim, CreatureState creature, int ticks)
-    {
-        var seen = new HashSet<int>();
-        for (int i = 0; i < ticks; i++)
-        {
-            sim.Tick();
-            seen.Add(CreatureStateTable.Get(creature.Dk2StateId).IsUtility ? creature.UtilityNewState : creature.Dk2StateId);
-        }
-
-        return seen;
-    }
 
     [Fact]
     public void AResearcherWalksToAFreeBookOrBookcaseFacesItReadsLongAndChoosesAgain()
@@ -100,7 +89,7 @@ public class LibraryStateTests
         Assert.Contains(world.Objects, o => o.ObjectTypeId == ResearchStep.BookCaseObjectId);
         CreatureState it = Researcher(db, world, new TilePos(3, 3));
 
-        HashSet<int> seen = Watch(sim, it, 60 * SimulationTiming.TicksPerSecond);
+        HashSet<int> seen = TestWorld.WatchCreatureStates(sim, it, 60 * SimulationTiming.TicksPerSecond);
 
         Assert.Contains(ResearchStep.AtTheShelfState, seen);
         Assert.Contains(ResearchStep.ReadingLongState, seen);
@@ -122,7 +111,7 @@ public class LibraryStateTests
         CreatureState it = Researcher(db, world, new TilePos(2, 2));
         var sim = new GameSimulation(db, world, seed: 42, [new CreatureMovementSystem(), new CreatureJobSystem()]);
 
-        HashSet<int> seen = Watch(sim, it, 40 * SimulationTiming.TicksPerSecond);
+        HashSet<int> seen = TestWorld.WatchCreatureStates(sim, it, 40 * SimulationTiming.TicksPerSecond);
 
         Assert.Contains(ResearchStep.ReadingShortState, seen);
         Assert.DoesNotContain(ResearchStep.ReadingLongState, seen);
@@ -309,11 +298,11 @@ public class LibraryStateTests
         watcher.Heading = 0x400;   // facing the intruder (+y): the hurry needs under 0x80 left at age 2 (ADR-0602)
         GameSimulation sim = Simulation(db, world);
 
-        HashSet<int> seen = Watch(sim, watcher, 3);
+        HashSet<int> seen = TestWorld.WatchCreatureStates(sim, watcher, 3);
         Assert.Equal(intruder.Id, watcher.WatchedCreatureId);
         Assert.True(intruder.SpeedEffectTicks > 0);
 
-        seen.UnionWith(Watch(sim, watcher, 10 * SimulationTiming.TicksPerSecond));
+        seen.UnionWith(TestWorld.WatchCreatureStates(sim, watcher, 10 * SimulationTiming.TicksPerSecond));
         Assert.Contains(ResearchStep.ChoosingState, seen);
         Assert.True(watcher.Anger.Work > 0);
     }

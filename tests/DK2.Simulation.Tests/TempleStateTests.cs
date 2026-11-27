@@ -61,17 +61,6 @@ public class TempleStateTests
         return it;
     }
 
-    private static HashSet<int> Watch(GameSimulation sim, CreatureState creature, int ticks)
-    {
-        var seen = new HashSet<int>();
-        for (int i = 0; i < ticks; i++)
-        {
-            sim.Tick();
-            seen.Add(CreatureStateTable.Get(creature.Dk2StateId).IsUtility ? creature.UtilityNewState : creature.Dk2StateId);
-        }
-
-        return seen;
-    }
 
     [Fact]
     public void AWorshipperChoosesASpotFacesTheCentrePraysAndChoosesAgain()
@@ -80,7 +69,7 @@ public class TempleStateTests
         WorldState world = World(db, 5);
         CreatureState it = Worshipper(db, world, new TilePos(1, 3));
 
-        HashSet<int> seen = Watch(Simulation(db, world), it, 30 * SimulationTiming.TicksPerSecond);
+        HashSet<int> seen = TestWorld.WatchCreatureStates(Simulation(db, world), it, 30 * SimulationTiming.TicksPerSecond);
 
         // 101 is left on the first turn, before the first sample.
         Assert.Superset(new HashSet<int> { TempleStep.ChoosingState, TempleStep.FacingState, TempleStep.PrayingState }, seen);
@@ -243,7 +232,7 @@ public class TempleStateTests
         // A new tile joins the Temple, which stamps the rebuilt room (0x004E4480's slot +0x09).
         RoomRules.Place(db, ref world.Tile(6, 3), db.Room(RoomTypeId.Temple), Keeper);
         SlabChain.Changed(world, db, (3 * world.Width) + 6, Dk2TerrainFixture.ClaimedPath, Keeper);
-        HashSet<int> seen = Watch(sim, it, 4);
+        HashSet<int> seen = TestWorld.WatchCreatureStates(sim, it, 4);
 
         Assert.Contains(TempleStep.ReturningState, seen);
         Assert.Contains(TempleStep.EnteringState, seen);

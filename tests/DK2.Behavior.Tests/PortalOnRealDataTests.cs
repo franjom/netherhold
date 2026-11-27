@@ -365,10 +365,6 @@ public class PortalOnRealDataTests
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
 
             Assert.NotNull(map);
-            if (map is null)
-            {
-                continue;
-            }
 
             levelsRead++;
 
@@ -432,10 +428,6 @@ public class PortalOnRealDataTests
         {
             LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
             Assert.NotNull(map);
-            if (map is null)
-            {
-                continue;
-            }
 
             var world = WorldState.FromMap(db, map, [(byte)0]);
             var found = RoomIndex.Build(world, db)

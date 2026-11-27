@@ -209,7 +209,6 @@ public sealed class ImpJobSoundTests
 
     // ---- crates ------------------------------------------------------------------------------------
 
-    private const byte MakerId = 77;
     private const byte DoorCrate = Dk2TerrainFixture.WoodenDoorCrateObjectId;
     private const byte TrapCrate = Dk2TerrainFixture.AlarmCrateObjectId;
 
