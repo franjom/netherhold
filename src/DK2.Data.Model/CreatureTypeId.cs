@@ -9,6 +9,6 @@ public readonly record struct CreatureTypeId(byte Value)
 {
     public static implicit operator CreatureTypeId(byte value)
     {
-        return new(value);
+        return new CreatureTypeId(value);
     }
 }

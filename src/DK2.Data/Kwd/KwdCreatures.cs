@@ -95,7 +95,7 @@ public static partial class KwdCreatures
 
         Fp32 Fp(int off)
         {
-            return new(BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + off)));
+            return new Fp32(BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + off)));
         }
 
         string Str(int off, int len)

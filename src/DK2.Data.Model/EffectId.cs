@@ -17,7 +17,7 @@ public readonly record struct EffectId(ushort Value)
 
     public static implicit operator EffectId(ushort value)
     {
-        return new(value);
+        return new EffectId(value);
     }
 
     public override string ToString()

@@ -411,7 +411,7 @@ public static class GlbWriter
 
     private sealed class BinaryBuilder
     {
-        private readonly MemoryStream _stream = new();
+        private readonly MemoryStream _stream = new MemoryStream();
         private readonly BinaryWriter _writer;
         private int _viewCount;
         private int _accessorCount;
@@ -441,8 +441,8 @@ public static class GlbWriter
                 throw new InvalidDataException("A glTF primitive cannot have no vertices.");
             }
 
-            Vector3 minimum = new(float.PositiveInfinity);
-            Vector3 maximum = new(float.NegativeInfinity);
+            var minimum = new Vector3(float.PositiveInfinity);
+            var maximum = new Vector3(float.NegativeInfinity);
             BufferView positions = AddView(() =>
             {
                 foreach (KmfVertex vertex in primitive.Vertices)
@@ -547,7 +547,7 @@ public static class GlbWriter
         { _writer.Write(value.X); _writer.Write(value.Y); _writer.Write(value.Z); }
         private static Vector3 ToGltf(Vector3 value)
         {
-            return new(value.X, -value.Z, value.Y);
+            return new Vector3(value.X, -value.Z, value.Y);
         }
     }
 

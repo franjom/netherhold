@@ -162,6 +162,6 @@ public static class Bf4FontReader
 
     private static InvalidDataException Invalid(string source, string reason)
     {
-        return new($"{source}: not a valid BF4 font: {reason}.");
+        return new InvalidDataException($"{source}: not a valid BF4 font: {reason}.");
     }
 }

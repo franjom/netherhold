@@ -19,7 +19,7 @@ public readonly record struct PlayerId(byte Value) : IComparable<PlayerId>
 {
     public static implicit operator PlayerId(byte value)
     {
-        return new(value);
+        return new PlayerId(value);
     }
 
     public static explicit operator byte(PlayerId id)

@@ -286,7 +286,7 @@ public static class KmfReader
 
         InvalidDataException Invalid(string message, Exception? innerException = null)
         {
-            return new($"Invalid KMF animation: {message}", innerException);
+            return new InvalidDataException($"Invalid KMF animation: {message}", innerException);
         }
     }
 
@@ -430,12 +430,12 @@ public static class KmfReader
 
         public Vector3 Vector3()
         {
-            return new(Single(), Single(), Single());
+            return new Vector3(Single(), Single(), Single());
         }
 
         public Vector2 Uv()
         {
-            return new(UInt16() / 32768f, UInt16() / 32768f);
+            return new Vector2(UInt16() / 32768f, UInt16() / 32768f);
         }
 
         public uint Count(string name)
@@ -485,7 +485,7 @@ public static class KmfReader
         public void Skip(int count) { Require(count); _position += count; }
         public InvalidDataException Invalid(string message, Exception? innerException = null)
         {
-            return new($"Invalid KMF at byte 0x{_position:x}: {message}", innerException);
+            return new InvalidDataException($"Invalid KMF at byte 0x{_position:x}: {message}", innerException);
         }
 
         private void Require(int count)

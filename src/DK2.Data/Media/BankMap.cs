@@ -21,7 +21,7 @@ public sealed class BankMap
     public IReadOnlyList<SoundArchive> Archives { get; }
 
     /// <summary>No archives: a category the install does not ship.</summary>
-    public static BankMap Empty { get; } = new(Array.Empty<SoundArchive>());
+    public static BankMap Empty { get; } = new BankMap(Array.Empty<SoundArchive>());
 
     public static BankMap Read(ReadOnlySpan<byte> data)
     {

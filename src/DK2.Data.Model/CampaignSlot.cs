@@ -76,8 +76,8 @@ public readonly record struct CampaignSlot
     {
         return tag switch
         {
-            >= 1 and <= 30 => new(tag),
-            >= 151 and <= 174 => new(tag - 150),
+            >= 1 and <= 30 => new CampaignSlot(tag),
+            >= 151 and <= 174 => new CampaignSlot(tag - 150),
             _ => None,
         };
     }

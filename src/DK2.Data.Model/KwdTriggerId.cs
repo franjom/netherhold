@@ -10,7 +10,7 @@ public readonly record struct KwdTriggerId(ushort Value)
     {
         get
         {
-            return new(0);
+            return new KwdTriggerId(0);
         }
     }
 }

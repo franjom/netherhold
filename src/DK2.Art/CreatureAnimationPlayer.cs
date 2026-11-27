@@ -54,7 +54,7 @@ public static class CreatureAnimationArt
 
     public static CreatureAnimationTiming Timing(Dk2ArtResource resource)
     {
-        return new()
+        return new CreatureAnimationTiming()
         {
             ResourceType = resource.Type,
             FrameCount = resource.FrameCount,
@@ -80,8 +80,8 @@ public sealed class CreatureAnimationPlayer<TResources>
     private const uint LightningPointLimit = 2000;
     private readonly ICreatureAnimationSurface<TResources> _surface;
     // Retain each fully sampled clip's buffer; pose-only draws and tagged points need none.
-    private readonly Dictionary<RenderAnimation, Vector3[]> _buffers = new();
-    private readonly AnimationMarkWatcher _marks = new();
+    private readonly Dictionary<RenderAnimation, Vector3[]> _buffers = new Dictionary<RenderAnimation, Vector3[]>();
+    private readonly AnimationMarkWatcher _marks = new AnimationMarkWatcher();
     private RenderAnimation?[]? _clips;
     private RenderAnimationClock? _clock;
     private long _startTick;

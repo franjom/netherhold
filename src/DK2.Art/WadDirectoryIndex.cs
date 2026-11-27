@@ -9,7 +9,7 @@ namespace DK2.Art.Textures;
 /// <summary>Restores directory runs for image access without changing the archive's legacy bare-name lookup.</summary>
 public sealed class WadDirectoryIndex
 {
-    private readonly Dictionary<string, int> _entries = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, int> _entries = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
     public WadDirectoryIndex(IReadOnlyList<WadEntry> entries)
     {
         string directory = "";

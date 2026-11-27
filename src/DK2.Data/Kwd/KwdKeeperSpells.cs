@@ -111,7 +111,7 @@ public static class KwdKeeperSpells
 
     private static KeeperSpellDef ParseRecord(byte[] rec, int b)
     {
-        return new()
+        return new KeeperSpellDef()
         {
             Name = Name(rec, b),
             SoundCategory = Name(rec, b + OffsetSoundCategory),

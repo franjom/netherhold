@@ -65,7 +65,7 @@ public static partial class KwdPlayers
 
     private static PlayerDef ParseRecord(byte[] rec, int b)
     {
-        return new()
+        return new PlayerDef()
         {
             StartingGold = BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + OffsetGold)),
             HasAiFlag = BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + OffsetAiFlag)) != 0,

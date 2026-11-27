@@ -14,7 +14,7 @@ public readonly record struct TerrainLighting(
 {
     public TerrainLightColour AmbientColour(TerrainFlags flags)
     {
-        return new(
+        return new TerrainLightColour(
         AmbientRed + ((flags & TerrainFlags.AmbientColorRed) != 0 ? 255 : 0),
         AmbientGreen + ((flags & TerrainFlags.AmbientColorGreen) != 0 ? 255 : 0),
         AmbientBlue + ((flags & TerrainFlags.AmbientColorBlue) != 0 ? 255 : 0));
@@ -22,7 +22,7 @@ public readonly record struct TerrainLighting(
 
     public TerrainLightColour TerrainColour(TerrainFlags flags)
     {
-        return new(
+        return new TerrainLightColour(
         TerrainRed + ((flags & TerrainFlags.TerrainColorRed) != 0 ? 255 : 0),
         TerrainGreen + ((flags & TerrainFlags.TerrainColorGreen) != 0 ? 255 : 0),
         TerrainBlue + ((flags & TerrainFlags.TerrainColorBlue) != 0 ? 255 : 0));

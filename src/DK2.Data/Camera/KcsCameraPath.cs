@@ -64,6 +64,6 @@ public sealed class KcsCameraPath
 
     private static InvalidDataException Invalid(string source, string reason)
     {
-        return new($"Invalid KCS camera path '{source}': {reason}.");
+        return new InvalidDataException($"Invalid KCS camera path '{source}': {reason}.");
     }
 }

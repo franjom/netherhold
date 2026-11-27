@@ -113,7 +113,7 @@ public static class KwdTraps
 
     private static TrapDef ParseRecord(byte[] record, int at)
     {
-        return new()
+        return new TrapDef()
         {
             Name = Name(record, at),
             TrapId = record[at + OffsetTrapId],

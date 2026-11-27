@@ -385,7 +385,7 @@ public static class ArtSourceMap
 
     private static ArtEntry Missing(AssetRef reference, string reason)
     {
-        return new(reference, reference.Kind == AssetKind.Texture ? ArtUse.FirstMaterialTexture : ArtUse.Model, null,
+        return new ArtEntry(reference, reference.Kind == AssetKind.Texture ? ArtUse.FirstMaterialTexture : ArtUse.Model, null,
             "", reason);
     }
 

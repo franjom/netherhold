@@ -78,7 +78,7 @@ public static class AssetConverter
         private readonly string _root;
         private readonly IMeshSource _meshes;
         private readonly ITextureSource _textures;
-        private readonly HashSet<string> _writtenTextures = new(StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<string> _writtenTextures = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         public Run(string root, IMeshSource meshes, ITextureSource textures)
         {
@@ -188,7 +188,7 @@ public static class AssetConverter
 
         private string TexturePath(string storedName)
         {
-            string readable = new((char[])[.. storedName.Select(character =>
+            string readable = new string((char[])[.. storedName.Select(character =>
                 Path.GetInvalidFileNameChars().Contains(character) || character is '/' or '\\'
                     ? '_' : character)]);
             byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(storedName.ToUpperInvariant()));

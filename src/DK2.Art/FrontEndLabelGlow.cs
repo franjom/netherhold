@@ -72,6 +72,6 @@ public static class FrontEndLabelGlow
             }
         }
 
-        return new(width, height, result);
+        return new RgbaImage(width, height, result);
     }
 }

@@ -30,7 +30,7 @@ public sealed class SfxMap
     public IReadOnlyList<SoundGroup> Groups { get; }
 
     /// <summary>No events: a category the install does not ship, whose every request resolves to nothing.</summary>
-    public static SfxMap Empty { get; } = new(Array.Empty<SoundEvent>());
+    public static SfxMap Empty { get; } = new SfxMap(Array.Empty<SoundEvent>());
 
     public static SfxMap Read(ReadOnlySpan<byte> data)
     {

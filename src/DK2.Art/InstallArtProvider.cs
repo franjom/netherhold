@@ -24,10 +24,10 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
     private readonly IMeshSource _meshes;
     private readonly ITextureSource _textures;
     private readonly IDisposable? _owned;
-    private readonly Dictionary<AssetRef, (string Entry, ArtUse Use, Dk2ArtResource Resource)> _entries = new();
-    private readonly object _gate = new();
-    private readonly Dictionary<string, KmfModel> _models = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, RgbaImage> _images = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<AssetRef, (string Entry, ArtUse Use, Dk2ArtResource Resource)> _entries = new Dictionary<AssetRef, (string Entry, ArtUse Use, Dk2ArtResource Resource)>();
+    private readonly object _gate = new object();
+    private readonly Dictionary<string, KmfModel> _models = new Dictionary<string, KmfModel>(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, RgbaImage> _images = new Dictionary<string, RgbaImage>(StringComparer.OrdinalIgnoreCase);
     private long _decodeTicks;
 
     /// <summary>Models decoded and kept so far.</summary>

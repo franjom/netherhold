@@ -69,7 +69,7 @@ public static partial class KwdAdditionalRecords
 
     private static CreatureSpellDef ParseCreatureSpell(byte[] r)
     {
-        return new(r)
+        return new CreatureSpellDef(r)
         {
             Name = Ascii(r, 0, 32),
             EditorIcon = Art(r, 32),
@@ -97,7 +97,7 @@ public static partial class KwdAdditionalRecords
 
     private static ShotDef ParseShot(byte[] r)
     {
-        return new(r)
+        return new ShotDef(r)
         {
             Name = Ascii(r, 0, 32),
             MeshResource = Art(r, 32),
@@ -138,7 +138,7 @@ public static partial class KwdAdditionalRecords
 
     private static EffectDef ParseEffect(byte[] r)
     {
-        return new(r)
+        return new EffectDef(r)
         {
             Name = Ascii(r, 0, 32),
             ArtResource = Art(r, 32),
@@ -184,7 +184,7 @@ public static partial class KwdAdditionalRecords
 
     private static EffectElementDef ParseEffectElement(byte[] r)
     {
-        return new(r)
+        return new EffectElementDef(r)
         {
             Name = Ascii(r, 0, 32),
             ArtResource = Art(r, 32),
@@ -218,14 +218,14 @@ public static partial class KwdAdditionalRecords
 
     internal static KwdArtResource Art(byte[] r, int at)
     {
-        return new(
+        return new KwdArtResource(
         Ascii(r, at, 64), U32(r, at + 64), r.AsMemory(at + 68, 12),
         r[at + 80], r[at + 81], r[at + 82], r[at + 83]);
     }
 
     internal static KwdLight Light(byte[] r, int at)
     {
-        return new(
+        return new KwdLight(
         I32(r, at), I32(r, at + 4), I32(r, at + 8), I32(r, at + 12), U32(r, at + 16),
         r[at + 20], r[at + 21], r[at + 22], r[at + 23]);
     }
@@ -333,19 +333,19 @@ public static partial class KwdThings
 
     private static NeutralCreatureThing Creature198(byte[] r)
     {
-        return new(r)
+        return new NeutralCreatureThing(r)
         { X = I(r, 0), Y = I(r, 4), Z = I(r, 8), GoldHeld = U(r, 12), Level = r[14], Flags = r[15], InitialHealth = I(r, 16), TriggerId = U(r, 20), CreatureId = r[22], Unknown_0017 = r[23] };
     }
 
     private static GoodCreatureThing Creature199(byte[] r)
     {
-        return new(r)
+        return new GoodCreatureThing(r)
         { X = I(r, 0), Y = I(r, 4), Z = I(r, 8), GoldHeld = U(r, 12), Level = r[14], Flags = r[15], ObjectiveTargetActionPointId = I(r, 16), InitialHealth = I(r, 20), TriggerId = U(r, 24), ObjectiveTargetPlayerId = r[26], Objective = r[27], CreatureId = r[28], WanderRadius = r[29], PartyId = r[30], Flags2 = r[31] };
     }
 
     private static KeeperCreatureThing Creature200(byte[] r)
     {
-        return new(r)
+        return new KeeperCreatureThing(r)
         { X = I(r, 0), Y = I(r, 4), Z = I(r, 8), GoldHeld = U(r, 12), Level = r[14], Flags = r[15], InitialHealth = I(r, 16), ObjectiveTargetActionPointId = I(r, 20), TriggerId = U(r, 24), CreatureId = r[26], PlayerId = r[27] };
     }
 

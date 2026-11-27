@@ -23,8 +23,8 @@ public interface IEffectSpriteProvider : IAssetProvider
 /// <summary>Original effect sprites behind logical keys; texture filenames stay in this provider.</summary>
 public sealed class InstallEffectSpriteProvider : IEffectSpriteProvider
 {
-    private readonly Dictionary<AssetRef, KwdArtResource> _elements = new();
-    private readonly Dictionary<AssetRef, LoadedSprite?> _loaded = new();
+    private readonly Dictionary<AssetRef, KwdArtResource> _elements = new Dictionary<AssetRef, KwdArtResource>();
+    private readonly Dictionary<AssetRef, LoadedSprite?> _loaded = new Dictionary<AssetRef, LoadedSprite?>();
     private readonly Func<string, RgbaImage> _loadTexture;
 
     public InstallEffectSpriteProvider(GameDatabase database, Func<string, RgbaImage> loadTexture)

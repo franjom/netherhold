@@ -27,6 +27,6 @@ public static class CampaignBriefingLoader
             return strings.TryResolve(id, out string? text) ? text : "";
         }
 
-        return new(slot, Line(0), Line(1), Line(2), Array.AsReadOnly([Line(3), Line(4), Line(5)]), definition.Flags);
+        return new CampaignBriefing(slot, Line(0), Line(1), Line(2), Array.AsReadOnly([Line(3), Line(4), Line(5)]), definition.Flags);
     }
 }

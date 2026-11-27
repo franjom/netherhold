@@ -78,7 +78,7 @@ public static class GameDatabaseLoader
     }
 
     private static readonly Regex EnginePathName =
-        new(@"^EnginePath(\d+)\.kcs$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        new Regex(@"^EnginePath(\d+)\.kcs$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     /// <summary>The frame count of every <c>EnginePath%d.kcs</c> in <c>Data/Paths.WAD</c>, the
     /// name 0x0044A370 formats from a path id; the count is the file's first dword

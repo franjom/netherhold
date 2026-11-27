@@ -13,7 +13,7 @@ public readonly record struct SoundEntryId(int Value);
 public sealed class SoundBank
 {
     private readonly SdtArchive _archive;
-    private readonly Dictionary<SoundEntryId, PcmClip?> _clips = new();
+    private readonly Dictionary<SoundEntryId, PcmClip?> _clips = new Dictionary<SoundEntryId, PcmClip?>();
 
     public SoundBank(SdtArchive archive)
     {

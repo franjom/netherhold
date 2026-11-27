@@ -10,6 +10,6 @@ public readonly record struct ObjectTypeId(byte Value)
 {
     public static implicit operator ObjectTypeId(byte value)
     {
-        return new(value);
+        return new ObjectTypeId(value);
     }
 }

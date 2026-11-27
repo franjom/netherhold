@@ -74,9 +74,9 @@ public static class KwdRewriteAudit
                 target.Write(actual,0,actual.Length);
             }
 
-            results.Add(new(relative,chunks.Count,records,DescribeDifference(original,actual,chunks)));
+            results.Add(new FileResult(relative,chunks.Count,records,DescribeDifference(original,actual,chunks)));
         }
-        return new(results.ToArray(),counts);
+        return new Result(results.ToArray(),counts);
     }
 
     public static Difference? DescribeDifference(byte[] expected,byte[] actual,IReadOnlyList<KwdChunk> chunks)
@@ -102,7 +102,7 @@ public static class KwdRewriteAudit
             {
                 if(relative<contentAt)
                 {
-                    return new(at,index,chunk.Type,null,HeaderField(chunk,relative),before,after);
+                    return new Difference(at,index,chunk.Type,null,HeaderField(chunk,relative),before,after);
                 }
 
                 int recordAt=0,payloadAt=relative-contentAt;
@@ -116,15 +116,15 @@ public static class KwdRewriteAudit
                         string field=image.Tag is not null && recordOffset<8
                             ? recordOffset<4 ? "tag" : "payloadSize"
                             : DecodedField(chunk,record,payloadAt,after) ?? $"raw +0x{recordOffset:X}";
-                        return new(at,index,chunk.Type,record,field,before,after);
+                        return new Difference(at,index,chunk.Type,record,field,before,after);
                     }
                     recordAt+=image.ConsumedLength;
                 }
-                return new(at,index,chunk.Type,null,"content",before,after);
+                return new Difference(at,index,chunk.Type,null,"content",before,after);
             }
             start=checked(start+length);
         }
-        return new(at,null,null,null,"fileLength",before,after);
+        return new Difference(at,null,null,null,"fileLength",before,after);
     }
 
     private static string HeaderField(KwdChunk chunk,int offset)

@@ -312,6 +312,6 @@ public sealed class SdtArchive
 
     private static InvalidDataException Invalid(int offset, string message)
     {
-        return new($"Invalid SDT at byte 0x{offset:x}: {message}");
+        return new InvalidDataException($"Invalid SDT at byte 0x{offset:x}: {message}");
     }
 }

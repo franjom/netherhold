@@ -137,7 +137,7 @@ public static class KwdObjects
     {
         Fp32 Fp(int off)
         {
-            return new(BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + off)));
+            return new Fp32(BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + off)));
         }
 
         ushort U16(int off)

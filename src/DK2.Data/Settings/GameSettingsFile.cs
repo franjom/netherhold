@@ -13,7 +13,7 @@ public static class GameSettingsFile
 {
     public static GameSettings Load(string path)
     {
-        return File.Exists(path) ? Read(File.ReadAllText(path)) : new();
+        return File.Exists(path) ? Read(File.ReadAllText(path)) : new GameSettings();
     }
 
     public static void Save(string path, GameSettings settings)
@@ -114,7 +114,7 @@ public static class GameSettingsFile
             if (key.StartsWith("Key.", StringComparison.Ordinal) && int.TryParse(key.Substring(4), out int action)
                 && pair.Length == 2 && int.TryParse(pair[0], out int scan) && int.TryParse(pair[1], out int modifiers))
             {
-                bindings.Add(new((GameAction)action, scan, (KeyModifiers)modifiers));
+                bindings.Add(new GameKeyBinding((GameAction)action, scan, (KeyModifiers)modifiers));
             }
         }
         return (settings with { Bindings = bindings }).Clamped();

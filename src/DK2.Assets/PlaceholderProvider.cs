@@ -21,7 +21,7 @@ namespace DK2.Assets;
 public sealed class PlaceholderProvider : IAssetProvider
 {
     /// <summary>The single instance. Stateless, so sharing one is free.</summary>
-    public static readonly PlaceholderProvider Instance = new();
+    public static readonly PlaceholderProvider Instance = new PlaceholderProvider();
 
     public string Name
     {

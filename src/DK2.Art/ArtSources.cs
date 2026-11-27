@@ -54,7 +54,7 @@ public sealed class WadMeshSource : IMeshSource, IDisposable
 
     public static WadMeshSource OpenInstall(string installDirectory)
     {
-        return new(WadArchive.Open(Path.Combine(installDirectory, "Data", "Meshes.WAD")));
+        return new WadMeshSource(WadArchive.Open(Path.Combine(installDirectory, "Data", "Meshes.WAD")));
     }
 
     public IReadOnlyList<string> EntryNames { get; }

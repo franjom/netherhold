@@ -77,10 +77,10 @@ public enum GameAction
 
 public readonly record struct KeyScanCode(int Value)
 {
-    public static readonly KeyScanCode None = new(0);
+    public static readonly KeyScanCode None = new KeyScanCode(0);
     public static implicit operator KeyScanCode(int value)
     {
-        return new(value);
+        return new KeyScanCode(value);
     }
 }
 
@@ -103,6 +103,6 @@ public static class DefaultKeyBindings
 
         KeyModifiers modifiers = index is 13 or 63 or >= 47 and <= 57 ? KeyModifiers.Control
             : index is 45 or 46 ? KeyModifiers.Shift : index >= 58 ? KeyModifiers.Alt : KeyModifiers.None;
-        return new(action, Scans[index], modifiers);
+        return new GameKeyBinding(action, Scans[index], modifiers);
     }
 }

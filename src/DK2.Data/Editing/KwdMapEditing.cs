@@ -15,7 +15,7 @@ public sealed partial class KwdLevelFileSet
 {
     public LevelMap ReadMap(KwdChunkLocation location)
     {
-        KwdChunk chunk=RequireType(new(location.RelativePath,location.ChunkIndex,0),KwdRecordType.Map);
+        KwdChunk chunk=RequireType(new KwdRecordLocation(location.RelativePath,location.ChunkIndex,0),KwdRecordType.Map);
         if(chunk.HeaderBlock.Length<8)
         {
             throw new InvalidDataException("MAP needs an explicit width/height header.");

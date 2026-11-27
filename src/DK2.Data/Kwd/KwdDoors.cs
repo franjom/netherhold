@@ -75,7 +75,7 @@ public static class KwdDoors
 
     private static DoorDef ParseRecord(byte[] record, int at)
     {
-        return new()
+        return new DoorDef()
         {
             Name = Name(record, at),
             DoorId = record[at + OffsetDoorId],

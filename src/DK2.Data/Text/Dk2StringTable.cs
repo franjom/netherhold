@@ -229,7 +229,7 @@ public sealed class Dk2StringTable
 
     private static InvalidDataException Invalid(string sourceName, string detail)
     {
-        return new($"{sourceName}: {detail}.");
+        return new InvalidDataException($"{sourceName}: {detail}.");
     }
 
     private sealed class Dk2CodePage

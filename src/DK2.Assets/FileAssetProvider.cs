@@ -27,7 +27,7 @@ public sealed class FileAssetProvider : IAssetProvider
     private readonly IFileProbe _probe;
     // Each key's answer, kept: the presenter asks per tile and object, and its disk checks were
     // most of the first pass. A file added or removed later is seen only by a new provider.
-    private readonly Dictionary<AssetRef, string?> _pathOf = new();
+    private readonly Dictionary<AssetRef, string?> _pathOf = new Dictionary<AssetRef, string?>();
 
     /// <summary>
     /// Existence checking, behind an interface purely so the tests can prove the
@@ -40,7 +40,7 @@ public sealed class FileAssetProvider : IAssetProvider
 
     private sealed class RealFileProbe : IFileProbe
     {
-        public static readonly RealFileProbe Instance = new();
+        public static readonly RealFileProbe Instance = new RealFileProbe();
         public bool Exists(string path)
         {
             return File.Exists(path);
@@ -70,13 +70,13 @@ public sealed class FileAssetProvider : IAssetProvider
     /// <summary>The converter's output directory, as the plan names it (§7.1).</summary>
     public static FileAssetProvider Converted(string root, IFileProbe? probe = null)
     {
-        return new(root, AssetSource.ConvertedFile, "converted", probe);
+        return new FileAssetProvider(root, AssetSource.ConvertedFile, "converted", probe);
     }
 
     /// <summary>A replacement art pack, which takes precedence over converted art.</summary>
     public static FileAssetProvider Replacement(string root, string? name = null, IFileProbe? probe = null)
     {
-        return new(root, AssetSource.ReplacementFile, name ?? "replacement", probe);
+        return new FileAssetProvider(root, AssetSource.ReplacementFile, name ?? "replacement", probe);
     }
 
     public string Name { get; }

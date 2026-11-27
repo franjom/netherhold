@@ -69,7 +69,7 @@ public readonly struct AssetRef : IEquatable<AssetRef>
     public const string MeshEntryCategory = "mesh_entry";
 
     private static readonly HashSet<string> Categories =
-        new(StringComparer.Ordinal)
+        new HashSet<string>(StringComparer.Ordinal)
         {
             TerrainCategory, RoomCategory, CreatureCategory, ObjectCategory, UiCategory, DoorCategory, TrapCategory,
             EffectElementCategory, EffectCategory, ShotCategory, MeshEntryCategory,
@@ -151,7 +151,7 @@ public readonly struct AssetRef : IEquatable<AssetRef>
     }
 
     private const int MadeCapacity = 1 << 16;
-    private static readonly Dictionary<MadeKey, AssetRef> Made = new();
+    private static readonly Dictionary<MadeKey, AssetRef> Made = new Dictionary<MadeKey, AssetRef>();
 
     /// <summary><see cref="Create"/>'s arguments, compared ordinally, as the memo's key. The kind is
     /// held as an int so no comparer boxes an enum.</summary>

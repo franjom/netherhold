@@ -51,7 +51,7 @@ public sealed class RenderMesh
     /// <summary>DK2's frame to the renderer's: <c>(x, -z, -y)</c>.</summary>
     public static Vector3 ToRenderFrame(Vector3 dk2)
     {
-        return new(dk2.X, -dk2.Z, -dk2.Y);
+        return new Vector3(dk2.X, -dk2.Z, -dk2.Y);
     }
 
     /// <summary>The model's static mesh, or frame <paramref name="frame"/> of its animation, at
@@ -119,7 +119,7 @@ public sealed class RenderMesh
                 if (primitive < mesh.Primitives.Count && vertex < mesh.Primitives[primitive].Vertices.Count)
                 {
                     controlPoints.TryAdd(control.Id, firsts[primitive] + vertex);
-                    taggedPoints.Add(new(control.Id, firsts[primitive] + vertex));
+                    taggedPoints.Add(new RenderControlPoint(control.Id, firsts[primitive] + vertex));
                 }
             }
         }

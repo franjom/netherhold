@@ -22,7 +22,7 @@ namespace DK2.Assets;
 public sealed class AssetProviderChain : IAssetProvider
 {
     private readonly IAssetProvider[] _providers;
-    private readonly Dictionary<string, int> _resolvedByProvider = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, int> _resolvedByProvider = new Dictionary<string, int>(StringComparer.Ordinal);
 
     public AssetProviderChain(params IAssetProvider[] providers)
     {

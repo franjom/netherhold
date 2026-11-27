@@ -10,7 +10,7 @@ public readonly record struct SoundCategory(string Name)
     {
         get
         {
-            return new(string.Empty);
+            return new SoundCategory(string.Empty);
         }
     }
 
@@ -26,7 +26,7 @@ public readonly record struct SoundCategory(string Name)
     {
         get
         {
-            return new("front_end");
+            return new SoundCategory("front_end");
         }
     }
 
@@ -34,7 +34,7 @@ public readonly record struct SoundCategory(string Name)
     {
         get
         {
-            return new("object_fe_parchment");
+            return new SoundCategory("object_fe_parchment");
         }
     }
 
@@ -42,7 +42,7 @@ public readonly record struct SoundCategory(string Name)
     {
         get
         {
-            return new("speech_mentor");
+            return new SoundCategory("speech_mentor");
         }
     }
 
@@ -50,7 +50,7 @@ public readonly record struct SoundCategory(string Name)
     {
         get
         {
-            return new("music");
+            return new SoundCategory("music");
         }
     }
 
@@ -58,7 +58,7 @@ public readonly record struct SoundCategory(string Name)
     {
         get
         {
-            return new("ambience");
+            return new SoundCategory("ambience");
         }
     }
 }

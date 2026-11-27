@@ -12,7 +12,7 @@ public readonly record struct KwdRecordLocation(string RelativePath, int ChunkIn
 /// <summary>Owned file images and transactional typed edits for a level and its referenced data.</summary>
 public sealed partial class KwdLevelFileSet
 {
-    private readonly Dictionary<string,KwdChunk[]> _files=new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string,KwdChunk[]> _files=new Dictionary<string, KwdChunk[]>(StringComparer.OrdinalIgnoreCase);
     private bool _editing;
     private KwdLevelFileSet() { }
     public IReadOnlyList<string> Files
@@ -223,15 +223,15 @@ public sealed partial class KwdLevelFileSet
     {
         return row switch
         {
-            ObjectThing r => new(r.TriggerId),
-            DoorThing r => new(r.TriggerId),
-            ActionPointThing r => new(r.TriggerId),
-            NeutralCreatureThing r => new(r.TriggerId),
-            GoodCreatureThing r => new(r.TriggerId),
-            KeeperCreatureThing r => new(r.TriggerId),
-            HeroPartyThing r => new(r.TriggerId),
-            PlayerDef r => new(r.TriggerId),
-            LevelDef r => new(r.TriggerId),
+            ObjectThing r => new KwdTriggerId(r.TriggerId),
+            DoorThing r => new KwdTriggerId(r.TriggerId),
+            ActionPointThing r => new KwdTriggerId(r.TriggerId),
+            NeutralCreatureThing r => new KwdTriggerId(r.TriggerId),
+            GoodCreatureThing r => new KwdTriggerId(r.TriggerId),
+            KeeperCreatureThing r => new KwdTriggerId(r.TriggerId),
+            HeroPartyThing r => new KwdTriggerId(r.TriggerId),
+            PlayerDef r => new KwdTriggerId(r.TriggerId),
+            LevelDef r => new KwdTriggerId(r.TriggerId),
             _ => null,
         };
     }
