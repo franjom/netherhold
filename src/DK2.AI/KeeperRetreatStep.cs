@@ -54,7 +54,7 @@ public sealed class KeeperRetreatStep
     /// nothing is attempted and nothing is spent.</summary>
     public int Run(int allowance)
     {
-        foreach (KeeperCreatureView creature in Owned(_view.PlayerId))
+        foreach (KeeperCreatureView creature in _view.OwnedCreaturesInOrder(_view.PlayerId))
         {
             if (allowance <= 0)
             {
@@ -140,10 +140,4 @@ public sealed class KeeperRetreatStep
         return lair is null ? _view.Heart!.Value : _view.PositionOf(lair);
     }
 
-    /// <summary>An owner's creature list in DK2's order, held ones included; a corpse is a different thing there.</summary>
-    private IEnumerable<KeeperCreatureView> Owned(PlayerId player)
-    {
-        return _view.Creatures.Where(c => c.OwnerPlayerId == player && c.OwnershipRank >= 0 && c.Activity != CreatureActivity.Dead)
-            .OrderBy(c => c.OwnershipRank);
-    }
 }

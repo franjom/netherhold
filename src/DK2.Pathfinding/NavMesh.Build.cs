@@ -579,12 +579,6 @@ public sealed partial class NavMesh
         return (nx * nx) + (ny * ny) < (ox * ox) + (oy * oy);
     }
 
-    private bool Ahead(int pa, int pb, int v)
-    {
-        long dx = _px[pb] - _px[pa], dy = _py[pb] - _py[pa];
-        long vx = _px[v] - _px[pa], vy = _py[v] - _py[pa];
-        return (dx * vx) + (dy * vy) > 0 && (vx * vx) + (vy * vy) < (dx * dx) + (dy * dy);
-    }
 
     private int IndexOf(int t, int p)
     {

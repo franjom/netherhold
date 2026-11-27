@@ -28,7 +28,6 @@ public sealed partial class CreatureJobSystem : ICreatureUpdateStep
     private readonly IPathfinder _pathfinder;
     private readonly LairSeeker _seeker;
     private readonly CreatureAngerSystem _moodJobs;
-    private readonly List<TilePos> _route = [];
     private readonly List<(JobType Job, int Low, int High)> _ranges = [];
 
     public CreatureJobSystem() : this(new GridPathfinder()) { }

@@ -73,7 +73,7 @@ public sealed class KeeperBattleStep
     public int Run(int allowance)
     {
         _state.FightGoingOn = false;
-        foreach (KeeperCreatureView fighter in Owned(_view.PlayerId))
+        foreach (KeeperCreatureView fighter in _view.OwnedCreaturesInOrder(_view.PlayerId))
         {
             if (!IsFighting(fighter))
             {
@@ -127,7 +127,7 @@ public sealed class KeeperBattleStep
                     continue;
                 }
 
-                foreach (KeeperCreatureView creature in Owned(player))
+                foreach (KeeperCreatureView creature in _view.OwnedCreaturesInOrder(player))
                 {
                     if (!OffMap(creature) && KeeperThreatResponder.ShiftedDistance(creature.PosX, creature.PosY, centreX, centreY) < limit)
                     {
@@ -159,9 +159,9 @@ public sealed class KeeperBattleStep
         if (!remove)
         {
             int own = 0;
-            foreach (KeeperCreatureView creature in Owned(_view.PlayerId))
+            foreach (KeeperCreatureView creature in _view.OwnedCreaturesInOrder(_view.PlayerId))
             {
-                if (!IsWorker(creature) && !OffMap(creature))
+                if (!_view.IsWorker(creature) && !OffMap(creature))
                 {
                     own++;
                 }
@@ -264,7 +264,7 @@ public sealed class KeeperBattleStep
             }
             if (spell != 0)
             {
-                foreach (KeeperCreatureView creature in Owned(_view.PlayerId))
+                foreach (KeeperCreatureView creature in _view.OwnedCreaturesInOrder(_view.PlayerId))
                 {
                     if (!KeeperThreatResponder.WithinFiveTiles(creature.PosX, creature.PosY, fighter.PosX, fighter.PosY))
                     {
@@ -305,7 +305,7 @@ public sealed class KeeperBattleStep
             }
             if (spell != 0 && fighter.FightTargetOwner != NoFightTargetOwner)
             {
-                foreach (KeeperCreatureView creature in Owned(fighter.FightTargetOwner))
+                foreach (KeeperCreatureView creature in _view.OwnedCreaturesInOrder(fighter.FightTargetOwner))
                 {
                     if (!KeeperThreatResponder.WithinFiveTiles(creature.PosX, creature.PosY, fighter.PosX, fighter.PosY))
                     {
@@ -432,12 +432,6 @@ public sealed class KeeperBattleStep
         && CreatureStateTable.Get(creature.ResolvedStateId).Category == CreatureStateCategory.Combat;
     }
 
-    /// <summary>An owner's creature list in DK2's order; a corpse is a different thing there.</summary>
-    private IEnumerable<KeeperCreatureView> Owned(PlayerId player)
-    {
-        return _view.Creatures.Where(c => c.OwnerPlayerId == player && c.OwnershipRank >= 0 && c.Activity != CreatureActivity.Dead)
-            .OrderBy(c => c.OwnershipRank);
-    }
 
     /// <summary>Map layer 2: held or carried, which the counts and the strength skip.</summary>
     private static bool OffMap(KeeperCreatureView creature)
@@ -445,10 +439,6 @@ public sealed class KeeperBattleStep
         return creature.InHand || creature.CarriedByCreatureId >= 0;
     }
 
-    private bool IsWorker(KeeperCreatureView creature)
-    {
-        return ((_view.Database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker);
-    }
 
     private static TilePos TileOf(KeeperCreatureView creature)
     {

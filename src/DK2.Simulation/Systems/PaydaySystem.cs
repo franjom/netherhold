@@ -23,7 +23,6 @@ public sealed class PaydaySystem : ICreatureUpdateStep
     private const string SystemName = "Payday";
 
     private readonly IPathfinder _pathfinder;
-    private readonly List<TilePos> _route = [];
 
     public PaydaySystem() : this(new GridPathfinder()) { }
 

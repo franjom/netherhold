@@ -491,6 +491,16 @@ public sealed class KeeperView : INavByteGrid
     }
 
     public IReadOnlyList<KeeperCreatureView> Creatures { get; }
+    /// <summary>An owner's creature list in DK2's order, held ones included; a corpse is a different thing there.</summary>
+    internal IEnumerable<KeeperCreatureView> OwnedCreaturesInOrder(PlayerId player)
+    {
+        return Creatures.Where(c => c.OwnerPlayerId == player && c.OwnershipRank >= 0 && c.Activity != CreatureActivity.Dead)
+            .OrderBy(c => c.OwnershipRank);
+    }
+    internal bool IsWorker(KeeperCreatureView creature)
+    {
+        return ((Database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker);
+    }
     public IReadOnlyList<KeeperTrapView> Traps { get; }
     public IReadOnlyList<KeeperDoorView> Doors { get; }
     /// <summary>The keeper's own <c>TypeSpecial</c> objects, by ascending object id.</summary>

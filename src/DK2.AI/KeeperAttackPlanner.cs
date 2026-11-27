@@ -454,9 +454,9 @@ public sealed class KeeperAttackPlanner
             }
 
             int total = 0, nearby = 0;
-            foreach (KeeperCreatureView creature in Owned(_view.PlayerId))
+            foreach (KeeperCreatureView creature in _view.OwnedCreaturesInOrder(_view.PlayerId))
             {
-                if (IsWorker(creature))
+                if (_view.IsWorker(creature))
                 {
                     continue;
                 }
@@ -487,7 +487,7 @@ public sealed class KeeperAttackPlanner
     private KeeperCreatureView? RouteTester()
     {
         KeeperCreatureView? head = null;
-        foreach (KeeperCreatureView creature in Owned(_view.PlayerId))
+        foreach (KeeperCreatureView creature in _view.OwnedCreaturesInOrder(_view.PlayerId))
         {
             head ??= creature;
             CreatureFlags flags = _view.Database.CreatureById(creature.CreatureTypeId).Flags;
@@ -513,7 +513,7 @@ public sealed class KeeperAttackPlanner
     private int TotalStrength(PlayerId player)
     {
         int sum = 0;
-        foreach (KeeperCreatureView creature in Owned(player))
+        foreach (KeeperCreatureView creature in _view.OwnedCreaturesInOrder(player))
         {
             CreatureDef definition = _view.Database.CreatureById(creature.CreatureTypeId);
             int level = player == _view.PlayerId && _readiness.Granted.TryGetValue(creature.Id, out int granted) ? granted : creature.Level;
@@ -633,15 +633,5 @@ public sealed class KeeperAttackPlanner
         return best;
     }
 
-    /// <summary>An owner's creature list in DK2's order; a corpse is a different thing there.</summary>
-    private IEnumerable<KeeperCreatureView> Owned(PlayerId player)
-    {
-        return _view.Creatures.Where(c => c.OwnerPlayerId == player && c.OwnershipRank >= 0 && c.Activity != CreatureActivity.Dead)
-            .OrderBy(c => c.OwnershipRank);
-    }
 
-    private bool IsWorker(KeeperCreatureView creature)
-    {
-        return ((_view.Database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) == CreatureFlags.IsWorker);
-    }
 }

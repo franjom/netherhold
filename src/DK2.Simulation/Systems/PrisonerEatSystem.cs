@@ -24,7 +24,6 @@ public sealed class PrisonerEatSystem : ISimulationSystem
     private const string SystemName = "PrisonerEat";
 
     private readonly IPathfinder _pathfinder;
-    private readonly List<TilePos> _route = [];
 
     public PrisonerEatSystem() : this(new GridPathfinder()) { }
 
