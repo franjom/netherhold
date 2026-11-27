@@ -119,3 +119,23 @@ dotnet_diagnostic.IDE0161.severity = warning
 [src/DK2.Core/**.cs]
 csharp_style_namespace_declarations = file_scoped
 dotnet_diagnostic.IDE0161.severity = warning
+
+[src/DK2.Data/**.cs]
+csharp_style_namespace_declarations = file_scoped
+dotnet_diagnostic.IDE0161.severity = warning
+
+[src/DK2.Data.Model/**.cs]
+csharp_style_namespace_declarations = file_scoped
+dotnet_diagnostic.IDE0161.severity = warning
+
+[src/DK2.Assets/**.cs]
+csharp_style_namespace_declarations = file_scoped
+dotnet_diagnostic.IDE0161.severity = warning
+
+[src/DK2.Art/**.cs]
+csharp_style_namespace_declarations = file_scoped
+dotnet_diagnostic.IDE0161.severity = warning
+
+[src/DK2.Convert/**.cs]
+csharp_style_namespace_declarations = file_scoped
+dotnet_diagnostic.IDE0161.severity = warning
