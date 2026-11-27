@@ -169,7 +169,7 @@ public partial class ClassicBottomPanel : Node, IPointerGestureHolder
 
         try
         {
-            if (_hud.PointerUp(bx, by, index, button.ShiftPressed, button.CtrlPressed, button.AltPressed))
+            if (_hud.PointerUp(bx, by, index, shift: button.ShiftPressed, ctrl: button.CtrlPressed, alt: button.AltPressed))
             {
                 Handled();
             }

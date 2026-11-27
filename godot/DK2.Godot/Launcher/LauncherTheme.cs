@@ -204,7 +204,7 @@ public static class LauncherTheme
 
     private static (float, float) BoxOff(Vector2 p, float size)
     {
-        return (Mathf.Abs(RoundedBox(p, size, 7.5f, 2.5f)) - .8f, 1e9f);
+        return (Mathf.Abs(RoundedBox(p, size, half: 7.5f, radius: 2.5f)) - .8f, 1e9f);
     }
 
     /// <summary>A filled box with the tick cut out of it.</summary>
@@ -212,7 +212,7 @@ public static class LauncherTheme
     {
         float tick = Mathf.Min(Segment(p, new Vector2(5.5f, 10.3f), new Vector2(8.7f, 13.5f)),
             Segment(p, new Vector2(8.7f, 13.5f), new Vector2(14.6f, 6.8f))) - 1.1f;
-        return (RoundedBox(p, size, 8f, 2.5f), tick);
+        return (RoundedBox(p, size, half: 8f, radius: 2.5f), tick);
     }
 
     private static (float, float) Chevron(Vector2 p, float size)

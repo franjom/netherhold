@@ -22,8 +22,8 @@ public partial class InGameHud
             return;
         }
 
-        WorldHoverHit? target = PossessionHighlight.EntryPointerTarget(pointerHit, entering,
-            feedback.Tinted, _tools.SpellArmed(_input) && feedback.Placement.Valid)
+        WorldHoverHit? target = PossessionHighlight.EntryPointerTarget(pointerHit, entering: entering,
+            ordinaryTargetAllowed: feedback.Tinted, spellTargetAllowed: _tools.SpellArmed(_input) && feedback.Placement.Valid)
             ?? _possessionHighlight.Capture(_simulation.World, _simulation.Database, _viewer, _possession);
         if (target is { } hit)
         {
