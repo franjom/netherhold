@@ -1211,9 +1211,9 @@ Behaviour stays the same: the turn-400 hash, the replays and the frame captures 
 
 - [ ] Coding style, defined first and enforced by the build. Read the
       [survey and owner decisions](2026-11-26-csharp-style-questions.md) for the remaining rollout and custom checks.
-      The build enforces file-scope `using` placement, the approved `var` policy, braces on every control body, naming
-      rules for private fields, constants and static readonly fields, and the collection expression preference
-      `when_types_exactly_match`.
+      The build enforces file-scoped namespaces, file-scope `using` placement, the approved `var` policy, braces on
+      every control body, naming rules for private fields, constants and static readonly fields, and the collection
+      expression preference `when_types_exactly_match`.
       Land further approved rules by area using the survey's Release assembly comparison and verification steps.
       `EnforceCodeStyleInBuild` and `TreatWarningsAsErrors` make each rule a build error, so each area lands with
       `dotnet format` fixing every file its scoped rule flags (`.editorconfig`'s header).
