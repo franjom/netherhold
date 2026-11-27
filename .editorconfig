@@ -121,3 +121,19 @@ dotnet_style_qualification_for_property = false
 dotnet_style_qualification_for_method = false
 dotnet_style_qualification_for_event = false
 dotnet_diagnostic.IDE0003.severity = warning
+
+[src/DK2.Simulation/**.cs]
+csharp_prefer_simple_default_expression = true
+dotnet_diagnostic.IDE0034.severity = warning
+
+[src/DK2.AI/**.cs]
+csharp_prefer_simple_default_expression = true
+dotnet_diagnostic.IDE0034.severity = warning
+
+[src/DK2.Pathfinding/**.cs]
+csharp_prefer_simple_default_expression = true
+dotnet_diagnostic.IDE0034.severity = warning
+
+[src/DK2.Core/**.cs]
+csharp_prefer_simple_default_expression = true
+dotnet_diagnostic.IDE0034.severity = warning
