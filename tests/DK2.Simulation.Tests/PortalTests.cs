@@ -199,7 +199,7 @@ public class PortalTests
         int[] observedSeconds, int knownAnomalyIndex)
     {
         GameDatabase db = Database();
-        const int Tolerance = 4;
+        const int tolerance = 4;
 
         int outside = 0;
         for (int n = 0; n < observedSeconds.Length; n++)
@@ -208,7 +208,7 @@ public class PortalTests
                 PortalRules.SpawnIntervalTicks(db, n) / SimulationTiming.TicksPerSecond;
             int error = Math.Abs(observedSeconds[n] - predicted);
 
-            if (error <= Tolerance)
+            if (error <= tolerance)
             {
                 continue;
             }
@@ -219,7 +219,7 @@ public class PortalTests
             // Even the anomaly is bounded: a block long enough to matter would
             // not look like this, and 10 seconds is well inside what a single
             // missed arrival would cost.
-            Assert.InRange(error, Tolerance + 1, 10);
+            Assert.InRange(error, tolerance + 1, 10);
         }
 
         // Exactly as many outliers as the data declares — so a future change
@@ -241,13 +241,13 @@ public class PortalTests
         int second = SimulationTiming.TicksPerSecond;
 
         int[] observed = [27, 30, 31, 33];
-        const int FirstPortalHadProduced = 5;
+        const int firstPortalHadProduced = 5;
 
         for (int n = 0; n < observed.Length; n++)
         {
             int perRoom = PortalRules.SpawnIntervalTicks(db, n) / second;
             int keeperWide =
-                PortalRules.SpawnIntervalTicks(db, FirstPortalHadProduced + n) / second;
+                PortalRules.SpawnIntervalTicks(db, firstPortalHadProduced + n) / second;
 
             // The per-room reading is what the code computes and what was
             // measured; the keeper-wide reading is more than twice as far out on

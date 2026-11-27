@@ -624,13 +624,13 @@ public class PortalOnRealDataTests
     {
         string install = Install();
 
-        const string Level = "Frosty's Castle";
+        const string level = "Frosty's Castle";
 
         GameDatabase db = GameDatabaseLoader.Load(install);
         byte portalTerrain = db.Room(RoomTypeId.Portal).TerrainId;
         byte heroTerrain = db.Room(RoomTypeId.HeroPortal).TerrainId;
 
-        LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, Level);
+        LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, level);
 
         Assert.NotNull(map);
         Assert.NotNull(map);
@@ -655,7 +655,7 @@ public class PortalOnRealDataTests
         Assert.Equal(36, heroTiles);
         Assert.Equal(0, keeperPortalTiles);
 
-        GlobalVariables? vars = GameDatabaseLoader.LoadCampaignVariables(install, Level);
+        GlobalVariables? vars = GameDatabaseLoader.LoadCampaignVariables(install, level);
         Assert.NotNull(vars);
 
         // Every keeper's pool, and they are all the same nine.
@@ -686,7 +686,7 @@ public class PortalOnRealDataTests
                 CreatureDef creature = db.Creatures.Values.Single(c => c.Name == name);
                 Assert.True(
                     creature.Flags2.HasFlag(CreatureFlags2.AvailableViaHeroPortal),
-                    $"{name} is pooled on {Level} but carries no hero portal flag");
+                    $"{name} is pooled on {level} but carries no hero portal flag");
             }
 
             Assert.DoesNotContain("Dwarf", pooled);

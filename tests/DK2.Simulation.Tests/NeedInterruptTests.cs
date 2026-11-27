@@ -340,15 +340,15 @@ public class NeedInterruptTests
         // 76 sets WasLastDroppedOnARoom from the landing tile; the busy test refuses every need
         // while LastDroppedCounter is under five seconds. The drop stuns the creature first
         // (ADR-0226); this one has the shipped Goblin's one-second stun, not the fixture's five.
-        const byte QuickGoblin = 51;
+        const byte quickGoblin = 51;
         GameDatabase db = Dk2TerrainFixture.Database(
-            Dk2TerrainFixture.Goblin() with { CreatureId = QuickGoblin, Name = "Quick Goblin", StunDuration = Fp32.FromDouble(1) });
+            Dk2TerrainFixture.Goblin() with { CreatureId = quickGoblin, Name = "Quick Goblin", StunDuration = Fp32.FromDouble(1) });
         WorldState world = World(db);
         var sink = new ListEventSink();
         var sim = new GameSimulation(db, world, seed: 42,
             [new HandSystem(), new CreatureStatusSystem(), new CreatureMovementSystem(), new CreatureEatSystem()]);
         sim.ObserveWith(sink);
-        CreatureState goblin = world.SpawnCreature(db, QuickGoblin, Keeper, new TilePos(6, 4));
+        CreatureState goblin = world.SpawnCreature(db, quickGoblin, Keeper, new TilePos(6, 4));
         goblin.HungerNeed = 1;
 
         sim.Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, goblin.Id)));
@@ -366,7 +366,7 @@ public class NeedInterruptTests
         // Off a room: the stun, the get-up (257 holds for the type's eleven ticks, ADR-0345), then food.
         else
         {
-            Assert.InRange(ticks, 0, SimulationTiming.TicksPerSecond + DropLandingRules.GetUpTicks(db.CreatureById(QuickGoblin)) + 4);
+            Assert.InRange(ticks, 0, SimulationTiming.TicksPerSecond + DropLandingRules.GetUpTicks(db.CreatureById(quickGoblin)) + 4);
         }
     }
 

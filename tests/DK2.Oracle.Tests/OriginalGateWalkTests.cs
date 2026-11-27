@@ -62,31 +62,31 @@ public class OriginalGateWalkTests(ITestOutputHelper log)
     [OracleFact]
     public void Intersect_MatchesTheOriginal()
     {
-        const int Map = 256 * NavMesh.UnitsPerTile, Sentinel = 0x7FFFFFF1;
+        const int map = 256 * NavMesh.UnitsPerTile, sentinel = 0x7FFFFFF1;
         var spread = new Random(20261024);
         var inputs = new List<(GateRecord R, NavPoint P, NavPoint Q)>();
         for (int i = 0; i < 20000; i++)
         {
             int reach = 1 << spread.Next(4, 17);
-            var a = new NavPoint(spread.Next(0, Map), spread.Next(0, Map));
-            var b = new NavPoint(Math.Clamp(a.X + spread.Next(-reach, reach + 1), 0, Map), Math.Clamp(a.Y + spread.Next(-reach, reach + 1), 0, Map));
-            var p = new NavPoint(Math.Clamp(a.X + spread.Next(-reach, reach + 1), 0, Map), Math.Clamp(a.Y + spread.Next(-reach, reach + 1), 0, Map));
+            var a = new NavPoint(spread.Next(0, map), spread.Next(0, map));
+            var b = new NavPoint(Math.Clamp(a.X + spread.Next(-reach, reach + 1), 0, map), Math.Clamp(a.Y + spread.Next(-reach, reach + 1), 0, map));
+            var p = new NavPoint(Math.Clamp(a.X + spread.Next(-reach, reach + 1), 0, map), Math.Clamp(a.Y + spread.Next(-reach, reach + 1), 0, map));
             NavPoint q = spread.Next(5) switch
             {
                 0 => new NavPoint(p.X + (b.X - a.X) * spread.Next(-2, 3), p.Y + (b.Y - a.Y) * spread.Next(-2, 3)), // parallel
                 1 => new NavPoint(p.X + spread.Next(-4, 5), p.Y + spread.Next(-4, 5)),                              // a short step
-                _ => new NavPoint(Math.Clamp(p.X + spread.Next(-reach, reach + 1), 0, Map), Math.Clamp(p.Y + spread.Next(-reach, reach + 1), 0, Map)),
+                _ => new NavPoint(Math.Clamp(p.X + spread.Next(-reach, reach + 1), 0, map), Math.Clamp(p.Y + spread.Next(-reach, reach + 1), 0, map)),
             };
-            inputs.Add((new GateRecord(a, b, spread.Next(0, 3)) { Crossing = new NavPoint(Sentinel, Sentinel) }, p, q));
+            inputs.Add((new GateRecord(a, b, spread.Next(0, 3)) { Crossing = new NavPoint(sentinel, sentinel) }, p, q));
         }
         for (int i = 0; i < 200; i++)
         {
             // A one-unit gate, a four-unit step across it and a point a million units off: the
             // denominator is +-1 and the numerator past 2^17, so the quotient overflows.
-            var a = new NavPoint(spread.Next(0, Map), spread.Next(0, Map));
+            var a = new NavPoint(spread.Next(0, map), spread.Next(0, map));
             var b = new NavPoint(a.X + 1, a.Y);
             var p = new NavPoint(a.X - spread.Next(1_000_000, 4_000_000), a.Y + spread.Next(-4, 5));
-            inputs.Add((new GateRecord(a, b, 0) { Crossing = new NavPoint(Sentinel, Sentinel) }, p, new NavPoint(p.X, p.Y + 4)));
+            inputs.Add((new GateRecord(a, b, 0) { Crossing = new NavPoint(sentinel, sentinel) }, p, new NavPoint(p.X, p.Y + 4)));
         }
 
         IReadOnlyList<Outcome> original = Run([.. inputs.Select(x => new Request(0x004CFFD0,
@@ -123,7 +123,7 @@ public class OriginalGateWalkTests(ITestOutputHelper log)
             }
 
             int[] after = [.. original[i].Reads.Select(w => (int)w)];
-            bool written = after[4] != Sentinel || after[5] != Sentinel;
+            bool written = after[4] != sentinel || after[5] != sentinel;
             int gx = (r.B.X - r.A.X) << 6, gy = (r.B.Y - r.A.Y) << 6, sx = (p.X - q.X) << 6, sy = (p.Y - q.Y) << 6;
             bool zero = (int)((long)gy * sx >> 14) - (int)((long)gx * sy >> 14) == 0;
             reached[original[i].Eax != 0 ? "hit" : written ? "written, outside the box"
@@ -205,21 +205,21 @@ public class OriginalGateWalkTests(ITestOutputHelper log)
     /// crossing on the gate, at an endpoint or off it, and caps on and between tile multiples.</summary>
     private static IEnumerable<(GateRecord, int)> Cases()
     {
-        const int Map = 256 * NavMesh.UnitsPerTile;
+        const int map = 256 * NavMesh.UnitsPerTile;
         var spread = new Random(20261015);
         int[] caps = [0, 1, 255, 256, 257, 511, 512, 768, 1024, 1536, 2048, 4096, 8192];
         for (int i = 0; i < 12000; i++)
         {
             int reach = 1 << spread.Next(0, 17);
-            var a = new NavPoint(spread.Next(0, Map), spread.Next(0, Map));
-            var b = new NavPoint(Math.Clamp(a.X + spread.Next(-reach, reach + 1), 0, Map),
-                Math.Clamp(a.Y + spread.Next(-reach, reach + 1), 0, Map));
+            var a = new NavPoint(spread.Next(0, map), spread.Next(0, map));
+            var b = new NavPoint(Math.Clamp(a.X + spread.Next(-reach, reach + 1), 0, map),
+                Math.Clamp(a.Y + spread.Next(-reach, reach + 1), 0, map));
             int t = spread.Next(-2, 0x4003);
             NavPoint crossing = spread.Next(4) switch
             {
                 0 => a,
                 1 => b,
-                2 => new NavPoint(spread.Next(0, Map), spread.Next(0, Map)),
+                2 => new NavPoint(spread.Next(0, map), spread.Next(0, map)),
                 _ => new NavPoint(a.X + (int)((long)(b.X - a.X) * t >> 14), a.Y + (int)((long)(b.Y - a.Y) * t >> 14)),
             };
             int cap = spread.Next(3) == 0 ? spread.Next(0, 8193) : caps[spread.Next(caps.Length)];

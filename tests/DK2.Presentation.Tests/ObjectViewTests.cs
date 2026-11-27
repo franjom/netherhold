@@ -314,15 +314,15 @@ public class ObjectViewTests
             return;
         }
 
-        const byte Keeper = 3;
+        const byte keeper = 3;
 
         ObjectState pile = world.SpawnObject(database, 1, PlayerIds.Neutral, 40);
-        bool Offered() => PlayerInputSnapshot.Capture(new WorldView(database), world, Keeper, database)
+        bool Offered() => PlayerInputSnapshot.Capture(new WorldView(database), world, keeper, database)
             .Targets.Any(t => t.Kind == PlayerInputTargetKind.Object && t.Id == pile.Id);
 
         world.TileAtIndex(40).OwnerPlayerId = PlayerIds.Unowned;
         Assert.False(Offered());
-        world.TileAtIndex(40).OwnerPlayerId = Keeper;
+        world.TileAtIndex(40).OwnerPlayerId = keeper;
         Assert.True(Offered());
     }
 

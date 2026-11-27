@@ -246,9 +246,9 @@ public sealed class PossessionTests
         }
 
         var sim = new GameSimulation(db, world, 1, [new CreatureUpdateSystem(new CreatureStatusSystem()), new CreatureHealthSystem()]);
-        const int Turns = SimulationTiming.TicksPerSecond;
-        sim.Run(Turns);
-        Assert.Equal(100 + (Turns * regen), imp.Health);
+        const int turns = SimulationTiming.TicksPerSecond;
+        sim.Run(turns);
+        Assert.Equal(100 + (turns * regen), imp.Health);
         Assert.Equal(17, imp.LastAteTick);
     }
 

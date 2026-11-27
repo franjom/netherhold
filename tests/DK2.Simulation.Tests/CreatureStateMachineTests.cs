@@ -486,17 +486,17 @@ public class CreatureStateMachineTests
         // refuses a category-0 target in the same group, so 128 and 129 hop through idle,
         // SetState(1) then the other, as their handlers do. With category 0's bit at 1
         // (ADR-0195) each drops to idle, so a torturer can stop, eat and die.
-        const int Torturing = 127, Facing = 128, Whipping = 129;
-        foreach (int state in new[] { Torturing, Facing, Whipping })
+        const int torturing = 127, facing = 128, whipping = 129;
+        foreach (int state in new[] { torturing, facing, whipping })
         {
             Assert.Equal(CreatureStateCategory.Refused, CreatureStateTable.Get(state).Category);
             Assert.Equal(StateTransition.Allowed, CreatureStateTransitions.Classify(state, Idle, Idle));
         }
 
-        Assert.Equal(StateTransition.Refused, CreatureStateTransitions.Classify(Facing, Whipping, Idle));
-        Assert.Equal(StateTransition.Refused, CreatureStateTransitions.Classify(Whipping, Facing, Idle));
-        Assert.Equal(StateTransition.Allowed, CreatureStateTransitions.Classify(Idle, Whipping, Idle));
-        Assert.Equal(StateTransition.Allowed, CreatureStateTransitions.Classify(Idle, Facing, Idle));
+        Assert.Equal(StateTransition.Refused, CreatureStateTransitions.Classify(facing, whipping, Idle));
+        Assert.Equal(StateTransition.Refused, CreatureStateTransitions.Classify(whipping, facing, Idle));
+        Assert.Equal(StateTransition.Allowed, CreatureStateTransitions.Classify(Idle, whipping, Idle));
+        Assert.Equal(StateTransition.Allowed, CreatureStateTransitions.Classify(Idle, facing, Idle));
     }
 
     [Fact]

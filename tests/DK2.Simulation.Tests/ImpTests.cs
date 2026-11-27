@@ -1134,16 +1134,16 @@ public class ImpTests
     [InlineData(true)]
     public void AnAllysFloorIsNeverAttacked(bool allied)
     {
-        const byte Ally = Keeper + 1;
+        const byte ally = Keeper + 1;
         GameDatabase database = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(
-            database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Ally]);
+            database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, ally]);
         world.SpawnCreature(database, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(2, 2));
         ref TileState theirs = ref world.Tile(4, 2);
         theirs.TerrainId = Dk2TerrainFixture.ClaimedPath;
-        theirs.OwnerPlayerId = Ally;
+        theirs.OwnerPlayerId = ally;
         theirs.Health = database.TerrainById(Dk2TerrainFixture.ClaimedPath).StartingHealth;
-        world.SetAllied(Keeper, Ally, allied);
+        world.SetAllied(Keeper, ally, allied);
         var run = new Run(new GameSimulation(database, world, 99, Dk2TerrainFixture.DefaultSystems()), new ListEventSink());
         run.Sim.ObserveWith(run.Events);
 

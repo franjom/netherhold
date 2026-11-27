@@ -404,11 +404,11 @@ public class HandTests
     [InlineData("standing in a rival room, holding none", 1, true, true)]
     public void ASlapsArmIsChosenByTheHeldRoomAndTheState(string arm, int counted, bool hurt, bool angered)
     {
-        const byte Rival = PlayerIds.FirstKeeper + 1;
+        const byte rival = PlayerIds.FirstKeeper + 1;
         GameDatabase db = Db;
-        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
+        var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, rival]);
         RoomTypeId type = arm.StartsWith("torture") ? RoomTypeId.TortureChamber : RoomTypeId.Lair;
-        byte roomOwner = arm.StartsWith("torture") ? Keeper : Rival;
+        byte roomOwner = arm.StartsWith("torture") ? Keeper : rival;
         for (int y = 5; y < 8; y++)
         {
             for (int x = 5; x < 8; x++)

@@ -230,19 +230,19 @@ public class DungeonHeartTests
     [Fact]
     public void TwoHeartsFallingOnOneTurnAreJudgedInActiveListOrder()
     {
-        const byte A = 3, B = 4, C = 5;
+        const byte a = 3, b = 4, c = 5;
         GameDatabase database = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
-            [(byte)0, PlayerIds.Good, PlayerIds.Neutral, A, B, C], gameMode: GameMode.Skirmish);
-        world.SetAllied(A, B, allied: true);
-        world.DamageHeart(A, world.Player(A).HeartHealth, PlayerIds.Good);
-        world.DamageHeart(C, world.Player(C).HeartHealth, PlayerIds.Good);
+            [(byte)0, PlayerIds.Good, PlayerIds.Neutral, a, b, c], gameMode: GameMode.Skirmish);
+        world.SetAllied(a, b, allied: true);
+        world.DamageHeart(a, world.Player(a).HeartHealth, PlayerIds.Good);
+        world.DamageHeart(c, world.Player(c).HeartHealth, PlayerIds.Good);
         GameSimulation sim = Simulation(database, world);
 
         sim.Run(1);
 
         Assert.Equal((PlayerStatus.Won, PlayerStatus.Won, PlayerStatus.Lost),
-            (world.Player(A).Status, world.Player(B).Status, world.Player(C).Status));
+            (world.Player(a).Status, world.Player(b).Status, world.Player(c).Status));
     }
 
     /// <summary>My Pet Dungeon (mode 4) carries no verdict through alliances (<c>0x004BE630</c> returns

@@ -289,10 +289,10 @@ public sealed class CreatureJobTests
     [Fact]
     public void AnAngryCreatureChoosesOnceInATurn_AndTakesNoJobInTheTurnItsAngryChooserChose()
     {
-        const byte SulkerId = 60;
+        const byte sulkerId = 60;
         GameDatabase db = Dk2TerrainFixture.Database(Dk2TerrainFixture.Goblin() with
         {
-            CreatureId = SulkerId, Name = "Sulker",
+            CreatureId = sulkerId, Name = "Sulker",
             AngryJobs = [new(JobType.Sulk, 0, 0, 100)],
             UnhappyJobs = [new(JobType.Train, 0, 0, 100)],
             HappyJobs = [new(JobType.Train, 0, 0, 100)],
@@ -308,7 +308,7 @@ public sealed class CreatureJobTests
 
         // Arrives idle on the anger system's tick, the last of a game second.
         sim.Run(SimulationTiming.TicksPerSecond - 1);
-        CreatureState sulker = world.SpawnCreature(db, SulkerId, Keeper, Floor);
+        CreatureState sulker = world.SpawnCreature(db, sulkerId, Keeper, Floor);
         sulker.Anger.Lair = CreatureAngerRules.Ceiling + 1;
         sim.Tick();
 

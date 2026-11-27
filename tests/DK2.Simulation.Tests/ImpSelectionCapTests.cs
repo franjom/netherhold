@@ -56,16 +56,16 @@ public sealed class ImpSelectionCapTests
     /// in state 10 after the first tick.</summary>
     private static (GameSimulation, ListEventSink, CreatureState[]) Six(int dropped, int rivals = 0)
     {
-        const byte Rival = Keeper + 1;
+        const byte rival = Keeper + 1;
         GameDatabase db = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(
-            db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
+            db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, rival]);
         for (int y = 1; y < world.Height - 1; y++)
         {
             for (int x = 1; x < world.Width - 1; x++)
             {
                 world.Tile(x, y).TerrainId = Dk2TerrainFixture.ClaimedPath;
-                world.Tile(x, y).OwnerPlayerId = x < 8 ? Keeper : Rival;
+                world.Tile(x, y).OwnerPlayerId = x < 8 ? Keeper : rival;
             }
         }
 
@@ -82,7 +82,7 @@ public sealed class ImpSelectionCapTests
 
         for (int i = 0; i < rivals; i++)
         {
-            world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Rival, new TilePos(10 + i % 2, 2 + i / 2));
+            world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, rival, new TilePos(10 + i % 2, 2 + i / 2));
         }
 
         var sim = new GameSimulation(db, world, 11, [new ImpTaskSystem()]);

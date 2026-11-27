@@ -448,11 +448,11 @@ public class CreatureNeedsTests
             fixture.Rooms.Values, fixture.Creatures.Values, fixture.Variables, objects: fixture.Objects.Values);
         WorldState world = World(db);
         TilePos pond = new(3, 6), otherPond = new(4, 6);
-        const byte TileOwner = 5;
+        const byte tileOwner = 5;
         foreach (TilePos at in new[] { pond, otherPond })
         {
             world.Tile(at.X, at.Y).TerrainId = Dk2TerrainFixture.Water;
-            world.Tile(at.X, at.Y).OwnerPlayerId = TileOwner;
+            world.Tile(at.X, at.Y).OwnerPlayerId = tileOwner;
         }
 
         CreatureState standing = world.SpawnCreature(db, VampireId, Keeper, pond);
@@ -465,7 +465,7 @@ public class CreatureNeedsTests
 
         Assert.Equal(1067, standing.Health);
         Assert.Equal(0, down.Health);
-        Assert.Equal(TileOwner, down.HealthSourcePlayerId);
+        Assert.Equal(tileOwner, down.HealthSourcePlayerId);
     }
 
     [Fact]

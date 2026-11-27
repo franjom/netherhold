@@ -37,14 +37,14 @@ public class PlayerObservationPrisonerTests
     public void ThePortalSummaryCarriesTheCapOfEveryPortalButNotTheArrivalsHeld()
     {
         GameDatabase basic = PlayerObservationTests.Database();
-        const byte PortalTerrain = 9;
+        const byte portalTerrain = 9;
         basic.Variables.Misc[VariableTypeId.CreaturesSupportedByFirstPortal] = new MiscVariable(VariableTypeId.CreaturesSupportedByFirstPortal, 15, 0, 0);
         basic.Variables.Misc[VariableTypeId.CreaturesSupportedPerAdditionalPortal] = new MiscVariable(VariableTypeId.CreaturesSupportedPerAdditionalPortal, 5, 0, 0);
         RoomDef treasury = basic.Rooms.Values.Single(r => r.RoomId == (byte)RoomTypeId.Treasury);
         TerrainDef treasuryTerrain = basic.TerrainById(treasury.TerrainId);
         var database = new GameDatabase(
-            basic.Terrain.Values.Append(treasuryTerrain with { TerrainId = PortalTerrain, Name = "Portal", MaxHealthTypeTerrainId = PortalTerrain, DestroyedTypeTerrainId = PortalTerrain }),
-            basic.Rooms.Values.Append(treasury with { Name = "Portal", RoomId = (byte)RoomTypeId.Portal, TerrainId = PortalTerrain }),
+            basic.Terrain.Values.Append(treasuryTerrain with { TerrainId = portalTerrain, Name = "Portal", MaxHealthTypeTerrainId = portalTerrain, DestroyedTypeTerrainId = portalTerrain }),
+            basic.Rooms.Values.Append(treasury with { Name = "Portal", RoomId = (byte)RoomTypeId.Portal, TerrainId = portalTerrain }),
             basic.Creatures.Values, basic.Variables, basic.KeeperSpells.Values, basic.Objects.Values);
         int width = PlayerObservationTests.Width, height = PlayerObservationTests.Height;
         var tiles = new MapTile[width * height];
@@ -56,8 +56,8 @@ public class PlayerObservationPrisonerTests
             }
         }
         // Two portals, apart: 15 for the first and 5 for the second.
-        tiles[0] = new MapTile(PortalTerrain, 3, 0, 0);
-        tiles[2] = new MapTile(PortalTerrain, 3, 0, 0);
+        tiles[0] = new MapTile(portalTerrain, 3, 0, 0);
+        tiles[2] = new MapTile(portalTerrain, 3, 0, 0);
         var world = WorldState.FromMap(database, new LevelMap(width, height, tiles), [3, 4], fogOfWarEnabled: true);
         for (int y = 0; y < height; y++)
         {

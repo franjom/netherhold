@@ -68,7 +68,7 @@ public class TileWriteGuardTests
     [Fact]
     public void TheGuardSeesEachWayOfWritingAWholeTileIntoAWorld()
     {
-        const string Model = """
+        const string model = """
             namespace DK2.Simulation;
             public struct TileState
             {
@@ -101,7 +101,7 @@ public class TileWriteGuardTests
         ];
         foreach (string line in violations)
         {
-            List<Violation> found = Scan([("Case.cs", Wrap(Model, line))]);
+            List<Violation> found = Scan([("Case.cs", Wrap(model, line))]);
             Assert.True(found.Count > 0, $"not caught: {line}");
             Assert.All(found, v => Assert.Equal("Case.cs", v.File));
         }
@@ -116,7 +116,7 @@ public class TileWriteGuardTests
         ];
         foreach (string line in allowed)
         {
-            Assert.Empty(Scan([("Case.cs", Wrap(Model, line))]));
+            Assert.Empty(Scan([("Case.cs", Wrap(model, line))]));
         }
     }
 
@@ -124,22 +124,22 @@ public class TileWriteGuardTests
     public void TheGuardFiresOnTheRealWorldStateSourceWhenItIsBrokenInMemory()
     {
         // The real files, edited in memory only: the guard has to pass on them as they are and fail on each break.
-        const string State = "src/DK2.Simulation/WorldState.cs", Copy = "src/DK2.Simulation/WorldState.Copy.cs";
-        const string Count = "TileState.NoteBulkKeyWrite();";
-        string state = File.ReadAllText(Path.Combine(Root, State)), copy = File.ReadAllText(Path.Combine(Root, Copy));
-        Assert.Contains(Count, copy);
-        Assert.Empty(Scan([(State, state), (Copy, copy)]));
+        const string statePath = "src/DK2.Simulation/WorldState.cs", copyPath = "src/DK2.Simulation/WorldState.Copy.cs";
+        const string count = "TileState.NoteBulkKeyWrite();";
+        string state = File.ReadAllText(Path.Combine(Root, statePath)), copy = File.ReadAllText(Path.Combine(Root, copyPath));
+        Assert.Contains(count, copy);
+        Assert.Empty(Scan([(statePath, state), (copyPath, copy)]));
 
-        List<Violation> uncounted = Scan([(State, state), (Copy, copy.Replace(Count, ""))]);
-        Assert.Contains(uncounted, v => v.File == Copy && v.Member == "CopyFrom");
+        List<Violation> uncounted = Scan([(statePath, state), (copyPath, copy.Replace(count, ""))]);
+        Assert.Contains(uncounted, v => v.File == copyPath && v.Member == "CopyFrom");
 
-        const string Anchor = "    public ref TileState TileAtIndex(int index) => ref _tiles[index];";
-        Assert.Contains(Anchor, state);
+        const string anchor = "    public ref TileState TileAtIndex(int index) => ref _tiles[index];";
+        Assert.Contains(anchor, state);
         foreach (string body in new[] { "_tiles[0] = other;", "TileAtIndex(0) = other;", "Tile(0, 0) = default;" })
         {
-            string broken = state.Replace(Anchor, Anchor + $"\n    internal void Oops(TileState other) {{ {body} }}");
-            List<Violation> found = Scan([(State, broken), (Copy, copy)]);
-            Assert.Contains(found, v => v.File == State && v.Member == "Oops");
+            string broken = state.Replace(anchor, anchor + $"\n    internal void Oops(TileState other) {{ {body} }}");
+            List<Violation> found = Scan([(statePath, broken), (copyPath, copy)]);
+            Assert.Contains(found, v => v.File == statePath && v.Member == "Oops");
         }
     }
 
