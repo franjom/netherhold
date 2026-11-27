@@ -115,3 +115,31 @@ dotnet_naming_symbols.step6_local_variables.applicable_accessibilities = *
 dotnet_naming_rule.step6_local_variables.symbols = step6_local_variables
 dotnet_naming_rule.step6_local_variables.style = step6_local_camel_case
 dotnet_naming_rule.step6_local_variables.severity = warning
+
+[src/DK2.Simulation/**.cs]
+dotnet_style_qualification_for_field = false
+dotnet_style_qualification_for_property = false
+dotnet_style_qualification_for_method = false
+dotnet_style_qualification_for_event = false
+dotnet_diagnostic.IDE0003.severity = warning
+
+[src/DK2.AI/**.cs]
+dotnet_style_qualification_for_field = false
+dotnet_style_qualification_for_property = false
+dotnet_style_qualification_for_method = false
+dotnet_style_qualification_for_event = false
+dotnet_diagnostic.IDE0003.severity = warning
+
+[src/DK2.Pathfinding/**.cs]
+dotnet_style_qualification_for_field = false
+dotnet_style_qualification_for_property = false
+dotnet_style_qualification_for_method = false
+dotnet_style_qualification_for_event = false
+dotnet_diagnostic.IDE0003.severity = warning
+
+[src/DK2.Core/**.cs]
+dotnet_style_qualification_for_field = false
+dotnet_style_qualification_for_property = false
+dotnet_style_qualification_for_method = false
+dotnet_style_qualification_for_event = false
+dotnet_diagnostic.IDE0003.severity = warning
