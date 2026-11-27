@@ -169,3 +169,7 @@ dotnet_diagnostic.IDE0034.severity = warning
 [src/DK2.Harness/**.cs]
 csharp_prefer_simple_default_expression = true
 dotnet_diagnostic.IDE0034.severity = warning
+
+[godot/DK2.Godot/**.cs]
+csharp_prefer_simple_default_expression = true
+dotnet_diagnostic.IDE0034.severity = warning
