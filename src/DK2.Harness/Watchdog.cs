@@ -308,11 +308,11 @@ public sealed class Watchdog
             text.AppendLine($"- journal: {journalPath}");
             text.AppendLine($"- last hashed tick: {journal.LastHashedTick} (hashes are flushed every {InputJournalWriter.FlushEveryTicks} ticks, every command at once)");
             text.AppendLine($"- journal end: {journal.EndReason ?? "none - the process was killed or crashed"}");
-            text.AppendLine($"- commit: {Header(journal, "commit")}, src dirty: {Header(journal, JournalHeader.SourceDirty)}");
+            text.AppendLine($"- commit: {JournalHeader.Value(journal, "commit")}, src dirty: {JournalHeader.Value(journal, JournalHeader.SourceDirty)}");
             text.AppendLine();
             text.AppendLine("Reproduce at that commit:");
             text.AppendLine();
-            string seed = Header(journal, "seed");
+            string seed = JournalHeader.Value(journal, "seed");
             text.AppendLine($"    dotnet run --project src/DK2.Harness -- replay \"{file}\" \"{journalPath}\"" +
                 (seed == "unknown" ? "" : $" --seed {seed}"));
         }
@@ -329,10 +329,6 @@ public sealed class Watchdog
         return text.ToString();
     }
 
-    private static string Header(InputJournal journal, string key)
-    {
-        return journal.Header.TryGetValue(key, out string? value) ? value : "unknown";
-    }
 
     private static ProcessStartInfo SelfRun(WatchJob job, string runOut)
     {

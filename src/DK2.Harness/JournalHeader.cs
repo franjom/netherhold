@@ -120,7 +120,7 @@ public static class JournalHeader
         ReplayTicks(scenario, journal);
     }
 
-    private static string Value(InputJournal journal, string key)
+    internal static string Value(InputJournal journal, string key)
     {
         return journal.Header.TryGetValue(key, out string? value) ? value : "unknown";
     }

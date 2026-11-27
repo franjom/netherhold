@@ -12,7 +12,6 @@ namespace DK2.Tools.SimMatrix;
 /// the source methods it calls, and how many calls it makes through a delegate.</summary>
 internal sealed class MethodSummary
 {
-    internal static readonly MethodSummary Empty = new MethodSummary();
 
     internal HashSet<ISymbol> Reads { get; } = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
     internal HashSet<ISymbol> Writes { get; } = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
