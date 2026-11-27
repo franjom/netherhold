@@ -85,7 +85,8 @@ public sealed class AnimationMarkWatcher
         int to = Math.Clamp((int)(fraction * 256f), 0, 256);
         int from = _last < 0 ? to : _last - (256 * ticksAdvanced);
         _last = to;
-        return AnimationMarkCrossing.Test(mark1, mark2, previousPhase, phase, from, to);
+        return AnimationMarkCrossing.Test(mark1: mark1, mark2: mark2,
+            previousPhase: previousPhase, phase: phase, from: from, to: to);
     }
 
     /// <summary>Forgets the last frame, as a fresh install does.</summary>

@@ -61,7 +61,7 @@ public sealed class PlaceholderProvider : IAssetProvider
         PlaceholderShape shape = ShapeFor(reference);
         if (shape == PlaceholderShape.None)
         {
-            return new PlaceholderLook(shape, 0, 0, 0, 0);
+            return new PlaceholderLook(shape, red: 0, green: 0, blue: 0, heightPermille: 0);
         }
 
         // Bytes 0..2 of the hash pick the colour; 3 nudges the height. Using
@@ -81,7 +81,7 @@ public sealed class PlaceholderProvider : IAssetProvider
             _ => 0,
         };
 
-        return new PlaceholderLook(shape, red, green, blue, height);
+        return new PlaceholderLook(shape, red: red, green: green, blue: blue, heightPermille: height);
     }
 
     /// <summary>

@@ -188,7 +188,7 @@ public abstract record ThingRecord : KwdRoundTripRecord
 
 public sealed record ObjectThing : ThingRecord
 {
-    public ObjectThing(byte[] bytes) : base(194, bytes) { }
+    public ObjectThing(byte[] bytes) : base(KwdThingTags.Object, bytes) { }
     public int X { get; init; } public int Y { get; init; }
     public required ReadOnlyMemory<byte> Unknown_0008 { get; init; }
     public int KeeperSpellId { get; init; } public int MoneyAmount { get; init; }
@@ -197,7 +197,7 @@ public sealed record ObjectThing : ThingRecord
 
 public sealed record TrapThing : ThingRecord
 {
-    public TrapThing(byte[] bytes) : base(195, bytes) { }
+    public TrapThing(byte[] bytes) : base(KwdThingTags.Trap, bytes) { }
     public int X { get; init; } public int Y { get; init; } public int Unknown_0008 { get; init; }
     public byte NumberOfShots { get; init; } public byte TrapId { get; init; }
     public byte PlayerId { get; init; } public byte Unknown_000F { get; init; }
@@ -205,7 +205,7 @@ public sealed record TrapThing : ThingRecord
 
 public sealed record DoorThing : ThingRecord
 {
-    public DoorThing(byte[] bytes) : base(196, bytes) { }
+    public DoorThing(byte[] bytes) : base(KwdThingTags.Door, bytes) { }
     public int X { get; init; } public int Y { get; init; } public int Unknown_0008 { get; init; }
     public ushort TriggerId { get; init; } public byte DoorId { get; init; } public byte PlayerId { get; init; }
     public byte Flags { get; init; } public required ReadOnlyMemory<byte> Unknown_0011 { get; init; }
@@ -213,7 +213,7 @@ public sealed record DoorThing : ThingRecord
 
 public sealed record ActionPointThing : ThingRecord
 {
-    public ActionPointThing(byte[] bytes) : base(197, bytes) { }
+    public ActionPointThing(byte[] bytes) : base(KwdThingTags.ActionPoint, bytes) { }
     public int StartX { get; init; } public int StartY { get; init; }
     public int EndX { get; init; } public int EndY { get; init; }
     public ushort WaitDelay { get; init; } public ushort Flags { get; init; }
@@ -230,14 +230,14 @@ public abstract record CreatureThing : ThingRecord
 
 public sealed record NeutralCreatureThing : CreatureThing
 {
-    public NeutralCreatureThing(byte[] bytes) : base(198, bytes) { }
+    public NeutralCreatureThing(byte[] bytes) : base(KwdThingTags.NeutralCreature, bytes) { }
     public int InitialHealth { get; init; } public ushort TriggerId { get; init; }
     public byte CreatureId { get; init; } public byte Unknown_0017 { get; init; }
 }
 
 public sealed record GoodCreatureThing : CreatureThing
 {
-    public GoodCreatureThing(byte[] bytes) : base(199, bytes) { }
+    public GoodCreatureThing(byte[] bytes) : base(KwdThingTags.GoodCreature, bytes) { }
     public int ObjectiveTargetActionPointId { get; init; } public int InitialHealth { get; init; }
     public ushort TriggerId { get; init; } public byte ObjectiveTargetPlayerId { get; init; }
     public byte Objective { get; init; } public byte CreatureId { get; init; }
@@ -246,14 +246,14 @@ public sealed record GoodCreatureThing : CreatureThing
 
 public sealed record KeeperCreatureThing : CreatureThing
 {
-    public KeeperCreatureThing(byte[] bytes) : base(200, bytes) { }
+    public KeeperCreatureThing(byte[] bytes) : base(KwdThingTags.KeeperCreature, bytes) { }
     public int InitialHealth { get; init; } public int ObjectiveTargetActionPointId { get; init; }
     public ushort TriggerId { get; init; } public byte CreatureId { get; init; } public byte PlayerId { get; init; }
 }
 
 public sealed record HeroPartyThing : ThingRecord
 {
-    public HeroPartyThing(byte[] bytes) : base(201, bytes) { }
+    public HeroPartyThing(byte[] bytes) : base(KwdThingTags.HeroParty, bytes) { }
     public required string Name { get; init; } public ushort TriggerId { get; init; }
     public byte PartyId { get; init; } public int Unknown_0023 { get; init; } public int Unknown_0027 { get; init; }
     public required IReadOnlyList<GoodCreatureThing> Members { get; init; }
@@ -261,14 +261,14 @@ public sealed record HeroPartyThing : ThingRecord
 
 public sealed record DeadBodyThing : ThingRecord
 {
-    public DeadBodyThing(byte[] bytes) : base(202, bytes) { }
+    public DeadBodyThing(byte[] bytes) : base(KwdThingTags.DeadBody, bytes) { }
     public int X { get; init; } public int Y { get; init; } public int Z { get; init; }
     public ushort GoldHeld { get; init; } public byte CreatureId { get; init; } public byte PlayerId { get; init; }
 }
 
 public sealed record EffectGeneratorThing : ThingRecord
 {
-    public EffectGeneratorThing(byte[] bytes) : base(203, bytes) { }
+    public EffectGeneratorThing(byte[] bytes) : base(KwdThingTags.EffectGenerator, bytes) { }
     public int X { get; init; } public int Y { get; init; }
     public int Unknown_0008 { get; init; } public int Unknown_000C { get; init; }
     public ushort Unknown_0010 { get; init; } public ushort Unknown_0012 { get; init; }
@@ -279,7 +279,7 @@ public sealed record EffectGeneratorThing : ThingRecord
 
 public sealed record RoomThing : ThingRecord
 {
-    public RoomThing(byte[] bytes) : base(204, bytes) { }
+    public RoomThing(byte[] bytes) : base(KwdThingTags.Room, bytes) { }
     public int X { get; init; } public int Y { get; init; } public int Unknown_0008 { get; init; }
     public ushort Unknown_000C { get; init; } public byte Direction { get; init; } public byte Unknown_000F { get; init; }
     public ushort InitialHealth { get; init; } public byte RoomType { get; init; } public byte PlayerId { get; init; }
@@ -287,7 +287,7 @@ public sealed record RoomThing : ThingRecord
 
 public sealed record CameraThing : ThingRecord
 {
-    public CameraThing(byte[] bytes) : base(205, bytes) { }
+    public CameraThing(byte[] bytes) : base(KwdThingTags.Camera, bytes) { }
     public int X { get; init; } public int Y { get; init; } public int Z { get; init; }
     public int MinClipX { get; init; } public int MinClipY { get; init; } public int MinClipZ { get; init; }
     public int MaxClipX { get; init; } public int MaxClipY { get; init; } public int MaxClipZ { get; init; }

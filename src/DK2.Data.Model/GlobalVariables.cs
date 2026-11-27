@@ -86,24 +86,16 @@ public sealed class GlobalVariables
         return false;
     }
 
-    /// <summary>This table with one level's own VARIABLES applied on top.
-    /// <para>Every shipped level carries its own <c>&lt;name&gt;Variables.kld</c>, and 26 ids are
-    /// overridden by at least one: <c>MinimumImpThreshold</c> is 0 on four secret levels and the
-    /// front end (ADR-0021), and level 1 doubles both payday variables.</para>
-    /// <para>Plain values replace by id and new ids are added. Availability rows accumulate, the
-    /// level's after the global ones (<see cref="AvailabilitiesOf"/>, ADR-0281). The other four
-    /// lists replace wholesale when the level provides any and are kept when it does not:
-    /// STRONGLY INFERRED. ADR-0040, Q82, docs/research/kwd-variables.md "The merge rules".</para>
-    /// </summary>
     /// <summary>One player's availability table as DK2 leaves it after loading: every row for
     /// player 0 or <paramref name="playerId"/>, in file order, the last write to a kind and type
     /// winning (<c>0x0051CA60</c>). Ordered by kind, then type.</summary>
     public IEnumerable<AvailabilityEntry> AvailabilitiesOf(ushort playerId)
     {
+        const ushort allPlayers = 0;
         var table = new Dictionary<(ushort Kind, int TypeId), AvailabilityEntry>();
         foreach (AvailabilityEntry row in Availabilities)
         {
-            if (row.PlayerId != 0 && row.PlayerId != playerId)
+            if (row.PlayerId != allPlayers && row.PlayerId != playerId)
             {
                 continue;
             }
@@ -113,6 +105,15 @@ public sealed class GlobalVariables
         return table.Values.OrderBy(a => a.Kind).ThenBy(a => a.TypeId);
     }
 
+    /// <summary>This table with one level's own VARIABLES applied on top.
+    /// <para>Every shipped level carries its own <c>&lt;name&gt;Variables.kld</c>, and 26 ids are
+    /// overridden by at least one: <c>MinimumImpThreshold</c> is 0 on four secret levels and the
+    /// front end (ADR-0021), and level 1 doubles both payday variables.</para>
+    /// <para>Plain values replace by id and new ids are added. Availability rows accumulate, the
+    /// level's after the global ones (<see cref="AvailabilitiesOf"/>, ADR-0281). The other four
+    /// lists replace wholesale when the level provides any and are kept when it does not:
+    /// STRONGLY INFERRED. ADR-0040, Q82, docs/research/kwd-variables.md "The merge rules".</para>
+    /// </summary>
     public GlobalVariables MergedWith(GlobalVariables? level)
     {
         var merged = new GlobalVariables();

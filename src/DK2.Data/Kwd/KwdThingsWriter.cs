@@ -20,7 +20,7 @@ public static partial class KwdThings
         Span<byte> payload = image.AsSpan(8);
         switch (row)
         {
-            case ObjectThing c when c.Tag == 194:
+            case ObjectThing c when c.Tag == KwdThingTags.Object:
                 BinaryPrimitives.WriteInt32LittleEndian(payload[0..], c.X);
                 BinaryPrimitives.WriteInt32LittleEndian(payload[4..], c.Y);
                 KwdAdditionalRecords.WriteRaw(image, 8 + 8, 4, c.Unknown_0008);
@@ -30,7 +30,7 @@ public static partial class KwdThings
                 payload[22] = c.ObjectId;
                 payload[23] = c.PlayerId;
                 break;
-            case TrapThing c when c.Tag == 195:
+            case TrapThing c when c.Tag == KwdThingTags.Trap:
                 BinaryPrimitives.WriteInt32LittleEndian(payload[0..], c.X);
                 BinaryPrimitives.WriteInt32LittleEndian(payload[4..], c.Y);
                 BinaryPrimitives.WriteInt32LittleEndian(payload[8..], c.Unknown_0008);
@@ -39,7 +39,7 @@ public static partial class KwdThings
                 payload[14] = c.PlayerId;
                 payload[15] = c.Unknown_000F;
                 break;
-            case DoorThing c when c.Tag == 196:
+            case DoorThing c when c.Tag == KwdThingTags.Door:
                 BinaryPrimitives.WriteInt32LittleEndian(payload[0..], c.X);
                 BinaryPrimitives.WriteInt32LittleEndian(payload[4..], c.Y);
                 BinaryPrimitives.WriteInt32LittleEndian(payload[8..], c.Unknown_0008);
@@ -49,7 +49,7 @@ public static partial class KwdThings
                 payload[16] = c.Flags;
                 KwdAdditionalRecords.WriteRaw(image, 8 + 17, 3, c.Unknown_0011);
                 break;
-            case ActionPointThing c when c.Tag == 197:
+            case ActionPointThing c when c.Tag == KwdThingTags.ActionPoint:
                 BinaryPrimitives.WriteInt32LittleEndian(payload[0..], c.StartX);
                 BinaryPrimitives.WriteInt32LittleEndian(payload[4..], c.StartY);
                 BinaryPrimitives.WriteInt32LittleEndian(payload[8..], c.EndX);
@@ -61,7 +61,7 @@ public static partial class KwdThings
                 payload[23] = c.NextWaypointId;
                 KwdOverlay.Ascii(image, 8 + 24, 32, c.Name, KwdAdditionalRecords.Ascii(image, 8 + 24, 32), trimmed: true);
                 break;
-            case NeutralCreatureThing c when c.Tag == 198:
+            case NeutralCreatureThing c when c.Tag == KwdThingTags.NeutralCreature:
                 BinaryPrimitives.WriteInt32LittleEndian(payload[0..], c.X);
                 BinaryPrimitives.WriteInt32LittleEndian(payload[4..], c.Y);
                 BinaryPrimitives.WriteInt32LittleEndian(payload[8..], c.Z);
@@ -73,7 +73,7 @@ public static partial class KwdThings
                 payload[22] = c.CreatureId;
                 payload[23] = c.Unknown_0017;
                 break;
-            case GoodCreatureThing c when c.Tag == 199:
+            case GoodCreatureThing c when c.Tag == KwdThingTags.GoodCreature:
                 BinaryPrimitives.WriteInt32LittleEndian(payload[0..], c.X);
                 BinaryPrimitives.WriteInt32LittleEndian(payload[4..], c.Y);
                 BinaryPrimitives.WriteInt32LittleEndian(payload[8..], c.Z);
@@ -90,7 +90,7 @@ public static partial class KwdThings
                 payload[30] = c.PartyId;
                 payload[31] = c.Flags2;
                 break;
-            case KeeperCreatureThing c when c.Tag == 200:
+            case KeeperCreatureThing c when c.Tag == KwdThingTags.KeeperCreature:
                 BinaryPrimitives.WriteInt32LittleEndian(payload[0..], c.X);
                 BinaryPrimitives.WriteInt32LittleEndian(payload[4..], c.Y);
                 BinaryPrimitives.WriteInt32LittleEndian(payload[8..], c.Z);
@@ -103,7 +103,7 @@ public static partial class KwdThings
                 payload[26] = c.CreatureId;
                 payload[27] = c.PlayerId;
                 break;
-            case HeroPartyThing c when c.Tag == 201:
+            case HeroPartyThing c when c.Tag == KwdThingTags.HeroParty:
                 KwdOverlay.Ascii(image, 8 + 0, 32, c.Name, KwdAdditionalRecords.Ascii(image, 8 + 0, 32), trimmed: true);
                 BinaryPrimitives.WriteUInt16LittleEndian(payload[32..], c.TriggerId);
                 payload[34] = c.PartyId;
@@ -117,14 +117,14 @@ public static partial class KwdThings
                 for (int i = 0; i < 16; i++)
                 {
                     byte[] member = new byte[40];
-                    BinaryPrimitives.WriteInt32LittleEndian(member, 199);
+                    BinaryPrimitives.WriteInt32LittleEndian(member, KwdThingTags.GoodCreature);
                     BinaryPrimitives.WriteInt32LittleEndian(member.AsSpan(4), 32);
                     payload.Slice(43 + i * 32, 32).CopyTo(member.AsSpan(8));
-                    WriteRecord(c.Members[i], new KwdRecordImage(KwdRecordType.Things, member, 199))
+                    WriteRecord(c.Members[i], new KwdRecordImage(KwdRecordType.Things, member, KwdThingTags.GoodCreature))
                         .AsSpan(8).CopyTo(payload.Slice(43 + i * 32, 32));
                 }
                 break;
-            case DeadBodyThing c when c.Tag == 202:
+            case DeadBodyThing c when c.Tag == KwdThingTags.DeadBody:
                 BinaryPrimitives.WriteInt32LittleEndian(payload[0..], c.X);
                 BinaryPrimitives.WriteInt32LittleEndian(payload[4..], c.Y);
                 BinaryPrimitives.WriteInt32LittleEndian(payload[8..], c.Z);
@@ -132,7 +132,7 @@ public static partial class KwdThings
                 payload[14] = c.CreatureId;
                 payload[15] = c.PlayerId;
                 break;
-            case EffectGeneratorThing c when c.Tag == 203:
+            case EffectGeneratorThing c when c.Tag == KwdThingTags.EffectGenerator:
                 BinaryPrimitives.WriteInt32LittleEndian(payload[0..], c.X);
                 BinaryPrimitives.WriteInt32LittleEndian(payload[4..], c.Y);
                 BinaryPrimitives.WriteInt32LittleEndian(payload[8..], c.Unknown_0008);
@@ -144,7 +144,7 @@ public static partial class KwdThings
                 payload[29] = c.GeneratorId;
                 KwdAdditionalRecords.WriteRaw(image, 8 + 30, 6, c.Unknown_001E);
                 break;
-            case RoomThing c when c.Tag == 204:
+            case RoomThing c when c.Tag == KwdThingTags.Room:
                 BinaryPrimitives.WriteInt32LittleEndian(payload[0..], c.X);
                 BinaryPrimitives.WriteInt32LittleEndian(payload[4..], c.Y);
                 BinaryPrimitives.WriteInt32LittleEndian(payload[8..], c.Unknown_0008);
@@ -155,7 +155,7 @@ public static partial class KwdThings
                 payload[18] = c.RoomType;
                 payload[19] = c.PlayerId;
                 break;
-            case CameraThing c when c.Tag == 205:
+            case CameraThing c when c.Tag == KwdThingTags.Camera:
                 BinaryPrimitives.WriteInt32LittleEndian(payload[0..], c.X);
                 BinaryPrimitives.WriteInt32LittleEndian(payload[4..], c.Y);
                 BinaryPrimitives.WriteInt32LittleEndian(payload[8..], c.Z);

@@ -302,26 +302,26 @@ public static class GlbWriter
         writer.WriteStartArray("accessors");
         foreach (PrimitiveLayout primitive in primitives)
         {
-            Accessor(primitive.PositionViewIndex, 5126, primitive.VertexCount, "VEC3",
+            Accessor(view: primitive.PositionViewIndex, componentType: 5126, count: primitive.VertexCount, type: "VEC3",
                 primitive.Minimum, primitive.Maximum);
-            Accessor(primitive.NormalViewIndex, 5126, primitive.VertexCount, "VEC3");
-            Accessor(primitive.UvViewIndex, 5126, primitive.VertexCount, "VEC2");
+            Accessor(view: primitive.NormalViewIndex, componentType: 5126, count: primitive.VertexCount, type: "VEC3");
+            Accessor(view: primitive.UvViewIndex, componentType: 5126, count: primitive.VertexCount, type: "VEC2");
             if (primitive.IndexViewIndex is int indexView)
             {
-                Accessor(indexView, 5121, primitive.IndexCount, "SCALAR");
+                Accessor(view: indexView, componentType: 5121, count: primitive.IndexCount, type: "SCALAR");
             }
 
             foreach (int targetView in primitive.TargetViewIndices)
             {
-                Accessor(targetView, 5126, primitive.VertexCount, "VEC3");
+                Accessor(view: targetView, componentType: 5126, count: primitive.VertexCount, type: "VEC3");
             }
         }
         if (animation is not null)
         {
-            Accessor(animation.TimeViewIndex, 5126, animation.FrameCount, "SCALAR",
+            Accessor(view: animation.TimeViewIndex, componentType: 5126, count: animation.FrameCount, type: "SCALAR",
                 scalarMinimum: 0, scalarMaximum: animation.Duration);
-            Accessor(animation.WeightViewIndex, 5126,
-                checked(animation.FrameCount * animation.TargetCount), "SCALAR");
+            Accessor(view: animation.WeightViewIndex, componentType: 5126,
+                count: checked(animation.FrameCount * animation.TargetCount), type: "SCALAR");
         }
         writer.WriteEndArray();
         void Accessor(int view, int componentType, int count, string type,
@@ -498,10 +498,12 @@ public static class GlbWriter
                 targetViewIndices.Add(_viewCount++);
                 targetAccessors.Add(_accessorCount++);
             }
-            return new PrimitiveLayout((int)primitive.MaterialIndex, primitive.Vertices.Count,
-                sourceIndices.Count, positions, normals, uvs, indices, positionView, normalView,
-                uvView, indexView, positionAccessor, normalAccessor, uvAccessor, indexAccessor,
-                minimum, maximum, targetViews, targetViewIndices, targetAccessors);
+            return new PrimitiveLayout(MaterialIndex: (int)primitive.MaterialIndex, VertexCount: primitive.Vertices.Count,
+                IndexCount: sourceIndices.Count, PositionView: positions, NormalView: normals, UvView: uvs,
+                IndexView: indices, PositionViewIndex: positionView, NormalViewIndex: normalView, UvViewIndex: uvView,
+                IndexViewIndex: indexView, PositionAccessor: positionAccessor, NormalAccessor: normalAccessor,
+                UvAccessor: uvAccessor, IndexAccessor: indexAccessor, Minimum: minimum, Maximum: maximum,
+                TargetViews: targetViews, TargetViewIndices: targetViewIndices, TargetAccessors: targetAccessors);
         }
 
         public AnimationLayout AddAnimation(int frameCount, int targetCount, float passSeconds)
@@ -528,9 +530,10 @@ public static class GlbWriter
                 }
             });
             int weightView = _viewCount++; int weightAccessor = _accessorCount++;
-            return new AnimationLayout(frameCount, targetCount,
-                (frameCount - 1) * frameSeconds,
-                times, weights, timeView, weightView, timeAccessor, weightAccessor);
+            return new AnimationLayout(FrameCount: frameCount, TargetCount: targetCount,
+                Duration: (frameCount - 1) * frameSeconds, TimeView: times, WeightView: weights,
+                TimeViewIndex: timeView, WeightViewIndex: weightView,
+                TimeAccessor: timeAccessor, WeightAccessor: weightAccessor);
         }
 
         private BufferView AddView(Action write)

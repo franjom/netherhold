@@ -211,7 +211,8 @@ public sealed class CreatureAnimationPlayer<TResources>
         float fraction = (float)(tickTime - tick);
         AnimationPose pose = _clock.Sample(fraction);
         FootstepCrossing = (_mark1 | _mark2) == 0 ? 0
-            : _marks.Observe(_mark1, _mark2, _clock.PreviousPhase, _clock.Phase, advancedNow, fraction);
+            : _marks.Observe(mark1: _mark1, mark2: _mark2, previousPhase: _clock.PreviousPhase,
+                phase: _clock.Phase, ticksAdvanced: advancedNow, fraction: fraction);
         if (_clock.ResourceRevision != _resourceRevision && _hasPending)
         {
             RenderAnimation?[] clips = _pendingClips!;

@@ -69,32 +69,32 @@ public sealed class Dk2ArtCatalogue
     {
         string editor = Path.Combine(installDirectory, "Data", "editor");
         IReadOnlyDictionary<byte, IReadOnlyList<Dk2ArtResource>> objects = Read(Path.Combine(editor, "Objects.kwd"), KwdRecordType.Objects,
-            894, idOffset: 0x35A, artOffset: 0x20, artCount: 9);
+            expectedStride: 894, idOffset: 0x35A, artOffset: 0x20, artCount: 9);
         return new Dk2ArtCatalogue
         {
             Terrains = Read(Path.Combine(editor, "Terrain.kwd"), KwdRecordType.Terrain,
-                552, idOffset: 0x1D6, artOffset: 0x20, artCount: 4),
+                expectedStride: 552, idOffset: 0x1D6, artOffset: 0x20, artCount: 4),
             Rooms = Read(Path.Combine(editor, "Rooms.kwd"), KwdRecordType.Rooms,
-                1055, idOffset: 0x392, artOffset: 0x20, artCount: 10),
+                expectedStride: 1055, idOffset: 0x392, artOffset: 0x20, artCount: 10),
             // CREATURES begins with one unrelated art resource. These 36 are
             // WALK through NULL_4 in the format's fixed animation-slot order.
             Creatures = Read(Path.Combine(editor, "Creatures.kwd"), KwdRecordType.Creatures,
-                5449, idOffset: 0xF4B, artOffset: 0x20 + ArtResourceSize, artCount: 36),
+                expectedStride: 5449, idOffset: 0xF4B, artOffset: 0x20 + ArtResourceSize, artCount: 36),
             CreatureCorpses = Read(Path.Combine(editor, "Creatures.kwd"), KwdRecordType.Creatures,
-                5449, idOffset: 0xF4B, artOffset: 0x148B, artCount: 1)
+                expectedStride: 5449, idOffset: 0xF4B, artOffset: 0x148B, artCount: 1)
                 .ToDictionary(pair => pair.Key, pair => pair.Value[0]),
             CreatureStandingPoses = Read(Path.Combine(editor, "Creatures.kwd"), KwdRecordType.Creatures,
-                5449, idOffset: 0xF4B, artOffset: 0x13E3, artCount: 1)
+                expectedStride: 5449, idOffset: 0xF4B, artOffset: 0x13E3, artCount: 1)
                 .ToDictionary(pair => pair.Key, pair => pair.Value[0]),
             CreatureIcons = Read(Path.Combine(editor, "Creatures.kwd"), KwdRecordType.Creatures,
-                5449, idOffset: 0xF4B, artOffset: 0xC44, artCount: 1)
+                expectedStride: 5449, idOffset: 0xF4B, artOffset: 0xC44, artCount: 1)
                 .ToDictionary(pair => pair.Key, pair => pair.Value[0]),
             Objects = objects,
             DoorLocks = ReadDoorLocks(Path.Combine(editor, "Doors.kwd"), objects),
             Doors = Read(Path.Combine(editor, "Doors.kwd"), KwdRecordType.Doors,
-                616, idOffset: 0x244, artOffset: 0x20, artCount: 6),
+                expectedStride: 616, idOffset: 0x244, artOffset: 0x20, artCount: 6),
             Traps = Read(Path.Combine(editor, "Traps.kwd"), KwdRecordType.Traps,
-                579, idOffset: 0x20C, artOffset: 0x20, artCount: 5),
+                expectedStride: 579, idOffset: 0x20C, artOffset: 0x20, artCount: 5),
         };
     }
 

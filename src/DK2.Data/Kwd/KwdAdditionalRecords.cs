@@ -315,18 +315,18 @@ public static partial class KwdThings
 
         return tag switch
         {
-            194 => new ObjectThing(r) { X = I(r, 0), Y = I(r, 4), Unknown_0008 = r.AsMemory(8, 4), KeeperSpellId = I(r, 12), MoneyAmount = I(r, 16), TriggerId = U(r, 20), ObjectId = r[22], PlayerId = r[23] },
-            195 => new TrapThing(r) { X = I(r, 0), Y = I(r, 4), Unknown_0008 = I(r, 8), NumberOfShots = r[12], TrapId = r[13], PlayerId = r[14], Unknown_000F = r[15] },
-            196 => new DoorThing(r) { X = I(r, 0), Y = I(r, 4), Unknown_0008 = I(r, 8), TriggerId = U(r, 12), DoorId = r[14], PlayerId = r[15], Flags = r[16], Unknown_0011 = r.AsMemory(17, 3) },
-            197 => new ActionPointThing(r) { StartX = I(r, 0), StartY = I(r, 4), EndX = I(r, 8), EndY = I(r, 12), WaitDelay = U(r, 16), Flags = U(r, 18), TriggerId = U(r, 20), ActionPointId = r[22], NextWaypointId = r[23], Name = KwdAdditionalRecords.Ascii(r, 24, 32) },
-            198 => Creature198(r),
-            199 => Creature199(r),
-            200 => Creature200(r),
-            201 => Party(r),
-            202 => new DeadBodyThing(r) { X = I(r, 0), Y = I(r, 4), Z = I(r, 8), GoldHeld = U(r, 12), CreatureId = r[14], PlayerId = r[15] },
-            203 => new EffectGeneratorThing(r) { X = I(r, 0), Y = I(r, 4), Unknown_0008 = I(r, 8), Unknown_000C = I(r, 12), Unknown_0010 = U(r, 16), Unknown_0012 = U(r, 18), EffectIds = Words(r, 20, 4), Frequency = r[28], GeneratorId = r[29], Unknown_001E = r.AsMemory(30, 6) },
-            204 => new RoomThing(r) { X = I(r, 0), Y = I(r, 4), Unknown_0008 = I(r, 8), Unknown_000C = U(r, 12), Direction = r[14], Unknown_000F = r[15], InitialHealth = U(r, 16), RoomType = r[18], PlayerId = r[19] },
-            205 => new CameraThing(r) { X = I(r, 0), Y = I(r, 4), Z = I(r, 8), MinClipX = I(r, 12), MinClipY = I(r, 16), MinClipZ = I(r, 20), MaxClipX = I(r, 24), MaxClipY = I(r, 28), MaxClipZ = I(r, 32), ViewDistance = I(r, 36), MinViewDistance = I(r, 40), MaxViewDistance = I(r, 44), Zoom = I(r, 48), MinZoom = I(r, 52), MaxZoom = I(r, 56), Lens = I(r, 60), MinLens = I(r, 64), MaxLens = I(r, 68), Flags = (uint)I(r, 72), AngleYaw = U(r, 76), AngleRoll = U(r, 78), AnglePitch = U(r, 80), CameraId = U(r, 82) },
+            KwdThingTags.Object => new ObjectThing(r) { X = I(r, 0), Y = I(r, 4), Unknown_0008 = r.AsMemory(8, 4), KeeperSpellId = I(r, 12), MoneyAmount = I(r, 16), TriggerId = U(r, 20), ObjectId = r[22], PlayerId = r[23] },
+            KwdThingTags.Trap => new TrapThing(r) { X = I(r, 0), Y = I(r, 4), Unknown_0008 = I(r, 8), NumberOfShots = r[12], TrapId = r[13], PlayerId = r[14], Unknown_000F = r[15] },
+            KwdThingTags.Door => new DoorThing(r) { X = I(r, 0), Y = I(r, 4), Unknown_0008 = I(r, 8), TriggerId = U(r, 12), DoorId = r[14], PlayerId = r[15], Flags = r[16], Unknown_0011 = r.AsMemory(17, 3) },
+            KwdThingTags.ActionPoint => new ActionPointThing(r) { StartX = I(r, 0), StartY = I(r, 4), EndX = I(r, 8), EndY = I(r, 12), WaitDelay = U(r, 16), Flags = U(r, 18), TriggerId = U(r, 20), ActionPointId = r[22], NextWaypointId = r[23], Name = KwdAdditionalRecords.Ascii(r, 24, 32) },
+            KwdThingTags.NeutralCreature => Creature198(r),
+            KwdThingTags.GoodCreature => Creature199(r),
+            KwdThingTags.KeeperCreature => Creature200(r),
+            KwdThingTags.HeroParty => Party(r),
+            KwdThingTags.DeadBody => new DeadBodyThing(r) { X = I(r, 0), Y = I(r, 4), Z = I(r, 8), GoldHeld = U(r, 12), CreatureId = r[14], PlayerId = r[15] },
+            KwdThingTags.EffectGenerator => new EffectGeneratorThing(r) { X = I(r, 0), Y = I(r, 4), Unknown_0008 = I(r, 8), Unknown_000C = I(r, 12), Unknown_0010 = U(r, 16), Unknown_0012 = U(r, 18), EffectIds = Words(r, 20, 4), Frequency = r[28], GeneratorId = r[29], Unknown_001E = r.AsMemory(30, 6) },
+            KwdThingTags.Room => new RoomThing(r) { X = I(r, 0), Y = I(r, 4), Unknown_0008 = I(r, 8), Unknown_000C = U(r, 12), Direction = r[14], Unknown_000F = r[15], InitialHealth = U(r, 16), RoomType = r[18], PlayerId = r[19] },
+            KwdThingTags.Camera => new CameraThing(r) { X = I(r, 0), Y = I(r, 4), Z = I(r, 8), MinClipX = I(r, 12), MinClipY = I(r, 16), MinClipZ = I(r, 20), MaxClipX = I(r, 24), MaxClipY = I(r, 28), MaxClipZ = I(r, 32), ViewDistance = I(r, 36), MinViewDistance = I(r, 40), MaxViewDistance = I(r, 44), Zoom = I(r, 48), MinZoom = I(r, 52), MaxZoom = I(r, 56), Lens = I(r, 60), MinLens = I(r, 64), MaxLens = I(r, 68), Flags = (uint)I(r, 72), AngleYaw = U(r, 76), AngleRoll = U(r, 78), AnglePitch = U(r, 80), CameraId = U(r, 82) },
             _ => throw new InvalidDataException($"Unsupported THINGS tag {tag}."),
         };
     }

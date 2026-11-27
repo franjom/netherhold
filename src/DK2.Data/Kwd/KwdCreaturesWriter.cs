@@ -233,7 +233,7 @@ public static partial class KwdCreatures
             CreatureAttraction value = row.Attractions[i];
             U32(offset, value.Present); U16(offset + 4, value.RoomId); U16(offset + 6, value.RoomSize);
         }
-        WriteFiltered("Spells", row.Spells, 0xDC4, 3, 24, off => image[off + 22] != 0, (off, value) =>
+        WriteFiltered("Spells", row.Spells, offset: 0xDC4, count: 3, stride: 24, off => image[off + 22] != 0, (off, value) =>
         {
             if (value.CreatureSpellId == 0)
             {
@@ -244,7 +244,7 @@ public static partial class KwdCreatures
             S32(off + 16, value.ShotDelay.Raw); U8(off + 13, value.PlayAnimation);
             S32(off, value.OriginX); S32(off + 4, value.OriginY); S32(off + 8, value.OriginZ);
         });
-        WriteFiltered("Resistances", row.Resistances, 0xE0C, 4, 2, off => image[off] != 0, (off, value) =>
+        WriteFiltered("Resistances", row.Resistances, offset: 0xE0C, count: 4, stride: 2, off => image[off] != 0, (off, value) =>
         {
             if (value.AttackType == 0)
             {
@@ -255,7 +255,7 @@ public static partial class KwdCreatures
         });
         void Preferences(string name, IReadOnlyList<CreatureJobPreference> values, int offset, int count)
         {
-            WriteFiltered(name, values, offset, count, 12, off => ReadU32(off) != 0, (off, value) =>
+            WriteFiltered(name, values, offset: offset, count: count, stride: 12, off => ReadU32(off) != 0, (off, value) =>
             {
                 if (value.Job == JobType.None)
                 {
@@ -270,7 +270,7 @@ public static partial class KwdCreatures
         Preferences("HappyJobs", row.HappyJobs, 0xE14, 3);
         Preferences("UnhappyJobs", row.UnhappyJobs, 0xE38, 2);
         Preferences("AngryJobs", row.AngryJobs, 0xE50, 3);
-        WriteFiltered("HateJobs", row.HateJobs, 0xE74, 2, 4, off => ReadU32(off) != 0, (off, value) =>
+        WriteFiltered("HateJobs", row.HateJobs, offset: 0xE74, count: 2, stride: 4, off => ReadU32(off) != 0, (off, value) =>
         {
             if (value == JobType.None)
             {
@@ -279,7 +279,7 @@ public static partial class KwdCreatures
 
             U32(off, (uint)value);
         });
-        WriteFiltered("AlternativeJobs", row.AlternativeJobs, 0xE7C, 3, 8, off => ReadU32(off) != 0, (off, value) =>
+        WriteFiltered("AlternativeJobs", row.AlternativeJobs, offset: 0xE7C, count: 3, stride: 8, off => ReadU32(off) != 0, (off, value) =>
         {
             if (value.Job == JobType.None)
             {

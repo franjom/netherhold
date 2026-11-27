@@ -102,18 +102,18 @@ public static class KwdTaggedRecords
     public static readonly IReadOnlyDictionary<int, (string Name, int PayloadSize, bool InShippedData)>
         ThingPayloadSizes = new Dictionary<int, (string, int, bool)>
         {
-            [194] = ("Object", 24, true),
-            [195] = ("Trap", 16, true),
-            [196] = ("Door", 20, true),
-            [197] = ("ActionPoint", 56, true),
-            [198] = ("NeutralCreature", 24, true),
-            [199] = ("GoodCreature", 32, true),
-            [200] = ("KeeperCreature", 28, true),
-            [201] = ("HeroParty", 555, true),
-            [202] = ("DeadBody", 16, false),
-            [203] = ("EffectGenerator", 36, true),
-            [204] = ("Room", 20, true),
-            [205] = ("Camera", 84, true),
+            [KwdThingTags.Object] = ("Object", 24, true),
+            [KwdThingTags.Trap] = ("Trap", 16, true),
+            [KwdThingTags.Door] = ("Door", 20, true),
+            [KwdThingTags.ActionPoint] = ("ActionPoint", 56, true),
+            [KwdThingTags.NeutralCreature] = ("NeutralCreature", 24, true),
+            [KwdThingTags.GoodCreature] = ("GoodCreature", 32, true),
+            [KwdThingTags.KeeperCreature] = ("KeeperCreature", 28, true),
+            [KwdThingTags.HeroParty] = ("HeroParty", 555, true),
+            [KwdThingTags.DeadBody] = ("DeadBody", 16, false),
+            [KwdThingTags.EffectGenerator] = ("EffectGenerator", 36, true),
+            [KwdThingTags.Room] = ("Room", 20, true),
+            [KwdThingTags.Camera] = ("Camera", 84, true),
         };
 
     /// <summary>

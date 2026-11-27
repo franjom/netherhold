@@ -16,7 +16,7 @@ public readonly record struct AnimationPose(AnimationSegment Segment, float Phas
 public sealed class RenderAnimationClock
 {
     private const int One = 4096;
-    private const CreatureAnimationFlags StopLooping = (CreatureAnimationFlags)0x80;
+    private const uint StopLoopingMask = 0x80;
     private CreatureAnimationTiming _timing;
     private bool _loop;
     private Fp32? _authoredMovementScale;
@@ -79,7 +79,7 @@ public sealed class RenderAnimationClock
     private void Install(CreatureAnimationTiming timing, bool loop, Fp32? authoredMovementScale, Fp32? initialMovementSpeed)
     {
         _timing = timing;
-        _loop = loop && (timing.Flags & StopLooping) == 0;
+        _loop = loop && ((uint)timing.Flags & StopLoopingMask) == 0;
         _authoredMovementScale = authoredMovementScale;
         _movementSpeed = authoredMovementScale.HasValue ? initialMovementSpeed ?? new Fp32(One) : null;
         _pending = null;

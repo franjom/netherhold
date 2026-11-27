@@ -384,12 +384,12 @@ public static class Dk2SaveReader
         }
 
         int gridOffset = FindGridOffset(bytes, design);
-        LevelMap map = ReadGrid(bytes, gridOffset, design.Width, design.Height);
+        LevelMap map = ReadGrid(bytes, gridOffset: gridOffset, width: design.Width, height: design.Height);
 
         return new SavedGame(
             header,
             map,
-            ReadTiles(bytes, gridOffset, design.Width, design.Height),
+            ReadTiles(bytes, gridOffset: gridOffset, width: design.Width, height: design.Height),
             AgreementWithDesign(map, design),
             gridOffset);
     }

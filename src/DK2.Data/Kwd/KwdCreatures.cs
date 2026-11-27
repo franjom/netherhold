@@ -122,7 +122,7 @@ public static partial class KwdCreatures
             if (spellId != 0)
             {
                 spells.Add(new CreatureSpellSlot(spellId, U8(off + 23), Fp(off + 16), U8(off + 13),
-                    Fp(off).Raw, Fp(off + 4).Raw, Fp(off + 8).Raw));
+                    OriginX: Fp(off).Raw, OriginY: Fp(off + 4).Raw, OriginZ: Fp(off + 8).Raw));
             }
         }
 
