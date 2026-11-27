@@ -267,6 +267,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Editor and plugins
 
+- With `dotnet_sort_system_directives_first` enabled, `dotnet format style --verify-no-changes` also checks ordering within import groups. Run the organizer before verifying.
 - Host Python has Pillow but no NumPy; Blender's bundled Python supplies NumPy for mesh analysis.
 - Direct `.ps1` execution is blocked in the Codex host; use a process-scoped `powershell -NoProfile -ExecutionPolicy Bypass -File` invocation.
 - Workbench final renders do not reliably show `Object.show_wire`; label these clay views, not wireframe evidence.

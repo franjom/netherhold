@@ -3,8 +3,8 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
-using DK2.Simulation.Commands;
 using DK2.Simulation.Combat;
+using DK2.Simulation.Commands;
 
 namespace DK2.Simulation.Systems;
 
