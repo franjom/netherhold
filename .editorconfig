@@ -142,3 +142,6 @@ dotnet_sort_system_directives_first = true
 
 [src/DK2.Harness/**.cs]
 dotnet_sort_system_directives_first = true
+
+[godot/DK2.Godot/**.cs]
+dotnet_sort_system_directives_first = true

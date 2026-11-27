@@ -3,8 +3,8 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
-using DK2.Simulation;
 using DK2.Presentation;
+using DK2.Simulation;
 using NVector3 = System.Numerics.Vector3;
 
 namespace DK2.GodotAdapter;

@@ -4,6 +4,7 @@
 
 using System.Diagnostics;
 using System.Globalization;
+using System.Runtime.InteropServices;
 using DK2.Art;
 using DK2.Art.Kmf;
 using DK2.Art.Textures;
@@ -13,7 +14,6 @@ using DK2.Data.Model;
 using DK2.Presentation;
 using DK2.Simulation;
 using Godot;
-using System.Runtime.InteropServices;
 using NMatrix4x4 = System.Numerics.Matrix4x4;
 using NVector2 = System.Numerics.Vector2;
 using NVector3 = System.Numerics.Vector3;
