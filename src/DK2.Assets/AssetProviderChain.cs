@@ -69,10 +69,22 @@ public sealed class AssetProviderChain : IAssetProvider
         return new AssetProviderChain([.. providers]);
     }
 
-    public string Name => "chain(" + string.Join(" → ", _providers.Select(p => p.Name)) + ")";
+    public string Name
+    {
+        get
+        {
+            return "chain(" + string.Join(" → ", _providers.Select(p => p.Name)) + ")";
+        }
+    }
 
     /// <summary>The links, in order. Diagnostics and tests.</summary>
-    public IReadOnlyList<IAssetProvider> Providers => _providers;
+    public IReadOnlyList<IAssetProvider> Providers
+    {
+        get
+        {
+            return _providers;
+        }
+    }
 
     public bool TryResolve(AssetRef reference, out ResolvedAsset asset)
     {
@@ -97,19 +109,30 @@ public sealed class AssetProviderChain : IAssetProvider
     /// miss — which, with the placeholder in the chain, means a genuine bug
     /// rather than a missing file.
     /// </summary>
-    public ResolvedAsset Resolve(AssetRef reference) =>
-        TryResolve(reference, out ResolvedAsset asset)
+    public ResolvedAsset Resolve(AssetRef reference)
+    {
+        return TryResolve(reference, out ResolvedAsset asset)
             ? asset
             : throw new InvalidOperationException(
                 $"No provider in {Name} answered for '{reference}'. With PlaceholderProvider " +
                 "in the chain this cannot happen for a valid key, so the key is empty or the " +
                 "chain was built without a placeholder.");
+    }
 
     /// <summary>How many keys each provider has answered, for the run report.</summary>
-    public IReadOnlyDictionary<string, int> ResolvedByProvider => _resolvedByProvider;
+    public IReadOnlyDictionary<string, int> ResolvedByProvider
+    {
+        get
+        {
+            return _resolvedByProvider;
+        }
+    }
 
     /// <summary>Forgets the counts, for a fresh report.</summary>
-    public void ResetCounts() => _resolvedByProvider.Clear();
+    public void ResetCounts()
+    {
+        _resolvedByProvider.Clear();
+    }
 
     /// <summary>
     /// One line saying where this run's art came from, for the harness's "what this

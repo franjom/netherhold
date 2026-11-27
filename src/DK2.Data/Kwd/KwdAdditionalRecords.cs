@@ -21,17 +21,25 @@ public static partial class KwdAdditionalRecords
     public const int EffectSize = 246;
     public const int EffectElementSize = 182;
 
-    public static List<CreatureSpellDef> ParseCreatureSpells(IEnumerable<KwdChunk> chunks) =>
-        ParseFixed(chunks, KwdRecordType.CreatureSpells, CreatureSpellSize, ParseCreatureSpell);
+    public static List<CreatureSpellDef> ParseCreatureSpells(IEnumerable<KwdChunk> chunks)
+    {
+        return ParseFixed(chunks, KwdRecordType.CreatureSpells, CreatureSpellSize, ParseCreatureSpell);
+    }
 
-    public static List<ShotDef> ParseShots(IEnumerable<KwdChunk> chunks) =>
-        ParseFixed(chunks, KwdRecordType.Shots, ShotSize, ParseShot);
+    public static List<ShotDef> ParseShots(IEnumerable<KwdChunk> chunks)
+    {
+        return ParseFixed(chunks, KwdRecordType.Shots, ShotSize, ParseShot);
+    }
 
-    public static List<EffectDef> ParseEffects(IEnumerable<KwdChunk> chunks) =>
-        ParseFixed(chunks, KwdRecordType.Effects, EffectSize, ParseEffect);
+    public static List<EffectDef> ParseEffects(IEnumerable<KwdChunk> chunks)
+    {
+        return ParseFixed(chunks, KwdRecordType.Effects, EffectSize, ParseEffect);
+    }
 
-    public static List<EffectElementDef> ParseEffectElements(IEnumerable<KwdChunk> chunks) =>
-        ParseFixed(chunks, KwdRecordType.EffectElements, EffectElementSize, ParseEffectElement);
+    public static List<EffectElementDef> ParseEffectElements(IEnumerable<KwdChunk> chunks)
+    {
+        return ParseFixed(chunks, KwdRecordType.EffectElements, EffectElementSize, ParseEffectElement);
+    }
 
     private static List<T> ParseFixed<T>(IEnumerable<KwdChunk> chunks, KwdRecordType type,
         int stride, Func<byte[], T> parse)
@@ -59,75 +67,168 @@ public static partial class KwdAdditionalRecords
         return result;
     }
 
-    private static CreatureSpellDef ParseCreatureSpell(byte[] r) => new(r)
+    private static CreatureSpellDef ParseCreatureSpell(byte[] r)
     {
-        Name = Ascii(r, 0, 32),
-        EditorIcon = Art(r, 32),
-        GuiIcon = Art(r, 116),
-        ShotData1 = U32(r, 200), ShotData2 = U32(r, 204), Range = I32(r, 208),
-        Flags = U32(r, 212), CombatPoints = U16(r, 216), SoundEvent = U16(r, 218),
-        NameStringId = U16(r, 220), TooltipStringId = U16(r, 222),
-        GeneralDescriptionStringId = U16(r, 224), StrengthStringId = U16(r, 226),
-        WeaknessStringId = U16(r, 228), CreatureSpellId = r[230], ShotTypeId = r[231],
-        AlternativeShotId = r[232], AlternativeRoomId = r[233], RechargeTime = I32(r, 234),
-        AlternativeShot = r[238], Unknown_00EF = r.AsMemory(239, 27),
-    };
+        return new(r)
+        {
+            Name = Ascii(r, 0, 32),
+            EditorIcon = Art(r, 32),
+            GuiIcon = Art(r, 116),
+            ShotData1 = U32(r, 200),
+            ShotData2 = U32(r, 204),
+            Range = I32(r, 208),
+            Flags = U32(r, 212),
+            CombatPoints = U16(r, 216),
+            SoundEvent = U16(r, 218),
+            NameStringId = U16(r, 220),
+            TooltipStringId = U16(r, 222),
+            GeneralDescriptionStringId = U16(r, 224),
+            StrengthStringId = U16(r, 226),
+            WeaknessStringId = U16(r, 228),
+            CreatureSpellId = r[230],
+            ShotTypeId = r[231],
+            AlternativeShotId = r[232],
+            AlternativeRoomId = r[233],
+            RechargeTime = I32(r, 234),
+            AlternativeShot = r[238],
+            Unknown_00EF = r.AsMemory(239, 27),
+        };
+    }
 
-    private static ShotDef ParseShot(byte[] r) => new(r)
+    private static ShotDef ParseShot(byte[] r)
     {
-        Name = Ascii(r, 0, 32), MeshResource = Art(r, 32), Light = Light(r, 116),
-        AirFriction = I32(r, 140), Mass = I32(r, 144), Speed = I32(r, 148),
-        Unknown_0098 = U32(r, 152), Unknown_009C = U32(r, 156), ShotProcessFlags = U32(r, 160),
-        Radius = I32(r, 164), Flags = U32(r, 168),
-        GeneralEffectId = U16(r, 172), CreationEffectId = U16(r, 174),
-        DeathEffectId = U16(r, 176), TimedEffectId = U16(r, 178),
-        HitSolidEffectId = U16(r, 180), HitLavaEffectId = U16(r, 182),
-        HitWaterEffectId = U16(r, 184), HitThingEffectId = U16(r, 186),
-        Health = U16(r, 188), ShotId = r[190],
-        DeathShotId = r[191], TimedDelay = r[192], HitSolidShotId = r[193],
-        HitLavaShotId = r[194], HitWaterShotId = r[195], HitThingShotId = r[196],
-        DamageType = r[197], CollideType = r[198], ProcessType = r[199], AttackCategory = r[200],
-        SoundCategory = Ascii(r, 201, 32), Threat = U16(r, 233), BurnDuration = I32(r, 235),
-    };
+        return new(r)
+        {
+            Name = Ascii(r, 0, 32),
+            MeshResource = Art(r, 32),
+            Light = Light(r, 116),
+            AirFriction = I32(r, 140),
+            Mass = I32(r, 144),
+            Speed = I32(r, 148),
+            Unknown_0098 = U32(r, 152),
+            Unknown_009C = U32(r, 156),
+            ShotProcessFlags = U32(r, 160),
+            Radius = I32(r, 164),
+            Flags = U32(r, 168),
+            GeneralEffectId = U16(r, 172),
+            CreationEffectId = U16(r, 174),
+            DeathEffectId = U16(r, 176),
+            TimedEffectId = U16(r, 178),
+            HitSolidEffectId = U16(r, 180),
+            HitLavaEffectId = U16(r, 182),
+            HitWaterEffectId = U16(r, 184),
+            HitThingEffectId = U16(r, 186),
+            Health = U16(r, 188),
+            ShotId = r[190],
+            DeathShotId = r[191],
+            TimedDelay = r[192],
+            HitSolidShotId = r[193],
+            HitLavaShotId = r[194],
+            HitWaterShotId = r[195],
+            HitThingShotId = r[196],
+            DamageType = r[197],
+            CollideType = r[198],
+            ProcessType = r[199],
+            AttackCategory = r[200],
+            SoundCategory = Ascii(r, 201, 32),
+            Threat = U16(r, 233),
+            BurnDuration = I32(r, 235),
+        };
+    }
 
-    private static EffectDef ParseEffect(byte[] r) => new(r)
+    private static EffectDef ParseEffect(byte[] r)
     {
-        Name = Ascii(r, 0, 32), ArtResource = Art(r, 32), Light = Light(r, 116),
-        Mass = I32(r, 140), AirFriction = I32(r, 144), Elasticity = I32(r, 148), Radius = I32(r, 152),
-        MinSpeedXy = I32(r, 156), MaxSpeedXy = I32(r, 160), MinSpeedYz = I32(r, 164),
-        MaxSpeedYz = I32(r, 168), MinScale = I32(r, 172), MaxScale = I32(r, 176),
-        Flags = U32(r, 180), EffectId = U16(r, 184), MinHp = U16(r, 186), MaxHp = U16(r, 188),
-        FadeDuration = U16(r, 190), NextEffectId = U16(r, 192), DeathEffectId = U16(r, 194),
-        HitSolidEffectId = U16(r, 196), HitWaterEffectId = U16(r, 198), HitLavaEffectId = U16(r, 200),
-        GenerateIds = U16s(r, 202, 8), OuterOriginRange = U16(r, 218), LowerHeightLimit = U16(r, 220),
-        UpperHeightLimit = U16(r, 222), OrientationRange = U16(r, 224), SpriteSpinRateRange = U16(r, 226),
-        WhirlpoolRate = U16(r, 228), DirectionalSpread = U16(r, 230), CircularPathRate = U16(r, 232),
-        InnerOriginRange = U16(r, 234), GenerateRandomness = U16(r, 236),
-        Unknown_00EE = U16(r, 238), Unknown_00F0 = U16(r, 240),
-        GenerationType = r[242],
-        ElementsPerTurn = r[243], Unknown_00F4 = U16(r, 244),
-    };
+        return new(r)
+        {
+            Name = Ascii(r, 0, 32),
+            ArtResource = Art(r, 32),
+            Light = Light(r, 116),
+            Mass = I32(r, 140),
+            AirFriction = I32(r, 144),
+            Elasticity = I32(r, 148),
+            Radius = I32(r, 152),
+            MinSpeedXy = I32(r, 156),
+            MaxSpeedXy = I32(r, 160),
+            MinSpeedYz = I32(r, 164),
+            MaxSpeedYz = I32(r, 168),
+            MinScale = I32(r, 172),
+            MaxScale = I32(r, 176),
+            Flags = U32(r, 180),
+            EffectId = U16(r, 184),
+            MinHp = U16(r, 186),
+            MaxHp = U16(r, 188),
+            FadeDuration = U16(r, 190),
+            NextEffectId = U16(r, 192),
+            DeathEffectId = U16(r, 194),
+            HitSolidEffectId = U16(r, 196),
+            HitWaterEffectId = U16(r, 198),
+            HitLavaEffectId = U16(r, 200),
+            GenerateIds = U16s(r, 202, 8),
+            OuterOriginRange = U16(r, 218),
+            LowerHeightLimit = U16(r, 220),
+            UpperHeightLimit = U16(r, 222),
+            OrientationRange = U16(r, 224),
+            SpriteSpinRateRange = U16(r, 226),
+            WhirlpoolRate = U16(r, 228),
+            DirectionalSpread = U16(r, 230),
+            CircularPathRate = U16(r, 232),
+            InnerOriginRange = U16(r, 234),
+            GenerateRandomness = U16(r, 236),
+            Unknown_00EE = U16(r, 238),
+            Unknown_00F0 = U16(r, 240),
+            GenerationType = r[242],
+            ElementsPerTurn = r[243],
+            Unknown_00F4 = U16(r, 244),
+        };
+    }
 
-    private static EffectElementDef ParseEffectElement(byte[] r) => new(r)
+    private static EffectElementDef ParseEffectElement(byte[] r)
     {
-        Name = Ascii(r, 0, 32), ArtResource = Art(r, 32), Mass = I32(r, 116),
-        AirFriction = I32(r, 120), Elasticity = I32(r, 124), MinSpeedXy = I32(r, 128),
-        MaxSpeedXy = I32(r, 132), MinSpeedYz = I32(r, 136), MaxSpeedYz = I32(r, 140),
-        MinScale = I32(r, 144), MaxScale = I32(r, 148), ScaleRatio = I32(r, 152),
-        Flags = U32(r, 156), EffectElementId = U16(r, 160), MinHp = U16(r, 162), MaxHp = U16(r, 164),
-        DeathElementId = U16(r, 166), HitSolidElementId = U16(r, 168), HitWaterElementId = U16(r, 170),
-        HitLavaElementId = U16(r, 172), Red = r[174], Green = r[175], Blue = r[176],
-        RandomColorIndex = r[177], TableColorIndex = r[178], FadePercentage = r[179],
-        NextEffectId = U16(r, 180),
-    };
+        return new(r)
+        {
+            Name = Ascii(r, 0, 32),
+            ArtResource = Art(r, 32),
+            Mass = I32(r, 116),
+            AirFriction = I32(r, 120),
+            Elasticity = I32(r, 124),
+            MinSpeedXy = I32(r, 128),
+            MaxSpeedXy = I32(r, 132),
+            MinSpeedYz = I32(r, 136),
+            MaxSpeedYz = I32(r, 140),
+            MinScale = I32(r, 144),
+            MaxScale = I32(r, 148),
+            ScaleRatio = I32(r, 152),
+            Flags = U32(r, 156),
+            EffectElementId = U16(r, 160),
+            MinHp = U16(r, 162),
+            MaxHp = U16(r, 164),
+            DeathElementId = U16(r, 166),
+            HitSolidElementId = U16(r, 168),
+            HitWaterElementId = U16(r, 170),
+            HitLavaElementId = U16(r, 172),
+            Red = r[174],
+            Green = r[175],
+            Blue = r[176],
+            RandomColorIndex = r[177],
+            TableColorIndex = r[178],
+            FadePercentage = r[179],
+            NextEffectId = U16(r, 180),
+        };
+    }
 
-    internal static KwdArtResource Art(byte[] r, int at) => new(
+    internal static KwdArtResource Art(byte[] r, int at)
+    {
+        return new(
         Ascii(r, at, 64), U32(r, at + 64), r.AsMemory(at + 68, 12),
         r[at + 80], r[at + 81], r[at + 82], r[at + 83]);
+    }
 
-    internal static KwdLight Light(byte[] r, int at) => new(
+    internal static KwdLight Light(byte[] r, int at)
+    {
+        return new(
         I32(r, at), I32(r, at + 4), I32(r, at + 8), I32(r, at + 12), U32(r, at + 16),
         r[at + 20], r[at + 21], r[at + 22], r[at + 23]);
+    }
 
     internal static string Ascii(byte[] r, int at, int size)
     {
@@ -148,18 +249,35 @@ public static partial class KwdAdditionalRecords
         return Encoding.Unicode.GetString(s[..bytes]).Trim();
     }
 
-    internal static ushort U16(byte[] r, int at) =>
-        BinaryPrimitives.ReadUInt16LittleEndian(r.AsSpan(at));
-    internal static short I16(byte[] r, int at) =>
-        BinaryPrimitives.ReadInt16LittleEndian(r.AsSpan(at));
-    internal static uint U32(byte[] r, int at) =>
-        BinaryPrimitives.ReadUInt32LittleEndian(r.AsSpan(at));
-    internal static int I32(byte[] r, int at) =>
-        BinaryPrimitives.ReadInt32LittleEndian(r.AsSpan(at));
-    internal static ushort[] U16s(byte[] r, int at, int count) =>
-        [.. Enumerable.Range(0, count).Select(i => U16(r, at + i * 2))];
-    internal static int[] I32s(byte[] r, int at, int count) =>
-        [.. Enumerable.Range(0, count).Select(i => I32(r, at + i * 4))];
+    internal static ushort U16(byte[] r, int at)
+    {
+        return BinaryPrimitives.ReadUInt16LittleEndian(r.AsSpan(at));
+    }
+
+    internal static short I16(byte[] r, int at)
+    {
+        return BinaryPrimitives.ReadInt16LittleEndian(r.AsSpan(at));
+    }
+
+    internal static uint U32(byte[] r, int at)
+    {
+        return BinaryPrimitives.ReadUInt32LittleEndian(r.AsSpan(at));
+    }
+
+    internal static int I32(byte[] r, int at)
+    {
+        return BinaryPrimitives.ReadInt32LittleEndian(r.AsSpan(at));
+    }
+
+    internal static ushort[] U16s(byte[] r, int at, int count)
+    {
+        return [.. Enumerable.Range(0, count).Select(i => U16(r, at + i * 2))];
+    }
+
+    internal static int[] I32s(byte[] r, int at, int count)
+    {
+        return [.. Enumerable.Range(0, count).Select(i => I32(r, at + i * 4))];
+    }
 }
 
 /// <summary>Field reader for all twelve THINGS payload tags.</summary>
@@ -213,14 +331,23 @@ public static partial class KwdThings
         };
     }
 
-    private static NeutralCreatureThing Creature198(byte[] r) => new(r)
-    { X = I(r, 0), Y = I(r, 4), Z = I(r, 8), GoldHeld = U(r, 12), Level = r[14], Flags = r[15], InitialHealth = I(r, 16), TriggerId = U(r, 20), CreatureId = r[22], Unknown_0017 = r[23] };
+    private static NeutralCreatureThing Creature198(byte[] r)
+    {
+        return new(r)
+        { X = I(r, 0), Y = I(r, 4), Z = I(r, 8), GoldHeld = U(r, 12), Level = r[14], Flags = r[15], InitialHealth = I(r, 16), TriggerId = U(r, 20), CreatureId = r[22], Unknown_0017 = r[23] };
+    }
 
-    private static GoodCreatureThing Creature199(byte[] r) => new(r)
-    { X = I(r, 0), Y = I(r, 4), Z = I(r, 8), GoldHeld = U(r, 12), Level = r[14], Flags = r[15], ObjectiveTargetActionPointId = I(r, 16), InitialHealth = I(r, 20), TriggerId = U(r, 24), ObjectiveTargetPlayerId = r[26], Objective = r[27], CreatureId = r[28], WanderRadius = r[29], PartyId = r[30], Flags2 = r[31] };
+    private static GoodCreatureThing Creature199(byte[] r)
+    {
+        return new(r)
+        { X = I(r, 0), Y = I(r, 4), Z = I(r, 8), GoldHeld = U(r, 12), Level = r[14], Flags = r[15], ObjectiveTargetActionPointId = I(r, 16), InitialHealth = I(r, 20), TriggerId = U(r, 24), ObjectiveTargetPlayerId = r[26], Objective = r[27], CreatureId = r[28], WanderRadius = r[29], PartyId = r[30], Flags2 = r[31] };
+    }
 
-    private static KeeperCreatureThing Creature200(byte[] r) => new(r)
-    { X = I(r, 0), Y = I(r, 4), Z = I(r, 8), GoldHeld = U(r, 12), Level = r[14], Flags = r[15], InitialHealth = I(r, 16), ObjectiveTargetActionPointId = I(r, 20), TriggerId = U(r, 24), CreatureId = r[26], PlayerId = r[27] };
+    private static KeeperCreatureThing Creature200(byte[] r)
+    {
+        return new(r)
+        { X = I(r, 0), Y = I(r, 4), Z = I(r, 8), GoldHeld = U(r, 12), Level = r[14], Flags = r[15], InitialHealth = I(r, 16), ObjectiveTargetActionPointId = I(r, 20), TriggerId = U(r, 24), CreatureId = r[26], PlayerId = r[27] };
+    }
 
     private static HeroPartyThing Party(byte[] r)
     {
@@ -233,9 +360,20 @@ public static partial class KwdThings
         return new HeroPartyThing(r) { Name = KwdAdditionalRecords.Ascii(r, 0, 32), TriggerId = U(r, 32), PartyId = r[34], Unknown_0023 = I(r, 35), Unknown_0027 = I(r, 39), Members = members };
     }
 
-    private static int I(byte[] r, int at) => KwdAdditionalRecords.I32(r, at);
-    private static ushort U(byte[] r, int at) => KwdAdditionalRecords.U16(r, at);
-    private static ushort[] Words(byte[] r, int at, int count) => KwdAdditionalRecords.U16s(r, at, count);
+    private static int I(byte[] r, int at)
+    {
+        return KwdAdditionalRecords.I32(r, at);
+    }
+
+    private static ushort U(byte[] r, int at)
+    {
+        return KwdAdditionalRecords.U16(r, at);
+    }
+
+    private static ushort[] Words(byte[] r, int at, int count)
+    {
+        return KwdAdditionalRecords.U16s(r, at, count);
+    }
 }
 
 /// <summary>Field reader for the two 16-byte TRIGGERS payload tags.</summary>
@@ -274,9 +412,21 @@ public static partial class KwdTriggers
     private static IReadOnlyDictionary<string, ParameterField> GenericParameterLayout(byte type)
     {
         var p = new Dictionary<string, ParameterField>();
-        void B(string name, int at) => p[name] = new ParameterField(at, 1, false);
-        void W(string name, int at) => p[name] = new ParameterField(at, 2, false);
-        void S(string name, int at) => p[name] = new ParameterField(at, 4, true);
+        void B(string name, int at)
+        {
+            p[name] = new ParameterField(at, 1, false);
+        }
+
+        void W(string name, int at)
+        {
+            p[name] = new ParameterField(at, 2, false);
+        }
+
+        void S(string name, int at)
+        {
+            p[name] = new ParameterField(at, 4, true);
+        }
+
         void Unread() { S("Unreached_0000", 0); S("Unreached_0004", 4); }
 
         // Byte 1 is the flag read, byte 3 the flag compared against. Read off the handler at
@@ -327,10 +477,26 @@ public static partial class KwdTriggers
     private static IReadOnlyDictionary<string, ParameterField> ActionParameterLayout(byte type)
     {
         var p = new Dictionary<string, ParameterField>();
-        void B(string name, int at) => p[name] = new ParameterField(at, 1, false);
-        void W(string name, int at) => p[name] = new ParameterField(at, 2, false);
-        void D(string name, int at) => p[name] = new ParameterField(at, 4, false);
-        void S16(string name, int at) => p[name] = new ParameterField(at, 2, true);
+        void B(string name, int at)
+        {
+            p[name] = new ParameterField(at, 1, false);
+        }
+
+        void W(string name, int at)
+        {
+            p[name] = new ParameterField(at, 2, false);
+        }
+
+        void D(string name, int at)
+        {
+            p[name] = new ParameterField(at, 4, false);
+        }
+
+        void S16(string name, int at)
+        {
+            p[name] = new ParameterField(at, 2, true);
+        }
+
         void Unread() { D("Unreached_0000", 0); D("Unreached_0004", 4); }
 
         // Q227 (trigger-action-arms.md): action 24 reads only the low byte of its second dword
@@ -453,5 +619,8 @@ public static partial class KwdLevel
         };
     }
 
-    private static uint Check(byte[] r, int at) => at + 4 <= r.Length ? KwdAdditionalRecords.U32(r, at) : 0;
+    private static uint Check(byte[] r, int at)
+    {
+        return at + 4 <= r.Length ? KwdAdditionalRecords.U32(r, at) : 0;
+    }
 }

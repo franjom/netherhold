@@ -23,7 +23,13 @@ public sealed class PlaceholderProvider : IAssetProvider
     /// <summary>The single instance. Stateless, so sharing one is free.</summary>
     public static readonly PlaceholderProvider Instance = new();
 
-    public string Name => "placeholder";
+    public string Name
+    {
+        get
+        {
+            return "placeholder";
+        }
+    }
 
     public bool TryResolve(AssetRef reference, out ResolvedAsset asset)
     {
@@ -86,28 +92,34 @@ public sealed class PlaceholderProvider : IAssetProvider
     /// solid terrain and the texture of a walkable one, so the shapes come out right
     /// without a game database here.
     /// </summary>
-    public static PlaceholderShape ShapeFor(AssetRef reference) => reference.Kind switch
+    public static PlaceholderShape ShapeFor(AssetRef reference)
     {
-        AssetKind.Texture => PlaceholderShape.Slab,
-        AssetKind.Mesh => reference.Key.StartsWith(AssetRef.CreatureCategory + ".", System.StringComparison.Ordinal)
-            ? PlaceholderShape.Figure
-            : PlaceholderShape.Block,
+        return reference.Kind switch
+        {
+            AssetKind.Texture => PlaceholderShape.Slab,
+            AssetKind.Mesh => reference.Key.StartsWith(AssetRef.CreatureCategory + ".", System.StringComparison.Ordinal)
+                ? PlaceholderShape.Figure
+                : PlaceholderShape.Block,
 
-        // Nothing visual to stand in for: silence and no particles are
-        // honest placeholders, and drawing a box for a sound would be a lie.
-        AssetKind.Sound or AssetKind.Music or AssetKind.Video or AssetKind.Effect => PlaceholderShape.None,
+            // Nothing visual to stand in for: silence and no particles are
+            // honest placeholders, and drawing a box for a sound would be a lie.
+            AssetKind.Sound or AssetKind.Music or AssetKind.Video or AssetKind.Effect => PlaceholderShape.None,
 
-        // An animation's placeholder is the absence of movement, not a shape.
-        AssetKind.Animation => PlaceholderShape.None,
+            // An animation's placeholder is the absence of movement, not a shape.
+            AssetKind.Animation => PlaceholderShape.None,
 
-        _ => PlaceholderShape.Block,
-    };
+            _ => PlaceholderShape.Block,
+        };
+    }
 
     /// <summary>
     /// Pushes a raw hash byte into 64..223, so nothing comes out as
     /// indistinguishable-from-black or washed out.
     /// </summary>
-    private static byte MidRange(byte raw) => (byte)(64 + (raw * 160 / 256));
+    private static byte MidRange(byte raw)
+    {
+        return (byte)(64 + (raw * 160 / 256));
+    }
 
     /// <summary>
     /// A stable index in <c>0..count-1</c> for an asset key, from the same hash

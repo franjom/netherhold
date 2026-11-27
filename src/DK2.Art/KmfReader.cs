@@ -284,8 +284,10 @@ public static class KmfReader
             return positions[g] + (positions[g + 1] - positions[g]) * t;
         }
 
-        InvalidDataException Invalid(string message, Exception? innerException = null) =>
-            new($"Invalid KMF animation: {message}", innerException);
+        InvalidDataException Invalid(string message, Exception? innerException = null)
+        {
+            return new($"Invalid KMF animation: {message}", innerException);
+        }
     }
 
     // CTRL: the mesh's tagged points, a vertex reference and an id each (0x00580E10 reads the id,
@@ -405,7 +407,10 @@ public static class KmfReader
     {
         private readonly ReadOnlySpan<byte> _data;
         private int _position;
-        public SpanReader(ReadOnlySpan<byte> data) => _data = data;
+        public SpanReader(ReadOnlySpan<byte> data)
+        {
+            _data = data;
+        }
 
         public byte Byte() { Require(1); return _data[_position++]; }
         public ushort UInt16()
@@ -418,9 +423,21 @@ public static class KmfReader
             Require(4); uint value = BinaryPrimitives.ReadUInt32LittleEndian(_data[_position..]);
             _position += 4; return value;
         }
-        public float Single() => BitConverter.Int32BitsToSingle(unchecked((int)UInt32()));
-        public Vector3 Vector3() => new(Single(), Single(), Single());
-        public Vector2 Uv() => new(UInt16() / 32768f, UInt16() / 32768f);
+        public float Single()
+        {
+            return BitConverter.Int32BitsToSingle(unchecked((int)UInt32()));
+        }
+
+        public Vector3 Vector3()
+        {
+            return new(Single(), Single(), Single());
+        }
+
+        public Vector2 Uv()
+        {
+            return new(UInt16() / 32768f, UInt16() / 32768f);
+        }
+
         public uint Count(string name)
         {
             uint value = UInt32();
@@ -460,10 +477,17 @@ public static class KmfReader
                 throw Invalid($"Expected chunk '{expected}', found '{actual}'.");
             }
         }
-        public void SkipSectionSize() => _ = UInt32();
+        public void SkipSectionSize()
+        {
+            _ = UInt32();
+        }
+
         public void Skip(int count) { Require(count); _position += count; }
-        public InvalidDataException Invalid(string message, Exception? innerException = null) =>
-            new($"Invalid KMF at byte 0x{_position:x}: {message}", innerException);
+        public InvalidDataException Invalid(string message, Exception? innerException = null)
+        {
+            return new($"Invalid KMF at byte 0x{_position:x}: {message}", innerException);
+        }
+
         private void Require(int count)
         {
             if (count < 0 || _position > _data.Length - count)

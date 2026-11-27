@@ -82,13 +82,18 @@ public static class AssetCatalogue
 
     /// <summary>Elements drawn as models: a static mesh (art type 5) or an animated one (type 6,
     /// the Portal Beams' sixty frames).</summary>
-    public static IEnumerable<EffectElementDef> MeshEffectElements(GameDatabase database) =>
-        database.EffectElements.Values.OrderBy(element => element.EffectElementId)
+    public static IEnumerable<EffectElementDef> MeshEffectElements(GameDatabase database)
+    {
+        return database.EffectElements.Values.OrderBy(element => element.EffectElementId)
             .Where(element => element.ArtResource.Type is 5 or 6 && !string.IsNullOrWhiteSpace(element.ArtResource.Name));
+    }
 
-    public static IEnumerable<ShotDef> MeshShots(GameDatabase database) => database.Shots.Values
+    public static IEnumerable<ShotDef> MeshShots(GameDatabase database)
+    {
+        return database.Shots.Values
         .OrderBy(shot => shot.ShotId).Where(shot => shot.MeshResource.Type is 5 or 6
             && !string.IsNullOrWhiteSpace(shot.MeshResource.Name));
+    }
 
     /// <summary>
     /// Every key the database implies, ordered by record id within each category so
@@ -148,8 +153,10 @@ public static class AssetCatalogue
     public const string DefaultTorchArt = "Torch1";
 
     /// <summary>A wall torch's mesh, keyed by its art name so the rooms that share one share it.</summary>
-    public static AssetRef TorchMesh(string artName) =>
-        AssetRef.ForRoom("torch", AssetKind.Mesh, artName);
+    public static AssetRef TorchMesh(string artName)
+    {
+        return AssetRef.ForRoom("torch", AssetKind.Mesh, artName);
+    }
 
     /// <summary>
     /// One mesh per distinct torch art: the bridge default and every room's whose torch art flag
@@ -310,16 +317,20 @@ public static class AssetCatalogue
     public const int HeroLairPieces = 5;
 
     /// <summary>Hero Lair floor quarter <paramref name="piece"/> (0..4).</summary>
-    public static AssetRef HeroLairPiece(string terrainName, int piece) =>
-        AssetRef.ForTerrain(terrainName, AssetKind.Mesh, "outpost" + piece);
+    public static AssetRef HeroLairPiece(string terrainName, int piece)
+    {
+        return AssetRef.ForTerrain(terrainName, AssetKind.Mesh, "outpost" + piece);
+    }
 
     /// <summary>A hero-owned PlayerColouredWall's faces are pieces 4..8 of the hero wall set,
     /// "Herowall_LevelDefaultPart4..8" (floor-and-terrain-pieces.md section 5).</summary>
     public const int FirstHeroWallPiece = 4, HeroWallPieces = 5;
 
     /// <summary>Hero wall face piece <paramref name="piece"/> (4..8) of a PlayerColouredWall terrain.</summary>
-    public static AssetRef HeroWallPiece(string terrainName, int piece) =>
-        AssetRef.ForTerrain(terrainName, AssetKind.Mesh, "hero" + piece);
+    public static AssetRef HeroWallPiece(string terrainName, int piece)
+    {
+        return AssetRef.ForTerrain(terrainName, AssetKind.Mesh, "hero" + piece);
+    }
 
     /// <summary>The variants <see cref="TerrainPiece"/> takes: art 1, 2, 3 and 0.</summary>
     public const string TerrainSide = "side", TerrainTop = "top", TerrainTopTagged = "toptagged",
@@ -327,20 +338,26 @@ public static class AssetCatalogue
 
     /// <summary>A plain terrain's whole piece: <see cref="TerrainSide"/>, <see cref="TerrainTop"/>,
     /// <see cref="TerrainTopTagged"/> or <see cref="TerrainFloor"/>.</summary>
-    public static AssetRef TerrainPiece(string terrainName, string piece) =>
-        AssetRef.ForTerrain(terrainName, AssetKind.Mesh, piece);
+    public static AssetRef TerrainPiece(string terrainName, string piece)
+    {
+        return AssetRef.ForTerrain(terrainName, AssetKind.Mesh, piece);
+    }
 
     /// <summary>The bed pieces of a water or lava terrain, "&lt;art 0&gt;0..7" (WATER BED0..7, LAVA
     /// BED0..7; the terrain loader <c>0x004F66E0</c>).</summary>
     public const int BedPieces = 8;
 
     /// <summary>Bed piece <paramref name="k"/> of a water or lava terrain.</summary>
-    public static AssetRef TerrainBed(string terrainName, int k) =>
-        AssetRef.ForTerrain(terrainName, AssetKind.Mesh, "bed" + k);
+    public static AssetRef TerrainBed(string terrainName, int k)
+    {
+        return AssetRef.ForTerrain(terrainName, AssetKind.Mesh, "bed" + k);
+    }
 
     /// <summary>A player-coloured quarter of a terrain: piece 0..4 of player set 0..6.</summary>
-    public static AssetRef TerrainQuarter(string terrainName, int set, int piece) =>
-        AssetRef.ForTerrain(terrainName, AssetKind.Mesh, $"quarter{set}{piece}");
+    public static AssetRef TerrainQuarter(string terrainName, int set, int piece)
+    {
+        return AssetRef.ForTerrain(terrainName, AssetKind.Mesh, $"quarter{set}{piece}");
+    }
 
     /// <summary>
     /// A floor texture and a mesh per room type — both for every room, because a DK2
@@ -379,39 +396,51 @@ public static class AssetCatalogue
     public const int FirstWallPiece = 4, LastWallPiece = 8;
 
     /// <summary>A room's wall piece: <see cref="RoomPiece"/> 4 to 8.</summary>
-    public static AssetRef WallPiece(string roomName, int piece) => RoomPiece(roomName, piece);
+    public static AssetRef WallPiece(string roomName, int piece)
+    {
+        return RoomPiece(roomName, piece);
+    }
 
     /// <summary>A room's piece k, built by DK2's loader from the name of the room's art 2 and the
     /// number (<c>0x004EACC0</c>, wall-pieces.md §1): floor quarters, wall pieces and centres alike.</summary>
-    public static AssetRef RoomPiece(string roomName, int piece) =>
-        AssetRef.ForRoom(roomName, AssetKind.Mesh, "piece" + piece);
+    public static AssetRef RoomPiece(string roomName, int piece)
+    {
+        return AssetRef.ForRoom(roomName, AssetKind.Mesh, "piece" + piece);
+    }
 
-    public static AssetRef DestroyedHeartPiece(string roomName, int piece) =>
-        AssetRef.ForRoom(roomName, AssetKind.Mesh, "destroyedpiece" + piece);
+    public static AssetRef DestroyedHeartPiece(string roomName, int piece)
+    {
+        return AssetRef.ForRoom(roomName, AssetKind.Mesh, "destroyedpiece" + piece);
+    }
 
     /// <summary>How many numbered pieces DK2's loader builds for the room's construction, k = 0
     /// up (wall-pieces.md §1): Quad 4, 3×3 9, 3×3 rotated 3, Normal 10, DoubleQuad 15, the Heart 4,
     /// the 2×2 hero gate 4 and the 3×1 hero gate 7. The Final and Tile gates' pieces
     /// (numbered from 1, or the bare name) are not keyed yet. The destroyed Heart is keyed separately. The unused
     /// Mercenary Gate is a 2×2 gate too, but its art 2 is empty, so none of its pieces exist.</summary>
-    public static int RoomPieceCount(RoomDef room) => room.Construction switch
+    public static int RoomPieceCount(RoomDef room)
     {
-        TileConstruction.QuadConstruction => 4,
-        TileConstruction.ThreeByThree => 9,
-        TileConstruction.ThreeByThreeRotated => 3,
-        TileConstruction.Normal => 10,
-        TileConstruction.DoubleQuad => 15,
-        TileConstruction.FiveByFiveRotated => 4,
-        TileConstruction.HeroGate2By2 when room.TypeId != RoomTypeId.MercenaryGate => 4,
-        TileConstruction.HeroGate3By1 => 7,
-        TileConstruction.HeroGateFrontEndTile => 16,
-        _ => 0,
-    };
+        return room.Construction switch
+        {
+            TileConstruction.QuadConstruction => 4,
+            TileConstruction.ThreeByThree => 9,
+            TileConstruction.ThreeByThreeRotated => 3,
+            TileConstruction.Normal => 10,
+            TileConstruction.DoubleQuad => 15,
+            TileConstruction.FiveByFiveRotated => 4,
+            TileConstruction.HeroGate2By2 when room.TypeId != RoomTypeId.MercenaryGate => 4,
+            TileConstruction.HeroGate3By1 => 7,
+            TileConstruction.HeroGateFrontEndTile => 16,
+            _ => 0,
+        };
+    }
 
     /// <summary>Whether the presentation draws this room's walls: the Normal and DoubleQuad rooms,
     /// whose wall chooser is the general one (<c>0x00444F10</c>).</summary>
-    public static bool DrawsRoomWalls(RoomDef room) =>
-        room.Construction is TileConstruction.Normal or TileConstruction.DoubleQuad;
+    public static bool DrawsRoomWalls(RoomDef room)
+    {
+        return room.Construction is TileConstruction.Normal or TileConstruction.DoubleQuad;
+    }
 
     /// <summary>
     /// Living and corpse meshes and one animation per implemented activity, for every creature the
@@ -474,22 +503,27 @@ public static class AssetCatalogue
 
     /// <summary>An object's file art <paramref name="slot"/> (5 to 8, the definition's extra arts;
     /// object-drawing.md §2). Slot 0 is the object's <see cref="AssetKind.Mesh"/>.</summary>
-    public static AssetRef ObjectArt(string objectName, int slot) =>
-        AssetRef.ForObject(objectName, AssetKind.Mesh, "art" + slot);
+    public static AssetRef ObjectArt(string objectName, int slot)
+    {
+        return AssetRef.ForObject(objectName, AssetKind.Mesh, "art" + slot);
+    }
 
     /// <summary>The extra arts a view switches an object to: Gold Pile 1's urns by fill
     /// (<c>0x004F4440</c>) and the Book Case's three variants (<c>0x004EE6A5</c>).</summary>
-    public static IReadOnlyList<int> ObjectArtSlots(byte objectId) => objectId switch
+    public static IReadOnlyList<int> ObjectArtSlots(byte objectId)
     {
-        3 => GoldPileSlots,
-        9 => ChickenSlots,
-        10 => CallToArmsSlots,
-        14 or 35 or 47 or 109 => ReactionSlots,
-        23 => MistressBedSlots,
-        64 => BookCaseSlots,
-        95 => ChickenSlots,
-        _ => [],
-    };
+        return objectId switch
+        {
+            3 => GoldPileSlots,
+            9 => ChickenSlots,
+            10 => CallToArmsSlots,
+            14 or 35 or 47 or 109 => ReactionSlots,
+            23 => MistressBedSlots,
+            64 => BookCaseSlots,
+            95 => ChickenSlots,
+            _ => [],
+        };
+    }
 
     private static readonly int[] GoldPileSlots = [5, 6];
     private static readonly int[] MistressBedSlots = [7];

@@ -57,7 +57,13 @@ public static class CreatureStateCategoryTable
     ];
 
     /// <summary>Every category record, in index order.</summary>
-    public static ReadOnlySpan<CreatureStateCategoryDef> All => Rows;
+    public static ReadOnlySpan<CreatureStateCategoryDef> All
+    {
+        get
+        {
+            return Rows;
+        }
+    }
 
     /// <summary>The record for one category.</summary>
     public static ref readonly CreatureStateCategoryDef Get(CreatureStateCategory category)

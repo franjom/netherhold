@@ -21,6 +21,9 @@ public sealed class WadDirectoryIndex
             _entries[directory + name] = i;
         }
     }
-    public int Find(string path) => _entries.TryGetValue(path.Replace('\\', '/'), out int index)
+    public int Find(string path)
+    {
+        return _entries.TryGetValue(path.Replace('\\', '/'), out int index)
         ? index : throw new FileNotFoundException("WAD image was not found in its directory: " + path);
+    }
 }

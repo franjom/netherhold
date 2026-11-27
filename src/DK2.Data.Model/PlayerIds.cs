@@ -42,5 +42,8 @@ public static class PlayerIds
     /// Whether this id is a keeper — someone who can hold a dungeon heart, be
     /// dealt a creature pool, and have a portal produce for them.
     /// </summary>
-    public static bool IsKeeper(byte playerId) => playerId >= FirstKeeper;
+    public static bool IsKeeper(byte playerId)
+    {
+        return playerId >= FirstKeeper;
+    }
 }

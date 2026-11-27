@@ -112,12 +112,53 @@ public sealed record RoomDef
     /// from a hand-built definition, which gets the balance defaults' torch.</summary>
     public RoomTorch? Torch { get; init; }
 
-    public bool IsBuildable => ((Flags & RoomFlags.Buildable) == RoomFlags.Buildable);
-    public bool PlaceableOnLand => ((Flags & RoomFlags.PlaceableOnLand) == RoomFlags.PlaceableOnLand);
-    public bool PlaceableOnWater => ((Flags & RoomFlags.PlaceableOnWater) == RoomFlags.PlaceableOnWater);
-    public bool PlaceableOnLava => ((Flags & RoomFlags.PlaceableOnLava) == RoomFlags.PlaceableOnLava);
-    public bool IsGood => ((Flags & RoomFlags.IsGood) == RoomFlags.IsGood);
-    public bool HasWalls => ((Flags & RoomFlags.HasWalls) == RoomFlags.HasWalls);
+    public bool IsBuildable
+    {
+        get
+        {
+            return ((Flags & RoomFlags.Buildable) == RoomFlags.Buildable);
+        }
+    }
+
+    public bool PlaceableOnLand
+    {
+        get
+        {
+            return ((Flags & RoomFlags.PlaceableOnLand) == RoomFlags.PlaceableOnLand);
+        }
+    }
+
+    public bool PlaceableOnWater
+    {
+        get
+        {
+            return ((Flags & RoomFlags.PlaceableOnWater) == RoomFlags.PlaceableOnWater);
+        }
+    }
+
+    public bool PlaceableOnLava
+    {
+        get
+        {
+            return ((Flags & RoomFlags.PlaceableOnLava) == RoomFlags.PlaceableOnLava);
+        }
+    }
+
+    public bool IsGood
+    {
+        get
+        {
+            return ((Flags & RoomFlags.IsGood) == RoomFlags.IsGood);
+        }
+    }
+
+    public bool HasWalls
+    {
+        get
+        {
+            return ((Flags & RoomFlags.HasWalls) == RoomFlags.HasWalls);
+        }
+    }
 
     /// <summary>The strongly-typed room type, when it is one we have named.</summary>
     ///
@@ -126,7 +167,13 @@ public sealed record RoomDef
     /// per-tick rules ask this for every room, and in the whole run it was the simulation's third
     /// largest allocation (ADR-0696).
     /// </remarks>
-    public RoomTypeId? TypeId => NamedIdLookup[RoomId];
+    public RoomTypeId? TypeId
+    {
+        get
+        {
+            return NamedIdLookup[RoomId];
+        }
+    }
 
     private static readonly RoomTypeId?[] NamedIdLookup = NamedIds();
 

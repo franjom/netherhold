@@ -42,23 +42,34 @@ public static class CreatureAnimationArt
 
     /// <summary>Whether the clip has <paramref name="segment"/>: the main one always, the start and end ones by the
     /// resource's flags.</summary>
-    public static bool HasSegment(Dk2ArtResource resource, AnimationSegment segment) => segment switch
+    public static bool HasSegment(Dk2ArtResource resource, AnimationSegment segment)
     {
-        AnimationSegment.Start => (resource.AnimationFlags & CreatureAnimationFlags.StartSegment) != 0,
-        AnimationSegment.End => (resource.AnimationFlags & CreatureAnimationFlags.EndSegment) != 0,
-        _ => true,
-    };
+        return segment switch
+        {
+            AnimationSegment.Start => (resource.AnimationFlags & CreatureAnimationFlags.StartSegment) != 0,
+            AnimationSegment.End => (resource.AnimationFlags & CreatureAnimationFlags.EndSegment) != 0,
+            _ => true,
+        };
+    }
 
-    public static CreatureAnimationTiming Timing(Dk2ArtResource resource) => new()
+    public static CreatureAnimationTiming Timing(Dk2ArtResource resource)
     {
-        ResourceType = resource.Type, FrameCount = resource.FrameCount,
-        FramesPerSecond = resource.FramesPerSecond, Flags = resource.AnimationFlags,
-        StartSegmentFrames = resource.StartSegmentFrames, EndSegmentFrames = resource.EndSegmentFrames,
-    };
+        return new()
+        {
+            ResourceType = resource.Type,
+            FrameCount = resource.FrameCount,
+            FramesPerSecond = resource.FramesPerSecond,
+            Flags = resource.AnimationFlags,
+            StartSegmentFrames = resource.StartSegmentFrames,
+            EndSegmentFrames = resource.EndSegmentFrames,
+        };
+    }
 
     /// <summary>The resource's movement scale when the clip follows a movement speed, else none.</summary>
-    public static Fp32? AuthoredMovementScale(Dk2ArtResource resource, Fp32? movementSpeed) =>
-        movementSpeed.HasValue ? new Fp32(resource.MovementScale) : null;
+    public static Fp32? AuthoredMovementScale(Dk2ArtResource resource, Fp32? movementSpeed)
+    {
+        return movementSpeed.HasValue ? new Fp32(resource.MovementScale) : null;
+    }
 }
 
 /// <summary>Plays one creature's or object's type-6 clip on the draw clock: the turn catch-up, the deferred replacement,
@@ -84,8 +95,10 @@ public sealed class CreatureAnimationPlayer<TResources>
     private float _drawnPhase;
     private bool _sampleCurrent;
 
-    public CreatureAnimationPlayer(ICreatureAnimationSurface<TResources> surface) =>
+    public CreatureAnimationPlayer(ICreatureAnimationSurface<TResources> surface)
+    {
         _surface = surface ?? throw new ArgumentNullException(nameof(surface));
+    }
 
     /// <summary>What the last <see cref="Draw"/> found of the clip's footstep marks: 0 none, 1 before the clip's wrap, 2 after it
     /// (<c>0x004B4630</c>, asked at each drawn frame by <c>0x0043CC30</c>).</summary>
@@ -97,12 +110,27 @@ public sealed class CreatureAnimationPlayer<TResources>
     /// <summary>Counts clip installs, including a deferred clip taking over.</summary>
     public int InstallationRevision { get; private set; }
 
-    public AnimationSegment? DrawnSegment => _drawnSegment;
+    public AnimationSegment? DrawnSegment
+    {
+        get
+        {
+            return _drawnSegment;
+        }
+    }
 
     /// <summary>The clock, or null while stopped.</summary>
-    public RenderAnimationClock? Clock => _clock;
+    public RenderAnimationClock? Clock
+    {
+        get
+        {
+            return _clock;
+        }
+    }
 
-    public void ConsumeBeat() => BeatPending = false;
+    public void ConsumeBeat()
+    {
+        BeatPending = false;
+    }
 
     /// <summary>One turn of a Heart's health phase, outside the catch-up.</summary>
     public void AdvanceHealthPhase(Fp32 phaseStep)

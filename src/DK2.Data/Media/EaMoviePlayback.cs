@@ -71,10 +71,19 @@ public sealed class EaMovieTimeline
     /// <summary>Stereo sample frames across every audio block.</summary>
     public long TotalAudioFrames { get; }
 
-    public bool HasAudio => TotalAudioFrames > 0;
+    public bool HasAudio
+    {
+        get
+        {
+            return TotalAudioFrames > 0;
+        }
+    }
 
     /// <summary>The sample frame at which audio block <paramref name="block"/> starts.</summary>
-    public long BlockStart(int block) => _blockStart[block];
+    public long BlockStart(int block)
+    {
+        return _blockStart[block];
+    }
 
     /// <summary>The audio block that holds sample frame <paramref name="frame"/>, or the block
     /// count when it lies past the end.</summary>
@@ -121,8 +130,10 @@ public sealed class EaMovieTimeline
 
     /// <summary><see cref="ShowableFrames(long)"/> for a movie without audio: frame n is due at
     /// n / <see cref="SilentFramesPerSecond"/> seconds.</summary>
-    public int ShowableFramesWithoutAudio(double seconds) =>
-        seconds < 0 ? 0 : (int)Math.Min(VideoFrames.Count, Math.Floor(seconds * SilentFramesPerSecond) + 1);
+    public int ShowableFramesWithoutAudio(double seconds)
+    {
+        return seconds < 0 ? 0 : (int)Math.Min(VideoFrames.Count, Math.Floor(seconds * SilentFramesPerSecond) + 1);
+    }
 
     /// <summary>The next frame to decode after <paramref name="shown"/> (-1 before the first), given
     /// <paramref name="showable"/> frames are due; -1 when none is due yet. Frames that leave the
@@ -154,13 +165,24 @@ public sealed class EaAudioStream
     private int _blockFrames;
     private long _position;
 
-    public EaAudioStream(EaMovieTimeline timeline) =>
+    public EaAudioStream(EaMovieTimeline timeline)
+    {
         _timeline = timeline ?? throw new ArgumentNullException(nameof(timeline));
+    }
 
     /// <summary>The next sample frame <see cref="Read"/> returns.</summary>
-    public long Position => _position;
+    public long Position
+    {
+        get
+        {
+            return _position;
+        }
+    }
 
-    public void Seek(long frame) => _position = Math.Max(0, Math.Min(frame, _timeline.TotalAudioFrames));
+    public void Seek(long frame)
+    {
+        _position = Math.Max(0, Math.Min(frame, _timeline.TotalAudioFrames));
+    }
 
     /// <summary>Fills <paramref name="interleaved"/> (L, R, L, R ...) from the current position,
     /// silence past the end, and returns the number of stereo frames taken from the movie.</summary>

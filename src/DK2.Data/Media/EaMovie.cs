@@ -44,7 +44,13 @@ public sealed class EaMovie
     }
 
     public IReadOnlyList<EaMovieChunk> Chunks { get; }
-    public bool HasAudio => Chunks.Any(c => c.Kind == EaMovieChunkKind.AudioHeader);
+    public bool HasAudio
+    {
+        get
+        {
+            return Chunks.Any(c => c.Kind == EaMovieChunkKind.AudioHeader);
+        }
+    }
 
     /// <summary>The header's 0x82 element; 1 when absent.</summary>
     public int Channels { get; }
@@ -58,11 +64,23 @@ public sealed class EaMovie
     /// <summary>The header's 0x81 element; 16 when absent.</summary>
     public int SampleBits { get; }
 
-    public int VideoFrameCount => Chunks.Count(c => c.Kind == EaMovieChunkKind.Video);
+    public int VideoFrameCount
+    {
+        get
+        {
+            return Chunks.Count(c => c.Kind == EaMovieChunkKind.Video);
+        }
+    }
 
-    public ReadOnlySpan<byte> Payload(EaMovieChunk chunk) => _data.AsSpan(chunk.Offset, chunk.Length);
+    public ReadOnlySpan<byte> Payload(EaMovieChunk chunk)
+    {
+        return _data.AsSpan(chunk.Offset, chunk.Length);
+    }
 
-    public static EaMovie Open(string path) => Read(File.ReadAllBytes(path), path);
+    public static EaMovie Open(string path)
+    {
+        return Read(File.ReadAllBytes(path), path);
+    }
 
     public static EaMovie Read(byte[] data, string sourceName = "<memory>")
     {

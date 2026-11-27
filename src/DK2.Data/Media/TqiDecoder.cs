@@ -110,8 +110,10 @@ public sealed class TqiDecoder
         }
     }
 
-    public static (int Width, int Height) FrameSize(ReadOnlySpan<byte> payload) =>
-        (BinaryPrimitives.ReadUInt16LittleEndian(payload), BinaryPrimitives.ReadUInt16LittleEndian(payload[2..]));
+    public static (int Width, int Height) FrameSize(ReadOnlySpan<byte> payload)
+    {
+        return (BinaryPrimitives.ReadUInt16LittleEndian(payload), BinaryPrimitives.ReadUInt16LittleEndian(payload[2..]));
+    }
 
     /// <summary>Decodes <paramref name="payload"/> into <paramref name="rgba"/> (width * height * 4
     /// bytes) and returns the number of bitstream bits consumed.</summary>
@@ -187,7 +189,10 @@ public sealed class TqiDecoder
         _matrixQuantiser = quantiser;
     }
 
-    private static int FixMul(int a, int b) => (int)(((long)a * b + 0x8000) >> 16);
+    private static int FixMul(int a, int b)
+    {
+        return (int)(((long)a * b + 0x8000) >> 16);
+    }
 
     private void LoadWords(ReadOnlySpan<byte> bits)
     {
@@ -335,9 +340,15 @@ public sealed class TqiDecoder
         }
     }
 
-    private static int MulSqrtHalf(int x) => (int)(((long)x * SqrtHalfQ31) >> 32) * 2;
+    private static int MulSqrtHalf(int x)
+    {
+        return (int)(((long)x * SqrtHalfQ31) >> 32) * 2;
+    }
 
-    private static int Round(double x) => (int)Math.Round(x, MidpointRounding.ToEven);
+    private static int Round(double x)
+    {
+        return (int)Math.Round(x, MidpointRounding.ToEven);
+    }
 
     private static void Butterfly(ReadOnlySpan<int> s, Span<int> o)
     {
@@ -394,7 +405,10 @@ public sealed class TqiDecoder
 
     // The R, G and B tables are contiguous (306, 262, 354 entries); an index past one table's
     // end reads the next table in DK2, which this clamp does not reproduce (extreme colours only).
-    private static byte Channel(int index, int bias) => (byte)Math.Clamp(2 * index - bias, 0, 255);
+    private static byte Channel(int index, int bias)
+    {
+        return (byte)Math.Clamp(2 * index - bias, 0, 255);
+    }
 
     private static int[] BuildAcTable()
     {

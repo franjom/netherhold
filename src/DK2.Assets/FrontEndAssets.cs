@@ -17,17 +17,29 @@ public enum PetDungeonMapPiece : byte { First = 1, Second, Third, Fourth, Fifth,
 
 public static class FrontEndAssets
 {
-    public static AssetRef CampaignPiece(FrontEndMapPiece piece) => Enum.IsDefined(typeof(FrontEndMapPiece), piece)
+    public static AssetRef CampaignPiece(FrontEndMapPiece piece)
+    {
+        return Enum.IsDefined(typeof(FrontEndMapPiece), piece)
         ? AssetRef.Create(AssetRef.UiCategory, "campaign_map", AssetKind.Mesh, piece.ToString())
         : throw new ArgumentOutOfRangeException(nameof(piece));
+    }
 
-    public static AssetRef CampaignMarker(CampaignSlot slot) => slot.IsCampaign
+    public static AssetRef CampaignMarker(CampaignSlot slot)
+    {
+        return slot.IsCampaign
         ? AssetRef.Create(AssetRef.UiCategory, "campaign_marker", AssetKind.Mesh, slot.LevelName!)
         : throw new ArgumentOutOfRangeException(nameof(slot));
+    }
 
-    public static AssetRef PetDungeonPiece(PetDungeonMapPiece piece) => Enum.IsDefined(typeof(PetDungeonMapPiece), piece)
+    public static AssetRef PetDungeonPiece(PetDungeonMapPiece piece)
+    {
+        return Enum.IsDefined(typeof(PetDungeonMapPiece), piece)
         ? AssetRef.Create(AssetRef.UiCategory, "pet_dungeon_map", AssetKind.Mesh, piece.ToString())
         : throw new ArgumentOutOfRangeException(nameof(piece));
+    }
 
-    public static AssetRef EntranceCap(string roomName) => AssetRef.ForRoom(roomName, AssetKind.Mesh, "entrance_cap");
+    public static AssetRef EntranceCap(string roomName)
+    {
+        return AssetRef.ForRoom(roomName, AssetKind.Mesh, "entrance_cap");
+    }
 }

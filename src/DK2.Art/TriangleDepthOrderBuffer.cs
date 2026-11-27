@@ -15,7 +15,14 @@ public sealed class TriangleDepthOrderBuffer
 
         /// <summary>The camera depth (along the sort's forward) of the run's nearest triangle centroid.</summary>
         public float NearestDepth { get; internal set; }
-        public IReadOnlyList<RenderTriangle> Triangles => Storage;
+        public IReadOnlyList<RenderTriangle> Triangles
+        {
+            get
+            {
+                return Storage;
+            }
+        }
+
         internal List<RenderTriangle> Storage { get; } = [];
     }
     private readonly record struct Entry(RenderTriangle Triangle, int Order, float Depth);

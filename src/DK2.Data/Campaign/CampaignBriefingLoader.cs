@@ -22,7 +22,11 @@ public static class CampaignBriefingLoader
         string file = BriefingTextTable.FileName(definition.TextTableId)
             ?? throw new InvalidDataException("Campaign level has no briefing table: " + name);
         var strings = Dk2StringTable.Open(Path.Combine(install, "Data", "Text", "Default", file));
-        string Line(uint id) => strings.TryResolve(id, out string? text) ? text : "";
+        string Line(uint id)
+        {
+            return strings.TryResolve(id, out string? text) ? text : "";
+        }
+
         return new(slot, Line(0), Line(1), Line(2), Array.AsReadOnly([Line(3), Line(4), Line(5)]), definition.Flags);
     }
 }

@@ -6,5 +6,11 @@ namespace DK2.Data.Model;
 
 public readonly record struct KwdTriggerId(ushort Value)
 {
-    public static KwdTriggerId None => new(0);
+    public static KwdTriggerId None
+    {
+        get
+        {
+            return new(0);
+        }
+    }
 }

@@ -13,11 +13,23 @@ public abstract record KwdRoundTripRecord
 {
     private readonly byte[] _sourceBytes;
 
-    protected KwdRoundTripRecord(byte[] sourceBytes) =>
+    protected KwdRoundTripRecord(byte[] sourceBytes)
+    {
         _sourceBytes = sourceBytes?.ToArray() ?? throw new ArgumentNullException(nameof(sourceBytes));
+    }
 
-    public int ConsumedLength => _sourceBytes.Length;
-    public byte[] ToBytes() => [.. _sourceBytes];
+    public int ConsumedLength
+    {
+        get
+        {
+            return _sourceBytes.Length;
+        }
+    }
+
+    public byte[] ToBytes()
+    {
+        return [.. _sourceBytes];
+    }
 }
 
 /// <summary>An 84-byte art-resource descriptor embedded in definition records.</summary>
@@ -30,9 +42,15 @@ public sealed record KwdArtResource(
     byte Unknown_0052,
     byte Unknown_0053)
 {
-    public ProceduralArtKind ProceduralKind => Type == 7 && Unknown_0044.Length >= 4
+    public ProceduralArtKind ProceduralKind
+    {
+        get
+        {
+            return Type == 7 && Unknown_0044.Length >= 4
         ? (ProceduralArtKind)System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(Unknown_0044.Span)
         : ProceduralArtKind.None;
+        }
+    }
 }
 
 public enum ProceduralArtKind : uint
@@ -160,7 +178,11 @@ public sealed record EffectElementDef : KwdRoundTripRecord
 
 public abstract record ThingRecord : KwdRoundTripRecord
 {
-    protected ThingRecord(int tag, byte[] sourceBytes) : base(sourceBytes) => Tag = tag;
+    protected ThingRecord(int tag, byte[] sourceBytes) : base(sourceBytes)
+    {
+        Tag = tag;
+    }
+
     public int Tag { get; }
 }
 
@@ -279,7 +301,11 @@ public sealed record CameraThing : ThingRecord
 
 public abstract record TriggerRecord : KwdRoundTripRecord
 {
-    protected TriggerRecord(int tag, byte[] bytes) : base(bytes) => Tag = tag;
+    protected TriggerRecord(int tag, byte[] bytes) : base(bytes)
+    {
+        Tag = tag;
+    }
+
     public int Tag { get; }
     /// <summary>The type-dependent eight-byte union, retained byte-for-byte.</summary>
     public required ReadOnlyMemory<byte> Body { get; init; }
@@ -295,16 +321,76 @@ public abstract record TriggerRecord : KwdRoundTripRecord
 public sealed record GenericTriggerRecord : TriggerRecord
 {
     public GenericTriggerRecord(byte[] bytes) : base(213, bytes) { }
-    public byte BodyByte0 => Body.Span[0]; public byte BodyByte1 => Body.Span[1];
-    public byte BodyByte2 => Body.Span[2]; public byte BodyByte3 => Body.Span[3];
+    public byte BodyByte0
+    {
+        get
+        {
+            return Body.Span[0];
+        }
+    }
+
+    public byte BodyByte1
+    {
+        get
+        {
+            return Body.Span[1];
+        }
+    }
+
+    public byte BodyByte2
+    {
+        get
+        {
+            return Body.Span[2];
+        }
+    }
+
+    public byte BodyByte3
+    {
+        get
+        {
+            return Body.Span[3];
+        }
+    }
+
     public uint BodyValue { get; init; }
 }
 
 public sealed record ActionTriggerRecord : TriggerRecord
 {
     public ActionTriggerRecord(byte[] bytes) : base(214, bytes) { }
-    public byte BodyByte0 => Body.Span[0]; public byte BodyByte1 => Body.Span[1];
-    public byte BodyByte2 => Body.Span[2]; public byte BodyByte3 => Body.Span[3];
+    public byte BodyByte0
+    {
+        get
+        {
+            return Body.Span[0];
+        }
+    }
+
+    public byte BodyByte1
+    {
+        get
+        {
+            return Body.Span[1];
+        }
+    }
+
+    public byte BodyByte2
+    {
+        get
+        {
+            return Body.Span[2];
+        }
+    }
+
+    public byte BodyByte3
+    {
+        get
+        {
+            return Body.Span[3];
+        }
+    }
+
     public ushort BodyWord4 { get; init; } public ushort BodyWord6 { get; init; }
     public uint BodyDword0 { get; init; } public uint BodyDword4 { get; init; }
 }
@@ -333,7 +419,14 @@ public sealed record LevelDef : KwdRoundTripRecord
     public required string TerrainPath { get; init; }
     public required ReadOnlyMemory<byte> Unknown_6403 { get; init; }
     /// <summary>The chosen OneShotReaper level, or null when extended LEVEL metadata is absent.</summary>
-    public byte? OneShotReaperLevel => Unknown_6403.IsEmpty ? null : Unknown_6403.Span[0];
+    public byte? OneShotReaperLevel
+    {
+        get
+        {
+            return Unknown_6403.IsEmpty ? null : Unknown_6403.Span[0];
+        }
+    }
+
     public required IReadOnlyList<KwdLevelFilePath> Paths { get; init; }
     public required IReadOnlyList<uint> UnknownPathTail { get; init; }
 }

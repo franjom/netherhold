@@ -70,7 +70,10 @@ public sealed class SdtArchive
         return Parse(copy.ToArray());
     }
 
-    public static SdtArchive Read(ReadOnlySpan<byte> data) => Parse(data.ToArray());
+    public static SdtArchive Read(ReadOnlySpan<byte> data)
+    {
+        return Parse(data.ToArray());
+    }
 
     /// <summary>Parses an archive that owns <paramref name="bytes"/>, which is kept, not copied: a bank is read once,
     /// so a speech bank of 33 MB costs 33 MB and not twice that.</summary>
@@ -297,12 +300,18 @@ public sealed class SdtArchive
         return Encoding.ASCII.GetString(bytes[..length].ToArray()).TrimEnd();
     }
 
-    private static ushort U16(ReadOnlySpan<byte> data, int offset) =>
-        BinaryPrimitives.ReadUInt16LittleEndian(data[offset..]);
+    private static ushort U16(ReadOnlySpan<byte> data, int offset)
+    {
+        return BinaryPrimitives.ReadUInt16LittleEndian(data[offset..]);
+    }
 
-    private static uint U32(ReadOnlySpan<byte> data, int offset) =>
-        BinaryPrimitives.ReadUInt32LittleEndian(data[offset..]);
+    private static uint U32(ReadOnlySpan<byte> data, int offset)
+    {
+        return BinaryPrimitives.ReadUInt32LittleEndian(data[offset..]);
+    }
 
-    private static InvalidDataException Invalid(int offset, string message) =>
-        new($"Invalid SDT at byte 0x{offset:x}: {message}");
+    private static InvalidDataException Invalid(int offset, string message)
+    {
+        return new($"Invalid SDT at byte 0x{offset:x}: {message}");
+    }
 }

@@ -13,7 +13,11 @@ public sealed record SoundArchive(SoundArchiveId Id, string Name, byte[] Unknown
 /// <summary>Sound archive names. Layout STRONGLY INFERRED; front-end-assets.md section 5.3.</summary>
 public sealed class BankMap
 {
-    private BankMap(IReadOnlyList<SoundArchive> archives) => Archives = archives;
+    private BankMap(IReadOnlyList<SoundArchive> archives)
+    {
+        Archives = archives;
+    }
+
     public IReadOnlyList<SoundArchive> Archives { get; }
 
     /// <summary>No archives: a category the install does not ship.</summary>

@@ -11,7 +11,13 @@ namespace DK2.Convert.Textures;
 
 internal static class PngWriter
 {
-    private static ReadOnlySpan<byte> Signature => [137, 80, 78, 71, 13, 10, 26, 10];
+    private static ReadOnlySpan<byte> Signature
+    {
+        get
+        {
+            return [137, 80, 78, 71, 13, 10, 26, 10];
+        }
+    }
 
     public static byte[] Write(RgbaImage image)
     {
@@ -81,5 +87,8 @@ internal static class PngWriter
 /// stays free of it.</summary>
 public static class RgbaImagePng
 {
-    public static byte[] ToPng(this RgbaImage image) => PngWriter.Write(image);
+    public static byte[] ToPng(this RgbaImage image)
+    {
+        return PngWriter.Write(image);
+    }
 }

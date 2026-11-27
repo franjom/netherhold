@@ -52,8 +52,17 @@ public readonly struct CreatureStateDef
     public CreatureStateFlags Flags { get; }
 
     /// <summary>Whether every bit of <paramref name="flags"/> is set on this state.</summary>
-    public bool Has(CreatureStateFlags flags) => (Flags & flags) == flags;
+    public bool Has(CreatureStateFlags flags)
+    {
+        return (Flags & flags) == flags;
+    }
 
     /// <summary>Whether this state saves and resumes its caller's state.</summary>
-    public bool IsUtility => Category == CreatureStateCategory.Movement;
+    public bool IsUtility
+    {
+        get
+        {
+            return Category == CreatureStateCategory.Movement;
+        }
+    }
 }

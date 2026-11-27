@@ -39,5 +39,11 @@ public sealed record PlayerDef
     public required KeeperAIParameters Ai { get; init; }
 
     /// <summary>True for a slot the retail game actually runs a computer keeper for: AI flag set and a keeper id.</summary>
-    public bool IsComputerKeeper => HasAiFlag && PlayerIds.IsKeeper(PlayerId);
+    public bool IsComputerKeeper
+    {
+        get
+        {
+            return HasAiFlag && PlayerIds.IsKeeper(PlayerId);
+        }
+    }
 }

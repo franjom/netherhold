@@ -65,7 +65,16 @@ public sealed class LevelMap
         }
     }
 
-    public IReadOnlyList<MapTile> Tiles => _tiles;
+    public IReadOnlyList<MapTile> Tiles
+    {
+        get
+        {
+            return _tiles;
+        }
+    }
 
-    public bool Contains(int x, int y) => (uint)x < (uint)Width && (uint)y < (uint)Height;
+    public bool Contains(int x, int y)
+    {
+        return (uint)x < (uint)Width && (uint)y < (uint)Height;
+    }
 }

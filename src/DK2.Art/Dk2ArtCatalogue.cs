@@ -11,7 +11,13 @@ namespace DK2.Art;
 /// <summary>A named art-resource field from a KWD definition record.</summary>
 public sealed record Dk2ArtResource(string Name, byte Type)
 {
-    public bool IsEmpty => string.IsNullOrWhiteSpace(Name);
+    public bool IsEmpty
+    {
+        get
+        {
+            return string.IsNullOrWhiteSpace(Name);
+        }
+    }
 
     /// <summary>A KMF animation's (type 6) playback rate, the descriptor's word at <c>+0x48</c>;
     /// 0 for any other type.</summary>

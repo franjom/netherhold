@@ -20,7 +20,11 @@ public static class KwdKeeperSpells
         KwdOverlay.Ascii(bytes, OffsetSoundCategory, 32, record.SoundCategory, Name(bytes, OffsetSoundCategory), trimmed: false);
         KwdOverlay.Ascii(bytes, OffsetGuiButtonSoundCategory, 32, record.GuiButtonSoundCategory,
             Name(bytes, OffsetGuiButtonSoundCategory), trimmed: false);
-        void I32(int offset, int value) => BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(offset), value);
+        void I32(int offset, int value)
+        {
+            BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(offset), value);
+        }
+
         if (record.ManaUpkeepPerSecond < 0 || record.ManaUpkeepPerSecond > ushort.MaxValue)
         {
             throw new InvalidDataException("KEEPERSPELLS mana upkeep must fit its unsigned 16-bit field.");
@@ -105,28 +109,31 @@ public static class KwdKeeperSpells
         return result;
     }
 
-    private static KeeperSpellDef ParseRecord(byte[] rec, int b) => new()
+    private static KeeperSpellDef ParseRecord(byte[] rec, int b)
     {
-        Name = Name(rec, b),
-        SoundCategory = Name(rec, b + OffsetSoundCategory),
-        GuiButtonSoundCategory = Name(rec, b + OffsetGuiButtonSoundCategory),
-        ManaUpkeepPerSecond =
+        return new()
+        {
+            Name = Name(rec, b),
+            SoundCategory = Name(rec, b + OffsetSoundCategory),
+            GuiButtonSoundCategory = Name(rec, b + OffsetGuiButtonSoundCategory),
+            ManaUpkeepPerSecond =
             BinaryPrimitives.ReadUInt16LittleEndian(rec.AsSpan(b + OffsetManaUpkeepPerSecond)),
-        ManaCost =
+            ManaCost =
             BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + OffsetManaCost)),
-        KeeperSpellId = rec[b + OffsetKeeperSpellId],
-        CooldownRaw = BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + OffsetCooldown)),
-        LocationSelector = rec[b + OffsetLocationSelector],
-        TargetSelector = rec[b + OffsetTargetSelector],
-        // 0x004F7CE0 copies runtime +0x54 from its intermediate at 0x154, which is file + 0x78.
-        Flags = (KeeperSpellFlags)BinaryPrimitives.ReadUInt32LittleEndian(rec.AsSpan(b + OffsetFlags)),
-        ShotTypeId = rec[b + OffsetShotTypeId],
-        ShotData1 = BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + OffsetShotData1)),
-        ShotData2 = BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + OffsetShotData2)),
-        BonusShotTypeId = rec[b + OffsetBonusShotTypeId],
-        BonusShotData1 = BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + OffsetBonusShotData1)),
-        BonusShotData2 = BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + OffsetBonusShotData2)),
-    };
+            KeeperSpellId = rec[b + OffsetKeeperSpellId],
+            CooldownRaw = BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + OffsetCooldown)),
+            LocationSelector = rec[b + OffsetLocationSelector],
+            TargetSelector = rec[b + OffsetTargetSelector],
+            // 0x004F7CE0 copies runtime +0x54 from its intermediate at 0x154, which is file + 0x78.
+            Flags = (KeeperSpellFlags)BinaryPrimitives.ReadUInt32LittleEndian(rec.AsSpan(b + OffsetFlags)),
+            ShotTypeId = rec[b + OffsetShotTypeId],
+            ShotData1 = BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + OffsetShotData1)),
+            ShotData2 = BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + OffsetShotData2)),
+            BonusShotTypeId = rec[b + OffsetBonusShotTypeId],
+            BonusShotData1 = BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + OffsetBonusShotData1)),
+            BonusShotData2 = BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + OffsetBonusShotData2)),
+        };
+    }
 
     private static string Name(byte[] rec, int b)
     {

@@ -12,14 +12,38 @@ namespace DK2.Data;
 public sealed class CreatureNamePool
 {
     private readonly string[] _names, _bloodGroups;
-    public IReadOnlyList<string> Names => _names;
-    public IReadOnlyList<string> BloodGroups => _bloodGroups;
+    public IReadOnlyList<string> Names
+    {
+        get
+        {
+            return _names;
+        }
+    }
+
+    public IReadOnlyList<string> BloodGroups
+    {
+        get
+        {
+            return _bloodGroups;
+        }
+    }
+
     private CreatureNamePool(string[] names, string[] bloodGroups)
     { _names = names; _bloodGroups = bloodGroups; }
-    public string Name(CreatureNameIndex index) => index.Value < _names.Length ? _names[index.Value] : "";
-    public string BloodGroup(CreatureBloodGroupIndex index) => index.Value < _bloodGroups.Length ? _bloodGroups[index.Value] : "";
+    public string Name(CreatureNameIndex index)
+    {
+        return index.Value < _names.Length ? _names[index.Value] : "";
+    }
 
-    public static CreatureNamePool Open(string executable) => Read(File.ReadAllBytes(executable));
+    public string BloodGroup(CreatureBloodGroupIndex index)
+    {
+        return index.Value < _bloodGroups.Length ? _bloodGroups[index.Value] : "";
+    }
+
+    public static CreatureNamePool Open(string executable)
+    {
+        return Read(File.ReadAllBytes(executable));
+    }
 
     public static CreatureNamePool Read(byte[] data)
     {

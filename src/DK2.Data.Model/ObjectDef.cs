@@ -144,24 +144,56 @@ public sealed record ObjectDef
     /// <summary>The nine file art resources, retaining only integer animation timing.</summary>
     public IReadOnlyList<CreatureAnimationTiming> ArtSlots { get; init; } = Array.Empty<CreatureAnimationTiming>();
 
-    public CreatureAnimationTiming ArtSlot(int slot) =>
-        (uint)slot < (uint)ArtSlots.Count ? ArtSlots[slot] : default;
+    public CreatureAnimationTiming ArtSlot(int slot)
+    {
+        return (uint)slot < (uint)ArtSlots.Count ? ArtSlots[slot] : default;
+    }
 
     /// <summary>String table ids, for a renderer rather than a rule.</summary>
     public required ushort NameStringId { get; init; }
     public required ushort TooltipStringId { get; init; }
 
     /// <summary>One of the twelve beds — eleven evil plus the Hero Creature Bed.</summary>
-    public bool IsLair => ((Flags & ObjectFlags.TypeLair) == ObjectFlags.TypeLair);
+    public bool IsLair
+    {
+        get
+        {
+            return ((Flags & ObjectFlags.TypeLair) == ObjectFlags.TypeLair);
+        }
+    }
 
     /// <summary>Food: see <see cref="ObjectFlags.TypeFood"/> for what falls in the set.</summary>
-    public bool IsFood => ((Flags & ObjectFlags.TypeFood) == ObjectFlags.TypeFood);
+    public bool IsFood
+    {
+        get
+        {
+            return ((Flags & ObjectFlags.TypeFood) == ObjectFlags.TypeFood);
+        }
+    }
 
-    public bool IsGold => ((Flags & ObjectFlags.TypeGold) == ObjectFlags.TypeGold);
+    public bool IsGold
+    {
+        get
+        {
+            return ((Flags & ObjectFlags.TypeGold) == ObjectFlags.TypeGold);
+        }
+    }
 
-    public bool IsSpellBook => ((Flags & ObjectFlags.TypeSpellBook) == ObjectFlags.TypeSpellBook);
+    public bool IsSpellBook
+    {
+        get
+        {
+            return ((Flags & ObjectFlags.TypeSpellBook) == ObjectFlags.TypeSpellBook);
+        }
+    }
 
-    public bool IsSpecial => ((Flags & ObjectFlags.TypeSpecial) == ObjectFlags.TypeSpecial);
+    public bool IsSpecial
+    {
+        get
+        {
+            return ((Flags & ObjectFlags.TypeSpecial) == ObjectFlags.TypeSpecial);
+        }
+    }
 
     /// <summary>Whether the Hand of Evil may lift this — <b>26 of the 145 records</b>: the three
     /// golds, the Chicken, Call To Arms, all fifteen specials, and six odds and ends (the Casino
@@ -171,10 +203,21 @@ public sealed record ObjectDef
     /// <para><b>The flag has exactly one reader in the whole binary</b>, the cursor's target
     /// search, which also lets the <b>Dungeon Heart</b> through by id regardless of the flag — a
     /// targeting special case rather than a lifting one, so it is not reproduced here.</para></summary>
-    public bool CanBePickedUp => ((Flags & ObjectFlags.CanBePickedUp) == ObjectFlags.CanBePickedUp);
+    public bool CanBePickedUp
+    {
+        get
+        {
+            return ((Flags & ObjectFlags.CanBePickedUp) == ObjectFlags.CanBePickedUp);
+        }
+    }
 
     /// <summary>Decays on its own, with or without a room to keep it.</summary>
-    public bool Decays =>
-        ((Flags & ObjectFlags.DieOverTime) == ObjectFlags.DieOverTime)
+    public bool Decays
+    {
+        get
+        {
+            return ((Flags & ObjectFlags.DieOverTime) == ObjectFlags.DieOverTime)
         || ((Flags & ObjectFlags.DieOverTimeIfNotInRoom) == ObjectFlags.DieOverTimeIfNotInRoom);
+        }
+    }
 }

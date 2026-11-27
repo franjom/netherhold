@@ -313,7 +313,13 @@ public static class CreatureStateTable
     ];
 
     /// <summary>Every state, in id order.</summary>
-    public static ReadOnlySpan<CreatureStateDef> All => Rows;
+    public static ReadOnlySpan<CreatureStateDef> All
+    {
+        get
+        {
+            return Rows;
+        }
+    }
 
     /// <summary>The state with this id. Ids run 0 to 280 and equal the row index.</summary>
     public static ref readonly CreatureStateDef Get(int stateId)
@@ -328,7 +334,10 @@ public static class CreatureStateTable
     }
 
     /// <summary>Whether this state saves and resumes its caller's state.</summary>
-    public static bool IsUtility(int stateId) => Get(stateId).IsUtility;
+    public static bool IsUtility(int stateId)
+    {
+        return Get(stateId).IsUtility;
+    }
 
     /// <summary>Every state id in one category, ascending.</summary>
     public static int[] InCategory(CreatureStateCategory category)

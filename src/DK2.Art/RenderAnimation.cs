@@ -38,11 +38,27 @@ public sealed class RenderAnimation
     }
 
     public RenderMesh Mesh { get; }
-    public int FrameCount => _frames.Length;
-    public long PositionBytes => (long)FrameCount * Mesh.Positions.Count * 3 * sizeof(float);
+    public int FrameCount
+    {
+        get
+        {
+            return _frames.Length;
+        }
+    }
+
+    public long PositionBytes
+    {
+        get
+        {
+            return (long)FrameCount * Mesh.Positions.Count * 3 * sizeof(float);
+        }
+    }
 
     /// <summary>One decoded frame in model-local render axes; shared, never mutated by a renderer.</summary>
-    public ReadOnlySpan<Vector3> Frame(int index) => _frames[index];
+    public ReadOnlySpan<Vector3> Frame(int index)
+    {
+        return _frames[index];
+    }
 
     /// <summary>One vertex of the clamped drawn pose, for control points without a full mesh sample.</summary>
     public Vector3 SampleVertex(float normalizedTime, int vertex)

@@ -66,9 +66,11 @@ public static class AssetConverter
         return run.Results;
     }
 
-    private static IEnumerable<string> MaterialTextures(KmfMaterial material) =>
-        material.TextureNames.Concat(string.IsNullOrEmpty(material.EnvironmentTextureName)
+    private static IEnumerable<string> MaterialTextures(KmfMaterial material)
+    {
+        return material.TextureNames.Concat(string.IsNullOrEmpty(material.EnvironmentTextureName)
             ? [] : [material.EnvironmentTextureName]);
+    }
 
     /// <summary>One conversion pass: its sources, output root and accumulated results.</summary>
     private sealed class Run
@@ -123,10 +125,12 @@ public static class AssetConverter
         /// <summary>A type-6 clip's pass by the type-6 clock (<c>0x004B41E0</c>): the descriptor's
         /// frame count over its FPS, which is not always the KMF's own count (300 of 906 creature
         /// clips differ, mostly by one); 0 for a resource with no rate.</summary>
-        private static float PassSeconds(Dk2ArtResource source) =>
-            source.FramesPerSecond > 0 && source.FrameCount > 0
+        private static float PassSeconds(Dk2ArtResource source)
+        {
+            return source.FramesPerSecond > 0 && source.FrameCount > 0
                 ? source.FrameCount / (float)source.FramesPerSecond
                 : 0f;
+        }
 
         public void ConvertTexture(AssetRef reference, Dk2ArtResource source, string detail)
         {

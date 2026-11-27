@@ -115,8 +115,10 @@ public sealed class WadArchive : IDisposable
         }
     }
 
-    public bool TryGetEntry(string name, out WadEntry entry) =>
-        _byName.TryGetValue(name, out entry!);
+    public bool TryGetEntry(string name, out WadEntry entry)
+    {
+        return _byName.TryGetValue(name, out entry!);
+    }
 
     /// <summary>Reads and (if needed) decompresses one entry. Safe from several threads: the read
     /// of the one stream is locked, the decompression is not.</summary>
@@ -134,13 +136,21 @@ public sealed class WadArchive : IDisposable
             : stored;
     }
 
-    public byte[] Extract(string name) =>
-        TryGetEntry(name, out WadEntry e)
+    public byte[] Extract(string name)
+    {
+        return TryGetEntry(name, out WadEntry e)
             ? Extract(e)
             : throw new FileNotFoundException($"Entry '{name}' not found in {FilePath}");
+    }
 
     /// <summary>Reads by directory index so duplicate names remain independently accessible.</summary>
-    public byte[] Extract(int entryIndex) => Extract(Entries[entryIndex]);
+    public byte[] Extract(int entryIndex)
+    {
+        return Extract(Entries[entryIndex]);
+    }
 
-    public void Dispose() => _stream.Dispose();
+    public void Dispose()
+    {
+        _stream.Dispose();
+    }
 }

@@ -11,8 +11,15 @@ namespace DK2.Data.Settings;
 /// <summary>Our UTF-8 key=value file; unknown or malformed entries retain defaults.</summary>
 public static class GameSettingsFile
 {
-    public static GameSettings Load(string path) => File.Exists(path) ? Read(File.ReadAllText(path)) : new();
-    public static void Save(string path, GameSettings settings) => ProfileFileStorage.Save(path, Encoding.UTF8.GetBytes(Write(settings)));
+    public static GameSettings Load(string path)
+    {
+        return File.Exists(path) ? Read(File.ReadAllText(path)) : new();
+    }
+
+    public static void Save(string path, GameSettings settings)
+    {
+        ProfileFileStorage.Save(path, Encoding.UTF8.GetBytes(Write(settings)));
+    }
 
     public static string Write(GameSettings settings)
     {

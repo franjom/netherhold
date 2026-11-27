@@ -84,8 +84,14 @@ public readonly struct AssetRef : IEquatable<AssetRef>
     }
 
     /// <summary>The full key, e.g. <c>creature.imp.mesh</c>. Never null once created.</summary>
-    public string Key => _key ?? throw new InvalidOperationException(
+    public string Key
+    {
+        get
+        {
+            return _key ?? throw new InvalidOperationException(
         "A default AssetRef has no key. Build one through Create or a For* helper.");
+        }
+    }
 
     /// <summary>What kind of asset this is. Part of the identity, not a lookup.</summary>
     public AssetKind Kind { get; }
@@ -104,7 +110,13 @@ public readonly struct AssetRef : IEquatable<AssetRef>
     }
 
     /// <summary>True for a <c>default</c> value, which is not a usable reference.</summary>
-    public bool IsEmpty => _key is null;
+    public bool IsEmpty
+    {
+        get
+        {
+            return _key is null;
+        }
+    }
 
     /// <summary>
     /// Builds a reference from its parts, normalising the subject and validating
@@ -157,15 +169,24 @@ public readonly struct AssetRef : IEquatable<AssetRef>
             _kind = (int)kind;
         }
 
-        public bool Equals(MadeKey other) => _kind == other._kind
+        public bool Equals(MadeKey other)
+        {
+            return _kind == other._kind
             && string.Equals(_subject, other._subject, StringComparison.Ordinal)
             && string.Equals(_category, other._category, StringComparison.Ordinal)
             && string.Equals(_variant, other._variant, StringComparison.Ordinal);
+        }
 
-        public override bool Equals(object? obj) => obj is MadeKey other && Equals(other);
+        public override bool Equals(object? obj)
+        {
+            return obj is MadeKey other && Equals(other);
+        }
 
-        public override int GetHashCode() => unchecked(((((_category?.GetHashCode() ?? 0) * 31)
+        public override int GetHashCode()
+        {
+            return unchecked(((((_category?.GetHashCode() ?? 0) * 31)
             + (_subject?.GetHashCode() ?? 0)) * 31 + (_variant?.GetHashCode() ?? 0)) * 31 + _kind);
+        }
     }
 
     private static AssetRef Build(string category, string subject, AssetKind kind, string? variant)
@@ -192,52 +213,77 @@ public readonly struct AssetRef : IEquatable<AssetRef>
     }
 
     /// <summary>The mesh, texture or effect belonging to a terrain type.</summary>
-    public static AssetRef ForTerrain(string terrainName, AssetKind kind, string? variant = null) =>
-        Create(TerrainCategory, terrainName, kind, variant);
+    public static AssetRef ForTerrain(string terrainName, AssetKind kind, string? variant = null)
+    {
+        return Create(TerrainCategory, terrainName, kind, variant);
+    }
 
     /// <summary>The art belonging to a room type.</summary>
-    public static AssetRef ForRoom(string roomName, AssetKind kind, string? variant = null) =>
-        Create(RoomCategory, roomName, kind, variant);
+    public static AssetRef ForRoom(string roomName, AssetKind kind, string? variant = null)
+    {
+        return Create(RoomCategory, roomName, kind, variant);
+    }
 
     /// <summary>The art belonging to a creature type.</summary>
-    public static AssetRef ForCreature(string creatureName, AssetKind kind, string? variant = null) =>
-        Create(CreatureCategory, creatureName, kind, variant);
+    public static AssetRef ForCreature(string creatureName, AssetKind kind, string? variant = null)
+    {
+        return Create(CreatureCategory, creatureName, kind, variant);
+    }
 
     /// <summary>The art belonging to an object type.</summary>
-    public static AssetRef ForObject(string objectName, AssetKind kind, string? variant = null) =>
-        Create(ObjectCategory, objectName, kind, variant);
+    public static AssetRef ForObject(string objectName, AssetKind kind, string? variant = null)
+    {
+        return Create(ObjectCategory, objectName, kind, variant);
+    }
 
-    public static AssetRef ForDoor(string doorName, bool open = false) =>
-        Create(DoorCategory, doorName, AssetKind.Mesh, open ? "open" : "closed");
+    public static AssetRef ForDoor(string doorName, bool open = false)
+    {
+        return Create(DoorCategory, doorName, AssetKind.Mesh, open ? "open" : "closed");
+    }
 
-    public static AssetRef ForDoorLock(string doorName) =>
-        Create(DoorCategory, doorName, AssetKind.Mesh, "lock");
+    public static AssetRef ForDoorLock(string doorName)
+    {
+        return Create(DoorCategory, doorName, AssetKind.Mesh, "lock");
+    }
 
-    public static AssetRef ForTrap(string trapName) => Create(TrapCategory, trapName, AssetKind.Mesh);
+    public static AssetRef ForTrap(string trapName)
+    {
+        return Create(TrapCategory, trapName, AssetKind.Mesh);
+    }
 
-    public static AssetRef ForEffectElement(string elementName) =>
-        Create(EffectElementCategory, elementName, AssetKind.Effect);
+    public static AssetRef ForEffectElement(string elementName)
+    {
+        return Create(EffectElementCategory, elementName, AssetKind.Effect);
+    }
 
-    public static AssetRef ForEffect(string effectName) =>
-        Create(EffectCategory, effectName, AssetKind.Effect);
+    public static AssetRef ForEffect(string effectName)
+    {
+        return Create(EffectCategory, effectName, AssetKind.Effect);
+    }
 
-    public static AssetRef ForShot(string shotName) => Create(ShotCategory, shotName, AssetKind.Effect);
+    public static AssetRef ForShot(string shotName)
+    {
+        return Create(ShotCategory, shotName, AssetKind.Effect);
+    }
 
     /// <summary>
     /// The role segment for a kind. Deliberately a total function over the enum,
     /// so adding a kind without deciding its role does not compile.
     /// </summary>
-    public static string RoleOf(AssetKind kind) => kind switch
+    public static string RoleOf(AssetKind kind)
     {
-        AssetKind.Mesh => "mesh",
-        AssetKind.Texture => "texture",
-        AssetKind.Animation => "animation",
-        AssetKind.Sound => "sound",
-        AssetKind.Music => "music",
-        AssetKind.Video => "video",
-        AssetKind.Effect => "effect",
-        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "No role segment for this asset kind."),
-    };
+        return kind switch
+        {
+            AssetKind.Mesh => "mesh",
+            AssetKind.Texture => "texture",
+            AssetKind.Animation => "animation",
+            AssetKind.Sound => "sound",
+            AssetKind.Music => "music",
+            AssetKind.Video => "video",
+            AssetKind.Effect => "effect",
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "No role segment for this asset kind."),
+        };
+    }
 
     /// <summary>
     /// The punctuation shipped record names use, each mapping to one underscore.
@@ -340,18 +386,35 @@ public readonly struct AssetRef : IEquatable<AssetRef>
         return hash.Value;
     }
 
-    public bool Equals(AssetRef other) =>
-        Kind == other.Kind && string.Equals(_key, other._key, StringComparison.Ordinal);
+    public bool Equals(AssetRef other)
+    {
+        return Kind == other.Kind && string.Equals(_key, other._key, StringComparison.Ordinal);
+    }
 
-    public override bool Equals(object? obj) => obj is AssetRef other && Equals(other);
+    public override bool Equals(object? obj)
+    {
+        return obj is AssetRef other && Equals(other);
+    }
 
     // Not the structural hash: this one only has to be consistent within a
     // process, and StableHash exists for the case that must not be.
-    public override int GetHashCode() =>
-        unchecked(((_key?.GetHashCode() ?? 0) * 397) ^ (int)Kind);
+    public override int GetHashCode()
+    {
+        return unchecked(((_key?.GetHashCode() ?? 0) * 397) ^ (int)Kind);
+    }
 
-    public override string ToString() => _key ?? "<empty AssetRef>";
+    public override string ToString()
+    {
+        return _key ?? "<empty AssetRef>";
+    }
 
-    public static bool operator ==(AssetRef left, AssetRef right) => left.Equals(right);
-    public static bool operator !=(AssetRef left, AssetRef right) => !left.Equals(right);
+    public static bool operator ==(AssetRef left, AssetRef right)
+    {
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(AssetRef left, AssetRef right)
+    {
+        return !left.Equals(right);
+    }
 }

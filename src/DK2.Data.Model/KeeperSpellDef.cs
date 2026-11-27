@@ -75,11 +75,20 @@ public sealed record KeeperSpellDef
 
     /// <summary>Whether research can upgrade this spell — the chooser's test of runtime
     /// <c>+0x4B</c> (<c>0x004C3000</c>). False for Summon Horny and OneShotReaper.</summary>
-    public bool CanBeUpgraded => BonusShotTypeId != 0;
+    public bool CanBeUpgraded
+    {
+        get
+        {
+            return BonusShotTypeId != 0;
+        }
+    }
 
     /// <summary>The shot a cast fires and its data: the bonus ones when the caster's row is
     /// upgraded (<c>0x004BBD30</c>).</summary>
-    public (byte ShotTypeId, int Data1, int Data2) Shot(bool upgraded) => upgraded
+    public (byte ShotTypeId, int Data1, int Data2) Shot(bool upgraded)
+    {
+        return upgraded
         ? (BonusShotTypeId, BonusShotData1, BonusShotData2)
         : (ShotTypeId, ShotData1, ShotData2);
+    }
 }

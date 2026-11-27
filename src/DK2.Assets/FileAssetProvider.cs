@@ -41,7 +41,10 @@ public sealed class FileAssetProvider : IAssetProvider
     private sealed class RealFileProbe : IFileProbe
     {
         public static readonly RealFileProbe Instance = new();
-        public bool Exists(string path) => File.Exists(path);
+        public bool Exists(string path)
+        {
+            return File.Exists(path);
+        }
     }
 
     public FileAssetProvider(string root, AssetSource source, string? name = null, IFileProbe? probe = null)
@@ -65,12 +68,16 @@ public sealed class FileAssetProvider : IAssetProvider
     }
 
     /// <summary>The converter's output directory, as the plan names it (§7.1).</summary>
-    public static FileAssetProvider Converted(string root, IFileProbe? probe = null) =>
-        new(root, AssetSource.ConvertedFile, "converted", probe);
+    public static FileAssetProvider Converted(string root, IFileProbe? probe = null)
+    {
+        return new(root, AssetSource.ConvertedFile, "converted", probe);
+    }
 
     /// <summary>A replacement art pack, which takes precedence over converted art.</summary>
-    public static FileAssetProvider Replacement(string root, string? name = null, IFileProbe? probe = null) =>
-        new(root, AssetSource.ReplacementFile, name ?? "replacement", probe);
+    public static FileAssetProvider Replacement(string root, string? name = null, IFileProbe? probe = null)
+    {
+        return new(root, AssetSource.ReplacementFile, name ?? "replacement", probe);
+    }
 
     public string Name { get; }
 
@@ -113,8 +120,10 @@ public sealed class FileAssetProvider : IAssetProvider
     /// segment can be <c>..</c>, absolute, or hold a separator, so no key addresses
     /// anything outside the root. That validation is the traversal guard.
     /// </summary>
-    public static string RelativePathWithoutExtension(AssetRef reference) =>
-        reference.Key.Replace('.', Path.DirectorySeparatorChar);
+    public static string RelativePathWithoutExtension(AssetRef reference)
+    {
+        return reference.Key.Replace('.', Path.DirectorySeparatorChar);
+    }
 
     /// <summary>
     /// The extensions tried for a kind, in order of preference. Open formats only:
@@ -122,15 +131,18 @@ public sealed class FileAssetProvider : IAssetProvider
     /// it knows what a KMF is. Order is preference — glTF binary before glTF text,
     /// OGG before WAV.
     /// </summary>
-    public static IReadOnlyList<string> ExtensionsFor(AssetKind kind) => kind switch
+    public static IReadOnlyList<string> ExtensionsFor(AssetKind kind)
     {
-        AssetKind.Mesh => [".glb", ".gltf", ".obj"],
-        AssetKind.Texture => [".png", ".dds", ".tga"],
-        AssetKind.Animation => [".glb", ".gltf"],
-        AssetKind.Sound => [".ogg", ".wav"],
-        AssetKind.Music => [".ogg", ".mp3", ".wav"],
-        AssetKind.Video => [".webm", ".mp4"],
-        AssetKind.Effect => [".json"],
-        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "No extensions for this asset kind."),
-    };
+        return kind switch
+        {
+            AssetKind.Mesh => [".glb", ".gltf", ".obj"],
+            AssetKind.Texture => [".png", ".dds", ".tga"],
+            AssetKind.Animation => [".glb", ".gltf"],
+            AssetKind.Sound => [".ogg", ".wav"],
+            AssetKind.Music => [".ogg", ".mp3", ".wav"],
+            AssetKind.Video => [".webm", ".mp4"],
+            AssetKind.Effect => [".json"],
+            _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "No extensions for this asset kind."),
+        };
+    }
 }

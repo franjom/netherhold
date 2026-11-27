@@ -15,8 +15,16 @@ public static class KwdTraps
     {
         byte[] bytes = KwdOverlay.Image(template, KwdRecordType.Traps, RecordSize);
         KwdOverlay.Ascii(bytes, 0, 32, record.Name, Name(bytes, 0), trimmed: true);
-        void I32(int offset, int value) => BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(offset), value);
-        void U16(int offset, ushort value) => BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(offset), value);
+        void I32(int offset, int value)
+        {
+            BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(offset), value);
+        }
+
+        void U16(int offset, ushort value)
+        {
+            BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(offset), value);
+        }
+
         bytes[OffsetTrapId] = record.TrapId;
         bytes[OffsetShotTypeId] = record.ShotTypeId;
         bytes[OffsetCrateObjectId] = record.CrateObjectId;
@@ -103,41 +111,48 @@ public static class KwdTraps
         }
     }
 
-    private static TrapDef ParseRecord(byte[] record, int at) => new()
+    private static TrapDef ParseRecord(byte[] record, int at)
     {
-        Name = Name(record, at),
-        TrapId = record[at + OffsetTrapId],
-        Threat = U16(record, at + OffsetThreat),
-        Health = U16(record, at + OffsetHealth),
-        GoldCost = U16(record, at + OffsetGoldCost),
-        DeathEffectId = U16(record, at + OffsetDeathEffectId),
-        ManufactureRequired = U16(record, at + OffsetManufactureRequired),
-        ShotTypeId = record[at + OffsetShotTypeId],
-        CrateObjectId = record[at + OffsetCrateObjectId],
-        ManaUpkeepPerSecond = U16(record, at + OffsetManaUpkeepPerSecond),
-        NameStringId = U16(record, at + OffsetNameStringId),
-        SoundCategory = Name(record, at + OffsetSoundCategory),
-        ImpactKind = record[at + OffsetImpactKind],
-        Flags = BinaryPrimitives.ReadUInt32LittleEndian(record.AsSpan(at + OffsetFlags)),
-        TriggerType = record[at + OffsetTriggerType],
-        RangeTiles = I32(record, at + OffsetRange),
-        RechargeSecondsRaw = I32(record, at + OffsetRecharge),
-        ChargeSecondsRaw = I32(record, at + OffsetCharge),
-        ThreatSecondsRaw = I32(record, at + OffsetThreatSeconds),
-        ManaCostToFire = I32(record, at + OffsetManaCostToFire),
-        ShotData1 = I32(record, at + OffsetShotData1),
-        ShotData2 = I32(record, at + OffsetShotData2),
-        ShotOffsetX = I32(record, at + OffsetShotX),
-        ShotOffsetY = I32(record, at + OffsetShotY),
-        ShotOffsetZ = I32(record, at + OffsetShotZ),
-        HealthGain = BinaryPrimitives.ReadInt16LittleEndian(record.AsSpan(at + OffsetHealthGain)),
-    };
+        return new()
+        {
+            Name = Name(record, at),
+            TrapId = record[at + OffsetTrapId],
+            Threat = U16(record, at + OffsetThreat),
+            Health = U16(record, at + OffsetHealth),
+            GoldCost = U16(record, at + OffsetGoldCost),
+            DeathEffectId = U16(record, at + OffsetDeathEffectId),
+            ManufactureRequired = U16(record, at + OffsetManufactureRequired),
+            ShotTypeId = record[at + OffsetShotTypeId],
+            CrateObjectId = record[at + OffsetCrateObjectId],
+            ManaUpkeepPerSecond = U16(record, at + OffsetManaUpkeepPerSecond),
+            NameStringId = U16(record, at + OffsetNameStringId),
+            SoundCategory = Name(record, at + OffsetSoundCategory),
+            ImpactKind = record[at + OffsetImpactKind],
+            Flags = BinaryPrimitives.ReadUInt32LittleEndian(record.AsSpan(at + OffsetFlags)),
+            TriggerType = record[at + OffsetTriggerType],
+            RangeTiles = I32(record, at + OffsetRange),
+            RechargeSecondsRaw = I32(record, at + OffsetRecharge),
+            ChargeSecondsRaw = I32(record, at + OffsetCharge),
+            ThreatSecondsRaw = I32(record, at + OffsetThreatSeconds),
+            ManaCostToFire = I32(record, at + OffsetManaCostToFire),
+            ShotData1 = I32(record, at + OffsetShotData1),
+            ShotData2 = I32(record, at + OffsetShotData2),
+            ShotOffsetX = I32(record, at + OffsetShotX),
+            ShotOffsetY = I32(record, at + OffsetShotY),
+            ShotOffsetZ = I32(record, at + OffsetShotZ),
+            HealthGain = BinaryPrimitives.ReadInt16LittleEndian(record.AsSpan(at + OffsetHealthGain)),
+        };
+    }
 
-    private static int I32(byte[] record, int at) =>
-        BinaryPrimitives.ReadInt32LittleEndian(record.AsSpan(at));
+    private static int I32(byte[] record, int at)
+    {
+        return BinaryPrimitives.ReadInt32LittleEndian(record.AsSpan(at));
+    }
 
-    private static ushort U16(byte[] record, int at) =>
-        BinaryPrimitives.ReadUInt16LittleEndian(record.AsSpan(at));
+    private static ushort U16(byte[] record, int at)
+    {
+        return BinaryPrimitives.ReadUInt16LittleEndian(record.AsSpan(at));
+    }
 
     private static string Name(byte[] record, int at)
     {

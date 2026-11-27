@@ -37,9 +37,12 @@ public sealed class EngineTextureArchive : ITextureSource, IDisposable
             StringComparer.OrdinalIgnoreCase);
     }
 
-    public static EngineTextureArchive OpenInstall(string installDirectory) => Open(
+    public static EngineTextureArchive OpenInstall(string installDirectory)
+    {
+        return Open(
         Path.Combine(installDirectory, "DK2TextureCache", "EngineTextures.dir"),
         Path.Combine(installDirectory, "DK2TextureCache", "EngineTextures.dat"));
+    }
 
     public static EngineTextureArchive Open(string directoryPath, string dataPath)
     {
@@ -111,8 +114,10 @@ public sealed class EngineTextureArchive : ITextureSource, IDisposable
         }
     }
 
-    public bool TryGetEntry(string name, out EngineTextureEntry entry) =>
-        _byName.TryGetValue(name, out entry!);
+    public bool TryGetEntry(string name, out EngineTextureEntry entry)
+    {
+        return _byName.TryGetValue(name, out entry!);
+    }
 
     public EngineTextureEntry FindBest(string textureName)
     {
@@ -147,10 +152,25 @@ public sealed class EngineTextureArchive : ITextureSource, IDisposable
             Dk2TextureDecoder.Decode(compressed, entry.Width, entry.Height, entry.HasAlpha));
     }
 
-    public RgbaImage Decode(string textureName) => Decode(FindBest(textureName));
-    string ITextureSource.Resolve(string textureName) => FindBest(textureName).Name;
-    RgbaImage ITextureSource.Read(string storedName) => Decode(_byName[storedName]);
-    public void Dispose() => _data.Dispose();
+    public RgbaImage Decode(string textureName)
+    {
+        return Decode(FindBest(textureName));
+    }
+
+    string ITextureSource.Resolve(string textureName)
+    {
+        return FindBest(textureName).Name;
+    }
+
+    RgbaImage ITextureSource.Read(string storedName)
+    {
+        return Decode(_byName[storedName]);
+    }
+
+    public void Dispose()
+    {
+        _data.Dispose();
+    }
 
     private static int PositiveInt(uint value, string field, string name)
     {

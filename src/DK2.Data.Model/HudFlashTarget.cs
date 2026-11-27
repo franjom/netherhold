@@ -9,6 +9,19 @@ public readonly record struct HudFlashTarget(ushort Value)
 {
     public static readonly HudFlashTarget Mana = new(0xF200);
     public static readonly HudFlashTarget Gold = new(0xF300);
-    public byte Category => (byte)Value;
-    public byte Button => (byte)(Value >> 8);
+    public byte Category
+    {
+        get
+        {
+            return (byte)Value;
+        }
+    }
+
+    public byte Button
+    {
+        get
+        {
+            return (byte)(Value >> 8);
+        }
+    }
 }

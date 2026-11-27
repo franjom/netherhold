@@ -19,8 +19,10 @@ public sealed class KcsCameraPath
     private const int HeaderSize = 16;
     private const int FrameSize = 56;
 
-    private KcsCameraPath(List<KcsFrame> frames) =>
+    private KcsCameraPath(List<KcsFrame> frames)
+    {
         Frames = new ReadOnlyCollection<KcsFrame>(frames);
+    }
 
     public IReadOnlyList<KcsFrame> Frames { get; }
 
@@ -60,6 +62,8 @@ public sealed class KcsCameraPath
         return new KcsCameraPath(frames);
     }
 
-    private static InvalidDataException Invalid(string source, string reason) =>
-        new($"Invalid KCS camera path '{source}': {reason}.");
+    private static InvalidDataException Invalid(string source, string reason)
+    {
+        return new($"Invalid KCS camera path '{source}': {reason}.");
+    }
 }

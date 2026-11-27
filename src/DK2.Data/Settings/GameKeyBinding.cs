@@ -78,7 +78,10 @@ public enum GameAction
 public readonly record struct KeyScanCode(int Value)
 {
     public static readonly KeyScanCode None = new(0);
-    public static implicit operator KeyScanCode(int value) => new(value);
+    public static implicit operator KeyScanCode(int value)
+    {
+        return new(value);
+    }
 }
 
 public readonly record struct GameKeyBinding(GameAction Action, int ScanCode, KeyModifiers Modifiers = KeyModifiers.None);

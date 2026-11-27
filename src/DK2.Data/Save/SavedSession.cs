@@ -19,6 +19,19 @@ public sealed record SavedSession(SavedSessionHeader Header, byte[] Snapshot, Ca
 /// header and the reason it would be refused, so the player sees why it cannot be loaded (ADR-0588).</summary>
 public sealed record SavedSessionEntry(string Path, SavedSessionHeader? Header, SaveIncompatibleException? Refusal = null)
 {
-    public bool Readable => Header is not null;
-    public string DisplayName => Header?.DisplayName ?? System.IO.Path.GetFileNameWithoutExtension(Path);
+    public bool Readable
+    {
+        get
+        {
+            return Header is not null;
+        }
+    }
+
+    public string DisplayName
+    {
+        get
+        {
+            return Header?.DisplayName ?? System.IO.Path.GetFileNameWithoutExtension(Path);
+        }
+    }
 }

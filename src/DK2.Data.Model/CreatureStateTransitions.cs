@@ -83,6 +83,8 @@ public static class CreatureStateTransitions
     /// <summary>Which state the differing-tags half compares against. Exposed because the
     /// substitution is part of the rule, not an implementation detail: it is why a resume
     /// slot is a prerequisite for the gate and not only for resuming (ADR-0135).</summary>
-    public static int ResolveComparisonState(int currentStateId, int utilityNewStateId) =>
-        CreatureStateTable.Get(currentStateId).IsUtility ? utilityNewStateId : currentStateId;
+    public static int ResolveComparisonState(int currentStateId, int utilityNewStateId)
+    {
+        return CreatureStateTable.Get(currentStateId).IsUtility ? utilityNewStateId : currentStateId;
+    }
 }

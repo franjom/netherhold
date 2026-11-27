@@ -123,8 +123,16 @@ public static class KwdVariables
         return image;
     }
 
-    private static int I32(ReadOnlySpan<byte> p) => BinaryPrimitives.ReadInt32LittleEndian(p);
-    private static ushort U16(ReadOnlySpan<byte> p) => BinaryPrimitives.ReadUInt16LittleEndian(p);
+    private static int I32(ReadOnlySpan<byte> p)
+    {
+        return BinaryPrimitives.ReadInt32LittleEndian(p);
+    }
+
+    private static ushort U16(ReadOnlySpan<byte> p)
+    {
+        return BinaryPrimitives.ReadUInt16LittleEndian(p);
+    }
+
     private static void WriteWords(Span<byte> p, int first, int second, int third)
     {
         BinaryPrimitives.WriteInt32LittleEndian(p, first);

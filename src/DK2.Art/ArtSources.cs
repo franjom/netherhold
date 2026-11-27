@@ -52,16 +52,27 @@ public sealed class WadMeshSource : IMeshSource, IDisposable
         }
     }
 
-    public static WadMeshSource OpenInstall(string installDirectory) =>
-        new(WadArchive.Open(Path.Combine(installDirectory, "Data", "Meshes.WAD")));
+    public static WadMeshSource OpenInstall(string installDirectory)
+    {
+        return new(WadArchive.Open(Path.Combine(installDirectory, "Data", "Meshes.WAD")));
+    }
 
     public IReadOnlyList<string> EntryNames { get; }
 
-    public bool TryFind(string name, out int index) => _byName.TryGetValue(name, out index);
+    public bool TryFind(string name, out int index)
+    {
+        return _byName.TryGetValue(name, out index);
+    }
 
-    public byte[] Read(int index) => _archive.Extract(_archive.Entries[index]);
+    public byte[] Read(int index)
+    {
+        return _archive.Extract(_archive.Entries[index]);
+    }
 
-    public void Dispose() => _archive.Dispose();
+    public void Dispose()
+    {
+        _archive.Dispose();
+    }
 }
 
 /// <summary>Finding a KWD art resource's KMF in a mesh source.</summary>

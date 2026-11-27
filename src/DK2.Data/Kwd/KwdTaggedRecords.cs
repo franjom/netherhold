@@ -28,8 +28,10 @@ public static class KwdTaggedRecords
     public readonly record struct TaggedRecord(int Tag, ReadOnlyMemory<byte> Payload);
 
     /// <summary>True for the two record types this walker understands.</summary>
-    public static bool IsTagged(KwdRecordType type) =>
-        type is KwdRecordType.Things or KwdRecordType.Triggers;
+    public static bool IsTagged(KwdRecordType type)
+    {
+        return type is KwdRecordType.Things or KwdRecordType.Triggers;
+    }
 
     /// <summary>
     /// Splits a THINGS or TRIGGERS chunk into its records.

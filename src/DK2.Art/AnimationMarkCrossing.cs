@@ -57,8 +57,10 @@ public static class AnimationMarkCrossing
         return 1;
     }
 
-    private static bool Outside(int mark1, int mark2, int start, int end) =>
-        (mark1 <= start || end <= mark1) && (mark2 <= start || end <= mark2);
+    private static bool Outside(int mark1, int mark2, int start, int end)
+    {
+        return (mark1 <= start || end <= mark1) && (mark2 <= start || end <= mark2);
+    }
 
     /// <summary>The native product shifted right eight after adding 255 to a negative one: a division by 256 toward zero.</summary>
     private static int Scale(int step, int fraction)
@@ -87,5 +89,8 @@ public sealed class AnimationMarkWatcher
     }
 
     /// <summary>Forgets the last frame, as a fresh install does.</summary>
-    public void Reset() => _last = -1;
+    public void Reset()
+    {
+        _last = -1;
+    }
 }

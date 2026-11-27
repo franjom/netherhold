@@ -30,12 +30,36 @@ public static partial class KwdCreatures
             throw new InvalidDataException("CREATURES Angry fields must be zero when AngryArtType is absent.");
         }
 
-        void U8(int offset, byte value) => image[offset] = value;
-        void U16(int offset, ushort value) => BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(offset), value);
-        void S16(int offset, short value) => BinaryPrimitives.WriteInt16LittleEndian(image.AsSpan(offset), value);
-        void U32(int offset, uint value) => BinaryPrimitives.WriteUInt32LittleEndian(image.AsSpan(offset), value);
-        void S32(int offset, int value) => BinaryPrimitives.WriteInt32LittleEndian(image.AsSpan(offset), value);
-        uint ReadU32(int offset) => BinaryPrimitives.ReadUInt32LittleEndian(image.AsSpan(offset));
+        void U8(int offset, byte value)
+        {
+            image[offset] = value;
+        }
+
+        void U16(int offset, ushort value)
+        {
+            BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(offset), value);
+        }
+
+        void S16(int offset, short value)
+        {
+            BinaryPrimitives.WriteInt16LittleEndian(image.AsSpan(offset), value);
+        }
+
+        void U32(int offset, uint value)
+        {
+            BinaryPrimitives.WriteUInt32LittleEndian(image.AsSpan(offset), value);
+        }
+
+        void S32(int offset, int value)
+        {
+            BinaryPrimitives.WriteInt32LittleEndian(image.AsSpan(offset), value);
+        }
+
+        uint ReadU32(int offset)
+        {
+            return BinaryPrimitives.ReadUInt32LittleEndian(image.AsSpan(offset));
+        }
+
         CreatureDef original = ParseRecord(image, 0);
         KwdOverlay.Ascii(image, 0, 32, row.Name, original.Name, trimmed: false);
         KwdOverlay.Ascii(image, 0xF56, 32, row.SoundCategory, original.SoundCategory, trimmed: false);
@@ -229,7 +253,8 @@ public static partial class KwdCreatures
 
             U8(off, (byte)value.AttackType); U8(off + 1, value.Value);
         });
-        void Preferences(string name, IReadOnlyList<CreatureJobPreference> values, int offset, int count) =>
+        void Preferences(string name, IReadOnlyList<CreatureJobPreference> values, int offset, int count)
+        {
             WriteFiltered(name, values, offset, count, 12, off => ReadU32(off) != 0, (off, value) =>
             {
                 if (value.Job == JobType.None)
@@ -240,6 +265,8 @@ public static partial class KwdCreatures
                 U32(off, (uint)value.Job); S16(off + 4, value.MoodChange);
                 S16(off + 6, value.ManaChange); U8(off + 8, value.ChancePercent);
             });
+        }
+
         Preferences("HappyJobs", row.HappyJobs, 0xE14, 3);
         Preferences("UnhappyJobs", row.UnhappyJobs, 0xE38, 2);
         Preferences("AngryJobs", row.AngryJobs, 0xE50, 3);

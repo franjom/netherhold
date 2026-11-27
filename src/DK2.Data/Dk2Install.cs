@@ -35,13 +35,18 @@ public static class Dk2Install
         @"E:\GogGames\Dungeon Keeper 2",
     ];
 
-    public static string? Find() => Find(null, null);
+    public static string? Find()
+    {
+        return Find(null, null);
+    }
 
     /// <summary>The install by <see cref="Resolve"/>'s order, with DK2_DIR read from the environment.</summary>
     /// <param name="commandLine">A folder the run named on its command line, or null.</param>
     /// <param name="saved">The folder the launcher saved, or null.</param>
-    public static string? Find(string? commandLine, string? saved) =>
-        Resolve(Environment.GetEnvironmentVariable("DK2_DIR"), commandLine, saved, DefaultCandidates);
+    public static string? Find(string? commandLine, string? saved)
+    {
+        return Resolve(Environment.GetEnvironmentVariable("DK2_DIR"), commandLine, saved, DefaultCandidates);
+    }
 
     /// <summary>The first install by precedence: <paramref name="environment"/>, then <paramref name="commandLine"/>
     /// (either, when not blank, decides alone, null if it is no install), then <paramref name="saved"/> if it holds an
@@ -79,10 +84,12 @@ public static class Dk2Install
         return null;
     }
 
-    public static string Require() =>
-        Find() ?? throw new InvalidOperationException(
+    public static string Require()
+    {
+        return Find() ?? throw new InvalidOperationException(
             "Dungeon Keeper 2 installation not found. Set the DK2_DIR environment " +
             "variable to the game directory (the one containing DKII.EXE).");
+    }
 
     /// <summary>What <paramref name="dir"/> holds by the install rule (<see cref="Dk2InstallCheck"/>).</summary>
     public static Dk2InstallCheck Check(string? dir)
@@ -104,5 +111,8 @@ public static class Dk2Install
         catch (ArgumentException) { return Dk2InstallCheck.NoGame; }   // a typed path with characters no path can hold (Mono)
     }
 
-    public static bool IsInstall(string? dir) => Check(dir) == Dk2InstallCheck.Found;
+    public static bool IsInstall(string? dir)
+    {
+        return Check(dir) == Dk2InstallCheck.Found;
+    }
 }

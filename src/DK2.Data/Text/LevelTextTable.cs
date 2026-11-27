@@ -29,10 +29,13 @@ public static class LevelTextTable
     ];
 
     /// <summary>The file under <c>Data/Text/&lt;language&gt;</c>, or null when the id loads none.</summary>
-    public static string? FileName(int textTableId) => textTableId switch
+    public static string? FileName(int textTableId)
     {
-        >= 1 and <= 34 => Names[textTableId - 1],
-        >= 35 and <= 40 => "MYPETDUNGEON.str",
-        _ => null,
-    };
+        return textTableId switch
+        {
+            >= 1 and <= 34 => Names[textTableId - 1],
+            >= 35 and <= 40 => "MYPETDUNGEON.str",
+            _ => null,
+        };
+    }
 }

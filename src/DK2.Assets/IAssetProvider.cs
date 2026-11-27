@@ -68,14 +68,23 @@ public readonly struct ResolvedAsset
     public string ProviderName { get; }
 
     /// <summary>True when a renderer must improvise rather than load a file.</summary>
-    public bool IsPlaceholder => Source == AssetSource.Placeholder;
-
-    public override string ToString() => Source switch
+    public bool IsPlaceholder
     {
-        AssetSource.Placeholder => $"{Reference} → placeholder {Look} ({ProviderName})",
-        AssetSource.InstallEntry => $"{Reference} → install {InstallEntry} ({ProviderName})",
-        _ => $"{Reference} → {FilePath} ({ProviderName})",
-    };
+        get
+        {
+            return Source == AssetSource.Placeholder;
+        }
+    }
+
+    public override string ToString()
+    {
+        return Source switch
+        {
+            AssetSource.Placeholder => $"{Reference} → placeholder {Look} ({ProviderName})",
+            AssetSource.InstallEntry => $"{Reference} → install {InstallEntry} ({ProviderName})",
+            _ => $"{Reference} → {FilePath} ({ProviderName})",
+        };
+    }
 }
 
 /// <summary>
@@ -106,8 +115,10 @@ public readonly struct PlaceholderLook
     /// </summary>
     public ushort HeightPermille { get; }
 
-    public override string ToString() =>
-        $"{Shape} #{Red:X2}{Green:X2}{Blue:X2} h={HeightPermille}‰";
+    public override string ToString()
+    {
+        return $"{Shape} #{Red:X2}{Green:X2}{Blue:X2} h={HeightPermille}‰";
+    }
 }
 
 /// <summary>The shapes a placeholder renderer has to be able to draw.</summary>

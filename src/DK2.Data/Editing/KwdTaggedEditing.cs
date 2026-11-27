@@ -201,8 +201,11 @@ public sealed partial class KwdLevelFileSet
         return result;
     }
 
-    private IEnumerable<TriggerRecord> TriggerRows() => _files.Values.SelectMany(c=>c)
-        .Where(c=>c.Type==KwdRecordType.Triggers).SelectMany(c=>KwdTriggers.Parse([c]));
+    private IEnumerable<TriggerRecord> TriggerRows()
+    {
+        return _files.Values.SelectMany(c => c)
+        .Where(c => c.Type == KwdRecordType.Triggers).SelectMany(c => KwdTriggers.Parse([c]));
+    }
 
     private static IEnumerable<KwdTriggerId> Roots(object row)
     {

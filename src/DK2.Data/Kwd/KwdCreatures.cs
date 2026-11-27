@@ -68,12 +68,36 @@ public static partial class KwdCreatures
     private static CreatureDef ParseRecord(byte[] rec, int b)
     {
         // Primitive readers, offset-addressed relative to the record base.
-        ushort U16(int off) => BinaryPrimitives.ReadUInt16LittleEndian(rec.AsSpan(b + off));
-        short S16(int off) => BinaryPrimitives.ReadInt16LittleEndian(rec.AsSpan(b + off));
-        uint U32(int off) => BinaryPrimitives.ReadUInt32LittleEndian(rec.AsSpan(b + off));
-        int S32(int off) => BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + off));
-        byte U8(int off) => rec[b + off];
-        Fp32 Fp(int off) => new(BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + off)));
+        ushort U16(int off)
+        {
+            return BinaryPrimitives.ReadUInt16LittleEndian(rec.AsSpan(b + off));
+        }
+
+        short S16(int off)
+        {
+            return BinaryPrimitives.ReadInt16LittleEndian(rec.AsSpan(b + off));
+        }
+
+        uint U32(int off)
+        {
+            return BinaryPrimitives.ReadUInt32LittleEndian(rec.AsSpan(b + off));
+        }
+
+        int S32(int off)
+        {
+            return BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + off));
+        }
+
+        byte U8(int off)
+        {
+            return rec[b + off];
+        }
+
+        Fp32 Fp(int off)
+        {
+            return new(BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + off)));
+        }
+
         string Str(int off, int len)
         {
             ReadOnlySpan<byte> s = rec.AsSpan(b + off, len);
@@ -155,7 +179,10 @@ public static partial class KwdCreatures
             }
         }
 
-        CreatureAnimationTiming AnimationTiming(int slot) => AnimationTimingAt(0x20 + (slot * 84));
+        CreatureAnimationTiming AnimationTiming(int slot)
+        {
+            return AnimationTimingAt(0x20 + (slot * 84));
+        }
 
         CreatureAnimationTiming AnimationTimingAt(int offset)
         {

@@ -29,8 +29,16 @@ public static class KwdObjects
         KwdOverlay.Ascii(bytes, OffsetName, 32, record.Name, Name(bytes, OffsetName), trimmed: true);
         KwdOverlay.Ascii(bytes, OffsetSoundCategory, 32, record.SoundCategory, Name(bytes, OffsetSoundCategory), trimmed: true);
         bytes[OffsetImpactKind] = record.ImpactKind;
-        void Fp(int offset, Fp32 value) => BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(offset), value.Raw);
-        void U16(int offset, ushort value) => BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(offset), value);
+        void Fp(int offset, Fp32 value)
+        {
+            BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(offset), value.Raw);
+        }
+
+        void U16(int offset, ushort value)
+        {
+            BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(offset), value);
+        }
+
         bytes[OffsetObjectId] = record.ObjectId;
         bytes[OffsetRoomCapacity] = record.RoomCapacity;
         bytes[OffsetStartState] = record.StartState;
@@ -127,8 +135,15 @@ public static class KwdObjects
 
     private static ObjectDef ParseRecord(byte[] rec, int b)
     {
-        Fp32 Fp(int off) => new(BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + off)));
-        ushort U16(int off) => BinaryPrimitives.ReadUInt16LittleEndian(rec.AsSpan(b + off));
+        Fp32 Fp(int off)
+        {
+            return new(BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + off)));
+        }
+
+        ushort U16(int off)
+        {
+            return BinaryPrimitives.ReadUInt16LittleEndian(rec.AsSpan(b + off));
+        }
 
         var artSlots = new CreatureAnimationTiming[9];
         for (int slot = 0; slot < artSlots.Length; slot++)

@@ -79,7 +79,10 @@ public static class CampaignProfileFile
         return profile;
     }
 
-    public static void Save(string path, CampaignProfile profile) => ProfileFileStorage.Save(path, Write(profile));
+    public static void Save(string path, CampaignProfile profile)
+    {
+        ProfileFileStorage.Save(path, Write(profile));
+    }
 
     private static IEnumerable<(IReadOnlyList<uint>, int)> Arrays(CampaignProfile p)
     {

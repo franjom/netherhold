@@ -52,8 +52,13 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
 
     /// <summary>Time spent decoding models and images on request, cache hits and
     /// <see cref="Prefetch"/> excluded: what a caller waited for.</summary>
-    public TimeSpan DecodeTime =>
-        TimeSpan.FromSeconds(Interlocked.Read(ref _decodeTicks) / (double)Stopwatch.Frequency);
+    public TimeSpan DecodeTime
+    {
+        get
+        {
+            return TimeSpan.FromSeconds(Interlocked.Read(ref _decodeTicks) / (double)Stopwatch.Frequency);
+        }
+    }
 
     /// <summary>Over the given sources, which the caller owns.</summary>
     public InstallArtProvider(IReadOnlyList<ArtEntry> entries, IMeshSource meshes, ITextureSource textures)
@@ -117,13 +122,25 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
         }
     }
 
-    public string Name => "install";
+    public string Name
+    {
+        get
+        {
+            return "install";
+        }
+    }
 
     /// <summary>The install's KWD art records, when <see cref="Open"/> read them; null otherwise.</summary>
     public Dk2ArtCatalogue? Catalogue { get; private init; }
 
     /// <summary>How many keys have an entry in the install.</summary>
-    public int Count => _entries.Count;
+    public int Count
+    {
+        get
+        {
+            return _entries.Count;
+        }
+    }
 
     public bool TryResolve(AssetRef reference, out ResolvedAsset asset)
     {
@@ -242,7 +259,10 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
     }
 
     /// <summary>A material's texture by the name the KMF gives it.</summary>
-    public RgbaImage LoadTexture(string textureName) => LoadTexture(textureName, counted: true);
+    public RgbaImage LoadTexture(string textureName)
+    {
+        return LoadTexture(textureName, counted: true);
+    }
 
     /// <summary>
     /// Decodes ahead what <paramref name="keys"/> will load, on up to <paramref name="workers"/>
@@ -365,7 +385,10 @@ public sealed class InstallArtProvider : IAssetProvider, IDisposable
         }
     }
 
-    public void Dispose() => _owned?.Dispose();
+    public void Dispose()
+    {
+        _owned?.Dispose();
+    }
 
     private string EntryOf(in ResolvedAsset asset)
     {

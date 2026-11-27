@@ -15,7 +15,13 @@ public sealed partial class KwdLevelFileSet
     private readonly Dictionary<string,KwdChunk[]> _files=new(StringComparer.OrdinalIgnoreCase);
     private bool _editing;
     private KwdLevelFileSet() { }
-    public IReadOnlyList<string> Files => _files.Keys.ToArray();
+    public IReadOnlyList<string> Files
+    {
+        get
+        {
+            return _files.Keys.ToArray();
+        }
+    }
 
     public static KwdLevelFileSet Create(IReadOnlyDictionary<string,IReadOnlyList<KwdChunk>> files)
     {
@@ -79,8 +85,15 @@ public sealed partial class KwdLevelFileSet
         return Create(files);
     }
 
-    public IReadOnlyList<KwdChunk> Chunks(string relativePath) => FileChunks(relativePath).Select(Clone).ToArray();
-    public byte[] ToBytes(string relativePath) => KwdWriter.ToBytes(FileChunks(relativePath));
+    public IReadOnlyList<KwdChunk> Chunks(string relativePath)
+    {
+        return FileChunks(relativePath).Select(Clone).ToArray();
+    }
+
+    public byte[] ToBytes(string relativePath)
+    {
+        return KwdWriter.ToBytes(FileChunks(relativePath));
+    }
 
     public T ReadRecord<T>(KwdRecordLocation location)
     {
@@ -137,8 +150,11 @@ public sealed partial class KwdLevelFileSet
         }
     }
 
-    private KwdChunk[] FileChunks(string path) => _files.TryGetValue(Normalize(path),out KwdChunk[]? chunks)
+    private KwdChunk[] FileChunks(string path)
+    {
+        return _files.TryGetValue(Normalize(path), out KwdChunk[]? chunks)
         ? chunks : throw new InvalidDataException("The file is not part of this level set.");
+    }
 
     private KwdChunk Chunk(KwdRecordLocation location)
     {
@@ -164,7 +180,10 @@ public sealed partial class KwdLevelFileSet
             throw new InvalidOperationException("Nested mutations during a typed edit callback are not supported.");
         }
     }
-    private static KwdChunk Clone(KwdChunk chunk) => chunk with { Content= [.. chunk.Content], HeaderBlock = [.. chunk.HeaderBlock] };
+    private static KwdChunk Clone(KwdChunk chunk)
+    {
+        return chunk with { Content = [.. chunk.Content], HeaderBlock = [.. chunk.HeaderBlock] };
+    }
 
     private static string Normalize(string path)
     {
@@ -200,13 +219,22 @@ public sealed partial class KwdLevelFileSet
         return current;
     }
 
-    private static KwdTriggerId? RootTrigger(object row) => row switch
+    private static KwdTriggerId? RootTrigger(object row)
     {
-        ObjectThing r=>new(r.TriggerId), DoorThing r=>new(r.TriggerId), ActionPointThing r=>new(r.TriggerId),
-        NeutralCreatureThing r=>new(r.TriggerId), GoodCreatureThing r=>new(r.TriggerId), KeeperCreatureThing r=>new(r.TriggerId),
-        HeroPartyThing r=>new(r.TriggerId), PlayerDef r=>new(r.TriggerId), LevelDef r=>new(r.TriggerId),
-        _=>null,
-    };
+        return row switch
+        {
+            ObjectThing r => new(r.TriggerId),
+            DoorThing r => new(r.TriggerId),
+            ActionPointThing r => new(r.TriggerId),
+            NeutralCreatureThing r => new(r.TriggerId),
+            GoodCreatureThing r => new(r.TriggerId),
+            KeeperCreatureThing r => new(r.TriggerId),
+            HeroPartyThing r => new(r.TriggerId),
+            PlayerDef r => new(r.TriggerId),
+            LevelDef r => new(r.TriggerId),
+            _ => null,
+        };
+    }
 
     private static void RefuseReferenceChanges(object original,object changed)
     {

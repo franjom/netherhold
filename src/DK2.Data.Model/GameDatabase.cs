@@ -200,8 +200,10 @@ public sealed class GameDatabase
     public IReadOnlyDictionary<ushort, EffectElementDef> EffectElements { get; }
 
     /// <summary>The object with this id, or null. Id 0 means "none" throughout the data.</summary>
-    public ObjectDef? ObjectById(byte id) =>
-        Objects.TryGetValue(id, out ObjectDef? o) ? o : null;
+    public ObjectDef? ObjectById(byte id)
+    {
+        return Objects.TryGetValue(id, out ObjectDef? o) ? o : null;
+    }
 
     public GlobalVariables Variables { get; }
 
@@ -236,7 +238,13 @@ public sealed class GameDatabase
     public IReadOnlyDictionary<string, KeeperSpellDef> KeeperSpells { get; }
 
     /// <summary>Global rule value by id — the simulation's only source of balance numbers.</summary>
-    public int this[VariableTypeId id] => Variables[id];
+    public int this[VariableTypeId id]
+    {
+        get
+        {
+            return Variables[id];
+        }
+    }
 
     /// <summary>Applies level VARIABLES and metadata without mutating this database.
     /// Missing variables retain the current table; missing metadata retains the current level.
@@ -246,8 +254,9 @@ public sealed class GameDatabase
     /// absent from every campaign level while present everywhere else — which happened to
     /// <see cref="Objects"/>. <c>ObjectsOnRealDataTests.ForLevelKeepsEveryRecordCollection</c>
     /// exists so the next record cannot repeat it.</remarks>
-    public GameDatabase ForLevel(GlobalVariables? levelVariables, LevelDef? level = null) =>
-        levelVariables is null && level is null
+    public GameDatabase ForLevel(GlobalVariables? levelVariables, LevelDef? level = null)
+    {
+        return levelVariables is null && level is null
             ? this
             : new GameDatabase(
                 Terrain.Values,
@@ -264,6 +273,7 @@ public sealed class GameDatabase
                 EffectElements.Values,
                 level ?? Level,
                 CameraPathFrames);
+    }
 
     /// <summary>The level's VARIABLES id 77 records, in file order (<c>0x0051DD10</c> then
     /// <c>0x00494A70</c>): each stores its value into one definition field of one creature type,
@@ -304,27 +314,43 @@ public sealed class GameDatabase
         return byId.Values;
     }
 
-    public TerrainDef TerrainById(byte id) => Terrain.TryGetValue(id, out TerrainDef? t)
+    public TerrainDef TerrainById(byte id)
+    {
+        return Terrain.TryGetValue(id, out TerrainDef? t)
         ? t
         : throw new KeyNotFoundException($"No TERRAIN definition with id {id}.");
+    }
 
-    public RoomDef RoomById(byte id) => Room((RoomTypeId)id);
+    public RoomDef RoomById(byte id)
+    {
+        return Room((RoomTypeId)id);
+    }
 
-    public RoomDef Room(RoomTypeId id) => Rooms.TryGetValue(id, out RoomDef? r)
+    public RoomDef Room(RoomTypeId id)
+    {
+        return Rooms.TryGetValue(id, out RoomDef? r)
         ? r
         : throw new KeyNotFoundException($"No ROOMS definition with id {(byte)id}.");
+    }
 
     /// <summary>The room a room-terrain tile belongs to, or null if that terrain is not a room.</summary>
-    public RoomDef? RoomByTerrain(byte terrainId) =>
-        RoomsByTerrain.TryGetValue(terrainId, out RoomDef? r) ? r : null;
+    public RoomDef? RoomByTerrain(byte terrainId)
+    {
+        return RoomsByTerrain.TryGetValue(terrainId, out RoomDef? r) ? r : null;
+    }
 
-    public CreatureDef CreatureById(byte id) => Creatures.TryGetValue(id, out CreatureDef? c)
+    public CreatureDef CreatureById(byte id)
+    {
+        return Creatures.TryGetValue(id, out CreatureDef? c)
         ? c
         : throw new KeyNotFoundException($"No CREATURES definition with id {id}.");
+    }
 
     /// <summary>The named keeper spell, or null if this database has none.</summary>
-    public KeeperSpellDef? KeeperSpell(string name) =>
-        KeeperSpells.TryGetValue(name, out KeeperSpellDef? s) ? s : null;
+    public KeeperSpellDef? KeeperSpell(string name)
+    {
+        return KeeperSpells.TryGetValue(name, out KeeperSpellDef? s) ? s : null;
+    }
 
     /// <summary>The keeper spell with this id (<see cref="KeeperSpellDef.KeeperSpellId"/>), or
     /// null — the type id availability rows and research entries use.</summary>
@@ -345,19 +371,25 @@ public sealed class GameDatabase
     /// (docs/HANDOFF.md): a rule that starts reading a new piece of the database breaks every
     /// synthetic database that does not supply it, and it should break at the seam with a name in
     /// the message rather than behaving differently in tests than on the real data.</summary>
-    public KeeperSpellDef RequireKeeperSpell(string name) =>
-        KeeperSpell(name) ?? throw new KeyNotFoundException(
+    public KeeperSpellDef RequireKeeperSpell(string name)
+    {
+        return KeeperSpell(name) ?? throw new KeyNotFoundException(
             $"No KEEPERSPELLS definition named '{name}'. This database carries " +
             $"{KeeperSpells.Count} keeper spells; a synthetic one built for a test " +
             "must supply the spells the rules under test read.");
+    }
 
     /// <summary>Look up a creature by its data-file name, case-insensitively.</summary>
-    public CreatureDef? CreatureByName(string name) =>
-        Creatures.Values.FirstOrDefault(
+    public CreatureDef? CreatureByName(string name)
+    {
+        return Creatures.Values.FirstOrDefault(
             c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+    }
 
     /// <summary>Look up a room by its data-file name, case-insensitively.</summary>
-    public RoomDef? RoomByName(string name) =>
-        Rooms.Values.FirstOrDefault(
+    public RoomDef? RoomByName(string name)
+    {
+        return Rooms.Values.FirstOrDefault(
             r => r.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+    }
 }

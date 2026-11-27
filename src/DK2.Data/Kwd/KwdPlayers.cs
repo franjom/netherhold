@@ -63,17 +63,20 @@ public static partial class KwdPlayers
         return result;
     }
 
-    private static PlayerDef ParseRecord(byte[] rec, int b) => new()
+    private static PlayerDef ParseRecord(byte[] rec, int b)
     {
-        StartingGold = BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + OffsetGold)),
-        HasAiFlag = BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + OffsetAiFlag)) != 0,
-        Ai = ParseBlock(rec, b + OffsetBlock),
-        TriggerId = BinaryPrimitives.ReadUInt16LittleEndian(rec.AsSpan(b + OffsetTriggerId)),
-        PlayerId = rec[b + OffsetPlayerId],
-        CameraX = BinaryPrimitives.ReadUInt16LittleEndian(rec.AsSpan(b + OffsetCameraX)),
-        CameraY = BinaryPrimitives.ReadUInt16LittleEndian(rec.AsSpan(b + OffsetCameraY)),
-        Name = Name(rec, b + OffsetName),
-    };
+        return new()
+        {
+            StartingGold = BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + OffsetGold)),
+            HasAiFlag = BinaryPrimitives.ReadInt32LittleEndian(rec.AsSpan(b + OffsetAiFlag)) != 0,
+            Ai = ParseBlock(rec, b + OffsetBlock),
+            TriggerId = BinaryPrimitives.ReadUInt16LittleEndian(rec.AsSpan(b + OffsetTriggerId)),
+            PlayerId = rec[b + OffsetPlayerId],
+            CameraX = BinaryPrimitives.ReadUInt16LittleEndian(rec.AsSpan(b + OffsetCameraX)),
+            CameraY = BinaryPrimitives.ReadUInt16LittleEndian(rec.AsSpan(b + OffsetCameraY)),
+            Name = Name(rec, b + OffsetName),
+        };
+    }
 
     /// <summary>Decodes the 158-byte block exactly as the retail unpacker reads it.</summary>
     public static KeeperAIParameters ParseBlock(byte[] rec, int b)
@@ -84,10 +87,25 @@ public static partial class KwdPlayers
         }
 
         byte[] s = rec.AsSpan(b, BlockSize).ToArray();
-        byte U8(int off) => s[off];
-        ushort U16(int off) => BinaryPrimitives.ReadUInt16LittleEndian(s.AsSpan(off));
-        int I32(int off) => BinaryPrimitives.ReadInt32LittleEndian(s.AsSpan(off));
-        bool B32(int off) => I32(off) != 0;
+        byte U8(int off)
+        {
+            return s[off];
+        }
+
+        ushort U16(int off)
+        {
+            return BinaryPrimitives.ReadUInt16LittleEndian(s.AsSpan(off));
+        }
+
+        int I32(int off)
+        {
+            return BinaryPrimitives.ReadInt32LittleEndian(s.AsSpan(off));
+        }
+
+        bool B32(int off)
+        {
+            return I32(off) != 0;
+        }
 
         return new KeeperAIParameters
         {

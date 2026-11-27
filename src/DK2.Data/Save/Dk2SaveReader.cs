@@ -89,8 +89,10 @@ public static class Dk2SaveReader
     private const int LaneHealth = 4;
 
     /// <summary>Where DK2 keeps saves, relative to the install.</summary>
-    public static string SaveDirectory(string installDir) =>
-        Path.Combine(installDir, "Data", "Save");
+    public static string SaveDirectory(string installDir)
+    {
+        return Path.Combine(installDir, "Data", "Save");
+    }
 
     /// <summary>
     /// Every save in an install, newest first. Both extensions, because a
@@ -344,7 +346,9 @@ public static class Dk2SaveReader
     /// names — the same "skip cleanly" shape the rest of the loader uses.</para>
     /// </summary>
     public static SavedGame? Load(string installDir, string savePath)
-        => Read(File.ReadAllBytes(savePath), name => GameDatabaseLoader.LoadCampaignMap(installDir, name));
+    {
+        return Read(File.ReadAllBytes(savePath), name => GameDatabaseLoader.LoadCampaignMap(installDir, name));
+    }
 
     /// <summary>Reads a complete save using the installed design map looked up by its saved level name.</summary>
     public static SavedGame? Read(byte[] bytes, Func<string, LevelMap?> designMap)
@@ -390,8 +394,11 @@ public static class Dk2SaveReader
             gridOffset);
     }
 
-    internal static bool IsMapName(string name) => !string.IsNullOrWhiteSpace(name)
+    internal static bool IsMapName(string name)
+    {
+        return !string.IsNullOrWhiteSpace(name)
         && name.IndexOfAny(['/', '\\', ':', '*', '?', '"', '<', '>', '|']) < 0 && !name.Any(char.IsControl);
+    }
 
     /// <summary>
     /// The share of tiles whose terrain still matches the level's design map — the

@@ -37,10 +37,26 @@ public static partial class KwdPlayers
             throw new InvalidDataException("PLAYERS AI RoomList requires exactly 15 bytes.");
         }
 
-        void U8(int offset, byte value) => image[OffsetBlock + offset] = value;
-        void U16(int offset, ushort value) => BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(OffsetBlock + offset), value);
-        void I32(int offset, int value) => BinaryPrimitives.WriteInt32LittleEndian(image.AsSpan(OffsetBlock + offset), value);
-        void B32(int offset, bool value) => WriteBoolean(image, OffsetBlock + offset, value, 4);
+        void U8(int offset, byte value)
+        {
+            image[OffsetBlock + offset] = value;
+        }
+
+        void U16(int offset, ushort value)
+        {
+            BinaryPrimitives.WriteUInt16LittleEndian(image.AsSpan(OffsetBlock + offset), value);
+        }
+
+        void I32(int offset, int value)
+        {
+            BinaryPrimitives.WriteInt32LittleEndian(image.AsSpan(OffsetBlock + offset), value);
+        }
+
+        void B32(int offset, bool value)
+        {
+            WriteBoolean(image, OffsetBlock + offset, value, 4);
+        }
+
         U8(0x00, row.EditorAiType);
         U8(0x01, row.TendancySpeed);
         U8(0x02, row.Openness);

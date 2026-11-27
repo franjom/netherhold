@@ -26,8 +26,13 @@ public sealed record Dk2SaveHeader(
     uint GameTick)
 {
     /// <summary>Whether the writing build is the one whose layout is proven.</summary>
-    public bool IsSupportedBuild =>
-        BuildStamp == Dk2SaveReader.SupportedBuildStamp;
+    public bool IsSupportedBuild
+    {
+        get
+        {
+            return BuildStamp == Dk2SaveReader.SupportedBuildStamp;
+        }
+    }
 }
 
 /// <summary>A loaded saved game: the dungeon as the player left it, terrain and

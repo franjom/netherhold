@@ -22,7 +22,10 @@ public readonly record struct FootstepMarkPair(ushort First, ushort Second)
 {
     /// <summary>The mark normalized to the clip's phase (1/4096 of its length), as the animation install does
     /// (<c>0x0048C5D0</c>): the unsigned word shifted left 12 and divided by the clip's frame count.</summary>
-    public static int Normalize(ushort mark, ushort frameCount) => frameCount == 0 ? 0 : (int)(((uint)mark << 12) / frameCount);
+    public static int Normalize(ushort mark, ushort frameCount)
+    {
+        return frameCount == 0 ? 0 : (int)(((uint)mark << 12) / frameCount);
+    }
 }
 
 /// <summary>Resistance against one attack type (percentage).</summary>
@@ -60,8 +63,11 @@ public sealed record CreatureDef
     public const int FootstepMarkCount = 48;
 
     /// <summary>The marks of <paramref name="slot"/>, or none when the slot is past <see cref="FootstepMarks"/>.</summary>
-    public FootstepMarkPair FootstepMarksOf(int slot) =>
-        slot >= 0 && slot < FootstepMarks.Count ? FootstepMarks[slot] : default;
+    public FootstepMarkPair FootstepMarksOf(int slot)
+    {
+        return slot >= 0 && slot < FootstepMarks.Count ? FootstepMarks[slot] : default;
+    }
+
     private byte _baseCreatureId;
     public required string Name { get; init; }
     public required byte CreatureId { get; init; }
@@ -70,7 +76,18 @@ public sealed record CreatureDef
     /// The ordinary creature archetype represented by a unique definition
     /// (CREATURES record offset <c>0xD3B</c>); zero for non-unique definitions.
     /// </summary>
-    public byte UniqueBaseCreatureId { get => _baseCreatureId; init => _baseCreatureId = value; }
+    public byte UniqueBaseCreatureId
+    {
+        get
+        {
+            return _baseCreatureId;
+        }
+
+        init
+        {
+            _baseCreatureId = value;
+        }
+    }
 
     public required CreatureFlags Flags { get; init; }
 
@@ -160,8 +177,10 @@ public sealed record CreatureDef
     public const int ArtSlotCount = 39;
 
     /// <summary>One art block, or an absent one when the slot is past <see cref="ArtSlots"/>.</summary>
-    public CreatureAnimationTiming ArtSlot(int slot) =>
-        slot >= 0 && slot < ArtSlots.Count ? ArtSlots[slot] : default;
+    public CreatureAnimationTiming ArtSlot(int slot)
+    {
+        return slot >= 0 && slot < ArtSlots.Count ? ArtSlots[slot] : default;
+    }
 
     /// <summary>The alternate art block at file <c>+0x1083</c> (definition <c>+0x46E</c>): the clip
     /// an install swaps in on a 1 from its coin flip when the slot's flags carry <c>0x400</c>
@@ -312,7 +331,18 @@ public sealed record CreatureDef
     public int CreepingDistancePercent { get; init; }
     public required byte LairObjectId { get; init; }
     /// <summary>The same source byte as UniqueBaseCreatureId (Q528); editing either view updates both.</summary>
-    public required byte CloneCreatureId { get => _baseCreatureId; init => _baseCreatureId = value; }
+    public required byte CloneCreatureId
+    {
+        get
+        {
+            return _baseCreatureId;
+        }
+
+        init
+        {
+            _baseCreatureId = value;
+        }
+    }
 
     // String table references (localised text)
     public required ushort NameStringId { get; init; }

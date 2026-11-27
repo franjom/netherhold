@@ -21,10 +21,38 @@ public readonly record struct CampaignSlot
         Value = (byte)value;
     }
     public byte Value { get; }
-    public static CampaignSlot None => default;
-    public bool IsCampaign => Value is >= 1 and <= 24;
-    public bool IsSecret => Value is >= 26 and <= 30;
-    public string? LevelName => Names[Value];
+    public static CampaignSlot None
+    {
+        get
+        {
+            return default;
+        }
+    }
+
+    public bool IsCampaign
+    {
+        get
+        {
+            return Value is >= 1 and <= 24;
+        }
+    }
+
+    public bool IsSecret
+    {
+        get
+        {
+            return Value is >= 26 and <= 30;
+        }
+    }
+
+    public string? LevelName
+    {
+        get
+        {
+            return Names[Value];
+        }
+    }
+
     /// <summary>The slot whose level is <paramref name="levelName"/>, ignoring case, or <see cref="None"/> for a level off the
     /// campaign map.</summary>
     public static CampaignSlot ForLevel(string? levelName)
@@ -44,10 +72,13 @@ public readonly record struct CampaignSlot
 
         return None;
     }
-    public static CampaignSlot FromPickTag(byte tag) => tag switch
+    public static CampaignSlot FromPickTag(byte tag)
     {
-        >= 1 and <= 30 => new(tag),
-        >= 151 and <= 174 => new(tag - 150),
-        _ => None,
-    };
+        return tag switch
+        {
+            >= 1 and <= 30 => new(tag),
+            >= 151 and <= 174 => new(tag - 150),
+            _ => None,
+        };
+    }
 }

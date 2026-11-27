@@ -17,22 +17,52 @@ namespace DK2.Data.Model;
 /// printed it.</remarks>
 public readonly record struct PlayerId(byte Value) : IComparable<PlayerId>
 {
-    public static implicit operator PlayerId(byte value) => new(value);
+    public static implicit operator PlayerId(byte value)
+    {
+        return new(value);
+    }
 
-    public static explicit operator byte(PlayerId id) => id.Value;
+    public static explicit operator byte(PlayerId id)
+    {
+        return id.Value;
+    }
 
-    public int CompareTo(PlayerId other) => Value.CompareTo(other.Value);
+    public int CompareTo(PlayerId other)
+    {
+        return Value.CompareTo(other.Value);
+    }
 
-    public static bool operator <(PlayerId left, PlayerId right) => left.Value < right.Value;
+    public static bool operator <(PlayerId left, PlayerId right)
+    {
+        return left.Value < right.Value;
+    }
 
-    public static bool operator >(PlayerId left, PlayerId right) => left.Value > right.Value;
+    public static bool operator >(PlayerId left, PlayerId right)
+    {
+        return left.Value > right.Value;
+    }
 
-    public static bool operator <=(PlayerId left, PlayerId right) => left.Value <= right.Value;
+    public static bool operator <=(PlayerId left, PlayerId right)
+    {
+        return left.Value <= right.Value;
+    }
 
-    public static bool operator >=(PlayerId left, PlayerId right) => left.Value >= right.Value;
+    public static bool operator >=(PlayerId left, PlayerId right)
+    {
+        return left.Value >= right.Value;
+    }
 
     /// <summary>Whether this player is a keeper: <see cref="PlayerIds.IsKeeper"/>.</summary>
-    public bool IsKeeper => PlayerIds.IsKeeper(Value);
+    public bool IsKeeper
+    {
+        get
+        {
+            return PlayerIds.IsKeeper(Value);
+        }
+    }
 
-    public override string ToString() => Value.ToString(CultureInfo.InvariantCulture);
+    public override string ToString()
+    {
+        return Value.ToString(CultureInfo.InvariantCulture);
+    }
 }

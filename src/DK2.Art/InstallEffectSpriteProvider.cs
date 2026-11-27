@@ -76,7 +76,13 @@ public sealed class InstallEffectSpriteProvider : IEffectSpriteProvider
             new KwdArtResource("KTorch", 0x20004, flameValues, 3, 0, 0, 0));
     }
 
-    public string Name => "install_effect_sprites";
+    public string Name
+    {
+        get
+        {
+            return "install_effect_sprites";
+        }
+    }
 
     public bool TryResolve(AssetRef reference, out ResolvedAsset asset)
     {
@@ -109,10 +115,13 @@ public sealed class InstallEffectSpriteProvider : IEffectSpriteProvider
         return true;
     }
 
-    private bool Owns(in ResolvedAsset asset) => asset.Source == AssetSource.InstallEntry
+    private bool Owns(in ResolvedAsset asset)
+    {
+        return asset.Source == AssetSource.InstallEntry
         && asset.ProviderName == Name && !asset.Reference.IsEmpty
         && _elements.TryGetValue(asset.Reference, out KwdArtResource? element)
         && asset.InstallEntry == element.Name;
+    }
 
     private LoadedSprite? Load(AssetRef reference)
     {

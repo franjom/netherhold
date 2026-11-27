@@ -9,50 +9,56 @@ namespace DK2.Data.Kwd;
 /// <summary>Shared typed decoding and overlay dispatch for the editor and rewrite audit.</summary>
 public static class KwdTypedRecords
 {
-    public static IReadOnlyList<object> Read(KwdChunk chunk) => chunk.Type switch
+    public static IReadOnlyList<object> Read(KwdChunk chunk)
     {
-        KwdRecordType.Terrain => KwdTerrainRooms.ParseTerrain([chunk]).Cast<object>().ToArray(),
-        KwdRecordType.Rooms => [.. KwdTerrainRooms.ParseRooms([chunk]).Cast<object>()],
-        KwdRecordType.Creatures => [.. KwdCreatures.Parse([chunk]).Cast<object>()],
-        KwdRecordType.KeeperSpells => [.. KwdKeeperSpells.Parse([chunk]).Cast<object>()],
-        KwdRecordType.Objects => [.. KwdObjects.Parse([chunk]).Cast<object>()],
-        KwdRecordType.Doors => [.. KwdDoors.Parse([chunk]).Cast<object>()],
-        KwdRecordType.Traps => [.. KwdTraps.Parse([chunk]).Cast<object>()],
-        KwdRecordType.Players => [.. KwdPlayers.Parse([chunk]).Cast<object>()],
-        KwdRecordType.CreatureSpells => [.. KwdAdditionalRecords.ParseCreatureSpells([chunk]).Cast<object>()],
-        KwdRecordType.Shots => [.. KwdAdditionalRecords.ParseShots([chunk]).Cast<object>()],
-        KwdRecordType.Effects => [.. KwdAdditionalRecords.ParseEffects([chunk]).Cast<object>()],
-        KwdRecordType.EffectElements => [.. KwdAdditionalRecords.ParseEffectElements([chunk]).Cast<object>()],
-        KwdRecordType.Things => [.. KwdThings.Parse([chunk]).Cast<object>()],
-        KwdRecordType.Triggers => [.. KwdTriggers.Parse([chunk]).Cast<object>()],
-        KwdRecordType.Level => [KwdLevel.Parse([chunk])!],
-        KwdRecordType.Variables => [.. KwdRecordRoundTrip.Split(chunk).Select(i=>(object)KwdVariables.ParseRecord(i.ToBytes()))],
-        KwdRecordType.Map => [.. MapGrid.Parse([chunk])!.Tiles.Cast<object>()],
-        _ => throw new InvalidDataException($"No established typed record layout for {chunk.Type}."),
-    };
+        return chunk.Type switch
+        {
+            KwdRecordType.Terrain => KwdTerrainRooms.ParseTerrain([chunk]).Cast<object>().ToArray(),
+            KwdRecordType.Rooms => [.. KwdTerrainRooms.ParseRooms([chunk]).Cast<object>()],
+            KwdRecordType.Creatures => [.. KwdCreatures.Parse([chunk]).Cast<object>()],
+            KwdRecordType.KeeperSpells => [.. KwdKeeperSpells.Parse([chunk]).Cast<object>()],
+            KwdRecordType.Objects => [.. KwdObjects.Parse([chunk]).Cast<object>()],
+            KwdRecordType.Doors => [.. KwdDoors.Parse([chunk]).Cast<object>()],
+            KwdRecordType.Traps => [.. KwdTraps.Parse([chunk]).Cast<object>()],
+            KwdRecordType.Players => [.. KwdPlayers.Parse([chunk]).Cast<object>()],
+            KwdRecordType.CreatureSpells => [.. KwdAdditionalRecords.ParseCreatureSpells([chunk]).Cast<object>()],
+            KwdRecordType.Shots => [.. KwdAdditionalRecords.ParseShots([chunk]).Cast<object>()],
+            KwdRecordType.Effects => [.. KwdAdditionalRecords.ParseEffects([chunk]).Cast<object>()],
+            KwdRecordType.EffectElements => [.. KwdAdditionalRecords.ParseEffectElements([chunk]).Cast<object>()],
+            KwdRecordType.Things => [.. KwdThings.Parse([chunk]).Cast<object>()],
+            KwdRecordType.Triggers => [.. KwdTriggers.Parse([chunk]).Cast<object>()],
+            KwdRecordType.Level => [KwdLevel.Parse([chunk])!],
+            KwdRecordType.Variables => [.. KwdRecordRoundTrip.Split(chunk).Select(i => (object)KwdVariables.ParseRecord(i.ToBytes()))],
+            KwdRecordType.Map => [.. MapGrid.Parse([chunk])!.Tiles.Cast<object>()],
+            _ => throw new InvalidDataException($"No established typed record layout for {chunk.Type}."),
+        };
+    }
 
-    public static byte[] Write(object row, KwdRecordImage template, KwdChunk chunk) => row switch
+    public static byte[] Write(object row, KwdRecordImage template, KwdChunk chunk)
     {
-        TerrainDef r => KwdTerrainRooms.WriteTerrainRecord(r,template),
-        RoomDef r => KwdTerrainRooms.WriteRoomRecord(r,template),
-        CreatureDef r => KwdCreatures.WriteRecord(r,template),
-        KeeperSpellDef r => KwdKeeperSpells.WriteRecord(r,template),
-        ObjectDef r => KwdObjects.WriteRecord(r,template),
-        DoorDef r => KwdDoors.WriteRecord(r,template),
-        TrapDef r => KwdTraps.WriteRecord(r,template),
-        PlayerDef r => KwdPlayers.WriteRecord(r,template),
-        CreatureSpellDef r => KwdAdditionalRecords.WriteCreatureSpellRecord(r,template),
-        ShotDef r => KwdAdditionalRecords.WriteShotRecord(r,template),
-        EffectDef r => KwdAdditionalRecords.WriteEffectRecord(r,template),
-        EffectElementDef r => KwdAdditionalRecords.WriteEffectElementRecord(r,template),
-        ThingRecord r => KwdThings.WriteRecord(r,template),
-        TriggerRecord r => KwdTriggers.WriteRecord(r,template),
-        LevelDef r when template.Type==KwdRecordType.Level && template.Tag is null =>
-            KwdLevel.WriteRecord(r,chunk with { Content=template.ToBytes() }),
-        KwdVariableEntry r => KwdVariables.WriteRecord(r,template),
-        MapTile r => MapGrid.WriteTile(r,template),
-        _ => throw new InvalidDataException("Typed record does not match an established overlay writer."),
-    };
+        return row switch
+        {
+            TerrainDef r => KwdTerrainRooms.WriteTerrainRecord(r, template),
+            RoomDef r => KwdTerrainRooms.WriteRoomRecord(r, template),
+            CreatureDef r => KwdCreatures.WriteRecord(r, template),
+            KeeperSpellDef r => KwdKeeperSpells.WriteRecord(r, template),
+            ObjectDef r => KwdObjects.WriteRecord(r, template),
+            DoorDef r => KwdDoors.WriteRecord(r, template),
+            TrapDef r => KwdTraps.WriteRecord(r, template),
+            PlayerDef r => KwdPlayers.WriteRecord(r, template),
+            CreatureSpellDef r => KwdAdditionalRecords.WriteCreatureSpellRecord(r, template),
+            ShotDef r => KwdAdditionalRecords.WriteShotRecord(r, template),
+            EffectDef r => KwdAdditionalRecords.WriteEffectRecord(r, template),
+            EffectElementDef r => KwdAdditionalRecords.WriteEffectElementRecord(r, template),
+            ThingRecord r => KwdThings.WriteRecord(r, template),
+            TriggerRecord r => KwdTriggers.WriteRecord(r, template),
+            LevelDef r when template.Type == KwdRecordType.Level && template.Tag is null =>
+                KwdLevel.WriteRecord(r, chunk with { Content = template.ToBytes() }),
+            KwdVariableEntry r => KwdVariables.WriteRecord(r, template),
+            MapTile r => MapGrid.WriteTile(r, template),
+            _ => throw new InvalidDataException("Typed record does not match an established overlay writer."),
+        };
+    }
 
     public static KwdChunk Rewrite(KwdChunk chunk)
     {

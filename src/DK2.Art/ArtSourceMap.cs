@@ -21,7 +21,13 @@ public enum ArtUse
 public sealed record ArtEntry(AssetRef Reference, ArtUse Use, Dk2ArtResource? Source, string Detail,
     string? MissingReason = null)
 {
-    public bool HasSource => MissingReason is null;
+    public bool HasSource
+    {
+        get
+        {
+            return MissingReason is null;
+        }
+    }
 }
 
 /// <summary>
@@ -332,50 +338,64 @@ public static class ArtSourceMap
     }
 
     private static Dk2ArtResource CreatureAnimationSource(
-        CreatureDef creature, IReadOnlyList<Dk2ArtResource> resources, string animation) => animation switch
+        CreatureDef creature, IReadOnlyList<Dk2ArtResource> resources, string animation)
     {
-        "idle" => resources[CreatureIdle],
-        "entrance" => resources[29],
-        "fighting" => resources[CreatureMelee],
-        "casting" => resources[5].Type != 0 ? resources[5] : resources[CreatureMelee],
-        "landing" => resources[23].Type != 0 ? resources[23] : resources[3],
-        // Slot 32 (catalogue 31), which the chooser 0x0048BE50 installs for a worker in state 214: the Imp's imp-jump(iw).
-        "creation_jump" => resources.Count > 31 && resources[31].Type != 0 ? resources[31] : resources[CreatureIdle],
-        "stunned" => resources[23].Type != 0 ? resources[23] : resources[3],
-        "getting_up" => resources[26].Type != 0 ? resources[26] : resources[0],
-        "running" => resources[1].Type != 0 ? resources[1] : resources[CreatureWalk],
-        "eating" => resources[12].Type != 0 ? resources[12] : resources[7],
-        "claiming" when creature.Name.Equals("Imp", StringComparison.OrdinalIgnoreCase) => resources[12],
-        "reinforcing" when creature.Name.Equals("Imp", StringComparison.OrdinalIgnoreCase) => resources[11],
-        "claiming" or "reinforcing" => new Dk2ArtResource("", 0),
-        "sleeping" when creature.Name.Equals("Imp", StringComparison.OrdinalIgnoreCase)
-            => new Dk2ArtResource("", 0), // That shipped slot is Imp_Claim1(Land), not sleep.
-        "sleeping" => resources[CreatureSleeping],
-        "dying" => resources[CreatureDie],
-        "being_tortured" => resources[CreatureTortured],
-        "working" when creature.Name.Equals("Imp", StringComparison.OrdinalIgnoreCase)
-            => resources[CreatureMelee], // The Imp's slot is named Imp_Dig in shipped data.
-        // Action 32's art 22; a creature without it plays the melee swing, as 0x00494880 falls back (the Troll's hammer).
-        "working" => resources[CreatureManufacturing].Type != 0 ? resources[CreatureManufacturing] : resources[CreatureMelee],
-        _ => resources[CreatureWalk],
-    };
+        return animation switch
+        {
+            "idle" => resources[CreatureIdle],
+            "entrance" => resources[29],
+            "fighting" => resources[CreatureMelee],
+            "casting" => resources[5].Type != 0 ? resources[5] : resources[CreatureMelee],
+            "landing" => resources[23].Type != 0 ? resources[23] : resources[3],
+            // Slot 32 (catalogue 31), which the chooser 0x0048BE50 installs for a worker in state 214: the Imp's imp-jump(iw).
+            "creation_jump" => resources.Count > 31 && resources[31].Type != 0 ? resources[31] : resources[CreatureIdle],
+            "stunned" => resources[23].Type != 0 ? resources[23] : resources[3],
+            "getting_up" => resources[26].Type != 0 ? resources[26] : resources[0],
+            "running" => resources[1].Type != 0 ? resources[1] : resources[CreatureWalk],
+            "eating" => resources[12].Type != 0 ? resources[12] : resources[7],
+            "claiming" when creature.Name.Equals("Imp", StringComparison.OrdinalIgnoreCase) => resources[12],
+            "reinforcing" when creature.Name.Equals("Imp", StringComparison.OrdinalIgnoreCase) => resources[11],
+            "claiming" or "reinforcing" => new Dk2ArtResource("", 0),
+            "sleeping" when creature.Name.Equals("Imp", StringComparison.OrdinalIgnoreCase)
+                => new Dk2ArtResource("", 0), // That shipped slot is Imp_Claim1(Land), not sleep.
+            "sleeping" => resources[CreatureSleeping],
+            "dying" => resources[CreatureDie],
+            "being_tortured" => resources[CreatureTortured],
+            "working" when creature.Name.Equals("Imp", StringComparison.OrdinalIgnoreCase)
+                => resources[CreatureMelee], // The Imp's slot is named Imp_Dig in shipped data.
+                                             // Action 32's art 22; a creature without it plays the melee swing, as 0x00494880 falls back (the Troll's hammer).
+            "working" => resources[CreatureManufacturing].Type != 0 ? resources[CreatureManufacturing] : resources[CreatureMelee],
+            _ => resources[CreatureWalk],
+        };
+    }
 
-    private static ArtEntry Model(AssetRef reference, Dk2ArtResource source, string detail) =>
-        source.IsEmpty
+    private static ArtEntry Model(AssetRef reference, Dk2ArtResource source, string detail)
+    {
+        return source.IsEmpty
             ? Missing(reference, $"KWD has no {detail} resource")
             : new ArtEntry(reference, ArtUse.Model, source, detail);
+    }
 
-    private static ArtEntry Texture(AssetRef reference, Dk2ArtResource source, string detail) =>
-        source.IsEmpty
+    private static ArtEntry Texture(AssetRef reference, Dk2ArtResource source, string detail)
+    {
+        return source.IsEmpty
             ? Missing(reference, $"KWD has no {detail} resource")
             : new ArtEntry(reference, ArtUse.FirstMaterialTexture, source, detail);
+    }
 
-    private static ArtEntry Missing(AssetRef reference, string reason) =>
-        new(reference, reference.Kind == AssetKind.Texture ? ArtUse.FirstMaterialTexture : ArtUse.Model, null,
+    private static ArtEntry Missing(AssetRef reference, string reason)
+    {
+        return new(reference, reference.Kind == AssetKind.Texture ? ArtUse.FirstMaterialTexture : ArtUse.Model, null,
             "", reason);
+    }
 
-    private static string NoArtRecord(string category, byte id) => $"KWD has no {category} art record for id {id}";
+    private static string NoArtRecord(string category, byte id)
+    {
+        return $"KWD has no {category} art record for id {id}";
+    }
 
-    private static Dk2ArtResource First(params Dk2ArtResource[] resources) =>
-        resources.FirstOrDefault(resource => !resource.IsEmpty) ?? resources[0];
+    private static Dk2ArtResource First(params Dk2ArtResource[] resources)
+    {
+        return resources.FirstOrDefault(resource => !resource.IsEmpty) ?? resources[0];
+    }
 }

@@ -279,8 +279,15 @@ public static class KwdRewriteAudit
         }
     }
 
-    private static bool IsKwd(string file)=>Path.GetExtension(file).Equals(".kwd",StringComparison.OrdinalIgnoreCase)
-        || Path.GetExtension(file).Equals(".kld",StringComparison.OrdinalIgnoreCase);
-    private static bool Within(string path,string root)=>string.Equals(path,root,StringComparison.OrdinalIgnoreCase)
-        || path.StartsWith(root.TrimEnd(Path.DirectorySeparatorChar,Path.AltDirectorySeparatorChar)+Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase);
+    private static bool IsKwd(string file)
+    {
+        return Path.GetExtension(file).Equals(".kwd", StringComparison.OrdinalIgnoreCase)
+        || Path.GetExtension(file).Equals(".kld", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool Within(string path, string root)
+    {
+        return string.Equals(path, root, StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith(root.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
+    }
 }

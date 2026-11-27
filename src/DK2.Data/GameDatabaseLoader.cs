@@ -115,8 +115,10 @@ public static class GameDatabaseLoader
     /// Loads from the locally configured install, or returns null when there is
     /// none — the shape callers need so tests and CI can skip cleanly.
     /// </summary>
-    public static GameDatabase? LoadFromInstall() =>
-        Dk2Install.Find() is { } dir ? Load(dir) : null;
+    public static GameDatabase? LoadFromInstall()
+    {
+        return Dk2Install.Find() is { } dir ? Load(dir) : null;
+    }
 
     /// <summary>Reads one campaign level's tile grid, e.g. "level1".</summary>
     public static LevelMap? LoadCampaignMap(string installDir, string levelName)
@@ -198,8 +200,10 @@ public static class GameDatabaseLoader
     /// The shape a caller wants in one call, and the one to prefer over
     /// <see cref="Load"/> whenever a level is named.
     /// </summary>
-    public static GameDatabase LoadForCampaignLevel(string installDir, string levelName) =>
-        Load(installDir).ForLevel(
+    public static GameDatabase LoadForCampaignLevel(string installDir, string levelName)
+    {
+        return Load(installDir).ForLevel(
             LoadCampaignVariables(installDir, levelName),
             LoadCampaignLevel(installDir, levelName));
+    }
 }

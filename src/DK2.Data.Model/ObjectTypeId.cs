@@ -8,5 +8,8 @@ namespace DK2.Data.Model;
 /// live object's identity.</summary>
 public readonly record struct ObjectTypeId(byte Value)
 {
-    public static implicit operator ObjectTypeId(byte value) => new(value);
+    public static implicit operator ObjectTypeId(byte value)
+    {
+        return new(value);
+    }
 }

@@ -69,9 +69,15 @@ public sealed class GlobalVariables
     public Dictionary<VariableTypeId, MiscVariable> Misc { get; } = [];
 
     /// <summary>The value of a global rule variable. Throws if the data does not carry it.</summary>
-    public int this[VariableTypeId id] => Misc.TryGetValue(id, out MiscVariable? v)
+    public int this[VariableTypeId id]
+    {
+        get
+        {
+            return Misc.TryGetValue(id, out MiscVariable? v)
         ? v.Value
         : throw new KeyNotFoundException($"VARIABLES table carries no entry for {id} ({(int)id}).");
+        }
+    }
 
     public bool TryGet(VariableTypeId id, out int value)
     {

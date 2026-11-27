@@ -380,7 +380,10 @@ public static class GlbWriter
         }
     }
 
-    private static int Align4(int value) => checked((value + 3) & ~3);
+    private static int Align4(int value)
+    {
+        return checked((value + 3) & ~3);
+    }
 
     private static IReadOnlyList<KmfMesh>? CompleteAnimationFrames(KmfModel model, KmfMesh mesh)
     {
@@ -412,9 +415,23 @@ public static class GlbWriter
         private readonly BinaryWriter _writer;
         private int _viewCount;
         private int _accessorCount;
-        public BinaryBuilder() => _writer = new BinaryWriter(_stream, Encoding.UTF8, leaveOpen: true);
-        public int ByteLength => checked((int)_stream.Length);
-        public byte[] ToArray() => _stream.ToArray();
+        public BinaryBuilder()
+        {
+            _writer = new BinaryWriter(_stream, Encoding.UTF8, leaveOpen: true);
+        }
+
+        public int ByteLength
+        {
+            get
+            {
+                return checked((int)_stream.Length);
+            }
+        }
+
+        public byte[] ToArray()
+        {
+            return _stream.ToArray();
+        }
 
         public PrimitiveLayout Add(KmfPrimitive primitive,
             IReadOnlyList<KmfPrimitive> targets)
@@ -528,7 +545,10 @@ public static class GlbWriter
         }
         private void Write(Vector3 value)
         { _writer.Write(value.X); _writer.Write(value.Y); _writer.Write(value.Z); }
-        private static Vector3 ToGltf(Vector3 value) => new(value.X, -value.Z, value.Y);
+        private static Vector3 ToGltf(Vector3 value)
+        {
+            return new(value.X, -value.Z, value.Y);
+        }
     }
 
     private sealed record BufferView(int Offset, int Length);

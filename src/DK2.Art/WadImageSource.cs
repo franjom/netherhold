@@ -18,14 +18,29 @@ public sealed class WadImageSource : ITextureSource, IDisposable
         _decodePng = decodePng ?? throw new ArgumentNullException(nameof(decodePng));
     }
 
-    public IReadOnlyList<WadEntry> Entries => _archive.Entries;
+    public IReadOnlyList<WadEntry> Entries
+    {
+        get
+        {
+            return _archive.Entries;
+        }
+    }
 
-    public string Resolve(string textureName) => _archive.TryGetEntry(textureName, out WadEntry entry)
+    public string Resolve(string textureName)
+    {
+        return _archive.TryGetEntry(textureName, out WadEntry entry)
         ? entry.Name : throw new FileNotFoundException($"WAD image '{textureName}' was not found.");
+    }
 
-    public RgbaImage Read(string storedName) => Decode(Resolve(storedName), _archive.Extract(storedName));
+    public RgbaImage Read(string storedName)
+    {
+        return Decode(Resolve(storedName), _archive.Extract(storedName));
+    }
 
-    public RgbaImage Read(int entryIndex) => Decode(Entries[entryIndex].Name, _archive.Extract(entryIndex));
+    public RgbaImage Read(int entryIndex)
+    {
+        return Decode(Entries[entryIndex].Name, _archive.Extract(entryIndex));
+    }
 
     private RgbaImage Decode(string name, byte[] data)
     {
@@ -38,5 +53,8 @@ public sealed class WadImageSource : ITextureSource, IDisposable
         }
     }
 
-    public void Dispose() => _archive.Dispose();
+    public void Dispose()
+    {
+        _archive.Dispose();
+    }
 }

@@ -19,12 +19,15 @@ public static class EaAudio
     private static readonly int[] C2 = [0, 0, -208, -220];
 
     /// <summary>The number of stereo sample frames <see cref="DecodeBlock"/> writes for this payload.</summary>
-    public static int FrameCount(ReadOnlySpan<byte> payload, int channels, int compression) => compression switch
+    public static int FrameCount(ReadOnlySpan<byte> payload, int channels, int compression)
     {
-        7 => channels == 2 ? (payload.Length - 12) / 30 * 28 : (payload.Length - 12) / 15 * 28,
-        0 => (payload.Length - 4) / (2 * channels),
-        _ => throw new NotSupportedException($"EA audio compression {compression} is not decoded (0x005AC703 is unread)"),
-    };
+        return compression switch
+        {
+            7 => channels == 2 ? (payload.Length - 12) / 30 * 28 : (payload.Length - 12) / 15 * 28,
+            0 => (payload.Length - 4) / (2 * channels),
+            _ => throw new NotSupportedException($"EA audio compression {compression} is not decoded (0x005AC703 is unread)"),
+        };
+    }
 
     /// <summary>Writes the block's samples to <paramref name="stereo"/> (L, R, L, R ...) and
     /// returns the number of stereo frames written.</summary>

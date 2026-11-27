@@ -22,7 +22,10 @@ public static class WadDecompressor
         int inPos = 0;
         int outPos = 0;
 
-        byte Next(ref int pos, ReadOnlySpan<byte> data) => pos < data.Length ? data[pos++] : (byte)0;
+        byte Next(ref int pos, ReadOnlySpan<byte> data)
+        {
+            return pos < data.Length ? data[pos++] : (byte)0;
+        }
 
         // Prelude.
         if ((Next(ref inPos, input) & 1) != 0)

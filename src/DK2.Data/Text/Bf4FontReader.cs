@@ -18,7 +18,10 @@ public static class Bf4FontReader
 {
     private const uint Magic = 0x42463446; // "F4FB"
 
-    public static BitmapFont Open(string path) => Read(File.ReadAllBytes(path), path);
+    public static BitmapFont Open(string path)
+    {
+        return Read(File.ReadAllBytes(path), path);
+    }
 
     public static BitmapFont Read(ReadOnlySpan<byte> data, string sourceName = "<memory>")
     {
@@ -157,6 +160,8 @@ public static class Bf4FontReader
         }
     }
 
-    private static InvalidDataException Invalid(string source, string reason) =>
-        new($"{source}: not a valid BF4 font: {reason}.");
+    private static InvalidDataException Invalid(string source, string reason)
+    {
+        return new($"{source}: not a valid BF4 font: {reason}.");
+    }
 }

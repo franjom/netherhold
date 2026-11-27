@@ -46,7 +46,10 @@ public static class HiScoresFile
         return data;
     }
 
-    public static void Save(string path, IReadOnlyList<HiScoreEntry> entries) => ProfileFileStorage.Save(path, Write(entries));
+    public static void Save(string path, IReadOnlyList<HiScoreEntry> entries)
+    {
+        ProfileFileStorage.Save(path, Write(entries));
+    }
 
     private static string Text(ReadOnlySpan<byte> field)
     {

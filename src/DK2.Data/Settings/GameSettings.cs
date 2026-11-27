@@ -51,23 +51,26 @@ public sealed record GameSettings
         return DefaultKeyBindings.Get(action);
     }
 
-    public GameSettings Clamped() => this with
+    public GameSettings Clamped()
     {
-        Gamma = Math.Clamp(Gamma, 15, 60),
-        ShadowLevel = Math.Clamp(ShadowLevel, 0, 3),
-        SoundQuality = Math.Clamp(SoundQuality, 1, 3),
-        MasterVolume = Math.Clamp(MasterVolume, 0, 100),
-        SpeechVolume = Math.Clamp(SpeechVolume, 0, 100),
-        MusicVolume = Math.Clamp(MusicVolume, 0, 100),
-        SoundEffectVolume = Math.Clamp(SoundEffectVolume, 0, 100),
-        MouseSensitivity = Math.Clamp(MouseSensitivity, 5, 20),
-        GameSpeed = Math.Clamp(GameSpeed, 1, 16),
-        ScrollSpeed = Math.Clamp(ScrollSpeed, 5, 20),
-        UiScale = Math.Clamp(UiScale, 50, 200),
-        RenderMsaa = RenderMsaa >= 8 ? 8 : RenderMsaa >= 4 ? 4 : RenderMsaa >= 2 ? 2 : 1,
-        RenderScale = Math.Clamp(RenderScale, 50, 100),
-        Bindings = Array.AsReadOnly((Bindings ?? Array.Empty<GameKeyBinding>())
+        return this with
+        {
+            Gamma = Math.Clamp(Gamma, 15, 60),
+            ShadowLevel = Math.Clamp(ShadowLevel, 0, 3),
+            SoundQuality = Math.Clamp(SoundQuality, 1, 3),
+            MasterVolume = Math.Clamp(MasterVolume, 0, 100),
+            SpeechVolume = Math.Clamp(SpeechVolume, 0, 100),
+            MusicVolume = Math.Clamp(MusicVolume, 0, 100),
+            SoundEffectVolume = Math.Clamp(SoundEffectVolume, 0, 100),
+            MouseSensitivity = Math.Clamp(MouseSensitivity, 5, 20),
+            GameSpeed = Math.Clamp(GameSpeed, 1, 16),
+            ScrollSpeed = Math.Clamp(ScrollSpeed, 5, 20),
+            UiScale = Math.Clamp(UiScale, 50, 200),
+            RenderMsaa = RenderMsaa >= 8 ? 8 : RenderMsaa >= 4 ? 4 : RenderMsaa >= 2 ? 2 : 1,
+            RenderScale = Math.Clamp(RenderScale, 50, 100),
+            Bindings = Array.AsReadOnly((Bindings ?? Array.Empty<GameKeyBinding>())
             .Where(b => (int)b.Action >= 0 && (int)b.Action < 64 && b.ScanCode >= 0 && b.ScanCode < 256
                 && (b.Modifiers & ~KeyModifiers.All) == 0).GroupBy(b => b.Action).Select(g => g.Last()).ToArray()),
-    };
+        };
+    }
 }

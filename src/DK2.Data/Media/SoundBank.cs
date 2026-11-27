@@ -15,7 +15,10 @@ public sealed class SoundBank
     private readonly SdtArchive _archive;
     private readonly Dictionary<SoundEntryId, PcmClip?> _clips = new();
 
-    public SoundBank(SdtArchive archive) => _archive = archive ?? throw new ArgumentNullException(nameof(archive));
+    public SoundBank(SdtArchive archive)
+    {
+        _archive = archive ?? throw new ArgumentNullException(nameof(archive));
+    }
 
     public PcmClip? GetClip(SoundEntryId entryId)
     {

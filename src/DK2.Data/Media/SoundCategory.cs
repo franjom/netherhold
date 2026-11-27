@@ -6,13 +6,61 @@ namespace DK2.Data.Media;
 
 public readonly record struct SoundCategory(string Name)
 {
-    public static SoundCategory None => new(string.Empty);
-    public bool IsNone => string.IsNullOrEmpty(Name);
-    public static SoundCategory FrontEnd => new("front_end");
-    public static SoundCategory FrontEndClick => new("object_fe_parchment");
-    public static SoundCategory Mentor => new("speech_mentor");
-    public static SoundCategory Music => new("music");
-    public static SoundCategory Ambience => new("ambience");
+    public static SoundCategory None
+    {
+        get
+        {
+            return new(string.Empty);
+        }
+    }
+
+    public bool IsNone
+    {
+        get
+        {
+            return string.IsNullOrEmpty(Name);
+        }
+    }
+
+    public static SoundCategory FrontEnd
+    {
+        get
+        {
+            return new("front_end");
+        }
+    }
+
+    public static SoundCategory FrontEndClick
+    {
+        get
+        {
+            return new("object_fe_parchment");
+        }
+    }
+
+    public static SoundCategory Mentor
+    {
+        get
+        {
+            return new("speech_mentor");
+        }
+    }
+
+    public static SoundCategory Music
+    {
+        get
+        {
+            return new("music");
+        }
+    }
+
+    public static SoundCategory Ambience
+    {
+        get
+        {
+            return new("ambience");
+        }
+    }
 }
 public readonly record struct SpeechLineId(int Value);
 public readonly record struct ResolvedSound(string Archive, SoundEntryId Entry);

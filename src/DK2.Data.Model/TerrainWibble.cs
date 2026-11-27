@@ -14,7 +14,13 @@ public readonly record struct TerrainWibble(
     byte WibbleH, byte LeanH0, byte LeanH1, byte LeanH2,
     byte WibbleV, byte LeanV0, byte LeanV1, byte LeanV2)
 {
-    public byte LeanH(int layer) => layer switch { 0 => LeanH0, 1 => LeanH1, _ => LeanH2 };
+    public byte LeanH(int layer)
+    {
+        return layer switch { 0 => LeanH0, 1 => LeanH1, _ => LeanH2 };
+    }
 
-    public byte LeanV(int layer) => layer switch { 0 => LeanV0, 1 => LeanV1, _ => LeanV2 };
+    public byte LeanV(int layer)
+    {
+        return layer switch { 0 => LeanV0, 1 => LeanV1, _ => LeanV2 };
+    }
 }

@@ -127,14 +127,19 @@ public sealed class Dk2StringTable
         return new Dk2StringTable(fileId, entries);
     }
 
-    public bool TryResolve(uint id, out string value) => _byId.TryGetValue(id, out value!);
+    public bool TryResolve(uint id, out string value)
+    {
+        return _byId.TryGetValue(id, out value!);
+    }
 
-    public string Resolve(uint id) =>
-        TryResolve(id, out string value)
+    public string Resolve(uint id)
+    {
+        return TryResolve(id, out string value)
             ? value
             : throw new KeyNotFoundException(
                 $"String id {id} is outside this table's range " +
                 $"0..{(Entries.Count == 0 ? 0 : Entries.Count - 1)}.");
+    }
 
     private static string DecodeEntry(
         ReadOnlySpan<byte> data,
@@ -222,8 +227,10 @@ public sealed class Dk2StringTable
         }
     }
 
-    private static InvalidDataException Invalid(string sourceName, string detail) =>
-        new($"{sourceName}: {detail}.");
+    private static InvalidDataException Invalid(string sourceName, string detail)
+    {
+        return new($"{sourceName}: {detail}.");
+    }
 
     private sealed class Dk2CodePage
     {

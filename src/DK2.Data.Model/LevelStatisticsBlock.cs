@@ -39,7 +39,13 @@ public sealed record LevelStatisticsBlock
 
     /// <summary>The training value as the statistics row and the score read it: the integer part
     /// and <c>trunc(fraction × 100 / 4096)</c>, which the row prints unpadded ("2.5" for 2.05).</summary>
-    public (uint Whole, uint Hundredths) TrainingParts => (CreatureTraining >> 12, (CreatureTraining & 0xFFF) * 100 / 4096);
+    public (uint Whole, uint Hundredths) TrainingParts
+    {
+        get
+        {
+            return (CreatureTraining >> 12, (CreatureTraining & 0xFFF) * 100 / 4096);
+        }
+    }
 
     /// <summary>The modes 1 and 4 level-end sum (<c>0x004BF211</c>–<c>0x004BF2EA</c>, table <c>0x0069F300</c>):
     /// <c>RoomExtraPoints</c> unweighted, training as <c>whole × 50 + trunc(hundredths × 50 / 100)</c>.</summary>
@@ -95,7 +101,11 @@ public sealed record LevelStatisticsBlock
             BinaryPrimitives.WriteUInt32LittleEndian(span[(i * 4)..], source[row * Dwords + i]);
         }
 
-        uint U(int at) => BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(at));
+        uint U(int at)
+        {
+            return BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(at));
+        }
+
         return new LevelStatisticsBlock
         {
             DungeonHeartsDestroyed = U(0), EnemyCreaturesKilled = U(4), HeroesDestroyed = U(8), RoomsTakenOver = U(12),

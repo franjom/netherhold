@@ -49,7 +49,10 @@ public sealed class RenderMesh
     public IReadOnlyList<KmfBlend> Blends { get; }
 
     /// <summary>DK2's frame to the renderer's: <c>(x, -z, -y)</c>.</summary>
-    public static Vector3 ToRenderFrame(Vector3 dk2) => new(dk2.X, -dk2.Z, -dk2.Y);
+    public static Vector3 ToRenderFrame(Vector3 dk2)
+    {
+        return new(dk2.X, -dk2.Z, -dk2.Y);
+    }
 
     /// <summary>The model's static mesh, or frame <paramref name="frame"/> of its animation, at
     /// detail level 0 (each primitive's first index list), as <c>GlbWriter</c> takes.</summary>

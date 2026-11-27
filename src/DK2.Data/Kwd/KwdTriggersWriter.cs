@@ -11,18 +11,23 @@ public static partial class KwdTriggers
 {
     private readonly record struct ParameterField(int Offset, int Width, bool Signed);
 
-    private static IReadOnlyDictionary<string,long> ReadParameters(IReadOnlyDictionary<string,ParameterField> layout, byte[] bytes) =>
-        layout.ToDictionary(p=>p.Key,p=>ReadParameter(bytes,p.Value));
-
-    private static long ReadParameter(byte[] bytes, ParameterField field) => field.Width switch
+    private static IReadOnlyDictionary<string, long> ReadParameters(IReadOnlyDictionary<string, ParameterField> layout, byte[] bytes)
     {
-        1 => bytes[field.Offset],
-        2 when field.Signed => BinaryPrimitives.ReadInt16LittleEndian(bytes.AsSpan(field.Offset)),
-        2 => BinaryPrimitives.ReadUInt16LittleEndian(bytes.AsSpan(field.Offset)),
-        4 when field.Signed => BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(field.Offset)),
-        4 => BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(field.Offset)),
-        _ => throw new InvalidDataException("Unsupported trigger parameter width."),
-    };
+        return layout.ToDictionary(p => p.Key, p => ReadParameter(bytes, p.Value));
+    }
+
+    private static long ReadParameter(byte[] bytes, ParameterField field)
+    {
+        return field.Width switch
+        {
+            1 => bytes[field.Offset],
+            2 when field.Signed => BinaryPrimitives.ReadInt16LittleEndian(bytes.AsSpan(field.Offset)),
+            2 => BinaryPrimitives.ReadUInt16LittleEndian(bytes.AsSpan(field.Offset)),
+            4 when field.Signed => BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(field.Offset)),
+            4 => BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(field.Offset)),
+            _ => throw new InvalidDataException("Unsupported trigger parameter width."),
+        };
+    }
 
     public static byte[] WriteRecord(TriggerRecord row, KwdRecordImage template)
     {

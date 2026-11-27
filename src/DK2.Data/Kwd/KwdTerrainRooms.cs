@@ -27,7 +27,11 @@ public static class KwdTerrainRooms
             throw new InvalidDataException("ROOMS requires exactly eight object ids.");
         }
 
-        void U16(int offset, ushort value) => BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(offset), value);
+        void U16(int offset, ushort value)
+        {
+            BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(offset), value);
+        }
+
         BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(RoomLayout.Height), record.CeilingHeight.Raw);
         BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(RoomLayout.Flags), (uint)record.Flags);
         U16(RoomLayout.Tooltip, record.TooltipStringId);
@@ -58,7 +62,11 @@ public static class KwdTerrainRooms
     {
         byte[] bytes = KwdOverlay.Image(template, KwdRecordType.Terrain, TerrainRecordSize);
         KwdOverlay.Ascii(bytes, 0, 32, record.Name, ReadName(bytes, 0, 32), trimmed: false);
-        void U16(int offset, ushort value) => BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(offset), value);
+        void U16(int offset, ushort value)
+        {
+            BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(offset), value);
+        }
+
         BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(TerrainLayout.Depth), record.Depth.Raw);
         if (record.TerrainLightHeight is Fp32 lightHeight)
         {
@@ -184,9 +192,20 @@ public static class KwdTerrainRooms
 
     private static TerrainDef ParseTerrainRecord(byte[] rec, int b)
     {
-        ushort U16(int off) => BinaryPrimitives.ReadUInt16LittleEndian(rec.AsSpan(b + off));
-        uint U32(int off) => BinaryPrimitives.ReadUInt32LittleEndian(rec.AsSpan(b + off));
-        byte U8(int off) => rec[b + off];
+        ushort U16(int off)
+        {
+            return BinaryPrimitives.ReadUInt16LittleEndian(rec.AsSpan(b + off));
+        }
+
+        uint U32(int off)
+        {
+            return BinaryPrimitives.ReadUInt32LittleEndian(rec.AsSpan(b + off));
+        }
+
+        byte U8(int off)
+        {
+            return rec[b + off];
+        }
 
         return new TerrainDef
         {
@@ -221,9 +240,20 @@ public static class KwdTerrainRooms
 
     private static RoomDef ParseRoomRecord(byte[] rec, int b)
     {
-        ushort U16(int off) => BinaryPrimitives.ReadUInt16LittleEndian(rec.AsSpan(b + off));
-        uint U32(int off) => BinaryPrimitives.ReadUInt32LittleEndian(rec.AsSpan(b + off));
-        byte U8(int off) => rec[b + off];
+        ushort U16(int off)
+        {
+            return BinaryPrimitives.ReadUInt16LittleEndian(rec.AsSpan(b + off));
+        }
+
+        uint U32(int off)
+        {
+            return BinaryPrimitives.ReadUInt32LittleEndian(rec.AsSpan(b + off));
+        }
+
+        byte U8(int off)
+        {
+            return rec[b + off];
+        }
 
         byte[] objectIds = new byte[8];
         Array.Copy(rec, b + RoomLayout.Objects, objectIds, 0, 8);
@@ -257,7 +287,11 @@ public static class KwdTerrainRooms
         RoomTorch Torch()
         {
             var flags = (RoomFlags)U32(RoomLayout.Flags);
-            int High(RoomFlags bit) => (flags & bit) != 0 ? 255 : 0;
+            int High(RoomFlags bit)
+            {
+                return (flags & bit) != 0 ? 255 : 0;
+            }
+
             return new RoomTorch(
                 U8(RoomLayout.TorchRgb) + High(RoomFlags.TorchRedHigh),
                 U8(RoomLayout.TorchRgb + 1) + High(RoomFlags.TorchGreenHigh),

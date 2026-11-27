@@ -65,6 +65,8 @@ public readonly struct CreatureStateCategoryDef
 
     /// <summary>Whether a creature leaving <paramref name="from"/> may enter this category,
     /// by the mask alone. Equal categories are admitted by the rule's first test, not here.</summary>
-    public bool AdmitsFrom(in CreatureStateCategoryDef from) =>
-        EntryMask == 0 || (from.Bit & EntryMask) != 0;
+    public bool AdmitsFrom(in CreatureStateCategoryDef from)
+    {
+        return EntryMask == 0 || (from.Bit & EntryMask) != 0;
+    }
 }

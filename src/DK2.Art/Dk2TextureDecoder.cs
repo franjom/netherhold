@@ -22,14 +22,18 @@ internal sealed class Dk2TextureDecoder
     private const int EndOfBlock = 0x41;
 
     /// <summary>Decodes an engine texture (EngineTextures.dat payload after its header).</summary>
-    public static byte[] Decode(ReadOnlySpan<byte> compressed, int width, int height, bool alpha) =>
-        DecodeImage(compressed, width, height, alpha, engineTexture: true);
+    public static byte[] Decode(ReadOnlySpan<byte> compressed, int width, int height, bool alpha)
+    {
+        return DecodeImage(compressed, width, height, alpha, engineTexture: true);
+    }
 
     /// <summary>Decodes an unmasked .444 payload (after its 8-byte header) to padded RGBA.
     /// Assumes 64- or 53-bit x87 precision (both give these pixels); 0x005D77A0 sets none and the
     /// game's precision there is an open question (the 0x00668810 record). The mask path is not decoded.</summary>
-    internal static byte[] DecodeLoadingScreen(ReadOnlySpan<byte> compressed, int width, int height, bool alpha) =>
-        DecodeImage(compressed, width, height, alpha, engineTexture: false);
+    internal static byte[] DecodeLoadingScreen(ReadOnlySpan<byte> compressed, int width, int height, bool alpha)
+    {
+        return DecodeImage(compressed, width, height, alpha, engineTexture: false);
+    }
 
     private static byte[] DecodeImage(ReadOnlySpan<byte> compressed, int width, int height, bool alpha, bool engineTexture)
     {
@@ -346,7 +350,10 @@ internal sealed class Dk2TextureDecoder
     // The native lookup tables (0x005B21E0, 0x005D7360) map -0x180..0x27F to 0..255 by
     // clamping. Natively an index outside that range reads the neighbouring channel's table and
     // can set another byte; shipped data never gets there, and here it simply clamps.
-    private static byte Clamp(int value) => (byte)(value < 0 ? 0 : value > 255 ? 255 : value);
+    private static byte Clamp(int value)
+    {
+        return (byte)(value < 0 ? 0 : value > 255 ? 255 : value);
+    }
 
     /// <summary>
     /// Exact x87 arithmetic for the transform and colour conversion. Every float constant is
@@ -395,7 +402,10 @@ internal sealed class Dk2TextureDecoder
         // 0x005B26F0 sets 64-bit precision and the conversion adds the double at 0x007AF048,
         // 1.5*2^52 + 0x8008. Sums near that bias keep 2^-11 on the FPU; storing the double
         // keeps integers; the low dword shifted right 16 indexes the clamp table.
-        public static long RoundToExtendedGrid(long units) => RoundShift(units, FractionBits - 11) << (FractionBits - 11);
+        public static long RoundToExtendedGrid(long units)
+        {
+            return RoundShift(units, FractionBits - 11) << (FractionBits - 11);
+        }
 
         public static byte ToColour(long units)
         {
@@ -454,7 +464,10 @@ internal sealed class Dk2TextureDecoder
             return (uint)((pair << (_position & 31)) >> 32);
         }
 
-        public void Skip(int count) => _position += count;
+        public void Skip(int count)
+        {
+            _position += count;
+        }
 
         // 0x0065C290: the leading byte indexes 0x007AF4E0 for a size (high nibble) and a
         // prefix length (low nibble). The value has that many bits; a clear top bit makes it
@@ -477,13 +490,18 @@ internal sealed class Dk2TextureDecoder
 
     // 0x007AF0E0 (engine) and 0x007AF680 (loading screens), identical: block position of
     // each slot. The slot counter starts at 63, so the first AC value lands at slot 63.
-    private static ReadOnlySpan<byte> ZigzagSlots =>
-    [
+    private static ReadOnlySpan<byte> ZigzagSlots
+    {
+        get
+        {
+            return [
         0, 63, 55, 62, 61, 54, 47, 39, 46, 53, 60, 59, 52, 45, 38, 31,
         23, 30, 37, 44, 51, 58, 57, 50, 43, 36, 29, 22, 15, 7, 14, 21,
         28, 35, 42, 49, 56, 48, 41, 34, 27, 20, 13, 6, 5, 12, 19, 26,
         33, 40, 32, 25, 18, 11, 4, 3, 10, 17, 24, 16, 9, 2, 1, 8,
     ];
+        }
+    }
 
     // 0x007AF1E0..0x007AF460 (engine) and 0x007AF780..0x007AFA00 (loading screens), identical.
     private static readonly uint[] AcCodes =
@@ -511,8 +529,11 @@ internal sealed class Dk2TextureDecoder
     ];
 
     // 0x007AF4E0, indexed by the next eight bits.
-    private static ReadOnlySpan<byte> DcCodes =>
-    [
+    private static ReadOnlySpan<byte> DcCodes
+    {
+        get
+        {
+            return [
         0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
         0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
         0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x02,
@@ -530,6 +551,8 @@ internal sealed class Dk2TextureDecoder
         0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44, 0x44,
         0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x66, 0x66, 0x66, 0x66, 0x77, 0x77, 0x88, 0x00,
     ];
+        }
+    }
 
     // 0x006C10C0 (engine) and 0x00672608 (loading screens), identical, times 8 as the setup
     // routines 0x005B2450 and 0x005D7360 store them: the DC step is 65536, so DC is 16.16.

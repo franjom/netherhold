@@ -44,13 +44,24 @@ public sealed record KmfMaterial(string Name, IReadOnlyList<string> TextureNames
     /// order: the additive bit first, then the mask and translucent bits each turn on
     /// SRCALPHA/INVSRCALPHA, which the state applier (<c>0x00589250</c>) issues after ONE/ONE,
     /// so a material with both (none ships) blends by alpha.</summary>
-    public KmfBlend Blend =>
-        (Flags & (MaskFlag | TranslucentFlags)) != 0 ? KmfBlend.AlphaBlend
+    public KmfBlend Blend
+    {
+        get
+        {
+            return (Flags & (MaskFlag | TranslucentFlags)) != 0 ? KmfBlend.AlphaBlend
         : (Flags & AdditiveFlag) != 0 ? KmfBlend.Additive
         : KmfBlend.Opaque;
+        }
+    }
 
     /// <summary>Whether the material carries DK2's environment-map stage (file bit 0x40).</summary>
-    public bool IsEnvironmentMapped => (Flags & EnvironmentMapFlag) != 0;
+    public bool IsEnvironmentMapped
+    {
+        get
+        {
+            return (Flags & EnvironmentMapFlag) != 0;
+        }
+    }
 
     /// <summary>Whether DK2 draws this material's triangles a second time with the environment
     /// texture: the static (<c>0x00581797</c>) and animated (<c>0x005851E0</c>) mesh queues add
@@ -60,7 +71,13 @@ public sealed record KmfMaterial(string Name, IReadOnlyList<string> TextureNames
     /// <c>0x00581597</c>, item <c>+0x4C</c> in the animated one, <c>0x00584FD1</c>), and only while
     /// the EnvironmentMapping option is on (global <c>0x00764BE4</c>, default on, HYPOTHESIS).
     /// So an additive or alpha-blended material never gets one. STRONGLY INFERRED (kmf-materials.md §8).</summary>
-    public bool HasEnvironmentPass => IsEnvironmentMapped && Blend == KmfBlend.Opaque;
+    public bool HasEnvironmentPass
+    {
+        get
+        {
+            return IsEnvironmentMapped && Blend == KmfBlend.Opaque;
+        }
+    }
 
     /// <summary>The environment pass's light scale: its vertex colour is the drawn thing's light
     /// (base colour plus point lights, <c>0x0057C190</c>) times material <c>+0x1D</c>, the
@@ -68,12 +85,24 @@ public sealed record KmfMaterial(string Name, IReadOnlyList<string> TextureNames
     /// sum; that the texture is modulated by it is HYPOTHESIS (kmf-materials.md §8). The floor at 0 is
     /// ours: a Unity colour below 0 would subtract under ONE/ONE, where a packed vertex colour
     /// cannot; how DK2 packs a negative product is unread; the shipped examples read (§8) are 0.2 to 1.</summary>
-    public float EnvironmentPassLight => Math.Max(Shininess, 0f);
+    public float EnvironmentPassLight
+    {
+        get
+        {
+            return Math.Max(Shininess, 0f);
+        }
+    }
 
     /// <summary>The light the material adds to every vertex, 0 to 1 a channel: the constructor
     /// stores <see cref="Brightness"/> × 255 as the material colour, which the vertex-colour loops
     /// add to the vertex's light; an additive material's colour is forced to 1.</summary>
-    public float SelfIllumination => Blend == KmfBlend.Additive ? 1f : Math.Clamp(Brightness, 0f, 1f);
+    public float SelfIllumination
+    {
+        get
+        {
+            return Blend == KmfBlend.Additive ? 1f : Math.Clamp(Brightness, 0f, 1f);
+        }
+    }
 }
 
 public sealed record KmfVertex(Vector3 Position, Vector3 Normal, Vector2 TextureCoordinate);
@@ -88,7 +117,13 @@ public sealed record KmfMesh(string Name, Vector3 Origin, float BoundsScale,
 public sealed record KmfAnimation(uint FrameCount, IReadOnlyList<KmfMesh> Frames,
     string? DecodeFailure = null)
 {
-    public bool IsComplete => DecodeFailure is null && Frames.Count == FrameCount;
+    public bool IsComplete
+    {
+        get
+        {
+            return DecodeFailure is null && Frames.Count == FrameCount;
+        }
+    }
 }
 
 /// <summary>One member of a KMF group: a mesh entry's name (without <c>.kmf</c>) and its offset
@@ -103,7 +138,13 @@ public sealed record KmfModel(uint Version, KmfKind Kind,
     IReadOnlyList<KmfMaterial> Materials, KmfMesh? Mesh, KmfAnimation? Animation = null,
     KmfGroup? Group = null)
 {
-    public uint FrameCount => Animation?.FrameCount ?? 0;
+    public uint FrameCount
+    {
+        get
+        {
+            return Animation?.FrameCount ?? 0;
+        }
+    }
 
     /// <summary>The CTRL section's tagged points, in file order.</summary>
     public IReadOnlyList<KmfControlPoint> ControlPoints { get; init; } = [];

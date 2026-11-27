@@ -73,25 +73,30 @@ public static class KwdDoors
         }
     }
 
-    private static DoorDef ParseRecord(byte[] record, int at) => new()
+    private static DoorDef ParseRecord(byte[] record, int at)
     {
-        Name = Name(record, at),
-        DoorId = record[at + OffsetDoorId],
-        CrateObjectId = record[at + OffsetCrateObjectId],
-        Health = U16(record, at + OffsetHealth),
-        HealthGain = BinaryPrimitives.ReadInt16LittleEndian(record.AsSpan(at + OffsetHealthGain)),
-        GoldCost = U16(record, at + OffsetGoldCost),
-        DeathEffectId = U16(record, at + OffsetDeathEffectId),
-        ManufactureRequired = BinaryPrimitives.ReadUInt32LittleEndian(
+        return new()
+        {
+            Name = Name(record, at),
+            DoorId = record[at + OffsetDoorId],
+            CrateObjectId = record[at + OffsetCrateObjectId],
+            Health = U16(record, at + OffsetHealth),
+            HealthGain = BinaryPrimitives.ReadInt16LittleEndian(record.AsSpan(at + OffsetHealthGain)),
+            GoldCost = U16(record, at + OffsetGoldCost),
+            DeathEffectId = U16(record, at + OffsetDeathEffectId),
+            ManufactureRequired = BinaryPrimitives.ReadUInt32LittleEndian(
             record.AsSpan(at + OffsetManufactureRequired)),
-        Flags = (DoorFlags)record[at + OffsetFlags],
-        NameStringId = U16(record, at + OffsetNameStringId),
-        ImpactKind = record[at + OffsetImpactKind],
-        SoundCategory = Name(record, at + OffsetSoundCategory),
-    };
+            Flags = (DoorFlags)record[at + OffsetFlags],
+            NameStringId = U16(record, at + OffsetNameStringId),
+            ImpactKind = record[at + OffsetImpactKind],
+            SoundCategory = Name(record, at + OffsetSoundCategory),
+        };
+    }
 
-    private static ushort U16(byte[] record, int at) =>
-        BinaryPrimitives.ReadUInt16LittleEndian(record.AsSpan(at));
+    private static ushort U16(byte[] record, int at)
+    {
+        return BinaryPrimitives.ReadUInt16LittleEndian(record.AsSpan(at));
+    }
 
     private static string Name(byte[] record, int at)
     {

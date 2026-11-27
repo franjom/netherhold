@@ -91,7 +91,10 @@ public static class InstalledCampaignRegistry
     private sealed class KeyHandle : SafeHandleZeroOrMinusOneIsInvalid
     {
         public KeyHandle() : base(ownsHandle: true) { }
-        protected override bool ReleaseHandle() => RegCloseKey(handle) == 0;
+        protected override bool ReleaseHandle()
+        {
+            return RegCloseKey(handle) == 0;
+        }
     }
 
     [DllImport("advapi32.dll", EntryPoint = "RegOpenKeyExW", CharSet = CharSet.Unicode, ExactSpelling = true)]

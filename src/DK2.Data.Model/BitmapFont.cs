@@ -33,6 +33,8 @@ public sealed class BitmapFont
     public int LineHeight { get; }
     public IReadOnlyList<BitmapGlyph> Glyphs { get; }
 
-    public BitmapGlyph? Find(char character) =>
-        _byCharacter.TryGetValue(character, out BitmapGlyph? glyph) ? glyph : null;
+    public BitmapGlyph? Find(char character)
+    {
+        return _byCharacter.TryGetValue(character, out BitmapGlyph? glyph) ? glyph : null;
+    }
 }
