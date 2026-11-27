@@ -81,14 +81,8 @@ public sealed class ThingNavigation
 
     public TilePos? Next(IReadOnlyList<ThingNavigationEntry> things, byte kind)
     {
-        int chosen = -1, previous = -1;
-        if (_last != 0)
-        {
-            for (int i = 0; i < things.Count; i++)
-            {
-                if (things[i].Id == _last && things[i].Owner == _viewer) { previous = i; break; }
-            }
-        }
+        int chosen = -1;
+        int previous = PreviousIndex(things);
 
         if (previous >= 0)
         {
@@ -133,14 +127,8 @@ public sealed class ThingNavigation
         }
 
         byte kind = (byte)alarm;
-        int chosen = -1, previous = -1;
-        if (_last != 0)
-        {
-            for (int i = 0; i < things.Count; i++)
-            {
-                if (things[i].Id == _last && things[i].Owner == _viewer) { previous = i; break; }
-            }
-        }
+        int chosen = -1;
+        int previous = PreviousIndex(things);
 
         if (previous >= 0)
         {
@@ -161,6 +149,22 @@ public sealed class ThingNavigation
         if (chosen < 0) { _last = 0; return null; }
         _last = things[chosen].Id;
         return things[chosen].Focus;
+    }
+
+    private int PreviousIndex(IReadOnlyList<ThingNavigationEntry> things)
+    {
+        if (_last != 0)
+        {
+            for (int i = 0; i < things.Count; i++)
+            {
+                if (things[i].Id == _last && things[i].Owner == _viewer)
+                {
+                    return i;
+                }
+            }
+        }
+
+        return -1;
     }
 
     private bool Matches(ThingNavigationEntry thing, byte kind)
