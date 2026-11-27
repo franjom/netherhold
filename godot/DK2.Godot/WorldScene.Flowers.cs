@@ -98,11 +98,18 @@ public partial class WorldScene
     }
 
     /// <summary>One icon's batch: its texture and material, loaded on first use.</summary>
-    private sealed class FlowerBatch(ImageTexture texture, ShaderMaterial material, ItemBatch items)
+    private sealed class FlowerBatch
     {
-        public readonly ImageTexture Texture = texture;
-        public readonly ShaderMaterial Material = material;
-        public readonly ItemBatch Items = items;
+        public FlowerBatch(ImageTexture texture, ShaderMaterial material, ItemBatch items)
+        {
+            Texture = texture;
+            Material = material;
+            Items = items;
+        }
+
+        public readonly ImageTexture Texture;
+        public readonly ShaderMaterial Material;
+        public readonly ItemBatch Items;
     }
 
     private FlowerBatch FlowerBatchFor(string name, Func<string, RgbaImage> art)

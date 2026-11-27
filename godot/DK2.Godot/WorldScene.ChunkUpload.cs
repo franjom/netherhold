@@ -151,14 +151,26 @@ public partial class WorldScene
     /// bytes into the chunk's own <see cref="PackedSurface"/>s, which the frame's thread reads once the build is taken
     /// over. A key is opaque when its look is (the blended ones, with their shared materials, stay on the frame's
     /// thread, <see cref="MaterialFor"/>).</summary>
-    private sealed class ChunkPacker(int chunkCount) : ITerrainChunkPacker
+    private sealed class ChunkPacker : ITerrainChunkPacker
     {
-        private readonly List<PackedSurface>?[] _chunks = new List<PackedSurface>?[chunkCount];
-        private readonly int[] _counts = new int[chunkCount];
-        private readonly Dictionary<TerrainMaterialKey, SurfaceBuffer> _surfaceOf = new Dictionary<TerrainMaterialKey, SurfaceBuffer>();
-        private readonly List<SurfaceBuffer> _surfaces = new List<SurfaceBuffer>(), _spare = new List<SurfaceBuffer>();
-        private readonly Dictionary<TerrainMaterialKey, bool> _opaque = new Dictionary<TerrainMaterialKey, bool>();
-        private int[] _remap = new int[256], _stamp = new int[256];
+        public ChunkPacker(int chunkCount)
+        {
+            _chunks = new List<PackedSurface>?[chunkCount];
+            _counts = new int[chunkCount];
+            _surfaceOf = new Dictionary<TerrainMaterialKey, SurfaceBuffer>();
+            _surfaces = new List<SurfaceBuffer>();
+            _spare = new List<SurfaceBuffer>();
+            _opaque = new Dictionary<TerrainMaterialKey, bool>();
+            _remap = new int[256];
+            _stamp = new int[256];
+        }
+
+        private readonly List<PackedSurface>?[] _chunks;
+        private readonly int[] _counts;
+        private readonly Dictionary<TerrainMaterialKey, SurfaceBuffer> _surfaceOf;
+        private readonly List<SurfaceBuffer> _surfaces, _spare;
+        private readonly Dictionary<TerrainMaterialKey, bool> _opaque;
+        private int[] _remap, _stamp;
         private int _generation;
 
         public List<PackedSurface> Surfaces(int chunk, out int count)

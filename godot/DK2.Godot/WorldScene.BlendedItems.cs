@@ -94,12 +94,21 @@ public partial class WorldScene
     }
 
     /// <summary>A mesh drawn with a material: the instances of one sprite sheet, the flames, one flower icon.</summary>
-    private sealed class ItemBatch(int id, Rid mesh, Rid material, BlendedItemBlend blend)
+    private sealed class ItemBatch
     {
-        public readonly int Id = id;
-        public readonly Rid Mesh = mesh, Material = material;
-        public readonly BlendedItemBlend Blend = blend;
-        public ItemDraw[] Draws = new ItemDraw[16];
+        public ItemBatch(int id, Rid mesh, Rid material, BlendedItemBlend blend)
+        {
+            Id = id;
+            Mesh = mesh;
+            Material = material;
+            Blend = blend;
+            Draws = new ItemDraw[16];
+        }
+
+        public readonly int Id;
+        public readonly Rid Mesh, Material;
+        public readonly BlendedItemBlend Blend;
+        public ItemDraw[] Draws;
         public int Made, Used;
     }
 

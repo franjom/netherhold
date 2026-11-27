@@ -910,8 +910,15 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     /// anchor (CUSTOM0) and its grid point (CUSTOM1, <see cref="LiquidSurfaceWave.Points"/>), waved on the GPU by
     /// Shaders/WorldLiquid.gdshader at DK2's frame, the one uniform set when the frame moves. Nothing is uploaded after
     /// the build, and the mesh carries no normals: the shader computes them.</summary>
-    private sealed class LiquidLayer(LiquidSurfaceWave wave)
+    private sealed class LiquidLayer
     {
+        private readonly LiquidSurfaceWave _wave;
+
+        public LiquidLayer(LiquidSurfaceWave wave)
+        {
+            _wave = wave;
+        }
+
         private int _version = -1, _frame = -1;
         private MeshInstance3D? _instance;
         private ArrayMesh? _mesh;
@@ -919,7 +926,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
 
         public void Show(WorldScene scene, int frame)
         {
-            if (_version != wave.Version)
+            if (_version != _wave.Version)
             {
                 Rebuild(scene);
             }
@@ -935,9 +942,9 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
 
         private void Rebuild(WorldScene scene)
         {
-            _version = wave.Version;
+            _version = _wave.Version;
             _mesh?.ClearSurfaces();
-            int count = wave.VertexCount;
+            int count = _wave.VertexCount;
             if (count == 0)
             {
                 return;
@@ -949,11 +956,11 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             float[] points = new float[count * 4];
             for (int i = 0; i < count; i++)
             {
-                positions[i] = ToGodot(RightHandedFrame.Point(wave.Positions[i]));
-                uvs[i] = new Vector2(wave.Uvs[i].X, wave.Uvs[i].Y);
-                anchors[i * 2] = wave.LightAnchors[i].X;
-                anchors[(i * 2) + 1] = wave.LightAnchors[i].Y;
-                LiquidGridPoint point = wave.Points[i];
+                positions[i] = ToGodot(RightHandedFrame.Point(_wave.Positions[i]));
+                uvs[i] = new Vector2(_wave.Uvs[i].X, _wave.Uvs[i].Y);
+                anchors[i * 2] = _wave.LightAnchors[i].X;
+                anchors[(i * 2) + 1] = _wave.LightAnchors[i].Y;
+                LiquidGridPoint point = _wave.Points[i];
                 points[i * 4] = point.Tile.X;
                 points[(i * 4) + 1] = point.Tile.Y;
                 points[(i * 4) + 2] = point.Column;
@@ -965,14 +972,14 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             arrays[(int)Mesh.ArrayType.TexUV] = uvs;
             arrays[(int)Mesh.ArrayType.Custom0] = anchors;
             arrays[(int)Mesh.ArrayType.Custom1] = points;
-            arrays[(int)Mesh.ArrayType.Index] = wave.Triangles.AsSpan(0, wave.IndexCount).ToArray();
+            arrays[(int)Mesh.ArrayType.Index] = _wave.Triangles.AsSpan(0, _wave.IndexCount).ToArray();
             _mesh ??= new ArrayMesh();
             _mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays, null, null, LiquidCustomFormat);
-            _material ??= scene.LiquidMaterial(wave);
+            _material ??= scene.LiquidMaterial(_wave);
             _mesh.SurfaceSetMaterial(0, _material);
             if (_instance == null)
             {
-                _instance = new MeshInstance3D { Name = wave.Kind + "Surface", Mesh = _mesh, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
+                _instance = new MeshInstance3D { Name = _wave.Kind + "Surface", Mesh = _mesh, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
                 scene.AddChild(_instance);
             }
             // The wave moves each vertex within twice its amplitude of the rest height; the box covers every frame.

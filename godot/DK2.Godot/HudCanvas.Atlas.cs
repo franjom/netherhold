@@ -22,12 +22,21 @@ public partial class HudCanvas
     private TextLayout?[] _text = new TextLayout?[256];
 
     /// <summary>A text's size in font pixels and its pieces as atlas regions and offsets from the text's corner.</summary>
-    private sealed class TextLayout(int width, int height, BitmapGlyphAtlas atlas, Rect2[] sources, Vector2[] offsets)
+    private sealed class TextLayout
     {
-        public readonly int Width = width, Height = height;
-        public readonly BitmapGlyphAtlas Atlas = atlas;
-        public readonly Rect2[] Sources = sources;
-        public readonly Vector2[] Offsets = offsets;
+        public TextLayout(int width, int height, BitmapGlyphAtlas atlas, Rect2[] sources, Vector2[] offsets)
+        {
+            Width = width;
+            Height = height;
+            Atlas = atlas;
+            Sources = sources;
+            Offsets = offsets;
+        }
+
+        public readonly int Width, Height;
+        public readonly BitmapGlyphAtlas Atlas;
+        public readonly Rect2[] Sources;
+        public readonly Vector2[] Offsets;
     }
 
     /// <summary>The layout when the draw shows the whole text one texel per pixel; null when it must be stretched.</summary>

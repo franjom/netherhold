@@ -179,3 +179,6 @@ csharp_style_prefer_primary_constructors = false
 
 [src/DK2.Harness/**.cs]
 csharp_style_prefer_primary_constructors = false
+
+[godot/DK2.Godot/**.cs]
+csharp_style_prefer_primary_constructors = false

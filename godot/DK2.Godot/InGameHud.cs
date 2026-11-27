@@ -2130,22 +2130,33 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     }
 
     /// <summary>This scene's panels at one pointer, for <see cref="HudPointerMap"/>; a struct, so a query allocates nothing.</summary>
-    private readonly struct PointerPanels(InGameHud hud, Vector2 position, HudVisibility visibility) : IHudPointerPanels
+    private readonly struct PointerPanels : IHudPointerPanels
     {
+        private readonly InGameHud _hud;
+        private readonly Vector2 _position;
+        private readonly HudVisibility _visibility;
+
+        public PointerPanels(InGameHud hud, Vector2 position, HudVisibility visibility)
+        {
+            _hud = hud;
+            _position = position;
+            _visibility = visibility;
+        }
+
         public bool Contains(HudPointerPanel panel)
         {
             return panel switch
             {
-                HudPointerPanel.Minimap => hud._minimap != null && hud._minimap.ContainsPointer(position),
-                HudPointerPanel.HoverHud => hud._hover != null && hud._hover.ContainsPointer(position),
-                HudPointerPanel.ResourceStrip => hud._resources != null && hud._resources.ContainsPointer(position),
-                HudPointerPanel.GameOptions => hud._gameOptionsPanel != null && hud._gameOptionsPanel.ContainsPointer(position),
-                HudPointerPanel.BottomPanel => hud._panel != null && hud._panel.ContainsPointer(position),
-                HudPointerPanel.MessageTabs => hud._messages != null && hud._messages.ContainsPointer(position),
-                HudPointerPanel.BattleTab => hud._battleTab != null && hud._battleTab.ContainsPointer(position),
-                HudPointerPanel.CreatureOverview => hud._overview != null && hud._overview.ContainsPointer(position),
-                HudPointerPanel.OptionsMenu => hud._options != null && hud._options.ContainsPointer(position),
-                HudPointerPanel.CreatureQuery => hud._queryPanel != null && hud._queryPanel.ContainsPointer(position, visibility),
+                HudPointerPanel.Minimap => _hud._minimap != null && _hud._minimap.ContainsPointer(_position),
+                HudPointerPanel.HoverHud => _hud._hover != null && _hud._hover.ContainsPointer(_position),
+                HudPointerPanel.ResourceStrip => _hud._resources != null && _hud._resources.ContainsPointer(_position),
+                HudPointerPanel.GameOptions => _hud._gameOptionsPanel != null && _hud._gameOptionsPanel.ContainsPointer(_position),
+                HudPointerPanel.BottomPanel => _hud._panel != null && _hud._panel.ContainsPointer(_position),
+                HudPointerPanel.MessageTabs => _hud._messages != null && _hud._messages.ContainsPointer(_position),
+                HudPointerPanel.BattleTab => _hud._battleTab != null && _hud._battleTab.ContainsPointer(_position),
+                HudPointerPanel.CreatureOverview => _hud._overview != null && _hud._overview.ContainsPointer(_position),
+                HudPointerPanel.OptionsMenu => _hud._options != null && _hud._options.ContainsPointer(_position),
+                HudPointerPanel.CreatureQuery => _hud._queryPanel != null && _hud._queryPanel.ContainsPointer(_position, _visibility),
                 _ => false,
             };
         }

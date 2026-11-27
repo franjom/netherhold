@@ -129,79 +129,110 @@ public partial class ClassicSoundOutput : Node, ISoundOutput
         }
     }
 
-    private sealed class FlatSource(ClassicSoundOutput owner, AudioStreamPlayer player) : ISoundSource
+    private sealed class FlatSource : ISoundSource
     {
+        private readonly ClassicSoundOutput _owner;
+        private readonly AudioStreamPlayer _player;
+
+        public FlatSource(ClassicSoundOutput owner, AudioStreamPlayer player)
+        {
+            _owner = owner;
+            _player = player;
+        }
+
         public bool IsPlaying
         {
             get
             {
-                return player.Playing;
+                return _player.Playing;
             }
         }
 
         public void Play(PcmClip clip, bool loop)
         {
-            player.Stream = owner.Clip(clip, loop);
-            player.Play();
+            _player.Stream = _owner.Clip(clip, loop);
+            _player.Play();
         }
 
         public void Stop()
         {
-            player.Stop();
+            _player.Stop();
         }
 
         public void SetVolume(float volume)
         {
-            player.VolumeLinear = volume;
+            _player.VolumeLinear = volume;
         }
 
         public void Place(System.Numerics.Vector2? offset) { }
     }
 
-    private sealed class SpatialSource(ClassicSoundOutput owner, AudioStreamPlayer3D player) : ISoundSource
+    private sealed class SpatialSource : ISoundSource
     {
+        private readonly ClassicSoundOutput _owner;
+        private readonly AudioStreamPlayer3D _player;
+
+        public SpatialSource(ClassicSoundOutput owner, AudioStreamPlayer3D player)
+        {
+            _owner = owner;
+            _player = player;
+        }
+
         public bool IsPlaying
         {
             get
             {
-                return player.Playing;
+                return _player.Playing;
             }
         }
 
         public void Play(PcmClip clip, bool loop)
         {
-            player.Stream = owner.Clip(clip, loop);
-            player.Play();
+            _player.Stream = _owner.Clip(clip, loop);
+            _player.Play();
         }
 
         public void Stop()
         {
-            player.Stop();
+            _player.Stop();
         }
 
         public void SetVolume(float volume)
         {
-            player.VolumeLinear = volume;
+            _player.VolumeLinear = volume;
         }
 
         /// <summary>The offset in the view space's x and z, which are Godot's world axes here (<see cref="RenderWorld"/>); a
         /// source with none sounds at the camera, unpanned.</summary>
         public void Place(System.Numerics.Vector2? offset)
         {
-            player.PanningStrength = offset.HasValue ? FullPan : 0f;
-            player.Position = offset is System.Numerics.Vector2 at ? new Vector3(at.X, 0f, at.Y) : Vector3.Zero;
+            _player.PanningStrength = offset.HasValue ? FullPan : 0f;
+            _player.Position = offset is System.Numerics.Vector2 at ? new Vector3(at.X, 0f, at.Y) : Vector3.Zero;
         }
     }
 
     /// <summary>A generator fed from its queue: each frame the frames Godot has room for, in whole chunks.</summary>
-    private sealed class GeneratedStream(ClassicSoundOutput owner, AudioStreamPlayer player, AudioStreamGeneratorPlayback playback,
-        PcmAudioQueue samples) : ISoundStream
+    private sealed class GeneratedStream : ISoundStream
     {
+        private readonly ClassicSoundOutput _owner;
+        private readonly AudioStreamPlayer _player;
+        private readonly AudioStreamGeneratorPlayback _playback;
+        private readonly PcmAudioQueue _samples;
+
+        public GeneratedStream(ClassicSoundOutput owner, AudioStreamPlayer player, AudioStreamGeneratorPlayback playback,
+                PcmAudioQueue samples)
+        {
+            _owner = owner;
+            _player = player;
+            _playback = playback;
+            _samples = samples;
+        }
+
         private bool _disposed;
 
         public void SetVolume(float volume)
         {
-            player.VolumeLinear = volume;
+            _player.VolumeLinear = volume;
         }
 
         public void Pump(Vector2[] chunk)
@@ -211,11 +242,11 @@ public partial class ClassicSoundOutput : Node, ISoundOutput
                 return;
             }
 
-            int room = playback.GetFramesAvailable();
+            int room = _playback.GetFramesAvailable();
             while (room >= chunk.Length)
             {
-                samples.Read(MemoryMarshal.Cast<Vector2, float>(chunk.AsSpan()));
-                playback.PushBuffer(new ReadOnlySpan<Vector2>(chunk));
+                _samples.Read(MemoryMarshal.Cast<Vector2, float>(chunk.AsSpan()));
+                _playback.PushBuffer(new ReadOnlySpan<Vector2>(chunk));
                 room -= chunk.Length;
             }
         }
@@ -228,9 +259,9 @@ public partial class ClassicSoundOutput : Node, ISoundOutput
             }
 
             _disposed = true;
-            player.Stop();
-            owner._streams.Remove(this);
-            player.QueueFree();
+            _player.Stop();
+            _owner._streams.Remove(this);
+            _player.QueueFree();
         }
     }
 }

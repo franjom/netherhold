@@ -283,10 +283,16 @@ public partial class WorldScene : ISceneFrameHost
     }
 
     /// <summary>A drawn creature: its model, the art it was made from and the clip it last started.</summary>
-    private sealed class CreatureSlot(ModelSlot slot, AssetRef art)
+    private sealed class CreatureSlot
     {
-        public ModelSlot Slot { get; } = slot;
-        public AssetRef Art { get; private set; } = art;
+        public CreatureSlot(ModelSlot slot, AssetRef art)
+        {
+            Slot = slot;
+            Art = art;
+        }
+
+        public ModelSlot Slot { get; }
+        public AssetRef Art { get; private set; }
         public bool HasClip { get; set; }
         public CreatureClipIdentity Clip { get; set; }
 
