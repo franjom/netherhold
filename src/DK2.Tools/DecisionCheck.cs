@@ -46,7 +46,7 @@ public static class DecisionCheck
 
             using var doc = JsonDocument.Parse(line);
             JsonElement root = doc.RootElement;
-            byte player = PlayerIds.FirstKeeper;
+            var player = new PlayerId(PlayerIds.FirstKeeper);
             // Marks from the choice's own frame when the line has them: the keeper's input lands at
             // the start of a tick, before any imp chooses.
             LoadTiles(database, world, root.GetProperty("world"),
@@ -145,7 +145,7 @@ public static class DecisionCheck
     }
 
     private static void LoadTiles(
-        GameDatabase database, WorldState world, JsonElement tiles, JsonElement pool, byte player)
+        GameDatabase database, WorldState world, JsonElement tiles, JsonElement pool, PlayerId player)
     {
         int w = tiles.GetProperty("w").GetInt32(), h = tiles.GetProperty("h").GetInt32();
         if (w != world.Width || h != world.Height)
@@ -238,7 +238,7 @@ public static class DecisionCheck
     }
 
     private static void LoadImp(
-        GameDatabase database, WorldState world, CreatureState creature, JsonElement imp, byte player, bool holdsJob,
+        GameDatabase database, WorldState world, CreatureState creature, JsonElement imp, PlayerId player, bool holdsJob,
         List<(CreatureState Holder, TilePos Face)> faces)
     {
         // A decision check loads a captured state into a world of its own, which runs no triggers.

@@ -238,9 +238,9 @@ public sealed class PlayerRunDiagnostics
 
     /// <summary>Whether <paramref name="owner"/> is the controlled player's enemy: owned, and not allied
     /// (<c>CombatRules.IsHostile</c>).</summary>
-    private bool Hostile(WorldState world, byte owner)
+    private bool Hostile(WorldState world, PlayerId owner)
     {
-        return owner != 0 && owner != _player.Value && CombatRules.IsHostile(world, _player.Value, owner);
+        return owner != PlayerIds.Unowned && owner != _player && CombatRules.IsHostile(world, _player.Value, owner.Value);
     }
 
     private string TrapName(byte id)
