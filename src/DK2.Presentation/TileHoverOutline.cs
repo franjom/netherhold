@@ -18,13 +18,13 @@ public static class TileHoverOutline
     public const float Radius = .03f, BluePeak = .61328125f;
     private static readonly TileHoverSegment[] Segments =
     [
-        new TileHoverSegment(0,1,(TileHoverEdges)1), new TileHoverSegment(1,2,(TileHoverEdges)1),
+        new TileHoverSegment(0,1,TileHoverEdges.North), new TileHoverSegment(1,2,TileHoverEdges.North),
         new TileHoverSegment(18,19,(TileHoverEdges)17), new TileHoverSegment(19,20,(TileHoverEdges)17),
-        new TileHoverSegment(2,5,(TileHoverEdges)8), new TileHoverSegment(5,8,(TileHoverEdges)8),
+        new TileHoverSegment(2,5,TileHoverEdges.East), new TileHoverSegment(5,8,TileHoverEdges.East),
         new TileHoverSegment(20,23,(TileHoverEdges)24), new TileHoverSegment(23,26,(TileHoverEdges)24),
-        new TileHoverSegment(6,7,(TileHoverEdges)2), new TileHoverSegment(7,8,(TileHoverEdges)2),
+        new TileHoverSegment(6,7,TileHoverEdges.South), new TileHoverSegment(7,8,TileHoverEdges.South),
         new TileHoverSegment(24,25,(TileHoverEdges)18), new TileHoverSegment(25,26,(TileHoverEdges)18),
-        new TileHoverSegment(0,3,(TileHoverEdges)4), new TileHoverSegment(3,6,(TileHoverEdges)4),
+        new TileHoverSegment(0,3,TileHoverEdges.West), new TileHoverSegment(3,6,TileHoverEdges.West),
         new TileHoverSegment(18,21,(TileHoverEdges)20), new TileHoverSegment(21,24,(TileHoverEdges)20),
         new TileHoverSegment(0,9,(TileHoverEdges)21), new TileHoverSegment(9,18,(TileHoverEdges)21),
         new TileHoverSegment(2,11,(TileHoverEdges)25), new TileHoverSegment(11,20,(TileHoverEdges)25),
