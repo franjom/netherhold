@@ -447,7 +447,7 @@ internal sealed class MethodWalker
         }
     }
 
-    /// <summary>The field or auto-property a get-only property's expression body returns from its own instance.</summary>
+    /// <summary>The field or auto-property returned by a get-only property on its own instance.</summary>
     private ISymbol? Returned(IPropertySymbol property)
     {
         foreach (SyntaxReference reference in property.DeclaringSyntaxReferences)
@@ -456,6 +456,10 @@ internal sealed class MethodWalker
             {
                 PropertyDeclarationSyntax { ExpressionBody: { } arrow } => arrow.Expression,
                 PropertyDeclarationSyntax { AccessorList.Accessors: [{ Keyword.ValueText: "get", ExpressionBody: { } getter }] } => getter.Expression,
+                PropertyDeclarationSyntax
+                {
+                    AccessorList.Accessors: [{ Keyword.ValueText: "get", Body.Statements: [ReturnStatementSyntax { Expression: { } returned }] }],
+                } => returned,
                 _ => null,
             };
             if (body is null)

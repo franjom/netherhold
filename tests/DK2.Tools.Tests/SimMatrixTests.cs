@@ -89,6 +89,7 @@ public class SimMatrixTests
             public int[] Dst = new int[4];
             public int Index;
             public List<int> Raw => Items;
+            public List<int> RawBlock { get { return Items; } }
             public Holder() { Count = 1; Spot.X = 2; Spots[1].X = 3; }
             public Holder(Holder other) { other.Count = 2; other.Items.Add(1); }
             public void Plain() => Count = 3;
@@ -104,6 +105,7 @@ public class SimMatrixTests
             public void Chain() => Next?.Next?.Items.Clear();
             public void Predicate() { bool b = Flags.HasFlag(Kind.A); string t = Flags.ToString(); }
             public void ThroughAccessor() => Raw.Add(1);
+            public void ThroughBlockAccessor() => RawBlock.Add(1);
             public void CopyFive(int[] src) => System.Array.Copy(src, Index, Dst, 0, 2);
             public void Reassigned() { var h = new Holder(); h = Next!; h.Count = 1; }
         }
@@ -139,6 +141,7 @@ public class SimMatrixTests
     [InlineData("Chain", "Holder.Items")]
     [InlineData("Predicate", "")]
     [InlineData("ThroughAccessor", "Holder.Items")]
+    [InlineData("ThroughBlockAccessor", "Holder.Items")]
     [InlineData("CopyFive", "Holder.Dst")]
     [InlineData("Reassigned", "Holder.Count")]
     public void WritesFollowTheRules(string method, string written)

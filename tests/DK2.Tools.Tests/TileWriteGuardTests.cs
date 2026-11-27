@@ -133,11 +133,12 @@ public class TileWriteGuardTests
         List<Violation> uncounted = Scan([(statePath, state), (copyPath, copy.Replace(count, ""))]);
         Assert.Contains(uncounted, v => v.File == copyPath && v.Member == "CopyFrom");
 
-        const string anchor = "    public ref TileState TileAtIndex(int index) => ref _tiles[index];";
-        Assert.Contains(anchor, state);
+        ClassDeclarationSyntax worldState = CSharpSyntaxTree.ParseText(state).GetCompilationUnitRoot()
+            .DescendantNodes().OfType<ClassDeclarationSyntax>()
+            .Single(type => type.Identifier.ValueText == "WorldState");
         foreach (string body in new[] { "_tiles[0] = other;", "TileAtIndex(0) = other;", "Tile(0, 0) = default;" })
         {
-            string broken = state.Replace(anchor, anchor + $"\n    internal void Oops(TileState other) {{ {body} }}");
+            string broken = state.Insert(worldState.CloseBraceToken.SpanStart, $"    internal void Oops(TileState other) {{ {body} }}\n");
             List<Violation> found = Scan([(statePath, broken), (copyPath, copy)]);
             Assert.Contains(found, v => v.File == statePath && v.Member == "Oops");
         }
