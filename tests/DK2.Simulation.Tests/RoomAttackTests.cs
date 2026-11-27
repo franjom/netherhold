@@ -22,7 +22,7 @@ public class RoomAttackTests
         Db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
     }
 
-    private static void Paint(WorldState world, RoomTypeId type, int x0, int y, int width, byte owner)
+    private static void Paint(WorldState world, RoomTypeId type, int x0, int y, int width, PlayerId owner)
     {
         for (int x = x0; x < x0 + width; x++)
         {
@@ -30,14 +30,14 @@ public class RoomAttackTests
         }
     }
 
-    private static int Attack(WorldState world, int x, int y, byte playerId, int efficiency = EfficiencyRules.BaseModifier)
+    private static int Attack(WorldState world, TilePos at, PlayerId playerId)
     {
         var sim = new GameSimulation(Db, world, seed: 1, [new Systems.TileWorkSystem()]);
         for (int i = 1; i <= 100; i++)
         {
-            world.QueueWork(new TileWorkOrder((y * world.Width) + x, TileWorkKind.AttackRoom, playerId));
+            world.QueueWork(new TileWorkOrder(world.TileIndex(at), TileWorkKind.AttackRoom, playerId));
             sim.Tick(InputFrame.Empty);
-            if (Db.RoomByTerrain(world.Tile(x, y).TerrainId) is null)
+            if (Db.RoomByTerrain(world.Tile(at).TerrainId) is null)
             {
                 return i;
             }
@@ -53,7 +53,7 @@ public class RoomAttackTests
         RoomInstance before = RoomIndex.RoomAt(world, Db, (5 * world.Width) + 6)!;
 
         Assert.Equal(-3750, TileWorkRules.HeroAttackRoomPerApplication(Db));
-        Assert.Equal(3, Attack(world, 6, 5, PlayerIds.Good));
+        Assert.Equal(3, Attack(world, new TilePos(6, 5), PlayerIds.Good));
 
         // Claimed Path, still the keeper's, and the two ends are two rooms at full health.
         Assert.Equal(Dk2TerrainFixture.ClaimedPath, world.Tile(6, 5).TerrainId);
@@ -69,7 +69,7 @@ public class RoomAttackTests
         Paint(world, RoomTypeId.Treasury, 5, 5, 1, Keeper);
 
         // −1500 / 4 × 80% = −300 against 10000.
-        Assert.Equal(34, Attack(world, 5, 5, Rival));
+        Assert.Equal(34, Attack(world, new TilePos(5, 5), Rival));
     }
 
     /// <summary>Action 11's experience award is in its Good arm only (<c>0x00497DF0</c>, ADR-0386):
@@ -111,7 +111,7 @@ public class RoomAttackTests
         RoomInstance room = RoomIndex.RoomAt(world, Db, (5 * world.Width) + 5)!;
         RoomHealthRules.Set(world, Db, room, RoomHealthRules.Cap(Db, room) / 2);
 
-        Attack(world, 6, 5, PlayerIds.Good);
+        Attack(world, new TilePos(6, 5), PlayerIds.Good);
 
         int perTile = RoomHealthRules.MaxPerTile(Db, room.Definition);
         Assert.Equal(perTile / 2, RoomHealthRules.Health(world, Db, RoomIndex.RoomAt(world, Db, (5 * world.Width) + 5)!));
@@ -148,7 +148,7 @@ public class RoomAttackTests
         RoomRules.Place(Db, ref tile, Db.Room(RoomTypeId.WoodenBridge), Keeper);
 
         // A bridge tile holds 2000: one hero blow.
-        Assert.Equal(1, Attack(world, 5, 9, PlayerIds.Good));
+        Assert.Equal(1, Attack(world, new TilePos(5, 9), PlayerIds.Good));
         Assert.Equal(Dk2TerrainFixture.Water, world.Tile(5, 9).TerrainId);
     }
 

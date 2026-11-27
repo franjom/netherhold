@@ -21,19 +21,19 @@ public class ThreatMessageTests
         Db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
     }
 
-    private static void Work(WorldState world, int x, int y, TileWorkKind kind, byte playerId, int times = 1)
+    private static void Work(WorldState world, TilePos at, TileWorkKind kind, PlayerId playerId, int times = 1)
     {
         var sim = new GameSimulation(Db, world, seed: 1, [new Systems.TileWorkSystem()]);
         for (int i = 0; i < times; i++)
         {
-            world.QueueWork(new TileWorkOrder((y * world.Width) + x, kind, playerId));
+            world.QueueWork(new TileWorkOrder(world.TileIndex(at), kind, playerId));
             sim.Tick(InputFrame.Empty);
         }
     }
 
     /// <summary>Works the wall at (6, 6) until it falls; stopping there keeps the fifty-second 12 in
     /// the queue.</summary>
-    private static void UntilTheWallFalls(WorldState world, TileWorkKind kind, byte playerId)
+    private static void UntilTheWallFalls(WorldState world, TileWorkKind kind, PlayerId playerId)
     {
         var sim = new GameSimulation(Db, world, seed: 1, [new Systems.TileWorkSystem()]);
         for (int i = 0; i < 3000 && world.Tile(6, 6).TerrainId == Dk2TerrainFixture.ReinforcedWall; i++)
@@ -54,7 +54,7 @@ public class ThreatMessageTests
 
         int tag = SlabChain.FirstSlab(world, RoomIndex.RoomAt(world, Db, (5 * world.Width) + 6)!);
 
-        Work(world, 6, 5, TileWorkKind.AttackRoom, PlayerIds.Good);
+        Work(world, new TilePos(6, 5), TileWorkKind.AttackRoom, PlayerIds.Good);
 
         PlayerMessage message = Assert.Single(world.Messages.Entries);
         Assert.Equal((PlayerMessageKind.RoomAttacked, Keeper, (int)RoomTypeId.Treasury, tag),
@@ -67,7 +67,7 @@ public class ThreatMessageTests
     {
         WorldState world = World();
         RoomRules.Place(Db, ref world.Tile(5, 5), Db.Room(RoomTypeId.Treasury), Keeper);
-        Work(world, 5, 5, TileWorkKind.AttackRoom, Rival);
+        Work(world, new TilePos(5, 5), TileWorkKind.AttackRoom, Rival);
         Assert.Empty(world.Messages.Entries);
     }
 

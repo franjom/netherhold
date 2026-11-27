@@ -31,12 +31,13 @@ public sealed class WorldSoundTests
     [Fact]
     public void ThingsOfDifferentKindsWithTheSameIdKeepSeparateVoices()
     {
+        const ushort doorFixtureEvent = 0xC4; // The fixture reuses the object's event value to exercise source identity.
         var director = new WorldSoundDirector();
         director.Emit(Sound(new SoundSourceId(SoundSourceKind.Creature, 7), "CREATURE_IMP", ThingSoundEvent.BattleCall));
-        director.Emit(Sound(new SoundSourceId(SoundSourceKind.Object, 7), "OBJECT_GOLD", (ThingSoundEvent)0xC4));
-        director.Emit(Sound(new SoundSourceId(SoundSourceKind.Door, 7), "DOOR_WOOD", (ThingSoundEvent)0xC4));
+        director.Emit(Sound(new SoundSourceId(SoundSourceKind.Object, 7), "OBJECT_GOLD", ThingSoundEvent.Dropped));
+        director.Emit(Sound(new SoundSourceId(SoundSourceKind.Door, 7), "DOOR_WOOD", (ThingSoundEvent)doorFixtureEvent));
         director.Emit(Sound(new SoundSourceId(SoundSourceKind.Room, 7), "ROOM_DUNGEON_HEART", ThingSoundEvent.HeartDamaged));
-        director.Emit(Sound(new SoundSourceId(SoundSourceKind.Player, 7), "ROOM_DUNGEON_HEART", (ThingSoundEvent)0xF4));
+        director.Emit(Sound(new SoundSourceId(SoundSourceKind.Player, 7), "ROOM_DUNGEON_HEART", ThingSoundEvent.HeartCollapsed));
         director.Emit(Sound(new SoundSourceId(SoundSourceKind.Shot, 7), "SPELL_FIREBALL", ThingSoundEvent.SpellCast));
         director.Emit(Sound(new SoundSourceId(SoundSourceKind.ShotSecond, 7), "SPELL_FIREBALL", ThingSoundEvent.ShotMadeSecond));   // a shot's second handle
         director.Emit(Sound(new SoundSourceId(SoundSourceKind.Tremor, 7), "KEEPER_SPELL_TREMOR", ThingSoundEvent.TremorStarted));
@@ -60,7 +61,7 @@ public sealed class WorldSoundTests
     public void ARequestDK2MakesWithHandleZeroCarriesNoVoice()
     {
         var director = new WorldSoundDirector();
-        var request = new ThingSoundRequest(SoundSourceId.Of(new CreatureId(5)), "CREATURE_IMP", (ThingSoundEvent)0xC3,
+        var request = new ThingSoundRequest(SoundSourceId.Of(new CreatureId(5)), "CREATURE_IMP", ThingSoundEvent.PickedUp,
             new FpPosition3(new Fp32(4096), new Fp32(8192), new Fp32(4096)), Voiced: false);
         director.Emit(new SimEvent(default, "test", "thing_sound", "") { ThingSound = request });
         Assert.True(director.TryTake(out SoundRequest sound));
