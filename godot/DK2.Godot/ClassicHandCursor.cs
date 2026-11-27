@@ -13,8 +13,8 @@ public partial class ClassicHandCursor : Node
     /// <summary>Above the panels and the placement cursor's layer.</summary>
     public const int CanvasLayerIndex = 101;
 
-    private readonly HudFrame _frame = new();
-    private readonly HandCursorAnimation _animation = new();
+    private readonly HudFrame _frame = new HudFrame();
+    private readonly HandCursorAnimation _animation = new HandCursorAnimation();
     private HudCanvas? _canvas;
     private HandCursorKind _kind;
     private int _sheetFrame;

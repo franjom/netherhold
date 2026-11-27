@@ -26,12 +26,12 @@ public partial class WorldScene : ISimulationEventSink
     // Process loose-gem idle effects, then scene requests, then advance the model.
     private EffectFrame? _effectFrame;
     private PlayerId _effectViewer;
-    private readonly Dictionary<AssetRef, EffectSpriteBatch?> _effectBatches = new();
-    private readonly EffectQuadBuffer _effectQuad = new();
-    private readonly Dictionary<string, IReadOnlyList<EffectGroupPart>?> _groupParts = new();
+    private readonly Dictionary<AssetRef, EffectSpriteBatch?> _effectBatches = new Dictionary<AssetRef, EffectSpriteBatch?>();
+    private readonly EffectQuadBuffer _effectQuad = new EffectQuadBuffer();
+    private readonly Dictionary<string, IReadOnlyList<EffectGroupPart>?> _groupParts = new Dictionary<string, IReadOnlyList<EffectGroupPart>?>();
     // A mesh particle's models by asset and group part entry, each with its own pool of drawn models.
-    private readonly Dictionary<(AssetRef Key, string Entry), EffectMesh?> _effectMeshes = new();
-    private readonly List<EffectMesh> _effectMeshList = new();
+    private readonly Dictionary<(AssetRef Key, string Entry), EffectMesh?> _effectMeshes = new Dictionary<(AssetRef Key, string Entry), EffectMesh?>();
+    private readonly List<EffectMesh> _effectMeshList = new List<EffectMesh>();
     private static readonly Shader?[] SpriteShaders = new Shader?[3];
     private Rid _effectQuadMesh;
 
@@ -219,8 +219,8 @@ public partial class WorldScene : ISimulationEventSink
             _effectSprites ??= new InstallEffectSpriteProvider(_effectSimulation!.Database, _art.LoadTexture);
             _effects.TileLights ??= _worldLights!.TryGetVisibleTable;
             // The draw list is in RenderWorld's left-handed frame; reflect only at the upload boundary.
-            System.Numerics.Vector3 right = RightHandedFrame.Point(new(_camera.GlobalBasis.X.X, _camera.GlobalBasis.X.Y, _camera.GlobalBasis.X.Z));
-            System.Numerics.Vector3 up = RightHandedFrame.Point(new(_camera.GlobalBasis.Y.X, _camera.GlobalBasis.Y.Y, _camera.GlobalBasis.Y.Z));
+            System.Numerics.Vector3 right = RightHandedFrame.Point(new NVector3(_camera.GlobalBasis.X.X, _camera.GlobalBasis.X.Y, _camera.GlobalBasis.X.Z));
+            System.Numerics.Vector3 up = RightHandedFrame.Point(new NVector3(_camera.GlobalBasis.Y.X, _camera.GlobalBasis.Y.Y, _camera.GlobalBasis.Y.Z));
             if (_previewPass && PreviewPose is ClassicCameraPose preview)
             {
                 right = NVector3.Normalize(NVector3.Cross(preview.Up, preview.Forward));
@@ -399,7 +399,7 @@ public partial class WorldScene : ISimulationEventSink
     /// use, with its authored rate, and the drawn models this frame takes in turn.</summary>
     private sealed class EffectMesh
     {
-        public readonly List<ModelSlot> Slots = new();
+        public readonly List<ModelSlot> Slots = new List<ModelSlot>();
         public int Used, Shown;
         private readonly KmfModel? _animated;
         private readonly string _entry = "";
@@ -454,7 +454,7 @@ public partial class WorldScene : ISimulationEventSink
         }
     }
 
-    private readonly Dictionary<(string Entry, int Frame), ModelMesh> _effectFrames = new();
+    private readonly Dictionary<(string Entry, int Frame), ModelMesh> _effectFrames = new Dictionary<(string Entry, int Frame), ModelMesh>();
 
     /// <summary>Cache the mesh for a type-6 model's frame by entry.</summary>
     private ModelMesh EffectFrame(KmfModel model, string entry, int frame)

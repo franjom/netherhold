@@ -14,8 +14,8 @@ public partial class ClassicPlacementOverlay : Node
     /// <summary>Between the panels and the hand cursor.</summary>
     public const int CanvasLayerIndex = 100;
 
-    private readonly PlacementCursorHud _hud = new();
-    private readonly HudFrame _frame = new();
+    private readonly PlacementCursorHud _hud = new PlacementCursorHud();
+    private readonly HudFrame _frame = new HudFrame();
     private HudCanvas? _canvas;
 
     /// <summary>The cursor's rules, for the host to set its icon names (<see cref="PlacementCursorHud.SpellIconName"/> and

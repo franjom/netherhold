@@ -19,13 +19,13 @@ public partial class MinimapGpuDisc : Node
         PaletteName = "palette", BackdropName = "backdrop", MarkerDataName = "marker_data";
     private readonly ShaderMaterial _base = Material("MinimapBase"), _markers = Material("MinimapMarkers");
     private readonly SubViewport _disc = Viewport(true);
-    private readonly ColorRect _baseQuad = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
-    private readonly MultiMesh _mesh = new()
+    private readonly ColorRect _baseQuad = new ColorRect() { MouseFilter = Control.MouseFilterEnum.Ignore };
+    private readonly MultiMesh _mesh = new MultiMesh()
     {
         TransformFormat = MultiMesh.TransformFormatEnum.Transform2D, UseCustomData = true,
         Mesh = new QuadMesh { Size = Vector2.One },
     };
-    private readonly MinimapDiscGeometry _geometry = new();
+    private readonly MinimapDiscGeometry _geometry = new MinimapDiscGeometry();
     private Image? _classesImage, _paletteImage, _markerImage;
     private ImageTexture? _classesTexture, _paletteTexture, _rockTexture, _markerTexture;
     private byte[] _classes = [], _palette = [], _markerBytes = [];
@@ -198,7 +198,7 @@ public partial class MinimapGpuDisc : Node
 
     private static SubViewport Viewport(bool transparent)
     {
-        return new()
+        return new SubViewport()
         {
             Size = new Vector2I(2, 2),
             Disable3D = true,
@@ -212,7 +212,7 @@ public partial class MinimapGpuDisc : Node
 
     private static ShaderMaterial Material(string name)
     {
-        return new() { Shader = GD.Load<Shader>("res://Shaders/" + name + ".gdshader") };
+        return new ShaderMaterial() { Shader = GD.Load<Shader>("res://Shaders/" + name + ".gdshader") };
     }
 
     private void SetMapParameter(StringName name, Variant value)

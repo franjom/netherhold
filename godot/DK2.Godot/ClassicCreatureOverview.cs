@@ -11,8 +11,8 @@ namespace DK2.GodotAdapter;
 public partial class ClassicCreatureOverview : Node
 {
     /// <summary>A pointer no widget contains, for while it is outside the window.</summary>
-    private static readonly Vector2 Away = new(-1e9f, -1e9f);
-    private readonly HudFrame _frame = new();
+    private static readonly Vector2 Away = new Vector2(-1e9f, -1e9f);
+    private readonly HudFrame _frame = new HudFrame();
     private CreatureOverviewHud? _hud;
     private HudCanvas? _canvas;
     private HudScaleLayout _layout;

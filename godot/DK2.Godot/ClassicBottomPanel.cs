@@ -11,7 +11,7 @@ namespace DK2.GodotAdapter;
 public partial class ClassicBottomPanel : Node, IPointerGestureHolder
 {
     private const float Tall = 1920f;
-    private readonly HudFrame _frame = new();
+    private readonly HudFrame _frame = new HudFrame();
     private BottomPanelHud? _hud;
     private HudCanvas? _canvas;
     private HudScaleLayout _layout;

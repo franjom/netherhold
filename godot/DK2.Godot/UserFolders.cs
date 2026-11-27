@@ -14,7 +14,7 @@ public static class UserFolders
 {
     public static GameFolders FromArguments(IReadOnlyList<string> args)
     {
-        return new(ProjectSettings.GlobalizePath("user://"))
+        return new GameFolders(ProjectSettings.GlobalizePath("user://"))
         {
             ProfileFile = LaunchArguments.Value(args, "--profile"),
             SettingsFile = LaunchArguments.Value(args, "--settings"),

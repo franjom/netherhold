@@ -11,7 +11,7 @@ namespace DK2.GodotAdapter;
 /// <summary>Draws Menu 43, the Battle tab, using the frame built by <see cref="BattleTabView"/>.</summary>
 public partial class ClassicBattleTab : Node
 {
-    private readonly HudFrame _frame = new();
+    private readonly HudFrame _frame = new HudFrame();
     private BattleTabHud? _hud;
     private HudCanvas? _canvas;
     private HudScaleLayout _layout;

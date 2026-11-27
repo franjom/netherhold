@@ -43,7 +43,7 @@ public partial class WorldScene
     private static readonly StringName[] ShadowLightGlobals =
         ["dk2_shadow_light0", "dk2_shadow_light1"];
 
-    private readonly Dictionary<int, NVector3> _shadowTorches = new();
+    private readonly Dictionary<int, NVector3> _shadowTorches = new Dictionary<int, NVector3>();
     private int[] _shadowKeys = [];
     private NVector3[] _shadowPositions = [];
     private bool _shadowTorchesChanged;
@@ -51,7 +51,7 @@ public partial class WorldScene
     private readonly int[] _shadowNext = new int[ClassicTorchShadowSlots.MaximumTorches];
     private readonly int[] _shadowSlotKeys = [-1, -1];
     private readonly NVector3[] _shadowSlotPositions = new NVector3[ClassicTorchShadowSlots.MaximumTorches];
-    private readonly ClassicShadowSourceSelector _shadowSelector = new();
+    private readonly ClassicShadowSourceSelector _shadowSelector = new ClassicShadowSourceSelector();
     private SubViewport[]? _shadowViewports;
     private Camera3D[]? _shadowCameras;
 

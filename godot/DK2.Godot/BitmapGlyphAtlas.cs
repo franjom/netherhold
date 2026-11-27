@@ -12,8 +12,8 @@ namespace DK2.GodotAdapter;
 internal sealed class BitmapGlyphAtlas
 {
     private const int Width = 1024;
-    private static readonly Dictionary<BitmapFont, BitmapGlyphAtlas> Shared = new();
-    private readonly Dictionary<BitmapGlyph, Vector2I> _corners = new(ReferenceEqualityComparer.Instance);
+    private static readonly Dictionary<BitmapFont, BitmapGlyphAtlas> Shared = new Dictionary<BitmapFont, BitmapGlyphAtlas>();
+    private readonly Dictionary<BitmapGlyph, Vector2I> _corners = new Dictionary<BitmapGlyph, Vector2I>(ReferenceEqualityComparer.Instance);
     private readonly ImageTexture _texture;
     private int _users;
 

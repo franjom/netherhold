@@ -11,7 +11,7 @@ namespace DK2.GodotAdapter;
 /// <summary>Draws the frame built by <see cref="HoverHud"/> (ADR-0805). The bar lies beneath other panels and the status line and tooltip lie above them. The host checks whether the pointer is over the bar.</summary>
 public partial class ClassicHoverHud : Node
 {
-    private readonly HudFrame _frame = new(), _barFrame = new();
+    private readonly HudFrame _frame = new HudFrame(), _barFrame = new HudFrame();
     private HoverHud? _hud;
     private HudCanvas? _canvas, _barCanvas;
     private HudScaleLayout _layout;

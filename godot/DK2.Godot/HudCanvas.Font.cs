@@ -18,8 +18,8 @@ public partial class HudCanvas
     private TextServer? _textServer;
     private FontGlyph[]?[] _glyphs = new FontGlyph[]?[256];
     /// <summary>Each label's glyph cells at the size last drawn, or null cells for a label the face cannot set.</summary>
-    private readonly Dictionary<HudLabel, LabelFont> _fontInfo = new();
-    private readonly List<HudLabel> _staleFont = new();
+    private readonly Dictionary<HudLabel, LabelFont> _fontInfo = new Dictionary<HudLabel, LabelFont>();
+    private readonly List<HudLabel> _staleFont = new List<HudLabel>();
     private bool _usingFont;
 
     /// <summary>A glyph's cell: the text server's cache texture and the glyph's rectangle in it, in pixels.</summary>

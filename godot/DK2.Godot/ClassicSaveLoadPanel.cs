@@ -13,9 +13,9 @@ namespace DK2.GodotAdapter;
 public partial class ClassicSaveLoadPanel : Node
 {
     /// <summary>The canvas's image source. The browser draws set text only.</summary>
-    private static readonly RgbaImage BlankImage = new(1, 1, new byte[4]);
+    private static readonly RgbaImage BlankImage = new RgbaImage(1, 1, new byte[4]);
     private static readonly Func<string, RgbaImage> Blank = _ => BlankImage;
-    private readonly HudFrame _frame = new();
+    private readonly HudFrame _frame = new HudFrame();
     private SaveLoadHud? _hud;
     private HudCanvas? _canvas;
     /// <summary>Local units per virtual unit (the screen height over 1920) at the last draw; 0 before it.</summary>

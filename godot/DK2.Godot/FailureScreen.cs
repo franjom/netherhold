@@ -139,7 +139,7 @@ public partial class FailureScreen : CanvasLayer
 
     private static Label Paragraph(string text, string variation)
     {
-        return new()
+        return new Label()
         {
             Text = text,
             ThemeTypeVariation = variation,

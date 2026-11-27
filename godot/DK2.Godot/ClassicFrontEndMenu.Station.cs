@@ -20,7 +20,7 @@ public partial class ClassicFrontEndMenu
     /// <summary>The campaign map's launch (dispatcher 0xC), taken once the menu has finished with the frame.</summary>
     private GameSessionRequest? _pendingLaunch;
     private bool _launching;
-    private readonly ClassicKeyboard _keyboard = new();
+    private readonly ClassicKeyboard _keyboard = new ClassicKeyboard();
 
     /// <summary>The station's 3D world, or null when the front-end level could not be read.</summary>
     public WorldScene? Station

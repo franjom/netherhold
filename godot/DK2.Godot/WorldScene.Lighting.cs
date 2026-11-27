@@ -23,12 +23,12 @@ public partial class WorldScene
     // 2026-11-18). The fill, on with --light-fill, is Unity's ADR-0522 look: its sky fitted to Unity's default-skybox
     // frames (least squares over the texture-divided pixels of Level1's start frame), the scene's sun at 1.1, the tint,
     // unlit share and floor. The fade is ADR-0522's 0.5 to 1 of the far plane in both.
-    private static readonly Vector3 FillSky = new(0.42f, 0.52f, 0.64f), FillEquator = new(0.47f, 0.52f, 0.61f),
-        FillGround = new(0.30f, 0.30f, 0.32f);
-    private static readonly Vector3 FillSun = new(1.1f, 1.1f, 1.1f);
+    private static readonly Vector3 FillSky = new Vector3(0.42f, 0.52f, 0.64f), FillEquator = new Vector3(0.47f, 0.52f, 0.61f),
+        FillGround = new Vector3(0.30f, 0.30f, 0.32f);
+    private static readonly Vector3 FillSun = new Vector3(1.1f, 1.1f, 1.1f);
     /// <summary>Unity's light's direction toward it, (0.321, 0.766, -0.557) (Dungeon.unity's rotation), in Godot's frame.</summary>
     private static readonly Vector3 FillSunDirection = new Vector3(0.3214f, 0.7660f, 0.5567f).Normalized();
-    private static readonly Vector3 FillTint = new(0.55f, 0.44f, 0.28f);
+    private static readonly Vector3 FillTint = new Vector3(0.55f, 0.44f, 0.28f);
     private const float UnlitFill = 0.25f, FillFloor = 0.5f, FadeStart = 0.5f, FadeEnd = 1f;
 
     private static readonly StringName LightTablesGlobal = "dk2_light_tables", LightGridGlobal = "dk2_light_grid",
@@ -38,7 +38,7 @@ public partial class WorldScene
         FadeGlobal = "dk2_fade", HoverRedGlobal = "dk2_hover_red";
 
     /// <summary>The hover's red pass: the overlay look's colour (RedTexture's), which the world shader adds.</summary>
-    private static readonly NVector3 HoverRed = new(ObjectMaterialLook.HoverOverlay().Colour.X,
+    private static readonly NVector3 HoverRed = new NVector3(ObjectMaterialLook.HoverOverlay().Colour.X,
         ObjectMaterialLook.HoverOverlay().Colour.Y, ObjectMaterialLook.HoverOverlay().Colour.Z);
 
     private ClassicWorldLightCache? _worldLights;
@@ -108,7 +108,7 @@ public partial class WorldScene
         }
     }
 
-    private static readonly HashSet<string> Globals = new();
+    private static readonly HashSet<string> Globals = new HashSet<string>();
 
     /// <summary>DK2's ambient level from the ambient keys (<see cref="ClassicAmbientLight.Normalized"/>), grey.</summary>
     public void SetAmbient(float level)

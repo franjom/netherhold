@@ -46,7 +46,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     private ScenePresenter? _presenter;
     private TerrainChunkScheduler? _terrain;
     private MeshInstance3D?[] _terrainOverlayChunks = [];
-    private readonly SurfaceBuffer _terrainOverlaySurface = new();
+    private readonly SurfaceBuffer _terrainOverlaySurface = new SurfaceBuffer();
     private LiquidSurfaceField? _liquids;
     private LiquidLayer? _water, _lava;
     private float _seconds;
@@ -57,12 +57,12 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     // The blended stream: a chunk's blended faces over its tiles' vertices, per material in first-use order across
     // rebuilds, and the run slots that draw the stream.
     private BlendedTerrainStream<ShaderMaterial>? _blended;
-    private readonly List<BlendedVertex> _blendedVertices = new();
-    private readonly Dictionary<ShaderMaterial, List<int>> _blendedByMaterial = new();
-    private readonly HashSet<ShaderMaterial> _blendedMaterials = new(), _overlayMaterials = new();
-    private readonly BlendedRunSlots<ShaderMaterial> _runKeys = new();
-    private readonly List<RunSlot> _runSlots = new();
-    private readonly RunSlot.Scratch _runScratch = new();
+    private readonly List<BlendedVertex> _blendedVertices = new List<BlendedVertex>();
+    private readonly Dictionary<ShaderMaterial, List<int>> _blendedByMaterial = new Dictionary<ShaderMaterial, List<int>>();
+    private readonly HashSet<ShaderMaterial> _blendedMaterials = new HashSet<ShaderMaterial>(), _overlayMaterials = new HashSet<ShaderMaterial>();
+    private readonly BlendedRunSlots<ShaderMaterial> _runKeys = new BlendedRunSlots<ShaderMaterial>();
+    private readonly List<RunSlot> _runSlots = new List<RunSlot>();
+    private readonly RunSlot.Scratch _runScratch = new RunSlot.Scratch();
     private Aabb _worldBox;
     // The re-sorting frames, for the exit report: time after the first (which pays the JIT), the most, what the frames
     // after the warm-up allocated, and the bytes uploaded for the triangles drawn.
@@ -73,12 +73,12 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     private long _blendedUploadBytes, _blendedUploadTriangles;
     private int _blendedRefreshes, _blendedMaxRuns, _blendedMaxTriangles;
 
-    private readonly Dictionary<TerrainMaterialKey, ShaderMaterial> _keyMaterials = new();
-    private readonly Dictionary<(TerrainMaterialLook Look, bool Fog), ShaderMaterial> _lookMaterials = new();
+    private readonly Dictionary<TerrainMaterialKey, ShaderMaterial> _keyMaterials = new Dictionary<TerrainMaterialKey, ShaderMaterial>();
+    private readonly Dictionary<(TerrainMaterialLook Look, bool Fog), ShaderMaterial> _lookMaterials = new Dictionary<(TerrainMaterialLook Look, bool Fog), ShaderMaterial>();
     // The world shader per light mode (per vertex, per pixel, with shadows) and render state, made on first use and kept
     // for the run, so a level reload compiles none again.
     private static readonly Shader?[,] WorldShaders = new Shader?[3, 5];
-    private readonly Dictionary<string, Texture2D> _textures = new();
+    private readonly Dictionary<string, Texture2D> _textures = new Dictionary<string, Texture2D>();
     private ImageTexture? _white;
     // The world ShaderMaterials made so far, for the performance report.
     private int _worldMaterialsMade;
@@ -233,8 +233,8 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     public bool MeasurePreviewRenderTime { get; set; }
     public CameraViewport PreviewViewport { get; set; }
     private const uint MainBlendedLayer = 1u << 18, PreviewBlendedLayer = 1u << 19;
-    private readonly BlendedRunSlots<ShaderMaterial> _previewRunKeys = new();
-    private readonly List<RunSlot> _previewRunSlots = new();
+    private readonly BlendedRunSlots<ShaderMaterial> _previewRunKeys = new BlendedRunSlots<ShaderMaterial>();
+    private readonly List<RunSlot> _previewRunSlots = new List<RunSlot>();
 
     private void DrawPreviewTerrain()
     {
@@ -686,7 +686,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     /// values and every blend happened in gamma space, as in Unity's gamma colour space. Linear tonemap, exposure 1.</summary>
     private static Godot.Environment GammaOutput()
     {
-        return new()
+        return new Godot.Environment()
         {
             BackgroundMode = Godot.Environment.BGMode.ClearColor,
             TonemapMode = Godot.Environment.ToneMapper.Linear,
@@ -830,7 +830,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
 
     private static Vector3 ToGodot(NVector3 v)
     {
-        return new(v.X, v.Y, v.Z);
+        return new Vector3(v.X, v.Y, v.Z);
     }
 
     private static string Milliseconds(long ticks)
@@ -994,11 +994,11 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
 
         private readonly Rid _instance, _mesh;
         private readonly ShaderMaterial _material;
-        private readonly TileHoverRibbon _ribbon = new();
+        private readonly TileHoverRibbon _ribbon = new TileHoverRibbon();
         private byte[] _positions = [], _uvs = [];
         private int _capacity, _written;
         private bool _visible = true;
-        private NVector3 _colour = new(-1, -1, -1);
+        private NVector3 _colour = new NVector3(-1, -1, -1);
         private Aabb _box;
 
         public CageRibbon(Rid scenario, Aabb box)
@@ -1028,7 +1028,7 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             ReadOnlySpan<int> indices = _ribbon.Indices;
             ReadOnlySpan<NVector3> from = _ribbon.Positions;
             ReadOnlySpan<NVector2> along = _ribbon.Uvs;
-            NVector3 low = new(float.MaxValue), high = new(float.MinValue);
+            NVector3 low = new NVector3(float.MaxValue), high = new NVector3(float.MinValue);
             for (int i = 0; i < count; i++)
             {
                 NVector3 at = RightHandedFrame.Point(from[indices[i]]);

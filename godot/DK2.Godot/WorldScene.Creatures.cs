@@ -16,7 +16,7 @@ namespace DK2.GodotAdapter;
 public partial class WorldScene : ISceneFrameHost
 {
     private readonly SceneFrame _frame;
-    private readonly Dictionary<int, CreatureSlot> _creatures = new();
+    private readonly Dictionary<int, CreatureSlot> _creatures = new Dictionary<int, CreatureSlot>();
     // The creature the frame's steps are drawing (PlaceCreature to the next).
     private CreatureSlot? _drawn;
     // What creating and updating creatures allocated, for the exit report: the pushes that made a node, those that started
@@ -255,7 +255,7 @@ public partial class WorldScene : ISceneFrameHost
 
     EffectTime ISceneFrameHost.EffectClock()
     {
-        return new(_frameMilliseconds);
+        return new EffectTime(_frameMilliseconds);
     }
 
     private void FreeCreatures()

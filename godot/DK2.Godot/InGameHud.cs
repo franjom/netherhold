@@ -22,7 +22,7 @@ namespace DK2.GodotAdapter;
 /// the minimap grid and hides the normal HUD. Launch arguments are documented in godot/README.md.</summary>
 public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPressHost, IWorldPointerHost
 {
-    private readonly List<PlayerCommand> _pending = new();
+    private readonly List<PlayerCommand> _pending = new List<PlayerCommand>();
     private LightningStaging? _lightningStage;
     private ColorRect? _topBar, _bottomBar;
 
@@ -47,9 +47,9 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _topBar.Size = _bottomBar.Size = new Vector2(size.X, size.Y * bar);
         _bottomBar.Position = new Vector2(0, size.Y * (1 - bar));
     }
-    private readonly PlayerInputTranslator _input = new();
+    private readonly PlayerInputTranslator _input = new PlayerInputTranslator();
     /// <summary>The tool, the panel's choice, the query tool and the selected corner.</summary>
-    private readonly HudToolState _tools = new();
+    private readonly HudToolState _tools = new HudToolState();
     /// <summary>Routes HUD actions to this scene.</summary>
     private HudActionRouter? _router;
     /// <summary>Where the press that raised the action being applied was, for the magnifier's zoom.</summary>
@@ -58,16 +58,16 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private PickupFlow? _pickups;
     /// <summary>The hand cursor's transient states, shared by the pickups, the world
     /// pointer and the hover, whose sounds the mixer plays.</summary>
-    private readonly HandCursorFeedback _cursorFeedback = new();
+    private readonly HandCursorFeedback _cursorFeedback = new HandCursorFeedback();
     /// <summary>The cursor, placement and cage to draw after the world hover pick.</summary>
     private HoverCursorResolver? _hoverCursor;
     /// <summary>The hand's icons the placement cursor draws while it holds things.</summary>
-    private readonly HeldItemStack _heldStack = new();
+    private readonly HeldItemStack _heldStack = new HeldItemStack();
     private ClassicHandCursor? _handCursor;
     private ClassicPlacementOverlay? _placement;
     private InstallHandCursorSheets? _cursorSheets;
     /// <summary>The world pick for the hover: the drawn entities (<see cref="WorldScene.PickHoverEntity"/>), else the tile under the pointer.</summary>
-    private readonly WorldHoverPicker _picker = new();
+    private readonly WorldHoverPicker _picker = new WorldHoverPicker();
     /// <summary>The last world point under the hand, used to position its sounds.</summary>
     private FpPosition2? _pointerWorld;
     /// <summary>The Hand's excavation drag's far end; off the map it keeps the last tile the pointer was on.</summary>
@@ -77,7 +77,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private PointerScript? _pointerScript;
     private int _scriptFrame = -1;
     private PointerScriptSample _scripted;
-    private Vector2 _scriptPushed = new(float.NaN, float.NaN);
+    private Vector2 _scriptPushed = new Vector2(float.NaN, float.NaN);
     /// <summary>Routes presses to the eligible HUD panels in priority order.</summary>
     private HudPressRouter? _presses;
     /// <summary>The query tool's and a held choice's world presses, on the tile
@@ -93,34 +93,34 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private HudVisibility _pressVisibility;
     private RoomNavigation? _roomNavigation;
     private ThingNavigation? _doorNavigation, _trapNavigation;
-    private readonly List<RoomNavigationEntry> _roomEntries = new();
-    private readonly List<ThingNavigationEntry> _thingEntries = new();
-    private readonly TickPacer _pacer = new();
+    private readonly List<RoomNavigationEntry> _roomEntries = new List<RoomNavigationEntry>();
+    private readonly List<ThingNavigationEntry> _thingEntries = new List<ThingNavigationEntry>();
+    private readonly TickPacer _pacer = new TickPacer();
     /// <summary>The frame order around this scene's HUD and input.</summary>
     private FrameDriver? _frameDriver;
     /// <summary>The world pointer rules, applied to the tile <see cref="PointerTile"/> picks.</summary>
     private WorldPointerInput? _worldPointer;
     /// <summary>The input journal, enabled by <c>--input-journal &lt;dir&gt;</c>. Its
     /// keys are Godot physical keycodes (<see cref="FrameJournalSession.GodotKeyTable"/>).</summary>
-    private readonly FrameJournalSession _journal = new(message => GD.Print(message), message => GD.PushWarning(message));
+    private readonly FrameJournalSession _journal = new FrameJournalSession(message => GD.Print(message), message => GD.PushWarning(message));
     private string? _journalRoot;
     private string _levelName = "";
     private ulong _seed;
     /// <summary>The journal's device sample since the last frame, kept only while it records.</summary>
-    private readonly List<HostKey> _journalDown = new(), _journalUp = new(), _journalHeld = new();
+    private readonly List<HostKey> _journalDown = new List<HostKey>(), _journalUp = new List<HostKey>(), _journalHeld = new List<HostKey>();
     private FrameMouseButtons _journalButtonsDown, _journalButtonsUp;
     private float _journalWheelX, _journalWheelY;
     /// <summary>The applied settings, including the game speed, the key bindings and the
     /// HUD scale. Loaded from, and saved to, <see cref="_settingsPath"/>.</summary>
-    private GameSettings _settings = new();
+    private GameSettings _settings = new GameSettings();
     private string _settingsPath = "";
     /// <summary>The settings pages' transactions.</summary>
     private OptionsPagesController? _optionsPages;
     private InGameOptionsController? _gameOptions;
     private ClassicGameOptionsPanel? _gameOptionsPanel;
-    private readonly ClassicKeyboard _keyboard = new();
+    private readonly ClassicKeyboard _keyboard = new ClassicKeyboard();
     /// <summary>The options menu's pages and the GUI state.</summary>
-    private readonly ClassicHudControls _hudControls = new();
+    private readonly ClassicHudControls _hudControls = new ClassicHudControls();
     private PlayerId _viewer = PlayerIds.FirstKeeper;
     private GameSimulation? _simulation;
     private InstallHudSources? _sources;
@@ -192,7 +192,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private HandCursorEventSink? _handCursorEvents;
     private Action<HeartHealthChange>? _heartHealthObserver;
     /// <summary>Action 26's focus glide, on this scene's engine-time clock.</summary>
-    private readonly CameraGlide _glide = new();
+    private readonly CameraGlide _glide = new CameraGlide();
     /// <summary>The camera pointer last frame, y up, and the wheel since then.</summary>
     private System.Numerics.Vector2 _cameraPointer;
     private float _cameraWheel;
@@ -217,7 +217,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     private bool _pointerInWindow = true;
     private double _elapsed;
     /// <summary>DK2's ambient level, which the ambient keys step.</summary>
-    private readonly ClassicAmbientLight _ambientLight = new();
+    private readonly ClassicAmbientLight _ambientLight = new ClassicAmbientLight();
     /// <summary>The Hand's light from the last frame's pick, drawn by the next frame.</summary>
     private ClassicPointLight? _handLight;
     /// <summary>The <c>--light-probe-*</c> checks print the frame each turn is first drawn on, for captures at a turn.</summary>
@@ -1371,7 +1371,7 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         int width = (int)size.X, height = (int)size.Y;
         Vector2 top = _pointer;
         // The camera uses a y-up pointer. A pointer outside the window does not edge-scroll.
-        System.Numerics.Vector2 pointer = _pointerInWindow ? new(top.X, height - top.Y) : new(-1, -1);
+        System.Numerics.Vector2 pointer = _pointerInWindow ? new System.Numerics.Vector2(top.X, height - top.Y) : new System.Numerics.Vector2(-1, -1);
         float wheel = _cameraWheel;
         _cameraWheel = 0;
         if (controls == null || _world == null || _scriptedView == null || _simulation == null) { _cameraPointer = pointer; return; }

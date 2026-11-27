@@ -232,13 +232,13 @@ public partial class PerformanceReport : Node
         var counters = new List<KeyValuePair<string, double>>();
         if (_allThreadsAtStart > 0)
         {
-            counters.Add(new("allocated.allThreadsBytes", GC.GetTotalAllocatedBytes(true) - _allThreadsAtStart));
-            counters.Add(new("allocated.mainThreadBytes", GC.GetAllocatedBytesForCurrentThread() - _mainAtStart));
+            counters.Add(new KeyValuePair<string, double>("allocated.allThreadsBytes", GC.GetTotalAllocatedBytes(true) - _allThreadsAtStart));
+            counters.Add(new KeyValuePair<string, double>("allocated.mainThreadBytes", GC.GetAllocatedBytesForCurrentThread() - _mainAtStart));
         }
         // What the harness itself allocated while measuring (expected 0; left out of allocatedBytes).
-        counters.Add(new("harness.selfBytes", _selfBytes));
-        counters.Add(new("harness.selfMaxBytes", _selfMaxBytes));
-        counters.Add(new("harness.selfMaxFrame", _selfMaxFrame));
+        counters.Add(new KeyValuePair<string, double>("harness.selfBytes", _selfBytes));
+        counters.Add(new KeyValuePair<string, double>("harness.selfMaxBytes", _selfMaxBytes));
+        counters.Add(new KeyValuePair<string, double>("harness.selfMaxFrame", _selfMaxFrame));
         if (_selfBytes != 0)
         {
             GD.PushWarning("DK2.Godot: the performance harness allocated ", _selfBytes, " B while measuring, at most ",
@@ -274,29 +274,29 @@ public partial class PerformanceReport : Node
         Vector2I screen = DisplayServer.ScreenGetSize();
         return new List<KeyValuePair<string, string>>
         {
-            new("level", _level),
-            new("seed", _seed.ToString(CultureInfo.InvariantCulture)),
-            new("utc", DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture)),
-            new("godot", Engine.GetVersionInfo()["string"].AsString()),
-            new("gpu", RenderingServer.GetVideoAdapterName()),
-            new("gpuVendor", RenderingServer.GetVideoAdapterVendor()),
-            new("gpuType", RenderingServer.GetVideoAdapterType().ToString()),
-            new("driver", string.Join(" ", OS.GetVideoAdapterDriverInfo())),
-            new("graphicsApi", RenderingServer.GetCurrentRenderingDriverName() + " " + RenderingServer.GetVideoAdapterApiVersion()),
-            new("renderer", RenderingServer.GetCurrentRenderingMethod()),
-            new("resolution", FormattableString.Invariant($"{(int)viewport.X}x{(int)viewport.Y}")),
-            new("window", FormattableString.Invariant($"{window.X}x{window.Y} {DisplayServer.WindowGetMode()}")),
-            new("screen", FormattableString.Invariant($"{screen.X}x{screen.Y}")),
-            new("vsync", DisplayServer.WindowGetVsyncMode().ToString()),
-            new("cpu", OS.GetProcessorName() + " x" + OS.GetProcessorCount().ToString(CultureInfo.InvariantCulture)),
-            new("engineBuild", OS.IsDebugBuild() ? "debug" : "release"),
+            new KeyValuePair<string, string>("level", _level),
+            new KeyValuePair<string, string>("seed", _seed.ToString(CultureInfo.InvariantCulture)),
+            new KeyValuePair<string, string>("utc", DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture)),
+            new KeyValuePair<string, string>("godot", Engine.GetVersionInfo()["string"].AsString()),
+            new KeyValuePair<string, string>("gpu", RenderingServer.GetVideoAdapterName()),
+            new KeyValuePair<string, string>("gpuVendor", RenderingServer.GetVideoAdapterVendor()),
+            new KeyValuePair<string, string>("gpuType", RenderingServer.GetVideoAdapterType().ToString()),
+            new KeyValuePair<string, string>("driver", string.Join(" ", OS.GetVideoAdapterDriverInfo())),
+            new KeyValuePair<string, string>("graphicsApi", RenderingServer.GetCurrentRenderingDriverName() + " " + RenderingServer.GetVideoAdapterApiVersion()),
+            new KeyValuePair<string, string>("renderer", RenderingServer.GetCurrentRenderingMethod()),
+            new KeyValuePair<string, string>("resolution", FormattableString.Invariant($"{(int)viewport.X}x{(int)viewport.Y}")),
+            new KeyValuePair<string, string>("window", FormattableString.Invariant($"{window.X}x{window.Y} {DisplayServer.WindowGetMode()}")),
+            new KeyValuePair<string, string>("screen", FormattableString.Invariant($"{screen.X}x{screen.Y}")),
+            new KeyValuePair<string, string>("vsync", DisplayServer.WindowGetVsyncMode().ToString()),
+            new KeyValuePair<string, string>("cpu", OS.GetProcessorName() + " x" + OS.GetProcessorCount().ToString(CultureInfo.InvariantCulture)),
+            new KeyValuePair<string, string>("engineBuild", OS.IsDebugBuild() ? "debug" : "release"),
 #if DEBUG
-            new("assemblyBuild", "Debug"),
+            new KeyValuePair<string, string>("assemblyBuild", "Debug"),
 #else
-            new("assemblyBuild", "Release"),
+            new KeyValuePair<string, string>("assemblyBuild", "Release"),
 #endif
-            new("runtime", System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription),
-            new("cameraScript", _camera == null ? "" : LaunchArguments.Value(_arguments, "--perf-camera") ?? ""),
+            new KeyValuePair<string, string>("runtime", System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription),
+            new KeyValuePair<string, string>("cameraScript", _camera == null ? "" : LaunchArguments.Value(_arguments, "--perf-camera") ?? ""),
         };
     }
 

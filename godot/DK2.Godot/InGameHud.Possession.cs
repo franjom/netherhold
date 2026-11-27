@@ -12,12 +12,12 @@ namespace DK2.GodotAdapter;
 /// <summary>Feeds keys, pointer travel and the scene clock to <see cref="PossessionSession"/>. Applies its camera, pointer lock, commands and sounds (ADR-0805).</summary>
 public partial class InGameHud
 {
-    private readonly List<SoundRequest> _possessionSounds = new();
+    private readonly List<SoundRequest> _possessionSounds = new List<SoundRequest>();
     private PossessionSession? _possession;
     /// <summary>The OS pointer's travel since the last frame, in screen pixels, y down.</summary>
     private Vector2 _possessionMotion;
     /// <summary>The scripted pointer last frame, whose travel stands in for the OS pointer's.</summary>
-    private Vector2 _possessionScripted = new(float.NaN, float.NaN);
+    private Vector2 _possessionScripted = new Vector2(float.NaN, float.NaN);
     private bool _pointerCaptured;
 
     private bool Possessing

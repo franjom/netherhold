@@ -14,7 +14,7 @@ namespace DK2.GodotAdapter;
 /// <summary>Draws the frame built by <see cref="FrontEndMenuHud"/> (ADR-0805) and forwards pointer input in 640 by 480 virtual units. The campaign profile and hi-score table are shared with the campaign map.</summary>
 public partial class ClassicFrontEndMenu : Node
 {
-    private readonly HudFrame _frame = new();
+    private readonly HudFrame _frame = new HudFrame();
     private ClassicFrontEndMenuAssets? _assets;
     private FrontEndSession? _session;
     private CampaignProfileStore? _profiles;

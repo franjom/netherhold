@@ -13,7 +13,7 @@ namespace DK2.GodotAdapter;
 internal sealed class ClassicTabletCanvas : IDisposable
 {
     private readonly TabletDrawList _draw;
-    private readonly Dictionary<string, Rid> _textures = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, Rid> _textures = new Dictionary<string, Rid>(StringComparer.Ordinal);
     private readonly TriangleBuffer _triangles;
     private readonly Rid _sparkle;
     private readonly Rid _item;

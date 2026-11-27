@@ -11,7 +11,7 @@ namespace DK2.GodotAdapter;
 
 public partial class InGameHud
 {
-    private readonly PossessionHighlight _possessionHighlight = new();
+    private readonly PossessionHighlight _possessionHighlight = new PossessionHighlight();
     private StatusFlowers? _entryFlowers;
     private GameDatabase? _entryFlowerDatabase;
     private Func<string, DK2.Art.Textures.RgbaImage>? _entryFlowerArt;
@@ -45,7 +45,7 @@ public partial class InGameHud
         if (_entryFlowerDatabase != _simulation.Database)
         {
             _entryFlowerDatabase = _simulation.Database;
-            _entryFlowers = new(_simulation.Database, _viewer);
+            _entryFlowers = new StatusFlowers(_simulation.Database, _viewer);
         }
         InstallHudSources sources = _sources;
         _entryFlowerArt ??= name => sources.Texture(StatusFlowerLayers.Folder + name);

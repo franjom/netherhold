@@ -14,7 +14,7 @@ namespace DK2.GodotAdapter;
 public partial class HudCanvas
 {
     private static readonly StringName LitCount = "lit_count", Ranks = "ranks";
-    private readonly Dictionary<HudImage, GaugeSlot> _gauges = new();
+    private readonly Dictionary<HudImage, GaugeSlot> _gauges = new Dictionary<HudImage, GaugeSlot>();
     private Shader? _gaugeShader;
 
     private sealed class GaugeSlot

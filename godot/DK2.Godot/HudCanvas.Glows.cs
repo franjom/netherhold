@@ -16,9 +16,9 @@ namespace DK2.GodotAdapter;
 public partial class HudCanvas
 {
     private static readonly StringName Quarter = "quarter";
-    private readonly Dictionary<HudLabel, GlowPack> _labelGlows = new();
-    private readonly Dictionary<string, GlowPack> _imageGlows = new();
-    private readonly List<HudLabel> _staleGlows = new();
+    private readonly Dictionary<HudLabel, GlowPack> _labelGlows = new Dictionary<HudLabel, GlowPack>();
+    private readonly Dictionary<string, GlowPack> _imageGlows = new Dictionary<string, GlowPack>();
+    private readonly List<HudLabel> _staleGlows = new List<HudLabel>();
     private readonly ShaderMaterial?[] _glowMaterials = new ShaderMaterial?[4];
 
     private sealed class GlowPack

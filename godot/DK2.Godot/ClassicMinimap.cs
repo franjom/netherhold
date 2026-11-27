@@ -14,8 +14,8 @@ namespace DK2.GodotAdapter;
 /// <summary>Draws the frame built by <see cref="MinimapHud"/> (ADR-0805). The disc uses the class grid shared with the full map, and <see cref="HudPressRouter"/> orders minimap presses relative to other panels.</summary>
 public partial class ClassicMinimap : Node
 {
-    private static readonly Vector2 Away = new(-1e9f, -1e9f);
-    private readonly HudFrame _frame = new();
+    private static readonly Vector2 Away = new Vector2(-1e9f, -1e9f);
+    private readonly HudFrame _frame = new HudFrame();
     private MinimapHud? _hud;
     private MinimapGpuDisc? _disc;
     private HudCanvas? _canvas;

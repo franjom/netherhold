@@ -24,9 +24,9 @@ public partial class WorldScene
     private const int FirstItemCapacity = 16, ItemEntries = 1024, ItemDrawsAtOpen = 512, ItemRunsAtOpen = 256;
     // Frames a draw's count must stay at a quarter of its capacity or less before the capacity halves.
     private const int ShrinkFrames = 120;
-    private BlendedItemOrder _itemOrder = new();
-    private List<ItemBatch> _itemBatches = new(64);
-    private readonly List<ModelSlot> _transparentSlots = new(256);
+    private BlendedItemOrder _itemOrder = new BlendedItemOrder();
+    private List<ItemBatch> _itemBatches = new List<ItemBatch>(64);
+    private readonly List<ModelSlot> _transparentSlots = new List<ModelSlot>(256);
     private float[] _itemData = new float[ItemEntries * ItemStride], _itemUpload = new float[ItemEntries * ItemStride];
     // Per item, its centre (Godot's frame) and radius: the draw's box, by which Godot culls it.
     private float[] _itemBounds = new float[ItemEntries * 4];
@@ -49,8 +49,8 @@ public partial class WorldScene
 
     private sealed class PreviewItems
     {
-        public BlendedItemOrder Order = new();
-        public List<ItemBatch> Batches = new(64);
+        public BlendedItemOrder Order = new BlendedItemOrder();
+        public List<ItemBatch> Batches = new List<ItemBatch>(64);
         public float[] Data = new float[ItemEntries * ItemStride], Upload = new float[ItemEntries * ItemStride];
         public float[] Bounds = new float[ItemEntries * 4];
         public Vector3 Eye;
@@ -59,7 +59,7 @@ public partial class WorldScene
         public System.Numerics.Matrix4x4 ViewProjection;
         public bool Open;
     }
-    private readonly PreviewItems _previewItems = new();
+    private readonly PreviewItems _previewItems = new PreviewItems();
     private bool _previewPass, _previewItemsDrawn;
 
     private void SwapPreviewItems()
@@ -277,7 +277,7 @@ public partial class WorldScene
                 }
 
                 ref ItemDraw draw = ref batch.Draws[batch.Used++];
-                Vector3 low = new(float.MaxValue, float.MaxValue, float.MaxValue), high = -low;
+                Vector3 low = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue), high = -low;
                 // The upload buffer holds the segment before ShowItemDraw sizes the draw: a segment past every draw's
                 // capacity so far (an uncapped additive burst) grows it here.
                 if (_itemUpload.Length < segment.Count * ItemStride)

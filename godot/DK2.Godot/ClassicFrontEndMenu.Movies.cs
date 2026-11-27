@@ -14,8 +14,8 @@ namespace DK2.GodotAdapter;
 /// <summary>Plays the title card, startup and attract movies. <see cref="DrawTitle"/> draws the card title over black. Movies have no subtitles.</summary>
 public partial class ClassicFrontEndMenu : ICampaignCutsceneHost
 {
-    private static readonly FrontEndStartupGate StartupGate = new();
-    private readonly FrontEndAttract _attract = new();
+    private static readonly FrontEndStartupGate StartupGate = new FrontEndStartupGate();
+    private readonly FrontEndAttract _attract = new FrontEndAttract();
     private FrontEndStartup? _startup;
     private double _startupStarted, _frontEndStarted;
     private string? _install;

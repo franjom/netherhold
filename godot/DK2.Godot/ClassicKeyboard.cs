@@ -15,7 +15,7 @@ public sealed class ClassicKeyboard
     private readonly bool[] _pressed = new bool[256];
     private readonly Func<KeyScanCode, bool> _readHeld, _readPressed;
     /// <summary>This frame's typed characters (<see cref="TypedTextBuffer"/> decides them and the cap).</summary>
-    private readonly TypedTextBuffer _typed = new();
+    private readonly TypedTextBuffer _typed = new TypedTextBuffer();
 
     public ClassicKeyboard()
     {
@@ -54,7 +54,7 @@ public sealed class ClassicKeyboard
 
     public GameBindingInput Read(GameSettings settings)
     {
-        return new(settings, Modifiers, _readHeld, _readPressed);
+        return new GameBindingInput(settings, Modifiers, _readHeld, _readPressed);
     }
 
     /// <summary>Characters typed since the last <see cref="EndFrame"/>, including key repeats.</summary>

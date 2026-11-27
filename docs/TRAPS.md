@@ -267,6 +267,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 ## Editor and plugins
 
+- A Roslyn workspace rewrite binds only the active preprocessor branch. Check both Debug and Release after editing code in a `#if DEBUG` region.
 - With `dotnet_sort_system_directives_first` enabled, `dotnet format style --verify-no-changes` also checks ordering within import groups. Run the organizer before verifying.
 - Host Python has Pillow but no NumPy; Blender's bundled Python supplies NumPy for mesh analysis.
 - Direct `.ps1` execution is blocked in the Codex host; use a process-scoped `powershell -NoProfile -ExecutionPolicy Bypass -File` invocation.

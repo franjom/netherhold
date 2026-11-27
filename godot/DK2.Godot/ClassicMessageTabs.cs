@@ -12,7 +12,7 @@ namespace DK2.GodotAdapter;
 /// <summary>Draws message tabs and the objective panel from <see cref="MessageTabsHud"/> (ADR-0805). The model receives pointer positions in virtual units and handles clicks on the press.</summary>
 public partial class ClassicMessageTabs : Node
 {
-    private readonly HudFrame _frame = new();
+    private readonly HudFrame _frame = new HudFrame();
     private MessageTabsHud? _hud;
     private HudCanvas? _canvas;
     private HudScaleLayout _layout;

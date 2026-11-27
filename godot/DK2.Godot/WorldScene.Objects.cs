@@ -24,21 +24,21 @@ namespace DK2.GodotAdapter;
 /// tint are the instance's uniforms (step 3p, <see cref="ObjectSurfaceKey"/>).</summary>
 public partial class WorldScene
 {
-    private readonly Dictionary<int, ModelSlot> _objects = new();
-    private readonly Dictionary<int, AssetRef> _artless = new();
-    private readonly Dictionary<StructureId, ModelSlot> _structures = new();
-    private readonly Dictionary<StructureId, StructureView> _structureViews = new();
-    private readonly Dictionary<int, TorchSlot> _torches = new();
+    private readonly Dictionary<int, ModelSlot> _objects = new Dictionary<int, ModelSlot>();
+    private readonly Dictionary<int, AssetRef> _artless = new Dictionary<int, AssetRef>();
+    private readonly Dictionary<StructureId, ModelSlot> _structures = new Dictionary<StructureId, ModelSlot>();
+    private readonly Dictionary<StructureId, StructureView> _structureViews = new Dictionary<StructureId, StructureView>();
+    private readonly Dictionary<int, TorchSlot> _torches = new Dictionary<int, TorchSlot>();
     // The torch holders with a transparent surface: barriers among the blended items.
-    private readonly List<TorchSlot> _transparentTorches = new();
-    private readonly Dictionary<(string Entry, bool LastFrame), ModelMesh?> _models = new();
-    private readonly Dictionary<string, RenderAnimation> _clips = new();
-    private readonly Dictionary<string, ClipSet?> _clipSets = new();
-    private readonly Dictionary<ObjectSurfaceKey, ShaderMaterial> _objectMaterials = new();
+    private readonly List<TorchSlot> _transparentTorches = new List<TorchSlot>();
+    private readonly Dictionary<(string Entry, bool LastFrame), ModelMesh?> _models = new Dictionary<(string Entry, bool LastFrame), ModelMesh?>();
+    private readonly Dictionary<string, RenderAnimation> _clips = new Dictionary<string, RenderAnimation>();
+    private readonly Dictionary<string, ClipSet?> _clipSets = new Dictionary<string, ClipSet?>();
+    private readonly Dictionary<ObjectSurfaceKey, ShaderMaterial> _objectMaterials = new Dictionary<ObjectSurfaceKey, ShaderMaterial>();
     // Per submesh, the environment pass a model's ApplyLooks found; reused.
     private ObjectMaterialLook?[] _environmentOf = new ObjectMaterialLook?[8];
-    private readonly List<ObjectPass> _passes = new();
-    private readonly HeartPulse _heartPulse = new();
+    private readonly List<ObjectPass> _passes = new List<ObjectPass>();
+    private readonly HeartPulse _heartPulse = new HeartPulse();
     private LatticeDirtyTracker? _latticeDirty;
     private TorchFlames? _flames;
     private Func<EffectTime>? _effectClock;
@@ -518,7 +518,7 @@ public partial class WorldScene
         EnvironmentDrawnParameter = "dk2_environment", RedParameter = "dk2_red";
 
     // An alpha-blended surface's additive next pass, one per environment pass and KMF blend (Extras).
-    private readonly Dictionary<(ObjectMaterialLook? Environment, bool KmfBlended, VertexClip? Animation), ShaderMaterial> _extrasMaterials = new();
+    private readonly Dictionary<(ObjectMaterialLook? Environment, bool KmfBlended, VertexClip? Animation), ShaderMaterial> _extrasMaterials = new Dictionary<(ObjectMaterialLook? Environment, bool KmfBlended, VertexClip? Animation), ShaderMaterial>();
 
     /// <summary>The world material of a model surface, one per <see cref="ObjectSurfaceKey"/>; the shader is the terrain's
     /// (<see cref="ShaderFor"/>), lit through a model's light inputs.</summary>
@@ -612,7 +612,7 @@ public partial class WorldScene
         /// (<see cref="HoverOverlayPlan"/>), so the two never ask for the same material.</summary>
         public HoverLooks With(HoverLooks other)
         {
-            return new(Swap || other.Swap, RedOpaque || other.RedOpaque, RedBlended || other.RedBlended);
+            return new HoverLooks(Swap || other.Swap, RedOpaque || other.RedOpaque, RedBlended || other.RedBlended);
         }
     }
 
@@ -621,7 +621,7 @@ public partial class WorldScene
     /// <paramref name="box"/> encloses the surface vertices in the renderers' frame.</summary>
     private void UploadPositions(ArrayMesh mesh, ModelMesh model, ReadOnlySpan<NVector3> vertices, out PickBox box)
     {
-        NVector3 low = new(float.MaxValue), high = new(float.MinValue);
+        NVector3 low = new NVector3(float.MaxValue), high = new NVector3(float.MinValue);
         for (int surface = 0; surface < model.SurfaceVertices.Length; surface++)
         {
             int[] used = model.SurfaceVertices[surface];
@@ -1226,7 +1226,7 @@ public partial class WorldScene
         public bool TryGetSample(out NVector3[] vertices, out PickBox box)
         {
             bool sampled = Player.TryGetSample(out vertices);
-            NVector3 low = new(float.PositiveInfinity), high = new(float.NegativeInfinity);
+            NVector3 low = new NVector3(float.PositiveInfinity), high = new NVector3(float.NegativeInfinity);
             if (sampled && _templates[(int)_shown] is ModelMesh template)
             {
                 foreach (int[] surface in template.SurfaceVertices)
@@ -1332,7 +1332,7 @@ public partial class WorldScene
 
             var origin = new NVector3(torch.PosX / (float)Fp32.One, torch.Height / (float)Fp32.One, -torch.PosY / (float)Fp32.One);
             _node.Position = ToGodot(RightHandedFrame.Point(origin));
-            NVector3 low = new(float.MaxValue), high = new(float.MinValue);
+            NVector3 low = new NVector3(float.MaxValue), high = new NVector3(float.MinValue);
             for (int i = 0; i < _bent.Length; i++)
             {
                 _bent[i] = TorchGeometry.Vertex(torch, _model.Source.Positions[i], _scene._lattice) - origin;
@@ -1444,9 +1444,9 @@ public partial class WorldScene
         private readonly int _frameCount;
         // Half the quad's diagonal: the camera-facing quad stays within it of its point.
         private readonly float _radius;
-        private readonly Dictionary<int, Flame> _drawn = new();
-        private readonly ClassicTorchFlamePhases _phases = new();
-        private readonly ClassicTorchFlameAnimation _animation = new();
+        private readonly Dictionary<int, Flame> _drawn = new Dictionary<int, Flame>();
+        private readonly ClassicTorchFlamePhases _phases = new ClassicTorchFlamePhases();
+        private readonly ClassicTorchFlameAnimation _animation = new ClassicTorchFlameAnimation();
         private long _started = -1;
 
         private sealed class Flame

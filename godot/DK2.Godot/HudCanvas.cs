@@ -10,8 +10,8 @@ namespace DK2.GodotAdapter;
 /// <summary>Draws a <see cref="HudFrame"/> built in DK2.Presentation (ADR-0805). The canvas maps virtual layout boxes to screen pixels, applies the draw blend, and snaps edges to whole pixels.</summary>
 public partial class HudCanvas : Node2D
 {
-    private readonly HudFrame _shown = new();
-    private readonly List<Rid> _items = new();
+    private readonly HudFrame _shown = new HudFrame();
+    private readonly List<Rid> _items = new List<Rid>();
     private CanvasItemMaterial? _additive;
     private Resolved[] _resolved = new Resolved[256];
     private readonly SectorBuffers?[] _fans = new SectorBuffers?[HudSector.MaxVertices + 1];

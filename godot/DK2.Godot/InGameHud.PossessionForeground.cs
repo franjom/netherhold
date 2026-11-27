@@ -10,7 +10,7 @@ namespace DK2.GodotAdapter;
 public partial class InGameHud
 {
     private HudCanvas? _foregroundCanvas;
-    private readonly HudFrame _foregroundFrame = new();
+    private readonly HudFrame _foregroundFrame = new HudFrame();
 
     private void DrawPossessionForeground(long milliseconds)
     {

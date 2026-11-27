@@ -14,9 +14,9 @@ namespace DK2.GodotAdapter;
 
 public partial class WorldScene
 {
-    private readonly FlowerDollarClock _flowerDollarClock = new();
-    private readonly List<ModelSlot> _dollarFlowers = new();
-    private static readonly RenderEuler DollarTurn = new(FlowerDollarClock.YawDegrees, 0, 0);
+    private readonly FlowerDollarClock _flowerDollarClock = new FlowerDollarClock();
+    private readonly List<ModelSlot> _dollarFlowers = new List<ModelSlot>();
+    private static readonly RenderEuler DollarTurn = new RenderEuler(FlowerDollarClock.YawDegrees, 0, 0);
     private ModelMesh? _dollarTemplate;
     private VertexClip? _dollarAnimation;
     private bool _lookedForDollar;

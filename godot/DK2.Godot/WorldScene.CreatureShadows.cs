@@ -16,8 +16,8 @@ namespace DK2.GodotAdapter;
 
 public partial class WorldScene
 {
-    private readonly ClassicShadowSourceSelector _creatureShadowSources = new();
-    private readonly List<CreatureShadowReceiver> _creatureShadowReceivers = new();
+    private readonly ClassicShadowSourceSelector _creatureShadowSources = new ClassicShadowSourceSelector();
+    private readonly List<CreatureShadowReceiver> _creatureShadowReceivers = new List<CreatureShadowReceiver>();
     private NVector2[] _shadowVertices = [];
     private Shader? _creatureShadowShader;
     private QuadMesh? _creatureShadowQuad;

@@ -57,7 +57,7 @@ public partial class WorldScene
         _terrainStateDirty = false;
     }
 
-    private readonly Dictionary<TerrainMaterialKey, ShaderMaterial> _fixedTerrainMaterials = new();
+    private readonly Dictionary<TerrainMaterialKey, ShaderMaterial> _fixedTerrainMaterials = new Dictionary<TerrainMaterialKey, ShaderMaterial>();
     private ShaderMaterial? _terrainOverlayMaterial;
 
     private ShaderMaterial FixedTerrainMaterial(in TerrainMaterialKey key)

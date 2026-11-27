@@ -12,7 +12,7 @@ namespace DK2.GodotAdapter;
 /// <summary>Draws the queried creature's details over the bottom panel.</summary>
 public partial class ClassicCreatureQueryPanel : Node
 {
-    private readonly HudFrame _frame = new();
+    private readonly HudFrame _frame = new HudFrame();
     private CreatureQueryHud? _hud;
     private HudCanvas? _canvas;
     private HudScaleLayout _layout;

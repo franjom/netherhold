@@ -13,7 +13,7 @@ namespace DK2.GodotAdapter;
 public partial class WorldScene
 {
     private static readonly StringName AnimationPhaseParameter = "dk2_animation_phase";
-    private readonly Dictionary<RenderAnimation, VertexClip> _vertexClips = new();
+    private readonly Dictionary<RenderAnimation, VertexClip> _vertexClips = new Dictionary<RenderAnimation, VertexClip>();
     private long _vertexTextureBytes, _animationPoseUpdates;
     private const int InitialVertexStagingBytes = 4 * 1024 * 1024;
     private byte[]? _vertexStaging;
@@ -76,7 +76,7 @@ public partial class WorldScene
             int height = Math.Max(1, checked((_vertices * _frames + _width - 1) / _width));
             int byteCount = checked(_width * height * 3 * sizeof(float));
             Span<byte> bytes = scene.VertexStaging(byteCount).AsSpan(0, byteCount);
-            NVector3 low = new(float.PositiveInfinity), high = new(float.NegativeInfinity);
+            NVector3 low = new NVector3(float.PositiveInfinity), high = new NVector3(float.NegativeInfinity);
             for (int f = 0; f < _frames; f++)
             {
                 ReadOnlySpan<NVector3> frame = clip.Frame(f);
@@ -93,7 +93,7 @@ public partial class WorldScene
             // Godot sorts transparents by the box centre in every camera. Keep the first frame's centre while
             // deriving extents from all frames, so culling covers the clip without moving its blended-order key.
             Vector3 centre = firstFrame.GetCenter();
-            NVector3 anchor = new(centre.X, centre.Y, centre.Z);
+            var anchor = new NVector3(centre.X, centre.Y, centre.Z);
             var extent = NVector3.Max(NVector3.Abs(low - anchor), NVector3.Abs(high - anchor));
             Box = _vertices == 0 ? new Aabb() : new Aabb(centre - ToGodot(extent), ToGodot(extent * 2f));
             bytes.Slice(checked(_vertices * _frames * 3 * sizeof(float))).Clear();

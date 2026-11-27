@@ -16,10 +16,10 @@ namespace DK2.GodotAdapter;
 internal sealed class BitmapTextItem : IDisposable
 {
     private const int MeasureSize = 96, MinSize = 6, MaxSize = 256;
-    private readonly BitmapTextBlock _block = new();
-    private readonly Dictionary<BitmapGlyph, Rect2I> _ink = new(ReferenceEqualityComparer.Instance);
-    private readonly List<long> _indices = new();
-    private readonly List<Rect2> _targets = new();
+    private readonly BitmapTextBlock _block = new BitmapTextBlock();
+    private readonly Dictionary<BitmapGlyph, Rect2I> _ink = new Dictionary<BitmapGlyph, Rect2I>(ReferenceEqualityComparer.Instance);
+    private readonly List<long> _indices = new List<long>();
+    private readonly List<Rect2> _targets = new List<Rect2>();
     private Rid _item;
     private BitmapFont? _atlasFont;
     private FontFile? _face;

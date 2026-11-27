@@ -14,7 +14,7 @@ namespace DK2.GodotAdapter;
 /// <summary>Draws the full map from <see cref="FullMapHud"/> (ADR-0805) over the minimap's class grid. While open, it takes mouse presses before other panels.</summary>
 public partial class ClassicFullMap : Node
 {
-    private readonly HudFrame _backFrame = new(), _frontFrame = new();
+    private readonly HudFrame _backFrame = new HudFrame(), _frontFrame = new HudFrame();
     private FullMapHud? _hud;
     private MinimapHud? _minimap;
     private FullMapImage? _pixels;
@@ -82,7 +82,7 @@ public partial class ClassicFullMap : Node
     }
     private static Vector3 ToGodot(System.Numerics.Vector3 value)
     {
-        return new(value.X, value.Y, value.Z);
+        return new Vector3(value.X, value.Y, value.Z);
     }
 
     public bool Visible

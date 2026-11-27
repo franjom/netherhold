@@ -20,7 +20,7 @@ public partial class Main : Node, IDevOverlayHost
 
     private const string InGameHudScene = "res://InGameHud.tscn";
 
-    private readonly HashSet<int> _skipFrames = new();
+    private readonly HashSet<int> _skipFrames = new HashSet<int>();
     private ClassicFrontEndMenu? _menu;
     private int _frame, _quitFrame = -1;
 

@@ -14,11 +14,11 @@ namespace DK2.GodotAdapter;
 /// pixels are <see cref="HudTextPixels.Render"/>'s. A text stretched over a rect of another size keeps its own texture.</summary>
 public partial class HudCanvas
 {
-    private readonly Dictionary<HudText, TextLayout> _layouts = new();
-    private readonly HashSet<HudText> _layoutsInUse = new();
-    private readonly List<HudText> _staleLayouts = new();
-    private readonly List<HudTextPiece> _pieceScratch = new();
-    private readonly HashSet<BitmapFont> _atlasesHeld = new();
+    private readonly Dictionary<HudText, TextLayout> _layouts = new Dictionary<HudText, TextLayout>();
+    private readonly HashSet<HudText> _layoutsInUse = new HashSet<HudText>();
+    private readonly List<HudText> _staleLayouts = new List<HudText>();
+    private readonly List<HudTextPiece> _pieceScratch = new List<HudTextPiece>();
+    private readonly HashSet<BitmapFont> _atlasesHeld = new HashSet<BitmapFont>();
     private TextLayout?[] _text = new TextLayout?[256];
 
     /// <summary>A text's size in font pixels and its pieces as atlas regions and offsets from the text's corner.</summary>

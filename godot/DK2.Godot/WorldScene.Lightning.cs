@@ -18,8 +18,8 @@ public partial class WorldScene
 {
     private LightningDrawList? _lightning;
     private WorldView? _lightningView;
-    private readonly List<AnimationPoint> _lightningLocalPoints = new(64);
-    private readonly List<LightningControlPoint> _lightningPoints = new(64);
+    private readonly List<AnimationPoint> _lightningLocalPoints = new List<AnimationPoint>(64);
+    private readonly List<LightningControlPoint> _lightningPoints = new List<LightningControlPoint>(64);
     private ItemBatch? _lightningItems;
     private ShaderMaterial? _lightningMaterial;
     private Rid _lightningMesh;
@@ -30,7 +30,7 @@ public partial class WorldScene
 
     private void OpenLightning(RoomConstructionParticles effects, WorldView view, uint seed)
     {
-        _lightning = new(effects, seed);
+        _lightning = new LightningDrawList(effects, seed);
         _lightningView = view;
     }
 
@@ -68,10 +68,10 @@ public partial class WorldScene
 
         _lightningCameraPose = camera;
         _lightningCameraValid = true;
-        NVector3 right = RightHandedFrame.Direction(new(camera.Basis.X.X, camera.Basis.X.Y, camera.Basis.X.Z));
-        NVector3 up = RightHandedFrame.Direction(new(camera.Basis.Y.X, camera.Basis.Y.Y, camera.Basis.Y.Z));
-        NVector3 forward = RightHandedFrame.Direction(new(-camera.Basis.Z.X, -camera.Basis.Z.Y, -camera.Basis.Z.Z));
-        NVector3 position = RightHandedFrame.Point(new(camera.Origin.X, camera.Origin.Y, camera.Origin.Z));
+        NVector3 right = RightHandedFrame.Direction(new NVector3(camera.Basis.X.X, camera.Basis.X.Y, camera.Basis.X.Z));
+        NVector3 up = RightHandedFrame.Direction(new NVector3(camera.Basis.Y.X, camera.Basis.Y.Y, camera.Basis.Y.Z));
+        NVector3 forward = RightHandedFrame.Direction(new NVector3(-camera.Basis.Z.X, -camera.Basis.Z.Y, -camera.Basis.Z.Z));
+        NVector3 position = RightHandedFrame.Point(new NVector3(camera.Origin.X, camera.Origin.Y, camera.Origin.Z));
         var cameraToWorld = new NMatrix4x4(right.X, right.Y, right.Z, 0, up.X, up.Y, up.Z, 0,
             forward.X, forward.Y, forward.Z, 0, position.X, position.Y, position.Z, 1);
         bool hasCamera = NMatrix4x4.Invert(cameraToWorld, out NMatrix4x4 worldToCamera);

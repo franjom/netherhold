@@ -11,15 +11,15 @@ namespace DK2.GodotAdapter;
 /// marks drawn from distance fields at the window's scale.</summary>
 public static class LauncherTheme
 {
-    public static readonly Color DeepEarth = new("1e1714"), HewnStone = new("3a322d"), Bone = new("e6dcc8"),
-        KeeperGold = new("d4a537"), HeartRed = new("e0574f"), Lava = new("ff7a1a");
+    public static readonly Color DeepEarth = new Color("1e1714"), HewnStone = new Color("3a322d"), Bone = new Color("e6dcc8"),
+        KeeperGold = new Color("d4a537"), HeartRed = new Color("e0574f"), Lava = new Color("ff7a1a");
 
     public const string Title = "LauncherTitle", Intro = "LauncherIntro", Heading = "LauncherHeading",
         Number = "LauncherNumber", Status = "LauncherStatus", Hint = "LauncherHint", Stone = "LauncherStone",
         Field = "LauncherField", Quiet = "LauncherQuiet", PlayWaiting = "LauncherPlayWaiting", PlayLit = "LauncherPlayLit";
 
-    private static readonly Color StoneEdge = new("554a43"), StoneHover = new("463d37"), StonePressed = new("2f2824"),
-        StoneDim = new("2b2420");
+    private static readonly Color StoneEdge = new Color("554a43"), StoneHover = new Color("463d37"), StonePressed = new Color("2f2824"),
+        StoneDim = new Color("2b2420");
 
     public static Theme Build(float scale)
     {
@@ -123,7 +123,7 @@ public static class LauncherTheme
 
     public static Color Fade(Color colour, float alpha)
     {
-        return new(colour.R, colour.G, colour.B, alpha);
+        return new Color(colour.R, colour.G, colour.B, alpha);
     }
 
     private static void Variation(Theme theme, string name, string baseType)
@@ -223,7 +223,7 @@ public static class LauncherTheme
 
     private static Vector2 Centre(float size)
     {
-        return new(size * .5f, size * .5f);
+        return new Vector2(size * .5f, size * .5f);
     }
 
     private static float RoundedBox(Vector2 p, float size, float half, float radius)

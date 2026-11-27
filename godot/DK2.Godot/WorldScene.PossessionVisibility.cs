@@ -81,7 +81,7 @@ public partial class WorldScene
     {
         get
         {
-            return new(_possessionVisibility == null ? default : _possessionVisibility.Mask,
+            return new PossessionDrawVisibility(_possessionVisibility == null ? default : _possessionVisibility.Mask,
         _possessionWidth, _possessionVisibilityEnabled, _frame.HiddenCreature);
         }
     }

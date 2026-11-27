@@ -10,8 +10,8 @@ namespace DK2.GodotAdapter;
 /// <summary>Draws the top-docked resource strip from <see cref="KeeperResourceHud"/> (ADR-0805). The host tests pointer coverage; the strip has no input handlers.</summary>
 public partial class ClassicResourceHud : Node
 {
-    private readonly KeeperResourceHud _hud = new();
-    private readonly HudFrame _frame = new();
+    private readonly KeeperResourceHud _hud = new KeeperResourceHud();
+    private readonly HudFrame _frame = new HudFrame();
     private HudCanvas? _canvas;
     private HudScaleLayout _layout;
 

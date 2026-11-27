@@ -11,11 +11,11 @@ namespace DK2.GodotAdapter;
 /// <summary>Caches one texture per image variant. The canvas selects the draw blend separately from the texture and point-samples bitmaps where their edges must stay sharp.</summary>
 public partial class HudCanvas
 {
-    private readonly Dictionary<HudImage, ImageTexture> _textures = new();
-    private readonly HashSet<HudImage> _textInUse = new();
-    private readonly List<HudImage> _stale = new();
+    private readonly Dictionary<HudImage, ImageTexture> _textures = new Dictionary<HudImage, ImageTexture>();
+    private readonly HashSet<HudImage> _textInUse = new HashSet<HudImage>();
+    private readonly List<HudImage> _stale = new List<HudImage>();
     /// <summary>Every label the shown frame draws in any form; its glow is kept while it is on the page.</summary>
-    private readonly HashSet<HudLabel> _labelsDrawn = new();
+    private readonly HashSet<HudLabel> _labelsDrawn = new HashSet<HudLabel>();
     private int _catalogueCount;
 
     /// <summary>Decodes an image before the first frame that draws it.

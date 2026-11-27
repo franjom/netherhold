@@ -14,10 +14,10 @@ namespace DK2.GodotAdapter;
 public partial class WorldScene
 {
     private readonly StatusFlowerLayer[] _flowerLayers = new StatusFlowerLayer[StatusFlowerLayers.MaxLayers];
-    private readonly Dictionary<string, FlowerBatch> _flowerBatches = new();
+    private readonly Dictionary<string, FlowerBatch> _flowerBatches = new Dictionary<string, FlowerBatch>();
     // The same batches by the icon name's reference: the shared layers hand out the same strings each frame, so this skips
     // hashing the name; a new reference falls back to the name and is remembered.
-    private readonly Dictionary<string, FlowerBatch> _flowerByReference = new(ReferenceEqualityComparer.Instance);
+    private readonly Dictionary<string, FlowerBatch> _flowerByReference = new Dictionary<string, FlowerBatch>(ReferenceEqualityComparer.Instance);
     private Shader? _flowerShader;
     private QuadMesh? _flowerQuad;
 
@@ -51,7 +51,7 @@ public partial class WorldScene
         for (int f = 0; f < flowers.Count; f++)
         {
             StatusFlower flower = flowers[f];
-            if (!TryGetCreaturePosition(new(flower.CreatureId), out NVector3 feet))
+            if (!TryGetCreaturePosition(new CreatureQueryTarget(flower.CreatureId), out NVector3 feet))
             {
                 continue;
             }

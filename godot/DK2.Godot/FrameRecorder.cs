@@ -20,7 +20,7 @@ public partial class FrameRecorder : Node
     private string _level = "";
     private ulong _seed;
     private bool _written;
-    private readonly List<KeyValuePair<string, string>> _engine = new();
+    private readonly List<KeyValuePair<string, string>> _engine = new List<KeyValuePair<string, string>>();
 
     /// <summary>Adds the recorder under <paramref name="parent"/> when the arguments ask for it; null otherwise, or when the
     /// directory is missing or already holds a capture, which is never written over.</summary>
@@ -82,7 +82,7 @@ public partial class FrameRecorder : Node
 
     private void Add(string key, string value)
     {
-        _engine.Add(new(key, value));
+        _engine.Add(new KeyValuePair<string, string>(key, value));
     }
 
     public long Stamp()

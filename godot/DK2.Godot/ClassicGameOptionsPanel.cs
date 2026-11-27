@@ -12,7 +12,7 @@ namespace DK2.GodotAdapter;
 /// <summary>Draws the options menu's game settings pages. While a page is open, it takes mouse presses before the panels below it.</summary>
 public partial class ClassicGameOptionsPanel : Node
 {
-    private readonly HudFrame _frame = new();
+    private readonly HudFrame _frame = new HudFrame();
     private GameOptionsHud? _hud;
     private HudCanvas? _canvas;
     /// <summary>Local units per virtual unit (the screen height over 1920) at the last draw; 0 before it.</summary>

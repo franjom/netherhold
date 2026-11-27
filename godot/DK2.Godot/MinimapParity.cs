@@ -51,15 +51,15 @@ public partial class MinimapParity : Node
 
             MinimapMarker[] markers =
             [
-                new(MinimapMarkerKind.Creature, At(40.5f, 24.75f), 0xFF123456),
-                new(MinimapMarkerKind.Trap, At(40.5f, 24.75f), 0xFFEDCBA9),
-                new(MinimapMarkerKind.VerticalDoor, At(41.25f, 23.75f), 0xFF51D732),
-                new(MinimapMarkerKind.HorizontalDoor, At(38.75f, 25.5f), 0xFFEFD31A),
-                new(MinimapMarkerKind.Ring, At(40.5f, 24.75f), 0xFF9696FF, 7, ReportingDistanceTiles: 5),
-                new(MinimapMarkerKind.Ring, At(38.25f, 22.5f), 0xFFDC32FF, 1),
-                new(MinimapMarkerKind.Ring, At(42.25f, 22.5f), 0xFFA14BFF, 0),
-                new(MinimapMarkerKind.Rectangle, At(37, 20), 0xFF5413F1, EndPosition: At(45, 28)),
-                new(MinimapMarkerKind.Ring, At(0, 0), 0xFFDC32FF, 29),
+                new MinimapMarker(MinimapMarkerKind.Creature, At(40.5f, 24.75f), 0xFF123456),
+                new MinimapMarker(MinimapMarkerKind.Trap, At(40.5f, 24.75f), 0xFFEDCBA9),
+                new MinimapMarker(MinimapMarkerKind.VerticalDoor, At(41.25f, 23.75f), 0xFF51D732),
+                new MinimapMarker(MinimapMarkerKind.HorizontalDoor, At(38.75f, 25.5f), 0xFFEFD31A),
+                new MinimapMarker(MinimapMarkerKind.Ring, At(40.5f, 24.75f), 0xFF9696FF, 7, ReportingDistanceTiles: 5),
+                new MinimapMarker(MinimapMarkerKind.Ring, At(38.25f, 22.5f), 0xFFDC32FF, 1),
+                new MinimapMarker(MinimapMarkerKind.Ring, At(42.25f, 22.5f), 0xFFA14BFF, 0),
+                new MinimapMarker(MinimapMarkerKind.Rectangle, At(37, 20), 0xFF5413F1, EndPosition: At(45, 28)),
+                new MinimapMarker(MinimapMarkerKind.Ring, At(0, 0), 0xFFDC32FF, 29),
             ];
             var gpu = new MinimapGpuDisc(); gpu.Open(backdrop); AddChild(gpu);
             var oracle = new MinimapDiscImage(backdrop);
@@ -238,6 +238,6 @@ public partial class MinimapParity : Node
 
     private static FpPosition3 At(float x, float y)
     {
-        return new(new Fp32((int)(x * 4096)), new Fp32((int)(y * 4096)), default);
+        return new FpPosition3(new Fp32((int)(x * 4096)), new Fp32((int)(y * 4096)), default);
     }
 }

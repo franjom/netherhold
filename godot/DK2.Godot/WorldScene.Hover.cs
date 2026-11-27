@@ -12,9 +12,9 @@ namespace DK2.GodotAdapter;
 /// <summary>Picks drawn creatures, objects, doors and traps for hover. Draws the tint and burning overlays selected by the shared presentation logic.</summary>
 public partial class WorldScene
 {
-    private readonly HoverOverlayPlan _hoverOverlay = new();
+    private readonly HoverOverlayPlan _hoverOverlay = new HoverOverlayPlan();
     // The models whose hover looks were asked for or applied: tried each commit, dropped once they show none.
-    private readonly List<ModelSlot> _hoverSlots = new();
+    private readonly List<ModelSlot> _hoverSlots = new List<ModelSlot>();
 
     /// <summary>The view the pick culls by (the classic pose's frustum); null before the camera is placed.</summary>
     public ViewFrustum? PickFrustum

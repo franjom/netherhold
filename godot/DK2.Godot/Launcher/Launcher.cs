@@ -213,7 +213,7 @@ public partial class Launcher : Control
 
     private static Control Gap(float height)
     {
-        return new() { CustomMinimumSize = new Vector2(0, height), MouseFilter = MouseFilterEnum.Ignore };
+        return new Control() { CustomMinimumSize = new Vector2(0, height), MouseFilter = MouseFilterEnum.Ignore };
     }
 
     /// <summary>A numbered section: the number in its own column, the heading and <paramref name="column"/>'s body beside it.</summary>

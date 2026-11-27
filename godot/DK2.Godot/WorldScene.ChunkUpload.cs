@@ -21,7 +21,7 @@ public partial class WorldScene
 {
     private ChunkPacker? _chunkPacker;
     private Rid[] _chunkMeshes = [], _chunkInstances = [];
-    private readonly Godot.Collections.Dictionary _chunkSurface = new();
+    private readonly Godot.Collections.Dictionary _chunkSurface = new Godot.Collections.Dictionary();
     private static readonly Variant FormatKey = "format", PrimitiveKey = "primitive", VertexDataKey = "vertex_data",
         AttributeDataKey = "attribute_data", VertexCountKey = "vertex_count", IndexDataKey = "index_data",
         IndexCountKey = "index_count", AabbKey = "aabb";
@@ -155,9 +155,9 @@ public partial class WorldScene
     {
         private readonly List<PackedSurface>?[] _chunks = new List<PackedSurface>?[chunkCount];
         private readonly int[] _counts = new int[chunkCount];
-        private readonly Dictionary<TerrainMaterialKey, SurfaceBuffer> _surfaceOf = new();
-        private readonly List<SurfaceBuffer> _surfaces = new(), _spare = new();
-        private readonly Dictionary<TerrainMaterialKey, bool> _opaque = new();
+        private readonly Dictionary<TerrainMaterialKey, SurfaceBuffer> _surfaceOf = new Dictionary<TerrainMaterialKey, SurfaceBuffer>();
+        private readonly List<SurfaceBuffer> _surfaces = new List<SurfaceBuffer>(), _spare = new List<SurfaceBuffer>();
+        private readonly Dictionary<TerrainMaterialKey, bool> _opaque = new Dictionary<TerrainMaterialKey, bool>();
         private int[] _remap = new int[256], _stamp = new int[256];
         private int _generation;
 

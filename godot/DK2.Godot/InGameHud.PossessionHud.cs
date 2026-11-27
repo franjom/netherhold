@@ -10,10 +10,10 @@ namespace DK2.GodotAdapter;
 
 public partial class InGameHud
 {
-    private readonly PossessionHud _possessionHud = new();
-    private readonly KeeperResourceHud _possessionResources = new();
-    private readonly HudFrame _possessionFrame = new(), _possessionResourceFrame = new(), _possessionFilterFrame = new();
-    private readonly HudFrame _possessionCreatureFrame = new();
+    private readonly PossessionHud _possessionHud = new PossessionHud();
+    private readonly KeeperResourceHud _possessionResources = new KeeperResourceHud();
+    private readonly HudFrame _possessionFrame = new HudFrame(), _possessionResourceFrame = new HudFrame(), _possessionFilterFrame = new HudFrame();
+    private readonly HudFrame _possessionCreatureFrame = new HudFrame();
     private PossessionHudView? _possessionHudView;
     private PossessionHudIndicators? _possessionIndicators;
     private HudCanvas? _possessionCanvas;
@@ -27,11 +27,11 @@ public partial class InGameHud
             return;
         }
 
-        _possessionHudView = new(level.Database, new InstallPossessionHudArt(install));
+        _possessionHudView = new PossessionHudView(level.Database, new InstallPossessionHudArt(install));
         if (_art != null)
         {
             Func<byte, string> names = PlayerNames.From(level.Players);
-            _possessionIndicators = new(_art, _art.Font, player => names(player.Value));
+            _possessionIndicators = new PossessionHudIndicators(_art, _art.Font, player => names(player.Value));
         }
         _possessionCanvas = new HudCanvas { Name = "PossessionHud", Load = _sources.Texture, Visible = false };
         _possessionFilterCanvas = new HudCanvas { Name = "PossessionFilters", Load = _sources.Texture, Visible = false };

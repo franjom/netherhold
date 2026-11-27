@@ -69,7 +69,7 @@ public partial class WorldScene
 
     private static void Add(List<KeyValuePair<string, double>> into, string key, double value)
     {
-        into.Add(new(key, value));
+        into.Add(new KeyValuePair<string, double>(key, value));
     }
 
     private static double Ms(long ticks)

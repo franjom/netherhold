@@ -13,7 +13,7 @@ namespace DK2.GodotAdapter;
 public partial class InGameHud
 {
     private const int BattleFlyInLayer = 111;
-    private readonly Random _battleFlyInRandom = new();
+    private readonly Random _battleFlyInRandom = new Random();
     private BattleFlyIn? _battleFlyIn;
     private ClassicTabletCanvas? _battleCanvas;
     private NumericsVector3[] _battlePoints = [];

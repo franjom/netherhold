@@ -19,9 +19,9 @@ public partial class ClassicSoundOutput : Node, ISoundOutput
     /// at the side.</summary>
     private const float FullPan = 2f;
 
-    private readonly Dictionary<PcmClip, AudioStreamWav> _plain = new(ReferenceEqualityComparer.Instance);
-    private readonly Dictionary<PcmClip, AudioStreamWav> _looped = new(ReferenceEqualityComparer.Instance);
-    private readonly List<GeneratedStream> _streams = new();
+    private readonly Dictionary<PcmClip, AudioStreamWav> _plain = new Dictionary<PcmClip, AudioStreamWav>(ReferenceEqualityComparer.Instance);
+    private readonly Dictionary<PcmClip, AudioStreamWav> _looped = new Dictionary<PcmClip, AudioStreamWav>(ReferenceEqualityComparer.Instance);
+    private readonly List<GeneratedStream> _streams = new List<GeneratedStream>();
     private readonly Vector2[] _chunk = new Vector2[StreamChunk];
     private Node3D? _anchor;
 
