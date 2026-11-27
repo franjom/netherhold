@@ -182,7 +182,7 @@ public static partial class FunctionKb
 
     static Regex CitationRx(string address)
     {
-        return new($"(?<![0-9A-Za-z_])(?:(?:0[xX]|FUN_)0*{address.TrimStart('0')}|{address})(?![0-9A-Za-z])",
+        return new Regex($"(?<![0-9A-Za-z_])(?:(?:0[xX]|FUN_)0*{address.TrimStart('0')}|{address})(?![0-9A-Za-z])",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
     }
 

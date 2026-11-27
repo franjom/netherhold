@@ -738,7 +738,7 @@ internal sealed class SgmapNode(
 
     public FormatException Error(string message)
     {
-        return new($"Line {lineNumber}: {message}.");
+        return new FormatException($"Line {lineNumber}: {message}.");
     }
 }
 

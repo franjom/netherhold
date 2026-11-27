@@ -355,7 +355,7 @@ internal sealed class RunClock : ISimulationProfiler
     {
         public MarkerSpan Plus(MarkerSpan other)
         {
-            return new(Id, Calls + other.Calls, Total + other.Total, Self + other.Self, Allocated + other.Allocated);
+            return new MarkerSpan(Id, Calls + other.Calls, Total + other.Total, Self + other.Self, Allocated + other.Allocated);
         }
     }
 

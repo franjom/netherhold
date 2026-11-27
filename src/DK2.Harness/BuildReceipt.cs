@@ -136,7 +136,7 @@ public static class BuildReceipt
     /// <summary>The repository root above <paramref name="start"/> (the folder holding DK2.slnx), or null.</summary>
     public static string? RepositoryRootAbove(string start)
     {
-        for (DirectoryInfo? dir = new(start); dir is not null; dir = dir.Parent)
+        for (var dir = new DirectoryInfo(start); dir is not null; dir = dir.Parent)
         {
             if (File.Exists(Path.Combine(dir.FullName, "DK2.slnx")))
             {

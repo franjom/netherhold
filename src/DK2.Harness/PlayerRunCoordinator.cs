@@ -42,7 +42,7 @@ public sealed record PlayerRunOptions
     /// the gem; 0 skips it.</summary>
     public int FinaleTicks { get; init; } = 400;
 
-    public PlayerSessionLimits Limits { get; init; } = new();
+    public PlayerSessionLimits Limits { get; init; } = new PlayerSessionLimits();
 
     /// <summary>Asked after every tick; a reason stops the run as cancelled (the host's wall-time or
     /// output budget). Null never stops it.</summary>

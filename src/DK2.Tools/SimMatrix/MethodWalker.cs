@@ -12,15 +12,15 @@ namespace DK2.Tools.SimMatrix;
 /// the source methods it calls, and how many calls it makes through a delegate.</summary>
 internal sealed class MethodSummary
 {
-    internal static readonly MethodSummary Empty = new();
+    internal static readonly MethodSummary Empty = new MethodSummary();
 
-    internal HashSet<ISymbol> Reads { get; } = new(SymbolEqualityComparer.Default);
-    internal HashSet<ISymbol> Writes { get; } = new(SymbolEqualityComparer.Default);
-    internal HashSet<IMethodSymbol> Calls { get; } = new(SymbolEqualityComparer.Default);
+    internal HashSet<ISymbol> Reads { get; } = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
+    internal HashSet<ISymbol> Writes { get; } = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
+    internal HashSet<IMethodSymbol> Calls { get; } = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
     internal int DelegateCalls { get; set; }
 
     /// <summary>Events and delegate fields this method invokes: emits, not writes, unless the field is an output.</summary>
-    internal HashSet<ISymbol> Raises { get; } = new(SymbolEqualityComparer.Default);
+    internal HashSet<ISymbol> Raises { get; } = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
 }
 
 /// <summary>Walks one method's operation tree, lambdas and local functions included, into a <see cref="MethodSummary"/>.</summary>
@@ -53,8 +53,8 @@ internal sealed class MethodWalker
     private readonly IMethodSymbol _method;
     private readonly Func<IMethodSymbol, bool> _stop;
     private readonly Func<IMethodSymbol, ISymbol?> _sink;
-    private readonly MethodSummary _summary = new();
-    private readonly HashSet<ILocalSymbol> _fresh = new(SymbolEqualityComparer.Default);
+    private readonly MethodSummary _summary = new MethodSummary();
+    private readonly HashSet<ILocalSymbol> _fresh = new HashSet<ILocalSymbol>(SymbolEqualityComparer.Default);
     private readonly SourceIndex _index;
 
     private MethodWalker(IMethodSymbol method, SourceIndex index, Func<IMethodSymbol, bool> stop, Func<IMethodSymbol, ISymbol?> sink)

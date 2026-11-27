@@ -124,10 +124,10 @@ internal sealed class StateModel
         return member.ContainingType is { } owner && ReadColumns.TryGetValue(owner.Name, out int read) ? read : column;
     }
 
-    private readonly Dictionary<INamedTypeSymbol, int> _typeColumn = new(SymbolEqualityComparer.Default);
-    private readonly Dictionary<INamedTypeSymbol, List<int>> _reachedFrom = new(SymbolEqualityComparer.Default);
-    private readonly HashSet<INamedTypeSymbol> _systemTypes = new(SymbolEqualityComparer.Default);
-    private readonly HashSet<INamedTypeSymbol> _systemOwnedTypes = new(SymbolEqualityComparer.Default);
+    private readonly Dictionary<INamedTypeSymbol, int> _typeColumn = new Dictionary<INamedTypeSymbol, int>(SymbolEqualityComparer.Default);
+    private readonly Dictionary<INamedTypeSymbol, List<int>> _reachedFrom = new Dictionary<INamedTypeSymbol, List<int>>(SymbolEqualityComparer.Default);
+    private readonly HashSet<INamedTypeSymbol> _systemTypes = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+    private readonly HashSet<INamedTypeSymbol> _systemOwnedTypes = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
     private readonly SourceIndex _index;
     private readonly INamedTypeSymbol _world, _context, _tile;
     private readonly int _firstRoomPosition;

@@ -143,10 +143,10 @@ public static class PlayerRunManifest
 
     private static Verification Blocked(string why)
     {
-        return new([why], []);
+        return new Verification([why], []);
     }
 
-    private static readonly JsonSerializerOptions Indented = new() { WriteIndented = true };
+    private static readonly JsonSerializerOptions Indented = new JsonSerializerOptions() { WriteIndented = true };
 
     /// <summary>The install's data: <c>Data/editor</c>'s KWD and KLD files and <c>Data/Paths.WAD</c>
     /// (the camera paths' frame counts). "none" with no install; a named install without

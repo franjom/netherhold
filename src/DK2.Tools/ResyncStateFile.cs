@@ -24,7 +24,7 @@ public static class ResyncStateFile
         return state;
     }
 
-    private static readonly JsonSerializerOptions Json = new()
+    private static readonly JsonSerializerOptions Json = new JsonSerializerOptions()
     {
         PropertyNameCaseInsensitive = true,
         TypeInfoResolver = new DefaultJsonTypeInfoResolver

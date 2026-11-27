@@ -18,7 +18,7 @@ static class Repo
     /// </summary>
     internal static string? FindRepoRoot()
     {
-        DirectoryInfo? dir = new(Directory.GetCurrentDirectory());
+        var dir = new DirectoryInfo(Directory.GetCurrentDirectory());
         while (dir is not null)
         {
             if (File.Exists(Path.Combine(dir.FullName, "DK2.slnx")))

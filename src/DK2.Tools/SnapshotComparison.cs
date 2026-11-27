@@ -70,7 +70,7 @@ internal static class SnapshotComparison
 
             if (oldValue is null || newValue is null)
             {
-                changes.Add(new(path + ".$exists", oldValue is null ? "added" : "removed",
+                changes.Add(new SnapshotFieldChange(path + ".$exists", oldValue is null ? "added" : "removed",
                     oldValue is null ? null : "present", newValue is null ? null : "present"));
             }
 
@@ -79,8 +79,8 @@ internal static class SnapshotComparison
 
         void Fields(string path, object? oldValue, object? newValue)
         {
-            SortedDictionary<string, string?> oldFields = oldValue is null ? new(StringComparer.Ordinal) : SnapshotFields.Capture(oldValue, path);
-            SortedDictionary<string, string?> newFields = newValue is null ? new(StringComparer.Ordinal) : SnapshotFields.Capture(newValue, path);
+            SortedDictionary<string, string?> oldFields = oldValue is null ? new SortedDictionary<string, string?>(StringComparer.Ordinal) : SnapshotFields.Capture(oldValue, path);
+            SortedDictionary<string, string?> newFields = newValue is null ? new SortedDictionary<string, string?>(StringComparer.Ordinal) : SnapshotFields.Capture(newValue, path);
             foreach (string name in oldFields.Keys.Concat(newFields.Keys).Distinct(StringComparer.Ordinal))
             {
                 bool had = oldFields.TryGetValue(name, out string? oldText);
@@ -90,7 +90,7 @@ internal static class SnapshotComparison
                     continue;
                 }
 
-                changes.Add(new(name, !had ? "added" : !has ? "removed" : "changed", oldText, newText));
+                changes.Add(new SnapshotFieldChange(name, !had ? "added" : !has ? "removed" : "changed", oldText, newText));
             }
         }
     }

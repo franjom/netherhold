@@ -203,8 +203,8 @@ public sealed class PacketLog
                 case 27:
                     commands.Add(new HypnotiseCommand(player,
                         new PossessionAim(
-                            new FpPosition3(new((int)(a.First & 0xFFFFF)), new((int)(a.Second & 0xFFFFF)),
-                                new((int)(a.Third & 0x3FFF))),
+                            new FpPosition3(new Fp32((int)(a.First & 0xFFFFF)), new Fp32((int)(a.Second & 0xFFFFF)),
+                                new Fp32((int)(a.Third & 0x3FFF))),
                             new Dk2Angle((ushort)((a.First >> 20) & 0x7FF)),
                             new Dk2Angle((ushort)((a.Second >> 20) & 0x7FF)))));
                     break;
@@ -234,7 +234,7 @@ public sealed class PacketLog
                 case 25:
                     // 0x005146B0: X, Y, then Z in the word's low half and the heading in its high half.
                     commands.Add(new MovePossessedCreatureCommand(player, new PossessionPose(
-                        new FpPosition3(new((int)a.First), new((int)a.Second), new((int)(a.Third & 0xFFFF))),
+                        new FpPosition3(new Fp32((int)a.First), new Fp32((int)a.Second), new Fp32((int)(a.Third & 0xFFFF))),
                         new Dk2Angle((ushort)(a.Third >> 16)))));
                     break;
                 case 26:
@@ -242,8 +242,8 @@ public sealed class PacketLog
                     // at bit 27 and the slot in the top nibble, taken with an arithmetic shift.
                     commands.Add(new ActPossessedCreatureCommand(player,
                         new PossessionAim(
-                            new FpPosition3(new((int)(a.First & 0xFFFFF)), new((int)(a.Second & 0xFFFFF)),
-                                new((int)(a.Third & 0x3FFF))),
+                            new FpPosition3(new Fp32((int)(a.First & 0xFFFFF)), new Fp32((int)(a.Second & 0xFFFFF)),
+                                new Fp32((int)(a.Third & 0x3FFF))),
                             new Dk2Angle((ushort)((a.First >> 20) & 0x7FF)),
                             new Dk2Angle((ushort)((a.Second >> 20) & 0x7FF))),
                         (a.Third & (1u << 27)) != 0, new PossessedSlot((int)a.Third >> 28)));
@@ -316,7 +316,7 @@ public sealed class PacketLog
 
     private static TilePos PackedTile(uint packed)
     {
-        return new((int)(packed & 0xffff), (int)(packed >> 16));
+        return new TilePos((int)(packed & 0xffff), (int)(packed >> 16));
     }
 
     private static uint U32(byte[] data, int at)

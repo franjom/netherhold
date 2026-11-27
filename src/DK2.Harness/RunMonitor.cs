@@ -263,7 +263,7 @@ public sealed record RunTemplate(FuzzSpec? Fuzz, bool Coverage, int ProgressEver
 
     public RunOptions For(Scenario scenario, Stream journal)
     {
-        return new()
+        return new RunOptions()
         {
             Controllers = Fuzz is null
             ? []

@@ -121,7 +121,7 @@ static class FunctionKbCommand
         readonly string _root;
         readonly HashSet<string>? _tracked;   // null in tree mode
         readonly HashSet<string>? _dirty;
-        readonly Dictionary<string, string[]> _cache = new(StringComparer.Ordinal);
+        readonly Dictionary<string, string[]> _cache = new Dictionary<string, string[]>(StringComparer.Ordinal);
 
         public Source(string root, bool staged)
         {

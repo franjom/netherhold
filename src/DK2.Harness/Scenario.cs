@@ -294,7 +294,7 @@ public sealed class Scenario
     /// <summary>The keeper whose final text view is rendered.</summary>
     public byte ViewingPlayer { get; set; } = 1;
 
-    public ScenarioSetup Setup { get; set; } = new();
+    public ScenarioSetup Setup { get; set; } = new ScenarioSetup();
 
     /// <summary>Player commands, scheduled by tick.</summary>
     public List<ScenarioCommand> Commands { get; set; } = [];

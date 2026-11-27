@@ -10,11 +10,11 @@ namespace DK2.Tools;
 public static class VerificationLedger
 {
     private const string Header = "Id,Source,Symbol,Confidence,Research,ADRs,CandidateTests,CommentAddresses,A,B,C,D,CheckedDate";
-    private static readonly Regex Attribute = new(
+    private static readonly Regex Attribute = new Regex(
         @"\[Dk2Behavior\(Confidence\.(?<confidence>\w+),\s*""(?<research>[^""]+)""\)\]",
         RegexOptions.Compiled);
-    private static readonly Regex Address = new(@"\b0x(?:00)?[4-6][0-9A-Fa-f]{5}\b", RegexOptions.Compiled);
-    private static readonly Regex Adr = new(@"\bADR-\d{4}\b", RegexOptions.Compiled);
+    private static readonly Regex Address = new Regex(@"\b0x(?:00)?[4-6][0-9A-Fa-f]{5}\b", RegexOptions.Compiled);
+    private static readonly Regex Adr = new Regex(@"\bADR-\d{4}\b", RegexOptions.Compiled);
 
     internal static int Run(string[] args, string? root)
     {

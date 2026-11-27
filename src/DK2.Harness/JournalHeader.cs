@@ -152,7 +152,7 @@ public static class JournalHeader
         }
     }
 
-    private static readonly Dictionary<string, (string, string)> GitStates = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, (string, string)> GitStates = new Dictionary<string, (string, string)>(StringComparer.OrdinalIgnoreCase);
 
     private static string? Git(string workingDirectory, params string[] args)
     {

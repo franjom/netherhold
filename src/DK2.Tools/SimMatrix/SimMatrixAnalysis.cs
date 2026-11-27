@@ -69,8 +69,8 @@ internal static class SimMatrixAnalysis
         INamedTypeSymbol steering = SimRows.Type(compilation, WorldSteeringType);
         Hub[] hubs =
         [
-            new("TriggerExecutor", m => Within(m.ContainingType, triggers)),
-            new("WorldSteering.Refresh", m => m.Name == "Refresh" && SymbolEqualityComparer.Default.Equals(m.ContainingType, steering)),
+            new Hub("TriggerExecutor", m => Within(m.ContainingType, triggers)),
+            new Hub("WorldSteering.Refresh", m => m.Name == "Refresh" && SymbolEqualityComparer.Default.Equals(m.ContainingType, steering)),
         ];
 
         bool Stop(IMethodSymbol m)

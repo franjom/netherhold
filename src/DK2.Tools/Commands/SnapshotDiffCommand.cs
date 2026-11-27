@@ -15,7 +15,7 @@ namespace DK2.Tools.Commands;
 
 internal static class SnapshotDiffCommand
 {
-    private static readonly JsonSerializerOptions Json = new() { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+    private static readonly JsonSerializerOptions Json = new JsonSerializerOptions() { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
     internal static int Run(string[] args, Func<string, GameDatabase>? loadDatabase = null)
     {
@@ -117,7 +117,7 @@ internal static class SnapshotDiffCommand
         string magic = Encoding.ASCII.GetString(bytes, 0, 4);
         if (magic == "DK2S")
         {
-            return new(Path.GetFullPath(path), "DK2S", null, bytes, bytes);
+            return new SnapshotInput(Path.GetFullPath(path), "DK2S", null, bytes, bytes);
         }
 
         if (magic != "DK2G")
@@ -131,7 +131,7 @@ internal static class SnapshotDiffCommand
             throw new IOException("Saved session changed while it was being read.");
         }
 
-        return new(Path.GetFullPath(path), "DK2G", session.Header.LevelName, bytes, session.Snapshot);
+        return new SnapshotInput(Path.GetFullPath(path), "DK2G", session.Header.LevelName, bytes, session.Snapshot);
     }
 
     private static object Source(SnapshotInput input, GameSimulation simulation)

@@ -31,7 +31,7 @@ public sealed record WatchLimits(TimeSpan PerRun, TimeSpan Total, int MaxRuns, i
         return value >= 1 ? value : throw new ArgumentOutOfRangeException(nameof(Jobs));
     }
 
-    public static readonly WatchLimits Default = new(TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(30), 20);
+    public static readonly WatchLimits Default = new WatchLimits(TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(30), 20);
 }
 
 /// <summary>One watched run: a scenario file, the extra <c>run</c> options, and a label for the summary.</summary>
@@ -52,7 +52,7 @@ public sealed record WatchSummary(string Root, int Ran, int NotPassed, int Unrun
 public sealed class Watchdog(string outRoot, WatchLimits limits, Func<WatchJob, string, ProcessStartInfo>? launch = null)
 {
     private volatile bool _cancelled;
-    private readonly object _childrenGate = new();
+    private readonly object _childrenGate = new object();
     private readonly HashSet<Process> _children = [];
 
     /// <summary>Stops launching runs and kills every active child (Ctrl+C).</summary>

@@ -12,9 +12,9 @@ namespace DK2.Tools.SimMatrix;
 internal sealed class SourceIndex
 {
     private readonly IReadOnlySet<SyntaxTree> _definitions;
-    private readonly Dictionary<INamedTypeSymbol, List<INamedTypeSymbol>> _derived = new(SymbolEqualityComparer.Default);
-    private readonly Dictionary<IMethodSymbol, List<IMethodSymbol>> _dispatch = new(SymbolEqualityComparer.Default);
-    private readonly ConcurrentDictionary<SyntaxTree, SemanticModel> _models = new();
+    private readonly Dictionary<INamedTypeSymbol, List<INamedTypeSymbol>> _derived = new Dictionary<INamedTypeSymbol, List<INamedTypeSymbol>>(SymbolEqualityComparer.Default);
+    private readonly Dictionary<IMethodSymbol, List<IMethodSymbol>> _dispatch = new Dictionary<IMethodSymbol, List<IMethodSymbol>>(SymbolEqualityComparer.Default);
+    private readonly ConcurrentDictionary<SyntaxTree, SemanticModel> _models = new ConcurrentDictionary<SyntaxTree, SemanticModel>();
 
     internal SourceIndex(SimCompilation source)
     {
