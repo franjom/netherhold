@@ -1225,17 +1225,17 @@ public sealed partial class CreatureState
     /// <c>0x00463968</c>). <paramref name="offset"/> is the state offset, <paramref name="size"/> 1, 2 or 4 bytes.</summary>
     public void OverlayStateScratch(int offset, int size, int value)
     {
-        const int First = 0xA9, Last = 0xB0;
+        const int first = 0xA9, last = 0xB0;
         ulong window = (uint)StateTargetX | ((ulong)(uint)StateTargetY << 32);
         for (int i = 0; i < size; i++)
         {
             int at = offset + i;
-            if (at < First || at > Last)
+            if (at < first || at > last)
             {
                 continue;
             }
 
-            int shift = (at - First) * 8;
+            int shift = (at - first) * 8;
             window = (window & ~(0xFFUL << shift)) | ((ulong)(byte)(value >> (i * 8)) << shift);
         }
 

@@ -1079,11 +1079,11 @@ public sealed class TriggerExecutor
     private static bool SpellAvailable(
         IReadOnlyDictionary<string, long> parameters, WorldState world, PlayerId playerId)
     {
-        const int Available = 3;
+        const int available = 3;
         byte wanted = Byte(parameters, "TargetId");
         return wanted == 0
-            ? world.HasAvailability(playerId, AvailabilityKind.Spell, Available)
-            : world.Availability(playerId, AvailabilityKind.Spell, wanted) == Available;
+            ? world.HasAvailability(playerId, AvailabilityKind.Spell, available)
+            : world.Availability(playerId, AvailabilityKind.Spell, wanted) == available;
     }
 
     /// <summary>Condition type 52 — <b>how many of this keeper's creatures have reached
