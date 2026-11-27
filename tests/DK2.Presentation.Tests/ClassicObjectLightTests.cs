@@ -13,7 +13,7 @@ public class ClassicObjectLightTests
 {
     private static readonly KwdLight Arches = new(0, 0, 15360, 10240, 0x3800, 244, 244, 204, 0);
     private static ObjectView Object(int id, int x = 5, KwdLight? descriptor = null) => new(
-        id, 86, new PlayerId(3), new TilePos(x, 5), default(AssetRef), 0,
+        id, 86, new PlayerId(3), new TilePos(x, 5), default, 0,
         x * Fp32.One + 2048, 5 * Fp32.One + 2048, Fp32.One, 1024, Fp32.One,
         light: descriptor ?? Arches);
 
