@@ -102,7 +102,7 @@ public sealed class PlacementCursorHud
         float scale = height / 1200f, size = 32 * scale;
         if (feedback.Icon == PlacementIcon.Held && held != null && held.Icons.Count > 0)
         {
-            BuildHeld(frame, screen, held, feedback.Dispose, x, y, size, scale);
+            BuildHeld(frame, screen, held, feedback.Dispose, x: x, y: y, size: size, scale: scale);
             // 0x0040CFE0 leaves the No Go anchor at icon 0 moved by (-2, +2); bit 0x04 hides it.
             if (feedback.NoGo && !feedback.Dispose)
             {

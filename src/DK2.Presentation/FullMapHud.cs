@@ -65,7 +65,7 @@ public sealed class FullMapHud
 
     public ClassicFullMapLayout Layout(int screenWidth, int screenHeight)
     {
-        return ClassicFullMapLayout.Fit(screenWidth, screenHeight, _mapWidth, _mapHeight);
+        return ClassicFullMapLayout.Fit(screenWidth: screenWidth, screenHeight: screenHeight, mapWidth: _mapWidth, mapHeight: _mapHeight);
     }
 
     /// <summary>What a mouse press does while the map is open: the left

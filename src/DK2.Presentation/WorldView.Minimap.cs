@@ -117,7 +117,7 @@ public sealed partial class WorldView
                     continue;
                 }
 
-                if (definition.ShotTypeId == 13)
+                if (definition.ShotTypeId == BattleTabView.AlarmShotTypeId)
                 {
                     if (MinimapMarkerRules.IsAlarmRingActive(world.CurrentTick, new GameTick(trap.RechargeAt)))
                     {

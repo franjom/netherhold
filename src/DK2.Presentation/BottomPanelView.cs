@@ -254,12 +254,12 @@ public sealed class BottomPanelView
 
         foreach (KeeperSpellDef spell in database.KeeperSpells.Values.OrderBy(s => order?.Invoke(new BottomPanelChoiceKey(BottomPanelChoiceKind.Spell, s.KeeperSpellId)) ?? s.KeeperSpellId))
         {
-            if (spell.KeeperSpellId == (_oneShotReaper ? 14 : 5))
+            if (spell.KeeperSpellId == (_oneShotReaper ? ReaperRules.OneShotSpellId : ReaperRules.SpellId))
             {
                 var key = new BottomPanelChoiceKey(BottomPanelChoiceKind.Spell, spell.KeeperSpellId);
                 Reaper = new BottomPanelChoice(key, name(key, spell.Name), spell.ManaCost);
             }
-            else if (spell.KeeperSpellId != 14 && spell.KeeperSpellId != 5)
+            else if (spell.KeeperSpellId != ReaperRules.OneShotSpellId && spell.KeeperSpellId != ReaperRules.SpellId)
             {
                 Add(BottomPanelChoiceKind.Spell, spell.KeeperSpellId, spell.Name, spell.ManaCost);
             }

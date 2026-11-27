@@ -68,7 +68,8 @@ public sealed class BattleFlyIn
 
         Sounds.Add(new SoundRequest(Category, new SoundId(StartSound)));
         Running = true;
-        _tablet.Start(startX, startY, StartScale, targetX, targetY, now + WaitMilliseconds);
+        _tablet.Start(x: startX, y: startY, scale: StartScale, targetX: targetX, targetY: targetY,
+            startsAt: now + WaitMilliseconds);
         return true;
     }
 
@@ -81,8 +82,8 @@ public sealed class BattleFlyIn
         }
 
         float unit = screen.Height / TabletDrawList.ReferenceHeight;
-        return Start(now, StartReferenceX / HudScreen.ReferenceWidth * screen.Width / unit,
-            StartReferenceY * screen.Scale / unit, targetPixels.X / unit, targetPixels.Y / unit);
+        return Start(now, startX: StartReferenceX / HudScreen.ReferenceWidth * screen.Width / unit,
+            startY: StartReferenceY * screen.Scale / unit, targetX: targetPixels.X / unit, targetY: targetPixels.Y / unit);
     }
 
     /// <summary>The start of one drawn frame of <c>0x0042C390</c>'s tail: nothing while the GUI is

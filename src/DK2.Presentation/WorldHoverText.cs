@@ -192,7 +192,7 @@ public sealed class WorldHoverText
         {
             case 1 or 2 or 3:
                 _tokens[73] = Number(obj.GoldHeld);
-                return Substitute(_resolve(obj.ObjectTypeId == 3 ? 2543u : 2544u), _tokens);
+                return Substitute(_resolve(obj.ObjectTypeId == FloorGold.TreasuryPileObjectId ? 2543u : 2544u), _tokens);
             case AutoFurnitureRules.CasinoLeverObjectId:
                 return RoomAt(obj.TileIndex) is null ? "" : _resolve(obj.Setting == 0 ? 2508u : 2509u);
             case PrisonBoltObjectId:
@@ -440,7 +440,7 @@ public sealed class WorldHoverText
                         books++;
                     }
 
-                    if (obj.AutoPlaced && obj.ObjectTypeId == 64)
+                    if (obj.AutoPlaced && obj.ObjectTypeId == ResearchStep.BookCaseObjectId)
                     {
                         shelves++;
                     }

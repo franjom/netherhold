@@ -644,7 +644,7 @@ public sealed partial class WorldView
 
         // The Obstacle is the neutral player's, or nobody's for a room nobody owns.
         int centre = chain[12];
-        PlayerId obstacleOwner = room.OwnerPlayerId == 0 ? new PlayerId(0) : PlayerIds.Neutral;
+        PlayerId obstacleOwner = room.OwnerPlayerId == PlayerIds.Unowned ? new PlayerId(PlayerIds.Unowned) : PlayerIds.Neutral;
         into.Add(Decoration(world, centre, HeartSlot, HeartObstacleId, obstacleOwner, 0, 0, -1, 0));
         if (alive)
         {

@@ -1726,7 +1726,7 @@ public sealed partial class WorldView
         }
 
         // The owner's set: player id − 1, so 0 the heroes and 1 neutral (AssetCatalogue.ClaimedSets).
-        int set = Math.Clamp((tile.OwnerPlayerId == 0 ? PlayerIds.Neutral : tile.OwnerPlayerId) - 1,
+        int set = Math.Clamp((tile.OwnerPlayerId == PlayerIds.Unowned ? PlayerIds.Neutral : tile.OwnerPlayerId) - 1,
             0, AssetCatalogue.ClaimedSets - 1);
         TerrainPieces pieces = default;
         if (terrain.IsSolid)
