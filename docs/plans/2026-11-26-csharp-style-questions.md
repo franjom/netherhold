@@ -1,6 +1,6 @@
 # C# style questions for migration step 6
 
-The owner recorded decisions on 2026-11-26 and 2026-11-27. The recommendations under **Awaiting owner confirmation** are still open. [Migration plan, step 6](2026-11-15-godot-migration.md#step-6-tidy-the-c-codebase-owner-2026-11-20-after-step-5-on-net100).
+The owner recorded decisions on 2026-11-26 and 2026-11-27 and confirmed items 4–9 for the rollout. [Migration plan, step 6](2026-11-15-godot-migration.md#step-6-tidy-the-c-codebase-owner-2026-11-20-after-step-5-on-net100).
 
 ## Owner decisions
 
@@ -24,8 +24,6 @@ The approved brace policy uses `csharp_prefer_braces = true` (IDE0011), with 1,5
 2. Write the type on every object creation. IDE0090 offers conversion toward implicit object creation, so add a Roslyn source guard against `ImplicitObjectCreationExpressionSyntax`. Use the semantic model's converted type to write the explicit type, including generic arguments and `global::` qualification where needed. For nullable value-type targets, construct the underlying type to preserve the original value. Keep the approved collection-expression policy.
 3. Replace the 228 class and struct primary constructors with explicit constructors. Store captured parameters in private readonly `_camelCase` fields. Use a mutable field where the type writes the parameter and list each case. Preserve initialization order and the values read by initializers. Add an architecture-test guard and retain positional record syntax.
 
-### Awaiting owner confirmation
-
 4. Enforce file-scoped namespaces (IDE0161) and System-first import order.
 5. Use camelCase for locals and local constants. Leave async names to review. All 27 surveyed async methods omit the suffix.
 6. Leave pattern matching to review. The survey found 117 `== null` and `!= null` comparisons combined that bind to user-defined operators.
@@ -35,7 +33,7 @@ The approved brace policy uses `csharp_prefer_braces = true` (IDE0011), with 1,5
 
 ### Rollout order
 
-Start with the mechanical rules in items 4, 5 and 7 once confirmed, followed by block bodies, explicit object creation and explicit constructors. Land each rule in six area commits with the Release builds, IL comparison, formatter verification and test suite specified above. Expect identical method IL for block bodies and explicit object creation. For every explicit-constructor area, run the full turn-400 hash triple and frame comparisons, and report the field and constructor IL changes. After the style rollout, build the enum-cast analyzer if confirmed, then start phase C.
+Start with the mechanical rules in items 4, 5 and 7, followed by block bodies, explicit object creation and explicit constructors. Land each rule in six area commits with the Release builds, IL comparison, formatter verification and test suite specified above. Expect identical method IL for block bodies and explicit object creation. For every explicit-constructor area, run the full turn-400 hash triple and frame comparisons, and report the field and constructor IL changes. After the style rollout, build the enum-cast analyzer, then start phase C.
 
 
 ## Scope and estimates
@@ -48,7 +46,7 @@ The scratch survey is `C:/Users/franj/AppData/Local/Temp/dk2-codex-step6/Program
 
 ## Choices
 
-The table preserves the original survey counts. The dated decisions and the confirmation list above give the current status.
+The table preserves the original survey counts. The dated decisions above give the current policy.
 
 | # | Question and current use | Recommendation and rationale | Setting, enforcement and fix | Approximate files touched |
 | --- | --- | --- | --- | --- |
