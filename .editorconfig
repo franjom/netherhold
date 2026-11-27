@@ -151,3 +151,7 @@ dotnet_diagnostic.IDE0161.severity = warning
 [src/DK2.Harness/**.cs]
 csharp_style_namespace_declarations = file_scoped
 dotnet_diagnostic.IDE0161.severity = warning
+
+[godot/DK2.Godot/**.cs]
+csharp_style_namespace_declarations = file_scoped
+dotnet_diagnostic.IDE0161.severity = warning
