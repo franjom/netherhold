@@ -21,13 +21,20 @@ namespace DK2.Behavior.Tests;
 // a class per level lets them run side by side. Every scenario here that carries expectations
 // is listed in ScenarioCorpus.RunByTheirOwnTest, and its test asserts there are no failures.
 
-public class Level10KeeperScenarioTests(ITestOutputHelper output)
+public class Level10KeeperScenarioTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public Level10KeeperScenarioTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     [InstallFact]
     public void Level10ComputerKeeperRespectsLockedRoomAvailability()
     {
         Scenario scenario = ScenarioCorpus.Load("keepers/level10_asmodeus_idle.yaml");
-        ScenarioResult run = ScenarioCorpus.Run(scenario, output);
+        ScenarioResult run = ScenarioCorpus.Run(scenario, _output);
 
         Assert.DoesNotContain(run.EmittedKeeperCommands, c => c is BuildRoomCommand);
         Assert.Contains(run.EmittedKeeperCommands, c => c is CreateImpCommand);
@@ -40,7 +47,7 @@ public class Level10KeeperScenarioTests(ITestOutputHelper output)
         string install = Dk2InstallGate.Path;
         Scenario scenario = ScenarioCorpus.Load("keepers/level10_asmodeus_idle.yaml");
         scenario.DurationTicks = 200;
-        ScenarioResult run = ScenarioCorpus.Run(scenario, output);
+        ScenarioResult run = ScenarioCorpus.Run(scenario, _output);
 
         // Skill level 10 and a minimum of 30: never ready, so step 9 moves its creatures (ADR-0317).
         var moves = run.KeeperCommandLog.Where(e => e.Command is TakeCreatureCommand or DropCommand).ToList();
@@ -67,23 +74,30 @@ public class Level10KeeperScenarioTests(ITestOutputHelper output)
         // Mana for the first tick's imp cast: the keeper predicts the cost test as DK2's cast does (ADR-0298).
         scenario.Setup.Players.Single(p => p.Id == 4).Mana = 25000;
         scenario.DurationTicks = 1;
-        ScenarioResult one = ScenarioCorpus.Run(scenario, output);
+        ScenarioResult one = ScenarioCorpus.Run(scenario, _output);
         Assert.Empty(one.EmittedKeeperCommands);
         Assert.Empty(one.KeeperCommandLog);
         scenario.DurationTicks = 2;
-        ScenarioResult two = ScenarioCorpus.Run(scenario, output);
+        ScenarioResult two = ScenarioCorpus.Run(scenario, _output);
         Assert.NotEmpty(two.KeeperCommandLog);
         Assert.All(two.KeeperCommandLog, e => Assert.InRange(e.InputTick, 1, scenario.DurationTicks - 1));
     }
 }
 
-public class Level11AKeeperScenarioTests(ITestOutputHelper output)
+public class Level11AKeeperScenarioTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public Level11AKeeperScenarioTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     [InstallFact]
     public void Level11ADrakoBridgesTheLavaWithStoneThenCallsItsArmyAtAnAttackedEnemyHeart_WithAmbientRats()
     {
         Scenario scenario = ScenarioCorpus.Load("keepers/level11a_drako_attack.yaml");
-        ScenarioResult run = ScenarioCorpus.Run(scenario, output);
+        ScenarioResult run = ScenarioCorpus.Run(scenario, _output);
 
         // The planner picks Morgana (player 6) among four enemies and tags the corridor's first rock
         // north of the Lair; the lava two tiles on takes two Stone Bridge tiles, each
@@ -134,8 +148,15 @@ public class Level11AKeeperScenarioTests(ITestOutputHelper output)
     }
 }
 
-public class Level17KeeperScenarioTests(ITestOutputHelper output)
+public class Level17KeeperScenarioTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public Level17KeeperScenarioTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     /// <summary>Whether a duel lasts to the fortieth turn with Harkan's hand free depends on the
     /// run's draws (seed 12345 since ADR-0639 spends turns 37-39 lifting Black Knights), so eight
     /// seeds are run. On each, every call the battle step makes is the whole sequence; across them,
@@ -148,7 +169,7 @@ public class Level17KeeperScenarioTests(ITestOutputHelper output)
         {
             Scenario scenario = ScenarioCorpus.Load("keepers/level17_harkan_call_to_arms.yaml");
             scenario.Seed = seed;
-            ScenarioResult run = ScenarioCorpus.Run(scenario, output);
+            ScenarioResult run = ScenarioCorpus.Run(scenario, _output);
             Assert.DoesNotContain(run.Unsupported, s => s.StartsWith("computer_keepers", StringComparison.Ordinal));
 
             // The battle step's own commands, not a scripted cast: action 54 on a turn divisible by
@@ -190,7 +211,7 @@ public class Level17KeeperScenarioTests(ITestOutputHelper output)
         string install = Dk2InstallGate.Path;
         Scenario scenario = ScenarioCorpus.Load("keepers/level17_player5_retreat.yaml");
         GameDatabase database = ScenarioCorpus.Database;
-        ScenarioResult run = ScenarioCorpus.Run(scenario, output);
+        ScenarioResult run = ScenarioCorpus.Run(scenario, _output);
 
         // The retreat's own commands, not a scripted move: the wounded creature is passed over
         // while it seeks its bed and lifted once asleep, each pick-up followed at once by a drop
@@ -218,7 +239,7 @@ public class Level17KeeperScenarioTests(ITestOutputHelper output)
         string install = Dk2InstallGate.Path;
         Scenario scenario = ScenarioCorpus.Load("keepers/level17_harkan_training.yaml");
         GameDatabase database = ScenarioCorpus.Database;
-        ScenarioResult run = ScenarioCorpus.Run(scenario, output);
+        ScenarioResult run = ScenarioCorpus.Run(scenario, _output);
 
         // The keeper's own commands on the stock map, nothing added. A training move (ADR-0317) is a
         // pick-up and a drop on the same tick, on an interior cell of Harkan's Training Room. Job
@@ -263,14 +284,21 @@ public class Level17KeeperScenarioTests(ITestOutputHelper output)
 
 /// <summary>Its own class rather than <see cref="Level17KeeperScenarioTests"/>'s: it runs the
 /// longest of Harkan's scenarios twice.</summary>
-public class Level17UnassistedKeeperScenarioTests(ITestOutputHelper output)
+public class Level17UnassistedKeeperScenarioTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public Level17UnassistedKeeperScenarioTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     [InstallFact]
     public void UnaidedKeeperHasARepeatableCommandStream()
     {
         Scenario scenario = ScenarioCorpus.Load("keepers/level17_harkan_unassisted.yaml");
-        ScenarioResult first = ScenarioCorpus.Run(scenario, output);
-        ScenarioResult second = ScenarioCorpus.Run(scenario, output);
+        ScenarioResult first = ScenarioCorpus.Run(scenario, _output);
+        ScenarioResult second = ScenarioCorpus.Run(scenario, _output);
 
         // The corpus theory leaves this scenario to this test (ScenarioCorpus.RunByTheirOwnTest).
         Assert.Empty(first.ExpectationFailures);
@@ -348,13 +376,20 @@ public class Level17PrisonConstructionTests
 
 /// <summary>Harkan's stores filled exactly and a floor pile for its imps (ADR-0327): a modern-run
 /// result; no original capture of this setup exists (Q518).</summary>
-public class Level17TreasuryNeedScenarioTests(ITestOutputHelper output)
+public class Level17TreasuryNeedScenarioTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public Level17TreasuryNeedScenarioTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     [InstallFact]
     public void HarkanGrowsItsTreasuryNorthwardWhenItsImpsFindNoStore_ModernRunOriginalUnseenQ518()
     {
         Scenario scenario = ScenarioCorpus.Load("keepers/level17_harkan_treasury_full.yaml");
-        ScenarioResult run = ScenarioCorpus.Run(scenario, output);
+        ScenarioResult run = ScenarioCorpus.Run(scenario, _output);
         Assert.Empty(run.ExpectationFailures);
 
         // The carrier's store chooser posts 42 once, and the walk acknowledges it on the next input tick.
@@ -376,14 +411,21 @@ public class Level17TreasuryNeedScenarioTests(ITestOutputHelper output)
     }
 }
 
-public class Level18KeeperScenarioTests(ITestOutputHelper output)
+public class Level18KeeperScenarioTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public Level18KeeperScenarioTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     [InstallFact]
     public void Level18NemesisHealsItsSleepingBlackKnightUnaidedAndTheSimulationAppliesTheHeal()
     {
         string install = Dk2InstallGate.Path;
         Scenario scenario = ScenarioCorpus.Load("keepers/level18_nemesis_heal.yaml");
-        ScenarioResult run = ScenarioCorpus.Run(scenario, output);
+        ScenarioResult run = ScenarioCorpus.Run(scenario, _output);
 
         // The battle step's own cast, not a scripted one, and the level's own availability, not
         // the scenario's: no player lists a spell, and the VARIABLES rows give Nemesis Heal at 3.
@@ -417,7 +459,7 @@ public class Level18KeeperScenarioTests(ITestOutputHelper output)
         {
             Scenario scenario = ScenarioCorpus.Load("keepers/level18_nemesis_inferno_chicken.yaml");
             scenario.Seed = seed;
-            ScenarioResult run = ScenarioCorpus.Run(scenario, output);
+            ScenarioResult run = ScenarioCorpus.Run(scenario, _output);
             Assert.DoesNotContain(run.Unsupported, s => s.StartsWith("computer_keepers", StringComparison.Ordinal));
             var down = new HashSet<string>();
             var frozenUntil = new Dictionary<string, long>();
@@ -491,13 +533,20 @@ public class Level18KeeperScenarioTests(ITestOutputHelper output)
 
 /// <summary>Its own class rather than <see cref="Level18KeeperScenarioTests"/>'s: the attack
 /// planner's run is the slowest scenario in the corpus.</summary>
-public class Level18AttackKeeperScenarioTests(ITestOutputHelper output)
+public class Level18AttackKeeperScenarioTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public Level18AttackKeeperScenarioTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     [InstallFact]
     public void Level18NemesisGrantsLevelsAndNeverChoosesItsAllies()
     {
         Scenario scenario = ScenarioCorpus.Load("keepers/level18_nemesis_allies.yaml");
-        ScenarioResult run = ScenarioCorpus.Run(scenario, output);
+        ScenarioResult run = ScenarioCorpus.Run(scenario, _output);
 
         // The planner's own decisions (ADR-0298), not scripted ones: the readiness grants as
         // commands, and no attack on Fabian (5) or Faust (6), whom the level allies with Nemesis

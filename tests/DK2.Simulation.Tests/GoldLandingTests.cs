@@ -90,8 +90,15 @@ public class GoldLandingTests
         }
     }
 
-    private sealed class LandPile(ObjectState pile) : ISimulationSystem
+    private sealed class LandPile : ISimulationSystem
     {
+        private readonly ObjectState _pile;
+
+        public LandPile(ObjectState pile)
+        {
+            _pile = pile;
+        }
+
         public string Name
         {
             get
@@ -102,7 +109,7 @@ public class GoldLandingTests
 
         public void Execute(SimulationContext context)
         {
-            FloorGoldLandingRules.Land(context, pile);
+            FloorGoldLandingRules.Land(context, _pile);
         }
     }
 

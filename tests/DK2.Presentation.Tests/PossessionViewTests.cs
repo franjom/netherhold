@@ -11,8 +11,15 @@ public sealed class PossessionViewTests
     private const int Floor = 0x1000, Eye = 0x600, Width = 0x200;
 
     /// <summary>An open map; chosen tiles refuse a step.</summary>
-    private sealed class World(params (int X, int Y)[] walls) : IPossessionWorld
+    private sealed class World : IPossessionWorld
     {
+        private readonly (int X, int Y)[] _walls;
+
+        public World(params (int X, int Y)[] walls)
+        {
+            _walls = walls;
+        }
+
         public int Width
         {
             get
@@ -32,7 +39,7 @@ public sealed class PossessionViewTests
         public bool BlockEverything { get; set; }
         public bool CanStepTo(int tileX, int tileY)
         {
-            return Array.IndexOf(walls, (tileX, tileY)) < 0;
+            return Array.IndexOf(_walls, (tileX, tileY)) < 0;
         }
 
         public (int X, int Y) ResolveAgainstThings(int startX, int startY, int wantedX, int wantedY)

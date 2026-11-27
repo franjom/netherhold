@@ -22,8 +22,15 @@ namespace DK2.Behavior.Tests;
 /// <para>Each level is pinned as shipped and with seeded rewrites of 1, 25 and 400 tiles to
 /// floor, water, lava or solid, which exercises far more rectangle shapes than the levels alone.</para>
 /// </summary>
-public class NavMeshBuildOnRealDataTests(ITestOutputHelper output)
+public class NavMeshBuildOnRealDataTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public NavMeshBuildOnRealDataTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     private static readonly byte[] Bytes = [NavBytes.Floor, NavBytes.Water, NavBytes.Lava, NavBytes.Solid];
     private static readonly int[] Rewrites = [0, 1, 25, 400];
 
@@ -101,13 +108,24 @@ public class NavMeshBuildOnRealDataTests(ITestOutputHelper output)
          ["mpd7"] = 0xB8222438E201605BUL,
     };
 
-    private sealed class Grid(int width, int height, byte[] bytes) : INavByteGrid
+    private sealed class Grid : INavByteGrid
     {
+        private readonly int _width;
+        private readonly int _height;
+        private readonly byte[] _bytes;
+
+        public Grid(int width, int height, byte[] bytes)
+        {
+            _width = width;
+            _height = height;
+            _bytes = bytes;
+        }
+
         public int Width
         {
             get
             {
-                return width;
+                return _width;
             }
         }
 
@@ -115,13 +133,13 @@ public class NavMeshBuildOnRealDataTests(ITestOutputHelper output)
         {
             get
             {
-                return height;
+                return _height;
             }
         }
 
         public byte NavByte(int x, int y)
         {
-            return bytes[(y * width) + x];
+            return _bytes[(y * _width) + x];
         }
     }
 
@@ -154,7 +172,7 @@ public class NavMeshBuildOnRealDataTests(ITestOutputHelper output)
 
         foreach ((string level, ulong value) in actual)
         {
-            output.WriteLine($"        [\"{level}\"] = 0x{value:X16}UL,");
+            _output.WriteLine($"        [\"{level}\"] = 0x{value:X16}UL,");
         }
 
         Assert.NotEmpty(actual);
@@ -211,7 +229,7 @@ public class NavMeshBuildOnRealDataTests(ITestOutputHelper output)
             }
             levels++;
         }
-        output.WriteLine($"{edits} edits over {levels} levels");
+        _output.WriteLine($"{edits} edits over {levels} levels");
         Assert.True(levels > 0);
     }
 

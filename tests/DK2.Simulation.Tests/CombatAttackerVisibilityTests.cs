@@ -107,8 +107,15 @@ public class CombatAttackerVisibilityTests
         new GameSimulation(db, world, 1, [new CheckAcquisition(assertion)]).Tick();
     }
 
-    private sealed class CheckAcquisition(Action<SimulationContext> assertion) : ISimulationSystem
+    private sealed class CheckAcquisition : ISimulationSystem
     {
+        private readonly Action<SimulationContext> _assertion;
+
+        public CheckAcquisition(Action<SimulationContext> assertion)
+        {
+            _assertion = assertion;
+        }
+
         public string Name
         {
             get
@@ -120,7 +127,7 @@ public class CombatAttackerVisibilityTests
         public void Execute(SimulationContext context)
         {
             context.Navigation.Refresh();
-            assertion(context);
+            _assertion(context);
         }
     }
 }

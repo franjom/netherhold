@@ -24,14 +24,24 @@ public class CreatureUpdateSystemTests
         return (db, WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]));
     }
 
-    private sealed class Step(string name, List<string> log, Action<SimulationContext, CreatureState>? act = null)
-        : ICreatureUpdateStep
+    private sealed class Step : ICreatureUpdateStep
     {
+        private readonly string _name;
+        private readonly List<string> _log;
+        private readonly Action<SimulationContext, CreatureState>? _act;
+
+        public Step(string name, List<string> log, Action<SimulationContext, CreatureState>? act = null)
+        {
+            _name = name;
+            _log = log;
+            _act = act;
+        }
+
         public string Name
         {
             get
             {
-                return name;
+                return _name;
             }
         }
 
@@ -42,18 +52,18 @@ public class CreatureUpdateSystemTests
 
         public void BeginTurn(SimulationContext context)
         {
-            log.Add($"{name} begin");
+            _log.Add($"{_name} begin");
         }
 
         public void EndTurn(SimulationContext context)
         {
-            log.Add($"{name} end");
+            _log.Add($"{_name} end");
         }
 
         public void Update(SimulationContext context, CreatureState creature)
         {
-            log.Add($"{name} {creature.Id}");
-            act?.Invoke(context, creature);
+            _log.Add($"{_name} {creature.Id}");
+            _act?.Invoke(context, creature);
         }
     }
 

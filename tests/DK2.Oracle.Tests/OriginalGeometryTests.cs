@@ -16,8 +16,15 @@ namespace DK2.Oracle.Tests;
 /// perpendicular vector helpers and the dig handlers' start side. Each sweep
 /// counts the arm every input reaches; an arm no input reaches fails the test.
 /// </summary>
-public class OriginalGeometryTests(ITestOutputHelper log)
+public class OriginalGeometryTests
 {
+    private readonly ITestOutputHelper _log;
+
+    public OriginalGeometryTests(ITestOutputHelper log)
+    {
+        _log = log;
+    }
+
     private const uint A = Scratch, B = Scratch + 0x10, C = Scratch + 0x20, Out = Scratch + 0x30;
 
     /// <summary><c>0x005119F0</c>: thiscall, ECX the heading's word, then (out word*, target word*).</summary>
@@ -285,7 +292,7 @@ public class OriginalGeometryTests(ITestOutputHelper log)
                 mismatches.Add($"{at(i)}: original {theirs}, ours {ours}");
             }
         }
-        log.WriteLine($"{name}: {count} inputs; arms: " + string.Join(", ", reached.Select(kv => $"{kv.Key} {kv.Value}")));
+        _log.WriteLine($"{name}: {count} inputs; arms: " + string.Join(", ", reached.Select(kv => $"{kv.Key} {kv.Value}")));
         Assert.True(mismatches.Count == 0, $"{mismatches.Count} of {count} differ; first:\n" + string.Join("\n", mismatches.Take(15)));
         Assert.True(reached.All(kv => kv.Value > 0), "an arm no swept input reaches: " +
             string.Join(", ", reached.Where(kv => kv.Value == 0).Select(kv => kv.Key)));

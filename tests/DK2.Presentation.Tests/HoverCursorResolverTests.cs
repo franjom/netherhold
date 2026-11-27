@@ -19,13 +19,22 @@ public sealed class HoverCursorResolverTests
     private static readonly PlayerId Keeper = PressFixture.Keeper;
     private static readonly BottomPanelChoiceKey Fireball = new BottomPanelChoiceKey(BottomPanelChoiceKind.Spell, 3);
 
-    private sealed class Floor(int width, int height) : INavByteGrid
+    private sealed class Floor : INavByteGrid
     {
+        private readonly int _width;
+        private readonly int _height;
+
+        public Floor(int width, int height)
+        {
+            _width = width;
+            _height = height;
+        }
+
         public int Width
         {
             get
             {
-                return width;
+                return _width;
             }
         }
 
@@ -33,7 +42,7 @@ public sealed class HoverCursorResolverTests
         {
             get
             {
-                return height;
+                return _height;
             }
         }
 

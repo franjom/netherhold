@@ -40,8 +40,17 @@ public class CreatureLevelEffectTests
         }
     }
 
-    private sealed class Promote(CreatureState imp, bool earned) : ISimulationSystem
+    private sealed class Promote : ISimulationSystem
     {
+        private readonly CreatureState _imp;
+        private readonly bool _earned;
+
+        public Promote(CreatureState imp, bool earned)
+        {
+            _imp = imp;
+            _earned = earned;
+        }
+
         public string Name
         {
             get
@@ -52,15 +61,15 @@ public class CreatureLevelEffectTests
 
         public void Execute(SimulationContext context)
         {
-            CreatureDef definition = context.Database.CreatureById(imp.CreatureTypeId);
-            if (earned)
+            CreatureDef definition = context.Database.CreatureById(_imp.CreatureTypeId);
+            if (_earned)
             {
-                CreatureLevelRules.Grant(context.Hooks, definition, imp,
-                CreatureLevelRules.ExperienceForNextLevel(context.Database, definition, imp.Level));
+                CreatureLevelRules.Grant(context.Hooks, definition, _imp,
+                CreatureLevelRules.ExperienceForNextLevel(context.Database, definition, _imp.Level));
             }
             else
             {
-                CreatureLevelRules.LevelUp(context.Hooks, definition, imp);
+                CreatureLevelRules.LevelUp(context.Hooks, definition, _imp);
             }
         }
     }

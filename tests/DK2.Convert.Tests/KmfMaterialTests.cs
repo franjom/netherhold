@@ -12,8 +12,15 @@ namespace DK2.Convert.Tests;
 
 /// <summary>A KMF material's flags as DK2's loader (0x0057D390) and material constructor
 /// (0x0057C420) read them (docs/research/kmf-materials.md).</summary>
-public class KmfMaterialTests(ITestOutputHelper output)
+public class KmfMaterialTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public KmfMaterialTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     [Theory]
     [InlineData(0x00u, KmfBlend.Opaque)]
     [InlineData(0x02u, KmfBlend.Opaque)] // "double sided": the loader drops the bit
@@ -92,7 +99,7 @@ public class KmfMaterialTests(ITestOutputHelper output)
             KmfModel model = KmfReader.Read(wad.Extract(entry));
             foreach (KmfMaterial material in model.Materials)
             {
-                output.WriteLine($"{entry} | {material.Name} | flags 0x{material.Flags:X} | brightness {material.Brightness} | {material.Blend} | [{string.Join(", ", material.TextureNames)}]");
+                _output.WriteLine($"{entry} | {material.Name} | flags 0x{material.Flags:X} | brightness {material.Brightness} | {material.Blend} | [{string.Join(", ", material.TextureNames)}]");
                 byName[entry + "|" + material.Name] = material;
             }
             var mesh = RenderMesh.FromModel(model);
@@ -133,7 +140,7 @@ public class KmfMaterialTests(ITestOutputHelper output)
 
         foreach ((uint flags, int count) in counts)
         {
-            output.WriteLine($"0x{flags:X}: {count}");
+            _output.WriteLine($"0x{flags:X}: {count}");
         }
         // Bits 0x01..0x100 only; the loader reads 0x01, 0x04, 0x08, 0x10, 0x20, 0x40.
         Assert.All(counts.Keys, flags => Assert.Equal(0u, flags & ~0x1FFu));

@@ -20,14 +20,23 @@ public class PlayerRunTests
     private static readonly PlayerRunId Run = new PlayerRunId("player-run-test");
 
     /// <summary>A scripted controller: a fixed action list at each decision, a fixed advance.</summary>
-    private sealed class Scripted(int advance, Func<PlayerObservation, IEnumerable<PlayerAction>>? act = null) : IPlayerController
+    private sealed class Scripted : IPlayerController
     {
+        private readonly int _advance;
+        private readonly Func<PlayerObservation, IEnumerable<PlayerAction>>? _act;
+
+        public Scripted(int advance, Func<PlayerObservation, IEnumerable<PlayerAction>>? act = null)
+        {
+            _advance = advance;
+            _act = act;
+        }
+
         public List<PlayerObservation> Seen { get; } = [];
 
         public PlayerDecision Decide(PlayerObservation observation)
         {
             Seen.Add(observation);
-            return new PlayerDecision(act?.Invoke(observation) ?? [], advance, "scripted");
+            return new PlayerDecision(_act?.Invoke(observation) ?? [], _advance, "scripted");
         }
     }
 

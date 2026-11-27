@@ -17,9 +17,14 @@ public sealed class RoomTickOrderTests
     private const int Ticks = SimulationTiming.OriginalTicksPerGameSecond;
 
     /// <summary>The generator as dk2-random.md section 1 states it.</summary>
-    private sealed class Oracle(uint seed)
+    private sealed class Oracle
     {
-        public uint Seed { get; private set; } = seed;
+        public Oracle(uint seed)
+        {
+            Seed = seed;
+        }
+
+        public uint Seed { get; private set; }
 
         public int Next(int n)
         {

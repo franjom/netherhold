@@ -176,8 +176,15 @@ public sealed class CombatExperienceOrderTests
         return new GameSimulation(db, world, 42, systems);
     }
 
-    private sealed class Handler(Action<SimulationContext, CreatureState> run) : ICreatureUpdateStep
+    private sealed class Handler : ICreatureUpdateStep
     {
+        private readonly Action<SimulationContext, CreatureState> _run;
+
+        public Handler(Action<SimulationContext, CreatureState> run)
+        {
+            _run = run;
+        }
+
         public string Name
         {
             get
@@ -193,7 +200,7 @@ public sealed class CombatExperienceOrderTests
 
         public void Update(SimulationContext context, CreatureState creature)
         {
-            run(context, creature);
+            _run(context, creature);
         }
     }
 }

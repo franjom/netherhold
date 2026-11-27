@@ -20,10 +20,17 @@ public sealed class FrameDriverTests
     private static readonly PlayerId Keeper = PressFixture.Keeper;
     private static readonly double OneTick = 1.0 / SimulationTiming.TicksPerSecond;
 
-    private sealed class Poses(PlayerCommand? pose) : ITurnPoseSource
+    private sealed class Poses : ITurnPoseSource
     {
+        private readonly PlayerCommand? _pose;
+
+        public Poses(PlayerCommand? pose)
+        {
+            _pose = pose;
+        }
+
         public int Asked;
-        public PlayerCommand? TurnPose(PlayerId viewer) { Asked++; return pose; }
+        public PlayerCommand? TurnPose(PlayerId viewer) { Asked++; return _pose; }
     }
 
     private sealed class Rig

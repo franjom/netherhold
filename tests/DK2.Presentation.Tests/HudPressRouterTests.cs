@@ -16,8 +16,15 @@ public sealed class HudPressRouterTests
 {
     private static readonly PlayerId Keeper = PressFixture.Keeper;
 
-    private sealed class Host(ClassicHudControls controls) : IHudPressHost
+    private sealed class Host : IHudPressHost
     {
+        private readonly ClassicHudControls _controls;
+
+        public Host(ClassicHudControls controls)
+        {
+            _controls = controls;
+        }
+
         public readonly List<string> Calls = [];
         public bool OverviewTakes;
         public CreatureOverviewRequest Request;
@@ -25,7 +32,7 @@ public sealed class HudPressRouterTests
         public KeeperResourceKind Resource;
         public ClassicOptionsAction Option;
 
-        public void ApplyHudAction(ClassicHudAction action) { Calls.Add("apply " + action); controls.Apply(action); }
+        public void ApplyHudAction(ClassicHudAction action) { Calls.Add("apply " + action); _controls.Apply(action); }
         public void GoToFullMapTile()
         {
             Calls.Add("full map tile");

@@ -126,8 +126,17 @@ public sealed class ReinforcementActionStateTests
         Assert.Equal(100, imp.GoldHeld);
     }
 
-    private sealed class Once(ISimulationSystem next, Action<SimulationContext> apply) : ISimulationSystem
+    private sealed class Once : ISimulationSystem
     {
+        private readonly ISimulationSystem _next;
+        private readonly Action<SimulationContext> _apply;
+
+        public Once(ISimulationSystem next, Action<SimulationContext> apply)
+        {
+            _next = next;
+            _apply = apply;
+        }
+
         private bool _ran;
         public string Name
         {
@@ -142,9 +151,9 @@ public sealed class ReinforcementActionStateTests
             if (!_ran)
             {
                 _ran = true;
-                apply(context);
+                _apply(context);
             }
-            next.Execute(context);
+            _next.Execute(context);
         }
     }
 

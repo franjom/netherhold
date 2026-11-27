@@ -114,8 +114,15 @@ public class ReinforcementCornerTests
         Assert.Equal(health, run.Sim.World.Tile(run.Fill).Health);
     }
 
-    private sealed class FillSystem(TilePos at) : ISimulationSystem
+    private sealed class FillSystem : ISimulationSystem
     {
+        private readonly TilePos _at;
+
+        public FillSystem(TilePos at)
+        {
+            _at = at;
+        }
+
         public string Name
         {
             get
@@ -126,7 +133,7 @@ public class ReinforcementCornerTests
 
         public void Execute(SimulationContext context)
         {
-            ReinforcementRules.FillCorners(context, at, 3);
+            ReinforcementRules.FillCorners(context, _at, 3);
         }
     }
 

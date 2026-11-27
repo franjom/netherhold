@@ -12,8 +12,15 @@ namespace DK2.Simulation.Tests;
 public sealed class CombatPitRoomTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
-    private sealed class DestructionProbe(CreatureState creature) : ISimulationSystem
+    private sealed class DestructionProbe : ISimulationSystem
     {
+        private readonly CreatureState _creature;
+
+        public DestructionProbe(CreatureState creature)
+        {
+            _creature = creature;
+        }
+
         public string Name
         {
             get
@@ -24,11 +31,18 @@ public sealed class CombatPitRoomTests
 
         public void Execute(SimulationContext context)
         {
-            CombatPitRoomStep.CreatureDestroyed(context, creature);
+            CombatPitRoomStep.CreatureDestroyed(context, _creature);
         }
     }
-    private sealed class NeighbourProbe(CreatureState creature) : ISimulationSystem
+    private sealed class NeighbourProbe : ISimulationSystem
     {
+        private readonly CreatureState _creature;
+
+        public NeighbourProbe(CreatureState creature)
+        {
+            _creature = creature;
+        }
+
         public string Name
         {
             get
@@ -40,12 +54,19 @@ public sealed class CombatPitRoomTests
         public int Chosen { get; private set; } = -2;
         public void Execute(SimulationContext context)
         {
-            RoomInstance pit = CombatPitRules.PitAt(context.World, context.Database, context.World.TileIndex(creature.Tile))!;
-            Chosen = CombatPitRules.NeighbourStep(context, pit, creature, empty: true);
+            RoomInstance pit = CombatPitRules.PitAt(context.World, context.Database, context.World.TileIndex(_creature.Tile))!;
+            Chosen = CombatPitRules.NeighbourStep(context, pit, _creature, empty: true);
         }
     }
-    private sealed class ResetProbe(RoomInstance pit) : ISimulationSystem
+    private sealed class ResetProbe : ISimulationSystem
     {
+        private readonly RoomInstance _pit;
+
+        public ResetProbe(RoomInstance pit)
+        {
+            _pit = pit;
+        }
+
         public string Name
         {
             get
@@ -56,11 +77,18 @@ public sealed class CombatPitRoomTests
 
         public void Execute(SimulationContext context)
         {
-            CombatPitSystem.Reset(context, pit);
+            CombatPitSystem.Reset(context, _pit);
         }
     }
-    private sealed class MutationProbe(Action<SimulationContext> mutate) : ISimulationSystem
+    private sealed class MutationProbe : ISimulationSystem
     {
+        private readonly Action<SimulationContext> _mutate;
+
+        public MutationProbe(Action<SimulationContext> mutate)
+        {
+            _mutate = mutate;
+        }
+
         public string Name
         {
             get
@@ -71,7 +99,7 @@ public sealed class CombatPitRoomTests
 
         public void Execute(SimulationContext context)
         {
-            mutate(context);
+            _mutate(context);
         }
     }
     private static (GameSimulation Sim, CreatureState First, CreatureState Second) Setup(bool effects = false, bool convertible = false, ushort? tickRate = null)

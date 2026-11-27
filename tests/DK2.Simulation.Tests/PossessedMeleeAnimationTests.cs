@@ -12,8 +12,15 @@ namespace DK2.Simulation.Tests;
 
 public sealed class PossessedMeleeAnimationTests
 {
-    private sealed class Commands(Action<SimulationContext> run) : ISimulationSystem
+    private sealed class Commands : ISimulationSystem
     {
+        private readonly Action<SimulationContext> _run;
+
+        public Commands(Action<SimulationContext> run)
+        {
+            _run = run;
+        }
+
         public string Name
         {
             get
@@ -24,7 +31,7 @@ public sealed class PossessedMeleeAnimationTests
 
         public void Execute(SimulationContext context)
         {
-            run(context);
+            _run(context);
         }
     }
 

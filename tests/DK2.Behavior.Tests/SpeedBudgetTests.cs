@@ -29,8 +29,15 @@ public sealed class TimedAlone
 /// FullyQualifiedName~SpeedBudgetTests</c> (ADR-0575).
 /// </summary>
 [Collection(TimedAlone.Name)]
-public class SpeedBudgetTests(ITestOutputHelper output)
+public class SpeedBudgetTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public SpeedBudgetTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     public const int RealTimeMultiple = 50;
     public const int WarmUpTicks = 2;
     public static readonly TimeSpan Turn = TimeSpan.FromMilliseconds(250);
@@ -90,7 +97,7 @@ public class SpeedBudgetTests(ITestOutputHelper output)
         RunTimings timings = Run(ScenarioCorpus.Load(file)).Timings!;
 
         (TimeSpan worst, int tick) = WorstAfterWarmUp(timings);
-        output.WriteLine($"{file}: worst after warm-up {worst.TotalMilliseconds:F1} ms (tick {tick})");
+        _output.WriteLine($"{file}: worst after warm-up {worst.TotalMilliseconds:F1} ms (tick {tick})");
         Assert.True(worst <= TickBudget,
             $"{file}: tick {tick} took {worst.TotalMilliseconds:F1} ms, budget {TickBudget.TotalMilliseconds:F0} ms");
     }
@@ -115,6 +122,6 @@ public class SpeedBudgetTests(ITestOutputHelper output)
     {
         Assert.False(typeof(GameSimulation).Assembly.GetCustomAttribute<DebuggableAttribute>()?.IsJITOptimizerDisabled ?? false,
             "The speed budget is measured on a Release build: run with -c Release.");
-        return ScenarioCorpus.Run(scenario, output);
+        return ScenarioCorpus.Run(scenario, _output);
     }
 }

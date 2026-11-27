@@ -15,8 +15,15 @@ namespace DK2.Oracle.Tests;
 /// Our C# on DK2's own game states: ticks of Level 4 seed 1's full-state capture, rebuilt as our
 /// world (<see cref="CapturedState"/>) and run through DKII.EXE on the emulator beside it.
 /// </summary>
-public class CapturedGuardRoomTests(ITestOutputHelper log)
+public class CapturedGuardRoomTests
 {
+    private readonly ITestOutputHelper _log;
+
+    public CapturedGuardRoomTests(ITestOutputHelper log)
+    {
+        _log = log;
+    }
+
     private const string Capture = "reverse-engineering/dk2runs/level4-live1/seed01/level4.dk2cap";
 
     /// <summary>The reader itself: at the first stored tick the capture's terrain and owners
@@ -115,7 +122,7 @@ public class CapturedGuardRoomTests(ITestOutputHelper log)
                 }
             }
         }
-        log.WriteLine($"{states.Count} ticks, {guardRooms} guard-room samples, {compared} compared; " +
+        _log.WriteLine($"{states.Count} ticks, {guardRooms} guard-room samples, {compared} compared; " +
                       string.Join(", ", reached.Select(kv => $"{kv.Key} {kv.Value}")));
         Assert.True(mismatches.Count == 0, $"{mismatches.Count} differ; first:\n" + string.Join("\n", mismatches.Take(15)));
         Assert.True(reached.Values.All(n => n > 0), "an answer no captured creature reaches");

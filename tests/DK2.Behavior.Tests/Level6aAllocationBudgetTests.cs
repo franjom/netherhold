@@ -10,8 +10,15 @@ using Xunit.Abstractions;
 
 namespace DK2.Behavior.Tests;
 
-public sealed class Level6aAllocationBudgetTests(ITestOutputHelper output)
+public sealed class Level6aAllocationBudgetTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public Level6aAllocationBudgetTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     [InstallFact]
     public void Level6a_TickGarbageStaysBelow64KiBAfterTick1500()
     {
@@ -35,7 +42,7 @@ public sealed class Level6aAllocationBudgetTests(ITestOutputHelper output)
 
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 
-        output.WriteLine($"Level6a ticks 1501-1700: {allocated / ticks} bytes/tick (no harness hash)");
+        _output.WriteLine($"Level6a ticks 1501-1700: {allocated / ticks} bytes/tick (no harness hash)");
         Assert.True(allocated <= ticks * 65536L, $"{allocated / ticks} bytes/tick exceeds 64 KiB");
     }
 }

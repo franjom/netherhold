@@ -18,8 +18,15 @@ namespace DK2.Oracle.Tests;
 /// <c>--dump-ticks</c>, <see cref="CapturedState.LoadWithDump"/>): DKII.EXE's own functions run
 /// on the game's memory, ours on the same values.
 /// </summary>
-public class CapturedSteeringTests(ITestOutputHelper log)
+public class CapturedSteeringTests
 {
+    private readonly ITestOutputHelper _log;
+
+    public CapturedSteeringTests(ITestOutputHelper log)
+    {
+        _log = log;
+    }
+
     private const string Capture = "reverse-engineering/dk2runs/level4-dump/level4.dk2cap";
     private const string Dump = "reverse-engineering/dk2runs/level4-dump/level4.dk2cap.500.mem.z";
     private const uint BodyPos = 0x84, BodyVel = 0x8C, BodyRadius = 0xDC, BodyWindow = 0xB4, BodyFlags = 0x10C;
@@ -75,7 +82,7 @@ public class CapturedSteeringTests(ITestOutputHelper log)
                 mismatches.Add($"{at}: original ({theirs.X}, {theirs.Y}), ours ({ours.X}, {ours.Y})");
             }
         }
-        log.WriteLine($"{live.Length} real bodies, {cases.Count - live.Length} synthetic; arms (by our probes on DK2's bytes): " +
+        _log.WriteLine($"{live.Length} real bodies, {cases.Count - live.Length} synthetic; arms (by our probes on DK2's bytes): " +
                       string.Join(", ", reached.Select(kv => $"{kv.Key} {kv.Value}")));
         Assert.True(mismatches.Count == 0, $"{mismatches.Count} of {cases.Count} differ; first:\n" + string.Join("\n", mismatches.Take(15)));
         Assert.True(reached.Values.All(n => n > 0), "an arm no case reaches: " +
@@ -257,11 +264,22 @@ public class CapturedSteeringTests(ITestOutputHelper log)
 
     /// <summary>DK2's grid as an <see cref="ISteeringWorld"/>; <c>Avoid_Walls</c> asks only for
     /// bytes, and off the map the original's probe answers solid (8).</summary>
-    private sealed class GridWorld(int width, int height, int[] bytes) : ISteeringWorld
+    private sealed class GridWorld : ISteeringWorld
     {
+        private readonly int _width;
+        private readonly int _height;
+        private readonly int[] _bytes;
+
+        public GridWorld(int width, int height, int[] bytes)
+        {
+            _width = width;
+            _height = height;
+            _bytes = bytes;
+        }
+
         public byte NavByte(int x, int y)
         {
-            return x < 0 || y < 0 || x >= width || y >= height ? NavBytes.Solid : (byte)bytes[y * width + x];
+            return x < 0 || y < 0 || x >= _width || y >= _height ? NavBytes.Solid : (byte)_bytes[y * _width + x];
         }
 
         public bool CanMove(Fixed16Vector from, Fixed16Vector to)

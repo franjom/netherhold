@@ -192,8 +192,17 @@ public class ShotEffectRequestTests
         return (sim, shot, events);
     }
 
-    private sealed class InitialTrail(ShotState shot, bool requestTrail) : ISimulationSystem
+    private sealed class InitialTrail : ISimulationSystem
     {
+        private readonly ShotState _shot;
+        private readonly bool _requestTrail;
+
+        public InitialTrail(ShotState shot, bool requestTrail)
+        {
+            _shot = shot;
+            _requestTrail = requestTrail;
+        }
+
         public string Name
         {
             get
@@ -205,9 +214,9 @@ public class ShotEffectRequestTests
         public void Execute(SimulationContext context)
         {
             context.Navigation.Refresh();
-            if (requestTrail && shot.Age == 0)
+            if (_requestTrail && _shot.Age == 0)
             {
-                ShotRules.RequestTrail(context, shot, new Dk2Angle(256), new Fp32(3000));
+                ShotRules.RequestTrail(context, _shot, new Dk2Angle(256), new Fp32(3000));
             }
         }
     }

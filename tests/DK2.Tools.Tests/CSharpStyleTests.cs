@@ -152,4 +152,12 @@ public sealed class CSharpStyleTests
 
         Assert.Empty(violations);
     }
+
+    [Fact]
+    public void ClassesAndStructsUseExplicitConstructors()
+    {
+        AssertNoCSharpSyntax<TypeDeclarationSyntax>(static type =>
+            type is ClassDeclarationSyntax { ParameterList: not null }
+                or StructDeclarationSyntax { ParameterList: not null });
+    }
 }

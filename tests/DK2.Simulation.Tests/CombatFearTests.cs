@@ -31,8 +31,17 @@ public class CombatFearTests
         Assert.Empty(world.Messages.Entries);
     }
 
-    private sealed class WithdrawWithoutBattle(CreatureState creature, bool expected = true) : ISimulationSystem
+    private sealed class WithdrawWithoutBattle : ISimulationSystem
     {
+        private readonly CreatureState _creature;
+        private readonly bool _expected;
+
+        public WithdrawWithoutBattle(CreatureState creature, bool expected = true)
+        {
+            _creature = creature;
+            _expected = expected;
+        }
+
         public string Name
         {
             get
@@ -46,9 +55,9 @@ public class CombatFearTests
             context.Navigation.Refresh();
             var hearts = new HeartSites();
             hearts.Refresh(context.World, context.Database);
-            Assert.Equal(expected, FearRules.Withdraw(context, new WorldSight(context.Navigation, context.World, context.Database),
-                hearts, new RoomCache(), creature, context.Database.CreatureById(creature.CreatureTypeId),
-                FearRules.StagedTarget(context.World, creature), []));
+            Assert.Equal(_expected, FearRules.Withdraw(context, new WorldSight(context.Navigation, context.World, context.Database),
+                hearts, new RoomCache(), _creature, context.Database.CreatureById(_creature.CreatureTypeId),
+                FearRules.StagedTarget(context.World, _creature), []));
         }
     }
 
@@ -295,8 +304,17 @@ public class CombatFearTests
         return caller.Call;
     }
 
-    private sealed class WithdrawCaller(CreatureState creature, TilePos? staged) : ISimulationSystem
+    private sealed class WithdrawCaller : ISimulationSystem
     {
+        private readonly CreatureState _creature;
+        private readonly TilePos? _staged;
+
+        public WithdrawCaller(CreatureState creature, TilePos? staged)
+        {
+            _creature = creature;
+            _staged = staged;
+        }
+
         public WithdrawCall Call { get; private set; }
         public string Name
         {
@@ -313,7 +331,7 @@ public class CombatFearTests
             hearts.Refresh(context.World, context.Database);
             uint before = ((Dk2Lcg)context.Rng.Algorithm).Seed;
             bool withdrew = FearRules.Withdraw(context, new WorldSight(context.Navigation, context.World, context.Database),
-                hearts, new RoomCache(), creature, context.Database.CreatureById(creature.CreatureTypeId), staged, []);
+                hearts, new RoomCache(), _creature, context.Database.CreatureById(_creature.CreatureTypeId), _staged, []);
             Call = new WithdrawCall(withdrew, before, ((Dk2Lcg)context.Rng.Algorithm).Seed);
         }
     }

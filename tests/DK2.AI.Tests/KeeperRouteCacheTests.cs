@@ -12,9 +12,14 @@ public class KeeperRouteCacheTests
 {
     private const int U = NavMesh.UnitsPerTile;
 
-    private sealed class Grid(string[] rows) : INavByteGrid
+    private sealed class Grid : INavByteGrid
     {
-        private readonly char[][] _rows = [.. rows.Select(r => r.ToCharArray())];
+        public Grid(string[] rows)
+        {
+            _rows = [.. rows.Select(r => r.ToCharArray())];
+        }
+
+        private readonly char[][] _rows;
         public int Width
         {
             get

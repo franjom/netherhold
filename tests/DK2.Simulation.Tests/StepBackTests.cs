@@ -143,8 +143,15 @@ public class StepBackTests
         return taken;
     }
 
-    private sealed class Probe(Action<SimulationContext> run) : ISimulationSystem
+    private sealed class Probe : ISimulationSystem
     {
+        private readonly Action<SimulationContext> _run;
+
+        public Probe(Action<SimulationContext> run)
+        {
+            _run = run;
+        }
+
         public string Name
         {
             get
@@ -155,7 +162,7 @@ public class StepBackTests
 
         public void Execute(SimulationContext context)
         {
-            run(context);
+            _run(context);
         }
     }
 }

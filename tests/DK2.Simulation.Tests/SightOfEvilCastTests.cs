@@ -153,8 +153,15 @@ public sealed class SightOfEvilCastTests
         Assert.Equal(0, world.Player(Keeper).Mana);
     }
 
-    private sealed class CallbackSystem(Action<SimulationContext> execute) : ISimulationSystem
+    private sealed class CallbackSystem : ISimulationSystem
     {
+        private readonly Action<SimulationContext> _execute;
+
+        public CallbackSystem(Action<SimulationContext> execute)
+        {
+            _execute = execute;
+        }
+
         public string Name
         {
             get
@@ -165,7 +172,7 @@ public sealed class SightOfEvilCastTests
 
         public void Execute(SimulationContext context)
         {
-            execute(context);
+            _execute(context);
         }
     }
 }

@@ -227,20 +227,27 @@ public class RatTests
         Assert.Equal(8, chicken.ChickenReactionTicks);
     }
 
-    private sealed class Draws(params (int Bound, int Value)[] draws) : IRandomAlgorithm
+    private sealed class Draws : IRandomAlgorithm
     {
+        private readonly (int Bound, int Value)[] _draws;
+
+        public Draws(params (int Bound, int Value)[] draws)
+        {
+            _draws = draws;
+        }
+
         private int _index;
         public int Remaining
         {
             get
             {
-                return draws.Length - _index;
+                return _draws.Length - _index;
             }
         }
 
         public int NextInt(int exclusiveMax)
         {
-            (int Bound, int Value) draw = draws[_index++];
+            (int Bound, int Value) draw = _draws[_index++];
             Assert.Equal(draw.Bound, exclusiveMax);
             return draw.Value;
         }

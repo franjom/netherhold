@@ -198,20 +198,34 @@ public class CombatAlarmPointTests
         }
     }
 
-    private sealed class FixedDraw(int value) : IRandomAlgorithm
+    private sealed class FixedDraw : IRandomAlgorithm
     {
+        private readonly int _value;
+
+        public FixedDraw(int value)
+        {
+            _value = value;
+        }
+
         public List<int> Bounds { get; } = [];
         public int NextInt(int exclusiveMax)
         {
             Bounds.Add(exclusiveMax);
-            Assert.InRange(value, 0, exclusiveMax - 1);
-            return value;
+            Assert.InRange(_value, 0, exclusiveMax - 1);
+            return _value;
         }
         public void HashInto(ref Hash64 hash) { }
     }
 
-    private sealed class Probe(Action<SimulationContext> body) : ISimulationSystem
+    private sealed class Probe : ISimulationSystem
     {
+        private readonly Action<SimulationContext> _body;
+
+        public Probe(Action<SimulationContext> body)
+        {
+            _body = body;
+        }
+
         public string Name
         {
             get
@@ -222,7 +236,7 @@ public class CombatAlarmPointTests
 
         public void Execute(SimulationContext context)
         {
-            body(context);
+            _body(context);
         }
     }
 }

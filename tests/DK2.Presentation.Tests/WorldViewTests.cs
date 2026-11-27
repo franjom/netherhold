@@ -520,8 +520,17 @@ public class WorldViewTests
         Assert.Null(rendered.AnimationMovementSpeed);
     }
 
-    private sealed class StartAndFinishCast(CreatureState caster, CreatureDef definition) : ISimulationSystem
+    private sealed class StartAndFinishCast : ISimulationSystem
     {
+        private readonly CreatureState _caster;
+        private readonly CreatureDef _definition;
+
+        public StartAndFinishCast(CreatureState caster, CreatureDef definition)
+        {
+            _caster = caster;
+            _definition = definition;
+        }
+
         public string Name
         {
             get
@@ -539,8 +548,8 @@ public class WorldViewTests
             }
 
             _started = true;
-            DK2.Simulation.Combat.FightRules.StartCast(context, caster, definition, 1, tell: false);
-            DK2.Simulation.Combat.FightRules.FireSpell(context, caster, definition);
+            DK2.Simulation.Combat.FightRules.StartCast(context, _caster, _definition, 1, tell: false);
+            DK2.Simulation.Combat.FightRules.FireSpell(context, _caster, _definition);
         }
     }
 
@@ -591,8 +600,17 @@ public class WorldViewTests
         Assert.NotEqual(casting, view.Creatures(world).Single(c => c.Id == caster.Id).Animation);
     }
 
-    private sealed class StartImmediateSwing(CreatureState attacker, CreatureDef definition) : ISimulationSystem
+    private sealed class StartImmediateSwing : ISimulationSystem
     {
+        private readonly CreatureState _attacker;
+        private readonly CreatureDef _definition;
+
+        public StartImmediateSwing(CreatureState attacker, CreatureDef definition)
+        {
+            _attacker = attacker;
+            _definition = definition;
+        }
+
         public string Name
         {
             get
@@ -610,8 +628,8 @@ public class WorldViewTests
             }
 
             _started = true;
-            DK2.Simulation.Combat.FightRules.StartSwing(context, new ClearSight(), attacker,
-                definition with { MeleeHitDelay = new Fp32(0) }, []);
+            DK2.Simulation.Combat.FightRules.StartSwing(context, new ClearSight(), _attacker,
+                _definition with { MeleeHitDelay = new Fp32(0) }, []);
         }
     }
 
@@ -623,8 +641,17 @@ public class WorldViewTests
         }
     }
 
-    private sealed class FinishRangedCast(CreatureState caster, CreatureDef definition) : ISimulationSystem
+    private sealed class FinishRangedCast : ISimulationSystem
     {
+        private readonly CreatureState _caster;
+        private readonly CreatureDef _definition;
+
+        public FinishRangedCast(CreatureState caster, CreatureDef definition)
+        {
+            _caster = caster;
+            _definition = definition;
+        }
+
         public string Name
         {
             get
@@ -635,9 +662,9 @@ public class WorldViewTests
 
         public void Execute(SimulationContext context)
         {
-            caster.FightTargetKind = DK2.Simulation.Combat.FightTargetKind.Door;
-            DK2.Simulation.Combat.FightRules.StartCast(context, caster, definition, 1, tell: false);
-            DK2.Simulation.Combat.FightRules.FireSpell(context, caster, definition);
+            _caster.FightTargetKind = DK2.Simulation.Combat.FightTargetKind.Door;
+            DK2.Simulation.Combat.FightRules.StartCast(context, _caster, _definition, 1, tell: false);
+            DK2.Simulation.Combat.FightRules.FireSpell(context, _caster, _definition);
         }
     }
 

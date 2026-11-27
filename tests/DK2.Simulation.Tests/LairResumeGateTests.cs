@@ -68,8 +68,15 @@ public sealed class LairResumeGateTests
         return (new GameSimulation(db, world, new SimRandom(new Dk2Lcg(42)), [attempt]), creature, attempt);
     }
 
-    private sealed class Attempt(CreatureState creature) : ISimulationSystem
+    private sealed class Attempt : ISimulationSystem
     {
+        private readonly CreatureState _creature;
+
+        public Attempt(CreatureState creature)
+        {
+            _creature = creature;
+        }
+
         public string Name
         {
             get
@@ -83,7 +90,7 @@ public sealed class LairResumeGateTests
         {
             context.Navigation.Refresh();
             Succeeded = new LairSeeker(new GridPathfinder()).TryGoForALair(context, Name,
-                creature, context.Database.CreatureById(creature.CreatureTypeId));
+                _creature, context.Database.CreatureById(_creature.CreatureTypeId));
         }
     }
 }

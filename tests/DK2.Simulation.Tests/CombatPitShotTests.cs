@@ -28,8 +28,15 @@ public sealed class CombatPitShotTests
         Assert.Equal(expectedOwner, Assert.Single(world.Shots).OwnerPlayerId);
     }
 
-    private sealed class Cast(CreatureState caster) : ISimulationSystem
+    private sealed class Cast : ISimulationSystem
     {
+        private readonly CreatureState _caster;
+
+        public Cast(CreatureState caster)
+        {
+            _caster = caster;
+        }
+
         public string Name
         {
             get
@@ -40,7 +47,7 @@ public sealed class CombatPitShotTests
 
         public void Execute(SimulationContext context)
         {
-            FightRules.FireSpell(context, caster, context.Database.CreatureById(caster.CreatureTypeId));
+            FightRules.FireSpell(context, _caster, context.Database.CreatureById(_caster.CreatureTypeId));
         }
     }
 }

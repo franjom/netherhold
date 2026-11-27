@@ -17,8 +17,15 @@ namespace DK2.Behavior.Tests;
 /// numbers, and the synthetic database has four terrain types and one creature -- a goblin
 /// scenario cannot even run against it.</para>
 /// </summary>
-public class ScenarioExpectationTests(ITestOutputHelper output)
+public class ScenarioExpectationTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public ScenarioExpectationTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     /// <summary>The files this theory runs: every scenario with expectations, less those
     /// <see cref="ScenarioCorpus.RunByTheirOwnTest"/> leaves to a test of their own.</summary>
     public static TheoryData<string> WithExpectations()
@@ -39,7 +46,7 @@ public class ScenarioExpectationTests(ITestOutputHelper output)
     [MemberData(nameof(WithExpectations))]
     public void EveryScenario_MeetsItsExpectations(string file)
     {
-        ScenarioResult result = ScenarioCorpus.Run(ScenarioCorpus.Load(file), output);
+        ScenarioResult result = ScenarioCorpus.Run(ScenarioCorpus.Load(file), _output);
         Assert.True(result.ExpectationFailures.Count == 0,
             $"{file}:{Environment.NewLine}  " +
             string.Join(Environment.NewLine + "  ", result.ExpectationFailures));

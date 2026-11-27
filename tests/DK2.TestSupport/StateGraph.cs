@@ -43,8 +43,21 @@ public static class StateGraph
         walk.Visit(original, copy, original.GetType().Name);
     }
 
-    private sealed class Walk(object rootA, object rootB, IReadOnlySet<string> ignored, IReadOnlySet<string> shared)
+    private sealed class Walk
     {
+        private readonly object _rootA;
+        private readonly object _rootB;
+        private readonly IReadOnlySet<string> _ignored;
+        private readonly IReadOnlySet<string> _shared;
+
+        public Walk(object rootA, object rootB, IReadOnlySet<string> ignored, IReadOnlySet<string> shared)
+        {
+            _rootA = rootA;
+            _rootB = rootB;
+            _ignored = ignored;
+            _shared = shared;
+        }
+
         private readonly HashSet<(object, object)> _seen = new HashSet<(object, object)>(ReferencePairComparer.Instance);
 
         public void Visit(object? a, object? b, string path)
@@ -123,7 +136,7 @@ public static class StateGraph
                 foreach (FieldInfo field in t.GetFields(Instance | BindingFlags.DeclaredOnly))
                 {
                     string name = MemberName(field);
-                    if (ignored.Contains(name))
+                    if (_ignored.Contains(name))
                     {
                         continue;
                     }
@@ -132,11 +145,11 @@ public static class StateGraph
                     string here = $"{path}.{name}";
                     if (name == "LinkWorld")
                     {
-                        Assert.True(valueA is null ? valueB is null : ReferenceEquals(valueA, rootA) && ReferenceEquals(valueB, rootB),
+                        Assert.True(valueA is null ? valueB is null : ReferenceEquals(valueA, _rootA) && ReferenceEquals(valueB, _rootB),
                             $"{here}: each thing links its own world");
                         continue;
                     }
-                    if (shared.Contains(name) && (ReferenceEquals(valueA, valueB) || field.FieldType.IsValueType))
+                    if (_shared.Contains(name) && (ReferenceEquals(valueA, valueB) || field.FieldType.IsValueType))
                     {
                         continue;
                     }

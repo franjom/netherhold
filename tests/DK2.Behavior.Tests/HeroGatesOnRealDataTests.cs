@@ -14,8 +14,15 @@ namespace DK2.Behavior.Tests;
 /// <summary>Trigger action 32 against the shipped levels (hero-parties-and-effect-generators.md):
 /// the one-based tile each record names, the room the map puts there, and that the ruin makes
 /// every tile of each gate convertible.</summary>
-public class HeroGatesOnRealDataTests(ITestOutputHelper output)
+public class HeroGatesOnRealDataTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public HeroGatesOnRealDataTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     /// <summary>Where the gate step-off can fire: an action 14 whose action point's centre is a gate
     /// tile, on 35 levels. On every one the step-off point is the spawn tile already: a 3x1's party
     /// stands on its middle tile, and a 2x2's lands where action 14's own adjustment puts it.</summary>
@@ -68,7 +75,7 @@ public class HeroGatesOnRealDataTests(ITestOutputHelper output)
         }
         foreach (KeyValuePair<string, int> pair in onGate)
         {
-            output.WriteLine($"{pair.Key}: {pair.Value}");
+            _output.WriteLine($"{pair.Key}: {pair.Value}");
         }
 
         Assert.Equal(35, gateLevels.Count);
@@ -129,14 +136,14 @@ public class HeroGatesOnRealDataTests(ITestOutputHelper output)
             }
         }
 
-        output.WriteLine($"{hits.Count} records on {levels.Count} levels");
+        _output.WriteLine($"{hits.Count} records on {levels.Count} levels");
         foreach (string hit in hits)
         {
-            output.WriteLine(hit);
+            _output.WriteLine(hit);
         }
 
         var tiles = hits.Distinct().ToList();
-        output.WriteLine($"distinct {tiles.Count} gate2x2 {tiles.Count(t => t.EndsWith("20 Hero Gate [ 2x2 ]"))} gate3x1 {tiles.Count(t => t.EndsWith("23 Hero Gate [ 3x1 ]"))} other {string.Join("; ", tiles.Where(t => t.Contains("terrain") || t.Contains("off-map")))}");
+        _output.WriteLine($"distinct {tiles.Count} gate2x2 {tiles.Count(t => t.EndsWith("20 Hero Gate [ 2x2 ]"))} gate3x1 {tiles.Count(t => t.EndsWith("23 Hero Gate [ 3x1 ]"))} other {string.Join("; ", tiles.Where(t => t.Contains("terrain") || t.Contains("off-map")))}");
         Assert.Equal(67, hits.Count);
         Assert.Equal(66, gatesRuined); // every record but Level 7's reaches a gate through the arm's own lookup
         Assert.Equal(17, levels.Count);

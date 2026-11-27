@@ -211,21 +211,28 @@ public sealed class TremorCreatureTests
         Assert.NotEqual((xBefore, yBefore), (creature.PosX, creature.PosY));
     }
 
-    private sealed class Draws(params (int Bound, int Value)[] draws) : IRandomAlgorithm
+    private sealed class Draws : IRandomAlgorithm
     {
+        private readonly (int Bound, int Value)[] _draws;
+
+        public Draws(params (int Bound, int Value)[] draws)
+        {
+            _draws = draws;
+        }
+
         private int _next;
         public int Remaining
         {
             get
             {
-                return draws.Length - _next;
+                return _draws.Length - _next;
             }
         }
 
         public int NextInt(int exclusiveMax)
         {
-            Assert.True(_next < draws.Length, "Unexpected RNG draw.");
-            (int Bound, int Value) draw = draws[_next++];
+            Assert.True(_next < _draws.Length, "Unexpected RNG draw.");
+            (int Bound, int Value) draw = _draws[_next++];
             Assert.Equal(draw.Bound, exclusiveMax);
             return draw.Value;
         }
@@ -276,8 +283,15 @@ public sealed class TremorCreatureTests
         Assert.Equal(0, draws.Remaining);
     }
 
-    private sealed class Probe(Action<SimulationContext> action) : ISimulationSystem
+    private sealed class Probe : ISimulationSystem
     {
+        private readonly Action<SimulationContext> _action;
+
+        public Probe(Action<SimulationContext> action)
+        {
+            _action = action;
+        }
+
         public string Name
         {
             get
@@ -288,7 +302,7 @@ public sealed class TremorCreatureTests
 
         public void Execute(SimulationContext context)
         {
-            action(context);
+            _action(context);
         }
     }
 

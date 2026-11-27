@@ -15,8 +15,15 @@ namespace DK2.Oracle.Tests;
 /// of up to 256 tiles, caps from a fraction of a tile to 32 tiles; a divide fault in the
 /// original is outside its domain (DK2 would crash), so it is counted, not compared.
 /// </summary>
-public class OriginalGateWalkTests(ITestOutputHelper log)
+public class OriginalGateWalkTests
 {
+    private readonly ITestOutputHelper _log;
+
+    public OriginalGateWalkTests(ITestOutputHelper log)
+    {
+        _log = log;
+    }
+
     private const uint Record = Scratch;
 
     /// <summary><c>0x004CFC50</c>, <see cref="GateWalk.Collapse"/>.</summary>
@@ -138,7 +145,7 @@ public class OriginalGateWalkTests(ITestOutputHelper log)
                 mismatches.Add($"{at}: original {theirs}, ours {ours}");
             }
         }
-        log.WriteLine($"intersect: {inputs.Count} inputs, {faults} divide faults in the original, no crossing in ours; arms: " +
+        _log.WriteLine($"intersect: {inputs.Count} inputs, {faults} divide faults in the original, no crossing in ours; arms: " +
                       string.Join(", ", reached.Select(kv => $"{kv.Key} {kv.Value}")));
         Assert.True(mismatches.Count == 0, $"{mismatches.Count} of {inputs.Count} differ; first:\n" + string.Join("\n", mismatches.Take(15)));
         Assert.True(reached.All(kv => kv.Value > 0), "an arm no swept input reaches: " +
@@ -193,7 +200,7 @@ public class OriginalGateWalkTests(ITestOutputHelper log)
                 mismatches.Add($"{at}: original {theirs}, ours {mine}");
             }
         }
-        log.WriteLine($"{name}: {inputs.Length} inputs, {faults} outside the original's domain (divide fault); arms: " +
+        _log.WriteLine($"{name}: {inputs.Length} inputs, {faults} outside the original's domain (divide fault); arms: " +
                       string.Join(", ", reached.Select(kv => $"{kv.Key} {kv.Value}")));
         Assert.True(mismatches.Count == 0, $"{mismatches.Count} of {inputs.Length} differ; first:\n" + string.Join("\n", mismatches.Take(15)));
         Assert.True(reached.All(kv => kv.Value > 0), "an arm no swept gate reaches: " +

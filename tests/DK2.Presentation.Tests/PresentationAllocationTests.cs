@@ -141,9 +141,14 @@ public sealed class PresentationAllocationTests
         }));
     }
 
-    private sealed class Sources(KeeperResourceKind kind) : IHudHoverSources
+    private sealed class Sources : IHudHoverSources
     {
-        public KeeperResourceKind Kind = kind;
+        public Sources(KeeperResourceKind kind)
+        {
+            Kind = kind;
+        }
+
+        public KeeperResourceKind Kind;
         public int OverviewTextId()
         {
             return 0;

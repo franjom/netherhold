@@ -554,8 +554,15 @@ public class ClaimAndBedEffectTests
         Assert.Equal(new FpPosition3(new Fp32(14336), new Fp32(14336), new Fp32(0)), request.Position);
     }
 
-    private sealed class RescueBed(CreatureState creature) : ISimulationSystem
+    private sealed class RescueBed : ISimulationSystem
     {
+        private readonly CreatureState _creature;
+
+        public RescueBed(CreatureState creature)
+        {
+            _creature = creature;
+        }
+
         public string Name
         {
             get
@@ -566,7 +573,7 @@ public class ClaimAndBedEffectTests
 
         public void Execute(SimulationContext context)
         {
-            Assert.True(CreatureDeathRules.RescueIntoLair(context, creature));
+            Assert.True(CreatureDeathRules.RescueIntoLair(context, _creature));
         }
     }
 

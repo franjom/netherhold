@@ -8,8 +8,17 @@ using DK2.Simulation.Systems;
 namespace DK2.Simulation.Tests;
 public sealed class CombatPitSpectatorCompletionTests
 {
-    private sealed class JobProbe(CreatureState watcher, Action<bool> result) : ISimulationSystem
+    private sealed class JobProbe : ISimulationSystem
     {
+        private readonly CreatureState _watcher;
+        private readonly Action<bool> _result;
+
+        public JobProbe(CreatureState watcher, Action<bool> result)
+        {
+            _watcher = watcher;
+            _result = result;
+        }
+
         public string Name
         {
             get
@@ -20,7 +29,7 @@ public sealed class CombatPitSpectatorCompletionTests
 
         public void Execute(SimulationContext context)
         {
-            result(CombatPitSpectatorRules.TakeTheJob(context, Name, watcher));
+            _result(CombatPitSpectatorRules.TakeTheJob(context, Name, _watcher));
         }
     }
 

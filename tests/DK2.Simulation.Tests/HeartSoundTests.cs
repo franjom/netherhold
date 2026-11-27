@@ -56,8 +56,15 @@ public sealed class HeartSoundTests
         return new FpPosition3(new Fp32(CreatureState.CentreOf(x)), new Fp32(CreatureState.CentreOf(y)), new Fp32(height));
     }
 
-    private sealed class Act(Action<SimulationContext> action) : ISimulationSystem
+    private sealed class Act : ISimulationSystem
     {
+        private readonly Action<SimulationContext> _action;
+
+        public Act(Action<SimulationContext> action)
+        {
+            _action = action;
+        }
+
         public string Name
         {
             get
@@ -68,7 +75,7 @@ public sealed class HeartSoundTests
 
         public void Execute(SimulationContext context)
         {
-            action(context);
+            _action(context);
         }
     }
 

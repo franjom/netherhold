@@ -165,8 +165,15 @@ public sealed class ActionBeginSoundTests
         return (db, world);
     }
 
-    private sealed class Once(Action<SimulationContext> rule) : ISimulationSystem
+    private sealed class Once : ISimulationSystem
     {
+        private readonly Action<SimulationContext> _rule;
+
+        public Once(Action<SimulationContext> rule)
+        {
+            _rule = rule;
+        }
+
         private bool _done;
         public string Name
         {
@@ -184,7 +191,7 @@ public sealed class ActionBeginSoundTests
             }
 
             _done = true;
-            rule(context);
+            _rule(context);
         }
     }
 

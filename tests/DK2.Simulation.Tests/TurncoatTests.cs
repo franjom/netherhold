@@ -296,8 +296,15 @@ public sealed class TurncoatTests
         Assert.True(HandRules.HasPickupPermission(world, db, target, Rival));
     }
 
-    private sealed class Probe(Action<SimulationContext> action) : ISimulationSystem
+    private sealed class Probe : ISimulationSystem
     {
+        private readonly Action<SimulationContext> _action;
+
+        public Probe(Action<SimulationContext> action)
+        {
+            _action = action;
+        }
+
         public string Name
         {
             get
@@ -308,7 +315,7 @@ public sealed class TurncoatTests
 
         public void Execute(SimulationContext context)
         {
-            action(context);
+            _action(context);
         }
     }
 }

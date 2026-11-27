@@ -14,8 +14,15 @@ namespace DK2.Behavior.Tests;
 /// <summary>Every placed trap of the shipped levels against the trap update (traps.md): which ones
 /// have a built firing, their seeded health, the Trigger counts the loader's completion leaves, and
 /// the traps the first update's owner test kills.</summary>
-public class TrapsFireOnRealDataTests(ITestOutputHelper output)
+public class TrapsFireOnRealDataTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public TrapsFireOnRealDataTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     [InstallFact]
     public void EveryPlacedTrapIsListedWithItsScope_TheTriggerCountsMatchTheirNeighbours_AndTheFirstUpdateKillsOnlyLevel20sHeroBoulder_PredictedNotObserved()
     {
@@ -87,15 +94,15 @@ public class TrapsFireOnRealDataTests(ITestOutputHelper output)
             }
         }
 
-        output.WriteLine($"levels {levels}, traps {traps}, firing built {built}, completed {completed}");
+        _output.WriteLine($"levels {levels}, traps {traps}, firing built {built}, completed {completed}");
         foreach (KeyValuePair<string, int> pair in byType)
         {
-            output.WriteLine($"  {pair.Key}: {pair.Value}");
+            _output.WriteLine($"  {pair.Key}: {pair.Value}");
         }
 
-        output.WriteLine($"beside a Trigger {triggerNeighbours.Count}: {string.Join("; ", triggerNeighbours.Take(40))}");
-        output.WriteLine($"guard posts: {string.Join("; ", guardPosts)}");
-        output.WriteLine($"owner kills {ownerKills.Count}: {string.Join("; ", ownerKills.Take(40))}");
+        _output.WriteLine($"beside a Trigger {triggerNeighbours.Count}: {string.Join("; ", triggerNeighbours.Take(40))}");
+        _output.WriteLine($"guard posts: {string.Join("; ", guardPosts)}");
+        _output.WriteLine($"owner kills {ownerKills.Count}: {string.Join("; ", ownerKills.Take(40))}");
         Assert.Equal((39, 959, 959), (levels, traps, completed));
         // Every placed trap, the 97 Boulders included since ADR-0333: the 4 Guard Posts run the gate with
         // shot 0, and no level places a Magic Door or a Jack In The Box.

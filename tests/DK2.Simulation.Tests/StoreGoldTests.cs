@@ -16,10 +16,16 @@ public sealed class StoreGoldTests
     private const byte Keeper = PlayerIds.FirstKeeper;
 
     /// <summary>Hands out the queued draws, then 99, and records every bound asked for.</summary>
-    private sealed class Scripted(params int[] draws) : IRandomAlgorithm
+    private sealed class Scripted : IRandomAlgorithm
     {
-        private readonly Queue<int> _draws = new Queue<int>(draws);
-        public readonly List<int> Bounds = [];
+        public Scripted(params int[] draws)
+        {
+            _draws = new Queue<int>(draws);
+            Bounds = [];
+        }
+
+        private readonly Queue<int> _draws;
+        public readonly List<int> Bounds;
         public int NextInt(int exclusiveMax)
         {
             Bounds.Add(exclusiveMax);

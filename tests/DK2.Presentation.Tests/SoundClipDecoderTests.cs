@@ -12,8 +12,15 @@ public sealed class SoundClipDecoderTests
 {
     private static readonly ResolvedSound Reference = new ResolvedSound("Global/Test", new SoundEntryId(3));
 
-    private sealed class Assets(Func<ResolvedSound, PcmClip?> clip) : IClassicSoundAssets
+    private sealed class Assets : IClassicSoundAssets
     {
+        private readonly Func<ResolvedSound, PcmClip?> _clip;
+
+        public Assets(Func<ResolvedSound, PcmClip?> clip)
+        {
+            _clip = clip;
+        }
+
         public int Calls;
         public SoundMaps Maps(SoundCategory category)
         {
@@ -23,7 +30,7 @@ public sealed class SoundClipDecoderTests
         public PcmClip? Clip(ResolvedSound reference)
         {
             Interlocked.Increment(ref Calls);
-            return clip(reference);
+            return _clip(reference);
         }
     }
 

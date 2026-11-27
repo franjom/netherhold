@@ -270,11 +270,18 @@ public class NonWorkerIdleActionTests
         Assert.Equal(204, c.ActionAnimationPhase);
     }
 
-    private sealed class ObservedParameters(Action observe) : IReadOnlyDictionary<string, long>
+    private sealed class ObservedParameters : IReadOnlyDictionary<string, long>
     {
+        private readonly Action _observe;
+
+        public ObservedParameters(Action observe)
+        {
+            _observe = observe;
+        }
+
         private readonly Dictionary<string, long> _values = new Dictionary<string, long>()
         { ["FlagId"] = 0, ["Flag"] = 10, ["Value"] = 1 };
-        public long this[string key] { get { observe(); return _values[key]; } }
+        public long this[string key] { get { _observe(); return _values[key]; } }
         public int Count
         {
             get
@@ -304,7 +311,7 @@ public class NonWorkerIdleActionTests
             return _values.ContainsKey(key);
         }
 
-        public bool TryGetValue(string key, out long value) { observe(); return _values.TryGetValue(key, out value); }
+        public bool TryGetValue(string key, out long value) { _observe(); return _values.TryGetValue(key, out value); }
         public IEnumerator<KeyValuePair<string, long>> GetEnumerator()
         {
             return _values.GetEnumerator();

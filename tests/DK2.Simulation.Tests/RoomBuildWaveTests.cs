@@ -214,8 +214,15 @@ public sealed class RoomBuildWaveTests
         return (sim, events);
     }
 
-    private sealed class InterveningSystem(Action<SimulationContext> action) : ISimulationSystem
+    private sealed class InterveningSystem : ISimulationSystem
     {
+        private readonly Action<SimulationContext> _action;
+
+        public InterveningSystem(Action<SimulationContext> action)
+        {
+            _action = action;
+        }
+
         public string Name
         {
             get
@@ -226,7 +233,7 @@ public sealed class RoomBuildWaveTests
 
         public void Execute(SimulationContext context)
         {
-            action(context);
+            _action(context);
         }
     }
 }

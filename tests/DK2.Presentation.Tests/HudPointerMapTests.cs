@@ -7,12 +7,21 @@ namespace DK2.Presentation.Tests;
 public sealed class HudPointerMapTests
 {
     /// <summary>The panels under the pointer, and a record of what was asked, in order.</summary>
-    private readonly struct Panels(HudPointerPanel? under, List<HudPointerPanel> asked) : IHudPointerPanels
+    private readonly struct Panels : IHudPointerPanels
     {
+        private readonly HudPointerPanel? _under;
+        private readonly List<HudPointerPanel> _asked;
+
+        public Panels(HudPointerPanel? under, List<HudPointerPanel> asked)
+        {
+            _under = under;
+            _asked = asked;
+        }
+
         public bool Contains(HudPointerPanel panel)
         {
-            asked.Add(panel);
-            return panel == under;
+            _asked.Add(panel);
+            return panel == _under;
         }
     }
 

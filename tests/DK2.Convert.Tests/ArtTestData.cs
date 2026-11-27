@@ -73,29 +73,44 @@ internal static class ArtTestData
         };
     }
 
-    internal sealed class FakeMeshes(params (string Name, byte[] Bytes)[] entries) : IMeshSource
+    internal sealed class FakeMeshes : IMeshSource
     {
-        public IReadOnlyList<string> EntryNames { get; } = entries.Select(entry => entry.Name).ToArray();
+        private readonly (string Name, byte[] Bytes)[] _entries;
+
+        public FakeMeshes(params (string Name, byte[] Bytes)[] entries)
+        {
+            _entries = entries;
+            EntryNames = entries.Select(entry => entry.Name).ToArray();
+        }
+
+        public IReadOnlyList<string> EntryNames { get; }
 
         public bool TryFind(string name, out int index)
         {
-            index = Array.FindIndex(entries, entry => entry.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+            index = Array.FindIndex(_entries, entry => entry.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
             return index >= 0;
         }
 
         public byte[] Read(int index)
         {
-            return entries[index].Bytes;
+            return _entries[index].Bytes;
         }
     }
 
-    internal sealed class FakeTextures(params string[] names) : ITextureSource
+    internal sealed class FakeTextures : ITextureSource
     {
+        private readonly string[] _names;
+
+        public FakeTextures(params string[] names)
+        {
+            _names = names;
+        }
+
         public List<string> Reads { get; } = [];
 
         public string Resolve(string textureName)
         {
-            return names.FirstOrDefault(name => name.Equals(textureName, StringComparison.OrdinalIgnoreCase))
+            return _names.FirstOrDefault(name => name.Equals(textureName, StringComparison.OrdinalIgnoreCase))
             ?? throw new FileNotFoundException($"Engine texture '{textureName}' was not found.");
         }
 

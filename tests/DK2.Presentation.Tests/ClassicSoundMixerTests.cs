@@ -143,18 +143,25 @@ public sealed class ClassicSoundMixerTests
     }
 
     /// <summary>Clips whose decode waits for <see cref="Release"/>, so a test sees the frame before a decode lands.</summary>
-    private sealed class HeldAssets(FakeAssets inner) : IClassicSoundAssets
+    private sealed class HeldAssets : IClassicSoundAssets
     {
+        private readonly FakeAssets _inner;
+
+        public HeldAssets(FakeAssets inner)
+        {
+            _inner = inner;
+        }
+
         public ManualResetEventSlim Release { get; } = new ManualResetEventSlim();
         public SoundMaps Maps(SoundCategory category)
         {
-            return inner.Maps(category);
+            return _inner.Maps(category);
         }
 
         public PcmClip? Clip(ResolvedSound reference)
         {
             Release.Wait();
-            return inner.Clip(reference);
+            return _inner.Clip(reference);
         }
     }
 
@@ -365,11 +372,18 @@ public sealed class ClassicSoundMixerTests
         }
     }
 
-    internal sealed class FakeStream(SoundStreamRole role, PcmAudioQueue samples) : ISoundStream
+    internal sealed class FakeStream : ISoundStream
     {
-        public SoundStreamRole Role { get; } = role;
-        public PcmAudioQueue Samples { get; } = samples;
-        public float Volume { get; private set; } = float.NaN;
+        public FakeStream(SoundStreamRole role, PcmAudioQueue samples)
+        {
+            Role = role;
+            Samples = samples;
+            Volume = float.NaN;
+        }
+
+        public SoundStreamRole Role { get; }
+        public PcmAudioQueue Samples { get; }
+        public float Volume { get; private set; }
         public void SetVolume(float volume)
         {
             Volume = volume;

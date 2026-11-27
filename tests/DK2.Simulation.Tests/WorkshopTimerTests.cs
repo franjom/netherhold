@@ -23,9 +23,14 @@ public sealed class WorkshopTimerTests
 
     /// <summary>The generator as dk2-random.md section 1 states it, written out here so that the
     /// expectations do not lean on <see cref="Dk2Lcg"/>.</summary>
-    private sealed class Oracle(uint seed)
+    private sealed class Oracle
     {
-        public uint Seed { get; private set; } = seed;
+        public Oracle(uint seed)
+        {
+            Seed = seed;
+        }
+
+        public uint Seed { get; private set; }
 
         public int Next(int n)
         {

@@ -62,8 +62,15 @@ public class HeartPillarTests
         Assert.False(ShotRules.HitsHeart(world, db, shot, definition));
     }
 
-    private sealed class FireAtPillar(CreatureState caster) : ISimulationSystem
+    private sealed class FireAtPillar : ISimulationSystem
     {
+        private readonly CreatureState _caster;
+
+        public FireAtPillar(CreatureState caster)
+        {
+            _caster = caster;
+        }
+
         public string Name
         {
             get
@@ -74,9 +81,9 @@ public class HeartPillarTests
 
         public void Execute(SimulationContext context)
         {
-            FightRules.FireSpell(context, caster, context.Database.CreatureById(caster.CreatureTypeId));
-            Assert.True(FightRules.TargetPosition(context.World, context.Database, caster, out int x, out int y, out _));
-            Assert.True(ApproachRules.Enter(context, caster, x, y));
+            FightRules.FireSpell(context, _caster, context.Database.CreatureById(_caster.CreatureTypeId));
+            Assert.True(FightRules.TargetPosition(context.World, context.Database, _caster, out int x, out int y, out _));
+            Assert.True(ApproachRules.Enter(context, _caster, x, y));
         }
     }
 
@@ -153,8 +160,15 @@ public class HeartPillarTests
         Assert.Equal(2, world.Shots.Count);
     }
 
-    private sealed class FirePending(CreatureState caster) : ISimulationSystem
+    private sealed class FirePending : ISimulationSystem
     {
+        private readonly CreatureState _caster;
+
+        public FirePending(CreatureState caster)
+        {
+            _caster = caster;
+        }
+
         public string Name
         {
             get
@@ -165,12 +179,19 @@ public class HeartPillarTests
 
         public void Execute(SimulationContext context)
         {
-            FightRules.FireSpell(context, caster, context.Database.CreatureById(caster.CreatureTypeId));
+            FightRules.FireSpell(context, _caster, context.Database.CreatureById(_caster.CreatureTypeId));
         }
     }
 
-    private sealed class InvalidAttack(CreatureState caster) : ISimulationSystem
+    private sealed class InvalidAttack : ISimulationSystem
     {
+        private readonly CreatureState _caster;
+
+        public InvalidAttack(CreatureState caster)
+        {
+            _caster = caster;
+        }
+
         public string Name
         {
             get
@@ -181,9 +202,9 @@ public class HeartPillarTests
 
         public void Execute(SimulationContext context)
         {
-            CreatureDef definition = context.Database.CreatureById(caster.CreatureTypeId);
-            FightRules.LandBlow(context, caster, definition);
-            FightRules.FireSpell(context, caster, definition);
+            CreatureDef definition = context.Database.CreatureById(_caster.CreatureTypeId);
+            FightRules.LandBlow(context, _caster, definition);
+            FightRules.FireSpell(context, _caster, definition);
         }
     }
 

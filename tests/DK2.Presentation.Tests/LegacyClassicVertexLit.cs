@@ -12,9 +12,16 @@ namespace DK2.Presentation.Tests;
 /// to right. The structured buffers are arrays; <c>_DK2TileLightGridWidth</c> and <c>_DK2TileLightGridCount</c> parameters.</summary>
 internal static class LegacyClassicVertexLit
 {
-    public struct Float3(float x, float y, float z)
+    public struct Float3
     {
-        public float X = x, Y = y, Z = z;
+        public Float3(float x, float y, float z)
+        {
+            X = x;
+            Y = y;
+            Z = z;
+        }
+
+        public float X, Y, Z;
         public static Float3 operator +(Float3 a, Float3 b)
         {
             return new Float3(a.X + b.X, a.Y + b.Y, a.Z + b.Z);
@@ -31,9 +38,17 @@ internal static class LegacyClassicVertexLit
         }
     }
 
-    public struct Float4(float x, float y, float z, float w)
+    public struct Float4
     {
-        public float X = x, Y = y, Z = z, W = w;
+        public Float4(float x, float y, float z, float w)
+        {
+            X = x;
+            Y = y;
+            Z = z;
+            W = w;
+        }
+
+        public float X, Y, Z, W;
         public Float3 Xyz
         {
             get
@@ -44,9 +59,16 @@ internal static class LegacyClassicVertexLit
     }
 
     /// <summary>A float3x3 by rows: <c>mul(m, v)</c> dots each row with v.</summary>
-    public struct Float3x3(Float3 row0, Float3 row1, Float3 row2)
+    public struct Float3x3
     {
-        public Float3 R0 = row0, R1 = row1, R2 = row2;
+        public Float3x3(Float3 row0, Float3 row1, Float3 row2)
+        {
+            R0 = row0;
+            R1 = row1;
+            R2 = row2;
+        }
+
+        public Float3 R0, R1, R2;
         public readonly Float3 Mul(Float3 v)
         {
             return new Float3(Dot(R0, v), Dot(R1, v), Dot(R2, v));

@@ -121,8 +121,15 @@ public sealed class TargetedCastHoldTests
         Assert.Equal(0, caster.ActionUntilTick);
     }
 
-    private sealed class RunRule(Action<SimulationContext> rule) : ISimulationSystem
+    private sealed class RunRule : ISimulationSystem
     {
+        private readonly Action<SimulationContext> _rule;
+
+        public RunRule(Action<SimulationContext> rule)
+        {
+            _rule = rule;
+        }
+
         public string Name
         {
             get
@@ -133,12 +140,19 @@ public sealed class TargetedCastHoldTests
 
         public void Execute(SimulationContext context)
         {
-            rule(context);
+            _rule(context);
         }
     }
 
-    private sealed class StartOnce(CreatureState caster) : ISimulationSystem
+    private sealed class StartOnce : ISimulationSystem
     {
+        private readonly CreatureState _caster;
+
+        public StartOnce(CreatureState caster)
+        {
+            _caster = caster;
+        }
+
         private bool _started;
         public string Name
         {
@@ -156,7 +170,7 @@ public sealed class TargetedCastHoldTests
             }
 
             _started = true;
-            FightRules.StartCast(context, caster, context.Database.CreatureById(caster.CreatureTypeId), 0);
+            FightRules.StartCast(context, _caster, context.Database.CreatureById(_caster.CreatureTypeId), 0);
         }
     }
 

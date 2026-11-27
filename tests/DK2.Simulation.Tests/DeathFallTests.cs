@@ -139,8 +139,15 @@ public class DeathFallTests
         new GameSimulation(sim.Database, sim.World, sim.Rng, [new Picker(body)]).Tick();
     }
 
-    private sealed class Picker(Action<SimulationContext> body) : ISimulationSystem
+    private sealed class Picker : ISimulationSystem
     {
+        private readonly Action<SimulationContext> _body;
+
+        public Picker(Action<SimulationContext> body)
+        {
+            _body = body;
+        }
+
         public string Name
         {
             get
@@ -151,7 +158,7 @@ public class DeathFallTests
 
         public void Execute(SimulationContext context)
         {
-            body(context);
+            _body(context);
         }
     }
 
@@ -280,8 +287,15 @@ public class DeathFallTests
         Assert.Equal(fell, goblin.Body.Pos);
     }
 
-    private sealed class Run(Action<SimulationContext> body) : ISimulationSystem
+    private sealed class Run : ISimulationSystem
     {
+        private readonly Action<SimulationContext> _body;
+
+        public Run(Action<SimulationContext> body)
+        {
+            _body = body;
+        }
+
         public string Name
         {
             get
@@ -292,7 +306,7 @@ public class DeathFallTests
 
         public void Execute(SimulationContext context)
         {
-            body(context);
+            _body(context);
         }
     }
 }

@@ -206,8 +206,17 @@ public class TriggerSchedulingTests
         }
     }
 
-    private sealed class HealthStep(int newer, int older) : ICreatureUpdateStep
+    private sealed class HealthStep : ICreatureUpdateStep
     {
+        private readonly int _newer;
+        private readonly int _older;
+
+        public HealthStep(int newer, int older)
+        {
+            _newer = newer;
+            _older = older;
+        }
+
         public string Name
         {
             get
@@ -224,12 +233,12 @@ public class TriggerSchedulingTests
 
         public void Update(SimulationContext context, CreatureState creature)
         {
-            if (creature.Id == newer)
+            if (creature.Id == _newer)
             {
                 creature.Health = 0;
             }
 
-            if (creature.Id == older)
+            if (creature.Id == _older)
             {
                 StampSeenByOlder = context.World.Triggers.ReadTimer(3);
             }
@@ -249,8 +258,17 @@ public class TriggerSchedulingTests
         };
     }
 
-    private sealed class FlagProbe(string label, List<string> log) : ICreatureUpdateStep
+    private sealed class FlagProbe : ICreatureUpdateStep
     {
+        private readonly string _label;
+        private readonly List<string> _log;
+
+        public FlagProbe(string label, List<string> log)
+        {
+            _label = label;
+            _log = log;
+        }
+
         public string Name
         {
             get
@@ -261,12 +279,12 @@ public class TriggerSchedulingTests
 
         public void Execute(SimulationContext context)
         {
-            log.Add($"{label}: {Flags(context)}");
+            _log.Add($"{_label}: {Flags(context)}");
         }
 
         public void Update(SimulationContext context, CreatureState creature)
         {
-            log.Add($"{label} {creature.Id}: {Flags(context)}");
+            _log.Add($"{_label} {creature.Id}: {Flags(context)}");
         }
 
         private static string Flags(SimulationContext context)

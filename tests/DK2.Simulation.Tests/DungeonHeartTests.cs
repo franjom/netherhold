@@ -410,8 +410,15 @@ public class DungeonHeartTests
         Assert.Equal(1u, second.Age);
     }
 
-    private sealed class HeartMelee(CreatureState attacker) : ISimulationSystem
+    private sealed class HeartMelee : ISimulationSystem
     {
+        private readonly CreatureState _attacker;
+
+        public HeartMelee(CreatureState attacker)
+        {
+            _attacker = attacker;
+        }
+
         public string Name
         {
             get
@@ -423,7 +430,7 @@ public class DungeonHeartTests
         public void Execute(SimulationContext context)
         {
             Combat.FightRules.LandBlow(
-            context, attacker, context.Database.CreatureById(attacker.CreatureTypeId));
+            context, _attacker, context.Database.CreatureById(_attacker.CreatureTypeId));
         }
     }
 

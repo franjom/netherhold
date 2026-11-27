@@ -208,8 +208,15 @@ public class SlapStateTests
         Assert.Equal((x, y), (goblin.PosX, goblin.PosY));
     }
 
-    private sealed class Probe(Action<SimulationContext> body) : ISimulationSystem
+    private sealed class Probe : ISimulationSystem
     {
+        private readonly Action<SimulationContext> _body;
+
+        public Probe(Action<SimulationContext> body)
+        {
+            _body = body;
+        }
+
         public string Name
         {
             get
@@ -220,7 +227,7 @@ public class SlapStateTests
 
         public void Execute(SimulationContext context)
         {
-            body(context);
+            _body(context);
         }
     }
 }

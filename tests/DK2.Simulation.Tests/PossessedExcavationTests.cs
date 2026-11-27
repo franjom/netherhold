@@ -242,8 +242,15 @@ public sealed class PossessedExcavationTests
         Assert.False(CreatureCurrentAction.IsRunning(cloned, sim.CurrentTick));
     }
 
-    private sealed class ReplacementAttack(byte kind) : ICreatureUpdateStep
+    private sealed class ReplacementAttack : ICreatureUpdateStep
     {
+        private readonly byte _kind;
+
+        public ReplacementAttack(byte kind)
+        {
+            _kind = kind;
+        }
+
         public string Name
         {
             get
@@ -259,7 +266,7 @@ public sealed class PossessedExcavationTests
 
         public void Update(SimulationContext context, CreatureState creature)
         {
-            FightRules.BeginPossessedAction(context, creature, kind, 0, FightTargetKind.None, CombatRules.NoTarget);
+            FightRules.BeginPossessedAction(context, creature, _kind, 0, FightTargetKind.None, CombatRules.NoTarget);
         }
     }
 }

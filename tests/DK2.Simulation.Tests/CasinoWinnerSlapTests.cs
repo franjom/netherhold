@@ -162,8 +162,15 @@ public class CasinoWinnerSlapTests
         Assert.Equal(7, incoming.GoldHeld);
     }
 
-    private sealed class Land(ObjectState pile) : ISimulationSystem
+    private sealed class Land : ISimulationSystem
     {
+        private readonly ObjectState _pile;
+
+        public Land(ObjectState pile)
+        {
+            _pile = pile;
+        }
+
         public string Name
         {
             get
@@ -174,7 +181,7 @@ public class CasinoWinnerSlapTests
 
         public void Execute(SimulationContext context)
         {
-            FloorGoldLandingRules.Land(context, pile);
+            FloorGoldLandingRules.Land(context, _pile);
         }
     }
 }

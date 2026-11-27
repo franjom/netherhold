@@ -13,8 +13,15 @@ namespace DK2.Behavior.Tests;
 /// <summary>The campaign player's knowledge (stage 3 plan, Task 3a): room facts generated from the
 /// simulation's own rules on the shipped data, and the loader that turns them and the rules into
 /// the player's options.</summary>
-public class KeeperKnowledgeTests(Xunit.Abstractions.ITestOutputHelper output)
+public class KeeperKnowledgeTests
 {
+    private readonly Xunit.Abstractions.ITestOutputHelper _output;
+
+    public KeeperKnowledgeTests(Xunit.Abstractions.ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     private static readonly Lazy<IReadOnlyList<KeeperKnowledgeCommand.RoomFacts>> Generated = new Lazy<IReadOnlyList<KeeperKnowledgeCommand.RoomFacts>>(() =>
         KeeperKnowledgeCommand.Measure(ScenarioCorpus.Database,
             GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "level1")!));
@@ -60,7 +67,7 @@ public class KeeperKnowledgeTests(Xunit.Abstractions.ITestOutputHelper output)
             KeeperKnowledgeCommand.SizeFacts? fits = Generated.Value.Single(r => r.Room == RoomTypeId.Library).Sizes.FirstOrDefault(s => s.FloorSlots >= slots);
             rows.Add($"{level}: {researchable} researchable, {slots} slots, Library {(fits is null ? "over 7x7" : $"{fits.Side}x{fits.Side}")}");
         }
-        output.WriteLine(string.Join("\n", rows));
+        _output.WriteLine(string.Join("\n", rows));
         // Recorded 2026-11-14 at hash 519, research-list entries only: Levels 2 and 7 leave two items (a 4x4 Library).
         Assert.Equal(
         [

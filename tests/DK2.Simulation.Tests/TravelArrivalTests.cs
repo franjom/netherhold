@@ -95,9 +95,16 @@ public class TravelArrivalTests
         Assert.Equal(keepsItsRoute, walker.HasRoute);
     }
 
-    /// <summary>Routes one tile east in <paramref name="state"/> and stands the body on the last point.</summary>
-    private sealed class Place(int state) : ICreatureUpdateStep
+    /// <summary>Routes one tile east in the selected state and stands the body on the last point.</summary>
+    private sealed class Place : ICreatureUpdateStep
     {
+        private readonly int _state;
+
+        public Place(int state)
+        {
+            _state = state;
+        }
+
         public string Name
         {
             get
@@ -113,7 +120,7 @@ public class TravelArrivalTests
 
         public void Update(SimulationContext context, CreatureState creature)
         {
-            CreatureStateMachine.BeginTravel(context.Hooks, creature, state, CreatureStateMachine.Idle);
+            CreatureStateMachine.BeginTravel(context.Hooks, creature, _state, CreatureStateMachine.Idle);
             Assert.True(context.Navigation.TryRoute(creature, new TilePos(3, 3), MoveOptions.Plain));
             Assert.Equal(1, creature.Body.PathTotalCount);
             creature.Body.Pos = creature.Body.PathTargetPos;

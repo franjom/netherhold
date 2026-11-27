@@ -232,8 +232,15 @@ public class CombatTests
         Assert.Equal(other.Id, demon.FightTargetId);
     }
 
-    private sealed class Lambda(Action<SimulationContext> body) : ISimulationSystem
+    private sealed class Lambda : ISimulationSystem
     {
+        private readonly Action<SimulationContext> _body;
+
+        public Lambda(Action<SimulationContext> body)
+        {
+            _body = body;
+        }
+
         public string Name
         {
             get
@@ -244,7 +251,7 @@ public class CombatTests
 
         public void Execute(SimulationContext context)
         {
-            body(context);
+            _body(context);
         }
     }
 

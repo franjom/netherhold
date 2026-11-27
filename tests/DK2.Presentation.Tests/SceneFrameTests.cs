@@ -107,8 +107,15 @@ public class SceneFrameTests
     /// <summary>Unity's <c>DungeonScene.DrawCreatureFrame</c> as it stood at f49bcbba, over the same host: the hover overlay's
     /// frame, the clamp and frame time, the Hearts, then per creature in the pose table's order the eight steps, then the
     /// objects and the torch refresh.</summary>
-    private sealed class LegacyFrame(ISceneFrameHost host)
+    private sealed class LegacyFrame
     {
+        private readonly ISceneFrameHost _host;
+
+        public LegacyFrame(ISceneFrameHost host)
+        {
+            _host = host;
+        }
+
         public readonly Dictionary<int, CreatureView> Poses = [];
         public readonly CreatureHeadTable Heads = new CreatureHeadTable();
         public int HiddenCreatureId;
@@ -117,48 +124,48 @@ public class SceneFrameTests
 
         public void Draw(GameTick tick, float fraction)
         {
-            host.BeginFrame();
+            _host.BeginFrame();
             fraction = fraction < 0f ? 0f : fraction > 1f ? 1f : fraction;
             _renderSeconds = PoseInterpolator.DrawSeconds(tick, fraction);
-            host.AdvanceHeartHealth();
+            _host.AdvanceHeartHealth();
             foreach (KeyValuePair<int, CreatureView> entry in Poses)
             {
                 CreatureView pose = entry.Value;
                 DrawPoint drawn = PoseInterpolator.Position(pose, fraction);
-                if (!host.PlaceCreature(new CreatureId(entry.Key), pose, drawn))
+                if (!_host.PlaceCreature(new CreatureId(entry.Key), pose, drawn))
                 {
                     continue;
                 }
 
-                host.DrawCreatureClip(new CreatureId(entry.Key), pose, _renderSeconds);
+                _host.DrawCreatureClip(new CreatureId(entry.Key), pose, _renderSeconds);
                 if (entry.Key == HiddenCreatureId)
                 {
-                    host.HideCreatureModel(new CreatureId(entry.Key));
+                    _host.HideCreatureModel(new CreatureId(entry.Key));
                 }
 
-                int crossing = host.FootstepCrossing(new CreatureId(entry.Key));
+                int crossing = _host.FootstepCrossing(new CreatureId(entry.Key));
                 if (crossing != 0)
                 {
-                    host.RequestFootstep(new CreatureId(entry.Key), pose, crossing);
+                    _host.RequestFootstep(new CreatureId(entry.Key), pose, crossing);
                 }
 
                 if (pose.BurningRed)
                 {
-                    host.DrawBurningRed(new CreatureId(entry.Key), pose);
+                    _host.DrawBurningRed(new CreatureId(entry.Key), pose);
                 }
 
-                host.DrawCrackle(new CreatureId(entry.Key), tick);
-                Heads.Set(new CreatureId(entry.Key), host.TryGetControlPoint(new CreatureId(entry.Key), KmfControlPoint.Head,
+                _host.DrawCrackle(new CreatureId(entry.Key), tick);
+                Heads.Set(new CreatureId(entry.Key), _host.TryGetControlPoint(new CreatureId(entry.Key), KmfControlPoint.Head,
                     out Vector3 head) ? RenderWorld.ToNative(head) : null);
-                if (pose.GemCarrier && host.TakesGemSparkles
-                    && host.TryGetControlPoint(new CreatureId(entry.Key), CreatureView.GemDustSparkle.ControlPoint, out Vector3 sparkle)
-                    && _gemSparkles.TryPass(new CreatureId(entry.Key), host.EffectClock()))
+                if (pose.GemCarrier && _host.TakesGemSparkles
+                    && _host.TryGetControlPoint(new CreatureId(entry.Key), CreatureView.GemDustSparkle.ControlPoint, out Vector3 sparkle)
+                    && _gemSparkles.TryPass(new CreatureId(entry.Key), _host.EffectClock()))
                 {
-                    host.RequestGemSparkle(RenderWorld.ToNative(sparkle));
+                    _host.RequestGemSparkle(RenderWorld.ToNative(sparkle));
                 }
             }
-            host.DrawObjects(tick, fraction);
-            host.RefreshTorches();
+            _host.DrawObjects(tick, fraction);
+            _host.RefreshTorches();
         }
     }
 

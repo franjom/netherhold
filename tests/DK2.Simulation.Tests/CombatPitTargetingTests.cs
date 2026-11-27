@@ -46,16 +46,32 @@ public sealed class CombatPitTargetingTests
         me.AttackingKind = FightTargetKind.Creature;
     }
 
-    private sealed class Sight(bool blocked) : ISightBlocker
+    private sealed class Sight : ISightBlocker
     {
+        private readonly bool _blocked;
+
+        public Sight(bool blocked)
+        {
+            _blocked = blocked;
+        }
+
         public bool Blocks(int x, int y)
         {
-            return blocked;
+            return _blocked;
         }
     }
 
-    private sealed class SelectOnce(CreatureState me, ISightBlocker? sight = null) : ISimulationSystem
+    private sealed class SelectOnce : ISimulationSystem
     {
+        private readonly CreatureState _me;
+        private readonly ISightBlocker? _sight;
+
+        public SelectOnce(CreatureState me, ISightBlocker? sight = null)
+        {
+            _me = me;
+            _sight = sight;
+        }
+
         public string Name
         {
             get
@@ -71,8 +87,8 @@ public sealed class CombatPitTargetingTests
             var hearts = new HeartSites();
             hearts.Refresh(context.World, context.Database);
             Selected = CombatTargetRules.SelectAVictim(context,
-                sight ?? new WorldSight(context.Navigation, context.World, context.Database),
-                hearts, new RoomCache(), me, context.Database.CreatureById(me.CreatureTypeId), []);
+                _sight ?? new WorldSight(context.Navigation, context.World, context.Database),
+                hearts, new RoomCache(), _me, context.Database.CreatureById(_me.CreatureTypeId), []);
         }
     }
 

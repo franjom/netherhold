@@ -20,8 +20,15 @@ namespace DK2.Behavior.Tests;
 /// (campaign-win-sequence.md §2-§3) followed to the Portal Gem pickup. The tick numbers are this
 /// remake's output for this controller, not DK2 facts, so the tests assert relations between them.
 /// </summary>
-public class CampaignPlayerLevel1Tests(ITestOutputHelper output)
+public class CampaignPlayerLevel1Tests
 {
+    private readonly ITestOutputHelper _output;
+
+    public CampaignPlayerLevel1Tests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     private const string ScenarioFile = "campaign-player/level1.yaml";
     private static readonly PlayerId Keeper = new PlayerId(3);
 
@@ -112,7 +119,7 @@ public class CampaignPlayerLevel1Tests(ITestOutputHelper output)
         Assert.All(applied, c => Assert.Equal(Keeper, c.PlayerId));
         int submitted = attempt.Player.Decisions.Sum(d => d.Receipts.Count(r => r.Status == PlayerReceiptStatus.Submitted));
         Assert.Equal(submitted, applied.Count);
-        output.WriteLine($"start hash {attempt.Result.HashPerTick[0]:X16}; {applied.Count} applied commands, all player 3's");
+        _output.WriteLine($"start hash {attempt.Result.HashPerTick[0]:X16}; {applied.Count} applied commands, all player 3's");
     }
 
     [InstallFact]
@@ -130,7 +137,7 @@ public class CampaignPlayerLevel1Tests(ITestOutputHelper output)
         Assert.Equal(attempt.Result.TicksRun, attempt.Journal.TicksRun);
         Assert.Empty(attempt.Result.ExpectationFailures);
         Assert.Equal(PlayerRunOutcome.Completed, PlayerRunReport.Outcome(player, evidenceComplete: true));
-        output.WriteLine($"won at t{player.ResultTick?.Value} after {player.Decisions.Count} decisions; run ended at t{attempt.Result.TicksRun}");
+        _output.WriteLine($"won at t{player.ResultTick?.Value} after {player.Decisions.Count} decisions; run ended at t{attempt.Result.TicksRun}");
     }
 
     [InstallFact]
@@ -154,7 +161,7 @@ public class CampaignPlayerLevel1Tests(ITestOutputHelper output)
             Assert.Equal(attempt.Result.TicksRun, replay.TicksRun);
             Assert.Equal(attempt.Result.HashPerTick, replay.HashPerTick);
         }
-        output.WriteLine($"{plain.Replay!.ComparedTicks} recorded hashes matched twice; final {plain.FinalStateHash:X16}");
+        _output.WriteLine($"{plain.Replay!.ComparedTicks} recorded hashes matched twice; final {plain.FinalStateHash:X16}");
     }
 
     [InstallFact]
@@ -180,7 +187,7 @@ public class CampaignPlayerLevel1Tests(ITestOutputHelper output)
         ScenarioResult replay = new ScenarioRunner(ScenarioCorpus.Database, Dk2InstallGate.Path)
             .Replay(ScenarioCorpus.Load(ScenarioFile), attempt.Journal);
         Assert.Single(replay.Events, e => e.Kind == "gem_taken" && e.Tick.Value == pickup);
-        output.WriteLine($"won t{win}, Reaper took the gem t{pickup} ({pickup - win} ticks later)");
+        _output.WriteLine($"won t{win}, Reaper took the gem t{pickup} ({pickup - win} ticks later)");
     }
 
     [InstallFact]
@@ -223,7 +230,7 @@ public class CampaignPlayerLevel1Tests(ITestOutputHelper output)
             Assert.StartsWith("claimed: campaign:level1 (seed 1) won from its unmodified start", acceptance, StringComparison.Ordinal);
             // The in-process replay proved every recorded hash: the run's ticks plus its initial hash.
             Assert.Contains($"matched all {report.RootElement.GetProperty("ticks_run").GetInt32() + 1} recorded hashes", acceptance, StringComparison.Ordinal);
-            output.WriteLine(acceptance);
+            _output.WriteLine(acceptance);
         }
         finally
         {

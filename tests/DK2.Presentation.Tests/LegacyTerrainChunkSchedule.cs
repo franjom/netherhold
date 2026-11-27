@@ -350,11 +350,18 @@ internal sealed class SchedulerLog : ITerrainChunkSink
         Uploaded?.Invoke();
     }
 
-    internal sealed class Upload(int chunk)
+    internal sealed class Upload
     {
-        public int Chunk { get; } = chunk;
-        public List<int> Tiles { get; } = new List<int>();
-        public List<float> Numbers { get; } = new List<float>();
+        public Upload(int chunk)
+        {
+            Chunk = chunk;
+            Tiles = new List<int>();
+            Numbers = new List<float>();
+        }
+
+        public int Chunk { get; }
+        public List<int> Tiles { get; }
+        public List<float> Numbers { get; }
         public int Vertices { get; private set; }
 
         public void Add(int tileIndex, TerrainTileGeometry geometry)

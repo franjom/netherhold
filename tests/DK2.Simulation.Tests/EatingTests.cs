@@ -748,8 +748,15 @@ public class EatingTests
         Assert.DoesNotContain(points, corners.Contains);
     }
 
-    private sealed class Probe(Action<SimulationContext> body) : ISimulationSystem
+    private sealed class Probe : ISimulationSystem
     {
+        private readonly Action<SimulationContext> _body;
+
+        public Probe(Action<SimulationContext> body)
+        {
+            _body = body;
+        }
+
         public string Name
         {
             get
@@ -760,7 +767,7 @@ public class EatingTests
 
         public void Execute(SimulationContext context)
         {
-            body(context);
+            _body(context);
         }
     }
 

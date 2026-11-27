@@ -14,8 +14,15 @@ namespace DK2.Behavior.Tests;
 /// <summary>A Torture Chamber's places are its auto-placed devices (<c>0x004E3ED0</c>), and a
 /// victim's claim needs one (ADR-0309). No shipped map places a device as a THINGS object, so
 /// every pre-built chamber must get its devices from the room itself. Swept over every map.</summary>
-public class TortureChamberPlacesOnRealDataTests(ITestOutputHelper output)
+public class TortureChamberPlacesOnRealDataTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public TortureChamberPlacesOnRealDataTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     private static IEnumerable<string> LevelNames(string install)
     {
         string maps = Path.Combine(install, "Data", "editor", "maps");
@@ -53,7 +60,7 @@ public class TortureChamberPlacesOnRealDataTests(ITestOutputHelper output)
             {
                 chambers++;
                 AutoFurnitureRules.TryTotalCapacity(world, room, out int capacity);
-                output.WriteLine($"{level} owner={room.OwnerPlayerId} {room.Width}x{room.Height} tiles={room.TileCount} places={capacity}");
+                _output.WriteLine($"{level} owner={room.OwnerPlayerId} {room.Width}x{room.Height} tiles={room.TileCount} places={capacity}");
                 if (capacity == 0)
                 {
                     empty.Add($"{level} owner={room.OwnerPlayerId} {room.Width}x{room.Height}");
@@ -61,7 +68,7 @@ public class TortureChamberPlacesOnRealDataTests(ITestOutputHelper output)
             }
         }
 
-        output.WriteLine($"{chambers} chambers, {empty.Count} with no place");
+        _output.WriteLine($"{chambers} chambers, {empty.Count} with no place");
         Assert.True(chambers > 0);
         Assert.Empty(empty);
     }

@@ -494,11 +494,18 @@ public class CasinoStateTests
         Assert.DoesNotContain(events.Events, e => e.ThingSound is { Event: not ThingSoundEvent.PartyMusic });   // the pop waits for the effect's creation; the music is the dancers'
     }
 
-    private sealed class Fixed(int value) : IRandomAlgorithm
+    private sealed class Fixed : IRandomAlgorithm
     {
+        private readonly int _value;
+
+        public Fixed(int value)
+        {
+            _value = value;
+        }
+
         public int NextInt(int exclusiveMax)
         {
-            return Math.Min(value, exclusiveMax - 1);
+            return Math.Min(_value, exclusiveMax - 1);
         }
 
         public void HashInto(ref Hash64 hash) { }
@@ -596,8 +603,15 @@ public class CasinoStateTests
         Assert.All(drinkers, c => Assert.Equal(45 * SimulationTiming.OriginalTicksPerGameSecond, c.DrunkTicks));
     }
 
-    private sealed class Probe(Action<SimulationContext> body) : ISimulationSystem
+    private sealed class Probe : ISimulationSystem
     {
+        private readonly Action<SimulationContext> _body;
+
+        public Probe(Action<SimulationContext> body)
+        {
+            _body = body;
+        }
+
         public string Name
         {
             get
@@ -608,7 +622,7 @@ public class CasinoStateTests
 
         public void Execute(SimulationContext context)
         {
-            body(context);
+            _body(context);
         }
     }
 

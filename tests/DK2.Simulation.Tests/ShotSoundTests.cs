@@ -52,8 +52,15 @@ public sealed class ShotSoundTests
     }
 
     /// <summary>What every caller of <c>Shot_Create</c> does once, as the spell casts and traps do through <see cref="ShotRules.RequestTrail"/>.</summary>
-    private sealed class Construct(ShotState shot) : ISimulationSystem
+    private sealed class Construct : ISimulationSystem
     {
+        private readonly ShotState _shot;
+
+        public Construct(ShotState shot)
+        {
+            _shot = shot;
+        }
+
         public string Name
         {
             get
@@ -65,9 +72,9 @@ public sealed class ShotSoundTests
         public void Execute(SimulationContext context)
         {
             context.Navigation.Refresh();
-            if (shot.Age == 0 && context.Tick.Value == 0)
+            if (_shot.Age == 0 && context.Tick.Value == 0)
             {
-                ShotRules.RequestTrail(context, shot, new Dk2Angle(256), new Fp32(3000));
+                ShotRules.RequestTrail(context, _shot, new Dk2Angle(256), new Fp32(3000));
             }
         }
     }

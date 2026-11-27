@@ -275,8 +275,17 @@ public sealed class LightningTargetDrawTests
         draws.DrawShots(f.World, f.Database, f.View, 1);
         Assert.Empty(draws.Vertices);
     }
-    private sealed class LaunchForInterpolation(ShotState shot, Fp32 height) : ISimulationSystem
+    private sealed class LaunchForInterpolation : ISimulationSystem
     {
+        private readonly ShotState _shot;
+        private readonly Fp32 _height;
+
+        public LaunchForInterpolation(ShotState shot, Fp32 height)
+        {
+            _shot = shot;
+            _height = height;
+        }
+
         public string Name
         {
             get
@@ -287,7 +296,7 @@ public sealed class LightningTargetDrawTests
 
         public void Execute(SimulationContext context)
         {
-            ShotRules.RequestTrail(context, shot, default, height);
+            ShotRules.RequestTrail(context, _shot, default, _height);
         }
     }
 

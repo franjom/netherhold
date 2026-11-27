@@ -14,8 +14,15 @@ namespace DK2.Simulation.Tests;
 /// makes a Jack in state 273, which wears out walking to its victim's keeper's heart and explodes.</summary>
 public class JackInTheBoxTests
 {
-    private sealed class SpringOnce(ShotState shot) : ISimulationSystem
+    private sealed class SpringOnce : ISimulationSystem
     {
+        private readonly ShotState _shot;
+
+        public SpringOnce(ShotState shot)
+        {
+            _shot = shot;
+        }
+
         public string Name
         {
             get
@@ -27,7 +34,7 @@ public class JackInTheBoxTests
         public void Execute(SimulationContext context)
         {
             context.Navigation.Refresh();
-            JackInTheBoxRules.Spring(context, shot);
+            JackInTheBoxRules.Spring(context, _shot);
         }
     }
 

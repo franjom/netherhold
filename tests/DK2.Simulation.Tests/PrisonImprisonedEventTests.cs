@@ -229,8 +229,15 @@ public class PrisonImprisonedEventTests
     ], 0);
     }
 
-    private sealed class Act(Action<SimulationContext> body) : ISimulationSystem
+    private sealed class Act : ISimulationSystem
     {
+        private readonly Action<SimulationContext> _body;
+
+        public Act(Action<SimulationContext> body)
+        {
+            _body = body;
+        }
+
         public string Name
         {
             get
@@ -241,7 +248,7 @@ public class PrisonImprisonedEventTests
 
         public void Execute(SimulationContext context)
         {
-            body(context);
+            _body(context);
         }
     }
 }

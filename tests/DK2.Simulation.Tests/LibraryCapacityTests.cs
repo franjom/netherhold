@@ -20,8 +20,17 @@ public sealed class LibraryCapacityTests
         public void HashInto(ref Hash64 hash) { }
     }
 
-    private sealed class Probe(Draws draws, Action<SimulationContext> run) : ISimulationSystem
+    private sealed class Probe : ISimulationSystem
     {
+        private readonly Draws _draws;
+        private readonly Action<SimulationContext> _run;
+
+        public Probe(Draws draws, Action<SimulationContext> run)
+        {
+            _draws = draws;
+            _run = run;
+        }
+
         public string Name
         {
             get
@@ -30,7 +39,7 @@ public sealed class LibraryCapacityTests
             }
         }
 
-        public void Execute(SimulationContext context) { draws.Bounds.Clear(); run(context); }
+        public void Execute(SimulationContext context) { _draws.Bounds.Clear(); _run(context); }
     }
 
     private static (WorldState World, RoomInstance Room, CreatureState Seeker) Setup(RoomTypeId type)

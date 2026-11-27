@@ -103,8 +103,15 @@ public class ClaimFailureMessageTests
     }
 
     /// <summary>Sets each creature to the Training state through the running simulation's hooks.</summary>
-    private sealed class ClaimAll(CreatureState[] creatures) : ISimulationSystem
+    private sealed class ClaimAll : ISimulationSystem
     {
+        private readonly CreatureState[] _creatures;
+
+        public ClaimAll(CreatureState[] creatures)
+        {
+            _creatures = creatures;
+        }
+
         public string Name
         {
             get
@@ -115,7 +122,7 @@ public class ClaimFailureMessageTests
 
         public void Execute(SimulationContext context)
         {
-            foreach (CreatureState creature in creatures)
+            foreach (CreatureState creature in _creatures)
             {
                 CreatureStateMachine.TrySetState(context.Hooks, creature, TrainState);
             }

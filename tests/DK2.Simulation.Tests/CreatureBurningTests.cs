@@ -198,8 +198,15 @@ public class CreatureBurningTests
         Assert.Equal(299, target.Health);
     }
 
-    private sealed class Hit(bool contact) : ISimulationSystem
+    private sealed class Hit : ISimulationSystem
     {
+        private readonly bool _contact;
+
+        public Hit(bool contact)
+        {
+            _contact = contact;
+        }
+
         public string Name
         {
             get
@@ -213,7 +220,7 @@ public class CreatureBurningTests
             CreatureState target = context.World.Creatures[0];
             ShotDef definition = context.Database.Shots[Dk2TerrainFixture.FireballShotId] with { AttackCategory = 4 };
             var shot = new ShotState { OwnerPlayerId = 4, Data1 = 1 };
-            if (contact)
+            if (_contact)
             {
                 ShotRules.ContactDamage(context, shot, definition, target);
             }
@@ -235,20 +242,27 @@ public class CreatureBurningTests
         return (db, world, creature);
     }
 
-    private sealed class Draws(params (int Bound, int Value)[] draws) : IRandomAlgorithm
+    private sealed class Draws : IRandomAlgorithm
     {
+        private readonly (int Bound, int Value)[] _draws;
+
+        public Draws(params (int Bound, int Value)[] draws)
+        {
+            _draws = draws;
+        }
+
         private int _index;
         public int Remaining
         {
             get
             {
-                return draws.Length - _index;
+                return _draws.Length - _index;
             }
         }
 
         public int NextInt(int exclusiveMax)
         {
-            (int Bound, int Value) draw = draws[_index++];
+            (int Bound, int Value) draw = _draws[_index++];
             Assert.Equal(draw.Bound, exclusiveMax);
             return draw.Value;
         }

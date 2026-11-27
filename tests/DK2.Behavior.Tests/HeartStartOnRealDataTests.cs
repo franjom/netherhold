@@ -14,8 +14,15 @@ namespace DK2.Behavior.Tests;
 /// <summary>Q129: every shipped heart starts at variable 174 less its room record's missing
 /// percentage, and a percentage of 0 is a ruined heart room with no heart (<c>0x004DB700</c>,
 /// win-and-defeat.md §3). Predicted from the binary; no capture of Level 7 or 8's first second.</summary>
-public class HeartStartOnRealDataTests(ITestOutputHelper output)
+public class HeartStartOnRealDataTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public HeartStartOnRealDataTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     [InstallFact]
     public void LevelSevenGiantsDestroyTheRivalsHeartWithoutAnOpeningFreeImp()
     {
@@ -35,7 +42,7 @@ public class HeartStartOnRealDataTests(ITestOutputHelper output)
         foreach (SimEvent entry in events.Events.Where(e =>
                      e.Kind is "imp_generated" or "heart_destroyed" or "heart_ruined"))
         {
-            output.WriteLine($"tick {entry.Tick.Value}: {entry.Kind} {entry.Detail}");
+            _output.WriteLine($"tick {entry.Tick.Value}: {entry.Kind} {entry.Detail}");
         }
 
         Assert.Equal(0, simulation.World.Player(4).HeartHealth);
@@ -131,7 +138,7 @@ public class HeartStartOnRealDataTests(ITestOutputHelper output)
 
         foreach (string line in notFull)
         {
-            output.WriteLine(line);
+            _output.WriteLine(line);
         }
 
         Assert.Contains(notFull, l => l.EndsWith(": 0% -> 0", StringComparison.Ordinal));
@@ -176,7 +183,7 @@ public class HeartStartOnRealDataTests(ITestOutputHelper output)
             }
             Assert.True(expected.SequenceEqual(world.NavStamps), $"{level}: {string.Join(", ", world.NavStamps)}");
         }
-        output.WriteLine($"{hearts} heart records");
+        _output.WriteLine($"{hearts} heart records");
         Assert.True(hearts > 0);
     }
 }

@@ -8,11 +8,18 @@ using DK2.Art;
 namespace DK2.Presentation.Tests;
 
 /// <summary>A material for the stream tests: Unity's transparent render queue and DK2TagOverlay tag as two flags.</summary>
-internal sealed class TestMaterial(string name, bool transparent = true, bool tagOverlay = false)
+internal sealed class TestMaterial
 {
-    public string Name { get; } = name;
-    public bool Transparent { get; } = transparent;
-    public bool TagOverlay { get; } = tagOverlay;
+    public TestMaterial(string name, bool transparent = true, bool tagOverlay = false)
+    {
+        Name = name;
+        Transparent = transparent;
+        TagOverlay = tagOverlay;
+    }
+
+    public string Name { get; }
+    public bool Transparent { get; }
+    public bool TagOverlay { get; }
     public override string ToString()
     {
         return Name;

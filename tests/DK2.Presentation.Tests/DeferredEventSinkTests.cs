@@ -43,11 +43,18 @@ public sealed class DeferredEventSinkTests
         Assert.Equal(next, received[^1].Event);
     }
 
-    private sealed class RecordingSink(List<(SimEvent Event, int Thread)> received) : ISimulationEventSink
+    private sealed class RecordingSink : ISimulationEventSink
     {
+        private readonly List<(SimEvent Event, int Thread)> _received;
+
+        public RecordingSink(List<(SimEvent Event, int Thread)> received)
+        {
+            _received = received;
+        }
+
         public void Emit(in SimEvent simEvent)
         {
-            received.Add((simEvent, Environment.CurrentManagedThreadId));
+            _received.Add((simEvent, Environment.CurrentManagedThreadId));
         }
     }
 }

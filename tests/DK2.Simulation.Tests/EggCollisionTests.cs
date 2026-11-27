@@ -12,13 +12,20 @@ public class EggCollisionTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
 
-    private sealed class CollisionRandom(int result) : IRandomAlgorithm
+    private sealed class CollisionRandom : IRandomAlgorithm
     {
+        private readonly int _result;
+
+        public CollisionRandom(int result)
+        {
+            _result = result;
+        }
+
         public List<int> Bounds { get; } = [];
         public int NextInt(int exclusiveMax)
         {
             Bounds.Add(exclusiveMax);
-            return exclusiveMax == 2 ? result : 0;
+            return exclusiveMax == 2 ? _result : 0;
         }
         public void HashInto(ref Hash64 hash)
         {

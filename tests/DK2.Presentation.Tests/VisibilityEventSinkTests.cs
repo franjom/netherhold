@@ -72,12 +72,25 @@ public sealed class VisibilityEventSinkTests
         Assert.Equal(new[] { false, true, true }, received);
     }
 
-    private sealed class VisibilityRecorder(WorldView view, WorldState world, TilePos tile,
-        List<bool> received) : ISimulationEventSink
+    private sealed class VisibilityRecorder : ISimulationEventSink
     {
+        private readonly WorldView _view;
+        private readonly WorldState _world;
+        private readonly TilePos _tile;
+        private readonly List<bool> _received;
+
+        public VisibilityRecorder(WorldView view, WorldState world, TilePos tile,
+                List<bool> received)
+        {
+            _view = view;
+            _world = world;
+            _tile = tile;
+            _received = received;
+        }
+
         public void Emit(in SimEvent simEvent)
         {
-            received.Add(view.CanShowTile(world, tile));
+            _received.Add(_view.CanShowTile(_world, _tile));
         }
     }
 

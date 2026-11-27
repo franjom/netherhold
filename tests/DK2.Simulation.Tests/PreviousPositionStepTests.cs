@@ -64,8 +64,15 @@ public class PreviousPositionStepTests
         return (db, world, goblin);
     }
 
-    private sealed class Probe(Action<CreatureState> act) : ICreatureUpdateStep
+    private sealed class Probe : ICreatureUpdateStep
     {
+        private readonly Action<CreatureState> _act;
+
+        public Probe(Action<CreatureState> act)
+        {
+            _act = act;
+        }
+
         public string Name
         {
             get
@@ -81,7 +88,7 @@ public class PreviousPositionStepTests
 
         public void Update(SimulationContext context, CreatureState creature)
         {
-            act(creature);
+            _act(creature);
         }
     }
 }

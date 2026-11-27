@@ -200,25 +200,32 @@ public sealed class ReinforcementActionTests
         return sim;
     }
 
-    private sealed class AfterCombatScan(ICreatureUpdateStep next) : ICreatureUpdateStep
+    private sealed class AfterCombatScan : ICreatureUpdateStep
     {
+        private readonly ICreatureUpdateStep _next;
+
+        public AfterCombatScan(ICreatureUpdateStep next)
+        {
+            _next = next;
+        }
+
         public static int ExperienceSeen;
         public string Name
         {
             get
             {
-                return next.Name;
+                return _next.Name;
             }
         }
 
         public void BeginTurn(SimulationContext context)
         {
-            next.BeginTurn(context);
+            _next.BeginTurn(context);
         }
 
         public void EndTurn(SimulationContext context)
         {
-            next.EndTurn(context);
+            _next.EndTurn(context);
         }
 
         public void Execute(SimulationContext context)
@@ -228,7 +235,7 @@ public sealed class ReinforcementActionTests
 
         public void Update(SimulationContext context, CreatureState creature)
         {
-            next.Update(context, creature);
+            _next.Update(context, creature);
             ExperienceSeen = creature.ExperiencePoints;
         }
     }

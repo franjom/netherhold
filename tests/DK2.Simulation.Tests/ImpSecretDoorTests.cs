@@ -12,8 +12,15 @@ namespace DK2.Simulation.Tests;
 
 public sealed class ImpSecretDoorTests
 {
-    private sealed class ChooseOnly(CreatureState asker) : ISimulationSystem
+    private sealed class ChooseOnly : ISimulationSystem
     {
+        private readonly CreatureState _asker;
+
+        public ChooseOnly(CreatureState asker)
+        {
+            _asker = asker;
+        }
+
         public string Name
         {
             get
@@ -24,7 +31,7 @@ public sealed class ImpSecretDoorTests
 
         public void Execute(SimulationContext context)
         {
-            new ImpTaskSystem().ChooseJob(context, asker);
+            new ImpTaskSystem().ChooseJob(context, _asker);
         }
     }
 

@@ -17,8 +17,15 @@ namespace DK2.Oracle.Tests;
 /// bits) DK2 itself would crash, so there is nothing to match: those inputs are counted and
 /// logged, not compared. Our C# wraps there instead (<see cref="Fixed16.Div"/>).</para>
 /// </summary>
-public class OriginalFixed16Tests(ITestOutputHelper log)
+public class OriginalFixed16Tests
 {
+    private readonly ITestOutputHelper _log;
+
+    public OriginalFixed16Tests(ITestOutputHelper log)
+    {
+        _log = log;
+    }
+
     private const uint In = Scratch, Out = Scratch + 0x10;
 
     /// <summary><c>0x004D1F10</c>: cdecl (out*, in*).</summary>
@@ -89,7 +96,7 @@ public class OriginalFixed16Tests(ITestOutputHelper log)
                 mismatches.Add($"{at}: original {theirs}, ours {mine}");
             }
         }
-        log.WriteLine($"{name}: {inputs.Length} inputs, {faults} outside the original's domain (divide fault).");
+        _log.WriteLine($"{name}: {inputs.Length} inputs, {faults} outside the original's domain (divide fault).");
         Assert.True(mismatches.Count == 0, $"{mismatches.Count} of {inputs.Length} differ; first:\n" + string.Join("\n", mismatches.Take(15)));
     }
 

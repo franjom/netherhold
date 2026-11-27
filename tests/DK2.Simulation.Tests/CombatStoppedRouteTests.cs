@@ -174,8 +174,15 @@ public sealed class CombatStoppedRouteTests
         return (db, world, caster, target);
     }
 
-    private sealed class RunRule(Action<SimulationContext> rule) : ISimulationSystem
+    private sealed class RunRule : ISimulationSystem
     {
+        private readonly Action<SimulationContext> _rule;
+
+        public RunRule(Action<SimulationContext> rule)
+        {
+            _rule = rule;
+        }
+
         public string Name
         {
             get
@@ -186,7 +193,7 @@ public sealed class CombatStoppedRouteTests
 
         public void Execute(SimulationContext context)
         {
-            rule(context);
+            _rule(context);
         }
     }
 }

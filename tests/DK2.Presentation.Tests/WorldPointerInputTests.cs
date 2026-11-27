@@ -15,8 +15,15 @@ public sealed class WorldPointerInputTests
     private static readonly PlayerId Keeper = PressFixture.Keeper;
     private static readonly TilePos Tile = new TilePos(2, 2);
 
-    private sealed class Host(ClassicHudControls controls) : IWorldPointerHost, IHudPressHost
+    private sealed class Host : IWorldPointerHost, IHudPressHost
     {
+        private readonly ClassicHudControls _controls;
+
+        public Host(ClassicHudControls controls)
+        {
+            _controls = controls;
+        }
+
         public readonly List<string> Calls = [];
         public TilePos? Tile;
         public Func<string>? AtMinimap;
@@ -35,7 +42,7 @@ public sealed class WorldPointerInputTests
             Calls.Add("follow");
         }
 
-        public void ApplyHudAction(ClassicHudAction action) { Calls.Add("apply " + action); controls.Apply(action); }
+        public void ApplyHudAction(ClassicHudAction action) { Calls.Add("apply " + action); _controls.Apply(action); }
         public void GoToFullMapTile()
         {
             Calls.Add("full map tile");

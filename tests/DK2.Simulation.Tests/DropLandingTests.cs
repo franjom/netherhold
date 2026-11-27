@@ -357,8 +357,17 @@ public class DropLandingTests
         Assert.True(DK2.Simulation.Combat.CombatRules.IsAttackable(dropped));
     }
 
-    private sealed class Watch(CreatureState watched, List<(int, bool, int)> seen) : ICreatureUpdateStep
+    private sealed class Watch : ICreatureUpdateStep
     {
+        private readonly CreatureState _watched;
+        private readonly List<(int, bool, int)> _seen;
+
+        public Watch(CreatureState watched, List<(int, bool, int)> seen)
+        {
+            _watched = watched;
+            _seen = seen;
+        }
+
         public string Name
         {
             get
@@ -370,7 +379,7 @@ public class DropLandingTests
         public void Execute(SimulationContext context) { }
         public void Update(SimulationContext context, CreatureState creature)
         {
-            seen.Add((creature.Id, Combat.CombatRules.IsAttackable(watched), watched.Dk2StateId));
+            _seen.Add((creature.Id, Combat.CombatRules.IsAttackable(_watched), _watched.Dk2StateId));
         }
     }
 

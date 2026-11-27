@@ -52,8 +52,15 @@ public sealed class CombatRouteQueryTests
         })]).Tick();
     }
 
-    private sealed class Check(Action<SimulationContext> assertion) : ISimulationSystem
+    private sealed class Check : ISimulationSystem
     {
+        private readonly Action<SimulationContext> _assertion;
+
+        public Check(Action<SimulationContext> assertion)
+        {
+            _assertion = assertion;
+        }
+
         public string Name
         {
             get
@@ -64,7 +71,7 @@ public sealed class CombatRouteQueryTests
 
         public void Execute(SimulationContext context)
         {
-            assertion(context);
+            _assertion(context);
         }
     }
 }

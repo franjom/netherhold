@@ -358,8 +358,15 @@ public class KeeperHealTests
         Assert.True(target.HasRoute);
     }
 
-    private sealed class DirectHealthProcess(CreatureState target) : ISimulationSystem
+    private sealed class DirectHealthProcess : ISimulationSystem
     {
+        private readonly CreatureState _target;
+
+        public DirectHealthProcess(CreatureState target)
+        {
+            _target = target;
+        }
+
         public string Name
         {
             get
@@ -371,8 +378,8 @@ public class KeeperHealTests
         public void Execute(SimulationContext context)
         {
             ShotRules.ModifyHealth(context,
-            new ShotState { Data1 = 500, OwnerPlayerId = Keeper }, Shot(), target,
-            context.Database.CreatureById(target.CreatureTypeId));
+            new ShotState { Data1 = 500, OwnerPlayerId = Keeper }, Shot(), _target,
+            context.Database.CreatureById(_target.CreatureTypeId));
         }
     }
 

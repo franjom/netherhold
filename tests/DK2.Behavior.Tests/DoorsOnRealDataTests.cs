@@ -16,8 +16,15 @@ namespace DK2.Behavior.Tests;
 /// <summary>Every placed door of the shipped levels against the door update's kills
 /// (door-blocking.md): its health from the definition, its tile's owner and its support walls, as
 /// a first tick would test them.</summary>
-public class DoorsOnRealDataTests(ITestOutputHelper output)
+public class DoorsOnRealDataTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public DoorsOnRealDataTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     [InstallFact]
     public void EveryPlacedDoorStartsAtItsDefinitionsHealth_AndTheFirstUpdateKillsOnlyLevel4sHeroDoor()
     {
@@ -73,9 +80,9 @@ public class DoorsOnRealDataTests(ITestOutputHelper output)
             }
         }
 
-        output.WriteLine($"levels {levels}, doors {doors}: {string.Join(", ", byType.Select(p => $"{p.Key} {p.Value}"))}");
-        output.WriteLine($"owner kills {ownerKills.Count}: {string.Join("; ", ownerKills.Take(40))}");
-        output.WriteLine($"support kills {supportKills.Count}: {string.Join("; ", supportKills.Take(40))}");
+        _output.WriteLine($"levels {levels}, doors {doors}: {string.Join(", ", byType.Select(p => $"{p.Key} {p.Value}"))}");
+        _output.WriteLine($"owner kills {ownerKills.Count}: {string.Join("; ", ownerKills.Take(40))}");
+        _output.WriteLine($"support kills {supportKills.Count}: {string.Join("; ", supportKills.Take(40))}");
         Assert.Equal(46, levels);
         Assert.Equal(940, doors);
         Assert.Empty(supportKills);

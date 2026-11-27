@@ -10,14 +10,21 @@ namespace DK2.Simulation.Tests;
 
 public sealed class KeeperRefreshClockTests
 {
-    private sealed class Draws(params int[] delays) : IRandomAlgorithm
+    private sealed class Draws : IRandomAlgorithm
     {
+        private readonly int[] _delays;
+
+        public Draws(params int[] delays)
+        {
+            _delays = delays;
+        }
+
         private int _nextDelay;
         public List<int> Bounds { get; } = [];
         public int NextInt(int exclusiveMax)
         {
             Bounds.Add(exclusiveMax);
-            return exclusiveMax == 50 && delays.Length > 0 ? delays[_nextDelay++] : 12;
+            return exclusiveMax == 50 && _delays.Length > 0 ? _delays[_nextDelay++] : 12;
         }
         public void HashInto(ref Hash64 hash) { }
     }

@@ -50,8 +50,15 @@ public class HeartDefenceSelectionTests
         Assert.Equal(0, imp.OverThreatCounter);
     }
 
-    private sealed class ScanReportingImp(CreatureState imp) : ISimulationSystem
+    private sealed class ScanReportingImp : ISimulationSystem
     {
+        private readonly CreatureState _imp;
+
+        public ScanReportingImp(CreatureState imp)
+        {
+            _imp = imp;
+        }
+
         public string Name
         {
             get
@@ -64,8 +71,8 @@ public class HeartDefenceSelectionTests
         {
             var combat = new CombatSystem();
             combat.BeginTurn(context);
-            combat.Update(context, imp);
-            combat.States.Update(context, imp);
+            combat.Update(context, _imp);
+            combat.States.Update(context, _imp);
         }
     }
 
@@ -111,8 +118,15 @@ public class HeartDefenceSelectionTests
         new GameSimulation(db, world, 1, [new SelectOnce(hero)]).Tick();
     }
 
-    private sealed class SelectOnce(CreatureState hero) : ISimulationSystem
+    private sealed class SelectOnce : ISimulationSystem
     {
+        private readonly CreatureState _hero;
+
+        public SelectOnce(CreatureState hero)
+        {
+            _hero = hero;
+        }
+
         public string Name
         {
             get
@@ -127,8 +141,8 @@ public class HeartDefenceSelectionTests
             var hearts = new HeartSites();
             hearts.Refresh(context.World, context.Database);
             var sight = new WorldSight(context.Navigation, context.World, context.Database);
-            Assert.True(CombatTargetRules.SelectAVictim(context, sight, hearts, new RoomCache(), hero,
-                context.Database.CreatureById(hero.CreatureTypeId), []));
+            Assert.True(CombatTargetRules.SelectAVictim(context, sight, hearts, new RoomCache(), _hero,
+                context.Database.CreatureById(_hero.CreatureTypeId), []));
         }
     }
 

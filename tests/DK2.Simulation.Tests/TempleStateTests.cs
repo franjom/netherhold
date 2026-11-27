@@ -289,8 +289,15 @@ public class TempleStateTests
         Assert.Equal(JobType.None, it.CurrentJob);
     }
 
-    private sealed class SummonProbe(CreatureState creature) : ISimulationSystem
+    private sealed class SummonProbe : ISimulationSystem
     {
+        private readonly CreatureState _creature;
+
+        public SummonProbe(CreatureState creature)
+        {
+            _creature = creature;
+        }
+
         public string Name
         {
             get
@@ -301,9 +308,9 @@ public class TempleStateTests
 
         public void Execute(SimulationContext context)
         {
-            if (creature.Dk2StateId != TempleStep.SummonedState)
+            if (_creature.Dk2StateId != TempleStep.SummonedState)
             {
-                TempleStep.Summon(context, Name, creature);
+                TempleStep.Summon(context, Name, _creature);
             }
         }
     }

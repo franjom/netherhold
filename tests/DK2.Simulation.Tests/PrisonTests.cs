@@ -152,8 +152,19 @@ public class PrisonTests
 
     /// <summary>Imprisons a second captive in <see cref="CellB"/> the first tick the imp is
     /// carrying, so the 3x3 prison fills during the walk.</summary>
-    private sealed class FillWhenCarrying(GameDatabase db, CreatureState imp, bool atTheDoor = false) : ISimulationSystem
+    private sealed class FillWhenCarrying : ISimulationSystem
     {
+        private readonly GameDatabase _db;
+        private readonly CreatureState _imp;
+        private readonly bool _atTheDoor;
+
+        public FillWhenCarrying(GameDatabase db, CreatureState imp, bool atTheDoor = false)
+        {
+            _db = db;
+            _imp = imp;
+            _atTheDoor = atTheDoor;
+        }
+
         private bool _filled;
         public string Name
         {
@@ -167,18 +178,18 @@ public class PrisonTests
         /// cell (state 44's walk), so the Prison fills after state 43's own check.</summary>
         public void Execute(SimulationContext context)
         {
-            if (_filled || imp.Activity != CreatureActivity.CarryingBody)
+            if (_filled || _imp.Activity != CreatureActivity.CarryingBody)
             {
                 return;
             }
 
-            if (atTheDoor && imp.UtilityNewState != ImpStates.AtThePrisonDoor)
+            if (_atTheDoor && _imp.UtilityNewState != ImpStates.AtThePrisonDoor)
             {
                 return;
             }
 
             _filled = true;
-            Prisoner(db, context.World, CellB);
+            Prisoner(_db, context.World, CellB);
         }
     }
 
@@ -374,8 +385,15 @@ public class PrisonTests
     }
 
     /// <summary>Takes the Prison away while the imp carries, so it arrives at no Prison.</summary>
-    private sealed class UnpaintWhenCarrying(CreatureState imp) : ISimulationSystem
+    private sealed class UnpaintWhenCarrying : ISimulationSystem
     {
+        private readonly CreatureState _imp;
+
+        public UnpaintWhenCarrying(CreatureState imp)
+        {
+            _imp = imp;
+        }
+
         private bool _done;
         public string Name
         {
@@ -387,7 +405,7 @@ public class PrisonTests
 
         public void Execute(SimulationContext context)
         {
-            if (_done || imp.Activity != CreatureActivity.CarryingBody)
+            if (_done || _imp.Activity != CreatureActivity.CarryingBody)
             {
                 return;
             }

@@ -153,8 +153,15 @@ public class HandLiftTests
     }
 
     /// <summary>Stands in for the creature update that follows the hand in a tick.</summary>
-    private sealed class Observer(Action body) : ISimulationSystem
+    private sealed class Observer : ISimulationSystem
     {
+        private readonly Action _body;
+
+        public Observer(Action body)
+        {
+            _body = body;
+        }
+
         public string Name
         {
             get
@@ -165,7 +172,7 @@ public class HandLiftTests
 
         public void Execute(SimulationContext context)
         {
-            body();
+            _body();
         }
     }
 }

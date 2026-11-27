@@ -110,8 +110,12 @@ public sealed class SavedSessionFileTests : IDisposable
         Assert.Equal(SaveIncompatibleReason.Corrupt, error.Reason);
     }
 
-    private sealed class NonSeekableStream(byte[] bytes) : MemoryStream(bytes)
+    private sealed class NonSeekableStream : MemoryStream
     {
+        public NonSeekableStream(byte[] bytes) : base(bytes)
+        {
+        }
+
         public override bool CanSeek
         {
             get

@@ -169,8 +169,15 @@ public sealed class TileHoverOutlineBuildTests
     /// <summary>Unity's <c>ClassicTileHoverOutline.Update</c> and <c>AddTile</c> before the move (its seconds to milliseconds
     /// step stays in Unity), with Unity's vector
     /// arithmetic (<c>Cross</c>, <c>normalized</c> through a double square root and its 1e-5 cut) spelt out.</summary>
-    private sealed class LegacyOutline(TerrainLattice? lattice)
+    private sealed class LegacyOutline
     {
+        private readonly TerrainLattice? _lattice;
+
+        public LegacyOutline(TerrainLattice? lattice)
+        {
+            _lattice = lattice;
+        }
+
         private readonly Vector3[] _grid = new Vector3[27];
         private readonly Vector3[] _points = new Vector3[27];
         private readonly int[] _endpoints = new int[48];
@@ -213,10 +220,10 @@ public sealed class TileHoverOutlineBuildTests
             for (int i = 0; i < _grid.Length; i++)
             {
                 Vector3 p = _grid[i];
-                if (lattice != null)
+                if (_lattice != null)
                 {
                     p.Z += .05f;
-                    p = lattice.Deform(p, at.X, at.Y);
+                    p = _lattice.Deform(p, at.X, at.Y);
                     p.Z -= .05f;
                 }
                 _points[i] = new Vector3(p.X, -p.Z, -p.Y);

@@ -15,8 +15,15 @@ namespace DK2.Behavior.Tests;
 /// player's journal for seed 1, won by player 3 at tick 2814 with a 400-tick finale window. The Lord
 /// of the Land carries the Portal Gem (action 20) and drops it where he dies; the Reaper must reach it.
 /// </summary>
-public class ReaperFinaleOnRealDataTests(ITestOutputHelper output)
+public class ReaperFinaleOnRealDataTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public ReaperFinaleOnRealDataTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     private const string Fixture = "tests/DK2.Behavior.Tests/Fixtures/level1-seed1-win/";
     private const long WinTick = 2814;
     /// <summary>The journal's finale window (its <c>player.limits</c> <c>finale_ticks</c>).</summary>
@@ -59,6 +66,6 @@ public class ReaperFinaleOnRealDataTests(ITestOutputHelper output)
         Assert.True(gemAtWin == (16, 18), $"The gem is at {gemAtWin} at the win, not where the Lord died (16,18).");
         Assert.InRange(pickup, WinTick + 1, WinTick + FinaleWindowTicks);
         Assert.Contains(result.Events, e => e.Kind == "gem_taken" && e.Tick.Value == pickup);
-        output.WriteLine($"pickup t{pickup}; first hash difference from the journal: t{result.Replay!.FirstDivergentTick}");
+        _output.WriteLine($"pickup t{pickup}; first hash difference from the journal: t{result.Replay!.FirstDivergentTick}");
     }
 }

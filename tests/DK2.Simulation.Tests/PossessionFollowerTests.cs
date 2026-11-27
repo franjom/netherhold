@@ -59,8 +59,15 @@ public sealed class PossessionFollowerTests
         sim.Tick();
     }
 
-    private sealed class Probe(Action<SimulationContext> act) : ISimulationSystem
+    private sealed class Probe : ISimulationSystem
     {
+        private readonly Action<SimulationContext> _act;
+
+        public Probe(Action<SimulationContext> act)
+        {
+            _act = act;
+        }
+
         public string Name
         {
             get
@@ -71,7 +78,7 @@ public sealed class PossessionFollowerTests
 
         public void Execute(SimulationContext context)
         {
-            act(context);
+            _act(context);
         }
     }
 

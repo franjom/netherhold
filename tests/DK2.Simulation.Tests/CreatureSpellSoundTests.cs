@@ -107,8 +107,15 @@ public sealed class CreatureSpellSoundTests
         Assert.Empty(Heard(events));
     }
 
-    private sealed class Once(Action<SimulationContext> rule) : ISimulationSystem
+    private sealed class Once : ISimulationSystem
     {
+        private readonly Action<SimulationContext> _rule;
+
+        public Once(Action<SimulationContext> rule)
+        {
+            _rule = rule;
+        }
+
         public string Name
         {
             get
@@ -119,7 +126,7 @@ public sealed class CreatureSpellSoundTests
 
         public void Execute(SimulationContext context)
         {
-            rule(context);
+            _rule(context);
         }
     }
 }

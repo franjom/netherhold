@@ -9,12 +9,19 @@ using Xunit.Abstractions;
 namespace DK2.Behavior.Tests;
 
 /// <summary><see cref="RunTimings.TickTimes"/>, which the speed budget's warm-up cut reads.</summary>
-public class RunTimingsTests(ITestOutputHelper output)
+public class RunTimingsTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public RunTimingsTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     [InstallFact]
     public void TheTimingsCarryOneTimePerTick_InTickOrder()
     {
-        RunTimings timings = ScenarioCorpus.Run(ScenarioCorpus.Load("tiles/dig_and_claim.yaml"), output).Timings!;
+        RunTimings timings = ScenarioCorpus.Run(ScenarioCorpus.Load("tiles/dig_and_claim.yaml"), _output).Timings!;
 
         Assert.Equal(timings.Ticks, timings.TickTimes.Count);
         Assert.Equal(timings.PerTick.Max, timings.TickTimes.Max());
