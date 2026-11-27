@@ -139,3 +139,7 @@ dotnet_diagnostic.IDE0161.severity = warning
 [src/DK2.Convert/**.cs]
 csharp_style_namespace_declarations = file_scoped
 dotnet_diagnostic.IDE0161.severity = warning
+
+[src/DK2.Presentation/**.cs]
+csharp_style_namespace_declarations = file_scoped
+dotnet_diagnostic.IDE0161.severity = warning
