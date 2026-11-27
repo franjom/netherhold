@@ -235,11 +235,13 @@ public sealed class PlacementCursorTests
     }
 
     [Fact]
-    public void HeldIconsStepThirtyTwoPixelsFourToARowWithTheOverflowIconAfterTheEighth() =>
+    public void HeldIconsStepThirtyTwoPixelsFourToARowWithTheOverflowIconAfterTheEighth()
+    {
 #pragma warning disable IDE0300, IDE0305 // Preserve the test's existing collection construction and binding.
         Assert.Equal(new[] { (0, 0), (32, 0), (96, 0), (0, 32), (96, 32), (128, 32) },
             new[] { 0, 1, 3, 4, 7, 8 }.Select(HeldItemStack.Offset).ToArray());
 #pragma warning restore IDE0300, IDE0305
+    }
 
     [InstallFact]
     public void TheHeldIconsListTheHandFromTheTopAndOverflowPastEight()

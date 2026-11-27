@@ -125,6 +125,12 @@ public sealed class CSharpStyleTests
         AssertNoCSharpSyntax<ImplicitObjectCreationExpressionSyntax>(static _ => true);
     }
 
+    [Fact]
+    public void MembersAndLocalFunctionsUseBlockBodies()
+    {
+        AssertNoCSharpSyntax<ArrowExpressionClauseSyntax>(static _ => true);
+    }
+
     private static void AssertNoCSharpSyntax<T>(Func<T, bool> matches) where T : SyntaxNode
     {
         string root = Repo.FindRepoRoot() ?? throw new InvalidOperationException("no repository above the test");

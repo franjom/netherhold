@@ -45,10 +45,12 @@ public sealed class ClassicLightPublisherTests
         return (new ClassicLightPublisher(cache, Size, Size, portals, torchFlags), cache, portals);
     }
 
-    private static HashSet<TilePos> OnMap(IEnumerable<TilePos> tiles) =>
+    private static HashSet<TilePos> OnMap(IEnumerable<TilePos> tiles)
+    {
 #pragma warning disable IDE0305 // Preserve the original collection construction or overload.
-        tiles.Where(t => (uint)t.X < Size && (uint)t.Y < Size).ToHashSet();
+        return tiles.Where(t => (uint)t.X < Size && (uint)t.Y < Size).ToHashSet();
 #pragma warning restore IDE0305
+    }
 
     private static TilePos[] Tiles(ClassicCameraPose pose, float distance, CameraViewport? viewport = null)
     {
