@@ -97,7 +97,6 @@ public static class SiteFinder
             return null;
         }
 
-        // Leave the configured gap.
         for (int i = 0; i < tilesBetweenRooms; i++)
         {
             pos = new TilePos(pos.X + dx, pos.Y + dy);

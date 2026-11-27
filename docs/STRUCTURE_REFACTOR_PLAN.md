@@ -192,24 +192,16 @@ is planned here.
 
 ---
 
-## Phase 4 — Split `WorldSnapshot.Write`
+## Phase 4 — Split the snapshot writer and reader — DONE
 
-`src/DK2.Simulation/WorldSnapshot.cs:105` — `public static void Write(Stream,
-GameSimulation)` is now about 650 lines (355 when this plan was written) and the
-longest method in the repo by a wide margin, an outlier rather than a house style.
+[`WorldSnapshot.Write`](../src/DK2.Simulation/WorldSnapshot.cs#L154) and
+[`ReadCore`](../src/DK2.Simulation/WorldSnapshot.cs#L1134) call private helpers for
+each section in the existing wire order. The split preserves stream lifetime, format
+version 537 and reader validation.
 
-It is a linear serialiser, so it is low-risk and low-urgency — the length is
-inherent to the number of fields, not to complexity. Split per record type
-(tiles, creatures, objects, rooms, triggers, players) into private static
-`WriteX(BinaryWriter, …)` methods, matching however `Read` is already structured.
-
-This touches the simulation. The write order must not change; if it does, the
-snapshot format changes and `WorldSnapshot.FormatVersion` must bump. Assert the
-byte-for-byte output is identical before and after — the existing `SnapshotTests`
-round-trip is necessary but not sufficient, because a round-trip stays green if
-`Read` and `Write` change symmetrically.
-
-Do this after Phase 1, so the file is already in its final location.
+The before-and-after probe matched 11 snapshots byte for byte, their restored
+state hashes and the results of 10 malformed inputs. Comparing the written
+bytes catches symmetric changes that a round trip can miss.
 
 ---
 
