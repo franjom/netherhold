@@ -91,7 +91,7 @@ public static class JailBreakRules
             flags |= Open;
             StampDoor(context.World, room, context.Tick);
         }
-        Release(context, "possession", room, new PlayerId(0), all: true);
+        Release(context, "possession", room, player: default, all: true);
     }
 
     /// <summary><c>0x004E8660</c>'s Prison arm, for a creature already past the flag and worker tests:

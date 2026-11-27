@@ -494,7 +494,7 @@ public static class WorldResync
         SimulationContext context, List<(ResyncCreature Native, CreatureState? Ours)> pairs, List<string> notes)
     {
         var matched = pairs.Where(p => p.Ours is not null).Select(p => p.Ours!.Id).ToHashSet();
-        CreatureState[] extras = [.. context.World.Creatures.Where(c => c.OwnerPlayerId != 0 && c.Health > 0 && !CreatureDeathRules.IsDown(c) && !matched.Contains(c.Id))];
+        CreatureState[] extras = [.. context.World.Creatures.Where(c => c.OwnerPlayerId != PlayerIds.Unowned && c.Health > 0 && !CreatureDeathRules.IsDown(c) && !matched.Contains(c.Id))];
         int removed = 0;
         foreach (CreatureState extra in extras)
         {

@@ -4,6 +4,7 @@
 
 using DK2.Core;
 using DK2.Data.Model;
+using DK2.Simulation.Combat;
 using DK2.Simulation.Systems;
 
 namespace DK2.Simulation;
@@ -77,7 +78,7 @@ public static class LevelPlacedCreatureRules
                     DropLandingRules.AfterGettingUp(context, "LevelStart", creature, definition);
                     continue;
                 }
-                if (keeperWorker && definition.CreatureId != 1
+                if (keeperWorker && definition.CreatureId != CombatRules.ImpCreatureTypeId
                     && LeavingRules.IsDropCentre(world, context.Database, creature.Tile, creature.OwnerPlayerId))
                 {
                     StateShadow.Move(context, "LevelStart", creature, LeavingRules.PortalDropState);

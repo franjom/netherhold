@@ -16,6 +16,9 @@ namespace DK2.Simulation;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hero-parties-and-effect-generators.md")]
 public static class HeroPartyRules
 {
+    private const byte HeroGate2By2TerrainId = 33;
+    private const byte HeroGate3By1TerrainId = 37;
+
     /// <summary>DK2's "no party" value for a creature's <c>PartyId</c> (<c>+0x417 != 0xFF</c> in
     /// <c>travel-states.md</c> §2.3).</summary>
     public const byte NoParty = 0xFF;
@@ -71,8 +74,13 @@ public static class HeroPartyRules
         }
 
         byte terrain = world.Tile(x, y).TerrainId;
-        if (terrain == 33) { fromGate = true; x++; y++; }
-        else if (terrain == 37)
+        if (terrain == HeroGate2By2TerrainId)
+        {
+            fromGate = true;
+            x++;
+            y++;
+        }
+        else if (terrain == HeroGate3By1TerrainId)
         {
             fromGate = true;
         }

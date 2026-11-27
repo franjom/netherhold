@@ -19,6 +19,8 @@ namespace DK2.Simulation;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/creature-leaving.md")]
 public static class LeavingRules
 {
+    private const byte MaidenOfTheNestCreatureTypeId = 45;
+
     /// <summary>State 194: choose the nearest entrance and route to it.</summary>
     public const int ChoosingState = 194;
 
@@ -181,7 +183,7 @@ public static class LeavingRules
         }
 
         ThingSoundRules.Request(context, systemName, state, ThingSoundEvent.Sacked);
-        if (state.CreatureTypeId != 45)
+        if (state.CreatureTypeId != MaidenOfTheNestCreatureTypeId)
         {
             context.World.Messages.Post(context.World, state.OwnerPlayerId, PlayerMessageKind.CreatureLeft, state.CreatureTypeId, 0);
         }

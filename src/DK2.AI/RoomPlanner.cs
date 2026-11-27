@@ -14,6 +14,8 @@ namespace DK2.AI;
 /// </summary>
 public static class RoomPlanner
 {
+    private const byte NoRoomToBuild = 0;
+
     /// <summary>Rooms the original never chooses to build: the bridges, the heart, the guard room, the portal.</summary>
     private static readonly byte[] NeverBuilt =
     [
@@ -30,11 +32,11 @@ public static class RoomPlanner
     /// </summary>
     public static byte? ChooseRoom(
         KeeperView view, KeeperAIParameters p, Func<byte, bool> isAvailable,
-        byte currentRoomToBuild = 0)
+        byte currentRoomToBuild = NoRoomToBuild)
     {
         foreach (byte id in Candidates(p))
         {
-            if (id == 0 || Array.IndexOf(NeverBuilt, id) >= 0)
+            if (id == NoRoomToBuild || Array.IndexOf(NeverBuilt, id) >= 0)
             {
                 continue;
             }

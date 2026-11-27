@@ -24,6 +24,8 @@ namespace DK2.AI;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/computer-keeper-management.md")]
 public sealed class KeeperBattleStep
 {
+    private const byte NoFightTargetOwner = 0;
+
     /// <summary>The emergency call is cast only on a turn divisible by this.</summary>
     public const int CastTurnModulus = 40;
 
@@ -186,7 +188,7 @@ public sealed class KeeperBattleStep
     /// route from the heart are tested. A cast the permission passes sets the counter and the bit.</summary>
     private bool TryEmergencyCall(KeeperCreatureView fighter)
     {
-        if (fighter.FightTargetOwner == 0 || _state.CallToArmsInUse || _state.CannotAttackCounter != 0)
+        if (fighter.FightTargetOwner == NoFightTargetOwner || _state.CallToArmsInUse || _state.CannotAttackCounter != 0)
         {
             return false;
         }
@@ -301,7 +303,7 @@ public sealed class KeeperBattleStep
                 spell = (byte)id;
                 break;
             }
-            if (spell != 0 && fighter.FightTargetOwner != 0)
+            if (spell != 0 && fighter.FightTargetOwner != NoFightTargetOwner)
             {
                 foreach (KeeperCreatureView creature in Owned(fighter.FightTargetOwner))
                 {

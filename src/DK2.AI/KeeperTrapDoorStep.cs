@@ -129,30 +129,30 @@ public sealed class KeeperTrapDoorStep
         // north and south in full, each while allowance remains.
         if (allowance > 0)
         {
-            allowance = Try(allowance, minX, minY);
+            allowance = Try(allowance, new TilePos(minX, minY));
         }
 
         for (int y = minY; y <= maxY && allowance > 0; y++)
         {
-            allowance = Try(allowance, maxX, y);
+            allowance = Try(allowance, new TilePos(maxX, y));
         }
 
         for (int x = minX; x <= maxX && allowance > 0; x++)
         {
-            allowance = Try(allowance, x, minY);
+            allowance = Try(allowance, new TilePos(x, minY));
         }
 
         for (int x = minX; x <= maxX && allowance > 0; x++)
         {
-            allowance = Try(allowance, x, maxY);
+            allowance = Try(allowance, new TilePos(x, maxY));
         }
 
         return allowance;
     }
 
-    private int Try(int allowance, int x, int y)
+    private int Try(int allowance, TilePos tile)
     {
-        return ValidSite(x, y) && Spaced(x, y) ? Place(allowance, new TilePos(x, y)) : allowance;
+        return ValidSite(tile.X, tile.Y) && Spaced(tile.X, tile.Y) ? Place(allowance, tile) : allowance;
     }
 
     /// <summary><c>0x004FFA50</c>: an interior tile, open, between two solid tiles west and east (or
