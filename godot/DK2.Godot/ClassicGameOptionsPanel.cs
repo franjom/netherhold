@@ -80,14 +80,10 @@ public partial class ClassicGameOptionsPanel : Node
             return;
         }
 
-        Vector2 size = GetViewport().GetVisibleRect().Size;
-        int width = (int)size.X, height = (int)size.Y;
-        if (width <= 0 || height <= 0)
+        if (HudCanvas.ScreenForViewport(GetViewport()) is not { } screen)
         {
             return;
         }
-
-        var screen = new HudScreen(width, height);
         _scale = screen.Scale;
         _frame.Clear();
         _hud.Build(screen, (pointer.X / _scale, pointer.Y / _scale), _frame);

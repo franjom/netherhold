@@ -87,14 +87,10 @@ public partial class ClassicOptionsPanel : Node
             return;
         }
 
-        Vector2 size = GetViewport().GetVisibleRect().Size;
-        int width = (int)size.X, height = (int)size.Y;
-        if (width <= 0 || height <= 0)
+        if (HudCanvas.ScreenForViewport(GetViewport()) is not { } screen)
         {
             return;
         }
-
-        var screen = new HudScreen(width, height);
         _scale = screen.Scale;
         (float x, float y) = ToVirtual(GetViewport().GetMousePosition());
         _frame.Clear();

@@ -36,6 +36,14 @@ public partial class HudCanvas : Node2D
     /// <summary>Reads a catalogue image by name; set before the first <see cref="Present"/>.</summary>
     public Func<string, DK2.Art.Textures.RgbaImage>? Load { get; set; }
 
+    internal static HudScreen? ScreenForViewport(Viewport viewport)
+    {
+        Vector2 size = viewport.GetVisibleRect().Size;
+        int width = (int)size.X, height = (int)size.Y;
+        return width <= 0 || height <= 0 ? null : new HudScreen(width, height);
+    }
+
+
     /// <param name="origin">Screen pixel of virtual (0, 0).</param>
     /// <param name="scale">Local units per virtual unit.</param>
     /// <param name="pixelsPerUnit">Screen pixels per local unit; edges snap to them.</param>
