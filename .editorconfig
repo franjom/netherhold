@@ -136,3 +136,9 @@ dotnet_sort_system_directives_first = true
 
 [src/DK2.Presentation/**.cs]
 dotnet_sort_system_directives_first = true
+
+[src/DK2.Tools/**.cs]
+dotnet_sort_system_directives_first = true
+
+[src/DK2.Harness/**.cs]
+dotnet_sort_system_directives_first = true

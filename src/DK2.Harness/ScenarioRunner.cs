@@ -3,9 +3,9 @@
 // See LICENSE in the project root for the full license text.
 
 using System.Runtime.ExceptionServices;
+using DK2.AI;
 using DK2.Assets;
 using DK2.Core;
-using DK2.AI;
 using DK2.Data;
 using DK2.Data.Model;
 using DK2.Presentation;
