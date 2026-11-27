@@ -13,19 +13,35 @@ namespace DK2.Tools.Commands;
 
 internal static class ReplayCommands
 {
+    internal sealed record TriggerCsvOptions(string LevelName, int Turns, string OutPath)
+    {
+        public InputLog? Log { get; init; }
+        public RoomLog? Rooms { get; init; }
+        public string? TilePath { get; init; }
+        public PacketLog? Packet { get; init; }
+        public PacketEntityMap? EntityIds { get; init; }
+        public string? CreaturePath { get; init; }
+        public string? EventPath { get; init; }
+        public bool Dk2Random { get; init; }
+        public string? SeedPath { get; init; }
+        public uint? Seed { get; init; }
+        public ResyncState? Resync { get; init; }
+        public long ResyncAt { get; init; }
+        public string? JobPath { get; init; }
+        public IReadOnlyDictionary<int, int>? ResyncMap { get; init; }
+        public ResyncParts ResyncParts { get; init; } = ResyncParts.All;
+        public bool RetryBlueprints { get; init; }
+        public NativeBirths? Births { get; init; }
+        public bool StoredPickups { get; init; }
+    }
+
     /// <summary>
     /// Runs one campaign level's trigger tree for a number of turns and writes the
     /// probe's CSV shape, so our side can be diffed against a live capture.
     /// </summary>
-    internal static int RunTriggerCsv(
-        string levelName, int turns, string outPath, InputLog? log = null, RoomLog? rooms = null,
-        string? tilePath = null, PacketLog? packet = null,
-        PacketEntityMap? entityIds = null, string? creaturePath = null,
-        string? eventPath = null, bool dk2Random = false, string? seedPath = null, uint? seed = null,
-        ResyncState? resync = null, long resyncAt = 0, string? jobPath = null,
-        IReadOnlyDictionary<int, int>? resyncMap = null, ResyncParts resyncParts = ResyncParts.All,
-        bool retryBlueprints = false, NativeBirths? births = null, bool storedPickups = false)
+    internal static int RunTriggerCsv(TriggerCsvOptions options)
     {
+        PacketEntityMap? entityIds = options.EntityIds;
         string? install = Dk2Install.Find();
         if (install is null)
         {
@@ -33,18 +49,18 @@ internal static class ReplayCommands
             return 2;
         }
 
-        LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, levelName);
-        LevelDef? level = GameDatabaseLoader.LoadCampaignLevel(install, levelName);
-        List<TriggerRecord>? records = GameDatabaseLoader.LoadCampaignTriggers(install, levelName);
-        List<PlayerDef>? players = GameDatabaseLoader.LoadCampaignPlayers(install, levelName);
-        List<ThingRecord>? things = GameDatabaseLoader.LoadCampaignThings(install, levelName);
+        LevelMap? map = GameDatabaseLoader.LoadCampaignMap(install, options.LevelName);
+        LevelDef? level = GameDatabaseLoader.LoadCampaignLevel(install, options.LevelName);
+        List<TriggerRecord>? records = GameDatabaseLoader.LoadCampaignTriggers(install, options.LevelName);
+        List<PlayerDef>? players = GameDatabaseLoader.LoadCampaignPlayers(install, options.LevelName);
+        List<ThingRecord>? things = GameDatabaseLoader.LoadCampaignThings(install, options.LevelName);
         if (map is null || level is null || records is null || players is null || things is null)
         {
-            Console.Error.WriteLine($"'{levelName}' is missing map, level, trigger, player or thing data.");
+            Console.Error.WriteLine($"'{options.LevelName}' is missing map, level, trigger, player or thing data.");
             return 2;
         }
 
-        GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, levelName);
+        GameDatabase database = GameDatabaseLoader.LoadForCampaignLevel(install, options.LevelName);
         var world = WorldState.FromMap(
             database, map, players.Select(p => p.PlayerId).ToArray());
         // The parties come from THINGS, not TRIGGERS, and without them twenty-four of the
@@ -63,11 +79,11 @@ internal static class ReplayCommands
         // --rng dk2: the original's generator from its level-start seed (ADR-0275), so a replay
         // draws as DK2 does wherever our draws line up with its own.
         var simulation = new GameSimulation(
-            database, world, dk2Random
-                ? new SimRandom(seed is { } s ? new Dk2Lcg(s) : new Dk2Lcg())
-                : new SimRandom(seed ?? 0),
+            database, world, options.Dk2Random
+                ? new SimRandom(options.Seed is { } s ? new Dk2Lcg(s) : new Dk2Lcg())
+                : new SimRandom(options.Seed ?? 0),
             // --pickups stored: recorded pick-ups as DK2's command path runs them, no cursor permission (ADR-0616).
-            systems: log is null && rooms is null && packet is null ? null : SimulationSystems.Default(storedPickups),
+            systems: options.Log is null && options.Rooms is null && options.Packet is null ? null : SimulationSystems.Default(options.StoredPickups),
             triggers: tree)
         {
             TrackTriggerReach = true,
@@ -76,10 +92,10 @@ internal static class ReplayCommands
         // A replay's tags are worth nothing if they never land, and a wrong reading of the
         // task pool looks exactly like a level nobody dug: counting what TileTagSystem
         // accepted turns that silent failure into a number.
-        using StreamWriter? eventWriter = eventPath is null ? null : new StreamWriter(eventPath);
+        using StreamWriter? eventWriter = options.EventPath is null ? null : new StreamWriter(options.EventPath);
         eventWriter?.WriteLine("turn\tsystem\tkind\tdetail");
         var tally = new TagTally(eventWriter);
-        if (log is not null || rooms is not null || packet is not null)
+        if (options.Log is not null || options.Rooms is not null || options.Packet is not null)
         {
             simulation.ObserveWith(tally);
         }
@@ -89,45 +105,45 @@ internal static class ReplayCommands
         // and a tile the capture never mentions has nothing to compare against anyway.
         // A packet replay has no probe to line up with: it watches every tile, for comparing
         // against a full-state capture's tile log.
-        TilePos[] watched = tilePath is null
+        TilePos[] watched = options.TilePath is null
             ? []
-            : log is not null
-                ? [.. log.Watched.OrderBy(t => t.Y).ThenBy(t => t.X)]
+            : options.Log is not null
+                ? [.. options.Log.Watched.OrderBy(t => t.Y).ThenBy(t => t.X)]
                 : [.. Enumerable.Range(0, world.Height)
                     .SelectMany(y => Enumerable.Range(0, world.Width).Select(x => new TilePos(x, y)))];
-        using StreamWriter? tileWriter = tilePath is null ? null : new StreamWriter(tilePath);
+        using StreamWriter? tileWriter = options.TilePath is null ? null : new StreamWriter(options.TilePath);
         // --seeds: DK2's generator state after each tick, to count our draws against a capture's.
-        using StreamWriter? seedWriter = seedPath is null ? null : new StreamWriter(seedPath);
+        using StreamWriter? seedWriter = options.SeedPath is null ? null : new StreamWriter(options.SeedPath);
         seedWriter?.WriteLine("tick,seed");
         tileWriter?.WriteLine("tick,x,y,terrain,health,owner,tagged");
         var seen = new Dictionary<TilePos, (byte Terrain, int Health, byte Owner, ushort Tagged)>();
-        using StreamWriter? creatureWriter = creaturePath is null ? null : new StreamWriter(creaturePath);
+        using StreamWriter? creatureWriter = options.CreaturePath is null ? null : new StreamWriter(options.CreaturePath);
         creatureWriter?.WriteLine("tick,id,type,owner,x,y,health,state,target");
         var seenCreatures = new Dictionary<int,
             (byte Type, byte Owner, TilePos Tile, int Health, int State, int Target)>();
         // --jobs: each creature's state, resume state and task as a worker's choice leaves them,
         // a row on change, for comparing Imp choices after a resync with the capture's.
-        using StreamWriter? jobWriter = jobPath is null ? null : new StreamWriter(jobPath);
+        using StreamWriter? jobWriter = options.JobPath is null ? null : new StreamWriter(options.JobPath);
         jobWriter?.WriteLine("tick,id,state,resume,task,work,lastkind,lasttask,gold");
         var seenJobs = new Dictionary<int, (int State, int Resume, int Task, TileWorkKind Work, ImpTaskKind Last, int LastTile, int Gold)>();
 
         int goldAsked = 0, goldMissed = 0, goldMoved = 0, dropsMoved = 0;
         // Off unless --blueprints retry: a replay's results stay comparable with the frozen rigs'.
-        BlueprintRetry? blueprints = retryBlueprints ? new BlueprintRetry(OwnsTile, eventWriter) : null;
-        using (var writer = new StreamWriter(outPath))
+        BlueprintRetry? blueprints = options.RetryBlueprints ? new BlueprintRetry(OwnsTile, eventWriter) : null;
+        using (var writer = new StreamWriter(options.OutPath))
         {
             simulation.EmitTriggerTurnsTo(writer);
-            for (int i = 0; i < turns; i++)
+            for (int i = 0; i < options.Turns; i++)
             {
                 // The logs are in DK2's turn numbers, which run one ahead of our tick.
                 long turn = simulation.CurrentTick.Value + 1;
-                simulation.Tick(packet is null
-                    ? Merge(log?.At(turn), rooms?.At(turn))
-                    : Blueprints(turn, packet.At(turn, entityIds ?? new PacketEntityMap(), GoldOnTile, DropAt)));
+                simulation.Tick(options.Packet is null
+                    ? Merge(options.Log?.At(turn), options.Rooms?.At(turn))
+                    : Blueprints(turn, options.Packet.At(turn, entityIds ?? new PacketEntityMap(), GoldOnTile, DropAt)));
 
-                if (births is not null && entityIds is not null)
+                if (options.Births is not null && entityIds is not null)
                 {
-                    births.PairNew(entityIds, turn, world.Creatures, eventWriter);
+                    options.Births.PairNew(entityIds, turn, world.Creatures, eventWriter);
                 }
 
                 if (seedWriter is not null && simulation.Rng.Algorithm is Dk2Lcg lcg)
@@ -186,22 +202,22 @@ internal static class ReplayCommands
                 }
 
                 // --resync: this turn's state is DK2's, and the rest of the run continues from it.
-                if (resync is not null && turn == resyncAt)
+                if (options.Resync is not null && turn == options.ResyncAt)
                 {
                     // A slot named in --resync-map is that creature; the rest resolve through the
                     // packet replay's entity map at this turn. The packets after it name DK2's
                     // creatures by slot, so the resync's pairs replace the map's from the next turn.
                     PacketEntityMap ids = entityIds ??= new PacketEntityMap();
-                    ResyncReport report = WorldResync.Apply(simulation, resync,
-                        slot => resyncMap is not null && resyncMap.TryGetValue(slot, out int named) ? named
+                    ResyncReport report = WorldResync.Apply(simulation, options.Resync,
+                        slot => options.ResyncMap is not null && options.ResyncMap.TryGetValue(slot, out int named) ? named
                             : ids.TryResolve((uint)slot, turn, PacketEntityKind.Creature, out int id) ? id : null,
-                        resyncParts);
-                    if (resyncParts != ResyncParts.All)
+                        options.ResyncParts);
+                    if (options.ResyncParts != ResyncParts.All)
                     {
-                        Console.WriteLine($"  resync skips: {ResyncParts.All & ~resyncParts}");
+                        Console.WriteLine($"  resync skips: {ResyncParts.All & ~options.ResyncParts}");
                     }
 
-                    if (births is not null)
+                    if (options.Births is not null)
                     {
                         ids.DropCreatureRowsAfter(turn);
                     }
@@ -211,8 +227,8 @@ internal static class ReplayCommands
                         ids.Set((uint)slot, turn + 1, ours, PacketEntityKind.Creature);
                     }
 
-                    births?.Begin(ids, world.Creatures);
-                    Console.WriteLine($"  resync at turn {turn} from DK2's tick {resync.Tick}: {report}");
+                    options.Births?.Begin(ids, world.Creatures);
+                    Console.WriteLine($"  resync at turn {turn} from DK2's tick {options.Resync.Tick}: {report}");
                     foreach (string note in report.Notes)
                     {
                         Console.WriteLine($"    {note}");
@@ -221,9 +237,9 @@ internal static class ReplayCommands
             }
         }
 
-        if (tilePath is not null)
+        if (options.TilePath is not null)
         {
-            Console.WriteLine($"  tiles: {watched.Length} watched -> {tilePath}");
+            Console.WriteLine($"  tiles: {watched.Length} watched -> {options.TilePath}");
         }
         // A pickup of nothing is dropped silently by the hand, so the miss is counted here.
         if (goldAsked > 0)
@@ -232,10 +248,10 @@ internal static class ReplayCommands
                 + $"{goldMoved} took ours from the next tile");
         }
 
-        if (births is not null)
+        if (options.Births is not null)
         {
-            Console.WriteLine($"  births: {births.Births.Count} native after the resync, {births.PairedCount} paired with ours, "
-                + $"{births.Births.Count - births.PairedCount} name nobody");
+            Console.WriteLine($"  births: {options.Births.Births.Count} native after the resync, {options.Births.PairedCount} paired with ours, "
+                + $"{options.Births.Births.Count - options.Births.PairedCount} name nobody");
         }
 
         if (dropsMoved > 0)
@@ -260,7 +276,7 @@ internal static class ReplayCommands
                 Console.WriteLine($"  imps: player {p.PlayerId} has {imps}");
             }
 
-            if (log is not null || rooms is not null || packet is not null)
+            if (options.Log is not null || options.Rooms is not null || options.Packet is not null)
             {
                 PlayerState player = world.Player(p.PlayerId);
                 Console.WriteLine($"  result: player {p.PlayerId} status={player.Status} "
@@ -268,14 +284,14 @@ internal static class ReplayCommands
             }
         }
 
-        if (log is not null || rooms is not null || packet is not null)
+        if (options.Log is not null || options.Rooms is not null || options.Packet is not null)
         {
             tally.Report();
         }
 
         int occupied = tree.Parties.Count(s => s.TriggerId != 0);
-        Console.WriteLine($"{levelName}: {turns} turns, root trigger {tree.RootTriggerId} "
-            + $"repeat {tree.RootRepeat}, {occupied} occupied party roots -> {outPath}");
+        Console.WriteLine($"{options.LevelName}: {options.Turns} turns, root trigger {tree.RootTriggerId} "
+            + $"repeat {tree.RootRepeat}, {occupied} occupied party roots -> {options.OutPath}");
 
         // The entity-root counts make an empty output column readable: zero roots and roots
         // that all answered false are different observations.
@@ -724,9 +740,27 @@ internal static class ReplayCommands
             }
         }
 
-        return RunTriggerCsv(arguments[1], turns, arguments[3],
-            log, rooms, tilePath, packet, entityIds, creaturePath, eventPath, dk2Random, seedPath, seed,
-            resync, resyncAt, jobPath, resyncMap, resyncParts, retryBlueprints, births, storedPickups);
+        return RunTriggerCsv(new TriggerCsvOptions(arguments[1], turns, arguments[3])
+        {
+            Log = log,
+            Rooms = rooms,
+            TilePath = tilePath,
+            Packet = packet,
+            EntityIds = entityIds,
+            CreaturePath = creaturePath,
+            EventPath = eventPath,
+            Dk2Random = dk2Random,
+            SeedPath = seedPath,
+            Seed = seed,
+            Resync = resync,
+            ResyncAt = resyncAt,
+            JobPath = jobPath,
+            ResyncMap = resyncMap,
+            ResyncParts = resyncParts,
+            RetryBlueprints = retryBlueprints,
+            Births = births,
+            StoredPickups = storedPickups,
+        });
     }
 
     /// <summary>

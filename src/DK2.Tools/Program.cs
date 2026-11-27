@@ -19,8 +19,8 @@ internal partial class Program
             ["capture-diff"] = args => args.Length is 3 or 5 ? CaptureCommands.CaptureDiff(args) : Usage(),
             ["trigger-diff"] = args => args.Length == 3 ? CaptureCommands.DiffTriggerCsv(args[1], args[2]) : Usage(),
             ["trigger-run"] = args => args.Length == 4
-                ? ReplayCommands.RunTriggerCsv(
-                    args[1], int.Parse(args[2], System.Globalization.CultureInfo.InvariantCulture), args[3])
+                ? ReplayCommands.RunTriggerCsv(new ReplayCommands.TriggerCsvOptions(
+                    args[1], int.Parse(args[2], System.Globalization.CultureInfo.InvariantCulture), args[3]))
                 : Usage(),
             ["replay"] = args => args.Length >= 4 ? ReplayCommands.Replay(args) : Usage(),
             ["journal-report"] = JournalReportCommand.Run,

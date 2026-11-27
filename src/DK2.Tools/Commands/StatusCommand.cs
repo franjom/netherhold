@@ -47,7 +47,6 @@ internal static class StatusCommand
             .Select(m => int.Parse(m.Groups[1].Value))
             .Distinct().OrderBy(n => n)];
 
-        // --- research docs
         string researchDir = Path.Combine(root, "docs", "research");
         int researchDocs = Directory.Exists(researchDir)
             ? Directory.GetFiles(researchDir, "*.md").Length
@@ -73,7 +72,6 @@ internal static class StatusCommand
             ? Directory.GetFiles(scenarioDir, "*.yaml", SearchOption.AllDirectories).Length
             : Fail("scenarios/ is missing");
 
-        // --- the determinism pair, from the two files that own them.
         string sim = Read("src/DK2.Simulation/GameSimulation.cs");
         Match hashVersion = Regex.Match(sim, @"HashVersion\s*=\s*(\d+)");
         if (!hashVersion.Success)
@@ -98,7 +96,6 @@ internal static class StatusCommand
             (tests, gated) = CountTests(root, problems);
         }
 
-        // ---- report ------------------------------------------------------
         Console.WriteLine("computed from the working tree:");
         Console.WriteLine();
         if (!fast)

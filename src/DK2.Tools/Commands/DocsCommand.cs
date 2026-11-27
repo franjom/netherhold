@@ -131,7 +131,6 @@ internal static class DocsCommand
             return touched is null || Enumerable.Range(from, to - from + 1).Any(touched.Contains);
         }
 
-        // Whole-file budgets.
         if (relative.Equals("docs/HANDOFF.md", StringComparison.OrdinalIgnoreCase)
             && lines.Length > DocBudgets.Handoff
             && Worse(lines.Length, baseLines.Length))
