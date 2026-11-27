@@ -72,9 +72,9 @@ internal static partial class KwdCommands
         // inlined here: integer divide by variable 19's four, floored at one
         // for any non-zero file value. It mirrors
         // SimulationTiming.LoaderRatePerTick, which is the authority.
-        const int TicksPerGameSecond = 4;
+        const int ticksPerGameSecond = 4;
         static int PerTick(int tabled) =>
-            tabled == 0 ? 0 : Math.Max(tabled / TicksPerGameSecond, 1);
+            tabled == 0 ? 0 : Math.Max(tabled / ticksPerGameSecond, 1);
 
         Console.WriteLine(" id name                 tabled  perTick  perSecond  lost  lvl10");
         int researchers = 0;
@@ -87,10 +87,10 @@ internal static partial class KwdCommands
 
             researchers++;
             int perTick = PerTick(c.ResearchPerSecond);
-            int perSecond = perTick * TicksPerGameSecond;
+            int perSecond = perTick * ticksPerGameSecond;
             int atTen = perTick
                 * db.StatPercent(CreatureStatId.ResearchPerSecond, 10) / 100
-                * TicksPerGameSecond;
+                * ticksPerGameSecond;
             Console.WriteLine(
                 $"{c.CreatureId,3} {c.Name,-20} {c.ResearchPerSecond,6} {perTick,8} "
                 + $"{perSecond,10} {c.ResearchPerSecond - perSecond,5} {atTen,6}");

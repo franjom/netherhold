@@ -24,8 +24,8 @@ internal static partial class KwdCommands
         string mapsDir = Path.Combine(root, "Data", "editor", "maps");
         GameDatabase db = GameDatabaseLoader.Load(root);
 
-        const int ActionTypeAlterTerrain = 22;
-        const int TriggerActionTag = 214;
+        const int actionTypeAlterTerrain = 22;
+        const int triggerActionTag = 214;
 
         var writtenTerrain = new SortedDictionary<byte, int>();
         var actionTypeHistogram = new SortedDictionary<int, int>();
@@ -51,7 +51,7 @@ internal static partial class KwdCommands
 
                 foreach (KwdTaggedRecords.TaggedRecord r in KwdTaggedRecords.Split(c))
                 {
-                    if (r.Tag != TriggerActionTag)
+                    if (r.Tag != triggerActionTag)
                     {
                         continue;
                     }
@@ -67,7 +67,7 @@ internal static partial class KwdCommands
                     actionTypeHistogram.TryGetValue(actionType, out int seen);
                     actionTypeHistogram[actionType] = seen + 1;
 
-                    if (actionType != ActionTypeAlterTerrain)
+                    if (actionType != actionTypeAlterTerrain)
                     {
                         continue;
                     }

@@ -139,8 +139,8 @@ internal static partial class KwdCommands
             // Player 2 is the unowned marker, not 0: level 1's portal — which
             // the tutorial has you claim — is owner 2, and level 1's keeper is
             // player 3. Player 7 is the Heroes.
-            const byte Unowned = 2;
-            int claimable = regions.Count(r => r.Owner == Unowned && r.Room == "Portal");
+            const byte unowned = 2;
+            int claimable = regions.Count(r => r.Owner == unowned && r.Room == "Portal");
             string mark = claimable >= 2 ? " <== TWO CLAIMABLE" : "";
             Console.WriteLine($"{level,-22} base={levelBase,3}s  portals={regions.Count}{mark}");
             foreach ((string room, byte owner, int tiles, int x, int y) in

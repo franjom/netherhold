@@ -188,3 +188,19 @@ dotnet_naming_symbols.step6_local_variables.applicable_accessibilities = *
 dotnet_naming_rule.step6_local_variables.symbols = step6_local_variables
 dotnet_naming_rule.step6_local_variables.style = step6_local_camel_case
 dotnet_naming_rule.step6_local_variables.severity = warning
+
+[src/DK2.Tools/**.cs]
+dotnet_naming_style.step6_local_camel_case.capitalization = camel_case
+dotnet_naming_symbols.step6_local_variables.applicable_kinds = local
+dotnet_naming_symbols.step6_local_variables.applicable_accessibilities = *
+dotnet_naming_rule.step6_local_variables.symbols = step6_local_variables
+dotnet_naming_rule.step6_local_variables.style = step6_local_camel_case
+dotnet_naming_rule.step6_local_variables.severity = warning
+
+[src/DK2.Harness/**.cs]
+dotnet_naming_style.step6_local_camel_case.capitalization = camel_case
+dotnet_naming_symbols.step6_local_variables.applicable_kinds = local
+dotnet_naming_symbols.step6_local_variables.applicable_accessibilities = *
+dotnet_naming_rule.step6_local_variables.symbols = step6_local_variables
+dotnet_naming_rule.step6_local_variables.style = step6_local_camel_case
+dotnet_naming_rule.step6_local_variables.severity = warning
