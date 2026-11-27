@@ -67,7 +67,7 @@ public sealed class HeartDefenceSystem : IRoomTickStep
     public void Tick(SimulationContext context, RoomInstance room)
     {
         WorldState world = context.World;
-        PlayerId ownerId = new(room.OwnerPlayerId);
+        var ownerId = new PlayerId(room.OwnerPlayerId);
         int x = CreatureState.CentreOf(room.CentreFieldX), y = CreatureState.CentreOf(room.CentreFieldY);
         CreatureState? intruder = Intruder(world, ownerId, x, y, _reporting * _reporting * Fp32.One);
         if (intruder is not null)

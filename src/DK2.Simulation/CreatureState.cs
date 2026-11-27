@@ -362,7 +362,7 @@ public sealed partial class CreatureState
     /// (docs/research/steering-behaviours.md §7.5): velocity, the route window, the stuck history
     /// and the path flags. Its position is re-derived from <see cref="PosX"/> and <see cref="PosY"/>
     /// before every step, as the original does, so it is not hashed; everything else in it is.</summary>
-    public readonly Steering.SteeringBody Body = new();
+    public readonly Steering.SteeringBody Body = new Steering.SteeringBody();
 
     /// <summary>Facing, 2048 to a full turn (<see cref="Steering.Bearing"/>). A creature turns to
     /// face its waypoint before it moves (steering-behaviours.md §5.3).</summary>
@@ -461,7 +461,7 @@ public sealed partial class CreatureState
     public GameTick LastSleptTick;
 
     /// <summary>Modern state-84 completion stamp for its completion-turn pose (ADR-0586).</summary>
-    public GameTick LastBedExitTick = new(-1);
+    public GameTick LastBedExitTick = new GameTick(-1);
 
     /// <summary>Unpaid sleep need (+0x58), in ticks; only state 83 pays it down.</summary>
     public int SleepDebtTicks;
@@ -1553,7 +1553,7 @@ public sealed partial class CreatureState
     {
         get
         {
-            return new((Body.PathTargetPos.X >> 4) / Fp32.One, (Body.PathTargetPos.Y >> 4) / Fp32.One);
+            return new TilePos((Body.PathTargetPos.X >> 4) / Fp32.One, (Body.PathTargetPos.Y >> 4) / Fp32.One);
         }
     }
 
@@ -1576,7 +1576,7 @@ public sealed partial class CreatureState
     {
         get
         {
-            return new(PosX / Fp32.One, PosY / Fp32.One);
+            return new TilePos(PosX / Fp32.One, PosY / Fp32.One);
         }
     }
 

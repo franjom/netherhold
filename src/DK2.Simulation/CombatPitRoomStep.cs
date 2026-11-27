@@ -97,7 +97,7 @@ public sealed class CombatPitRoomStep : IRoomTickStep
         int chosen = slots[context.Rng.NextInt(slots.Length)];
         int x = CreatureState.CentreOf(chosen % context.World.Width), y = CreatureState.CentreOf(chosen / context.World.Width);
         context.RequestEffect(Name, new ViewEffectRequest(new EffectId(effect), room.OwnerPlayerId,
-            new FpPosition3(new(x), new(y), new(FloorHeightRules.At(context.World, context.Database, x, y)))));
+            new FpPosition3(new Fp32(x), new Fp32(y), new Fp32(FloorHeightRules.At(context.World, context.Database, x, y)))));
     }
 
     /// <summary>0x004581F0: the second room effect at the destroyed creature's absolute position.</summary>
@@ -116,14 +116,14 @@ public sealed class CombatPitRoomStep : IRoomTickStep
         }
         // The foreign-owner helper 0x004D83D0 only queries a floor and discards the result.
         context.RequestEffect("combat pit room", new ViewEffectRequest(new EffectId(room.Definition.CreatedObjectEffectId), creature.OwnerPlayerId,
-            new FpPosition3(new(creature.PosX), new(creature.PosY), new(creature.PosZ + FloorHeightRules.Ordinary)),
+            new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ + FloorHeightRules.Ordinary)),
             new Dk2Angle((ushort)creature.Heading)));
     }
 
     internal static CombatPitRoomRuntime Read(WorldState world, int lowestTile)
     {
         ref TileState tile = ref world.TileAtIndex(lowestTile);
-        return new(tile.PitAmbientShortTicks, tile.PitAmbientLongTicks, tile.PitPreviousStandingCount, tile.PitFightSeenTick);
+        return new CombatPitRoomRuntime(tile.PitAmbientShortTicks, tile.PitAmbientLongTicks, tile.PitPreviousStandingCount, tile.PitFightSeenTick);
     }
 
     internal static void Place(WorldState world, IReadOnlyList<int> chain, CombatPitRoomRuntime state)

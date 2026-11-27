@@ -527,7 +527,7 @@ public sealed partial class ImpTaskSystem
                 return false;
             }
 
-            TilePos drop = new(target % w, target / w);
+            var drop = new TilePos(target % w, target / w);
             (int px, int py) = StoreWalkPoints[context.Rng.NextInt(StoreWalkPoints.Length)];
             if (!context.Navigation.TryRouteTo(creature, (drop.X << 12) | px, (drop.Y << 12) | py, Navigation.MoveOptions.ExactSpot))
             {

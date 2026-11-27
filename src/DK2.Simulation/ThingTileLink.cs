@@ -14,7 +14,7 @@ namespace DK2.Simulation;
 /// position, hand and carry change (keeper-spell-possession.md, Possessed actions).</summary>
 public readonly record struct ThingTileLink(int TileIndex, int Order)
 {
-    public static readonly ThingTileLink None = new(-1, 0);
+    public static readonly ThingTileLink None = new ThingTileLink(-1, 0);
 
     public bool IsLinked
     {

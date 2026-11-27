@@ -90,7 +90,7 @@ public sealed class CampaignPlayer : IPlayerController
 
         public Gains Max(in Gains other)
         {
-            return new(Math.Max(Floor, other.Floor), Math.Max(RoomTiles, other.RoomTiles),
+            return new Gains(Math.Max(Floor, other.Floor), Math.Max(RoomTiles, other.RoomTiles),
                     Math.Max(Creatures, other.Creatures), Math.Max(Gold, other.Gold));
         }
     }
@@ -449,7 +449,7 @@ public sealed class CampaignPlayer : IPlayerController
             else if (PlayerActionRoutines.RoomCovers(observation, pending.Corner, pending.Side, room)) { done.Add(room); _repairs.Remove(room); }
             else if (owned > pending.Tiles)
             {
-                building.Add(new(room, pending with { Tiles = owned, Since = observation.Stamp.Tick, Grew = true }));
+                building.Add(new KeyValuePair<RoomTypeId, PendingRoom>(room, pending with { Tiles = owned, Since = observation.Stamp.Tick, Grew = true }));
             }
             else if (stale)
             {
@@ -3108,7 +3108,7 @@ public sealed class CampaignPlayer : IPlayerController
         while (queue.Count > 0)
         {
             TilePos at = queue.Dequeue();
-            foreach (TilePos next in (ReadOnlySpan<TilePos>)[new(at.X + 1, at.Y), new(at.X - 1, at.Y), new(at.X, at.Y + 1), new(at.X, at.Y - 1)])
+            foreach (TilePos next in (ReadOnlySpan<TilePos>)[new TilePos(at.X + 1, at.Y), new TilePos(at.X - 1, at.Y), new TilePos(at.X, at.Y + 1), new TilePos(at.X, at.Y - 1)])
             {
                 if (grid.Contains(next) && Open(grid[next]) && reached.Add(next))
                 {

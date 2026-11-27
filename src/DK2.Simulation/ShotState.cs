@@ -98,14 +98,14 @@ public sealed partial class ShotState
         }
     }
     // Save files omit view metadata: restore uses the ordinary floor and a derived bearing.
-    public Fp32 ViewHeight { get; internal set; } = new(Fp32.One);
+    public Fp32 ViewHeight { get; internal set; } = new Fp32(Fp32.One);
     public FpPosition3? PreviousViewPosition { get; internal set; }
     internal bool HasLaunchHeading;
     public FpPosition3 ViewPosition
     {
         get
         {
-            return new(new Fp32(PosX), new Fp32(PosY), ViewHeight);
+            return new FpPosition3(new Fp32(PosX), new Fp32(PosY), ViewHeight);
         }
     }
 

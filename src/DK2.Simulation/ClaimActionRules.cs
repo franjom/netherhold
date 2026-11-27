@@ -24,7 +24,7 @@ public struct ClaimActionState
 internal static class ClaimActionRules
 {
     private const byte ArtSlot = 13;
-    private static readonly TileWorkSystem Work = new();
+    private static readonly TileWorkSystem Work = new TileWorkSystem();
 
     internal static bool UsesClock(CreatureState creature, CreatureDef definition)
     {

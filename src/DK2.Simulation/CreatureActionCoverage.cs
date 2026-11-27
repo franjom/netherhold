@@ -112,21 +112,21 @@ public static partial class CreatureActionCoverage
 
     private static ActionCoverageRow Built(int id, Type handler, string member, string starters, string? notMirrored = null)
     {
-        return new(id, ActionStatus.Built, handler, member, starters, notMirrored);
+        return new ActionCoverageRow(id, ActionStatus.Built, handler, member, starters, notMirrored);
     }
 
     private static ActionCoverageRow Unbuilt(int id, string starters, string blocker)
     {
-        return new(id, ActionStatus.Unbuilt, null, blocker, starters, null);
+        return new ActionCoverageRow(id, ActionStatus.Unbuilt, null, blocker, starters, null);
     }
 
     private static ActionCoverageRow Unreachable(int id, string starters, string evidence)
     {
-        return new(id, ActionStatus.Unreachable, null, evidence, starters, null);
+        return new ActionCoverageRow(id, ActionStatus.Unreachable, null, evidence, starters, null);
     }
 
     private static ActionCoverageRow NeverBegun(int id, string evidence)
     {
-        return new(id, ActionStatus.NeverBegun, null, evidence, "", null);
+        return new ActionCoverageRow(id, ActionStatus.NeverBegun, null, evidence, "", null);
     }
 }

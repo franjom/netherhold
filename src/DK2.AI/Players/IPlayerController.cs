@@ -68,14 +68,14 @@ public sealed class PlayerDecision
     /// <summary>Requests nothing and waits <paramref name="advanceTicks"/>.</summary>
     public static PlayerDecision Wait(int advanceTicks, string reason)
     {
-        return new([], advanceTicks, reason);
+        return new PlayerDecision([], advanceTicks, reason);
     }
 
     /// <summary>The controller cannot go on: the host ends the run as a controller limitation, a
     /// diagnostic result rather than an engine failure.</summary>
     public static PlayerDecision Limited(string reason)
     {
-        return new([], 1, reason) { IsLimitation = true };
+        return new PlayerDecision([], 1, reason) { IsLimitation = true };
     }
 
     public bool IsLimitation { get; private init; }

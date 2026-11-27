@@ -22,7 +22,7 @@ namespace DK2.Simulation;
 [Dk2Behavior(Confidence.Confirmed, "docs/research/structure-blocks.md")]
 public sealed class StructureBlocks
 {
-    private static readonly StructureBlocks Empty = new(new HashSet<int>(), new HashSet<int>());
+    private static readonly StructureBlocks Empty = new StructureBlocks(new HashSet<int>(), new HashSet<int>());
 
     private readonly HashSet<int> _blocked;
     private readonly HashSet<int> _portalCentres;

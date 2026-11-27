@@ -25,7 +25,7 @@ public static class StateEntryLog
         AppContext.TryGetSwitch(SwitchName, out bool on) && on;
 
     private static readonly long[] Bits = new long[(CreatureStateTable.Count + 63) / 64];
-    private static readonly ConcurrentDictionary<int, string> FirstCaller = new();
+    private static readonly ConcurrentDictionary<int, string> FirstCaller = new ConcurrentDictionary<int, string>();
 
     // Per thread, because a suspended test and a recorded one may run at the same time.
     [ThreadStatic] private static int s_suspended;

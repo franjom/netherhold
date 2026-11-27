@@ -14,7 +14,7 @@ public enum PitTransportPhase : byte { None, Sinking, Rising }
 public static class DyingStateRules
 {
     private const string SystemName = "DyingState";
-    private static readonly EffectId TransportEffect = new(0x149);
+    private static readonly EffectId TransportEffect = new EffectId(0x149);
 
     internal static void Update(SimulationContext context, CreatureState creature)
     {
@@ -110,7 +110,7 @@ public static class DyingStateRules
     private static void RequestEffect(SimulationContext context, CreatureState creature)
     {
         context.RequestEffect(SystemName, new ViewEffectRequest(TransportEffect, creature.OwnerPlayerId,
-            new FpPosition3(new(creature.PosX), new(creature.PosY), new(creature.PosZ + FloorHeightRules.Ordinary)),
+            new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ + FloorHeightRules.Ordinary)),
             new Dk2Angle((ushort)creature.Heading)));
     }
 }

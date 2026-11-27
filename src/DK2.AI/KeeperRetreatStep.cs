@@ -47,7 +47,7 @@ public sealed class KeeperRetreatStep
     /// <summary>The creatures this tick's pick-up commands are predicted to prepare: in DK2 they sit
     /// in state 75 or 78 for the rest of the tick, outside every category the later steps walk,
     /// whether or not the hand then takes them.</summary>
-    public HashSet<int> Prepared { get; } = new();
+    public HashSet<int> Prepared { get; } = new HashSet<int>();
 
     /// <summary>Walks the owned list while allowance remains. A selected creature costs one allowance
     /// once an own Heart room exists, whether or not the hand predicate admits it; without a Heart

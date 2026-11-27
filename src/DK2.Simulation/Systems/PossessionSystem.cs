@@ -19,7 +19,7 @@ public sealed class PossessionSystem : ISimulationSystem
         }
     }
 
-    private readonly PossessionCombat _combat = new();
+    private readonly PossessionCombat _combat = new PossessionCombat();
 
     public void Execute(SimulationContext context)
     {

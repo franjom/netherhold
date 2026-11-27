@@ -263,7 +263,7 @@ public sealed class RoomLog
 
         public RoomLogTally Freeze()
         {
-            return new(Rows, Commands, Unsettled, Before, Disowned);
+            return new RoomLogTally(Rows, Commands, Unsettled, Before, Disowned);
         }
     }
 }

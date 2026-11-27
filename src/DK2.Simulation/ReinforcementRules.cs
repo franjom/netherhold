@@ -13,7 +13,7 @@ namespace DK2.Simulation;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/wall-corner-fill.md")]
 public static class ReinforcementRules
 {
-    private static readonly TilePos[] Diagonals = [new(-1, -1), new(1, -1), new(1, 1), new(-1, 1)];
+    private static readonly TilePos[] Diagonals = [new TilePos(-1, -1), new TilePos(1, -1), new TilePos(1, 1), new TilePos(-1, 1)];
 
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/wall-reinforce-eligibility.md")]
     public static bool CanStart(WorldState world, GameDatabase database, TilePos at, PlayerId keeper)

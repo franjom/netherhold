@@ -43,8 +43,8 @@ public sealed class KeeperThreatResponder
     private readonly KeeperAIParameters _p;
     private readonly SimRandom _rng;
     private readonly List<PlayerCommand> _commands;
-    private readonly HashSet<int> _moved = new();
-    private readonly Dictionary<int, bool> _marks = new();
+    private readonly HashSet<int> _moved = new HashSet<int>();
+    private readonly Dictionary<int, bool> _marks = new Dictionary<int, bool>();
     private readonly uint _turn;
     private readonly KeeperRoomRequests? _rooms;
     private readonly KeeperMoodRemedies? _mood;

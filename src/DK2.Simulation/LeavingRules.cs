@@ -190,7 +190,7 @@ public static class LeavingRules
         if (effect != 0)
         {
             context.RequestEffect(systemName, new ViewEffectRequest(new EffectId(effect), state.OwnerPlayerId,
-                new(new Fp32(state.PosX), new Fp32(state.PosY), new Fp32(state.PosZ)), new Dk2Angle((ushort)state.Heading)));
+                new FpPosition3(new Fp32(state.PosX), new Fp32(state.PosY), new Fp32(state.PosZ)), new Dk2Angle((ushort)state.Heading)));
         }
 
         int gold = PurseRules.Spend(state, state.GoldHeld);

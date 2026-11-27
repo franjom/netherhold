@@ -22,7 +22,7 @@ public static class ReinforcementActionRules
 {
     private const byte ArtSlot = 12;
     private const ActionAnimationFlags Cycle = ActionAnimationFlags.Complete | ActionAnimationFlags.Wrapped;
-    private static readonly TileWorkSystem Work = new();
+    private static readonly TileWorkSystem Work = new TileWorkSystem();
 
     internal static bool UsesClock(CreatureState creature, CreatureDef definition)
     {

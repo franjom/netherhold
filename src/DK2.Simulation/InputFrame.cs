@@ -40,7 +40,7 @@ public abstract record PlayerCommand(PlayerId PlayerId)
 /// </summary>
 public readonly record struct InputFrame(IReadOnlyList<PlayerCommand>? Commands)
 {
-    public static readonly InputFrame Empty = new((IReadOnlyList<PlayerCommand>?)null);
+    public static readonly InputFrame Empty = new InputFrame((IReadOnlyList<PlayerCommand>?)null);
 
     private static readonly PlayerCommand[] None = [];
 
@@ -54,7 +54,7 @@ public readonly record struct InputFrame(IReadOnlyList<PlayerCommand>? Commands)
 
     public static InputFrame Of(params PlayerCommand[] commands)
     {
-        return new(commands);
+        return new InputFrame(commands);
     }
 
     public void HashInto(ref Hash64 hash)

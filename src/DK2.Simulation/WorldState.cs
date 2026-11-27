@@ -855,12 +855,12 @@ public readonly record struct HandItem(HandItemKind Kind, int Id)
 {
     public static HandItem Of(CreatureState creature)
     {
-        return new(HandItemKind.Creature, creature.Id);
+        return new HandItem(HandItemKind.Creature, creature.Id);
     }
 
     public static HandItem Of(ObjectState thing)
     {
-        return new(HandItemKind.Object, thing.Id);
+        return new HandItem(HandItemKind.Object, thing.Id);
     }
 
     public bool IsObject
@@ -884,11 +884,11 @@ public sealed partial class WorldState
 
     /// <summary>The last structure mask computed for this world (<see cref="StructureBlocks.For"/>).
     /// Derived state, never saved or hashed.</summary>
-    internal StructureBlocks.Cache StructureCache { get; } = new();
+    internal StructureBlocks.Cache StructureCache { get; } = new StructureBlocks.Cache();
 
     /// <summary>The last whole-map room sweep for this world (<see cref="RoomIndex.Build(WorldState, GameDatabase)"/>).
     /// Derived state, never saved or hashed.</summary>
-    internal RoomIndex.Cache RoomSweepCache { get; } = new();
+    internal RoomIndex.Cache RoomSweepCache { get; } = new RoomIndex.Cache();
     internal const int TremorSlotCount = 8;
     internal TremorState[] TremorSlots { get; } = new TremorState[TremorSlotCount];
     public IReadOnlyList<TremorState> Tremors
@@ -941,12 +941,12 @@ public sealed partial class WorldState
 
     private readonly List<TileWorkOrder> _pendingWork = [];
     private readonly List<CreatureState> _creatures = [];
-    internal CreatureSlotPool CreatureSlots { get; } = new();
+    internal CreatureSlotPool CreatureSlots { get; } = new CreatureSlotPool();
     private readonly List<CreatureState> _creaturesByOwnership = [];
     private readonly List<ObjectState> _objects = [];
     private readonly List<ActionPointState> _actionPoints = [];
-    private readonly DoorRegistry _doors = new();
-    private readonly TrapRegistry _traps = new();
+    private readonly DoorRegistry _doors = new DoorRegistry();
+    private readonly TrapRegistry _traps = new TrapRegistry();
     private readonly List<NavStamp> _navStamps = [];
     private int _nextChainOrder;
     private int _nextTileLinkOrder;
@@ -1080,7 +1080,7 @@ public sealed partial class WorldState
 
     public TilePos TilePosition(int index)
     {
-        return new(index % Width, index / Width);
+        return new TilePos(index % Width, index / Width);
     }
 
     public ref TileState TileAtIndex(int index)
@@ -1346,8 +1346,8 @@ public sealed partial class WorldState
     /// player — see <see cref="TriggerState"/> for the four readings behind
     /// that.
     /// </summary>
-    public TriggerState Triggers { get; } = new();
-    public PlayerMessageQueue Messages { get; } = new();
+    public TriggerState Triggers { get; } = new TriggerState();
+    public PlayerMessageQueue Messages { get; } = new PlayerMessageQueue();
 
     /// <summary>
     /// Work applications waiting to be resolved by
@@ -1402,7 +1402,7 @@ public sealed partial class WorldState
     {
         get
         {
-            return new(_creatures);
+            return new EntityList<CreatureState>(_creatures);
         }
     }
 
@@ -1644,7 +1644,7 @@ public sealed partial class WorldState
     {
         get
         {
-            return new(_objects);
+            return new EntityList<ObjectState>(_objects);
         }
     }
 
@@ -1752,7 +1752,7 @@ public sealed partial class WorldState
         }
     }
 
-    public TileHighlightState TileHighlights { get; } = new();
+    public TileHighlightState TileHighlights { get; } = new TileHighlightState();
 
     internal void AddActionPoint(ActionPointState actionPoint)
     {
@@ -1800,7 +1800,7 @@ public sealed partial class WorldState
     /// <summary>The player this machine plays, DK2's world slot <c>+0x264</c>: the campaign win
     /// runs its finale for this player only (<c>0x004BEDC0</c>). The host sets it; a level starts
     /// with the first keeper.</summary>
-    public PlayerId LocalPlayerId { get; set; } = new(DK2.Data.Model.PlayerIds.FirstKeeper);
+    public PlayerId LocalPlayerId { get; set; } = new PlayerId(DK2.Data.Model.PlayerIds.FirstKeeper);
 
     /// <summary>Called once by <see cref="EndGame"/> with the verdict it wrote; the simulation runs
     /// the win sequence from it, inside the same call as DK2's <c>0x004BE630</c> does.</summary>
@@ -2057,7 +2057,7 @@ public sealed partial class WorldState
 
     private ThingTileLink NewLink(int tile)
     {
-        return tile < 0 ? ThingTileLink.None : new(tile, ++_nextTileLinkOrder);
+        return tile < 0 ? ThingTileLink.None : new ThingTileLink(tile, ++_nextTileLinkOrder);
     }
 
     // 0x004B5020: a thing that changes tile moves to the head of the new tile's chain; one that does
@@ -2359,7 +2359,7 @@ public sealed partial class WorldState
     internal static WorldState FromParts(
         int width, int height, TileState[] tiles, PlayerState[] players, bool fogOfWarEnabled)
     {
-        return new(width, height, tiles, players, fogOfWarEnabled);
+        return new WorldState(width, height, tiles, players, fogOfWarEnabled);
     }
 
     internal TileState[] RawTiles

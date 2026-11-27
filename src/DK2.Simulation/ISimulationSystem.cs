@@ -32,7 +32,7 @@ public sealed class SimulationContext
     public GameDatabase Database { get; }
     public WorldState World { get; }
     public SimRandom Rng { get; }
-    internal Combat.DropCombatRules DropCombat { get; } = new();
+    internal Combat.DropCombatRules DropCombat { get; } = new Combat.DropCombatRules();
     // Recomputed each recovery pass; never an input to the following turn.
     internal HashSet<CreatureState> TremorRecoveryCompletedThisTick { get; } = [];
     // Cleared before every turn; suppresses a second mood selection later in that turn.
@@ -125,7 +125,7 @@ public sealed class SimulationContext
     }
 
     private InputFrame _input;
-    private readonly CommandIndex _commands = new();
+    private readonly CommandIndex _commands = new CommandIndex();
 
     /// <summary>The tick's commands of type <typeparamref name="T"/>, in input order. A system that
     /// handles one command type reads this; one whose types must keep their order among each other
@@ -206,7 +206,7 @@ public sealed class SimulationContext
     {
         get
         {
-            return new(World, Database, Triggers, _requestEffect, _requestSound) { Rng = Rng, EmitEvent = _emit };
+            return new StateHookContext(World, Database, Triggers, _requestEffect, _requestSound) { Rng = Rng, EmitEvent = _emit };
         }
     }
 

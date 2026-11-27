@@ -15,7 +15,7 @@ public readonly record struct SoundSourceId(SoundSourceKind Kind, int Value)
 {
     public static SoundSourceId Of(CreatureId creature)
     {
-        return new(SoundSourceKind.Creature, creature.Value);
+        return new SoundSourceId(SoundSourceKind.Creature, creature.Value);
     }
 }
 
@@ -244,7 +244,7 @@ public static class ThingSoundRules
         bool placed = thing.PosX != 0 || thing.PosY != 0;
         var x = new Fp32(placed ? thing.PosX : CreatureState.CentreOf(thing.TileIndex % context.World.Width));
         var y = new Fp32(placed ? thing.PosY : CreatureState.CentreOf(thing.TileIndex / context.World.Width));
-        return new(x, y, new Fp32(EggLaunchRules.FloorHeight(context.World, context.Database, x, y)));
+        return new FpPosition3(x, y, new Fp32(EggLaunchRules.FloorHeight(context.World, context.Database, x, y)));
     }
 
     /// <summary>A door's request: its definition's category (<c>+0xA9</c>, <see cref="DoorDef.SoundCategory"/>), its own
@@ -290,7 +290,7 @@ public static class ThingSoundRules
     {
         var px = new Fp32(CreatureState.CentreOf(x));
         var py = new Fp32(CreatureState.CentreOf(y));
-        return new(px, py, new Fp32(EggLaunchRules.FloorHeight(context.World, context.Database, px, py)));
+        return new FpPosition3(px, py, new Fp32(EggLaunchRules.FloorHeight(context.World, context.Database, px, py)));
     }
 
     /// <summary>A tile's request: handle 0, in the category of <paramref name="terrainId"/> (definition
@@ -309,7 +309,7 @@ public static class ThingSoundRules
 
         int width = context.World.Width;
         Request(context, system, source ?? new SoundSourceId(kind, tileIndex), category, sound,
-            new(new Fp32(CreatureState.CentreOf(tileIndex % width)), new Fp32(CreatureState.CentreOf(tileIndex / width)),
+            new FpPosition3(new Fp32(CreatureState.CentreOf(tileIndex % width)), new Fp32(CreatureState.CentreOf(tileIndex / width)),
                 new Fp32(height)), voiced, viewerOnlyFor, listenerRelative: listenerRelative);
     }
 
@@ -335,7 +335,7 @@ public static class ThingSoundRules
         }
 
         Request(context, system, SoundSourceId.Of(new CreatureId(creature.Id)), category, sound,
-            new(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ)), voiced);
+            new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ)), voiced);
     }
 
     public static void Request(SimulationContext context, string system, CreatureState creature, ThingSoundEvent sound,
@@ -343,7 +343,7 @@ public static class ThingSoundRules
     {
         Request(context, system, SoundSourceId.Of(new CreatureId(creature.Id)),
             context.Database.CreatureById(creature.CreatureTypeId).SoundCategory, sound,
-            new(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ)), viewerOnlyFor: viewerOnlyFor);
+            new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ)), viewerOnlyFor: viewerOnlyFor);
     }
 
     public static void Request(SimulationContext context, string system, SoundSourceId source, string category,
@@ -359,7 +359,7 @@ public static class ThingSoundRules
             category = category.Substring(0, 31);
         }
 
-        context.RequestSound(system, new(source, category, sound, position, voiced, viewerOnlyFor, alternating, ListenerRelative: listenerRelative));
+        context.RequestSound(system, new ThingSoundRequest(source, category, sound, position, voiced, viewerOnlyFor, alternating, ListenerRelative: listenerRelative));
     }
 
     /// <summary>DK2's stop command on a thing's handle (slot <c>+0x38</c> with the command object <c>0x0066C77C</c>: the instance found by handle gets its stop method,
@@ -371,7 +371,7 @@ public static class ThingSoundRules
             return;
         }
 
-        context.RequestSound(system, new(source, "", default, default, Stop: true));
+        context.RequestSound(system, new ThingSoundRequest(source, "", default, default, Stop: true));
     }
 
     /// <summary>A creature's request from a hook, which holds no event sink of its own: the creature's handle and
@@ -386,7 +386,7 @@ public static class ThingSoundRules
             category = category.Substring(0, 31);
         }
 
-        hooks.RequestSound(system, new(SoundSourceId.Of(new CreatureId(creature.Id)), category, sound,
-            new(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ))));
+        hooks.RequestSound(system, new ThingSoundRequest(SoundSourceId.Of(new CreatureId(creature.Id)), category, sound,
+            new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ))));
     }
 }

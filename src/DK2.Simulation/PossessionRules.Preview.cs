@@ -32,20 +32,20 @@ public static partial class PossessionRules
             ChainThing? picked = PickMeleeTarget(world, database, me, definition, action.Aim, hearts);
             return picked?.Thing switch
             {
-                CreatureState creature => new(CreatureDeathRules.IsCorpse(creature) ? FightTargetKind.Body : FightTargetKind.Creature,
+                CreatureState creature => new PossessionTarget(CreatureDeathRules.IsCorpse(creature) ? FightTargetKind.Body : FightTargetKind.Creature,
                     creature.Id, creature.Tile),
-                ObjectState thing => new(FightTargetKind.Object, thing.Id, new(thing.TileIndex % world.Width, thing.TileIndex / world.Width)),
-                DoorState door => new(FightTargetKind.Door, door.Id, new(door.X, door.Y)),
-                TrapState trap => new(FightTargetKind.Trap, trap.Id, new(trap.TileLink.TileIndex % world.Width, trap.TileLink.TileIndex / world.Width)),
-                ShotState shot => new(FightTargetKind.Shot, shot.Id, new(shot.PosX >> 12, shot.PosY >> 12)),
-                PillarThing pillar => new(FightTargetKind.Heart, pillar.Id.Value, pillar.Target.Tile),
+                ObjectState thing => new PossessionTarget(FightTargetKind.Object, thing.Id, new TilePos(thing.TileIndex % world.Width, thing.TileIndex / world.Width)),
+                DoorState door => new PossessionTarget(FightTargetKind.Door, door.Id, new TilePos(door.X, door.Y)),
+                TrapState trap => new PossessionTarget(FightTargetKind.Trap, trap.Id, new TilePos(trap.TileLink.TileIndex % world.Width, trap.TileLink.TileIndex / world.Width)),
+                ShotState shot => new PossessionTarget(FightTargetKind.Shot, shot.Id, new TilePos(shot.PosX >> 12, shot.PosY >> 12)),
+                PillarThing pillar => new PossessionTarget(FightTargetKind.Heart, pillar.Id.Value, pillar.Target.Tile),
                 _ => PossessionTarget.None,
             };
         }
         if (action.Slot.Value == PossessedSlot.FollowerArm)
         {
             return PickFollower(world, database, sight, me, action.Aim) is { } follower
-                ? new(FightTargetKind.Creature, follower.Id, follower.Tile) : PossessionTarget.None;
+                ? new PossessionTarget(FightTargetKind.Creature, follower.Id, follower.Tile) : PossessionTarget.None;
         }
 
         if (action.Slot.Value >= definition.Spells.Count)
@@ -62,12 +62,12 @@ public static partial class PossessionRules
         TilePos? tile = target.Kind switch
         {
             FightTargetKind.Creature => world.CreatureById(target.Id)?.Tile,
-            FightTargetKind.Door => world.DoorById(target.Id) is { } door ? new(door.X, door.Y) : null,
+            FightTargetKind.Door => world.DoorById(target.Id) is { } door ? new TilePos(door.X, door.Y) : null,
             FightTargetKind.Trap => world.TrapById(target.Id) is { } trap
-                ? new(trap.TileLink.TileIndex % world.Width, trap.TileLink.TileIndex / world.Width) : null,
+                ? new TilePos(trap.TileLink.TileIndex % world.Width, trap.TileLink.TileIndex / world.Width) : null,
             FightTargetKind.Heart => hearts?.SiteOf(target.Player)?.Pillars.FirstOrDefault(p => HeartPillarId.For(world, p).Value == target.Id).Tile,
             _ => null,
         };
-        return tile is { } at ? new(target.Kind, target.Id, at) : PossessionTarget.None;
+        return tile is { } at ? new PossessionTarget(target.Kind, target.Id, at) : PossessionTarget.None;
     }
 }

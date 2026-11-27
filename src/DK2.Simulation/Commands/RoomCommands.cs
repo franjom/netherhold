@@ -22,7 +22,7 @@ public sealed record BuildRoomCommand(PlayerId PlayerId, RoomTypeId RoomId, IRea
     /// <summary>Immediate tile-builder input for computer keepers and scenario setup.</summary>
     public static BuildRoomCommand At(PlayerId playerId, RoomTypeId roomId, params TilePos[] tiles)
     {
-        return new(playerId, roomId, tiles);
+        return new BuildRoomCommand(playerId, roomId, tiles);
     }
 
     /// <summary>Every tile in a rectangle dragged from (<paramref name="x0"/>, <paramref name="y0"/>)
@@ -31,7 +31,7 @@ public sealed record BuildRoomCommand(PlayerId PlayerId, RoomTypeId RoomId, IRea
     /// chain starts (room-slab-chain.md §2).</summary>
     public static BuildRoomCommand Rect(PlayerId playerId, RoomTypeId roomId, int x0, int y0, int x1, int y1)
     {
-        return new(playerId, roomId, SlabChain.Wave(x0, y0, x1, y1))
+        return new BuildRoomCommand(playerId, roomId, SlabChain.Wave(x0, y0, x1, y1))
         {
             Mode = RoomBuildMode.PlayerWave,
             Press = new TilePos(x0, y0),
@@ -78,7 +78,7 @@ public sealed record SellRoomCommand(PlayerId PlayerId, IReadOnlyList<TilePos> T
 
     public static SellRoomCommand At(PlayerId playerId, params TilePos[] tiles)
     {
-        return new(playerId, tiles);
+        return new SellRoomCommand(playerId, tiles);
     }
 
     /// <summary>A dragged rectangle, normalised as the Hand's sell release sends it (<c>0x004075E0</c>), so the

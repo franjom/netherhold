@@ -19,7 +19,7 @@ public readonly record struct PlaybookItem(PlaybookItemKind Kind, string Name)
 {
     public static PlaybookItem Room(RoomTypeId room)
     {
-        return new(PlaybookItemKind.Room, room.ToString());
+        return new PlaybookItem(PlaybookItemKind.Room, room.ToString());
     }
 
     public override string ToString()
@@ -81,38 +81,38 @@ public sealed record Playbook
 
     private static readonly IReadOnlyDictionary<string, Knob> Knobs = new Dictionary<string, Knob>(StringComparer.Ordinal)
     {
-        ["strategy.room-side"] = new(1, 15, (s, v) => s with { RoomSide = v }),
-        ["strategy.max-outstanding-tags"] = new(1, 64, (s, v) => s with { MaxOutstandingTags = v }),
-        ["strategy.home-guard-tiles"] = new(0, 64, (s, v) => s with { HomeGuardTiles = v }),
-        ["strategy.lair-tiles-per-creature"] = new(1, 9, (s, v) => s with { LairTilesPerCreature = v }),
-        ["strategy.creatures-per-hatchery-tile"] = new(1, 9, (s, v) => s with { CreaturesPerHatcheryTile = v }),
-        ["strategy.treasury-full-percent"] = new(1, 100, (s, v) => s with { TreasuryFullPercent = v }),
-        ["strategy.tiles-per-working-creature"] = new(1, 25, (s, v) => s with { TilesPerWorkingCreature = v }),
-        ["strategy.use-room-every-ticks"] = new(1, 4800, (s, v) => s with { UseRoomEveryTicks = v }),
-        ["strategy.use-room-min-gold"] = new(0, 1_000_000, (s, v) => s with { UseRoomMinGold = v }),
-        ["strategy.enemy-clearance-tiles"] = new(0, 32, (s, v) => s with { EnemyClearanceTiles = v }),
-        ["strategy.enemy-near-tiles"] = new(0, 255, (s, v) => s with { EnemyNearTiles = v }),
-        ["strategy.pit-fighters"] = new(0, 16, (s, v) => s with { PitFighters = v }),
-        ["strategy.scouts"] = new(0, 1, (s, v) => s with { Scouts = v }),
-        ["strategy.create-imps"] = new(0, 1, (s, v) => s with { CreateImps = v }),
-        ["strategy.max-imps"] = new(1, 40, (s, v) => s with { MaxImps = v }),
-        ["strategy.max-traps"] = new(0, 64, (s, v) => s with { MaxTraps = v }),
-        ["strategy.min-imps"] = new(0, 40, (s, v) => s with { MinImps = v }),
-        ["strategy.mana-reserve"] = new(0, 1_000_000, (s, v) => s with { ManaReserve = v }),
-        ["strategy.imp-price-seconds"] = new(1, 3600, (s, v) => s with { ImpPriceSeconds = v }),
-        ["strategy.gold-margin-percent"] = new(0, 500, (s, v) => s with { GoldMarginPercent = v }),
-        ["strategy.free-beds"] = new(0, 20, (s, v) => s with { FreeBeds = v }),
-        ["strategy.hungry-percent"] = new(1, 100, (s, v) => s with { HungryPercent = v }),
-        ["strategy.train-gold"] = new(0, 1_000_000, (s, v) => s with { TrainGold = v }),
-        ["strategy.assault-party"] = new(0, 4, (s, v) => s with { AssaultParty = v }),
-        ["strategy.gold-budget"] = new(0, 1, (s, v) => s with { GoldBudget = v }),
-        ["strategy.second-rooms"] = new(0, 1, (s, v) => s with { SecondRooms = v }),
-        ["strategy.avoid-traps"] = new(0, 1, (s, v) => s with { AvoidTraps = v }),
-        ["strategy.rally-party"] = new(0, 16, (s, v) => s with { RallyParty = v }),
-        ["strategy.recruit-gold"] = new(0, 1_000_000, (s, v) => s with { RecruitGold = v }),
-        ["strategy.attack-party"] = new(0, 40, (s, v) => s with { AttackParty = v }),
-        ["strategy.attack-levels"] = new(0, 400, (s, v) => s with { AttackLevels = v }),
-        ["strategy.attack-paydays"] = new(0, 24, (s, v) => s with { AttackPaydays = v }),
+        ["strategy.room-side"] = new Knob(1, 15, (s, v) => s with { RoomSide = v }),
+        ["strategy.max-outstanding-tags"] = new Knob(1, 64, (s, v) => s with { MaxOutstandingTags = v }),
+        ["strategy.home-guard-tiles"] = new Knob(0, 64, (s, v) => s with { HomeGuardTiles = v }),
+        ["strategy.lair-tiles-per-creature"] = new Knob(1, 9, (s, v) => s with { LairTilesPerCreature = v }),
+        ["strategy.creatures-per-hatchery-tile"] = new Knob(1, 9, (s, v) => s with { CreaturesPerHatcheryTile = v }),
+        ["strategy.treasury-full-percent"] = new Knob(1, 100, (s, v) => s with { TreasuryFullPercent = v }),
+        ["strategy.tiles-per-working-creature"] = new Knob(1, 25, (s, v) => s with { TilesPerWorkingCreature = v }),
+        ["strategy.use-room-every-ticks"] = new Knob(1, 4800, (s, v) => s with { UseRoomEveryTicks = v }),
+        ["strategy.use-room-min-gold"] = new Knob(0, 1_000_000, (s, v) => s with { UseRoomMinGold = v }),
+        ["strategy.enemy-clearance-tiles"] = new Knob(0, 32, (s, v) => s with { EnemyClearanceTiles = v }),
+        ["strategy.enemy-near-tiles"] = new Knob(0, 255, (s, v) => s with { EnemyNearTiles = v }),
+        ["strategy.pit-fighters"] = new Knob(0, 16, (s, v) => s with { PitFighters = v }),
+        ["strategy.scouts"] = new Knob(0, 1, (s, v) => s with { Scouts = v }),
+        ["strategy.create-imps"] = new Knob(0, 1, (s, v) => s with { CreateImps = v }),
+        ["strategy.max-imps"] = new Knob(1, 40, (s, v) => s with { MaxImps = v }),
+        ["strategy.max-traps"] = new Knob(0, 64, (s, v) => s with { MaxTraps = v }),
+        ["strategy.min-imps"] = new Knob(0, 40, (s, v) => s with { MinImps = v }),
+        ["strategy.mana-reserve"] = new Knob(0, 1_000_000, (s, v) => s with { ManaReserve = v }),
+        ["strategy.imp-price-seconds"] = new Knob(1, 3600, (s, v) => s with { ImpPriceSeconds = v }),
+        ["strategy.gold-margin-percent"] = new Knob(0, 500, (s, v) => s with { GoldMarginPercent = v }),
+        ["strategy.free-beds"] = new Knob(0, 20, (s, v) => s with { FreeBeds = v }),
+        ["strategy.hungry-percent"] = new Knob(1, 100, (s, v) => s with { HungryPercent = v }),
+        ["strategy.train-gold"] = new Knob(0, 1_000_000, (s, v) => s with { TrainGold = v }),
+        ["strategy.assault-party"] = new Knob(0, 4, (s, v) => s with { AssaultParty = v }),
+        ["strategy.gold-budget"] = new Knob(0, 1, (s, v) => s with { GoldBudget = v }),
+        ["strategy.second-rooms"] = new Knob(0, 1, (s, v) => s with { SecondRooms = v }),
+        ["strategy.avoid-traps"] = new Knob(0, 1, (s, v) => s with { AvoidTraps = v }),
+        ["strategy.rally-party"] = new Knob(0, 16, (s, v) => s with { RallyParty = v }),
+        ["strategy.recruit-gold"] = new Knob(0, 1_000_000, (s, v) => s with { RecruitGold = v }),
+        ["strategy.attack-party"] = new Knob(0, 40, (s, v) => s with { AttackParty = v }),
+        ["strategy.attack-levels"] = new Knob(0, 400, (s, v) => s with { AttackLevels = v }),
+        ["strategy.attack-paydays"] = new Knob(0, 24, (s, v) => s with { AttackPaydays = v }),
     };
 
     /// <summary>The paths a tunable may name, in order.</summary>
@@ -135,7 +135,7 @@ public sealed record Playbook
     public IReadOnlyList<PlaybookTunable> Tunables { get; init; } = [];
     public IReadOnlyList<PlaybookNote> Notes { get; init; } = [];
     public IReadOnlyList<PlaybookNote> Events { get; init; } = [];
-    public PlaybookCaps Caps { get; init; } = new();
+    public PlaybookCaps Caps { get; init; } = new PlaybookCaps();
 
     /// <summary>Every problem and warning at once. A planned room the level neither offers at the start
     /// nor may make available is a problem; one it only may make available, a warning. A tuned value

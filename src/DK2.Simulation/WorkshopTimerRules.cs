@@ -46,7 +46,7 @@ public static class WorkshopTimerRules
     /// each <c>random(4 x ticks)</c>.</summary>
     public static WorkshopTimers Construct(SimRandom rng)
     {
-        return new(rng.NextInt(StartRangeSeconds * Ticks), rng.NextInt(StartRangeSeconds * Ticks),
+        return new WorkshopTimers(rng.NextInt(StartRangeSeconds * Ticks), rng.NextInt(StartRangeSeconds * Ticks),
             rng.NextInt(StartRangeSeconds * Ticks), rng.NextInt(StartRangeSeconds * Ticks));
     }
 

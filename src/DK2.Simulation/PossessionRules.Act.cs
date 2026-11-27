@@ -50,7 +50,7 @@ public static partial class PossessionRules
     {
         public static Vec3 operator -(Vec3 a, Vec3 b)
         {
-            return new(unchecked(a.X - b.X), unchecked(a.Y - b.Y), unchecked(a.Z - b.Z));
+            return new Vec3(unchecked(a.X - b.X), unchecked(a.Y - b.Y), unchecked(a.Z - b.Z));
         }
     }
 
@@ -77,7 +77,7 @@ public static partial class PossessionRules
     /// shifted 16 (an arithmetic shift), negated after the shift. The horizontal is not scaled by pitch.</summary>
     internal static Vec3 RawAim(Dk2Angle yaw, Dk2Angle pitch)
     {
-        return new(TrapRules.Sine(yaw.Value) >> 4, -(TrapRules.Cosine(yaw.Value) >> 4), -(TrapRules.Cosine(pitch.Value) >> 4));
+        return new Vec3(TrapRules.Sine(yaw.Value) >> 4, -(TrapRules.Cosine(yaw.Value) >> 4), -(TrapRules.Cosine(pitch.Value) >> 4));
     }
 
     /// <summary>The 4096-length direction <c>0x00516670</c>/<c>0x00515520</c> compute: squares in
@@ -92,7 +92,7 @@ public static partial class PossessionRules
             return v;
         }
 
-        return new(unchecked(v.X * 16) / length, unchecked(v.Y * 16) / length, unchecked(v.Z * 16) / length);
+        return new Vec3(unchecked(v.X * 16) / length, unchecked(v.Y * 16) / length, unchecked(v.Z * 16) / length);
     }
 
     internal static int Dot(Vec3 a, Vec3 b)
@@ -334,8 +334,8 @@ public static partial class PossessionRules
                 into.Add(CreatureDeathRules.IsCorpse(c)
                     // 0x004B0F20 constructs a body owned by the neutral player (0x004B0FAA); a Graveyard
                     // that takes it makes it its owner's (0x004B1700).
-                    ? new(ChainClass.Body, c, new(c.PosX, c.PosY, FloorHeight + c.PosZ), (byte)c.BodyOwnerPlayerId, c.TileLink.Order)
-                    : new(ChainClass.Creature, c, new(c.PosX, c.PosY, FloorHeight + c.PosZ), c.OwnerPlayerId, c.TileLink.Order));
+                    ? new ChainThing(ChainClass.Body, c, new Vec3(c.PosX, c.PosY, FloorHeight + c.PosZ), (byte)c.BodyOwnerPlayerId, c.TileLink.Order)
+                    : new ChainThing(ChainClass.Creature, c, new Vec3(c.PosX, c.PosY, FloorHeight + c.PosZ), c.OwnerPlayerId, c.TileLink.Order));
             }
         }
 
@@ -343,7 +343,7 @@ public static partial class PossessionRules
         {
             if (o.TileLink.TileIndex == tile)
             {
-                into.Add(new(ChainClass.Object, o, ObjectPosition(world, o), o.OwnerPlayerId, o.TileLink.Order));
+                into.Add(new ChainThing(ChainClass.Object, o, ObjectPosition(world, o), o.OwnerPlayerId, o.TileLink.Order));
             }
         }
 
@@ -351,7 +351,7 @@ public static partial class PossessionRules
         {
             if (t.TileLink.TileIndex == tile)
             {
-                into.Add(new(ChainClass.Trap, t, new(t.PosX, t.PosY, FloorHeight), t.PlayerId, t.TileLink.Order));
+                into.Add(new ChainThing(ChainClass.Trap, t, new Vec3(t.PosX, t.PosY, FloorHeight), t.PlayerId, t.TileLink.Order));
             }
         }
 
@@ -359,7 +359,7 @@ public static partial class PossessionRules
         {
             if (d.TileLink.TileIndex == tile)
             {
-                into.Add(new(ChainClass.Door, d, new(CreatureState.CentreOf(d.X), CreatureState.CentreOf(d.Y), FloorHeight), d.PlayerId, d.TileLink.Order));
+                into.Add(new ChainThing(ChainClass.Door, d, new Vec3(CreatureState.CentreOf(d.X), CreatureState.CentreOf(d.Y), FloorHeight), d.PlayerId, d.TileLink.Order));
             }
         }
 
@@ -367,7 +367,7 @@ public static partial class PossessionRules
         {
             if (s.TileLink.TileIndex == tile)
             {
-                into.Add(new(ChainClass.Shot, s, new(s.PosX, s.PosY, FloorHeight + s.PosZ), s.OwnerPlayerId, s.TileLink.Order));
+                into.Add(new ChainThing(ChainClass.Shot, s, new Vec3(s.PosX, s.PosY, FloorHeight + s.PosZ), s.OwnerPlayerId, s.TileLink.Order));
             }
         }
 
@@ -375,7 +375,7 @@ public static partial class PossessionRules
         {
             if (p.Target.Tile.Y * world.Width + p.Target.Tile.X == tile)
             {
-                into.Add(new(ChainClass.Object, p, new(p.Target.X.Raw, p.Target.Y.Raw, FloorHeight), p.Owner, int.MinValue));
+                into.Add(new ChainThing(ChainClass.Object, p, new Vec3(p.Target.X.Raw, p.Target.Y.Raw, FloorHeight), p.Owner, int.MinValue));
             }
         }
 
@@ -387,8 +387,8 @@ public static partial class PossessionRules
     internal static Vec3 ObjectPosition(WorldState world, ObjectState o)
     {
         return o.PosX != 0 || o.PosY != 0
-            ? new(o.PosX, o.PosY, FloorHeight)
-            : new(CreatureState.CentreOf(o.TileIndex % world.Width), CreatureState.CentreOf(o.TileIndex / world.Width), FloorHeight);
+            ? new Vec3(o.PosX, o.PosY, FloorHeight)
+            : new Vec3(CreatureState.CentreOf(o.TileIndex % world.Width), CreatureState.CentreOf(o.TileIndex / world.Width), FloorHeight);
     }
 
     /// <summary><c>0x00516050</c>. Same owner: objects only, in reach, of a listed type. Another owner:
@@ -490,7 +490,7 @@ public static partial class PossessionRules
         SpellTarget target = PickSpellTarget(context.World, database, sight, me, aim, SpellRules.IsFriendly(spell), combat.Hearts);
         if (SpellRules.IsSelfOnly(spell))
         {
-            target = new(FightTargetKind.Creature, me.Id, 0);
+            target = new SpellTarget(FightTargetKind.Creature, me.Id, 0);
         }
 
         if (TargetOwner(context.World, target) is { } owner)
@@ -536,8 +536,8 @@ public static partial class PossessionRules
         }
 
         int anchor = heart.TileIndices[0], width = context.World.Width;
-        var centre = new FpPosition3(new(CreatureState.CentreOf(anchor % width)), new(CreatureState.CentreOf(anchor / width)), new(0));
-        Move(context, me, new PossessionPose(centre, new(0)));
+        var centre = new FpPosition3(new Fp32(CreatureState.CentreOf(anchor % width)), new Fp32(CreatureState.CentreOf(anchor / width)), new Fp32(0));
+        Move(context, me, new PossessionPose(centre, new Dk2Angle(0)));
         context.Emit(ActSystem, "possessed_teleport", $"creature={me.Id} heart_tile={anchor}");
     }
 
@@ -633,7 +633,7 @@ public static partial class PossessionRules
                 }
 
                 best = score;
-                chosen = new(FightTargetKind.Creature, c.Id, 0);
+                chosen = new SpellTarget(FightTargetKind.Creature, c.Id, 0);
             }
             for (int t = world.Traps.Count - 1; t >= 0; t--)
             {
@@ -650,7 +650,7 @@ public static partial class PossessionRules
                 }
 
                 best = score;
-                chosen = new(FightTargetKind.Trap, trap.Id, 0);
+                chosen = new SpellTarget(FightTargetKind.Trap, trap.Id, 0);
             }
             for (int d = world.Doors.Count - 1; d >= 0; d--)
             {
@@ -674,7 +674,7 @@ public static partial class PossessionRules
                 }
 
                 best = score;
-                chosen = new(FightTargetKind.Door, door.Id, 0);
+                chosen = new SpellTarget(FightTargetKind.Door, door.Id, 0);
             }
             // The player's type-94 objects newest first: its heart's pillars, the last built first.
             if (hearts?.SiteOf(player) is { Standing: true } site)
@@ -689,7 +689,7 @@ public static partial class PossessionRules
                     }
 
                     best = score;
-                    chosen = new(FightTargetKind.Heart, HeartPillarId.For(world, pillar).Value, site.Owner);
+                    chosen = new SpellTarget(FightTargetKind.Heart, HeartPillarId.For(world, pillar).Value, site.Owner);
                 }
             }
         }

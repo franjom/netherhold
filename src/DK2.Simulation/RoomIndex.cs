@@ -25,7 +25,7 @@ public static class RoomIndex
     /// <summary>Orthogonal only — two tiles joined at a corner are two rooms.</summary>
     private static readonly int[] NeighbourDx = [0, -1, 1, 0];
     private static readonly int[] NeighbourDy = [-1, 0, 0, 1];
-    private static readonly TilePos[] CentreSpiralSteps = [new(1, 0), new(0, 1), new(-1, 0), new(0, -1)];
+    private static readonly TilePos[] CentreSpiralSteps = [new TilePos(1, 0), new TilePos(0, 1), new TilePos(-1, 0), new TilePos(0, -1)];
 
     [ThreadStatic] private static bool[]? s_visited;
     [ThreadStatic] private static RoomDef?[]? s_wanted;

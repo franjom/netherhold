@@ -13,7 +13,7 @@ namespace DK2.Simulation;
 public readonly record struct RoomPlace(int TileIndex, int Units)
 {
     /// <summary>No place: DK2's <c>+0x3B9</c> of 0.</summary>
-    public static readonly RoomPlace None = new(-1, 0);
+    public static readonly RoomPlace None = new RoomPlace(-1, 0);
 
     public bool IsHeld
     {

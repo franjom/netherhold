@@ -225,7 +225,7 @@ public static partial class TremorRules
         {
             get
             {
-                return new(X.Raw >> 12, Y.Raw >> 12);
+                return new TilePos(X.Raw >> 12, Y.Raw >> 12);
             }
         }
     }

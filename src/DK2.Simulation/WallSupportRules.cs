@@ -11,13 +11,13 @@ namespace DK2.Simulation;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/wall-support-after-claim.md")]
 public static class WallSupportRules
 {
-    private static readonly TilePos[] Orthogonal = [new(-1, 0), new(0, -1), new(1, 0), new(0, 1)];
-    private static readonly TilePos[] Diagonal = [new(-1, -1), new(1, -1), new(1, 1), new(-1, 1)];
+    private static readonly TilePos[] Orthogonal = [new TilePos(-1, 0), new TilePos(0, -1), new TilePos(1, 0), new TilePos(0, 1)];
+    private static readonly TilePos[] Diagonal = [new TilePos(-1, -1), new TilePos(1, -1), new TilePos(1, 1), new TilePos(-1, 1)];
     // The native table deliberately repeats the north/west pair in the opposite order.
     private static readonly (TilePos First, TilePos Second)[] RetainingPairs =
     [
-        (new(0, -1), new(-1, 0)), (new(0, -1), new(1, 0)),
-        (new(-1, 0), new(0, -1)), (new(-1, 0), new(0, 1)),
+        (new TilePos(0, -1), new TilePos(-1, 0)), (new TilePos(0, -1), new TilePos(1, 0)),
+        (new TilePos(-1, 0), new TilePos(0, -1)), (new TilePos(-1, 0), new TilePos(0, 1)),
     ];
 
     public static void ReleaseUnsupported(WorldState world, GameDatabase database, TilePos changedFloor)
@@ -61,7 +61,7 @@ public static class WallSupportRules
 
     private static TilePos Offset(TilePos at, TilePos delta)
     {
-        return new(at.X + delta.X, at.Y + delta.Y);
+        return new TilePos(at.X + delta.X, at.Y + delta.Y);
     }
 
     private static bool IsOwnedWall(WorldState world, GameDatabase database, TilePos at, bool requireFullNonGold)

@@ -236,6 +236,6 @@ public static class TorturerStep
 
     private static TilePos TilePosOf(WorldState world, int tileIndex)
     {
-        return new(tileIndex % world.Width, tileIndex / world.Width);
+        return new TilePos(tileIndex % world.Width, tileIndex / world.Width);
     }
 }

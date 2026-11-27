@@ -26,7 +26,7 @@ public struct PossessedExcavationState
 internal static class PossessedExcavationRules
 {
     private const byte ArtSlot = 5;
-    private static readonly TileWorkSystem Work = new();
+    private static readonly TileWorkSystem Work = new TileWorkSystem();
 
     internal static bool TryBegin(SimulationContext context, CreatureState creature, CreatureDef definition,
         PossessedExcavationKind kind, TilePos target)

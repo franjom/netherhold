@@ -32,7 +32,7 @@ public struct CampaignCarry
 
     public static CampaignCarry Read(BinaryReader r)
     {
-        return new()
+        return new CampaignCarry()
         {
             HiddenLandFound = r.ReadInt32(),
             TransferStored = r.ReadBoolean(),

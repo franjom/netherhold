@@ -94,6 +94,6 @@ public sealed class Xoshiro256StarStar : IRandomAlgorithm
 
     public static Xoshiro256StarStar Restore((ulong S0, ulong S1, ulong S2, ulong S3) state)
     {
-        return new(state.S0, state.S1, state.S2, state.S3);
+        return new Xoshiro256StarStar(state.S0, state.S1, state.S2, state.S3);
     }
 }

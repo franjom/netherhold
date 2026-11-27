@@ -81,7 +81,7 @@ public sealed record RoomFacts
 /// before tick 0, like <see cref="CampaignPlayerOptions.WorkerTypes"/>. Read-only during play.</summary>
 public sealed class KeeperKnowledge
 {
-    public static readonly KeeperKnowledge None = new([]);
+    public static readonly KeeperKnowledge None = new KeeperKnowledge([]);
 
     private readonly Dictionary<RoomTypeId, RoomFacts> _rooms;
 

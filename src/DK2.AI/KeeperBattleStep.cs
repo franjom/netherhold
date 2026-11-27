@@ -450,6 +450,6 @@ public sealed class KeeperBattleStep
 
     private static TilePos TileOf(KeeperCreatureView creature)
     {
-        return new(creature.PosX >> 12, creature.PosY >> 12);
+        return new TilePos(creature.PosX >> 12, creature.PosY >> 12);
     }
 }

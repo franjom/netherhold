@@ -22,7 +22,7 @@ public sealed class KeeperReadiness
     private readonly KeeperView _view;
     private readonly KeeperAIParameters _p;
     private readonly List<PlayerCommand> _commands;
-    private readonly Dictionary<int, int> _granted = new();
+    private readonly Dictionary<int, int> _granted = new Dictionary<int, int>();
 
     public KeeperReadiness(KeeperView view, KeeperAIParameters parameters, List<PlayerCommand> commands)
     {

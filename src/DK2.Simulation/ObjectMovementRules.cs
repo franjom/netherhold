@@ -14,7 +14,7 @@ public readonly record struct ObjectProcessId(byte Value);
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hatchery-roaming.md")]
 public static class ObjectMovementRules
 {
-    public static readonly ObjectProcessId MovingProcess = new(9);
+    public static readonly ObjectProcessId MovingProcess = new ObjectProcessId(9);
     public const int TurnRate = 0x100;
     public static void SetProcess(ObjectState thing, ObjectProcessId process)
     {

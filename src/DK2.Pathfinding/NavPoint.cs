@@ -10,7 +10,7 @@ public readonly record struct NavPoint(int X, int Y)
 {
     public static NavPoint FromTileCentre(int tileX, int tileY)
     {
-        return new((tileX * NavMesh.UnitsPerTile) + (NavMesh.UnitsPerTile / 2),
+        return new NavPoint((tileX * NavMesh.UnitsPerTile) + (NavMesh.UnitsPerTile / 2),
             (tileY * NavMesh.UnitsPerTile) + (NavMesh.UnitsPerTile / 2));
     }
 
@@ -42,5 +42,5 @@ public readonly record struct MoverProfile(
     bool PassOwnLockedDoors = false,
     bool EntersPortalHole = false)
 {
-    public static readonly MoverProfile Walker = new(false, false);
+    public static readonly MoverProfile Walker = new MoverProfile(false, false);
 }

@@ -17,7 +17,7 @@ public record struct CallToArmsState(bool On, int ObjectId, ushort X, ushort Y, 
     {
         get
         {
-            return new(X, Y);
+            return new TilePos(X, Y);
         }
     }
 }

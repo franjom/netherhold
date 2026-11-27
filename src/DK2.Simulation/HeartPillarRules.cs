@@ -13,7 +13,7 @@ public readonly record struct HeartPillarId(int Value)
 {
     public static HeartPillarId For(WorldState world, HeartPillarTarget target)
     {
-        return new(((target.Tile.Y * world.Width + target.Tile.X) * 3) + (int)target.Pillar);
+        return new HeartPillarId(((target.Tile.Y * world.Width + target.Tile.X) * 3) + (int)target.Pillar);
     }
 }
 
@@ -89,6 +89,6 @@ public static class HeartPillarRules
             HeartPillar.Third => (0x999, 0x19A),
             _ => throw new ArgumentOutOfRangeException(nameof(pillar)),
         };
-        return new(pillar, tile, new Fp32((tile.X << 12) + x), new Fp32((tile.Y << 12) + y));
+        return new HeartPillarTarget(pillar, tile, new Fp32((tile.X << 12) + x), new Fp32((tile.Y << 12) + y));
     }
 }

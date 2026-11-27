@@ -1031,7 +1031,7 @@ public static class FearRules
         }
 
         int pointTile = chain[pointIndex];
-        TilePos point = new(pointTile % world.Width, pointTile / world.Width);
+        var point = new TilePos(pointTile % world.Width, pointTile / world.Width);
         int pointX = CreatureState.CentreOf(point.X);
         int pointY = CreatureState.CentreOf(point.Y);
 

@@ -112,6 +112,6 @@ public static class RoomBorderRules
             2 => (back, 0xE00),
             _ => (0x200, back),
         };
-        return new FpPosition3(new((cursor.X << 12) | x), new((cursor.Y << 12) | y), new(Fp32.One));
+        return new FpPosition3(new Fp32((cursor.X << 12) | x), new Fp32((cursor.Y << 12) | y), new Fp32(Fp32.One));
     }
 }

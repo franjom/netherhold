@@ -66,7 +66,7 @@ public sealed partial class SteeringBody
     public bool EscapeStuckMode { get; set; }
 
     /// <summary>Solid obstacles <c>Repel_Obstacle</c> recorded this tick for the integrator's slide.</summary>
-    public List<SolidContact> SolidContacts { get; } = new(SolidContactSlots);
+    public List<SolidContact> SolidContacts { get; } = new List<SolidContact>(SolidContactSlots);
 
     /// <summary>Everything that survives a tick, in the determinism hash: the position too, whose
     /// low four bits outlive the step that left them (ADR-0644). Not the contacts, which are one

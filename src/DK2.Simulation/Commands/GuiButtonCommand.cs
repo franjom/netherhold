@@ -16,37 +16,37 @@ public readonly record struct GuiButtonTarget(GuiButtonCategory Category, byte I
 {
     public static GuiButtonTarget Room(RoomTypeId room)
     {
-        return new(GuiButtonCategory.Room, (byte)room);
+        return new GuiButtonTarget(GuiButtonCategory.Room, (byte)room);
     }
 
     public static GuiButtonTarget Door(byte doorId)
     {
-        return new(GuiButtonCategory.Door, doorId);
+        return new GuiButtonTarget(GuiButtonCategory.Door, doorId);
     }
 
     public static GuiButtonTarget Trap(byte trapId)
     {
-        return new(GuiButtonCategory.Trap, trapId);
+        return new GuiButtonTarget(GuiButtonCategory.Trap, trapId);
     }
 
     public static GuiButtonTarget Spell(byte spellId)
     {
-        return new(GuiButtonCategory.Spell, spellId);
+        return new GuiButtonTarget(GuiButtonCategory.Spell, spellId);
     }
 
     /// <summary>The Sell tool (record <c>0x690ED8</c>, <c>0x004163F0</c>).</summary>
-    public static readonly GuiButtonTarget Sell = new(GuiButtonCategory.Widget, 0xFF);
+    public static readonly GuiButtonTarget Sell = new GuiButtonTarget(GuiButtonCategory.Widget, 0xFF);
     /// <summary>The query tool (record <c>0x690E88</c>, <c>0x0041A2B0</c>).</summary>
-    public static readonly GuiButtonTarget Query = new(GuiButtonCategory.Widget, 1);
+    public static readonly GuiButtonTarget Query = new GuiButtonTarget(GuiButtonCategory.Widget, 1);
     /// <summary>The minimap magnifier, either click (record <c>0x690F28</c>: primary <c>0x00416480</c>
     /// zooms in, secondary <c>0x00416580</c> out).</summary>
-    public static readonly GuiButtonTarget MinimapZoom = new(GuiButtonCategory.Widget, 0xFD);
+    public static readonly GuiButtonTarget MinimapZoom = new GuiButtonTarget(GuiButtonCategory.Widget, 0xFD);
     /// <summary>The Resize Panel button (record <c>0x690D98</c>, <c>0x004167D0</c>).</summary>
-    public static readonly GuiButtonTarget ResizePanel = new(GuiButtonCategory.Widget, 0xF7);
+    public static readonly GuiButtonTarget ResizePanel = new GuiButtonTarget(GuiButtonCategory.Widget, 0xF7);
     /// <summary>The tabs (<c>0x00416C20</c>, records <c>0x690C58</c>-<c>0x690D48</c>).</summary>
-    public static readonly GuiButtonTarget CreaturesTab = new(GuiButtonCategory.Widget, 0xF8),
-        RoomsTab = new(GuiButtonCategory.Widget, 0xFB), SpellsTab = new(GuiButtonCategory.Widget, 0xFA),
-        WorkshopTab = new(GuiButtonCategory.Widget, 0xF9);
+    public static readonly GuiButtonTarget CreaturesTab = new GuiButtonTarget(GuiButtonCategory.Widget, 0xF8),
+        RoomsTab = new GuiButtonTarget(GuiButtonCategory.Widget, 0xFB), SpellsTab = new GuiButtonTarget(GuiButtonCategory.Widget, 0xFA),
+        WorkshopTab = new GuiButtonTarget(GuiButtonCategory.Widget, 0xF9);
 }
 
 /// <summary>

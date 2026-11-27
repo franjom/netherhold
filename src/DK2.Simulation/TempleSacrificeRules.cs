@@ -134,7 +134,7 @@ public static class TempleSacrificeRules
         history.Clear();
 
         byte rewardId = unchecked((byte)match.RewardValue);
-        TilePos at = new(offeringTileIndex % world.Width, offeringTileIndex / world.Width);
+        var at = new TilePos(offeringTileIndex % world.Width, offeringTileIndex / world.Width);
         switch (match.RewardType)
         {
             case 1:

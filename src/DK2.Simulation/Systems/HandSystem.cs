@@ -25,7 +25,7 @@ public sealed class HandSystem : ISimulationSystem
     private const string SystemName = "Hand";
 
     /// <summary>Effect 32, Gold From Hand: the glint of gold leaving the hand (<c>0x004BC9CA</c>).</summary>
-    public static readonly EffectId GoldFromHandEffect = new(32);
+    public static readonly EffectId GoldFromHandEffect = new EffectId(32);
 
     public string Name
     {
@@ -274,7 +274,7 @@ public sealed class HandSystem : ISimulationSystem
         {
             context.RequestEffect(SystemName, new ViewEffectRequest(new EffectId(MovementDustSystem.FootDustEffectId), playerId,
                 new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(0x1000)),
-                new Dk2Angle(unchecked((ushort)creature.Heading))) { SourceCreatureId = new(creature.Id) });
+                new Dk2Angle(unchecked((ushort)creature.Heading))) { SourceCreatureId = new CreatureId(creature.Id) });
         }
         // The hand callback (0x004C0BE0) stops the creature after the prepare step (0x004C0C82).
         creature.Body.Vel = Steering.Fixed16Vector.Zero;
@@ -877,12 +877,12 @@ public sealed class HandSystem : ISimulationSystem
     {
         if (world.CreatureById(command.TargetCreatureId) is { } under)
         {
-            return new(new Fp32(under.PosX), new Fp32(under.PosY), new Fp32(DropLandingRules.DropHeight));
+            return new FpPosition3(new Fp32(under.PosX), new Fp32(under.PosY), new Fp32(DropLandingRules.DropHeight));
         }
 
         FpPosition2 at = command.Position ?? new FpPosition2(
             new Fp32(CreatureState.CentreOf(command.Tile.X)), new Fp32(CreatureState.CentreOf(command.Tile.Y)));
-        return new(at.X, at.Y, new Fp32(DropLandingRules.DropHeight));
+        return new FpPosition3(at.X, at.Y, new Fp32(DropLandingRules.DropHeight));
     }
 
     private static void DropObject(

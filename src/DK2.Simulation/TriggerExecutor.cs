@@ -148,7 +148,7 @@ public sealed record TriggerPartySlot(
 {
     /// <summary>A slot no shipped party occupies. Its ids are zero, which every walk in
     /// this file treats as the end of a chain, so an empty slot costs nothing.</summary>
-    public static TriggerPartySlot Empty { get; } = new(0, []);
+    public static TriggerPartySlot Empty { get; } = new TriggerPartySlot(0, []);
 }
 
 /// <summary>One player's tree root, <b>with the player it belongs to</b>. DK2's frame
@@ -379,7 +379,7 @@ internal sealed class TriggerRun(int currentTick)
 
     public TriggerRunResult Result()
     {
-        return new(Blocked, Partial, Assumed, Unhandled, Reached, Unsatisfied, CreatureActions);
+        return new TriggerRunResult(Blocked, Partial, Assumed, Unhandled, Reached, Unsatisfied, CreatureActions);
     }
 }
 

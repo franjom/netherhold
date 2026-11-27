@@ -36,7 +36,7 @@ public sealed class KeeperAI
     private readonly BuildArea? _area;
     private readonly PlayerId[]? _playerActivationOrder;
     private bool _directionsFixed;
-    private readonly KeeperRouteCache _routes = new();
+    private readonly KeeperRouteCache _routes = new KeeperRouteCache();
 
     public KeeperAI(
         PlayerId playerId, KeeperAIParameters parameters, SimRandom rng,
@@ -53,7 +53,7 @@ public sealed class KeeperAI
     }
 
     public PlayerId PlayerId { get; }
-    public KeeperAIState State { get; } = new();
+    public KeeperAIState State { get; } = new KeeperAIState();
 
     /// <summary>How many routing meshes this keeper has built: one per change of the navigation
     /// bytes between turns that ask a route, not one per turn.</summary>

@@ -10,7 +10,7 @@ namespace DK2.Simulation;
 /// <summary>A room-list lifetime, with a tile fallback for untracked fixture rooms.</summary>
 public readonly record struct RoomReference(RoomListPosition Position, TilePos Tile)
 {
-    public static readonly RoomReference None = new(default, new TilePos(-1, -1));
+    public static readonly RoomReference None = new RoomReference(default, new TilePos(-1, -1));
     public bool IsNone
     {
         get
@@ -22,7 +22,7 @@ public readonly record struct RoomReference(RoomListPosition Position, TilePos T
     public static RoomReference Capture(WorldState world, RoomInstance room)
     {
         int first = room.TileIndices[0];
-        return new(world.TileAtIndex(first).RoomListPosition, new TilePos(first % world.Width, first / world.Width));
+        return new RoomReference(world.TileAtIndex(first).RoomListPosition, new TilePos(first % world.Width, first / world.Width));
     }
 
     public bool RefersTo(WorldState world, RoomInstance room)

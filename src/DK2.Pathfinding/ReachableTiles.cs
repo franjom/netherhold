@@ -25,7 +25,7 @@ public sealed class ReachableTiles
     private int[] _stamp = [];
     private int[] _cameFrom = [];
     private int[] _cost = [];
-    private readonly TileHeap _heap = new();
+    private readonly TileHeap _heap = new TileHeap();
     private readonly List<long> _order = [];
 
     /// <summary>The grid the last flood ran over, or null before the first.</summary>

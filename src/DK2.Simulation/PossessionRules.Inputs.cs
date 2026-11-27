@@ -12,8 +12,8 @@ namespace DK2.Simulation;
 /// <summary>What the combat helpers the possessed actions call need beside the sight.</summary>
 public sealed class PossessionCombat
 {
-    internal readonly HeartSites Hearts = new();
-    internal readonly RoomCache Rooms = new();
+    internal readonly HeartSites Hearts = new HeartSites();
+    internal readonly RoomCache Rooms = new RoomCache();
     internal readonly List<Fixed16Vector> Scratch = [];
 }
 

@@ -10,39 +10,39 @@ namespace DK2.Simulation.Steering;
 /// x then y. The methods are the original's small vector helpers, one each.</summary>
 public readonly record struct Fixed16Vector(int X, int Y)
 {
-    public static readonly Fixed16Vector Zero = new(0, 0);
+    public static readonly Fixed16Vector Zero = new Fixed16Vector(0, 0);
 
     public static Fixed16Vector operator +(Fixed16Vector a, Fixed16Vector b)
     {
-        return new(a.X + b.X, a.Y + b.Y);
+        return new Fixed16Vector(a.X + b.X, a.Y + b.Y);
     }
 
     public static Fixed16Vector operator -(Fixed16Vector a, Fixed16Vector b)
     {
-        return new(a.X - b.X, a.Y - b.Y);
+        return new Fixed16Vector(a.X - b.X, a.Y - b.Y);
     }
 
     public static Fixed16Vector operator -(Fixed16Vector a)
     {
-        return new(-a.X, -a.Y);
+        return new Fixed16Vector(-a.X, -a.Y);
     }
 
     /// <summary>Both components times a 16.16 scalar (<c>0x004D1E70</c>).</summary>
     public Fixed16Vector Scale(int k)
     {
-        return new(Fixed16.Mul(X, k), Fixed16.Mul(Y, k));
+        return new Fixed16Vector(Fixed16.Mul(X, k), Fixed16.Mul(Y, k));
     }
 
     /// <summary>Both components over a 16.16 scalar (<c>0x004D1EC0</c>).</summary>
     public Fixed16Vector Over(int k)
     {
-        return new(Fixed16.Div(X, k), Fixed16.Div(Y, k));
+        return new Fixed16Vector(Fixed16.Div(X, k), Fixed16.Div(Y, k));
     }
 
     /// <summary>The left perpendicular (<c>0x004D5060</c>): x takes -y, y takes x.</summary>
     public Fixed16Vector Perpendicular()
     {
-        return new(-Y, X);
+        return new Fixed16Vector(-Y, X);
     }
 
     public int Dot(Fixed16Vector o)

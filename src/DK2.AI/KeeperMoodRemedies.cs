@@ -240,6 +240,6 @@ public sealed class KeeperMoodRemedies
 
     private static TilePos CreatureTile(KeeperCreatureView creature)
     {
-        return new(creature.PosX >> 12, creature.PosY >> 12);
+        return new TilePos(creature.PosX >> 12, creature.PosY >> 12);
     }
 }

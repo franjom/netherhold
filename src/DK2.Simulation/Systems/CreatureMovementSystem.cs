@@ -43,9 +43,9 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
     // The door contact's SelectAVictim needs the fight's caches; ours, as CombatSystem keeps its own.
     private readonly List<Fixed16Vector> _scratch = [];
     // Refilled for every creature: a new one per creature per tick was garbage for nothing.
-    private readonly SteeringMover _mover = new();
-    private readonly HeartSites _hearts = new();
-    private readonly RoomCache _rooms = new();
+    private readonly SteeringMover _mover = new SteeringMover();
+    private readonly HeartSites _hearts = new HeartSites();
+    private readonly RoomCache _rooms = new RoomCache();
     private WorldSight? _sight;
     private WorldState? _sightWorld;
 

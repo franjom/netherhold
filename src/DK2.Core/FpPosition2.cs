@@ -10,7 +10,7 @@ public readonly record struct FpPosition2(Fp32 X, Fp32 Y)
     {
         get
         {
-            return new(X.Raw >> 12, Y.Raw >> 12);
+            return new TilePos(X.Raw >> 12, Y.Raw >> 12);
         }
     }
 

@@ -17,7 +17,7 @@ namespace DK2.Simulation;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/functions/00497AC0.md")]
 internal static class RepairStrikeRules
 {
-    private static readonly TileWorkSystem Work = new();
+    private static readonly TileWorkSystem Work = new TileWorkSystem();
 
     internal static void Poll(SimulationContext context, CreatureState creature)
     {

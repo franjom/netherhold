@@ -384,7 +384,7 @@ public static class WorldResync
     }
 
     /// <summary>A native status supplies no exact verdict turn; zero would falsely mean the first tick.</summary>
-    public static readonly GameTick UnknownVerdictTick = new(-1);
+    public static readonly GameTick UnknownVerdictTick = new GameTick(-1);
 
     /// <summary>Each keeper's Portal clock and tally (<c>room[0x49]</c>, <c>room[0x4D]</c>; the roll is due
     /// at <c>room[0x49] + (n² + base) × variable19</c>, <c>0x004DBBE0</c>) onto its centre tile, as the

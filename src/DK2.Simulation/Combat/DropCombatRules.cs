@@ -13,9 +13,9 @@ namespace DK2.Simulation.Combat;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/door-blocking.md")]
 internal sealed class DropCombatRules
 {
-    private static readonly TilePos[] Neighbours = [new(0, -1), new(1, 0), new(0, 1), new(-1, 0)];
-    private readonly HeartSites _hearts = new();
-    private readonly RoomCache _rooms = new();
+    private static readonly TilePos[] Neighbours = [new TilePos(0, -1), new TilePos(1, 0), new TilePos(0, 1), new TilePos(-1, 0)];
+    private readonly HeartSites _hearts = new HeartSites();
+    private readonly RoomCache _rooms = new RoomCache();
     private readonly List<Fixed16Vector> _scratch = [];
     private WorldSight? _sight;
 

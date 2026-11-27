@@ -165,7 +165,7 @@ public readonly record struct PlayerMessage(
 public sealed partial class PlayerMessageQueue
 {
     public const int Capacity = 256;
-    private readonly List<PlayerMessage> _entries = new();
+    private readonly List<PlayerMessage> _entries = new List<PlayerMessage>();
     private uint _nextId = 1;
     internal uint NextMessageId
     {

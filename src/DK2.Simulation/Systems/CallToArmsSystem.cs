@@ -38,8 +38,8 @@ public sealed class CallToArmsSystem : ISimulationSystem
         (682, 3412), (2047, 3412), (3412, 3412),
     ];
 
-    private readonly List<ObjectState> _flags = new();
-    private readonly List<CreatureState> _creatures = new();
+    private readonly List<ObjectState> _flags = new List<ObjectState>();
+    private readonly List<CreatureState> _creatures = new List<CreatureState>();
 
     public void Execute(SimulationContext context)
     {

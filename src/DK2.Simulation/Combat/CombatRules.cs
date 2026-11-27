@@ -411,7 +411,7 @@ public static class CombatRules
     {
         if (!creature.Possessed && !creature.InfluencedByPossessed)
         {
-            return new(Fp32.One);
+            return new Fp32(Fp32.One);
         }
 
         int stat = database.FirstPersonStat(CreatureStatId.MeleeRecharge);
@@ -424,7 +424,7 @@ public static class CombatRules
             int percentageFactor = (percent << 12) / 100;
             factor = unchecked((int)(((long)factor * percentageFactor) >> 12));
         }
-        return new(factor);
+        return new Fp32(factor);
     }
 
     public static int RechargeTicks(GameDatabase database, CreatureState creature, int rechargeTicks)

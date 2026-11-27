@@ -16,7 +16,7 @@ public static class RoomLists
 {
     internal static RoomListPosition Next(WorldState world)
     {
-        return new(world.NextRoomListPosition++);
+        return new RoomListPosition(world.NextRoomListPosition++);
     }
 
     internal static void Set(WorldState world, IEnumerable<int> tiles, RoomListPosition position)

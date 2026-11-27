@@ -9,8 +9,8 @@ namespace DK2.Simulation;
 /// <see cref="Id"/> and an engine can keep one native marker per id.</summary>
 public sealed class SimulationMarker
 {
-    private static readonly object Gate = new();
-    private static readonly Dictionary<string, SimulationMarker> ByName = new(StringComparer.Ordinal);
+    private static readonly object Gate = new object();
+    private static readonly Dictionary<string, SimulationMarker> ByName = new Dictionary<string, SimulationMarker>(StringComparer.Ordinal);
     private static readonly List<SimulationMarker> ById = [];
 
     private SimulationMarker(string name, int id)
@@ -130,7 +130,7 @@ public interface ISimulationProfiler
 /// <summary>The default: two empty interface calls per span.</summary>
 public sealed class NullSimulationProfiler : ISimulationProfiler
 {
-    public static readonly NullSimulationProfiler Instance = new();
+    public static readonly NullSimulationProfiler Instance = new NullSimulationProfiler();
 
     private NullSimulationProfiler() { }
 
@@ -163,6 +163,6 @@ public static class SimulationProfilerExtensions
     /// <summary><c>using var _ = profiler.Scope(marker);</c></summary>
     public static ProfileScope Scope(this ISimulationProfiler profiler, SimulationMarker marker)
     {
-        return new(profiler, marker);
+        return new ProfileScope(profiler, marker);
     }
 }

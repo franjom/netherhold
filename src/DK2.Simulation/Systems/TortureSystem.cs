@@ -203,7 +203,7 @@ public sealed class TortureSystem : ISimulationSystem
                     message => context.Events.Emit(new SimEvent(context.Tick, SystemName, "death_message",
                         $"creature={creature.Id} message={message.Id} kind={message.Kind}")
                     {
-                        TortureMessage = new(message, new(creature.Id), new(creature.CreatureTypeId), new(creature.TriggerId)),
+                        TortureMessage = new TortureDeathMessage(message, new CreatureId(creature.Id), new CreatureTypeId(creature.CreatureTypeId), new KwdTriggerId(creature.TriggerId)),
                     }));
                 information = reward.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 context.Emit(SystemName, "information",

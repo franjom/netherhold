@@ -23,8 +23,8 @@ public sealed class CombatSystem : ICreatureUpdateStep
     private const string SystemName = "combat";
 
     private readonly List<Fixed16Vector> _scratch = [];
-    private readonly HeartSites _hearts = new();
-    private readonly RoomCache _rooms = new();
+    private readonly HeartSites _hearts = new HeartSites();
+    private readonly RoomCache _rooms = new RoomCache();
     private WorldSight? _sight;
     private WorldState? _sightWorld;
 

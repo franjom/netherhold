@@ -16,7 +16,7 @@ public sealed class TrapSystem : ISimulationSystem
 {
     private WorldSight? _sight;
     private WorldState? _sightWorld;
-    private RoomCache _rooms = new();
+    private RoomCache _rooms = new RoomCache();
 
     public string Name
     {

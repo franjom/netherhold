@@ -283,7 +283,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
 
     private static DoorKey KeyOf(DoorState door)
     {
-        return new(door.X, door.Y, door.DoorId, door.PlayerId, door.LockMode, door.UnderConstruction, door.ReadsAsFloor);
+        return new DoorKey(door.X, door.Y, door.DoorId, door.PlayerId, door.LockMode, door.UnderConstruction, door.ReadsAsFloor);
     }
 
     private bool Unchanged()
@@ -703,7 +703,7 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
     /// doors, 2 enter a portal's hole).</summary>
     public static MoverProfile ProfileOf(CreatureDef definition, PlayerId owner, MoveOptions options)
     {
-        return new(((definition.Flags & CreatureFlags.CanWalkOnWater) == CreatureFlags.CanWalkOnWater), ((definition.Flags & CreatureFlags.CanWalkOnLava) == CreatureFlags.CanWalkOnLava),
+        return new MoverProfile(((definition.Flags & CreatureFlags.CanWalkOnWater) == CreatureFlags.CanWalkOnWater), ((definition.Flags & CreatureFlags.CanWalkOnLava) == CreatureFlags.CanWalkOnLava),
             owner.Value,
             RespectDoors: ((int)options & 0x80) != 0,
             PassOwnLockedDoors: ((int)options & 0x02) != 0,

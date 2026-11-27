@@ -89,7 +89,7 @@ public sealed class PortalSystem : IRoomTickStep
     {
         WorldState world = context.World;
         GameDatabase database = context.Database;
-        PlayerId playerId = new(Owner(world, portal));
+        var playerId = new PlayerId(Owner(world, portal));
 
         int entranceTile = PortalRules.EntranceTileIndex(world, portal);
         ref TileState centre = ref world.TileAtIndex(entranceTile);

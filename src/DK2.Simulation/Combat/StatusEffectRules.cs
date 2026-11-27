@@ -66,7 +66,7 @@ public static class StatusEffectRules
             context.RequestEffect(SystemName, new ViewEffectRequest(new EffectId(88), creature.OwnerPlayerId,
                 new FpPosition3(new Fp32(x), new Fp32(y), new Fp32(z)))
                 { HeightSpace = EffectHeightSpace.AboveGround,
-                    GroundAnchor = new(new(creature.PosX), new(creature.PosY), default), GroundCreatureId = new(creature.Id) });
+                    GroundAnchor = new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), default), GroundCreatureId = new CreatureId(creature.Id) });
         }
         if (creature.BurningTicks == 0)
         {

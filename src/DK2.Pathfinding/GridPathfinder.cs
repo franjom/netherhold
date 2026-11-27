@@ -48,7 +48,7 @@ public sealed class GridPathfinder : IPathfinder
     private int[] _cameFrom = [];
     private int[] _cost = [];
 
-    private readonly TileHeap _heap = new();
+    private readonly TileHeap _heap = new TileHeap();
 
     public bool TryFindPath(IPathGrid grid, TilePos from, TilePos to, List<TilePos> path)
     {

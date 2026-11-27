@@ -598,7 +598,7 @@ public sealed class CreatureSleepSystem : ICreatureUpdateStep
             return;
         }
 
-        var atTheSleeper = new FpPosition3(new(creature.PosX), new(creature.PosY), new(creature.PosZ));
+        var atTheSleeper = new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ));
         context.RequestEffect(SystemName, new ViewEffectRequest(
             new EffectId(lairEffect), creature.OwnerPlayerId, atTheSleeper, new Dk2Angle((ushort)creature.Heading)));
     }

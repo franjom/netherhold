@@ -74,7 +74,7 @@ public static class ManaPressureRules
             state = state with { ScanDeadline = unchecked(now + interval) };
         }
 
-        return new(state, warning, scan);
+        return new ManaPressureResult(state, warning, scan);
     }
 
     /// <summary>Input order must be the original owned-creature list order.

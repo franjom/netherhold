@@ -24,7 +24,7 @@ public sealed class HatcherySystem : ISimulationSystem
 
     private readonly bool _lays;
     private readonly bool _stepObjects;
-    private readonly HatcheryLayStep _layStep = new();
+    private readonly HatcheryLayStep _layStep = new HatcheryLayStep();
 
     /// <param name="lays">Whether this system also lays, as the Hatchery's room handler does (<c>0x004DE0A0</c>).
     /// A host that walks the rooms in DK2's order has <see cref="HatcheryLayStep"/> do it there, after the thing

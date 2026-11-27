@@ -69,7 +69,7 @@ public sealed class SimRandom
 
     public static SimRandom Restore((ulong S0, ulong S1, ulong S2, ulong S3) state)
     {
-        return new(Xoshiro256StarStar.Restore(state));
+        return new SimRandom(Xoshiro256StarStar.Restore(state));
     }
 
     private Xoshiro256StarStar Xoshiro()

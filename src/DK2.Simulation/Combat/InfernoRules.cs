@@ -80,6 +80,6 @@ public static class InfernoRules
             context.Emit(SystemName, "inferno_hit",
                 $"shot={shot.Id} target={target.Id} owner={target.OwnerPlayerId} damage={shot.Data1} landed={landed} health={target.Health}");
         }
-        context.RequestView(SystemName, new(ScriptedViewKind.CameraJitter, shot.OwnerPlayerId, 1, default, false));
+        context.RequestView(SystemName, new ScriptedViewRequest(ScriptedViewKind.CameraJitter, shot.OwnerPlayerId, 1, default, false));
     }
 }

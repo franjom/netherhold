@@ -122,7 +122,7 @@ public static class TrapRules
     }
 
     // The answer depends only on the database's definitions, so it is worked out once per trap type.
-    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<GameDatabase, byte[]> Scope = new();
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<GameDatabase, byte[]> Scope = new System.Runtime.CompilerServices.ConditionalWeakTable<GameDatabase, byte[]>();
 
     private static bool ShotBuilt(GameDatabase database, byte shotId, int depth)
     {

@@ -16,7 +16,7 @@ public struct Fnv1a64
 
     public static Fnv1a64 Start()
     {
-        return new() { _h = Offset };
+        return new Fnv1a64() { _h = Offset };
     }
 
     public readonly ulong Value

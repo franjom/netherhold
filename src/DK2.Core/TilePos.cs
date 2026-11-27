@@ -15,12 +15,12 @@ public readonly record struct TilePos(int X, int Y)
 {
     public static TilePos operator +(TilePos a, TilePos b)
     {
-        return new(a.X + b.X, a.Y + b.Y);
+        return new TilePos(a.X + b.X, a.Y + b.Y);
     }
 
     public static TilePos operator -(TilePos a, TilePos b)
     {
-        return new(a.X - b.X, a.Y - b.Y);
+        return new TilePos(a.X - b.X, a.Y - b.Y);
     }
 
     /// <summary>Chebyshev distance — adjacency including diagonals.</summary>

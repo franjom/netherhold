@@ -50,7 +50,7 @@ public sealed partial class TileHighlightState
             }
 
             ActionPointState? point = durationTicks != 0 ? world.ActionPoints.FirstOrDefault(p => p.Id == actionPoint.Value) : null;
-            _slots[i] = new(durationTicks == 0 ? ActionPointId.None : actionPoint, durationTicks,
+            _slots[i] = new TileHighlightSlot(durationTicks == 0 ? ActionPointId.None : actionPoint, durationTicks,
                 point is null ? slot.Min : new TilePos(point.StartX, point.StartY),
                 point is null ? slot.Max : new TilePos(point.EndX, point.EndY));
             return;
@@ -109,7 +109,7 @@ public sealed partial class TileHighlightState
     {
         for (int i = 0; i < Capacity; i++)
         {
-            _slots[i] = new(new ActionPointId(reader.ReadByte()), reader.ReadInt16(),
+            _slots[i] = new TileHighlightSlot(new ActionPointId(reader.ReadByte()), reader.ReadInt16(),
                 new TilePos(reader.ReadInt32(), reader.ReadInt32()), new TilePos(reader.ReadInt32(), reader.ReadInt32()));
         }
     }

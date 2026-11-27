@@ -49,7 +49,7 @@ public struct PlayerFinale
 
     public static PlayerFinale Read(BinaryReader r)
     {
-        return new()
+        return new PlayerFinale()
         {
             Flags = r.ReadUInt32(),
             PointX = r.ReadInt32(),

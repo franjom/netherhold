@@ -33,7 +33,7 @@ public sealed class MeshRouter
     private readonly List<NavPoint> _pathA = [];
     private readonly List<NavPoint> _pathB = [];
     private readonly GateRecord[] _records = new GateRecord[GateWalk.MaxRecords + 1];
-    private readonly FunnelBuffers _funnel = new();
+    private readonly FunnelBuffers _funnel = new FunnelBuffers();
 
     public MeshRouter(NavMesh mesh)
     {

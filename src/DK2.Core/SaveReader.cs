@@ -74,12 +74,12 @@ public static class SaveReader
 
     public static SaveIncompatibleException Error(BinaryReader reader, SaveIncompatibleReason reason, string message)
     {
-        return new(reason, message, reader.BaseStream.CanSeek ? reader.BaseStream.Position : null);
+        return new SaveIncompatibleException(reason, message, reader.BaseStream.CanSeek ? reader.BaseStream.Position : null);
     }
 
     public static SaveIncompatibleException Wrap(Exception exception, long position)
     {
-        return new(exception is EndOfStreamException ? SaveIncompatibleReason.Truncated
+        return new SaveIncompatibleException(exception is EndOfStreamException ? SaveIncompatibleReason.Truncated
                     : exception is OverflowException or ArgumentOutOfRangeException or IndexOutOfRangeException
                         ? SaveIncompatibleReason.OutOfRange : SaveIncompatibleReason.Corrupt,
                 exception is EndOfStreamException ? "The save is truncated" : $"Invalid save data: {exception.Message}",

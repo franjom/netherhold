@@ -40,7 +40,7 @@ public readonly record struct PlayerTile(PlayerTileFlags Flags, PlayerId Owner, 
 /// <summary>An immutable copy of the player's tile view, row-major.</summary>
 public sealed class PlayerTileGrid
 {
-    public static readonly PlayerTileGrid Empty = new(0, 0, []);
+    public static readonly PlayerTileGrid Empty = new PlayerTileGrid(0, 0, []);
 
     private readonly PlayerTile[] _tiles;
 
@@ -240,7 +240,7 @@ public readonly record struct PlayerSpellOffer(byte Spell, string Name, ManaAmou
 /// <summary>What the player may do now, as the HUD offers it.</summary>
 public sealed class PlayerOffers
 {
-    public static readonly PlayerOffers None = new();
+    public static readonly PlayerOffers None = new PlayerOffers();
 
     public PlayerActionKinds Actions { get; init; }
 
@@ -338,6 +338,6 @@ internal static class ReadOnly
 
     private static class EmptyOf<T>
     {
-        public static readonly ReadOnlyCollection<T> Value = new([]);
+        public static readonly ReadOnlyCollection<T> Value = new ReadOnlyCollection<T>([]);
     }
 }

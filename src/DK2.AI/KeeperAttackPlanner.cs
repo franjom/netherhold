@@ -531,7 +531,7 @@ public sealed class KeeperAttackPlanner
 
     private static Fixed16Vector PointOf(TilePos tile)
     {
-        return new(CreatureState.CentreOf(tile.X), CreatureState.CentreOf(tile.Y));
+        return new Fixed16Vector(CreatureState.CentreOf(tile.X), CreatureState.CentreOf(tile.Y));
     }
 
     /// <summary>The room's stored position (<c>+0x27</c>, <see cref="KeeperView.PositionOf"/>).</summary>

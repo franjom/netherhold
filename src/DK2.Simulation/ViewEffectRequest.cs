@@ -62,7 +62,7 @@ public readonly record struct ViewEffectRequest(
     {
         get
         {
-            return new(Position.X.Raw >> 12, Position.Y.Raw >> 12);
+            return new TilePos(Position.X.Raw >> 12, Position.Y.Raw >> 12);
         }
     }
 
@@ -77,7 +77,7 @@ public readonly record struct ViewEffectRequest(
     public static ViewEffectRequest AtTileCentre(
         EffectId effectId, PlayerId owner, TilePos tile, Fp32 height, Dk2Angle heading = default)
     {
-        return new(effectId, owner, new FpPosition3(new Fp32(CreatureState.CentreOf(tile.X)),
+        return new ViewEffectRequest(effectId, owner, new FpPosition3(new Fp32(CreatureState.CentreOf(tile.X)),
             new Fp32(CreatureState.CentreOf(tile.Y)), height), heading);
     }
 }

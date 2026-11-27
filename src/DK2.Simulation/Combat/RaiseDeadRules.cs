@@ -20,7 +20,7 @@ namespace DK2.Simulation.Combat;
 public static class RaiseDeadRules
 {
     public const byte ProcessType = 18;
-    public static readonly EffectId RaisedEffect = new(0x144);
+    public static readonly EffectId RaisedEffect = new EffectId(0x144);
     private const string SystemName = "Shot";
 
     public static void Raise(SimulationContext context, ShotState shot)

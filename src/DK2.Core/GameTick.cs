@@ -15,13 +15,13 @@ namespace DK2.Core;
 /// </summary>
 public readonly record struct GameTick(long Value) : IComparable<GameTick>
 {
-    public static readonly GameTick Zero = new(0);
+    public static readonly GameTick Zero = new GameTick(0);
 
     public GameTick Next
     {
         get
         {
-            return new(Value + 1);
+            return new GameTick(Value + 1);
         }
     }
 

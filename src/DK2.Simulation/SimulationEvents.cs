@@ -46,7 +46,7 @@ public interface ISimulationEventSink
 /// <summary>Discards everything. The default, so events cost nothing when unobserved.</summary>
 public sealed class NullEventSink : ISimulationEventSink
 {
-    public static readonly NullEventSink Instance = new();
+    public static readonly NullEventSink Instance = new NullEventSink();
 
     private NullEventSink() { }
 

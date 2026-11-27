@@ -13,8 +13,8 @@ namespace DK2.Simulation;
 public static class RatRules
 {
     public const byte RatObjectId = 11;
-    public static readonly ObjectProcessId WanderingProcess = new(11);
-    private static readonly TilePos[] Directions = [new(0, -1), new(1, 0), new(0, 1), new(-1, 0)];
+    public static readonly ObjectProcessId WanderingProcess = new ObjectProcessId(11);
+    private static readonly TilePos[] Directions = [new TilePos(0, -1), new TilePos(1, 0), new TilePos(0, 1), new TilePos(-1, 0)];
 
     public static int PopulationLimit(IEnumerable<RoomInstance> rooms, PlayerId owner)
     {

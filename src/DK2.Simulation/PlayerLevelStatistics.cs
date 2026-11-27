@@ -94,7 +94,7 @@ public struct PlayerLevelStatistics
 
     private static PlayerLevelStatistics ReadCounters(BinaryReader r)
     {
-        return new()
+        return new PlayerLevelStatistics()
         {
             DungeonHeartsDestroyed = r.ReadInt32(),
             EnemyCreaturesKilled = r.ReadInt32(),
@@ -185,7 +185,7 @@ public struct LevelCounters
 
     public static LevelCounters Read(BinaryReader r)
     {
-        return new()
+        return new LevelCounters()
         {
             DungeonHeartsDestroyed = r.ReadInt32(),
             EnemyCreaturesKilled = r.ReadInt32(),

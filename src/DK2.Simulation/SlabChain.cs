@@ -214,7 +214,7 @@ public static class SlabChain
         long partyStart = 0;
         long hatcheryStamp = world.CurrentTick.Value + 1;
         WorkshopTimers workshop = default;
-        CombatPitRoomRuntime pit = new(0, 0, 0, world.CurrentTick.Value);
+        var pit = new CombatPitRoomRuntime(0, 0, 0, world.CurrentTick.Value);
         var freed = new List<int>();
         for (int d = 0; d < Dx.Length; d++)
         {

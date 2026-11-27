@@ -25,7 +25,7 @@ public struct Hash64
 
     public static Hash64 Start()
     {
-        return new() { _h = Prime5 };
+        return new Hash64() { _h = Prime5 };
     }
 
     public readonly ulong Value

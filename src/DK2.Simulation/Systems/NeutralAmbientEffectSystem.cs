@@ -26,7 +26,7 @@ public sealed class NeutralAmbientEffectSystem : ISimulationSystem
     private const int RareEffectCount = 4;
     private const int FirstRareEffect = 316;
     private const int CommonEffect = 302;
-    private static readonly Fp32 CommonEffectHeight = new(0x1000);
+    private static readonly Fp32 CommonEffectHeight = new Fp32(0x1000);
 
     public string Name
     {

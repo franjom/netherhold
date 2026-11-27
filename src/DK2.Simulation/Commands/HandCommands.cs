@@ -74,7 +74,7 @@ public sealed record DropCommand(PlayerId PlayerId, TilePos Tile, int TargetCrea
     /// a hand drop does. The drop on a creature (<c>0x004F9B5F</c>) is not this form.</summary>
     public static DropCommand ByComputerKeeper(PlayerId player, TilePos tile)
     {
-        return new(player, tile, 0,
+        return new DropCommand(player, tile, 0,
             new FpPosition2(new Fp32(CreatureState.CentreOf(tile.X) + 0x100), new Fp32(CreatureState.CentreOf(tile.Y) + 0x100)),
             new Dk2Angle(0));
     }

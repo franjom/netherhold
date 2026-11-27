@@ -38,7 +38,7 @@ public readonly record struct BuildArea(int MinX, int MinY, int MaxX, int MaxY)
 {
     public static BuildArea WholeMap(int width, int height)
     {
-        return new(0, 0, width - 1, height - 1);
+        return new BuildArea(0, 0, width - 1, height - 1);
     }
 
     public bool Contains(TilePos p)
@@ -178,7 +178,7 @@ public static class SiteFinder
 
     private static TilePos Lay(TilePos start, int i, int j, int sx, int sy)
     {
-        return new(start.X + (i * sx), start.Y + (j * sy));
+        return new TilePos(start.X + (i * sx), start.Y + (j * sy));
     }
 
     private static bool Acceptable(KeeperView view, TilePos start, int w, int h, int sx, int sy)

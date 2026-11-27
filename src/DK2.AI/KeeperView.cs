@@ -209,14 +209,14 @@ public sealed class KeeperView : INavByteGrid
     /// starts (<c>0x00503060</c>, heart x + 2).</summary>
     public static Fixed16Vector StagingPoint(TilePos heart)
     {
-        return new(CreatureState.CentreOf(heart.X + 2) << 4, CreatureState.CentreOf(heart.Y) << 4);
+        return new Fixed16Vector(CreatureState.CentreOf(heart.X + 2) << 4, CreatureState.CentreOf(heart.Y) << 4);
     }
 
     /// <summary>The route test's mover (<c>0x004D1700</c> with options 1, 0, 0, 0): the player's
     /// own locked doors pass, no lava; its water flag is a stale global, taken as off.</summary>
     public static MoverProfile StagingWalker(PlayerId playerId)
     {
-        return new(false, false, playerId.Value, RespectDoors: false, PassOwnLockedDoors: true, EntersPortalHole: false);
+        return new MoverProfile(false, false, playerId.Value, RespectDoors: false, PassOwnLockedDoors: true, EntersPortalHole: false);
     }
 
     internal KeeperView(GameDatabase database, PlayerId playerId, GameTick tick, byte status, byte alliedWith, PlayerId[] playerIds,
@@ -400,7 +400,7 @@ public sealed class KeeperView : INavByteGrid
     }
 
     /// <summary>East, south, west, north.</summary>
-    private static readonly TilePos[] SpiralSteps = [new(1, 0), new(0, 1), new(-1, 0), new(0, -1)];
+    private static readonly TilePos[] SpiralSteps = [new TilePos(1, 0), new TilePos(0, 1), new TilePos(-1, 0), new TilePos(0, -1)];
 
     /// <summary>The place validators of a Call to Arms cast at a tile (<c>0x004BB8A0</c>): location
     /// 4's navigation solid bit, and target 4's exclusions on the keeper's own room tiles, captured
@@ -469,10 +469,10 @@ public sealed class KeeperView : INavByteGrid
 
     private readonly byte[] _statuses = new byte[8];
     private readonly bool[] _heartRuined = new bool[8];
-    private readonly HashSet<int> _callRefusedTiles = new();
-    private readonly HashSet<int> _sightRefusedTiles = new();
+    private readonly HashSet<int> _callRefusedTiles = new HashSet<int>();
+    private readonly HashSet<int> _sightRefusedTiles = new HashSet<int>();
     private MeshRouter? _router;
-    private readonly List<NavPoint> _waypoints = new();
+    private readonly List<NavPoint> _waypoints = new List<NavPoint>();
 
     /// <summary>The thinking keeper's mesh cache, attached by <see cref="KeeperAI.Think(KeeperView)"/>.</summary>
     internal KeeperRouteCache? RouteCache { get; set; }
@@ -569,7 +569,7 @@ public sealed class KeeperView : INavByteGrid
 
     public TilePos FromIndex(int index)
     {
-        return new(index % Width, index / Width);
+        return new TilePos(index % Width, index / Width);
     }
 
     public KeeperTileView Tile(TilePos p)
@@ -797,7 +797,7 @@ public sealed class KeeperView : INavByteGrid
 
     public static TilePos Centre(KeeperRoomView room)
     {
-        return new((room.MinX + room.MaxX) / 2, (room.MinY + room.MaxY) / 2);
+        return new TilePos((room.MinX + room.MaxX) / 2, (room.MinY + room.MaxY) / 2);
     }
 
     public static int DistanceSquared(TilePos a, TilePos b)

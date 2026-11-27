@@ -16,7 +16,7 @@ public static class ImpCreationRules
     public const int FallingState = 214;
     public const int BirthHeightAboveFloor = 0x800;
     /// <summary>Imp Birth Trail, which 0x00481750 makes for a worker at its landing point, heading 0.</summary>
-    public static readonly EffectId BirthEffect = new(29);
+    public static readonly EffectId BirthEffect = new EffectId(29);
 
     /// <summary>Process 1, <c>0x004AD7A0</c>, Create Creature (shot 2): <c>Data2</c> creatures, spread
     /// over a ring when more than one, each with a random(0x800) heading.</summary>

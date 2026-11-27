@@ -70,7 +70,7 @@ public sealed class GameSimulation
         IEnumerable<ISimulationSystem>? systems = null,
         TriggerTree? triggers = null)
     {
-        return new(database, world, rng, systems, triggers, levelStart: false);
+        return new GameSimulation(database, world, rng, systems, triggers, levelStart: false);
     }
 
     /// <summary><paramref name="levelStart"/> false is a restore (<see cref="WorldSnapshot"/>): the

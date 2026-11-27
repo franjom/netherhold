@@ -45,7 +45,7 @@ public sealed class ImpSupplySystem : ISimulationSystem
         GameDatabase database = context.Database;
         int minimum = ImpSupplyRules.MinimumImps(database);
         int interval = ImpSupplyRules.FreeImpIntervalTicks(database);
-        GameTick now = new(ManaRemovalLifecycle.Turn(context.Tick));
+        var now = new GameTick(ManaRemovalLifecycle.Turn(context.Tick));
 
         foreach (PlayerId playerId in world.ActivePlayerOrder)
         {

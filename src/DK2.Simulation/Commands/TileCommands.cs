@@ -24,12 +24,12 @@ public sealed record TagTilesCommand(PlayerId PlayerId, IReadOnlyList<TilePos> T
 {
     public static TagTilesCommand Tag(PlayerId playerId, params TilePos[] tiles)
     {
-        return new(playerId, tiles, true);
+        return new TagTilesCommand(playerId, tiles, true);
     }
 
     public static TagTilesCommand Untag(PlayerId playerId, params TilePos[] tiles)
     {
-        return new(playerId, tiles, false);
+        return new TagTilesCommand(playerId, tiles, false);
     }
 
     /// <summary>Every tile in a rectangle, in row-major order.</summary>

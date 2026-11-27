@@ -21,7 +21,7 @@ namespace DK2.Simulation.Systems;
 public sealed class DungeonHeartSystem : ISimulationSystem
 {
     private readonly bool _frames;
-    private readonly HeartFrameStep _frame = new();
+    private readonly HeartFrameStep _frame = new HeartFrameStep();
 
     /// <param name="frames">Whether this system also runs the room frame, the Heart handler's
     /// <c>0x004D9A60</c> own part. A host that walks the rooms in DK2's order has <see cref="HeartFrameStep"/>

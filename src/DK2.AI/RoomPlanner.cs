@@ -260,10 +260,10 @@ public static class RoomPlanner
             {
                 TilePos tile = edge switch
                 {
-                    0 => new(centre.X - radius, centre.Y + offset),
-                    1 => new(centre.X + radius, centre.Y + offset),
-                    2 => new(centre.X + offset, centre.Y - radius),
-                    _ => new(centre.X + offset, centre.Y + radius),
+                    0 => new TilePos(centre.X - radius, centre.Y + offset),
+                    1 => new TilePos(centre.X + radius, centre.Y + offset),
+                    2 => new TilePos(centre.X + offset, centre.Y - radius),
+                    _ => new TilePos(centre.X + offset, centre.Y + radius),
                 };
                 int distance = KeeperView.DistanceSquared(tile, centre);
                 if (view.IsMine(tile) && distance < bestDistance)

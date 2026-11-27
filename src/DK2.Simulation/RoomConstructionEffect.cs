@@ -16,7 +16,7 @@ public readonly record struct RoomConstructionEffect(PlayerId Owner, TilePos Til
     {
         get
         {
-            return new(0x1800);
+            return new Fp32(0x1800);
         }
     }
 }

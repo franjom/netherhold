@@ -58,11 +58,11 @@ public static class RoomBuildWaveRules
 
     internal static TilePos ClampPress(TilePos press)
     {
-        return new(Math.Max(0, press.X), Math.Max(0, press.Y));
+        return new TilePos(Math.Max(0, press.X), Math.Max(0, press.Y));
     }
 
     internal static TilePos ClampRelease(TilePos release, WorldState world)
     {
-        return new(Math.Min(world.Width - 1, release.X), Math.Min(world.Height - 1, release.Y));
+        return new TilePos(Math.Min(world.Width - 1, release.X), Math.Min(world.Height - 1, release.Y));
     }
 }

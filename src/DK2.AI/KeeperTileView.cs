@@ -11,7 +11,7 @@ public readonly record struct KeeperTileView(byte TerrainId, byte OwnerPlayerId,
 {
     internal TileState ToTileState()
     {
-        return new()
+        return new TileState()
         {
             TerrainId = TerrainId,
             OwnerPlayerId = OwnerPlayerId,

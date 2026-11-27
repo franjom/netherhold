@@ -80,7 +80,7 @@ public sealed class FootprintSystem : ISimulationSystem
 
             context.RequestEffect(Name, new ViewEffectRequest(new EffectId(effect),
                 new PlayerId(creature.OwnerPlayerId),
-                new FpPosition3(new(creature.PosX), new(creature.PosY), new(creature.PosZ)),
+                new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ)),
                 new Dk2Angle((ushort)creature.Heading)));
         }
     }

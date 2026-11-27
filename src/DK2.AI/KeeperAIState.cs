@@ -87,7 +87,7 @@ public sealed class KeeperAIState
     }
 
     /// <summary>The three-slot respond-to-attack ring and its residuals.</summary>
-    public KeeperResponseQueue Responses { get; } = new();
+    public KeeperResponseQueue Responses { get; } = new KeeperResponseQueue();
 
     /// <summary>The direction the site search currently walks (0 N, 1 W, 2 S, 3 E).</summary>
     public int SearchDirection;
@@ -144,7 +144,7 @@ public sealed class KeeperAIState
 
     /// <summary>The previous scan's four retained seams (not always the four nearest), rescanned at
     /// every gold step and room-cost test; tasks 5 and 6 work from <see cref="DigRoomAt"/> instead.</summary>
-    public readonly List<GoldDeposit> GoldDeposits = new();
+    public readonly List<GoldDeposit> GoldDeposits = new List<GoldDeposit>();
 
     /// <summary>DK2's <c>+0x9A</c>, which only creation and the two gold arms write, always as 0.</summary>
     public int CurrentGoldArea;

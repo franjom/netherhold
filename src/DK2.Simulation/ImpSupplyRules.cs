@@ -15,7 +15,7 @@ namespace DK2.Simulation;
 public static class ImpSupplyRules
 {
     /// <summary>Native unsigned turn 0xFFFFFFFF: supply is disabled until the Heart opening arms it.</summary>
-    public static readonly GameTick DisabledFreeImpDeadline = new(uint.MaxValue);
+    public static readonly GameTick DisabledFreeImpDeadline = new GameTick(uint.MaxValue);
 
     /// <summary>The replenishment floor: MinimumImpThreshold, four in the shipped data.
     /// Starting rosters belong to the level's THINGS records.</summary>

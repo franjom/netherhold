@@ -159,8 +159,8 @@ public sealed class TileWorkSystem : ISimulationSystem
         EffectId effect = context.Database.TerrainById(before).MaxHealthEffectId;
         if (context.World.Tile(at).TerrainId == ReinforcedWallTerrainId)
         {
-            TilePos[] points = [new(at.X - 1, at.Y), new(at.X, at.Y - 1),
-                new(at.X + 1, at.Y), new(at.X, at.Y + 1)];
+            TilePos[] points = [new TilePos(at.X - 1, at.Y), new TilePos(at.X, at.Y - 1),
+                new TilePos(at.X + 1, at.Y), new TilePos(at.X, at.Y + 1)];
             foreach (TilePos point in points)
             {
                 context.RequestEffect(SystemName, ViewEffectRequest.AtTileCentre(effect, owner, point, new Fp32(0)));

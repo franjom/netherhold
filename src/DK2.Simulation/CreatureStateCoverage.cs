@@ -103,16 +103,16 @@ public static partial class CreatureStateCoverage
 
     private static StateCoverageRow Built(int id, Type handler, string member, string? unexercisedBecause = null)
     {
-        return new(id, StateStatus.Built, handler, member, unexercisedBecause);
+        return new StateCoverageRow(id, StateStatus.Built, handler, member, unexercisedBecause);
     }
 
     private static StateCoverageRow Unreachable(int id, string evidence)
     {
-        return new(id, StateStatus.Unreachable, null, evidence, null);
+        return new StateCoverageRow(id, StateStatus.Unreachable, null, evidence, null);
     }
 
     private static StateCoverageRow Unbuilt(int id, string blocker)
     {
-        return new(id, StateStatus.Unbuilt, null, blocker, null);
+        return new StateCoverageRow(id, StateStatus.Unbuilt, null, blocker, null);
     }
 }

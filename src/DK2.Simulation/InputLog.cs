@@ -337,7 +337,7 @@ public sealed class InputLog
 
         public InputLogTally Freeze(long first, long last)
         {
-            return new(Rows, Commands, Migrations, Worked, Before, first, last);
+            return new InputLogTally(Rows, Commands, Migrations, Worked, Before, first, last);
         }
     }
 

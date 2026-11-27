@@ -19,17 +19,17 @@ public readonly record struct ThreatSource(byte Kind, int Id)
 
     public static ThreatSource OfTrap(TrapState trap)
     {
-        return new(Trap, trap.Id);
+        return new ThreatSource(Trap, trap.Id);
     }
 
     public static ThreatSource OfObject(ObjectState thing)
     {
-        return new(Object, thing.Id);
+        return new ThreatSource(Object, thing.Id);
     }
 
     public static ThreatSource OfCreature(CreatureState creature)
     {
-        return new(Creature, creature.Id);
+        return new ThreatSource(Creature, creature.Id);
     }
 }
 

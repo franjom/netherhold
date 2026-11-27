@@ -71,13 +71,13 @@ public static partial class ShotRules
 
     private static FpPosition3 LaunchEffectVelocity(ShotState shot, int ticksPerSecond)
     {
-        return new(new Fp32(unchecked(shot.VelX * 16 * ticksPerSecond) / 20),
+        return new FpPosition3(new Fp32(unchecked(shot.VelX * 16 * ticksPerSecond) / 20),
             new Fp32(unchecked(shot.VelY * 16 * ticksPerSecond) / 20), default);
     }
 
     internal static FpPosition3 AimPoint(ShotState shot)
     {
-        return new(new Fp32(shot.TargetX), new Fp32(shot.TargetY), shot.ViewHeight);
+        return new FpPosition3(new Fp32(shot.TargetX), new Fp32(shot.TargetY), shot.ViewHeight);
     }
 
     internal static void RequestTimedEffect(SimulationContext context, ShotState shot, ShotDef definition,

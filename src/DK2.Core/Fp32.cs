@@ -21,29 +21,29 @@ public readonly record struct Fp32(int Raw)
 
     public static Fp32 FromDouble(double value)
     {
-        return new((int)Math.Round(value * 4096.0));
+        return new Fp32((int)Math.Round(value * 4096.0));
     }
 
     /// <summary>Signed 12.12 multiplication, narrowed to 32 bits after the shift;
     /// see docs/research/combat-damage.md §1.</summary>
     public static Fp32 operator *(Fp32 left, Fp32 right)
     {
-        return new(unchecked((int)(((long)left.Raw * right.Raw) >> 12)));
+        return new Fp32(unchecked((int)(((long)left.Raw * right.Raw) >> 12)));
     }
 
     public static Fp32 operator +(Fp32 left, Fp32 right)
     {
-        return new(unchecked(left.Raw + right.Raw));
+        return new Fp32(unchecked(left.Raw + right.Raw));
     }
 
     public static Fp32 operator -(Fp32 left, Fp32 right)
     {
-        return new(unchecked(left.Raw - right.Raw));
+        return new Fp32(unchecked(left.Raw - right.Raw));
     }
 
     public static Fp32 operator -(Fp32 value)
     {
-        return new(unchecked(-value.Raw));
+        return new Fp32(unchecked(-value.Raw));
     }
 
     public override string ToString()

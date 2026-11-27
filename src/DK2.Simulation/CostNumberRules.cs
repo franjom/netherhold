@@ -43,12 +43,12 @@ public static class CostNumberRules
     /// <summary>A creature's own position (<c>+0x1A</c>), where payday, the jackpot collect and Training show theirs.</summary>
     public static FpPosition3 PointOf(CreatureState creature)
     {
-        return new(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ));
+        return new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ));
     }
 
     /// <summary>The tile's centre at <paramref name="heightRaw"/>, as the callers build their point.</summary>
     public static FpPosition3 TileCentre(TilePos tile, int heightRaw)
     {
-        return new(new Fp32(CreatureState.CentreOf(tile.X)), new Fp32(CreatureState.CentreOf(tile.Y)), new Fp32(heightRaw));
+        return new FpPosition3(new Fp32(CreatureState.CentreOf(tile.X)), new Fp32(CreatureState.CentreOf(tile.Y)), new Fp32(heightRaw));
     }
 }

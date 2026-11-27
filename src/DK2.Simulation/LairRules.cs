@@ -221,7 +221,7 @@ public static class LairRules
     /// (<see cref="ArrivalTile"/>).</summary>
     public static TilePos CentreTile(RoomInstance room)
     {
-        return new((room.MinX + room.MaxX) / 2, (room.MinY + room.MaxY) / 2);
+        return new TilePos((room.MinX + room.MaxX) / 2, (room.MinY + room.MaxY) / 2);
     }
 
     /// <summary>Squared distance, in position units, from where this creature stands

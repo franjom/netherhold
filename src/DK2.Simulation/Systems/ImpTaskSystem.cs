@@ -143,14 +143,14 @@ public sealed partial class ImpTaskSystem : ICreatureUpdateStep
     private static readonly int[] NeighbourDy = [-1, 0, 0, 1];
 
     private readonly ProfiledPathfinder _pathfinder;
-    private readonly TileWorkSystem _tileWork = new();
+    private readonly TileWorkSystem _tileWork = new TileWorkSystem();
     private readonly List<TilePos> _route = [];
 
     /// <summary>Every tile the worker being updated can reach, flooded once per grid and start
     /// (<see cref="Reaches"/>). A grid is built per worker update, so a flood never outlives one; the
     /// grid reads terrain live, and nothing in a worker update writes terrain, since dig, claim and
     /// reinforce are queued for <see cref="TileWorkSystem"/> to apply after this worker's update.</summary>
-    private readonly ReachableTiles _reach = new();
+    private readonly ReachableTiles _reach = new ReachableTiles();
 
     private delegate void ActivityStep(SimulationContext context, CreatureState creature, CreatureDef definition, WorldPathGrid grid);
 

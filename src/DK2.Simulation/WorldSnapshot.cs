@@ -81,7 +81,7 @@ public static class WorldSnapshot
 
     private static ThingTileLink ReadLink(BinaryReader r)
     {
-        return new(r.ReadInt32(), r.ReadInt32());
+        return new ThingTileLink(r.ReadInt32(), r.ReadInt32());
     }
 
     /// <summary>The steering body's surviving fields, in the order <see cref="Steering.SteeringBody.HashInto"/> folds them.</summary>
@@ -149,7 +149,7 @@ public static class WorldSnapshot
 
     private static Steering.Fixed16Vector ReadVector(BinaryReader r)
     {
-        return new(r.ReadInt32(), r.ReadInt32());
+        return new Steering.Fixed16Vector(r.ReadInt32(), r.ReadInt32());
     }
 
     public static void Write(Stream stream, GameSimulation simulation)
