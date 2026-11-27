@@ -224,11 +224,18 @@ public sealed class WorldSight : ISightBlocker
         _doorsVersion = _world.DoorsVersion;
     }
 
-    private sealed class SolidSight(WorldSteering navigation) : ISightBlocker
+    private sealed class SolidSight : ISightBlocker
     {
+        private readonly WorldSteering _steering;
+
+        public SolidSight(WorldSteering navigation)
+        {
+            _steering = navigation;
+        }
+
         public bool Blocks(int x, int y)
         {
-            return NavBytes.IsSolid(navigation.NavByte(x, y));
+            return NavBytes.IsSolid(_steering.NavByte(x, y));
         }
     }
 }

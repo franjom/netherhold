@@ -443,13 +443,20 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
 
     /// <summary>The routing bytes the steering currently holds, read through the steering so that
     /// the arrays may be swapped under it.</summary>
-    private sealed class PlatformRoutingGrid(WorldSteering owner) : INavByteGrid
+    private sealed class PlatformRoutingGrid : INavByteGrid
     {
+        private readonly WorldSteering _owner;
+
+        public PlatformRoutingGrid(WorldSteering owner)
+        {
+            _owner = owner;
+        }
+
         public int Width
         {
             get
             {
-                return owner.Width;
+                return _owner.Width;
             }
         }
 
@@ -457,14 +464,14 @@ public sealed class WorldSteering : ISteeringWorld, INavByteGrid
         {
             get
             {
-                return owner.Height;
+                return _owner.Height;
             }
         }
 
         public byte NavByte(int x, int y)
         {
-            return x < 0 || y < 0 || x >= owner.Width || y >= owner.Height
-            ? NavBytes.Solid : owner._routingBytes[(y * owner.Width) + x];
+            return x < 0 || y < 0 || x >= _owner.Width || y >= _owner.Height
+            ? NavBytes.Solid : _owner._routingBytes[(y * _owner.Width) + x];
         }
     }
 

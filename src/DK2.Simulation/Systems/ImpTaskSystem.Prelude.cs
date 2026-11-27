@@ -21,8 +21,15 @@ public sealed partial class ImpTaskSystem
         }
     }
 
-    internal sealed class WorkerPrelude(ImpTaskSystem owner) : ICreatureUpdateStep
+    internal sealed class WorkerPrelude : ICreatureUpdateStep
     {
+        private readonly ImpTaskSystem _owner;
+
+        public WorkerPrelude(ImpTaskSystem owner)
+        {
+            _owner = owner;
+        }
+
         public string Name
         {
             get
@@ -53,7 +60,7 @@ public sealed partial class ImpTaskSystem
                 return;
             }
 
-            owner.RunWorkerPrelude(context, creature, definition);
+            _owner.RunWorkerPrelude(context, creature, definition);
         }
     }
 

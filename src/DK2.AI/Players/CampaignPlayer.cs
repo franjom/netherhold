@@ -1429,13 +1429,22 @@ public sealed class CampaignPlayer : IPlayerController
 
     /// <summary>An attack holding its ground (A4): where it was last answered, since when, when last seen, the most own
     /// fighters seen meanwhile, and whether it became a siege (latched until the attack is gone).</summary>
-    private sealed class Stand(TilePos at, GameTick since, int fighters)
+    private sealed class Stand
     {
-        public TilePos Origin { get; } = at;
-        public TilePos At { get; set; } = at;
-        public GameTick Since { get; } = since;
-        public GameTick Seen { get; set; } = since;
-        public int Peak { get; set; } = fighters;
+        public Stand(TilePos at, GameTick since, int fighters)
+        {
+            Origin = at;
+            At = at;
+            Since = since;
+            Seen = since;
+            Peak = fighters;
+        }
+
+        public TilePos Origin { get; }
+        public TilePos At { get; set; }
+        public GameTick Since { get; }
+        public GameTick Seen { get; set; }
+        public int Peak { get; set; }
         public bool Siege { get; set; }
     }
 

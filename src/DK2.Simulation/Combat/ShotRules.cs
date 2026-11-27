@@ -316,13 +316,22 @@ public static partial class ShotRules
     /// each axis, clamped to the map, row by row, each tile's chain from its head, the reach being
     /// half the shot's <c>+0x3C</c> (<c>0x00451585</c>), its <c>Radius</c>. A thing overlapping the
     /// shot from a tile outside it is not found.</summary>
-    internal readonly struct SearchWindow(WorldState world, ShotState shot, ShotDef definition)
+    internal readonly struct SearchWindow
     {
-        private readonly int _width = world.Width;
-        private readonly int _x0 = Math.Max(0, (shot.PosX - definition.Radius) >> 12);
-        private readonly int _x1 = Math.Min(world.Width - 1, (shot.PosX + definition.Radius) >> 12);
-        private readonly int _y0 = Math.Max(0, (shot.PosY - definition.Radius) >> 12);
-        private readonly int _y1 = Math.Min(world.Height - 1, (shot.PosY + definition.Radius) >> 12);
+        public SearchWindow(WorldState world, ShotState shot, ShotDef definition)
+        {
+            _width = world.Width;
+            _x0 = Math.Max(0, (shot.PosX - definition.Radius) >> 12);
+            _x1 = Math.Min(world.Width - 1, (shot.PosX + definition.Radius) >> 12);
+            _y0 = Math.Max(0, (shot.PosY - definition.Radius) >> 12);
+            _y1 = Math.Min(world.Height - 1, (shot.PosY + definition.Radius) >> 12);
+        }
+
+        private readonly int _width;
+        private readonly int _x0;
+        private readonly int _x1;
+        private readonly int _y0;
+        private readonly int _y1;
 
         /// <summary>Where a thing on <paramref name="tile"/> comes, lower first, or
         /// <see cref="long.MaxValue"/> outside; <paramref name="rankInTile"/> (0 up, under 2^33)

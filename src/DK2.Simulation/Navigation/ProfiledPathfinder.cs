@@ -10,13 +10,19 @@ namespace DK2.Simulation.Navigation;
 /// <summary>Times each grid search of the pathfinder it wraps under
 /// <see cref="SimulationMarkers.GridPath"/> and <see cref="SimulationMarkers.GridNearest"/>, so a
 /// profile shows how many searches a tick makes. The answers are the wrapped pathfinder's.</summary>
-public sealed class ProfiledPathfinder(IPathfinder inner) : IPathfinder
+public sealed class ProfiledPathfinder : IPathfinder
 {
-    private readonly IPathfinder _inner = inner ?? throw new ArgumentNullException(nameof(inner));
+    public ProfiledPathfinder(IPathfinder inner)
+    {
+        _inner = inner ?? throw new ArgumentNullException(nameof(inner));
+        Profiler = NullSimulationProfiler.Instance;
+    }
+
+    private readonly IPathfinder _inner;
 
     /// <summary>Set by the owning system at the start of each tick from
     /// <see cref="SimulationContext.Profiler"/>.</summary>
-    public ISimulationProfiler Profiler { get; set; } = NullSimulationProfiler.Instance;
+    public ISimulationProfiler Profiler { get; set; }
 
     public bool TryFindPath(IPathGrid grid, TilePos from, TilePos to, List<TilePos> path)
     {

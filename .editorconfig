@@ -143,3 +143,15 @@ dotnet_diagnostic.IDE0027.severity = warning
 dotnet_diagnostic.IDE0061.severity = warning
 
 csharp_style_implicit_object_creation_when_type_is_apparent = false
+
+[src/DK2.Simulation/**.cs]
+csharp_style_prefer_primary_constructors = false
+
+[src/DK2.AI/**.cs]
+csharp_style_prefer_primary_constructors = false
+
+[src/DK2.Pathfinding/**.cs]
+csharp_style_prefer_primary_constructors = false
+
+[src/DK2.Core/**.cs]
+csharp_style_prefer_primary_constructors = false

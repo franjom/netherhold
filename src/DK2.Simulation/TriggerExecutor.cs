@@ -339,9 +339,19 @@ internal readonly record struct TriggerAreaRoot(ActionPointState Point, byte Rep
 
 /// <summary>One turn's accumulating result, so the walk carries one argument instead of
 /// four.</summary>
-internal sealed class TriggerRun(int currentTick)
+internal sealed class TriggerRun
 {
-    public int CurrentTick { get; } = currentTick;
+    public TriggerRun(int currentTick)
+    {
+        CurrentTick = currentTick;
+        Blocked = [];
+        Partial = [];
+        Assumed = [];
+        Unhandled = [];
+        CreatureActions = [];
+    }
+
+    public int CurrentTick { get; }
 
     /// <summary>The action point whose tree is being walked, or null outside one. Every
     /// area-owned condition measures over this point's rectangle.</summary>
@@ -371,11 +381,11 @@ internal sealed class TriggerRun(int currentTick)
     /// something happens does.</summary>
     public HashSet<ushort>? Unsatisfied { get; set; }
 
-    public List<BlockedTrigger> Blocked { get; } = [];
-    public List<BlockedTrigger> Partial { get; } = [];
-    public List<BlockedTrigger> Assumed { get; } = [];
-    public List<BlockedTrigger> Unhandled { get; } = [];
-    public List<BlockedTrigger> CreatureActions { get; } = [];
+    public List<BlockedTrigger> Blocked { get; }
+    public List<BlockedTrigger> Partial { get; }
+    public List<BlockedTrigger> Assumed { get; }
+    public List<BlockedTrigger> Unhandled { get; }
+    public List<BlockedTrigger> CreatureActions { get; }
 
     public TriggerRunResult Result()
     {

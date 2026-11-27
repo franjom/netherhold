@@ -10,13 +10,20 @@ namespace DK2.Simulation;
 /// list's own struct enumerator: through <see cref="IReadOnlyList{T}"/> every loop boxed one, and
 /// the simulation loops over the creatures and the objects hundreds of times a tick (ADR-0696).
 /// Assignable to <see cref="IReadOnlyList{T}"/> where a caller wants the interface.</summary>
-public readonly struct EntityList<T>(List<T> items) : IReadOnlyList<T>
+public readonly struct EntityList<T> : IReadOnlyList<T>
 {
+    private readonly List<T> _items;
+
+    public EntityList(List<T> items)
+    {
+        _items = items;
+    }
+
     public int Count
     {
         get
         {
-            return items.Count;
+            return _items.Count;
         }
     }
 
@@ -24,22 +31,22 @@ public readonly struct EntityList<T>(List<T> items) : IReadOnlyList<T>
     {
         get
         {
-            return items[index];
+            return _items[index];
         }
     }
 
     public List<T>.Enumerator GetEnumerator()
     {
-        return items.GetEnumerator();
+        return _items.GetEnumerator();
     }
 
     IEnumerator<T> IEnumerable<T>.GetEnumerator()
     {
-        return items.GetEnumerator();
+        return _items.GetEnumerator();
     }
 
     IEnumerator IEnumerable.GetEnumerator()
     {
-        return items.GetEnumerator();
+        return _items.GetEnumerator();
     }
 }

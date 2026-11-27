@@ -302,9 +302,14 @@ public static class KeeperSpellRules
     }
 
     /// <summary>The room a validator would look up at its tile, when the caller already has it.</summary>
-    private readonly struct KnownRoom(RoomInstance room)
+    private readonly struct KnownRoom
     {
-        private readonly RoomInstance? _room = room;
+        public KnownRoom(RoomInstance room)
+        {
+            _room = room;
+        }
+
+        private readonly RoomInstance? _room;
 
         public RoomInstance? At(WorldState world, GameDatabase database, int index)
         {

@@ -195,8 +195,15 @@ public sealed class CombatSystem : ICreatureUpdateStep
         creature.LastFightScanTileIndex = (tile.Y * world.Width) + tile.X;
     }
 
-    private sealed class StateHandlers(CombatSystem combat) : ICreatureUpdateStep
+    private sealed class StateHandlers : ICreatureUpdateStep
     {
+        private readonly CombatSystem _combat;
+
+        public StateHandlers(CombatSystem combat)
+        {
+            _combat = combat;
+        }
+
         public string Name
         {
             get
@@ -207,20 +214,20 @@ public sealed class CombatSystem : ICreatureUpdateStep
 
         public void Execute(SimulationContext context)
         {
-            combat.BeginTurn(context);
+            _combat.BeginTurn(context);
             CreatureUpdateSystem.RunAlone(context, this);
         }
         // Inside a sweep the scan's BeginTurn ran first; this only covers a sweep without it.
         public void BeginTurn(SimulationContext context)
         {
-            if (!ReferenceEquals(combat._sightWorld, context.World))
+            if (!ReferenceEquals(_combat._sightWorld, context.World))
             {
-                combat.BeginTurn(context);
+                _combat.BeginTurn(context);
             }
         }
         public void Update(SimulationContext context, CreatureState creature)
         {
-            combat.Dispatch(context, creature);
+            _combat.Dispatch(context, creature);
         }
     }
 
