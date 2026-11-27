@@ -108,7 +108,7 @@ public static class BattleTabView
     /// <summary>A button's square in native virtual units (1920 high) on <paramref name="screen"/>.</summary>
     public static HudRect Rect(BattleTabButton button, bool collapsed, HudScreen screen)
     {
-        return new(MenuLeft(screen) + LocalX(button), MenuTop(collapsed), ButtonSize, ButtonSize);
+        return new HudRect(MenuLeft(screen) + LocalX(button), MenuTop(collapsed), ButtonSize, ButtonSize);
     }
 
     /// <summary>A press's action. The blades and the
@@ -204,7 +204,7 @@ public static class BattleTabView
     public static BattleTabSnapshot Capture(WorldState world, GameDatabase database, PlayerId viewer,
         IReadOnlyList<BattleViewSnapshot> battles)
     {
-        return new(BattleShows(battles, viewer), CallToArmsShows(world, viewer), AlarmShows(world, database, viewer));
+        return new BattleTabSnapshot(BattleShows(battles, viewer), CallToArmsShows(world, viewer), AlarmShows(world, database, viewer));
     }
 
     /// <summary><c>0x004269D0</c>: any live battle record holding a creature of the viewer.</summary>

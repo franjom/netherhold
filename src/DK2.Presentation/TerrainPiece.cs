@@ -64,7 +64,7 @@ public interface ITerrainPieceSource
 public sealed class InstallTerrainPieces : ITerrainPieceSource
 {
     private readonly InstallArtProvider _art;
-    private readonly Dictionary<(AssetRef, int), TerrainPiece?> _pieces = new();
+    private readonly Dictionary<(AssetRef, int), TerrainPiece?> _pieces = new Dictionary<(AssetRef, int), TerrainPiece?>();
 
     public InstallTerrainPieces(InstallArtProvider art)
     {

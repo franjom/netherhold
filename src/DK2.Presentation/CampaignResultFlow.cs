@@ -26,7 +26,7 @@ public sealed class CampaignResultFlow
     private readonly ClassicHudControls _hud;
     private readonly bool[] _statisticsRecorded = new bool[8];
     /// <summary>The player indices sampled this frame, reused so a frame allocates nothing.</summary>
-    private readonly List<int> _sampled = new(8);
+    private readonly List<int> _sampled = new List<int>(8);
 
     /// <param name="loadProfile">Loads the live profile into <paramref name="profiles"/> as the adapter does it.</param>
     public CampaignResultFlow(SessionContext context, CampaignProfileStore profiles, Action loadProfile, ClassicHudControls hud)

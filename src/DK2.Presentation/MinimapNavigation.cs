@@ -54,7 +54,7 @@ public static class MinimapNavigation
             return false;
         }
 
-        target = new(x, y);
+        target = new TilePos(x, y);
         return true;
     }
 }

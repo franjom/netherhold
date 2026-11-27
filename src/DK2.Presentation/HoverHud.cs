@@ -24,7 +24,7 @@ public sealed class HoverHud
 
     private readonly Func<string, BitmapFont> _font;
     private readonly (int Width, int Height) _barSize;
-    private readonly HoverTooltipDelay _delay = new();
+    private readonly HoverTooltipDelay _delay = new HoverTooltipDelay();
     private BitmapFont? _statusFont, _tooltipFont;
     private int _fontHeight;
     private HudText? _status, _tooltip;
@@ -71,7 +71,7 @@ public sealed class HoverHud
     /// <summary>The wooden bar: the whole width, behind the Heart, mana and gold panels, as in DK2.</summary>
     public HudRect BarBounds(HudScreen screen)
     {
-        return new(0, StatusTop, screen.VirtualWidth, StatusHeight(screen));
+        return new HudRect(0, StatusTop, screen.VirtualWidth, StatusHeight(screen));
     }
 
     /// <summary>The status line's strip, right of the resource panels (1020 units, floored to pixels).</summary>

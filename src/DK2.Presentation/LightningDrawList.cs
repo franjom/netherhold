@@ -21,16 +21,16 @@ public sealed class LightningDrawList
     private readonly RoomConstructionParticles _effects;
     private readonly LightningBolts _bolts;
     private readonly LightningCracklePairs _pairs;
-    private readonly Dictionary<ShotId, LightningLink> _links = new();
-    private readonly List<LightningLink> _freeLinks = new();
-    private readonly HashSet<ShotId> _liveShots = new();
-    private readonly List<ShotId> _removed = new();
-    private readonly Dictionary<CreatureId, int> _animationRevisions = new();
-    private readonly List<ProceduralEffectView> _procedural = new();
-    private readonly List<LightningSegment> _segments = new();
-    private readonly List<Vector3> _vertices = new();
-    private readonly List<Vector2> _uvs = new();
-    private readonly List<int> _triangles = new();
+    private readonly Dictionary<ShotId, LightningLink> _links = new Dictionary<ShotId, LightningLink>();
+    private readonly List<LightningLink> _freeLinks = new List<LightningLink>();
+    private readonly HashSet<ShotId> _liveShots = new HashSet<ShotId>();
+    private readonly List<ShotId> _removed = new List<ShotId>();
+    private readonly Dictionary<CreatureId, int> _animationRevisions = new Dictionary<CreatureId, int>();
+    private readonly List<ProceduralEffectView> _procedural = new List<ProceduralEffectView>();
+    private readonly List<LightningSegment> _segments = new List<LightningSegment>();
+    private readonly List<Vector3> _vertices = new List<Vector3>();
+    private readonly List<Vector2> _uvs = new List<Vector2>();
+    private readonly List<int> _triangles = new List<int>();
     private Matrix4x4 _view, _camera;
     private bool _hasCamera;
     public IReadOnlyList<Vector3> Vertices
@@ -61,8 +61,8 @@ public sealed class LightningDrawList
     {
         _nativeCamera = nativeCamera;
         _effects = effects;
-        _bolts = new(seed);
-        _pairs = new(new Dk2Lcg(seed));
+        _bolts = new LightningBolts(seed);
+        _pairs = new LightningCracklePairs(new Dk2Lcg(seed));
     }
     /// <summary>Matrices use render-world (x, z, -y), row vectors, and camera +Z forward.</summary>
     public void BeginFrame(Matrix4x4 worldToCamera, Matrix4x4 cameraToWorld, bool hasCamera = true)
@@ -272,7 +272,7 @@ public sealed class LightningDrawList
     {
         if (_freeLinks.Count == 0)
         {
-            return new(kind);
+            return new LightningLink(kind);
         }
 
         int last = _freeLinks.Count - 1;
@@ -295,7 +295,7 @@ public sealed class LightningDrawList
             return;
         }
 
-        Vector3 renderStart = new(start.X, start.Z, -start.Y), renderEnd = new(end.X, end.Z, -end.Y);
+        Vector3 renderStart = new Vector3(start.X, start.Z, -start.Y), renderEnd = new Vector3(end.X, end.Z, -end.Y);
         Vector3 a = _nativeCamera is null ? Transform(renderStart, _view) : _nativeCamera.ToCamera(renderStart);
         Vector3 b = _nativeCamera is null ? Transform(renderEnd, _view) : _nativeCamera.ToCamera(renderEnd);
         IReadOnlyList<LightningPathBuffer> paths = _bolts.BuildInto(a, b, amplitude);
@@ -312,7 +312,7 @@ public sealed class LightningDrawList
     // Keep Unity MultiplyPoint3x4's scalar operation order; SIMD Transform can round differently.
     private static Vector3 Transform(Vector3 p, Matrix4x4 m)
     {
-        return new(
+        return new Vector3(
         m.M11 * p.X + m.M21 * p.Y + m.M31 * p.Z + m.M41,
         m.M12 * p.X + m.M22 * p.Y + m.M32 * p.Z + m.M42,
         m.M13 * p.X + m.M23 * p.Y + m.M33 * p.Z + m.M43);
@@ -325,6 +325,6 @@ public sealed class LightningDrawList
 
     private static Vector3 Tiles(FpPosition3 p)
     {
-        return new(p.X.Raw / 4096f, p.Y.Raw / 4096f, p.Z.Raw / 4096f);
+        return new Vector3(p.X.Raw / 4096f, p.Y.Raw / 4096f, p.Z.Raw / 4096f);
     }
 }

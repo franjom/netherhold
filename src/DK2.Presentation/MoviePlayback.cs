@@ -29,16 +29,16 @@ public sealed class MoviePlayback : IDisposable
 
     private readonly EaMovieTimeline _timeline;
     private readonly EaAudioStream? _audio;
-    private readonly object _audioLock = new();
+    private readonly object _audioLock = new object();
     private readonly long _delayFrames;
     private long _delivered;
-    private readonly TqiDecoder _decoder = new();
+    private readonly TqiDecoder _decoder = new TqiDecoder();
     private byte[] _shownPixels = [], _aheadPixels = [];
     private readonly Thread? _worker;
-    private readonly AutoResetEvent _request = new(false);
+    private readonly AutoResetEvent _request = new AutoResetEvent(false);
     // A kernel event, not ManualResetEventSlim: the slim one allocates its lock object the first time a Wait has to block,
     // which would put a one-off allocation on the frame thread at whatever frame the worker is first late.
-    private readonly ManualResetEvent _decoded = new(true);
+    private readonly ManualResetEvent _decoded = new ManualResetEvent(true);
     private volatile bool _stopping;
     private int _requested = -1, _aheadIndex = -1;
     private long _decodeTicks;

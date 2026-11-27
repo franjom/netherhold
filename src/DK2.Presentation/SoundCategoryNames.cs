@@ -11,7 +11,7 @@ namespace DK2.Presentation;
 /// the lower-case copy each time. Thread-safe.</summary>
 public sealed class SoundCategoryNames
 {
-    private readonly Dictionary<string, SoundCategory> _lower = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, SoundCategory> _lower = new Dictionary<string, SoundCategory>(StringComparer.Ordinal);
 
     /// <summary>The category, <see cref="SoundCategory.None"/> for a null or empty name.</summary>
     public SoundCategory Of(string? name)

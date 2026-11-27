@@ -15,18 +15,18 @@ public readonly record struct FrontEndRect(float X, float Y, float Width, float 
 
     public FrontEndRect Scale(float x, float y)
     {
-        return new(X * x, Y * y, Width * x, Height * y);
+        return new FrontEndRect(X * x, Y * y, Width * x, Height * y);
     }
 
     public FrontEndRect Inflate(float padding)
     {
-        return new(X - padding, Y - padding, Width + 2 * padding, Height + 2 * padding);
+        return new FrontEndRect(X - padding, Y - padding, Width + 2 * padding, Height + 2 * padding);
     }
 
     public FrontEndRect Intersect(FrontEndRect other)
     {
         float x = Math.Max(X, other.X), y = Math.Max(Y, other.Y);
-        return new(x, y, Math.Max(0, Math.Min(X + Width, other.X + other.Width) - x),
+        return new FrontEndRect(x, y, Math.Max(0, Math.Min(X + Width, other.X + other.Width) - x),
             Math.Max(0, Math.Min(Y + Height, other.Y + other.Height) - y));
     }
 }

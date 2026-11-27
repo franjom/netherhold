@@ -70,8 +70,8 @@ public interface ISceneFrameHost
 public sealed class SceneFrame
 {
     private readonly ISceneFrameHost _host;
-    private readonly Dictionary<CreatureId, CreatureView> _poses = new();
-    private readonly GemSparkleGate _gemSparkles = new();
+    private readonly Dictionary<CreatureId, CreatureView> _poses = new Dictionary<CreatureId, CreatureView>();
+    private readonly GemSparkleGate _gemSparkles = new GemSparkleGate();
 
     public SceneFrame(ISceneFrameHost host)
     {
@@ -82,7 +82,7 @@ public sealed class SceneFrame
     public double DrawSeconds { get; private set; }
 
     /// <summary>Each drawn creature's head, written by every <see cref="Draw"/>.</summary>
-    public CreatureHeadTable Heads { get; } = new();
+    public CreatureHeadTable Heads { get; } = new CreatureHeadTable();
 
     /// <summary>The creature whose model is hidden, <see cref="CreatureId.None"/> for none.</summary>
     public CreatureId HiddenCreature { get; set; }
@@ -92,7 +92,7 @@ public sealed class SceneFrame
     {
         get
         {
-            return new(_poses);
+            return new SceneCreatures(_poses);
         }
     }
 

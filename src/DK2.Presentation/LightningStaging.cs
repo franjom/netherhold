@@ -23,7 +23,7 @@ public sealed class LightningStaging
     {
         get
         {
-            return new(1024);
+            return new Dk2Angle(1024);
         }
     }
 

@@ -32,12 +32,12 @@ public sealed class CreatureOverview
     private readonly GameDatabase _database;
     private readonly PlayerId _viewer;
     private readonly CreatureOverviewEntry[] _all;
-    private readonly List<CreatureOverviewEntry> _entries=new();
+    private readonly List<CreatureOverviewEntry> _entries=new List<CreatureOverviewEntry>();
     private readonly int[] _owned=new int[256],_counts=new int[256];
     private readonly int[] _filteredCounts=new int[256*28];
     private readonly CreatureQueryTarget[] _lastPickup=new CreatureQueryTarget[256];
-    private readonly Dictionary<int,GameTick> _pending=new();
-    private readonly List<int> _settled=new();
+    private readonly Dictionary<int,GameTick> _pending=new Dictionary<int, GameTick>();
+    private readonly List<int> _settled=new List<int>();
     private CreatureQueryTarget _lastFocus;
     private readonly byte _worker;
     public IReadOnlyList<CreatureOverviewEntry> Entries
@@ -75,9 +75,9 @@ public sealed class CreatureOverview
     {
         _database=database;_viewer=viewingPlayer;
         CreatureDef[] definitions = [.. database.Creatures.Values.Where(d=>!((d.Flags & CreatureFlags.IsUnique) == CreatureFlags.IsUnique))
-            .OrderBy(d=>order?.Invoke(new(d.CreatureId))??d.CreatureId).ThenBy(d=>d.CreatureId)];
+            .OrderBy(d=>order?.Invoke(new CreatureOverviewType(d.CreatureId))??d.CreatureId).ThenBy(d=>d.CreatureId)];
         _worker=definitions.First(d=>(d.Flags&(CreatureFlags.IsEvil|CreatureFlags.IsWorker))==(CreatureFlags.IsEvil|CreatureFlags.IsWorker)).CreatureId;
-        _all= [.. definitions.OrderBy(d=>d.CreatureId==_worker?0:1).Select(d=>new CreatureOverviewEntry(new(d.CreatureId),name(new(d.CreatureId),d.Name)))];
+        _all= [.. definitions.OrderBy(d=>d.CreatureId==_worker?0:1).Select(d=>new CreatureOverviewEntry(new CreatureOverviewType(d.CreatureId),name(new CreatureOverviewType(d.CreatureId),d.Name)))];
     }
     public void QueuePickupPreview(CreatureQueryTarget target, GameTick appliesAt)
     {
@@ -158,7 +158,7 @@ public sealed class CreatureOverview
                 }
             }
         }
-        WorkerCounts=new(_counts[_worker],idle,busy,fighting);
+        WorkerCounts=new CreatureOverviewWorkerCounts(_counts[_worker],idle,busy,fighting);
         _entries.Clear();
         foreach(CreatureOverviewEntry entry in _all)
         {
@@ -218,8 +218,8 @@ public sealed class CreatureOverview
             _lastPickup[type.Value]=target;
         }
 
-        return new(focus?CreatureOverviewActionKind.Focus:CreatureOverviewActionKind.Pickup,target,
-            new(new(chosen.PosX),new(chosen.PosY),new(chosen.PosZ)));
+        return new CreatureOverviewAction(focus?CreatureOverviewActionKind.Focus:CreatureOverviewActionKind.Pickup,target,
+            new FpPosition3(new Fp32(chosen.PosX),new Fp32(chosen.PosY),new Fp32(chosen.PosZ)));
     }
     private static bool MatchesFilter(CreatureDef definition,CreatureState creature,CreatureOverviewFilter filter)
     {

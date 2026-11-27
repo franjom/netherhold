@@ -9,8 +9,8 @@ namespace DK2.Presentation;
 /// <summary>Main-thread decoded segments consumed by a stereo PCM audio callback; never decodes on that callback.</summary>
 public sealed class PcmAudioQueue(int sampleRate)
 {
-    private readonly object _gate = new();
-    private readonly Queue<(PcmClip Clip, float Gain)> _queued = new();
+    private readonly object _gate = new object();
+    private readonly Queue<(PcmClip Clip, float Gain)> _queued = new Queue<(PcmClip Clip, float Gain)>();
     private PcmClip? _current;
     private float _gain;
     private int _frame;

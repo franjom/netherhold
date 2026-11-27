@@ -12,14 +12,14 @@ public readonly record struct LightningControlPoint(uint Id, Vector3 Position)
     /// <summary>A point in the renderer's world frame (Y up) as DK2's world point, (x, −z, y).</summary>
     public static LightningControlPoint FromRenderWorld(uint id, Vector3 render)
     {
-        return new(id, new Vector3(render.X, -render.Z, render.Y));
+        return new LightningControlPoint(id, new Vector3(render.X, -render.Z, render.Y));
     }
 }
 public readonly record struct LightningSegment(Vector3 Start, Vector3 End);
 
 public sealed class LightningCracklePairs(IRandomAlgorithm random)
 {
-    private readonly List<LightningControlPoint> _points = new();
+    private readonly List<LightningControlPoint> _points = new List<LightningControlPoint>();
 
     public void ChooseInto(IReadOnlyList<LightningControlPoint> controlPoints, List<LightningSegment> output)
     {
@@ -42,7 +42,7 @@ public sealed class LightningCracklePairs(IRandomAlgorithm random)
                 {
                     if (random.NextInt(8 * i) == 1)
                     {
-                        output.Add(new(_points[j].Position, _points[i].Position));
+                        output.Add(new LightningSegment(_points[j].Position, _points[i].Position));
                     }
                 }
                 else
@@ -64,7 +64,7 @@ public sealed class LightningCracklePairs(IRandomAlgorithm random)
                 {
                     if (random.NextInt(8 * i) == 1)
                     {
-                        yield return new(points[j].Position, points[i].Position);
+                        yield return new LightningSegment(points[j].Position, points[i].Position);
                     }
                 }
                 else

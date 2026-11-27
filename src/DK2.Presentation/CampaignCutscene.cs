@@ -65,10 +65,10 @@ public sealed record CampaignCutscene(uint TitleTextId, uint SpeechId, IReadOnly
         int level = LevelNumber(new CampaignSlot(slot));
         if (level == 20)
         {
-            return new(0, 0, new[] { "Data/Movies/Outro.tgq", "Data/Movies/BullfrogOutro.tgq" });
+            return new CampaignCutscene(0, 0, new[] { "Data/Movies/Outro.tgq", "Data/Movies/BullfrogOutro.tgq" });
         }
 
         uint title = TitleIds[level];
-        return new(title, title + 1, new[] { $"Data/Movies/CutSceneLevel{level}.tgq" });
+        return new CampaignCutscene(title, title + 1, new[] { $"Data/Movies/CutSceneLevel{level}.tgq" });
     }
 }

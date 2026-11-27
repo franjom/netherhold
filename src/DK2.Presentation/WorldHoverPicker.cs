@@ -33,8 +33,8 @@ public sealed class WorldHoverPicker
     /// <summary>How far past the terrain hit a candidate's entry may lie and still count as in front of it.</summary>
     public const float TerrainMargin = .02f;
 
-    private readonly List<WorldHoverHit> _candidates = new();
-    private readonly List<SweepEntry> _sweepCreatures = new(), _sweepObjects = new();
+    private readonly List<WorldHoverHit> _candidates = new List<WorldHoverHit>();
+    private readonly List<SweepEntry> _sweepCreatures = new List<SweepEntry>(), _sweepObjects = new List<SweepEntry>();
     private RenderedPick _pick;
     private HoverPickRay _ray;
     private TilePos _tile;
@@ -67,7 +67,7 @@ public sealed class WorldHoverPicker
     /// <summary>The hover on the pointer's tile: a pick keeps its kind and entity and takes the tile under the pointer.</summary>
     public static WorldHoverHit OnPointerTile(WorldHoverHit pick, TilePos tile)
     {
-        return new(pick.Kind, tile, pick.EntityId);
+        return new WorldHoverHit(pick.Kind, tile, pick.EntityId);
     }
 
     /// <summary>Starts a frame's pick on <paramref name="tile"/>; <paramref name="frustum"/> is the view
@@ -101,7 +101,7 @@ public sealed class WorldHoverPicker
     /// <summary>The hit a door or trap offers.</summary>
     public static WorldHoverHit StructureHit(StructureId structure, TilePos tile)
     {
-        return new(structure.Kind == StructureKind.Door ? WorldHoverKind.Door : WorldHoverKind.Trap, tile, structure.Value);
+        return new WorldHoverHit(structure.Kind == StructureKind.Door ? WorldHoverKind.Door : WorldHoverKind.Trap, tile, structure.Value);
     }
 
     /// <summary>The screen-circle test on a candidate's bounding sphere: false when the camera looks away from the ray
@@ -298,7 +298,7 @@ public sealed class WorldHoverPicker
 
     private Vector3 PointAlong(float distance)
     {
-        return new(_ray.Origin.X + (_ray.Direction.X * distance),
+        return new Vector3(_ray.Origin.X + (_ray.Direction.X * distance),
         _ray.Origin.Y + (_ray.Direction.Y * distance), _ray.Origin.Z + (_ray.Direction.Z * distance));
     }
 
@@ -321,11 +321,11 @@ public sealed class WorldHoverPicker
 
     private static Vector3 Subtract(Vector3 a, Vector3 b)
     {
-        return new(a.X - b.X, a.Y - b.Y, a.Z - b.Z);
+        return new Vector3(a.X - b.X, a.Y - b.Y, a.Z - b.Z);
     }
 
     private static Vector3 Cross(Vector3 a, Vector3 b)
     {
-        return new((a.Y * b.Z) - (a.Z * b.Y), (a.Z * b.X) - (a.X * b.Z), (a.X * b.Y) - (a.Y * b.X));
+        return new Vector3((a.Y * b.Z) - (a.Z * b.Y), (a.Z * b.X) - (a.X * b.Z), (a.X * b.Y) - (a.Y * b.X));
     }
 }

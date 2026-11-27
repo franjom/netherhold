@@ -14,7 +14,7 @@ public sealed class GemSparkleGate
 {
     public const int QuantumMilliseconds = 50;
 
-    private readonly Dictionary<CreatureId, long> _quanta = new();
+    private readonly Dictionary<CreatureId, long> _quanta = new Dictionary<CreatureId, long>();
 
     /// <summary>Whether this draw of <paramref name="creature"/> sparkles: true the first time and in each later quantum.</summary>
     public bool TryPass(CreatureId creature, EffectTime now)

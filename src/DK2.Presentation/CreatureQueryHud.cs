@@ -11,9 +11,9 @@ namespace DK2.Presentation;
 public sealed class CreatureQueryHud
 {
     /// <summary>The text widget: 1040,1000, 1096 x 288 virtual.</summary>
-    private static readonly HudRect Text = new(1040, 1000, 1096, 288);
+    private static readonly HudRect Text = new HudRect(1040, 1000, 1096, 288);
     /// <summary>The area that keeps the pointer from the world while the details show.</summary>
-    private static readonly HudRect Hit = new(1020, 980, 1200, 440);
+    private static readonly HudRect Hit = new HudRect(1020, 980, 1200, 440);
 
     // Menu40's text widget owns a bar (0x0052A0D0) at menu-local (1116,20) 64x288: up arrow, track, thumb,
     // down arrow (0x00414400).
@@ -52,7 +52,7 @@ public sealed class CreatureQueryHud
             Set(screen, snapshot.Text);
         }
 
-        HudRect text = new(Text.X, Text.Y, screen.Virtual(_size.Width), screen.Virtual(_size.Height));
+        var text = new HudRect(Text.X, Text.Y, screen.Virtual(_size.Width), screen.Virtual(_size.Height));
         HudQuads.Clipped(frame, HudImage.Of(_text!), text, Text, HudColor.White);
         if (!_overflow)
         {

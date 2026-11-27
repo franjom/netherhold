@@ -18,7 +18,7 @@ public sealed class OptionsHud
     private readonly Func<uint, string> _text;
     private readonly Func<int, BitmapFont> _font;
     private readonly bool[] _supported = new bool[Enum.GetValues(typeof(ClassicOptionsAction)).Cast<ClassicOptionsAction>().Max(a => (int)a) + 1];
-    private readonly List<(HudText Text, HudRect Rect)> _labels = new();
+    private readonly List<(HudText Text, HudRect Rect)> _labels = new List<(HudText Text, HudRect Rect)>();
     private ClassicOptionsPage _page;
     private ClassicSessionAction _confirmation;
     private int _height;

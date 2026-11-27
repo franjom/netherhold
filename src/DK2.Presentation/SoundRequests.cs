@@ -14,7 +14,7 @@ public readonly record struct SoundRequest(SoundCategory Category, SoundId Id, V
 /// <summary>Retained requests; the host consumes and clears them after the frame's input/capture.</summary>
 public sealed class SoundRequests
 {
-    private readonly List<SoundRequest> _pending = new();
+    private readonly List<SoundRequest> _pending = new List<SoundRequest>();
     public IReadOnlyList<SoundRequest> Pending
     {
         get

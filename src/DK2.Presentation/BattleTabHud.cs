@@ -14,7 +14,7 @@ public sealed class BattleTabHud
     private readonly BattleTabHoverText _text;
     private readonly bool[] _shown = new bool[Buttons.Length];
     private bool _collapsed, _allowInput;
-    private HudScreen _screen = new(2560, 1920);
+    private HudScreen _screen = new HudScreen(2560, 1920);
 
     /// <param name="text">A <c>Text.str</c> string by id.</param>
     public BattleTabHud(Func<uint, string> text)

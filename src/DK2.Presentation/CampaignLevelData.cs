@@ -64,6 +64,6 @@ public sealed class CampaignLevelData
 
     private static InvalidOperationException Missing(string level, string what)
     {
-        return new($"the install has no '{level}' {what}.");
+        return new InvalidOperationException($"the install has no '{level}' {what}.");
     }
 }

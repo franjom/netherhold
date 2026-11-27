@@ -38,11 +38,11 @@ public sealed class FrontEndScrollBar
     /// the place.</summary>
     public static FrontEndScrollBar Beside(FrontEndRect list, int gap, int width = TextScrollBar.Width, int height = 0)
     {
-        return new(new FrontEndRect(list.X + list.Width + gap, list.Y, width, height > 0 ? height : list.Height));
+        return new FrontEndScrollBar(new FrontEndRect(list.X + list.Width + gap, list.Y, width, height > 0 ? height : list.Height));
     }
 
     public FrontEndRect Rect { get; }
-    public TextScrollBar Bar { get; } = new();
+    public TextScrollBar Bar { get; } = new TextScrollBar();
     public FrontEndRect Screen
     {
         get

@@ -12,8 +12,8 @@ namespace DK2.Presentation;
 public sealed partial class WorldView
 {
     private WorldState? _portalLightWorld;
-    private readonly List<TilePos> _portalLightTiles = new();
-    private static readonly TilePos[] PortalNeighbours = [new(0, -1), new(1, 0), new(0, 1), new(-1, 0)];
+    private readonly List<TilePos> _portalLightTiles = new List<TilePos>();
+    private static readonly TilePos[] PortalNeighbours = [new TilePos(0, -1), new TilePos(1, 0), new TilePos(0, 1), new TilePos(-1, 0)];
 
     /// <summary>Append-only light requests, including repeated refreshes at the same tile.</summary>
     public IReadOnlyList<TilePos> PortalLightTiles(WorldState world)

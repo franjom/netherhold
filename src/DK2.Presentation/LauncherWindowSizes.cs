@@ -12,7 +12,7 @@ public static class LauncherWindowSizes
     public const int FrameAllowance = 48;
 
     /// <summary>The launcher's own layout size before scaling.</summary>
-    public static readonly LauncherWindowSize LauncherSize = new(1100, 680);
+    public static readonly LauncherWindowSize LauncherSize = new LauncherWindowSize(1100, 680);
 
     /// <summary>The share of the screen the default window may take on each side.</summary>
     private const int DefaultPercent = 90;
@@ -20,9 +20,9 @@ public static class LauncherWindowSizes
     /// <summary>16:9 sizes and the common desktop sizes, widest first, then tallest.</summary>
     private static readonly LauncherWindowSize[] Candidates =
     [
-        new(5120, 2880), new(3840, 2160), new(3440, 1440), new(3200, 1800), new(2560, 1600), new(2560, 1440),
-        new(2560, 1080), new(1920, 1200), new(1920, 1080), new(1680, 1050), new(1600, 900), new(1440, 900),
-        new(1366, 768), new(1280, 1024), new(1280, 800), new(1280, 720), new(1024, 768), new(1024, 576), new(960, 540),
+        new LauncherWindowSize(5120, 2880), new LauncherWindowSize(3840, 2160), new LauncherWindowSize(3440, 1440), new LauncherWindowSize(3200, 1800), new LauncherWindowSize(2560, 1600), new LauncherWindowSize(2560, 1440),
+        new LauncherWindowSize(2560, 1080), new LauncherWindowSize(1920, 1200), new LauncherWindowSize(1920, 1080), new LauncherWindowSize(1680, 1050), new LauncherWindowSize(1600, 900), new LauncherWindowSize(1440, 900),
+        new LauncherWindowSize(1366, 768), new LauncherWindowSize(1280, 1024), new LauncherWindowSize(1280, 800), new LauncherWindowSize(1280, 720), new LauncherWindowSize(1024, 768), new LauncherWindowSize(1024, 576), new LauncherWindowSize(960, 540),
     ];
 
     /// <summary>The sizes whose window fits the screen with its frame, widest first; never empty (the smallest size

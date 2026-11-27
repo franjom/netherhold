@@ -31,12 +31,12 @@ public static class CaptureEffectLayout
             return CaptureEdges.All;
         }
 
-        PlayerId owner = new(world.Tile(request.Tile).OwnerPlayerId);
+        var owner = new PlayerId(world.Tile(request.Tile).OwnerPlayerId);
         CaptureEdges edges = CaptureEdges.None;
-        Check(new(request.Tile.X - 1, request.Tile.Y), CaptureEdges.West);
-        Check(new(request.Tile.X, request.Tile.Y - 1), CaptureEdges.North);
-        Check(new(request.Tile.X + 1, request.Tile.Y), CaptureEdges.East);
-        Check(new(request.Tile.X, request.Tile.Y + 1), CaptureEdges.South);
+        Check(new TilePos(request.Tile.X - 1, request.Tile.Y), CaptureEdges.West);
+        Check(new TilePos(request.Tile.X, request.Tile.Y - 1), CaptureEdges.North);
+        Check(new TilePos(request.Tile.X + 1, request.Tile.Y), CaptureEdges.East);
+        Check(new TilePos(request.Tile.X, request.Tile.Y + 1), CaptureEdges.South);
         return edges;
 
         void Check(TilePos neighbour, CaptureEdges edge)

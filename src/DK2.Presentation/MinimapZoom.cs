@@ -45,7 +45,7 @@ public readonly record struct MinimapZoom
     {
         get
         {
-            return new(-1);
+            return new MinimapZoom(-1);
         }
     }
 
@@ -60,12 +60,12 @@ public readonly record struct MinimapZoom
     }
     public MinimapZoom ZoomIn()
     {
-        return new(Math.Min(Level + 1, 4));
+        return new MinimapZoom(Math.Min(Level + 1, 4));
     }
 
     public MinimapZoom ZoomOut()
     {
-        return new(Math.Max(Level - 1, -1));
+        return new MinimapZoom(Math.Max(Level - 1, -1));
     }
 
     public MinimapRasterPoint RasterOrigin(FpPosition3 focus)
@@ -75,7 +75,7 @@ public readonly record struct MinimapZoom
             throw new InvalidOperationException("The whole map uses the fitted map bounds.");
         }
 
-        return new(unchecked(0x400000 - (focus.X.Raw << (Level + 4))) >> 16,
+        return new MinimapRasterPoint(unchecked(0x400000 - (focus.X.Raw << (Level + 4))) >> 16,
             unchecked(0x400000 - (focus.Y.Raw << (Level + 4))) >> 16);
     }
     public MinimapRasterPoint Project(FpPosition3 position, FpPosition3 focus)
@@ -85,7 +85,7 @@ public readonly record struct MinimapZoom
             throw new InvalidOperationException("The whole map uses the fitted map bounds.");
         }
 
-        return new(64 + (position.X.Raw >> (12 - Level)) - (focus.X.Raw >> (12 - Level)),
+        return new MinimapRasterPoint(64 + (position.X.Raw >> (12 - Level)) - (focus.X.Raw >> (12 - Level)),
             64 + (position.Y.Raw >> (12 - Level)) - (focus.Y.Raw >> (12 - Level)));
     }
 }

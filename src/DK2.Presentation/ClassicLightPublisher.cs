@@ -43,14 +43,14 @@ public sealed class ClassicLightPublisher
     private bool _tablesNeedPublication;
     private TilePos[] _visibleTiles = [];
     private int _visibleCount;
-    private readonly HashSet<TilePos> _published = new();
+    private readonly HashSet<TilePos> _published = new HashSet<TilePos>();
     private ClassicCameraPose? _pose;
     private CameraViewport _viewport;
     private float _viewDistance;
     private ClassicCameraPose? _secondPose;
     private CameraViewport _secondViewport;
     private TilePos[] _secondTiles = [];
-    private readonly HashSet<TilePos> _joined = new();
+    private readonly HashSet<TilePos> _joined = new HashSet<TilePos>();
     private TilePos[] _joinedBuffer = [];
 
     /// <param name="torchFlags">The scene's torch flags (<see cref="ClassicLightFlagsRules.Torch"/>), whose cheap test the

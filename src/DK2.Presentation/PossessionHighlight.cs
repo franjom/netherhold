@@ -14,7 +14,7 @@ public sealed class PossessionHighlight
     private WorldState? _world;
     private WorldSteering? _navigation;
     private WorldSight? _sight;
-    private readonly HeartSites _hearts = new();
+    private readonly HeartSites _hearts = new HeartSites();
 
     public static bool EntryPointerFeedback(bool possessing, bool firstPersonCameraSettled, HudVisibility ordinary)
     {

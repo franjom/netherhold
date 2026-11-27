@@ -29,23 +29,23 @@ public static class MinimapMarkerRules
 
     public static MinimapMarker ReportingRing(FpPosition3 position, int distanceTiles, MinimapMapBounds bounds, int mapWidth)
     {
-        return new(MinimapMarkerKind.Ring, position, ReportingColourArgb, unchecked((byte)distanceTiles) * bounds.Width / mapWidth,
+        return new MinimapMarker(MinimapMarkerKind.Ring, position, ReportingColourArgb, unchecked((byte)distanceTiles) * bounds.Width / mapWidth,
             ReportingDistanceTiles: unchecked((byte)distanceTiles));
     }
 
     public static MinimapMarker ReportingRectangle(FpPosition3 minimum, FpPosition3 maximum)
     {
-        return new(MinimapMarkerKind.Rectangle, minimum, ReportingColourArgb, EndPosition: maximum);
+        return new MinimapMarker(MinimapMarkerKind.Rectangle, minimum, ReportingColourArgb, EndPosition: maximum);
     }
 
     public static MinimapMarker PossessionRing(FpPosition3 position, GameTick tick)
     {
-        return new(MinimapMarkerKind.Ring, position, 0xFFFFFFFF, (int)(tick.Value & 7));
+        return new MinimapMarker(MinimapMarkerKind.Ring, position, 0xFFFFFFFF, (int)(tick.Value & 7));
     }
 
     public static MinimapMarker AlarmRing(FpPosition3 position, GameTick tick)
     {
-        return new(MinimapMarkerKind.Ring, position, 0xFFDC32FF, (int)(unchecked((uint)tick.Value) % 30));
+        return new MinimapMarker(MinimapMarkerKind.Ring, position, 0xFFDC32FF, (int)(unchecked((uint)tick.Value) % 30));
     }
 
     public static bool IsAlarmRingActive(GameTick tick, GameTick rechargeAt)
@@ -77,7 +77,7 @@ public static class MinimapMarkerRules
         bool door = facts.Kind is MinimapMarkerKind.VerticalDoor or MinimapMarkerKind.HorizontalDoor;
         bool coloured = (tick.Value & 1) == (door ? 0 : 1);
         uint colour = coloured ? palette.Colours[17 + facts.Owner.Value] : 0xFF000000;
-        marker = new(facts.Kind, facts.Position, colour);
+        marker = new MinimapMarker(facts.Kind, facts.Position, colour);
         return true;
     }
 }
@@ -97,7 +97,7 @@ public readonly record struct MinimapMapBounds(int Left, int Top, int Width, int
         }
 
         return width < height
-            ? new(20 + ((height - width) / 2) * 90 / height, 20, width * 90 / height, 90)
-            : new(20, 20 + ((width - height) / 2) * 90 / width, 90, height * 90 / width);
+            ? new MinimapMapBounds(20 + ((height - width) / 2) * 90 / height, 20, width * 90 / height, 90)
+            : new MinimapMapBounds(20, 20 + ((width - height) / 2) * 90 / width, 90, height * 90 / width);
     }
 }

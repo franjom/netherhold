@@ -19,18 +19,18 @@ public readonly record struct TerrainMaterialLook(
 {
     /// <summary>The dig tag's colour, added to a tagged piece's vertex light (<c>0x0059A050</c>, <c>0x0059A200</c>,
     /// summed by <c>0x0057B6D0</c>).</summary>
-    public static readonly Vector3 TagTint = new(128f / 255f, 128f / 255f, 200f / 255f);
+    public static readonly Vector3 TagTint = new Vector3(128f / 255f, 128f / 255f, 200f / 255f);
 
     /// <summary>BlueTexture's one colour, drawn over a tagged piece as AA_BlueTexture: ONE, ONE, no depth write
     /// (<c>0x0057C420</c>, <c>0x00589250</c>).</summary>
-    public static readonly Vector3 TagOverlayColour = new(63f / 255f, 64f / 255f, 1f);
+    public static readonly Vector3 TagOverlayColour = new Vector3(63f / 255f, 64f / 255f, 1f);
 
     /// <summary>RedTexture's one colour (global <c>0x006FCD73</c>, read at <c>0x0043BF1F</c> in <c>0x0043B220</c>): the
     /// overlay over a red-highlighted piece, and the Hand's hover pass.</summary>
-    public static readonly Vector3 HoverOverlayColour = new(1f, 64f / 255f, 65f / 255f);
+    public static readonly Vector3 HoverOverlayColour = new Vector3(1f, 64f / 255f, 65f / 255f);
 
     /// <summary>The red highlight's added light: full red.</summary>
-    public static readonly Vector3 RedLight = new(1f, 0f, 0f);
+    public static readonly Vector3 RedLight = new Vector3(1f, 0f, 0f);
 
     /// <summary>A tagged or red-highlighted twin's added light: the tag's (or full red) plus the material's own.</summary>
     public static Vector3 TaggedLight(Vector3 own, bool red)
@@ -87,6 +87,6 @@ public readonly record struct TerrainMaterialLook(
 
     private static TerrainMaterialLook Overlay(Vector3 colour)
     {
-        return new("", KmfBlend.Additive, false, true, new Vector4(colour, 1f), Vector3.Zero);
+        return new TerrainMaterialLook("", KmfBlend.Additive, false, true, new Vector4(colour, 1f), Vector3.Zero);
     }
 }

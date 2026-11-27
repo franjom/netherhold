@@ -55,23 +55,23 @@ public static class HandCursor
     {
         return kind switch
         {
-            HandCursorKind.Point => new("Point.png", new(82, 53), new(2, 17), FrameCount: 41, FramesPerSecond: 30),
-            HandCursorKind.SmallPoint => new("SmallPoint.png", new(42, 20), new(2, 2), FrameCount: 1, FramesPerSecond: 1),
-            HandCursorKind.Pickup => new("Idle.png", new(83, 39), new(2, 4), FrameCount: 1, FramesPerSecond: 30),
-            HandCursorKind.Dig => new("PickAxeHold.png", new(84, 86), new(4, 51), FrameCount: 1, FramesPerSecond: 1),
-            HandCursorKind.Tag => new("PickAxeTag.png", new(88, 65), new(7, 30), FrameCount: 1, FramesPerSecond: 30),
-            HandCursorKind.Tagging => new("PickAxeHoldTagging.png", new(88, 65), new(7, 30), FrameCount: 1, FramesPerSecond: 1),
-            HandCursorKind.HoldThing => new("HoldThing.png", new(74, 70), new(8, 42), FrameCount: 1, FramesPerSecond: 15),
-            HandCursorKind.DropThing => new("DropThing.png", new(88, 103), new(2, 64), FrameCount: 14, FramesPerSecond: 30),
-            HandCursorKind.HoldGold => new("HoldGold.png", new(63, 43), new(-18, 7), FrameCount: 1, FramesPerSecond: 15),
-            HandCursorKind.DropGold => new("DropGold.png", new(87, 95), new(5, 59), FrameCount: 16, FramesPerSecond: 30),
-            HandCursorKind.Slap => new("Slap.png", new(126, 99), new(2, 64), FrameCount: 15, FramesPerSecond: 30),
+            HandCursorKind.Point => new HandCursorSprite("Point.png", new Vector2(82, 53), new Vector2(2, 17), FrameCount: 41, FramesPerSecond: 30),
+            HandCursorKind.SmallPoint => new HandCursorSprite("SmallPoint.png", new Vector2(42, 20), new Vector2(2, 2), FrameCount: 1, FramesPerSecond: 1),
+            HandCursorKind.Pickup => new HandCursorSprite("Idle.png", new Vector2(83, 39), new Vector2(2, 4), FrameCount: 1, FramesPerSecond: 30),
+            HandCursorKind.Dig => new HandCursorSprite("PickAxeHold.png", new Vector2(84, 86), new Vector2(4, 51), FrameCount: 1, FramesPerSecond: 1),
+            HandCursorKind.Tag => new HandCursorSprite("PickAxeTag.png", new Vector2(88, 65), new Vector2(7, 30), FrameCount: 1, FramesPerSecond: 30),
+            HandCursorKind.Tagging => new HandCursorSprite("PickAxeHoldTagging.png", new Vector2(88, 65), new Vector2(7, 30), FrameCount: 1, FramesPerSecond: 1),
+            HandCursorKind.HoldThing => new HandCursorSprite("HoldThing.png", new Vector2(74, 70), new Vector2(8, 42), FrameCount: 1, FramesPerSecond: 15),
+            HandCursorKind.DropThing => new HandCursorSprite("DropThing.png", new Vector2(88, 103), new Vector2(2, 64), FrameCount: 14, FramesPerSecond: 30),
+            HandCursorKind.HoldGold => new HandCursorSprite("HoldGold.png", new Vector2(63, 43), new Vector2(-18, 7), FrameCount: 1, FramesPerSecond: 15),
+            HandCursorKind.DropGold => new HandCursorSprite("DropGold.png", new Vector2(87, 95), new Vector2(5, 59), FrameCount: 16, FramesPerSecond: 30),
+            HandCursorKind.Slap => new HandCursorSprite("Slap.png", new Vector2(126, 99), new Vector2(2, 64), FrameCount: 15, FramesPerSecond: 30),
             // State 12, which a keeper spell's tool (mode 8, 0x0040B7F0) requests on the middle channel:
             // its record in 0x0068F638 is state 3's, the pointing finger.
-            HandCursorKind.SpellPoint => new("Idle.png", new(83, 39), new(2, 4), FrameCount: 1, FramesPerSecond: 30),
+            HandCursorKind.SpellPoint => new HandCursorSprite("Idle.png", new Vector2(83, 39), new Vector2(2, 4), FrameCount: 1, FramesPerSecond: 30),
             // State 13, the cast: the click that posts a cast asks it, and its callback (0x0040E5E0) asks state 12 back
             // once its frames are done.
-            HandCursorKind.SpellCast => new("SpellCast.png", new(87, 104), new(1, 65), FrameCount: 12, FramesPerSecond: 30),
+            HandCursorKind.SpellCast => new HandCursorSprite("SpellCast.png", new Vector2(87, 104), new Vector2(1, 65), FrameCount: 12, FramesPerSecond: 30),
             _ => throw new ArgumentOutOfRangeException(nameof(kind)),
         };
     }
@@ -79,7 +79,7 @@ public static class HandCursor
     // Point.png frame 0's claw tip, the claws at rest: the opaque pixel (alpha > 0) furthest along
     // (-1, 0.25), left and slightly down, the way the claws point. Checked against the shipped sheet
     // by HandCursorArtTests when the install is present.
-    private static readonly Vector2 PointRestingTip = new(6, 33);
+    private static readonly Vector2 PointRestingTip = new Vector2(6, 33);
 
     /// <summary>The frame pixel drawn on the pointer: the claw or finger tip where the art points
     /// with one, otherwise DK2's hotspot. A deliberate deviation (owner, 2026-10-24): DK2 puts the
@@ -101,8 +101,8 @@ public static class HandCursor
         return kind switch
         {
             HandCursorKind.Point => PointRestingTip,
-            HandCursorKind.SmallPoint => new(0, 2),
-            HandCursorKind.Pickup or HandCursorKind.SpellPoint => new(0, 4),
+            HandCursorKind.SmallPoint => new Vector2(0, 2),
+            HandCursorKind.Pickup or HandCursorKind.SpellPoint => new Vector2(0, 4),
             _ => sprite.Hotspot,
         };
     }
@@ -133,7 +133,7 @@ public static class HandCursor
 
         HandCursorSprite sprite = Sprite(kind);
         float scale = screenHeight / 480f;
-        return new(pointerPixels - Anchor(kind, frame) * scale, sprite.FrameSize * scale);
+        return new HandCursorPlacement(pointerPixels - Anchor(kind, frame) * scale, sprite.FrameSize * scale);
     }
 
     /// <summary>DK2's tool-icon offset from the hand's native hotspot, translated with the drawn
@@ -165,12 +165,12 @@ public static class HandCursor
 public sealed class HandCursorFeedback
 {
     private const int SlapSoundFrame = 3;
-    private static readonly SoundCategory HandCategory = new("hand");
+    private static readonly SoundCategory HandCategory = new SoundCategory("hand");
     private HandCursorKind _transient;
     private long _startedAt;
     private bool _slapSounded;
 
-    public SoundRequests Sounds { get; } = new();
+    public SoundRequests Sounds { get; } = new SoundRequests();
 
     /// <summary>Clears the transient and the slap latch. Deviation: DK2 clears the latch only on a swing's
     /// completion (<c>0x0040E5A1</c>); this also runs on focus loss and disable.</summary>
@@ -246,7 +246,7 @@ public sealed class HandCursorFeedback
 
     private static SoundRequest HandSound(uint id, FpPosition2 at)
     {
-        return new(HandCategory, new SoundId(id), new Vector3(at.X.Raw / 4096f, 2f, -at.Y.Raw / 4096f));
+        return new SoundRequest(HandCategory, new SoundId(id), new Vector3(at.X.Raw / 4096f, 2f, -at.Y.Raw / 4096f));
     }
 }
 

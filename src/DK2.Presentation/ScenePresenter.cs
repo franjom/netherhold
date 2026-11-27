@@ -915,7 +915,7 @@ public sealed class ScenePresenter
     /// is reproducible. One shared instance: sorting with it allocates nothing.</summary>
     private sealed class StructureIdOrder : IComparer<StructureId>
     {
-        public static readonly StructureIdOrder Instance = new();
+        public static readonly StructureIdOrder Instance = new StructureIdOrder();
 
         public int Compare(StructureId left, StructureId right)
         {

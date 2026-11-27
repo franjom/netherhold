@@ -23,11 +23,11 @@ public sealed class ScriptedViewDirector(
     Func<int, string?> subtitle,
     ISimulationEventSink? downstream = null) : ISimulationEventSink
 {
-    private readonly ConcurrentQueue<ScriptedViewRequest> _requests = new();
-    private readonly CinematicLetterbox _letterbox = new();
-    private readonly SubtitleQueue _subtitles = new();
+    private readonly ConcurrentQueue<ScriptedViewRequest> _requests = new ConcurrentQueue<ScriptedViewRequest>();
+    private readonly CinematicLetterbox _letterbox = new CinematicLetterbox();
+    private readonly SubtitleQueue _subtitles = new SubtitleQueue();
     // Bridge +0x72 is separate from world randomness. Other bridge consumers are not yet shared.
-    private readonly Dk2Lcg _bridgeRandom = new(1);
+    private readonly Dk2Lcg _bridgeRandom = new Dk2Lcg(1);
     public int PendingCameraJitters { get; private set; }
     public FpPosition3 CameraJitter { get; private set; }
     /// <summary>One render frame's horizontal offset in the shared world frame; paths suppress shake.</summary>
@@ -35,7 +35,7 @@ public sealed class ScriptedViewDirector(
     {
         get
         {
-            return PathPlaying ? default : new(
+            return PathPlaying ? default : new System.Numerics.Vector3(
         CameraJitter.X.Raw / (float)Fp32.One, 0, -CameraJitter.Y.Raw / (float)Fp32.One);
         }
     }
@@ -127,7 +127,7 @@ public sealed class ScriptedViewDirector(
     public HudVisibility HudFor(ClassicCameraMode normalMode)
     {
         return HudVisibilityRules.ForCamera(
-        PathPlaying ? CameraModeId.ScriptedPath : new((ushort)normalMode), _letterbox.RequestCount);
+        PathPlaying ? CameraModeId.ScriptedPath : new CameraModeId((ushort)normalMode), _letterbox.RequestCount);
     }
 
     /// <summary>The visibility of the game's HUD during a scripted view: this view's camera visibility
@@ -249,7 +249,7 @@ public sealed class ScriptedViewDirector(
         if (PendingCameraJitters > 0)
         {
             PendingCameraJitters--;
-            CameraJitter = new(new(_bridgeRandom.NextInt(200) - 100), new(_bridgeRandom.NextInt(200) - 100), new(0));
+            CameraJitter = new FpPosition3(new Fp32(_bridgeRandom.NextInt(200) - 100), new Fp32(_bridgeRandom.NextInt(200) - 100), new Fp32(0));
         }
         SeekPath();
         _subtitles.Update(_now);

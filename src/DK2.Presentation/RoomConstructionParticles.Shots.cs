@@ -23,7 +23,7 @@ public readonly record struct ShotEffectAttachment(bool ShotExists, FpPosition3?
 
     public static ShotEffectAttachment At(FpPosition3 point, FpPosition3 aim)
     {
-        return new(true, point, aim);
+        return new ShotEffectAttachment(true, point, aim);
     }
 
     public static ShotEffectAttachment Resolve(WorldState world, WorldSteering navigation, ShotId id, float fraction)
@@ -39,9 +39,9 @@ public readonly record struct ShotEffectAttachment(bool ShotExists, FpPosition3?
         var point = new FpPosition3(new Fp32(previous.X.Raw + (int)((current.X.Raw - previous.X.Raw) * t)),
             new Fp32(previous.Y.Raw + (int)((current.Y.Raw - previous.Y.Raw) * t)),
             new Fp32(previous.Z.Raw + (int)((current.Z.Raw - previous.Z.Raw) * t)));
-        TilePos tile = new(point.X.Raw >> 12, point.Y.Raw >> 12);
+        var tile = new TilePos(point.X.Raw >> 12, point.Y.Raw >> 12);
         bool accepted = world.Contains(tile) && !NavBytes.IsSolid(navigation.NavByte(tile.X, tile.Y));
-        return new(true, accepted ? point : null,
+        return new ShotEffectAttachment(true, accepted ? point : null,
             new FpPosition3(new Fp32(shot.TargetX), new Fp32(shot.TargetY), shot.ViewHeight));
     }
 }

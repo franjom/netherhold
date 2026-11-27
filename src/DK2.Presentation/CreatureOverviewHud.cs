@@ -15,7 +15,7 @@ public readonly record struct CreatureOverviewRequest(CreatureOverviewType Type,
 public sealed class CreatureOverviewHud
 {
     private const int MaximumColumns = 32;
-    private static readonly HudColor Highlight = new(201, 255, 0);
+    private static readonly HudColor Highlight = new HudColor(201, 255, 0);
     private static readonly HudImage Lit = "GUI\\Tabs\\t-cp-hilight", WorkerStrip = "GUI\\Tabs\\t-cp-imp",
         Back = "GUI\\Pages\\page_back", Forward = "GUI\\Pages\\page_forward", ModeStrip = "GUI\\Tabs\\t-creature_panel";
     private static readonly HudImage[] ModeHovers = [.. Enumerable.Range(0, 4).Select(i => (HudImage)("GUI\\Tabs\\t-creature_panel-" + i))];
@@ -239,12 +239,12 @@ public sealed class CreatureOverviewHud
     // Menu 6 sits at (472,1600); its widget rectangles are local (records 0x00690078..0x00690348).
     private HudRect ModeRect(int mode)
     {
-        return new(X(472 + 220), 1600 + 16 + 64 * mode, 44, 52);
+        return new HudRect(X(472 + 220), 1600 + 16 + 64 * mode, 44, 52);
     }
 
     private HudRect WorkerCountRect(int row)
     {
-        return new(X(472 + 72), 1600 + 12 + 64 * row, 120, 64);
+        return new HudRect(X(472 + 72), 1600 + 12 + 64 * row, 120, 64);
     }
 
     private HudRect HitRect(int column)

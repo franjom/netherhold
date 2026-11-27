@@ -236,7 +236,7 @@ public static class BitmapTextPlacement
     public static PlacedBitmapGlyphs Place(BitmapFont font, HudRect box, IReadOnlyList<BitmapTextLine> lines, float scale,
         bool centred = true)
     {
-        return new(font, box, lines, scale, centred);
+        return new PlacedBitmapGlyphs(font, box, lines, scale, centred);
     }
 }
 
@@ -246,7 +246,7 @@ public readonly struct PlacedBitmapGlyphs(BitmapFont font, HudRect box, IReadOnl
 {
     public Enumerator GetEnumerator()
     {
-        return new(font, box, lines, scale, centred);
+        return new Enumerator(font, box, lines, scale, centred);
     }
 
     public struct Enumerator
@@ -414,26 +414,26 @@ public static class SubtitleLayout
     /// <summary>The win screen's text with speech off: an eighth of the screen high, from 70% down.</summary>
     public static HudRect WinScreenBox(int screenWidth, int screenHeight)
     {
-        return new(0f, screenHeight * 0.70f, screenWidth, screenHeight / 8f);
+        return new HudRect(0f, screenHeight * 0.70f, screenWidth, screenHeight / 8f);
     }
 
     /// <summary>The level end's prompt (<see cref="CampaignResultFlow.Prompt"/>): a 30-pixel band, its top 60 pixels above
     /// the screen's bottom, across its whole width.</summary>
     public static HudRect ResultPromptBox(int screenWidth, int screenHeight)
     {
-        return new(0f, screenHeight - 60f, screenWidth, 30f);
+        return new HudRect(0f, screenHeight - 60f, screenWidth, 30f);
     }
 
     /// <summary>The cutscene title card: the whole screen, at <see cref="TitleScale"/>.</summary>
     public static HudRect TitleBox(int screenWidth, int screenHeight)
     {
-        return new(0, 0, screenWidth, screenHeight);
+        return new HudRect(0, 0, screenWidth, screenHeight);
     }
 
     /// <summary>The TrueType label: the box's band, inset by 5% of the screen width each side, wrapped and centred.</summary>
     public static HudRect TrueTypeLabel(HudRect box, int screenWidth)
     {
-        return new(screenWidth * 0.05f, box.Y, screenWidth * 0.9f, box.Height);
+        return new HudRect(screenWidth * 0.05f, box.Y, screenWidth * 0.9f, box.Height);
     }
 
     /// <summary>The TrueType size in pixels: a thirtieth of the screen height times the scale (halves to even), at

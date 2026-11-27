@@ -19,7 +19,7 @@ public static class CameraFocus
     /// and of the full map's left press. On the room-goto path (0x00415B30) DK2 drops an off-map point first; ours clamps.</summary>
     public static Vector3 TileCentre(TilePos tile, float focusHeight, float mapWidth, float mapHeight)
     {
-        return new(
+        return new Vector3(
         Clamp(tile.X + 0.5f, 0, mapWidth - RawUnit), focusHeight,
         Clamp(-tile.Y - 0.5f, -mapHeight + RawUnit, 0));
     }
@@ -27,14 +27,14 @@ public static class CameraFocus
     /// <summary>The focus over a fixed-point map point (a creature's position), at <paramref name="focusHeight"/>.</summary>
     public static Vector3 Over(Fp32 x, Fp32 y, float focusHeight)
     {
-        return new(x.Raw / (float)Fp32.One, focusHeight, -y.Raw / (float)Fp32.One);
+        return new Vector3(x.Raw / (float)Fp32.One, focusHeight, -y.Raw / (float)Fp32.One);
     }
 
     /// <summary>The ordinary camera's pan bounds on a map of that size: the focus height fixed at raw 4095, the maximum
     /// edges exclusive by one raw unit (classic-camera.md §7).</summary>
     public static CameraFocusBounds Bounds(int mapWidth, int mapHeight)
     {
-        return new(
+        return new CameraFocusBounds(
         new Vector3(0, 4095f / Fp32.One, -mapHeight + RawUnit),
         new Vector3(mapWidth - RawUnit, 4095f / Fp32.One, 0));
     }

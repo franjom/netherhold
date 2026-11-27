@@ -13,9 +13,9 @@ public sealed class PossessionVisibilityField
     private readonly int _width, _height;
     private readonly byte[] _mask;
     private readonly bool[] _solid;
-    private readonly PossessionVisibility _walk = new();
-    private readonly ClassicVisibilityPolygonBuffer _polygon = new();
-    private readonly List<TilePos> _tiles = new(1024);
+    private readonly PossessionVisibility _walk = new PossessionVisibility();
+    private readonly ClassicVisibilityPolygonBuffer _polygon = new ClassicVisibilityPolygonBuffer();
+    private readonly List<TilePos> _tiles = new List<TilePos>(1024);
     private TilePos[] _polygonTiles = [];
     public PossessionVisibilityField(int width, int height)
     {

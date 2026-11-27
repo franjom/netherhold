@@ -29,7 +29,7 @@ public sealed class KeeperResourceHud
     private readonly int[] _backgrounds = new int[4];
     private readonly int _heartFill, _heart, _heartAlarm, _paydayFill, _payday;
     private readonly NumericRow _gold, _mana, _income, _upkeep;
-    private readonly KeeperResourceAnimation _animation = new();
+    private readonly KeeperResourceAnimation _animation = new KeeperResourceAnimation();
     private int _count;
     private bool _visible = true, _allowInput = true;
 
@@ -91,7 +91,7 @@ public sealed class KeeperResourceHud
     /// <summary>The area the strip claims from the world, in virtual units.</summary>
     public static HudRect Bounds(HudScreen screen)
     {
-        return new(0, 0, screen.Virtual(Math.Min(screen.Width, V(screen, 1020))), screen.Virtual(Bottom(screen)));
+        return new HudRect(0, 0, screen.Virtual(Math.Min(screen.Width, V(screen, 1020))), screen.Virtual(Bottom(screen)));
     }
 
     public bool ContainsPointer(HudScreen screen, float x, float y)

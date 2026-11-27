@@ -16,9 +16,9 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
     private readonly ClassicPointLight?[] _terrain, _torches;
     private readonly ClassicPointLight[]?[] _sourceBuffers, _dynamicBuffers;
     private readonly List<ObjectSource>?[] _objectsByTile;
-    private readonly Dictionary<long, ObjectSource> _objects = new();
+    private readonly Dictionary<long, ObjectSource> _objects = new Dictionary<long, ObjectSource>();
     /// <summary>The sources of each kind (objects, effects, the Hand, entrances), so a kind's update scans only its own.</summary>
-    private readonly List<ObjectSource>[] _entries = [new(), new(), new(), new()];
+    private readonly List<ObjectSource>[] _entries = [new List<ObjectSource>(), new List<ObjectSource>(), new List<ObjectSource>(), new List<ObjectSource>()];
 
     /// <summary>A dynamic source: an object's light or an effect instance's. Both are engine lights
     /// in one list (<c>+0x33A</c>), so they share each tile's insertion order.</summary>
@@ -33,12 +33,12 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
     private const int ObjectKind = 0, EffectKind = 1, HandKind = 2, PortalKind = 3;
     private readonly ClassicLightCacheCell[] _cells;
     private readonly bool[] _dirty, _prepared;
-    private List<int> _preparedIndices = new(), _previousIndices = new();
-    private readonly HashSet<TilePos> _visible = new();
-    private readonly Dictionary<TilePos, ClassicLightTable> _tables = new();
+    private List<int> _preparedIndices = new List<int>(), _previousIndices = new List<int>();
+    private readonly HashSet<TilePos> _visible = new HashSet<TilePos>();
+    private readonly Dictionary<TilePos, ClassicLightTable> _tables = new Dictionary<TilePos, ClassicLightTable>();
     /// <summary>Freed tables, taken again for tiles coming into view, so a scrolling view allocates none.</summary>
-    private readonly Stack<ClassicLightTable> _freeTables = new();
-    private readonly ClassicLightWindow _window = new();
+    private readonly Stack<ClassicLightTable> _freeTables = new Stack<ClassicLightTable>();
+    private readonly ClassicLightWindow _window = new ClassicLightWindow();
     private ClassicLightTable[] _visibleTables = [],
         _previousTables = [];
     private int _visibleCount, _previousCount;
@@ -469,7 +469,7 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
                     buffer[slot] = torch;
                 }
             }
-            cell = new(buffer is null ? default : buffer.AsMemory(0, count), default, Frame);
+            cell = new ClassicLightCacheCell(buffer is null ? default : buffer.AsMemory(0, count), default, Frame);
             _dirty[index] = false;
         }
         int dynamicCount = _objectsByTile[index]?.Count ?? 0;

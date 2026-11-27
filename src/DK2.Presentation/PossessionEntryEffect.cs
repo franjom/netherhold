@@ -23,7 +23,7 @@ public static class PossessionEntryEffect
             return null;
         }
 
-        var point = new FpPosition3(new(target.PosX), new(target.PosY), new(Fp32.One + target.PosZ));
+        var point = new FpPosition3(new Fp32(target.PosX), new Fp32(target.PosY), new Fp32(Fp32.One + target.PosZ));
         return new ViewEffectRequest(new EffectId(shot.CreationEffectId), owner, point)
         {
             SecondPoint = point,

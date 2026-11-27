@@ -22,7 +22,7 @@ public static class MeshOrientation
     /// interpolated one), the pitch about the model's X and the roll about its Y, in 1/2048ths of a turn.</summary>
     public static RenderEuler Mesh(float meshYaw, float pitch, float roll)
     {
-        return new(meshYaw * 360f / 2048f, roll * 360f / 2048f, -pitch * 360f / 2048f);
+        return new RenderEuler(meshYaw * 360f / 2048f, roll * 360f / 2048f, -pitch * 360f / 2048f);
     }
 
     /// <summary>A heading-only turn (structures, wall torches), degrees about Y.</summary>

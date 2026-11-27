@@ -22,7 +22,7 @@ public static class ObjectHoverHighlight
 
     /// <summary>The texture phase written to RenderInfo <c>+0x30</c> and <c>+0x34</c>
     /// (<c>0x0043BE9B</c>), restored after the world draw.</summary>
-    public static readonly Fp32 HoverTexturePhase = new(0xFFF);
+    public static readonly Fp32 HoverTexturePhase = new Fp32(0xFFF);
 
     /// <summary>Gold Pile 1, the Treasury and Heart store pile, which ours draws as a decoration.</summary>
     public const byte StorePileObjectId = 3;

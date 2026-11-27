@@ -25,7 +25,7 @@ public sealed partial class RoomConstructionParticles
         {
             int x = from.X.Raw + (int)((long)(to.X.Raw - from.X.Raw) * i / steps);
             int y = from.Y.Raw + (int)((long)(to.Y.Raw - from.Y.Raw) * i / steps);
-            if (_solidTile(new(x >> 12, y >> 12)))
+            if (_solidTile(new TilePos(x >> 12, y >> 12)))
             {
                 return true;
             }
@@ -35,8 +35,8 @@ public sealed partial class RoomConstructionParticles
 
     private bool ApplyWallContact(ConstructionParticle particle)
     {
-        FpPosition3 from = new(new(particle.PreviousXRaw), new(particle.PreviousYRaw), new(particle.PreviousHeightRaw));
-        FpPosition3 to = new(new(particle.XRaw), new(particle.YRaw), new(particle.HeightRaw));
+        var from = new FpPosition3(new Fp32(particle.PreviousXRaw), new Fp32(particle.PreviousYRaw), new Fp32(particle.PreviousHeightRaw));
+        var to = new FpPosition3(new Fp32(particle.XRaw), new Fp32(particle.YRaw), new Fp32(particle.HeightRaw));
         if (!CrossesWall(from, to))
         {
             return true;
@@ -82,7 +82,7 @@ public sealed partial class RoomConstructionParticles
             return to;
         }
 
-        TerrainFlags terrain = _terrainFlags?.Invoke(new(to.X.Raw >> 12, to.Y.Raw >> 12)) ?? 0;
+        TerrainFlags terrain = _terrainFlags?.Invoke(new TilePos(to.X.Raw >> 12, to.Y.Raw >> 12)) ?? 0;
         // Native chooses runtime +81 on bit100 (lava), +83 on bit80 (water): the file's
         // HitWater/HitLava names are reversed in this branch. Preserve that selection.
         ushort id = (terrain & TerrainFlags.Lava) != 0 ? effect.HitWaterEffectId
@@ -99,7 +99,7 @@ public sealed partial class RoomConstructionParticles
         int bounce = -(int)((long)emitter.VelocityZ * elasticity / 65536);
         emitter.VelocityZ = bounce < 8192 ? (int)((long)bounce * bounce >> 13)
             : bounce < 131072 ? (int)((long)bounce * 247 >> 8) : bounce;
-        return to with { Z = new(floor + (int)((long)(floor - to.Z.Raw) * elasticity / 65536)) };
+        return to with { Z = new Fp32(floor + (int)((long)(floor - to.Z.Raw) * elasticity / 65536)) };
     }
 
     private void SpawnContactElement(ConstructionParticle particle, bool floorContact)
@@ -121,13 +121,13 @@ public sealed partial class RoomConstructionParticles
         try
         {
             FpPosition3 at = floorContact
-                ? new(new(particle.XRaw), new(particle.YRaw), new(particle.HeightRaw))
-                : new(new(particle.PreviousXRaw), new(particle.PreviousYRaw),
-                    _floorHeight(new(new(particle.XRaw), new(particle.YRaw), new(particle.HeightRaw))));
+                ? new FpPosition3(new Fp32(particle.XRaw), new Fp32(particle.YRaw), new Fp32(particle.HeightRaw))
+                : new FpPosition3(new Fp32(particle.PreviousXRaw), new Fp32(particle.PreviousYRaw),
+                    _floorHeight(new FpPosition3(new Fp32(particle.XRaw), new Fp32(particle.YRaw), new Fp32(particle.HeightRaw))));
             EmitElement(child, parent.Definition, parent.Request with
             {
                 Position = at,
-                Heading = new((ushort)particle.HeadingRaw),
+                Heading = new Dk2Angle((ushort)particle.HeadingRaw),
             }, null, parent, particle);
         }
         finally { _contactDepth--; }

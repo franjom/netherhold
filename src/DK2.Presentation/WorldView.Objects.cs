@@ -425,7 +425,7 @@ public sealed partial class WorldView
         if (IsAttached(thing))
         {
             (posX, posY, heading) = (thing.PosX, thing.PosY, thing.Heading);
-            z = CreatureGroundHeight(world, new(new(posX), new(posY), default)).Raw;
+            z = CreatureGroundHeight(world, new FpPosition3(new Fp32(posX), new Fp32(posY), default)).Raw;
         }
         else if (ObjectCarryRules.StandsAtOwnPoint(_database, world.Width, thing))
         {
@@ -566,7 +566,7 @@ public sealed partial class WorldView
     private void Decorate(WorldState world, RoomInstance room, in RoomFacts facts, List<ObjectView> into)
     {
         RoomTypeId? type = room.Definition.TypeId;
-        PlayerId owner = new(room.OwnerPlayerId);
+        var owner = new PlayerId(room.OwnerPlayerId);
         switch (type)
         {
             case RoomTypeId.DungeonHeart:
@@ -783,7 +783,7 @@ public sealed partial class WorldView
         }
 
         int tile = thing.TileIndex;
-        PlayerId owner = new(thing.OwnerPlayerId);
+        var owner = new PlayerId(thing.OwnerPlayerId);
         if (thing.ObjectTypeId == RouletteTableId)
         {
             into.Add(Decoration(world, tile, RouletteSlot, RouletteWheelId, owner, 0, 0x7D0, -1, 0));
@@ -879,8 +879,8 @@ public sealed partial class WorldView
     /// <summary>The creature body's base plane, before relative falling height; not the Portal hole.</summary>
     public Fp32 CreatureEffectGround(WorldState world, CreatureState creature)
     {
-        return WaterSpeedRules.IsFlying(_database.CreatureById(creature.CreatureTypeId), creature) ? new(FloorZ)
-            : CreatureGroundHeight(world, new(new(creature.PosX), new(creature.PosY), default));
+        return WaterSpeedRules.IsFlying(_database.CreatureById(creature.CreatureTypeId), creature) ? new Fp32(FloorZ)
+            : CreatureGroundHeight(world, new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), default));
     }
 
     /// <summary>Ground for effects and shadows, including Portal holes and the central Heart pit.</summary>
@@ -894,12 +894,12 @@ public sealed partial class WorldView
             {
                 if (room.TypeId == RoomTypeId.DungeonHeart)
                 {
-                    return new(FloorHeight(world, at.X, at.Y));
+                    return new Fp32(FloorHeight(world, at.X, at.Y));
                 }
 
                 if (room.TypeId == RoomTypeId.Portal
-                    && SameRoom(new(at.X - 1, at.Y)) && SameRoom(new(at.X + 1, at.Y))
-                    && SameRoom(new(at.X, at.Y - 1)) && SameRoom(new(at.X, at.Y + 1)))
+                    && SameRoom(new TilePos(at.X - 1, at.Y)) && SameRoom(new TilePos(at.X + 1, at.Y))
+                    && SameRoom(new TilePos(at.X, at.Y - 1)) && SameRoom(new TilePos(at.X, at.Y + 1)))
                 {
                     return new Fp32(0);
                 }
@@ -918,28 +918,28 @@ public sealed partial class WorldView
     /// <summary>The liquid bank arm of Tile_FloorHeight; ordinary creature floor projection stays unchanged.</summary>
     private Fp32 CreatureGroundHeight(WorldState world, FpPosition3 point)
     {
-        TilePos position = new(point.X.Raw >> 12, point.Y.Raw >> 12);
+        var position = new TilePos(point.X.Raw >> 12, point.Y.Raw >> 12);
         if (!world.Contains(position))
         {
-            return new(FloorZ);
+            return new Fp32(FloorZ);
         }
 
         TileState tile = world.Tile(position);
         if (_database.RoomsByTerrain.TryGetValue(tile.TerrainId, out RoomDef? room))
         {
-            return new(BridgeRules.IsBridge(room) ? 0x1199 : FloorZ);
+            return new Fp32(BridgeRules.IsBridge(room) ? 0x1199 : FloorZ);
         }
 
         TerrainDef terrain = _database.TerrainById(tile.TerrainId);
         if (!terrain.IsWater && !terrain.IsLava)
         {
-            return new(FloorZ);
+            return new Fp32(FloorZ);
         }
 
         int neighbours = 0;
         for (int direction = 0; direction < 8; direction++)
         {
-            TilePos next = new(position.X + Dx8[direction], position.Y + Dy8[direction]);
+            var next = new TilePos(position.X + Dx8[direction], position.Y + Dy8[direction]);
             if (!world.Contains(next) || world.Tile(next).TerrainId == tile.TerrainId
                 || (BridgeRules.SpannedTerrain(_database, world.Tile(next)) is { } under
                     && under.TerrainId == tile.TerrainId))
@@ -949,7 +949,7 @@ public sealed partial class WorldView
         }
         if (neighbours == 0xFF)
         {
-            return new(0xA66);
+            return new Fp32(0xA66);
         }
 
         int dx = point.X.Raw - CreatureState.CentreOf(position.X);
@@ -959,14 +959,14 @@ public sealed partial class WorldView
         int near = ((7 << cardinal) | (7 >> (8 - cardinal))) & 0xFF;
         if ((bank & near) == 0)
         {
-            return new(0xA66);
+            return new Fp32(0xA66);
         }
 
         int x = Math.Abs(dx), y = Math.Abs(dy);
         bool useLarger = (octant & 1) == 0 ? (bank & (1 << cardinal)) != 0
             : (bank & (((4 << cardinal) | (4 >> (8 - cardinal))) & 0xFF)) != 0;
         int distance = useLarger ? Math.Max(x, y) : Math.Min(x, y);
-        return new(0xA66 + distance * 0x59A / 0x800);
+        return new Fp32(0xA66 + distance * 0x59A / 0x800);
     }
 
     /// <summary>

@@ -83,11 +83,11 @@ public sealed partial class FrontEndMenuHud : IDisposable
     private readonly IFrontEndMenuSources _sources;
     private readonly Func<int, float> _hudFit;
     private readonly Func<KeyScanCode, string> _keyName;
-    private readonly Dictionary<FrontEndWidgetId, Label> _labels = new();
-    private readonly List<FrontEndWidget> _resultWidgets = new();
-    private readonly Dictionary<string, (int Width, int Height)> _sizes = new();
-    private readonly HashSet<string> _missing = new();
-    private readonly List<(HudImage Image, HudRect Rect)> _briefingImages = new();
+    private readonly Dictionary<FrontEndWidgetId, Label> _labels = new Dictionary<FrontEndWidgetId, Label>();
+    private readonly List<FrontEndWidget> _resultWidgets = new List<FrontEndWidget>();
+    private readonly Dictionary<string, (int Width, int Height)> _sizes = new Dictionary<string, (int Width, int Height)>();
+    private readonly HashSet<string> _missing = new HashSet<string>();
+    private readonly List<(HudImage Image, HudRect Rect)> _briefingImages = new List<(HudImage Image, HudRect Rect)>();
     private IReadOnlyList<FrontEndWidget> _widgets = Array.Empty<FrontEndWidget>();
     private object? _shownBriefing, _shownResults, _shownScores;
     // The statistics list's scroll bar (widget 180's child, 0x0052A0D0); its position is the first row.
@@ -693,7 +693,7 @@ public sealed partial class FrontEndMenuHud : IDisposable
     /// <summary>A 640 x 480 rectangle in virtual units.</summary>
     private static HudRect Virtual(FrontEndRect r)
     {
-        return new(r.X * FrontEndBox.VirtualPerUnit, r.Y * FrontEndBox.VirtualPerUnit, r.Width * FrontEndBox.VirtualPerUnit, r.Height * FrontEndBox.VirtualPerUnit);
+        return new HudRect(r.X * FrontEndBox.VirtualPerUnit, r.Y * FrontEndBox.VirtualPerUnit, r.Width * FrontEndBox.VirtualPerUnit, r.Height * FrontEndBox.VirtualPerUnit);
     }
 
     public void Dispose()

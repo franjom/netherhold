@@ -106,22 +106,22 @@ public readonly struct TerrainPieces : IEquatable<TerrainPieces>
 
     internal TerrainPieces WithFace(int side)
     {
-        return new(_bits | (1u << side));
+        return new TerrainPieces(_bits | (1u << side));
     }
 
     internal TerrainPieces WithTop()
     {
-        return new(_bits | TopBit);
+        return new TerrainPieces(_bits | TopBit);
     }
 
     internal TerrainPieces WithFloor()
     {
-        return new(_bits | FloorBit);
+        return new TerrainPieces(_bits | FloorBit);
     }
 
     internal TerrainPieces WithQuarters(QuarterKind kind, int set, int pieces)
     {
-        return new(_bits | ((uint)kind << KindShift) | ((uint)pieces << PieceShift) | ((uint)set << SetShift));
+        return new TerrainPieces(_bits | ((uint)kind << KindShift) | ((uint)pieces << PieceShift) | ((uint)set << SetShift));
     }
 
     public bool Equals(TerrainPieces other)

@@ -15,7 +15,7 @@ public readonly record struct BattleViewSlot(int Value)
     {
         get
         {
-            return new(-1);
+            return new BattleViewSlot(-1);
         }
     }
 }
@@ -27,12 +27,12 @@ public sealed class MusicWorldObserver(PlayerId viewer, MusicDirector music)
 {
     private sealed class Battle
     {
-        public readonly Dictionary<int, long> Members = new();
-        public readonly List<int> Scratch = new();
+        public readonly Dictionary<int, long> Members = new Dictionary<int, long>();
+        public readonly List<int> Scratch = new List<int>();
         public int X, Y;
     }
     private readonly Battle[] _battles = [.. Enumerable.Range(0, 8).Select(_ => new Battle())];
-    private readonly Dictionary<int, (int State, int Resume)> _previous = new();
+    private readonly Dictionary<int, (int State, int Resume)> _previous = new Dictionary<int, (int State, int Resume)>();
     private long _lastTick = -1;
     private readonly BattleViewSnapshot[] _snapshots = new BattleViewSnapshot[8];
     private IReadOnlyList<BattleViewSnapshot>? _snapshotView;

@@ -31,7 +31,7 @@ public sealed class FrameJournalSession
 
     private readonly Action<string> _log;
     private readonly Action<string> _warn;
-    private readonly FrameInputRecorder _recorder = new();
+    private readonly FrameInputRecorder _recorder = new FrameInputRecorder();
     private string? _folder;
     private IReadOnlyDictionary<string, string>? _header;
     private FileStream? _framesFile;
@@ -79,7 +79,7 @@ public sealed class FrameJournalSession
     public static Dictionary<string, string> Header(string source, string keyTable, GameSessionMode mode, string level,
         ulong seed, PlayerId viewer, bool fogOfWar, bool tickOnWorker, int screenWidth, int screenHeight)
     {
-        return new()
+        return new Dictionary<string, string>()
         {
             ["source"] = source,
             [KeyTableKey] = keyTable,

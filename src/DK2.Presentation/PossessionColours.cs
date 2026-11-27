@@ -10,7 +10,7 @@ public sealed class PossessionColours
 {
     private ScreenColourKind _own;
     private long? _entryEnd;
-    public ScreenColourChange Change { get; } = new();
+    public ScreenColourChange Change { get; } = new ScreenColourChange();
     private readonly ushort[] _normal = new ushort[ScreenColourTables.Length];
     private double _normalGamma = double.NaN;
     // Native ramp application has a separate enable flag whose nonzero writer is UNREAD.

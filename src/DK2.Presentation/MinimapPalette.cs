@@ -26,7 +26,7 @@ public readonly record struct MinimapColourClass
     {
         get
         {
-            return new(1);
+            return new MinimapColourClass(1);
         }
     }
 
@@ -34,7 +34,7 @@ public readonly record struct MinimapColourClass
     {
         get
         {
-            return new(13);
+            return new MinimapColourClass(13);
         }
     }
 }

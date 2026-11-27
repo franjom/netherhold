@@ -9,8 +9,8 @@ namespace DK2.Presentation;
 public sealed class Level6aTortureSpeech(GameDatabase database, MessageTabsView messages,
     ISimulationEventSink downstream) : ISimulationEventSink
 {
-    private static readonly KwdTriggerId OpeningGuardTree = new(24);
-    private static readonly CreatureTypeId Guard = new(25);
+    private static readonly KwdTriggerId OpeningGuardTree = new KwdTriggerId(24);
+    private static readonly CreatureTypeId Guard = new CreatureTypeId(25);
     public void Emit(in SimEvent simEvent)
     {
         // Requested presentation deviation; see ADR-0809. The simulation keeps both notifications.

@@ -140,7 +140,7 @@ public sealed class CameraPathPlayback
 
     private static Vector3 ToUnity(Vector3 engine)
     {
-        return new(engine.X, -engine.Z, -engine.Y);
+        return new Vector3(engine.X, -engine.Z, -engine.Y);
     }
 }
 
@@ -277,7 +277,7 @@ public sealed class SubtitleQueue
     public const double MillisecondsPerCharacter = 96;
     public const double GapMilliseconds = 1000;
 
-    private readonly Queue<(int Line, double Duration)> _queue = new();
+    private readonly Queue<(int Line, double Duration)> _queue = new Queue<(int Line, double Duration)>();
     private double _lastCleared;
     private double _until;
 

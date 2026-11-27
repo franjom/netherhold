@@ -30,7 +30,7 @@ public sealed class HeldItemStack
     /// <summary><c>gui\cursors\I-Dismiss</c>, icon 1 of the cursor table <c>0x0068F978</c>: the red bin.</summary>
     public const string DisposeIconName = @"GUI\Cursors\I-Dismiss";
 
-    private readonly List<HeldIcon> _icons = new(MaxIcons);
+    private readonly List<HeldIcon> _icons = new List<HeldIcon>(MaxIcons);
 
     /// <summary>The icons, the top of the hand first.</summary>
     public IReadOnlyList<HeldIcon> Icons

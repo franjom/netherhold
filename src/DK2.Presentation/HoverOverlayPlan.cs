@@ -20,7 +20,7 @@ public readonly record struct HoverSubmeshDraw(bool Swap, bool Red);
 /// when the draw covers them. The adapter draws the meshes; this keeps the frame's red creatures.</summary>
 public sealed class HoverOverlayPlan
 {
-    private readonly HashSet<int> _redCreatures = new();
+    private readonly HashSet<int> _redCreatures = new HashSet<int>();
 
     /// <summary>Starts a frame: no creature is red yet.</summary>
     public void BeginFrame()
@@ -56,7 +56,7 @@ public sealed class HoverOverlayPlan
     /// already red and the material is not blended, and only where <see cref="HoverTint.DrawsOverlay"/> lets it.</summary>
     public static HoverSubmeshDraw Submesh(in HoverOverlayDraw draw, bool swapAvailable, bool blended)
     {
-        return new(swapAvailable, (!draw.RedAlreadyDrawn || blended) && HoverTint.DrawsOverlay(blended, draw.CoversBlended));
+        return new HoverSubmeshDraw(swapAvailable, (!draw.RedAlreadyDrawn || blended) && HoverTint.DrawsOverlay(blended, draw.CoversBlended));
     }
 
     /// <summary>Records a drawn overlay: a creature is red for the rest of the frame.</summary>

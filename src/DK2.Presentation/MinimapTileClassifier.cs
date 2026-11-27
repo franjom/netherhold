@@ -78,6 +78,6 @@ public static class MinimapTileClassifier
 
     private static MinimapColourClass OwnedClass(int bank, PlayerId owner)
     {
-        return new((ushort)(bank + owner.Value));
+        return new MinimapColourClass((ushort)(bank + owner.Value));
     }
 }

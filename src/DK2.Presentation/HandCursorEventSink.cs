@@ -12,7 +12,7 @@ namespace DK2.Presentation;
 public sealed class HandCursorEventSink(HandCursorFeedback feedback, PlayerId viewer,
     ISimulationEventSink? downstream = null) : ISimulationEventSink
 {
-    private readonly ConcurrentQueue<HandDropFeedback> _pending = new();
+    private readonly ConcurrentQueue<HandDropFeedback> _pending = new ConcurrentQueue<HandDropFeedback>();
 
     public void Emit(in SimEvent simEvent)
     {

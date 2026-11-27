@@ -33,8 +33,8 @@ public sealed record LightningRibbon(IReadOnlyList<Vector3> Vertices, IReadOnlyL
             for (int i = 1; i < nodes.Count - 1; i++)
             {
                 Vector3 previous = Project(nodes[i - 1]), current = Project(nodes[i]), next = Project(nodes[i + 1]);
-                Vector3 before = Normal(new(previous.Y - current.Y, current.X - previous.X, 0));
-                Vector3 after = Normal(new(current.Y - next.Y, next.X - current.X, 0));
+                Vector3 before = Normal(new Vector3(previous.Y - current.Y, current.X - previous.X, 0));
+                Vector3 after = Normal(new Vector3(current.Y - next.Y, next.X - current.X, 0));
                 Vector3 sum = before + after;
                 sides[i] = (sum.LengthSquared() > .01f ? Normal(sum) : before) * LightningBolts.RibbonHalfWidth;
             }
@@ -43,7 +43,7 @@ public sealed record LightningRibbon(IReadOnlyList<Vector3> Vertices, IReadOnlyL
                 int v = vertices.Count;
                 vertices.Add(nodes[i] - sides[i]); vertices.Add(nodes[i] + sides[i]);
                 vertices.Add(nodes[i + 1] - sides[i + 1]); vertices.Add(nodes[i + 1] + sides[i + 1]);
-                uvs.Add(new(0, 0)); uvs.Add(new(0, 1)); uvs.Add(new(1, 0)); uvs.Add(new(1, 1));
+                uvs.Add(new Vector2(0, 0)); uvs.Add(new Vector2(0, 1)); uvs.Add(new Vector2(1, 0)); uvs.Add(new Vector2(1, 1));
                 triangles.Add(v); triangles.Add(v + 1); triangles.Add(v + 2);
                 triangles.Add(v + 2); triangles.Add(v + 1); triangles.Add(v + 3);
                 triangles.Add(v + 2); triangles.Add(v + 1); triangles.Add(v);
@@ -65,8 +65,8 @@ public sealed record LightningRibbon(IReadOnlyList<Vector3> Vertices, IReadOnlyL
         for (int i = 1; i < nodes.Count - 1; i++)
         {
             Vector3 previous = Project(nodes[i - 1]), current = Project(nodes[i]), next = Project(nodes[i + 1]);
-            Vector3 before = Normal(new(previous.Y - current.Y, current.X - previous.X, 0));
-            Vector3 after = Normal(new(current.Y - next.Y, next.X - current.X, 0));
+            Vector3 before = Normal(new Vector3(previous.Y - current.Y, current.X - previous.X, 0));
+            Vector3 after = Normal(new Vector3(current.Y - next.Y, next.X - current.X, 0));
             Vector3 sum = before + after;
             sides[i] = (sum.LengthSquared() > .01f ? Normal(sum) : before) * LightningBolts.RibbonHalfWidth;
         }
@@ -78,11 +78,11 @@ public sealed record LightningRibbon(IReadOnlyList<Vector3> Vertices, IReadOnlyL
             int v = vertices.Count;
             vertices.Add(nodes[i] - sides[i]); vertices.Add(nodes[i] + sides[i]);
             vertices.Add(nodes[i + 1] - sides[i + 1]); vertices.Add(nodes[i + 1] + sides[i + 1]);
-            uvs.Add(new(0, 0)); uvs.Add(new(0, 1)); uvs.Add(new(1, 0)); uvs.Add(new(1, 1));
+            uvs.Add(new Vector2(0, 0)); uvs.Add(new Vector2(0, 1)); uvs.Add(new Vector2(1, 0)); uvs.Add(new Vector2(1, 1));
             triangles.AddRange([v, v + 1, v + 2, v + 2, v + 1, v + 3,
                 v + 2, v + 1, v, v + 3, v + 1, v + 2]);
         }
-        return new(vertices, uvs, triangles);
+        return new LightningRibbon(vertices, uvs, triangles);
     }
 
     private static Vector3 Normal(Vector3 value)
@@ -93,7 +93,7 @@ public sealed record LightningRibbon(IReadOnlyList<Vector3> Vertices, IReadOnlyL
 
     private static Vector3 Project(Vector3 point)
     {
-        return new(point.X / Math.Max(.1f, point.Z),
+        return new Vector3(point.X / Math.Max(.1f, point.Z),
             point.Y / Math.Max(.1f, point.Z), 0);
     }
 }

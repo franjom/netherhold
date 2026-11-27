@@ -65,7 +65,7 @@ public sealed class LocalPickupFeedback
         {
             _dust.Add((player, creatureId, milliseconds));
             requestDust(new ViewEffectRequest(new EffectId(MovementDustSystem.FootDustEffectId), player,
-                new FpPosition3(new(creature.PosX), new(creature.PosY), new(0x1000)),
+                new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(0x1000)),
                 new Dk2Angle(unchecked((ushort)creature.Heading))) { SourceCreatureId = creatureId });
         }
         return true;

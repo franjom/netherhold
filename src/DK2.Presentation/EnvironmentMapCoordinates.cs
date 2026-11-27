@@ -34,7 +34,7 @@ public static class EnvironmentMapCoordinates
     /// <c>RenderMesh.ToRenderFrame</c>'s <c>(x, −z, −y)</c>.</summary>
     public static Vector3 FromRenderFrame(Vector3 render)
     {
-        return new(render.X, -render.Z, -render.Y);
+        return new Vector3(render.X, -render.Z, -render.Y);
     }
 
     /// <summary>A camera-space point in Direct3D's left-handed convention (z into the screen) from
@@ -43,6 +43,6 @@ public static class EnvironmentMapCoordinates
     /// builder, so the axis directions, and with them the sign of v, are unconfirmed.</summary>
     public static Vector3 FromRightHandedView(Vector3 view)
     {
-        return new(view.X, view.Y, -view.Z);
+        return new Vector3(view.X, view.Y, -view.Z);
     }
 }

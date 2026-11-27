@@ -20,7 +20,7 @@ public sealed class CampaignMapController : IDisposable
     /// <summary>Each land's arming word (<c>+0x184</c>): set by every update that has no hover on it (<c>0x004A35E0</c>), cleared by the sound it arms.</summary>
     private readonly bool[] _armed = [.. Enumerable.Repeat(true, 30)];
     /// <summary>The land sound, <c>0x32A</c> in <c>OBJECT_FE_MAP</c> (<c>0x00538D00</c>): nonpositional, no handle (docs/research/sound-effects-interface.md section 5).</summary>
-    public SoundRequests Sounds { get; } = new();
+    public SoundRequests Sounds { get; } = new SoundRequests();
     private const int LiftLimit = 0x40;
     private readonly int[] _landPhases = new int[30], _markerPhases = new int[24];
     private bool _introPending;
@@ -74,7 +74,7 @@ public sealed class CampaignMapController : IDisposable
 
     private bool BeginMap(CampaignProfile profile)
     {
-        if (_session.PathPlaying || !_session.TryTransition(new(FrontEndPath.EntryToTable, FrontEndState.CampaignMap)))
+        if (_session.PathPlaying || !_session.TryTransition(new FrontEndTransition(FrontEndPath.EntryToTable, FrontEndState.CampaignMap)))
         {
             return false;
         }
@@ -129,7 +129,7 @@ public sealed class CampaignMapController : IDisposable
             return false;
         }
 
-        if (!_session.TryTransition(new(FrontEndPath.TableToBriefing, FrontEndState.PrepareCampaign)))
+        if (!_session.TryTransition(new FrontEndTransition(FrontEndPath.TableToBriefing, FrontEndState.PrepareCampaign)))
         {
             return false;
         }
@@ -146,7 +146,7 @@ public sealed class CampaignMapController : IDisposable
         }
 
         Briefing = null; _selected = CampaignSlot.None;
-        return _session.TryTransition(new(FrontEndPath.BriefingToTable, FrontEndState.CampaignMap));
+        return _session.TryTransition(new FrontEndTransition(FrontEndPath.BriefingToTable, FrontEndState.CampaignMap));
     }
     public bool BackToMenu()
     {
@@ -155,7 +155,7 @@ public sealed class CampaignMapController : IDisposable
             return false;
         }
 
-        bool changed = _session.TryTransition(new(FrontEndPath.TableToEntry, FrontEndState.SinglePlayerReady));
+        bool changed = _session.TryTransition(new FrontEndTransition(FrontEndPath.TableToEntry, FrontEndState.SinglePlayerReady));
         if (changed) { Hovered = CampaignSlot.None; Revision++; }
         return changed;
     }
@@ -250,7 +250,7 @@ public sealed class CampaignMapController : IDisposable
 
     private bool FlyBackToMap()
     {
-        if (!_session.TryTransition(new(FrontEndPath.BriefingToTable, FrontEndState.CampaignMapEnter)))
+        if (!_session.TryTransition(new FrontEndTransition(FrontEndPath.BriefingToTable, FrontEndState.CampaignMapEnter)))
         {
             return false;
         }
@@ -263,13 +263,13 @@ public sealed class CampaignMapController : IDisposable
     {
         bool visible = slot.IsCampaign || slot.Value == 25 || slot.IsSecret && CampaignProgression.CanSelect(Profile, slot, SecretFiveAvailable);
         int phase = IsMapStation && slot.Value != 0 ? _landPhases[slot.Value - 1] : 0;
-        return new(visible, new Fp32(phase), slot.Value == 0 ? 0 : _lift[slot.Value - 1]);
+        return new CampaignMapVisual(visible, new Fp32(phase), slot.Value == 0 ? 0 : _lift[slot.Value - 1]);
     }
     public CampaignMapVisual MarkerVisual(CampaignSlot slot)
     {
         bool visible = IsAtMap && slot.IsCampaign && Profile.PlayerLevelStatus[slot.Value - 1] == CampaignLevelStatus.Open;
         int phase = slot.IsCampaign ? _markerPhases[slot.Value - 1] : 0;
-        return new(visible, new Fp32(phase), 0);
+        return new CampaignMapVisual(visible, new Fp32(phase), 0);
     }
     private bool IsMapStation
     {

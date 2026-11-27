@@ -17,7 +17,7 @@ public readonly record struct HudRect(float X, float Y, float Width, float Heigh
 
     public static implicit operator HudRect(BottomPanelRect rect)
     {
-        return new(rect.X, rect.Y, rect.Width, rect.Height);
+        return new HudRect(rect.X, rect.Y, rect.Width, rect.Height);
     }
 }
 
@@ -67,13 +67,13 @@ public readonly record struct HudColor(byte R, byte G, byte B, byte A = 255)
     {
         get
         {
-            return new(255, 255, 255);
+            return new HudColor(255, 255, 255);
         }
     }
 
     public static HudColor Grey(byte level)
     {
-        return new(level, level, level);
+        return new HudColor(level, level, level);
     }
 }
 
@@ -161,7 +161,7 @@ public readonly record struct HudImage(string? Path, HudImageVariant Variant = H
 
     public static implicit operator HudImage(string? path)
     {
-        return new(path);
+        return new HudImage(path);
     }
 
     /// <summary>The generated <c>ToString</c> would print <see cref="Slot"/>, which is this image again: a stack overflow
@@ -183,7 +183,7 @@ public readonly record struct HudImage(string? Path, HudImageVariant Variant = H
     }
     public static HudImage Of(HudText text)
     {
-        return new(null, Text: text);
+        return new HudImage(null, Text: text);
     }
 
     /// <summary>The label's bitmap; with <paramref name="glowQuarters"/> from 1 to 4 its glow at that share of
@@ -191,13 +191,13 @@ public readonly record struct HudImage(string? Path, HudImageVariant Variant = H
     public static HudImage Of(HudLabel label, byte glowQuarters = 0)
     {
         return glowQuarters == 0
-        ? new(null, Label: label) : new(null, HudImageVariant.Glow, glowQuarters, Label: label);
+        ? new HudImage(null, Label: label) : new HudImage(null, HudImageVariant.Glow, glowQuarters, Label: label);
     }
 
     /// <summary>A catalogue image's glow frame: <paramref name="quarters"/> from 1 to 4.</summary>
     public static HudImage Glowing(string path, byte quarters)
     {
-        return new(path, HudImageVariant.Glow, quarters);
+        return new HudImage(path, HudImageVariant.Glow, quarters);
     }
 }
 
@@ -306,7 +306,7 @@ public sealed class HudFrame
     {
         get
         {
-            return new(_draws, 0, _count);
+            return new ReadOnlySpan<HudDraw>(_draws, 0, _count);
         }
     }
 
@@ -315,7 +315,7 @@ public sealed class HudFrame
     /// <summary>A <see cref="HudDrawKind.Triangles"/> draw's vertices; empty for any other kind.</summary>
     public ReadOnlySpan<HudVertex> Vertices(in HudDraw draw)
     {
-        return draw.Kind == HudDrawKind.Triangles ? new(_vertices, draw.Vertices.Start, draw.Vertices.Count) : default;
+        return draw.Kind == HudDrawKind.Triangles ? new ReadOnlySpan<HudVertex>(_vertices, draw.Vertices.Start, draw.Vertices.Count) : default;
     }
 
     /// <summary>Adds the image mapped over a triangle list, copied into the frame; nothing for an empty list.</summary>

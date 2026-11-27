@@ -58,7 +58,7 @@ public readonly record struct HudScaleLayout(int Width, int Height, int Requeste
     {
         get
         {
-            return new((int)Math.Round(LogicalWidth), Height);
+            return new HudScreen((int)Math.Round(LogicalWidth), Height);
         }
     }
 

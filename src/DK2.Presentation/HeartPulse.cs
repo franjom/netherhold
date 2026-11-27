@@ -18,8 +18,8 @@ public readonly record struct HeartBeat(bool Consumed, ViewEffectRequest? Effect
 /// only: it reads object views, never the world.</summary>
 public sealed class HeartPulse
 {
-    private readonly HeartPulseGate _gate = new();
-    private readonly ConcurrentQueue<(PlayerId Owner, Fp32 Step)> _advances = new();
+    private readonly HeartPulseGate _gate = new HeartPulseGate();
+    private readonly ConcurrentQueue<(PlayerId Owner, Fp32 Step)> _advances = new ConcurrentQueue<(PlayerId Owner, Fp32 Step)>();
 
     /// <summary>Queues a health change from any thread; the frame applies its phase step.</summary>
     public void QueueHealthChange(PlayerId owner, DungeonHeartVisual visual)

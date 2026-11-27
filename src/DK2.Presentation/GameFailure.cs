@@ -65,12 +65,12 @@ public static class GameFailureCopy
 
     private static readonly GameFailureChoice[] LauncherChoices =
     [
-        new(GameFailureAction.OpenLauncher, ChooseFolder, EnterKey), new(GameFailureAction.Quit, Quit, EscapeKey),
+        new GameFailureChoice(GameFailureAction.OpenLauncher, ChooseFolder, EnterKey), new GameFailureChoice(GameFailureAction.Quit, Quit, EscapeKey),
     ];
 
     private static readonly GameFailureChoice[] MenuChoices =
     [
-        new(GameFailureAction.ReturnToMenu, BackToMenu, EnterKey), new(GameFailureAction.Quit, Quit, EscapeKey),
+        new GameFailureChoice(GameFailureAction.ReturnToMenu, BackToMenu, EnterKey), new GameFailureChoice(GameFailureAction.Quit, Quit, EscapeKey),
     ];
 
     /// <summary>The screen for <paramref name="failure"/>. <paramref name="logFile"/> is where this run's log is written
@@ -86,24 +86,24 @@ public static class GameFailureCopy
         {
             case GameFailureKind.NoInstall:
                 string? folder = string.IsNullOrWhiteSpace(failure.Path) ? null : failure.Path!.Trim();
-                return new("Dungeon Keeper 2 was not found",
+                return new GameFailureScreen("Dungeon Keeper 2 was not found",
                     "Netherhold plays from the files of your own copy of Dungeon Keeper 2, and none was found.",
                     folder == null
                         ? "Choose the folder that holds DKII.EXE and the Data folder in the launcher, or set DK2_DIR."
                         : "The folder given was " + folder + ". " + LauncherCopy.Install(Dk2Install.Check(folder)).Text,
                     log, logFile, LauncherChoices);
             case GameFailureKind.LevelDidNotStart:
-                return new("The level could not start", level + " failed while it loaded, so there is nothing to play.",
+                return new GameFailureScreen("The level could not start", level + " failed while it loaded, so there is nothing to play.",
                     message, log, logFile, MenuChoices);
             case GameFailureKind.TurnFailed:
                 string turn = failure.Turn is long t ? "Turn " + t.ToString(CultureInfo.InvariantCulture) : "A turn";
                 string of = string.IsNullOrEmpty(failure.Level) ? "" : " of " + failure.Level;
-                return new("The game stopped",
+                return new GameFailureScreen("The game stopped",
                     turn + of + " failed, so the game has stopped. Behind this message is the last frame drawn.",
                     message, log, logFile, MenuChoices);
             case GameFailureKind.SaveImportFailed:
                 string file = string.IsNullOrWhiteSpace(failure.Path) ? "The file" : failure.Path!.Trim();
-                return new("The DK2 save could not be imported",
+                return new GameFailureScreen("The DK2 save could not be imported",
                     file + " could not be read as a Dungeon Keeper 2 save.", message, log, logFile, MenuChoices);
             default:
                 throw new ArgumentOutOfRangeException(nameof(failure), failure.Kind, "Unknown failure kind.");

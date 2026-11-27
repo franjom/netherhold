@@ -16,7 +16,7 @@ public static class HandCursorHud
     /// <summary>The kind's sprite sheet as a HUD image: its file name in Sprite.WAD, green keyed.</summary>
     public static HudImage Sheet(HandCursorKind kind)
     {
-        return new(HandCursor.Sprite(kind).FileName, HudImageVariant.GreenKey);
+        return new HudImage(HandCursor.Sprite(kind).FileName, HudImageVariant.GreenKey);
     }
 
     /// <summary>Adds frame <paramref name="sheetFrame"/> of <paramref name="kind"/> to <paramref name="frame"/>, in the virtual

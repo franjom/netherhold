@@ -22,7 +22,7 @@ public sealed class TerrainTileBuilder
     // Quadrant centres NW, NE, SE, SW in renderer X (east) and Z (north).
     private static readonly Vector2[] QuadrantCentres =
     [
-        new(-0.25f, 0.25f), new(0.25f, 0.25f), new(0.25f, -0.25f), new(-0.25f, -0.25f),
+        new Vector2(-0.25f, 0.25f), new Vector2(0.25f, 0.25f), new Vector2(0.25f, -0.25f), new Vector2(-0.25f, -0.25f),
     ];
 
     private static readonly int[] SideDx = [0, 1, 0, -1], SideDy = [-1, 0, 1, 0];
@@ -255,7 +255,7 @@ public sealed class TerrainTileBuilder
             bool tagged = FacesTag(tiles, x, y, side);
             int nx = x + SideDx[side], ny = y + SideDy[side];
             int neighbour = nx >= 0 && ny >= 0 && nx < _width && ny < _height ? ny * _width + nx : -1;
-            Vector2 source = new(neighbour, walls.IsWhole(side) && walls.WholePiece(side) < 7 ? -1 : neighbour);
+            var source = new Vector2(neighbour, walls.IsWhole(side) && walls.WholePiece(side) < 7 ? -1 : neighbour);
             // Special gate walls have a separate native builder; its tint is not traced here.
             TerrainLightColour tint = walls.IsWhole(side) && walls.WholePiece(side) < 7 ? default : NeighbourTint(tiles, x, y, side);
             if (walls.IsWhole(side))

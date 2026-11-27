@@ -19,7 +19,7 @@ public readonly record struct MinimapCameraView(Vector3 Position, Vector3 Forwar
     /// <summary>The view of a classic camera pose drawn on <paramref name="viewport"/>.</summary>
     public static MinimapCameraView Of(in ClassicCameraPose pose, CameraViewport viewport)
     {
-        return new(pose.Position, pose.Forward,
+        return new MinimapCameraView(pose.Position, pose.Forward,
         pose.Up, pose.VerticalFieldOfView, viewport.Width / (float)viewport.Height, pose.ProjectionCentreShift);
     }
 
@@ -52,7 +52,7 @@ public readonly record struct MinimapCameraView(Vector3 Position, Vector3 Forwar
     /// <inheritdoc cref="Heading"/>
     public static Dk2Angle HeadingOf(float yawDegrees)
     {
-        return new(unchecked((ushort)(int)Math.Round(yawDegrees * (2048f / 360))));
+        return new Dk2Angle(unchecked((ushort)(int)Math.Round(yawDegrees * (2048f / 360))));
     }
 
     /// <summary>The ray through viewport point (<paramref name="x"/>, <paramref name="y"/>), 0 to 1 from the bottom left,

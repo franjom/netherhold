@@ -34,7 +34,7 @@ public sealed class TypedTextBuffer
     {
         get
         {
-            return new(_chars, 0, _count);
+            return new ReadOnlySpan<char>(_chars, 0, _count);
         }
     }
 

@@ -50,7 +50,7 @@ public static class FrontEndScenery
             for (int index = 0; index < slabs.Length; index++)
             {
                 var tile = new TilePos(slabs[index] % world.Width, slabs[index] / world.Width);
-                PlayerId owner = new(room.OwnerPlayerId);
+                var owner = new PlayerId(room.OwnerPlayerId);
                 if (index is 0 or 3 or 6 or 9 or 5 or 8 or 11 or 14)
                 {
                     AddObject(132, index is 0 or 3 or 6 or 9 ? 0x400 : 0, animated: true);
@@ -96,7 +96,7 @@ public static class FrontEndScenery
                 ObjectView View(byte type, AssetRef key, int heading, int offsetX = 0x800, bool animated = false,
                     Fp32 phase = default, bool retainLight = true)
                 {
-                    return new(-1_000_000 - props.Count, type, owner, tile, key, 0,
+                    return new ObjectView(-1_000_000 - props.Count, type, owner, tile, key, 0,
                                         tile.X * Fp32.One + offsetX, tile.Y * Fp32.One + 0x800, Fp32.One, heading, Fp32.One,
                                         playsAnimation: animated, light: retainLight && database.ObjectById(type)?.Light is { Radius: > 0 } light ? light : null,
                                         animationInitialPhase: phase);

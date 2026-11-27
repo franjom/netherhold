@@ -44,7 +44,7 @@ public sealed class FrontEndMovieGallery
                 : movie == 20 ? "Mov_Shots/M-Outro-0" : $"Mov_Shots/M-{movie - 1:000}-0";
             string title = movie == 0 ? _text?.Invoke(77) ?? "" : movie < 21
                 ? _speech?.Invoke(CampaignCutscene.TitleAt(movie)) ?? "" : "";
-            rows[movie] = new(path, thumbnail, title, available);
+            rows[movie] = new MovieGalleryEntry(path, thumbnail, title, available);
         }
         Entries = rows;
     }

@@ -8,7 +8,7 @@ namespace DK2.Presentation;
 /// <summary>Scratch storage for the nine-point view volume and its two height-plane intersections.</summary>
 internal sealed class ClassicVisibilityPolygonBuffer
 {
-    internal readonly List<Vector3> Points = new(96), Crossings = new(96);
-    internal readonly List<TilePos> Boundary = new(96);
+    internal readonly List<Vector3> Points = new List<Vector3>(96), Crossings = new List<Vector3>(96);
+    internal readonly List<TilePos> Boundary = new List<TilePos>(96);
     internal readonly TilePos[] Tiles = new TilePos[96];
 }

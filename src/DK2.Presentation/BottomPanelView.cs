@@ -23,14 +23,14 @@ public static class BottomPanelLayout
     public const int Left = 472, Top = 1600, Span = 1800, Height = 300;
     public static BottomPanelRect Tab(int index)
     {
-        return new(472 + index * 136, 1460, 128, 128);
+        return new BottomPanelRect(472 + index * 136, 1460, 128, 128);
     }
 
     public static BottomPanelRect Panel
     {
         get
         {
-            return new(Left, Top, Span, Height);
+            return new BottomPanelRect(Left, Top, Span, Height);
         }
     }
 
@@ -65,12 +65,12 @@ public static class BottomPanelLayout
     /// height 132 (<c>0x84</c>), so each panel carries its own pair at its left edge.</summary>
     public static BottomPanelRect PreviousPage(BottomPanelRect panel)
     {
-        return new(panel.X, panel.Y + 12, 64, 132);
+        return new BottomPanelRect(panel.X, panel.Y + 12, 64, 132);
     }
 
     public static BottomPanelRect NextPage(BottomPanelRect panel)
     {
-        return new(panel.X, panel.Y + 144, 64, 132);
+        return new BottomPanelRect(panel.X, panel.Y + 144, 64, 132);
     }
 
     /// <summary>0x00417470 for menu 5, the creature overview: <c>(W − 432) / 116</c> columns, one row.</summary>
@@ -139,7 +139,7 @@ public sealed class BottomPanelView
     private readonly PlayerId _player;
     private readonly BottomPanelChoice[] _choices;
     private readonly Func<BottomPanelChoiceKey, string, string> _name;
-    private readonly List<BottomPanelChoice> _specials = new();
+    private readonly List<BottomPanelChoice> _specials = new List<BottomPanelChoice>();
     private readonly bool _oneShotReaper;
     private readonly bool _campaignMode;
     private bool _reaperInitialized;
@@ -157,7 +157,7 @@ public sealed class BottomPanelView
         }
     }
 
-    public SoundRequests Sounds { get; } = new();
+    public SoundRequests Sounds { get; } = new SoundRequests();
     private bool _choicePressed;
     private GuiSoundSlot _pressedSlot;
     /// <summary><paramref name="slot"/> is the slot widget's sound slot, <see cref="BottomPanelGrid.SoundSlot"/> of its panel's grid.</summary>
@@ -227,7 +227,7 @@ public sealed class BottomPanelView
     public bool ReaperOneShotReady { get; private set; }
     public bool ReaperNormallyUnlocked { get; private set; }
     public int? ReaperSecondsRemaining { get; private set; }
-    public BottomPanelSelection Selection { get; private set; } = new(null, PlayerToolMode.Hand, default);
+    public BottomPanelSelection Selection { get; private set; } = new BottomPanelSelection(null, PlayerToolMode.Hand, default);
 
     public BottomPanelView(GameDatabase database, PlayerId player, Func<BottomPanelChoiceKey, string, string> name,
         Func<BottomPanelChoiceKey, int>? order = null, bool campaignMode = true)
@@ -566,7 +566,7 @@ public sealed class BottomPanelView
     }
 
     /// <summary>The interface's one announcement handle, <c>+0x2E</c>.</summary>
-    public static SoundVoiceId SpellAnnouncementVoice { get; } = new(0x80000000u | (0x7Fu << 24));
+    public static SoundVoiceId SpellAnnouncementVoice { get; } = new SoundVoiceId(0x80000000u | (0x7Fu << 24));
 
     private bool SpellUpgraded(WorldState world, byte spellId)
     {
@@ -586,7 +586,7 @@ public sealed class BottomPanelView
     {
         if (Reaper is BottomPanelChoice reaper && reaper.Key == key && reaper.Selectable)
         {
-            Selection = new(key, PlayerToolMode.Hand, default);
+            Selection = new BottomPanelSelection(key, PlayerToolMode.Hand, default);
             foreach (BottomPanelChoice other in _choices)
             {
                 other.Selected = false;
@@ -604,7 +604,7 @@ public sealed class BottomPanelView
                 continue;
             }
 
-            Selection = new(key, key.Kind == BottomPanelChoiceKind.Room ? PlayerToolMode.BuildRoom :
+            Selection = new BottomPanelSelection(key, key.Kind == BottomPanelChoiceKind.Room ? PlayerToolMode.BuildRoom :
                 key.Kind == BottomPanelChoiceKind.Spell && key.Value == CreateImpSpellId ? PlayerToolMode.CreateImp : PlayerToolMode.Hand,
                 key.Kind == BottomPanelChoiceKind.Room ? (RoomTypeId)key.Value : default);
             foreach (BottomPanelChoice other in _choices)
@@ -633,7 +633,7 @@ public sealed class BottomPanelView
 
     public void SelectTool(PlayerToolMode tool, RoomTypeId room = default)
     {
-        Selection = new(tool == PlayerToolMode.BuildRoom ? new BottomPanelChoiceKey(BottomPanelChoiceKind.Room, (byte)room) :
+        Selection = new BottomPanelSelection(tool == PlayerToolMode.BuildRoom ? new BottomPanelChoiceKey(BottomPanelChoiceKind.Room, (byte)room) :
             tool == PlayerToolMode.CreateImp ? new BottomPanelChoiceKey(BottomPanelChoiceKind.Spell, CreateImpSpellId) : null, tool, room);
         foreach (BottomPanelChoice choice in _choices)
         {

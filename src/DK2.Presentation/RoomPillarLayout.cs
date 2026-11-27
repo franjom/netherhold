@@ -14,13 +14,13 @@ internal static class RoomPillarLayout
     {
         return type switch
         {
-            RoomTypeId.Treasury => new(76),
-            RoomTypeId.Hatchery => new(78),
-            RoomTypeId.CombatPit => new(79),
-            RoomTypeId.TortureChamber => new(82),
-            RoomTypeId.Graveyard => new(84),
-            RoomTypeId.Casino => new(85),
-            RoomTypeId.Crypt => new(141),
+            RoomTypeId.Treasury => new ObjectTypeId(76),
+            RoomTypeId.Hatchery => new ObjectTypeId(78),
+            RoomTypeId.CombatPit => new ObjectTypeId(79),
+            RoomTypeId.TortureChamber => new ObjectTypeId(82),
+            RoomTypeId.Graveyard => new ObjectTypeId(84),
+            RoomTypeId.Casino => new ObjectTypeId(85),
+            RoomTypeId.Crypt => new ObjectTypeId(141),
             _ => null,
         };
     }

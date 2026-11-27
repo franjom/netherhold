@@ -150,6 +150,6 @@ public sealed class FrontEndSession
 
     private static CameraPathPlayback NewPath(FrontEndPath path, IReadOnlyList<KcsFrame> frames)
     {
-        return new((int)path, frames, new TilePos(3, 12));
+        return new CameraPathPlayback((int)path, frames, new TilePos(3, 12));
     }
 }

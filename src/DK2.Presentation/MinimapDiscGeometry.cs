@@ -15,7 +15,7 @@ public readonly record struct MinimapDiscQuad(MinimapQuadKind Kind, Vector2 Cent
 /// MinimapDiscImage; engine adapters only rotate and draw these quads.</summary>
 public sealed class MinimapDiscGeometry
 {
-    private readonly List<MinimapDiscQuad> _quads = new();
+    private readonly List<MinimapDiscQuad> _quads = new List<MinimapDiscQuad>();
     private readonly MinimapRasterPoint[] _trail = new MinimapRasterPoint[MinimapHeartTrail.MaximumDots];
     public IReadOnlyList<MinimapDiscQuad> Quads
     {
@@ -41,7 +41,7 @@ public sealed class MinimapDiscGeometry
         int dots = heart.HasValue ? MinimapHeartTrail.Build(heart.Value, focus, zoom, tick, _trail) : 0;
         for (int i = 0; i < dots; i++)
         {
-            _quads.Add(new(MinimapQuadKind.Solid, new(_trail[i].X + .5f, _trail[i].Y + .5f), Vector2.One, 0, 0xFFFFFFFF));
+            _quads.Add(new MinimapDiscQuad(MinimapQuadKind.Solid, new Vector2(_trail[i].X + .5f, _trail[i].Y + .5f), Vector2.One, 0, 0xFFFFFFFF));
         }
     }
 
@@ -119,14 +119,14 @@ public sealed class MinimapDiscGeometry
                     }
 
                     float width = Math.Max(1 - axisX, spanX), height = Math.Max(1 - axisY, spanY);
-                shape = new(MinimapQuadKind.Solid, new(originX + width * .5f, originY + height * .5f), new(width, height), 0, marker.ColourArgb);
+                shape = new MinimapDiscQuad(MinimapQuadKind.Solid, new Vector2(originX + width * .5f, originY + height * .5f), new Vector2(width, height), 0, marker.ColourArgb);
                 return true;
             }
             case MinimapMarkerKind.Ring:
             {
                 float size = radius <= 1 ? radius * 2 + 1 : 2 * (radius + 1);
                 MinimapQuadKind kind = radius == 1 ? MinimapQuadKind.Dot : radius > 1 ? MinimapQuadKind.Ring : MinimapQuadKind.Solid;
-                shape = new(kind, new(originX + .5f, originY + .5f), new(size, size), radius, marker.ColourArgb);
+                shape = new MinimapDiscQuad(kind, new Vector2(originX + .5f, originY + .5f), new Vector2(size, size), radius, marker.ColourArgb);
                 return true;
             }
             case MinimapMarkerKind.Rectangle:
@@ -144,12 +144,12 @@ public sealed class MinimapDiscGeometry
                         return false;
                     }
 
-                    shape = new(MinimapQuadKind.Border, new(originX + width * .5f, originY + height * .5f), new(width, height), 0, marker.ColourArgb);
+                    shape = new MinimapDiscQuad(MinimapQuadKind.Border, new Vector2(originX + width * .5f, originY + height * .5f), new Vector2(width, height), 0, marker.ColourArgb);
                 return true;
             }
             case MinimapMarkerKind.Creature:
             case MinimapMarkerKind.Trap:
-                shape = new(MinimapQuadKind.Dot, new(originX + .5f, originY + .5f), new(3, 3), 1, marker.ColourArgb);
+                shape = new MinimapDiscQuad(MinimapQuadKind.Dot, new Vector2(originX + .5f, originY + .5f), new Vector2(3, 3), 1, marker.ColourArgb);
                 return true;
             default:
                 // The full map's own kinds: the minimap's capture never lists them.

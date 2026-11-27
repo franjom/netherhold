@@ -44,12 +44,12 @@ public static class ClassicMeshShadow
         }
 
         Vector3 along = distance > 0 ? new Vector3(delta.X / distance, 0, delta.Z / distance) : Vector3.UnitZ;
-        Vector3 cross = new(along.Z, 0, -along.X);
+        var cross = new Vector3(along.Z, 0, -along.X);
         float angle = distance * MathF.PI * .25f * 1.5f / MaximumDistance;
         float halfLength = caster.Radius / MathF.Cos(angle);
         float shift = (caster.Centre.Y - caster.GroundHeight) * MathF.Tan(angle);
-        Vector3 centre = new(caster.Centre.X, caster.GroundHeight, caster.Centre.Z);
-        projection = new(centre + along * shift, cross, along, caster.Radius, halfLength, strength, angle);
+        var centre = new Vector3(caster.Centre.X, caster.GroundHeight, caster.Centre.Z);
+        projection = new ClassicShadowProjection(centre + along * shift, cross, along, caster.Radius, halfLength, strength, angle);
         return true;
     }
 }

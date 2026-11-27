@@ -52,7 +52,7 @@ public sealed class HoverCursorResolver
     private readonly WorldView _view;
     private readonly HandCursorFeedback _cursor;
     private readonly PlayerId _viewer;
-    private readonly SpellCastCursor _spellCast = new();
+    private readonly SpellCastCursor _spellCast = new SpellCastCursor();
 
     /// <param name="cursor">The hand cursor's transient states, shared with <see cref="PickupFlow"/> and the host's presses.</param>
     public HoverCursorResolver(HudToolState tools, PlayerInputTranslator input, ClassicHudControls controls, BottomPanelView panel,

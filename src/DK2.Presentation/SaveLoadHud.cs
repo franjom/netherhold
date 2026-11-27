@@ -20,7 +20,7 @@ public sealed class SaveLoadHud
 
     private readonly Func<uint, string> _text;
     private readonly Func<int, BitmapFont> _font;
-    private readonly List<(HudText Text, HudRect Rect, HudColor Tint, Press Press, int Index, HudRect? Clip)> _lines = new();
+    private readonly List<(HudText Text, HudRect Rect, HudColor Tint, Press Press, int Index, HudRect? Clip)> _lines = new List<(HudText Text, HudRect Rect, HudColor Tint, Press Press, int Index, HudRect? Clip)>();
     private SaveSlotsView? _view;
     private int _height, _revision = -1, _first;
     private bool _save, _frontEnd, _visible;

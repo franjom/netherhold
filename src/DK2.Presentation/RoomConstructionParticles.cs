@@ -159,16 +159,16 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
             }
 
             AdvanceTo(_clock());
-            var point = new FpPosition3(new(CreatureState.CentreOf(construction.Tile.X)),
-                new(CreatureState.CentreOf(construction.Tile.Y) - 128), construction.Height);
-            EmitWave(definition, new(new(RoomConstructionEffect.DefinitionId), construction.Owner, point));
+            var point = new FpPosition3(new Fp32(CreatureState.CentreOf(construction.Tile.X)),
+                new Fp32(CreatureState.CentreOf(construction.Tile.Y) - 128), construction.Height);
+            EmitWave(definition, new ViewEffectRequest(new EffectId(RoomConstructionEffect.DefinitionId), construction.Owner, point));
         }
     }
 
     public void Request(in ViewEffectRequest incoming)
     {
         ViewEffectRequest request = incoming.HeightSpace == EffectHeightSpace.AboveGround
-            ? incoming with { Position = incoming.Position with { Z = new(incoming.Position.Z.Raw
+            ? incoming with { Position = incoming.Position with { Z = new Fp32(incoming.Position.Z.Raw
                 + (_creatureGroundHeight?.Invoke(incoming.GroundCreatureId) ?? _floorHeight(incoming.GroundAnchor ?? incoming.Position)).Raw) },
                 HeightSpace = EffectHeightSpace.Absolute } : incoming;
         // 0x00441060 floats an amount for the local viewer only; a null viewer shows every player's.
@@ -311,8 +311,8 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
             FpPosition3 at = emitter.Request.Position;
             ViewEffectRequest request = emitter.Request with
             {
-                Position = new FpPosition3(new(at.X.Raw + part.OffsetXRaw), new(at.Y.Raw + part.OffsetYRaw),
-                    new(at.Z.Raw + part.OffsetHeightRaw)),
+                Position = new FpPosition3(new Fp32(at.X.Raw + part.OffsetXRaw), new Fp32(at.Y.Raw + part.OffsetYRaw),
+                    new Fp32(at.Z.Raw + part.OffsetHeightRaw)),
             };
             ConstructionParticle? particle = EmitElement(element, effect, request, null, emitter, atExactPoint: true);
             if (particle == null)
@@ -331,7 +331,7 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         int floor = _floorHeight(point).Raw;
         if (point.Z.Raw < floor)
         {
-            point = point with { Z = new(floor) };
+            point = point with { Z = new Fp32(floor) };
         }
 
         double direction = request.Heading.Raw * Math.PI / 1024;
@@ -412,7 +412,7 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
                     AddEmitterChain(generated, request with
                     {
                         Position = DrawOrigin(effect, request.Position),
-                        Heading = new((ushort)((DrawAngularOffset(effect.DirectionalSpread * 8).Value
+                        Heading = new Dk2Angle((ushort)((DrawAngularOffset(effect.DirectionalSpread * 8).Value
                             + ((effect.Flags & 0x400) != 0 ? request.Heading.Value : 0)) & 2047)),
                         AttachedCreatureId = 0,
                         AttachPoint = 0,
@@ -459,9 +459,9 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
     {
         int radius = DrawExclusive(effect.InnerOriginRange * 23, effect.OuterOriginRange * 23);
         double angle = _random.NextInt(2048) * Math.PI / 1024;
-        return new FpPosition3(new(around.X.Raw + (int)(Math.Sin(angle) * radius)),
-            new(around.Y.Raw - (int)(Math.Cos(angle) * radius)),
-            new(around.Z.Raw + DrawExclusive(OriginHeight(effect.LowerHeightLimit), OriginHeight(effect.UpperHeightLimit))));
+        return new FpPosition3(new Fp32(around.X.Raw + (int)(Math.Sin(angle) * radius)),
+            new Fp32(around.Y.Raw - (int)(Math.Cos(angle) * radius)),
+            new Fp32(around.Z.Raw + DrawExclusive(OriginHeight(effect.LowerHeightLimit), OriginHeight(effect.UpperHeightLimit))));
     }
 
     /// <param name="atExactPoint">A group part (0x004352E0 given a ready position): no origin ring,
@@ -687,8 +687,8 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
             emitter.VelocityY = (int)((long)emitter.VelocityY * drag / 4096);
             emitter.VelocityZ = (int)((long)emitter.VelocityZ * drag / 4096);
             FpPosition3 old = emitter.Request.Position;
-            var point = new FpPosition3(new(old.X.Raw + (emitter.VelocityX >> 4)),
-                new(old.Y.Raw + (emitter.VelocityY >> 4)), new(old.Z.Raw + (emitter.VelocityZ >> 4)));
+            var point = new FpPosition3(new Fp32(old.X.Raw + (emitter.VelocityX >> 4)),
+                new Fp32(old.Y.Raw + (emitter.VelocityY >> 4)), new Fp32(old.Z.Raw + (emitter.VelocityZ >> 4)));
             point = ApplyEmitterContact(emitter, old, point);
             emitter.Request = emitter.Request with { Position = point };
             if (emitter.Health > 0)
@@ -816,7 +816,7 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
 
     private bool ApplyFloorContact(ConstructionParticle particle, bool initializing = false)
     {
-        int floor = _floorHeight(new(new(particle.XRaw), new(particle.YRaw), new(particle.HeightRaw))).Raw;
+        int floor = _floorHeight(new FpPosition3(new Fp32(particle.XRaw), new Fp32(particle.YRaw), new Fp32(particle.HeightRaw))).Raw;
         if (particle.HeightRaw >= floor)
         {
             return true;
@@ -851,9 +851,9 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         if (parent != null
             && _database.EffectElements.TryGetValue(particle.Definition.DeathElementId, out EffectElementDef? death))
         {
-            var point = new FpPosition3(new(particle.XRaw), new(particle.YRaw), new(particle.HeightRaw));
+            var point = new FpPosition3(new Fp32(particle.XRaw), new Fp32(particle.YRaw), new Fp32(particle.HeightRaw));
             EmitElement(death, parent.Definition,
-                parent.Request with { Position = point, Heading = new((ushort)particle.HeadingRaw) },
+                parent.Request with { Position = point, Heading = new Dk2Angle((ushort)particle.HeadingRaw) },
                 null, parent, particle);
         }
         _particles.RemoveAt(index);
@@ -892,9 +892,9 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         int angle = whirlpool == 0 ? 0
             : (whirlpool * 16 << 7) / ((dx >> 5) * (dx >> 5) + 128 + (dy >> 5) * (dy >> 5));
         (int x, int y) first = RotateRelative((dx, dy),
-            new((ushort)(Math.Max(-1024, Math.Min(1023, angle)) & 2047)));
+            new Dk2Angle((ushort)(Math.Max(-1024, Math.Min(1023, angle)) & 2047)));
         (int x, int y) second = RotateRelative((dx, dy),
-            new((ushort)(Math.Max(-1024, Math.Min(1023, circular)) & 2047)));
+            new Dk2Angle((ushort)(Math.Max(-1024, Math.Min(1023, circular)) & 2047)));
         particle.XRaw += first.x - dx + second.x - dx;
         particle.YRaw += first.y - dy + second.y - dy;
     }
@@ -913,8 +913,8 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
             return;
         }
 
-        int floor = _floorHeight(new(new(particle.PreviousXRaw), new(particle.PreviousYRaw),
-            new(particle.PreviousHeightRaw))).Raw;
+        int floor = _floorHeight(new FpPosition3(new Fp32(particle.PreviousXRaw), new Fp32(particle.PreviousYRaw),
+            new Fp32(particle.PreviousHeightRaw))).Raw;
         if (particle.PreviousHeightRaw > floor)
         {
             particle.XRaw += (Trig(particle.SwayPhaseRaw) >> 6) >> 4;
@@ -1028,7 +1028,7 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
     private Dk2Angle DrawAngularOffset(int count)
     {
         return count <= 0
-        ? default : new((ushort)((_random.NextInt(count) - count / 2) & 2047));
+        ? default : new Dk2Angle((ushort)((_random.NextInt(count) - count / 2) & 2047));
     }
 
     private int DrawInclusive(int minimum, int maximum)
@@ -1052,14 +1052,14 @@ public readonly record struct EffectAttachment(bool CreatureExists, FpPosition3?
 
     public static EffectAttachment At(FpPosition3 point)
     {
-        return new(true, point);
+        return new EffectAttachment(true, point);
     }
 
     public static EffectAttachment NotFound
     {
         get
         {
-            return new(true, null);
+            return new EffectAttachment(true, null);
         }
     }
 

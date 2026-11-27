@@ -16,7 +16,7 @@ public sealed class EffectFrame
 {
     private readonly EffectDrawList _effects;
     private readonly LevelGemIdleEffects? _gems;
-    private readonly List<ViewEffectRequest> _gemRequests = new();
+    private readonly List<ViewEffectRequest> _gemRequests = new List<ViewEffectRequest>();
     private Step _step = Step.Advanced;
 
     private enum Step { Presented, Advanced }

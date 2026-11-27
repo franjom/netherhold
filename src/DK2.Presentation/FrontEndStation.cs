@@ -14,7 +14,7 @@ namespace DK2.Presentation;
 /// <see cref="CampaignMapController.Revision"/>. The adapter draws <see cref="View"/> and picks the map pieces by view id.</summary>
 public sealed class FrontEndStation
 {
-    private readonly Dictionary<int, CampaignSlot> _pickSlots = new();
+    private readonly Dictionary<int, CampaignSlot> _pickSlots = new Dictionary<int, CampaignSlot>();
     private int _revision = -1;
 
     /// <summary>The station over <paramref name="simulation"/>'s world, its scenery seeded from <paramref name="seed"/> and

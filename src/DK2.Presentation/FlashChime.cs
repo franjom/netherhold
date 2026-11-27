@@ -29,6 +29,6 @@ public sealed class FlashChime
     /// A slot with no category asks nothing.</summary>
     public static SoundRequest Request(GuiSoundSlot slot)
     {
-        return new(GuiSoundSlots.CategoryOf(slot), new SoundId(EventId));
+        return new SoundRequest(GuiSoundSlots.CategoryOf(slot), new SoundId(EventId));
     }
 }

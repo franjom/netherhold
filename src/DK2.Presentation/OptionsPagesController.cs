@@ -77,9 +77,9 @@ public sealed class OptionsPagesController
                 {
                     GameKeyBinding current = s.Binding(row.Action);
                     if (row.Action != action && current.ScanCode == scanCode && current.Modifiers == modifiers)
-                    { bindings.RemoveAll(b => b.Action == row.Action); bindings.Add(new(row.Action, 0)); }
+                    { bindings.RemoveAll(b => b.Action == row.Action); bindings.Add(new GameKeyBinding(row.Action, 0)); }
                 }
-                bindings.Add(new(action, scanCode, modifiers)); return s with { Bindings = bindings };
+                bindings.Add(new GameKeyBinding(action, scanCode, modifiers)); return s with { Bindings = bindings };
             });
         }
         CapturingAction = null; return true;
@@ -112,9 +112,9 @@ public sealed class OptionsPagesController
     }
 
     /// <summary>The slider drag's test sounds (docs/research/sound-effects-interface.md section 4).</summary>
-    public SoundRequests Sounds { get; } = new();
+    public SoundRequests Sounds { get; } = new SoundRequests();
     /// <summary>The one voice a held slider owns: DK2 keeps the returned handle in the page's object (front end <c>+0x5AD1</c>, <c>+0x5AD5</c>, <c>+0x5AD9</c>; in game <c>+0x3A</c>, <c>+0x3E</c>, <c>+0x42</c>).</summary>
-    public static SoundVoiceId SliderVoice { get; } = new(0x7F000001);
+    public static SoundVoiceId SliderVoice { get; } = new SoundVoiceId(0x7F000001);
     private bool _dragging, _dragVoiced;
 
     /// <summary>A press on a slider's thumb, its grab (widget state 3; the track and arrows are other states and silent, <c>0x00551F20</c>, <c>0x0054D180</c>, <c>0x0054D240</c>, <c>0x0042B950</c>..<c>0x0042BA90</c>): the speech slider
@@ -164,7 +164,7 @@ public sealed class OptionsPagesController
 
     private static SoundRequest Request(string category, uint id)
     {
-        return new(new SoundCategory(category), new SoundId(id), Voice: SliderVoice);
+        return new SoundRequest(new SoundCategory(category), new SoundId(id), Voice: SliderVoice);
     }
 
     public void Enter(FrontEndPage page, OptionsApplicationMode applicationMode = OptionsApplicationMode.FrontEnd)

@@ -26,7 +26,7 @@ public readonly record struct BottomPanelOpenSet
 
     public static BottomPanelOpenSet Of(BottomPanelCategory category)
     {
-        return new((byte)(1 << (int)category));
+        return new BottomPanelOpenSet((byte)(1 << (int)category));
     }
 
     public bool Contains(BottomPanelCategory category)
@@ -36,12 +36,12 @@ public readonly record struct BottomPanelOpenSet
 
     public BottomPanelOpenSet With(BottomPanelCategory category)
     {
-        return new((byte)(_mask | 1 << (int)category));
+        return new BottomPanelOpenSet((byte)(_mask | 1 << (int)category));
     }
 
     public BottomPanelOpenSet Without(BottomPanelCategory category)
     {
-        return new((byte)(_mask & ~(1 << (int)category)));
+        return new BottomPanelOpenSet((byte)(_mask & ~(1 << (int)category)));
     }
 
     public int Count
@@ -60,7 +60,7 @@ public readonly record struct BottomPanelOpenSet
 public sealed class BottomPanelTabs
 {
     private BottomPanelOpenSet _remembered;
-    public SoundRequests Sounds { get; } = new();
+    public SoundRequests Sounds { get; } = new SoundRequests();
     public void Toggle()
     {
         Collapsed = !Collapsed;
@@ -68,7 +68,7 @@ public sealed class BottomPanelTabs
     }
     private static SoundCategory CategorySound(BottomPanelCategory category)
     {
-        return new(category switch
+        return new SoundCategory(category switch
         {
             BottomPanelCategory.Rooms => "gui_button_tab_rooms",
             BottomPanelCategory.Spells => "gui_button_tab_spells",

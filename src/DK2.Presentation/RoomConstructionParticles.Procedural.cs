@@ -28,7 +28,7 @@ public sealed partial class RoomConstructionParticles
         {
             if (emitter.Definition.ArtResource.Type == 7)
             {
-                effects.Add(new(new(emitter.Id), emitter.Definition.ArtResource.ProceduralKind, emitter.Request.Position));
+                effects.Add(new ProceduralEffectView(new EffectInstanceId(emitter.Id), emitter.Definition.ArtResource.ProceduralKind, emitter.Request.Position));
             }
         }
     }

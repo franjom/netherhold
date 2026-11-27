@@ -16,8 +16,8 @@ namespace DK2.Presentation;
 public sealed class InstallHudSources : IDisposable
 {
     private readonly InstallArtProvider? _art;
-    private readonly Dictionary<string, BitmapFont> _fonts = new();
-    private readonly Dictionary<string, Task<BitmapFont>> _pendingFonts = new();
+    private readonly Dictionary<string, BitmapFont> _fonts = new Dictionary<string, BitmapFont>();
+    private readonly Dictionary<string, Task<BitmapFont>> _pendingFonts = new Dictionary<string, Task<BitmapFont>>();
     private EngineTextureArchive? _opened;
     private Dk2ArtCatalogue? _catalogue;
     private Dk2StringTable? _strings;

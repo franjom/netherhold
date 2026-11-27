@@ -13,7 +13,7 @@ namespace DK2.Presentation;
 /// audit, open points); this keeps that as it was drawn.</summary>
 public sealed class FlowerDollarClock
 {
-    public static readonly CreatureAnimationTiming Timing = new() { ResourceType = 6, FrameCount = 30, FramesPerSecond = 30 };
+    public static readonly CreatureAnimationTiming Timing = new CreatureAnimationTiming() { ResourceType = 6, FrameCount = 30, FramesPerSecond = 30 };
 
     /// <summary>The mesh's turn about the vertical, in degrees.</summary>
     public const float YawDegrees = 180f;

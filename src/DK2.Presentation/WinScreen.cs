@@ -20,23 +20,23 @@ public sealed class WinScreen
     /// <summary>The table at <c>0x0066C780</c>, read 2026-10-26, indexed by id.</summary>
     public static readonly IReadOnlyList<RewardItem> Items = new RewardItem[]
     {
-        new(0, "None", 0, 0), new(1, "Alarm", 295, 1369), new(2, "Barricade", 314, 1366), new(3, "Boulder", 294, 1377),
-        new(4, "Braced", 306, 1373), new(5, "Bridge_Stone", 242, 1370), new(6, "Bridge_Wooden", 236, 1360),
-        new(7, "Call_To_Arms", 283, 1368), new(8, "Casino", 239, 1371), new(9, "Chicken", 292, 1392),
-        new(10, "Create_Gold", 290, 1385), new(11, "Create_Imp", 284, 1352), new(12, "Dark_Library", 232, 1350),
-        new(13, "Earthquake", 287, 1374), new(14, "Fear", 299, 1363), new(15, "Fireburst", 296, 1390),
-        new(16, "Freeze", 298, 1381), new(17, "Gas", 293, 1372), new(18, "Graveyard", 240, 1379),
-        new(19, "Guard_Room", 238, 1358), new(20, "Guard_Post", 0, 1362), new(21, "Hatchery", 230, 1394),
-        new(22, "Heal", 289, 1365), new(23, "Inferno", 288, 1389), new(24, "Lair", 229, 1395),
-        new(25, "Lightning", 297, 1386), new(26, "Magic_Door", 310, 1383), new(27, "Pit", 235, 1384),
-        new(28, "Possess", 282, 1359), new(29, "Prison", 234, 1361), new(30, "Reaper_Talisman04", 0, 0),
-        new(31, "Fight", 0, 0), new(32, "Secret_Door", 312, 1387), new(33, "Sentry", 301, 1356),
-        new(34, "Sight_Of_Evil", 281, 1367), new(35, "Spike", 302, 1375), new(36, "Steel_Door", 308, 1378),
-        new(37, "Summon_Reaper", 285, 1382), new(38, "<Not Used>", 0, 0), new(39, "Temple", 241, 1388),
-        new(40, "Thunderbolt", 286, 1353), new(41, "Torture", 237, 1364), new(42, "Training", 231, 1351),
-        new(43, "Treasury", 228, 1354), new(44, "Trigger", 300, 1376), new(45, "Turncoat", 291, 1380),
-        new(46, "<Not Used>", 0, 0), new(47, "Wood_Door", 304, 1357), new(48, "Workshop", 233, 1355),
-        new(49, "Reaper_Talisman01", 0, 0), new(50, "Reaper_Talisman02", 0, 0), new(51, "Reaper_Talisman03", 0, 0),
+        new RewardItem(0, "None", 0, 0), new RewardItem(1, "Alarm", 295, 1369), new RewardItem(2, "Barricade", 314, 1366), new RewardItem(3, "Boulder", 294, 1377),
+        new RewardItem(4, "Braced", 306, 1373), new RewardItem(5, "Bridge_Stone", 242, 1370), new RewardItem(6, "Bridge_Wooden", 236, 1360),
+        new RewardItem(7, "Call_To_Arms", 283, 1368), new RewardItem(8, "Casino", 239, 1371), new RewardItem(9, "Chicken", 292, 1392),
+        new RewardItem(10, "Create_Gold", 290, 1385), new RewardItem(11, "Create_Imp", 284, 1352), new RewardItem(12, "Dark_Library", 232, 1350),
+        new RewardItem(13, "Earthquake", 287, 1374), new RewardItem(14, "Fear", 299, 1363), new RewardItem(15, "Fireburst", 296, 1390),
+        new RewardItem(16, "Freeze", 298, 1381), new RewardItem(17, "Gas", 293, 1372), new RewardItem(18, "Graveyard", 240, 1379),
+        new RewardItem(19, "Guard_Room", 238, 1358), new RewardItem(20, "Guard_Post", 0, 1362), new RewardItem(21, "Hatchery", 230, 1394),
+        new RewardItem(22, "Heal", 289, 1365), new RewardItem(23, "Inferno", 288, 1389), new RewardItem(24, "Lair", 229, 1395),
+        new RewardItem(25, "Lightning", 297, 1386), new RewardItem(26, "Magic_Door", 310, 1383), new RewardItem(27, "Pit", 235, 1384),
+        new RewardItem(28, "Possess", 282, 1359), new RewardItem(29, "Prison", 234, 1361), new RewardItem(30, "Reaper_Talisman04", 0, 0),
+        new RewardItem(31, "Fight", 0, 0), new RewardItem(32, "Secret_Door", 312, 1387), new RewardItem(33, "Sentry", 301, 1356),
+        new RewardItem(34, "Sight_Of_Evil", 281, 1367), new RewardItem(35, "Spike", 302, 1375), new RewardItem(36, "Steel_Door", 308, 1378),
+        new RewardItem(37, "Summon_Reaper", 285, 1382), new RewardItem(38, "<Not Used>", 0, 0), new RewardItem(39, "Temple", 241, 1388),
+        new RewardItem(40, "Thunderbolt", 286, 1353), new RewardItem(41, "Torture", 237, 1364), new RewardItem(42, "Training", 231, 1351),
+        new RewardItem(43, "Treasury", 228, 1354), new RewardItem(44, "Trigger", 300, 1376), new RewardItem(45, "Turncoat", 291, 1380),
+        new RewardItem(46, "<Not Used>", 0, 0), new RewardItem(47, "Wood_Door", 304, 1357), new RewardItem(48, "Workshop", 233, 1355),
+        new RewardItem(49, "Reaper_Talisman01", 0, 0), new RewardItem(50, "Reaper_Talisman02", 0, 0), new RewardItem(51, "Reaper_Talisman03", 0, 0),
     };
 
     /// <summary>The deadline the done screen re-arms while no continue or leave is asked (<c>0x0042C390</c>).</summary>
@@ -88,7 +88,7 @@ public sealed class WinScreen
     /// <summary>The item on screen, or null.</summary>
     public RewardItem? Current { get; private set; }
     /// <summary>The item's tablet (<c>+0x4C6E</c>), drawn while the screen is not done.</summary>
-    public RewardTablet Tablet { get; } = new();
+    public RewardTablet Tablet { get; } = new RewardTablet();
     /// <summary>The announcement's text, or null.</summary>
     public string? Text
     {

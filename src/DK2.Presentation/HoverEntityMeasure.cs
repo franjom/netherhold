@@ -16,7 +16,7 @@ public readonly record struct PickBox(Vector3 Min, Vector3 Max)
     {
         get
         {
-            return new((Min.X + Max.X) * .5f, (Min.Y + Max.Y) * .5f, (Min.Z + Max.Z) * .5f);
+            return new Vector3((Min.X + Max.X) * .5f, (Min.Y + Max.Y) * .5f, (Min.Z + Max.Z) * .5f);
         }
     }
 
@@ -25,7 +25,7 @@ public readonly record struct PickBox(Vector3 Min, Vector3 Max)
     {
         get
         {
-            return new((Max.X - Min.X) * .5f, (Max.Y - Min.Y) * .5f, (Max.Z - Min.Z) * .5f);
+            return new Vector3((Max.X - Min.X) * .5f, (Max.Y - Min.Y) * .5f, (Max.Z - Min.Z) * .5f);
         }
     }
 
@@ -137,7 +137,7 @@ public readonly record struct PickSphere(Vector3 Centre, float Radius)
     /// <summary>The sphere of a model drawn at <paramref name="position"/>, <paramref name="turn"/> and <paramref name="scale"/>.</summary>
     public PickSphere Placed(Vector3 position, Quaternion turn, Vector3 scale)
     {
-        return new(position + Vector3.Transform(Centre * scale, turn), ScaledRadius(Radius, scale));
+        return new PickSphere(position + Vector3.Transform(Centre * scale, turn), ScaledRadius(Radius, scale));
     }
 }
 

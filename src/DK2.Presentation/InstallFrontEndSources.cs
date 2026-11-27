@@ -16,7 +16,7 @@ public sealed class InstallFrontEndSources : IFrontEndMenuSources, IDisposable
 {
     private readonly WadImageSource _images;
     private readonly WadDirectoryIndex _imageIndex;
-    private readonly Dictionary<string, RgbaImage> _pixels = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, RgbaImage> _pixels = new Dictionary<string, RgbaImage>(StringComparer.Ordinal);
 
     /// <param name="decodePng">Decodes a FrontEnd.WAD PNG to top-down RGBA rows.</param>
     public InstallFrontEndSources(string install, Func<byte[], RgbaImage> decodePng)

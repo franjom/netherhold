@@ -43,7 +43,7 @@ public static class MinimapHeartTrail
             int px = 64 + ax / 256, py = 64 + ay / 256;
             if (px > 0 && px < 128 && py > 0 && py < 128)
             {
-                output[written++] = new(px, py);
+                output[written++] = new MinimapRasterPoint(px, py);
             }
 
             ax = unchecked(ax - nx * 4); ay = unchecked(ay - ny * 4);

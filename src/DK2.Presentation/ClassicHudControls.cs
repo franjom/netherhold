@@ -21,7 +21,7 @@ public enum ClassicSessionAction : byte { None, Restart, ReturnToMenu, Quit }
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/minimap-controls.md")]
 public sealed class ClassicHudControls
 {
-    public SoundRequests Sounds { get; } = new();
+    public SoundRequests Sounds { get; } = new SoundRequests();
     public bool GuiVisible { get; private set; } = true;
     public bool OptionsVisible { get; private set; }
     public ClassicOptionsPage OptionsPage { get; private set; }
@@ -117,7 +117,7 @@ public sealed class ClassicHudControls
     /// while nothing modal is open.</summary>
     public HudVisibility ModalInput(HudVisibility hud)
     {
-        return new(hud.ShowNormalHud, hud.AllowOrdinaryInput && !Modal);
+        return new HudVisibility(hud.ShowNormalHud, hud.AllowOrdinaryInput && !Modal);
     }
 
     /// <summary>The context the HUD shortcuts are read in (<see cref="GameBindingInput.HudShortcut"/>).</summary>
@@ -126,7 +126,7 @@ public sealed class ClassicHudControls
     /// <param name="capturingKey">A key binding is being captured on the controls page.</param>
     public GameShortcutContext ShortcutContext(HudVisibility camera, bool allowOptionsKey, bool capturingKey)
     {
-        return new()
+        return new GameShortcutContext()
         {
             OrdinaryInput = camera.AllowOrdinaryInput && !InputSuppressed,
             AllowOptionsKey = allowOptionsKey,
@@ -305,7 +305,7 @@ public sealed class ClassicHudControls
     }
     public HudVisibility Visibility(HudVisibility camera)
     {
-        return new(camera.ShowNormalHud && GuiVisible && !FullMapVisible, camera.AllowOrdinaryInput && !InputSuppressed);
+        return new HudVisibility(camera.ShowNormalHud && GuiVisible && !FullMapVisible, camera.AllowOrdinaryInput && !InputSuppressed);
     }
 }
 

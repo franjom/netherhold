@@ -76,6 +76,6 @@ public readonly record struct TerrainMaterialKey(
     /// <summary>The additive overlay drawn again over a tagged (<paramref name="red"/> false) or red-highlighted piece.</summary>
     public static TerrainMaterialKey Overlay(bool red)
     {
-        return new(default, red ? TerrainMaterialVariant.RedTagOverlay : TerrainMaterialVariant.TagOverlay);
+        return new TerrainMaterialKey(default, red ? TerrainMaterialVariant.RedTagOverlay : TerrainMaterialVariant.TagOverlay);
     }
 }

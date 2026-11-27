@@ -71,12 +71,12 @@ public sealed class ClassicCamera
     }
 
     /// <summary>The reset camera's yaw, preserved on entry to dungeon mode (classic-camera.md section4).</summary>
-    public static readonly Dk2Angle LevelStartYaw = new(256);
+    public static readonly Dk2Angle LevelStartYaw = new Dk2Angle(256);
 
     /// <summary>Startup command7's requested focus, before active-bound clamping (classic-camera.md section4).</summary>
     public static Vector3 LevelStartFocus(TilePos tile)
     {
-        return new(tile.X + .5f, 1f, -tile.Y - .5f);
+        return new Vector3(tile.X + .5f, 1f, -tile.Y - .5f);
     }
 
     /// <summary>The level's starting focus for a viewer comes from the player record's camera
@@ -166,7 +166,7 @@ public sealed class ClassicCamera
     /// <summary>The camera's own values at <paramref name="focus"/>, as a timed move starts from them.</summary>
     public CameraFlightState State(Vector3 focus)
     {
-        return new(
+        return new CameraFlightState(
         (int)MathF.Round(focus.X * Fp32.One), (int)MathF.Round(-focus.Z * Fp32.One), (int)MathF.Round(focus.Y * Fp32.One),
         Zoom.Raw, _profile.Lens, _profile.ViewDistance, _yaw.Value, _profile.AnglePitch, _profile.AngleRoll);
     }
@@ -177,7 +177,7 @@ public sealed class ClassicCamera
     /// preset's pitch, roll, lens and view distance. The focus height is the caller's; DK2 takes the preset's.</summary>
     public CameraFlightState Return(in CameraFlightState from, int focusHeight)
     {
-        return new(
+        return new CameraFlightState(
         from.X, from.Y, focusHeight, Zoom.Raw, _profile.Lens, _profile.ViewDistance,
         (from.Yaw + 4) & 0xFFF8, _profile.AnglePitch, _profile.AngleRoll);
     }
@@ -248,6 +248,6 @@ public sealed class ClassicCamera
 
     private static Vector3 ToUnity(Vector3 engine)
     {
-        return new(engine.X, -engine.Z, -engine.Y);
+        return new Vector3(engine.X, -engine.Z, -engine.Y);
     }
 }

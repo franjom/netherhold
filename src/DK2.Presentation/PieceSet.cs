@@ -88,13 +88,13 @@ public readonly struct PieceSet : IEquatable<PieceSet>
 
     internal PieceSet WithQuarter(int quadrant, int piece, int rotation)
     {
-        return new(_bits | (1ul << (PresentShift + Quadrant(quadrant)))
+        return new PieceSet(_bits | (1ul << (PresentShift + Quadrant(quadrant)))
             | ((ulong)((piece & 0xF) | ((rotation & 3) << 4)) << (6 * quadrant)));
     }
 
     internal PieceSet WithWhole(int piece, int rotation)
     {
-        return new(_bits | WholeBit | ((ulong)((piece & 0xF) | ((rotation & 3) << 4)) << WholeShift));
+        return new PieceSet(_bits | WholeBit | ((ulong)((piece & 0xF) | ((rotation & 3) << 4)) << WholeShift));
     }
 
     private static int Quadrant(int quadrant)

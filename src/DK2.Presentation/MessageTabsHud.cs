@@ -34,7 +34,7 @@ public sealed class MessageTabsHud
     ];
     private static readonly string[] HighDigits = DigitNames("GUI\\Icons\\i-"), LowDigits = DigitNames("GUI\\Icons\\lo-");
     // Menu33's own background is unread: a translucent dark pane, as before.
-    private static readonly HudColor ObjectivePane = new(20, 20, 20, 153);
+    private static readonly HudColor ObjectivePane = new HudColor(20, 20, 20, 153);
 
     private readonly IBottomPanelArt _art;
     private readonly MessageTabsView _view;
@@ -44,9 +44,9 @@ public sealed class MessageTabsHud
     private readonly Func<PlayerMessage, (float X, float Y)?>? _locate;
     private readonly Action<float, float>? _goTo;
     private readonly Func<byte, string>? _playerName;
-    private readonly TextScrollBar _bar = new();
-    private readonly List<(HudImage Image, HudRect Rect)> _indicatorArt = new(), _digits = new();
-    private readonly List<(int Action, HudRect Rect)> _hits = new();
+    private readonly TextScrollBar _bar = new TextScrollBar();
+    private readonly List<(HudImage Image, HudRect Rect)> _indicatorArt = new List<(HudImage Image, HudRect Rect)>(), _digits = new List<(HudImage Image, HudRect Rect)>();
+    private readonly List<(int Action, HudRect Rect)> _hits = new List<(int Action, HudRect Rect)>();
 
     private HudScreen _screen;
     private bool _objectiveHovered, _objectiveOpen, _optionsOpen, _visible = true, _allowInput = true;

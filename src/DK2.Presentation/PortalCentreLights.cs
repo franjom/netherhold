@@ -20,11 +20,11 @@ public sealed class PortalCentreLights
         public readonly TilePos Tile = tile;
         public int Phase = 1;
         public bool Rising = true;
-        public TerrainLightColour Colour = new(255, 33, 26);
+        public TerrainLightColour Colour = new TerrainLightColour(255, 33, 26);
     }
 
-    private readonly List<Source> _sources = new();
-    private readonly List<PortalLightView> _lights = new();
+    private readonly List<Source> _sources = new List<Source>();
+    private readonly List<PortalLightView> _lights = new List<PortalLightView>();
     private long _anchorMilliseconds;
 
     public PortalCentreLights(EffectTime start)
@@ -52,7 +52,7 @@ public sealed class PortalCentreLights
             {
                 int q = source.Phase;
                 // The native bit4 pulse swaps the stored green and blue (0x0043A2E0).
-                source.Colour = new((byte)(255 * q >> 8), (byte)(26 * q >> 8), (byte)(33 * q >> 8));
+                source.Colour = new TerrainLightColour((byte)(255 * q >> 8), (byte)(26 * q >> 8), (byte)(33 * q >> 8));
                 source.Phase += source.Rising ? 10 : -10;
                 if (source.Phase > 249)
                 {

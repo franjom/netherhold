@@ -20,11 +20,11 @@ public sealed class LevelSoundDriver
     private readonly ClassicSoundMixer _mixer;
     private readonly PlayerId _viewer;
     private readonly GameDatabase _database;
-    private readonly MusicDirector _musicDirector = new();
-    private readonly SoundCategoryNames _categories = new();
+    private readonly MusicDirector _musicDirector = new MusicDirector();
+    private readonly SoundCategoryNames _categories = new SoundCategoryNames();
     private readonly SoundCategory _heartCategory;
     private readonly string[] _ambienceCells = new string[AmbienceGrid.Side * AmbienceGrid.Side];
-    private readonly List<AmbienceGrid.Emitter> _ambienceEmitters = new();
+    private readonly List<AmbienceGrid.Emitter> _ambienceEmitters = new List<AmbienceGrid.Emitter>();
     private readonly Func<string, bool> _hasAmbience;
     private ScriptedViewDirector? _scriptedView;
     private MusicFrame _musicFrame;
@@ -62,7 +62,7 @@ public sealed class LevelSoundDriver
 
     public static SoundCategory LevelSpeechCategory(GameDatabase database)
     {
-        return new((database ?? throw new ArgumentNullException(nameof(database))).Level?.SoundCategory.ToLowerInvariant()
+        return new SoundCategory((database ?? throw new ArgumentNullException(nameof(database))).Level?.SoundCategory.ToLowerInvariant()
             ?? SoundCategory.Mentor.Name);
     }
 

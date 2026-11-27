@@ -48,11 +48,11 @@ public readonly record struct ClassicInstancePointLight
             return default;
         }
 
-        Vector3 direction = new(
+        var direction = new Vector3(
             directionTransform.M11 * toLight.X + directionTransform.M12 * toLight.Y + directionTransform.M13 * toLight.Z,
             directionTransform.M21 * toLight.X + directionTransform.M22 * toLight.Y + directionTransform.M23 * toLight.Z,
             directionTransform.M31 * toLight.X + directionTransform.M32 * toLight.Y + directionTransform.M33 * toLight.Z);
-        return new(direction, source.Colour, source.Intensity, attenuation);
+        return new ClassicInstancePointLight(direction, source.Colour, source.Intensity, attenuation);
     }
 
     public Vector3 ContributionAt(Vector3 vertexDisplacement, Vector3 normal)

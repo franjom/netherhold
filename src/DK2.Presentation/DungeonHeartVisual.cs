@@ -20,7 +20,7 @@ public readonly record struct DungeonHeartVisual(Fp32 PhaseStep, Fp32 VerticalSc
         int duration = (int)((long)(70 * Fp32.One) * 4 * Fp32.One / (fps * Fp32.One));
         int step = (int)Math.Min(Fp32.One - 1, (long)Fp32.One * Fp32.One / duration);
         int scalePercent = stage <= 10 ? 100 + stage * 5 : 150 - (stage - 10) * 12;
-        return new(new Fp32(step), new Fp32(scalePercent * Fp32.One / 100),
+        return new DungeonHeartVisual(new Fp32(step), new Fp32(scalePercent * Fp32.One / 100),
             new Fp32(Math.Min(Fp32.One - 1, (100 - percent) * Fp32.One / 100)));
     }
 

@@ -29,7 +29,7 @@ public sealed record GameSessionRequest
 
     public static GameSessionRequest FrontEnd(FrontEndPage returnPage = FrontEndPage.None)
     {
-        return new(GameSessionMode.FrontEnd, "FrontEnd3DLevel", returnPage);
+        return new GameSessionRequest(GameSessionMode.FrontEnd, "FrontEnd3DLevel", returnPage);
     }
 
     public static GameSessionRequest Restart(GameSessionRequest current)
@@ -55,7 +55,7 @@ public sealed record GameSessionRequest
             throw new ArgumentException("A level needs a plain map name, without a path or extension.", nameof(levelName));
         }
 
-        return new(GameSessionMode.Campaign, levelName, returnPage);
+        return new GameSessionRequest(GameSessionMode.Campaign, levelName, returnPage);
     }
 
     /// <summary>Loads the terrain from a save path, with the install's save directory as a fallback for relative paths.</summary>
@@ -88,7 +88,7 @@ public sealed record GameSessionRequest
 
     private static GameSessionRequest ForTerrain(string levelName, LevelMap terrain)
     {
-        return new(GameSessionMode.ImportedTerrain, levelName, FrontEndPage.None) { ImportedTerrain = terrain };
+        return new GameSessionRequest(GameSessionMode.ImportedTerrain, levelName, FrontEndPage.None) { ImportedTerrain = terrain };
     }
 
     /// <summary>The session the options menu's confirmed entry requests

@@ -10,7 +10,7 @@ namespace DK2.Presentation;
 /// <summary>The native persisted graphics-setting word, distinct from normalized renderer RGB.</summary>
 public readonly record struct ClassicAmbientSetting(int Raw)
 {
-    public static readonly ClassicAmbientSetting Default = new(512);
+    public static readonly ClassicAmbientSetting Default = new ClassicAmbientSetting(512);
 }
 
 /// <summary>Command87's ambient-key update; see classic-lighting.md section8.</summary>

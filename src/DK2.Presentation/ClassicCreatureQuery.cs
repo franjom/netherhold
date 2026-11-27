@@ -14,7 +14,7 @@ public readonly record struct CreatureQueryTarget(int Value)
     {
         get
         {
-            return new(0);
+            return new CreatureQueryTarget(0);
         }
     }
 }
@@ -24,7 +24,7 @@ public readonly record struct CreatureQuerySnapshot(CreatureQueryTarget Target,s
     {
         get
         {
-            return new(CreatureQueryTarget.None, "", default);
+            return new CreatureQuerySnapshot(CreatureQueryTarget.None, "", default);
         }
     }
 }
@@ -33,7 +33,7 @@ public static class ClassicCreatureQueryRules
 {
     public static Dk2Angle FollowHeading(Dk2Angle yaw)
     {
-        return new((ushort)(yaw.Value % 64));
+        return new Dk2Angle((ushort)(yaw.Value % 64));
     }
 
     /// <summary>Whether the camera follows the queried creature this frame: the query tool holds a target, no camera path
@@ -63,7 +63,7 @@ public sealed class ClassicCreatureQuery
     private readonly GameDatabase _database;
     private readonly Func<uint,string> _resolve;
     private readonly PlayerId _viewer;
-    private readonly Dictionary<int,string> _tokens = new();
+    private readonly Dictionary<int,string> _tokens = new Dictionary<int, string>();
     private readonly record struct Facts(CreatureQueryTarget Target,PlayerId Owner,byte Type,int Level,int Gold,string Name,string Blood);
     private Facts? _previous;
     private CreatureQuerySnapshot _snapshot=CreatureQuerySnapshot.Empty;
@@ -74,11 +74,11 @@ public sealed class ClassicCreatureQuery
         CreatureState? creature=world.CreatureById(target.Value);
         if (target==CreatureQueryTarget.None || creature==null || !CreatureStateMachine.HasState(creature))
         { _previous=null; return _snapshot=CreatureQuerySnapshot.Empty; }
-        var position=new FpPosition3(new(creature.PosX),new(creature.PosY),new(creature.PosZ));
+        var position=new FpPosition3(new Fp32(creature.PosX),new Fp32(creature.PosY),new Fp32(creature.PosZ));
         var facts=new Facts(target,creature.OwnerPlayerId,creature.CreatureTypeId,creature.Level,creature.GoldHeld,resolvedName,resolvedBlood);
         if (_previous==facts)
         {
-            return _snapshot=new(target,_snapshot.Text,position);
+            return _snapshot=new CreatureQuerySnapshot(target,_snapshot.Text,position);
         }
 
         _previous =facts;
@@ -89,6 +89,6 @@ public sealed class ClassicCreatureQuery
         uint template=creature.OwnerPlayerId==PlayerIds.Good?0x96Cu:creature.OwnerPlayerId==PlayerIds.Neutral?0x96Fu
             :creature.OwnerPlayerId!=_viewer?0:((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny)?0xAE9u:0x969u;
         string text=template==0?"":WorldHoverText.Substitute(_resolve(template),_tokens);
-        return _snapshot=new(target,text,position);
+        return _snapshot=new CreatureQuerySnapshot(target,text,position);
     }
 }

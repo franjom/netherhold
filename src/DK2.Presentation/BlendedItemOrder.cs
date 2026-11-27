@@ -21,11 +21,11 @@ public enum BlendedItemBlend : byte
 /// every box.</summary>
 public readonly record struct BlendedItemRect(float MinX, float MinY, float MaxX, float MaxY)
 {
-    public static readonly BlendedItemRect Everywhere = new(float.NegativeInfinity, float.NegativeInfinity,
+    public static readonly BlendedItemRect Everywhere = new BlendedItemRect(float.NegativeInfinity, float.NegativeInfinity,
         float.PositiveInfinity, float.PositiveInfinity);
 
     /// <summary>Nothing: the start of a union.</summary>
-    public static readonly BlendedItemRect Nowhere = new(float.PositiveInfinity, float.PositiveInfinity,
+    public static readonly BlendedItemRect Nowhere = new BlendedItemRect(float.PositiveInfinity, float.PositiveInfinity,
         float.NegativeInfinity, float.NegativeInfinity);
 
     public bool Overlaps(in BlendedItemRect other)
@@ -62,7 +62,7 @@ public readonly record struct BlendedItemRect(float MinX, float MinY, float MaxX
 
     public BlendedItemRect Union(in BlendedItemRect other)
     {
-        return new(Math.Min(MinX, other.MinX), Math.Min(MinY, other.MinY),
+        return new BlendedItemRect(Math.Min(MinX, other.MinX), Math.Min(MinY, other.MinY),
         Math.Max(MaxX, other.MaxX), Math.Max(MaxY, other.MaxY));
     }
 }
@@ -103,7 +103,7 @@ public sealed class BlendedItemOrder
     private int[] _segmentOf = [], _items = [], _fill = [];
     private Draw[] _draws = [];
     private int _drawCount;
-    private readonly List<BlendedItemSegment> _segments = new();
+    private readonly List<BlendedItemSegment> _segments = new List<BlendedItemSegment>();
 
     private readonly struct Entry(int index, int batch, float distance, BlendedItemBlend blend, in BlendedItemRect rect)
     {
@@ -138,7 +138,7 @@ public sealed class BlendedItemOrder
     {
         get
         {
-            return new(_items, 0, _count);
+            return new ReadOnlySpan<int>(_items, 0, _count);
         }
     }
 

@@ -13,7 +13,7 @@ namespace DK2.Presentation;
 /// view, which the frame reads meanwhile.</summary>
 public sealed class DeferredEventSink(ISimulationEventSink downstream) : ISimulationEventSink
 {
-    private readonly ConcurrentQueue<SimEvent> _pending = new();
+    private readonly ConcurrentQueue<SimEvent> _pending = new ConcurrentQueue<SimEvent>();
 
     public void Emit(in SimEvent simEvent)
     {

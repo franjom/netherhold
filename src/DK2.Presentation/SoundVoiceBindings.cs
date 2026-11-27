@@ -20,7 +20,7 @@ public readonly record struct SoundVoiceId(uint Value)
 /// <summary>Tracks exclusive ownership of pooled sources; assigning a source always revokes its old voice.</summary>
 public sealed class SoundVoiceBindings<TSource> where TSource : class
 {
-    private readonly Dictionary<SoundVoiceId, (SoundId Sound, SoundPriority Priority, TSource Source)> _voices = new();
+    private readonly Dictionary<SoundVoiceId, (SoundId Sound, SoundPriority Priority, TSource Source)> _voices = new Dictionary<SoundVoiceId, (SoundId Sound, SoundPriority Priority, TSource Source)>();
     public void Assign(SoundVoiceId voice, SoundId sound, TSource source, SoundPriority priority = default)
     {
         SoundVoiceId? previous = null;

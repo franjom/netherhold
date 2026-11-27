@@ -63,7 +63,7 @@ public static class KeeperResourceInteraction
 
     public static GoldAmount WithdrawAmount(KeeperResourceModifiers modifiers)
     {
-        return new(modifiers switch
+        return new GoldAmount(modifiers switch
         {
             KeeperResourceModifiers.Shift => 1000,
             KeeperResourceModifiers.Control => 10000,
@@ -73,7 +73,7 @@ public static class KeeperResourceInteraction
 
     public static WithdrawCounterGoldCommand Withdraw(PlayerId player, KeeperResourceModifiers modifiers)
     {
-        return new(player, WithdrawAmount(modifiers));
+        return new WithdrawCounterGoldCommand(player, WithdrawAmount(modifiers));
     }
 
     public static HoverTextSnapshot ResourceHover(KeeperResourceSnapshot snapshot, KeeperResourceKind kind,

@@ -18,8 +18,8 @@ public sealed class InstallCreatureOverviewArt
     private readonly Func<string, RgbaImage> _image;
     private readonly Func<uint, string> _text;
     private readonly GameDatabase _database;
-    private readonly Dictionary<byte, string> _portraits = new();
-    private readonly Dictionary<byte, int> _order = new();
+    private readonly Dictionary<byte, string> _portraits = new Dictionary<byte, string>();
+    private readonly Dictionary<byte, int> _order = new Dictionary<byte, int>();
 
     /// <param name="install">The install directory.</param>
     /// <param name="image">A HUD catalogue image by name.</param>

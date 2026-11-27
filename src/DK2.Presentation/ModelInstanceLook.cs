@@ -17,18 +17,18 @@ namespace DK2.Presentation;
 public readonly record struct ModelInstanceLook(Vector3 Tint, float Alpha)
 {
     /// <summary>Neither tinted nor faded: a creature, a torch, a lock, a plan.</summary>
-    public static readonly ModelInstanceLook None = new(Vector3.Zero, 1f);
+    public static readonly ModelInstanceLook None = new ModelInstanceLook(Vector3.Zero, 1f);
 
     /// <summary>An object at its terrain tint (an object view's added light) and its alpha (object <c>+0x8F</c>).</summary>
     public static ModelInstanceLook Object(TerrainLightColour tint, byte alpha)
     {
-        return new(ObjectMaterialLook.TintLight(tint), ObjectMaterialLook.FadeAlpha(alpha));
+        return new ModelInstanceLook(ObjectMaterialLook.TintLight(tint), ObjectMaterialLook.FadeAlpha(alpha));
     }
 
     /// <summary>A structure at its RenderInfo tint, or nothing when its plan replaces its looks.</summary>
     public static ModelInstanceLook Structure(byte instanceTint, bool plan)
     {
-        return plan ? None : new(ObjectMaterialLook.InstanceTintLight(instanceTint, instanceTint, instanceTint), 1f);
+        return plan ? None : new ModelInstanceLook(ObjectMaterialLook.InstanceTintLight(instanceTint, instanceTint, instanceTint), 1f);
     }
 
     /// <summary>Whether the model fades: its looks blend (<see cref="Shape"/>).</summary>

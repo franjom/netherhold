@@ -22,7 +22,7 @@ public sealed class FrontEndMenuController : IDisposable
     public CampaignMapController? Campaign { get; }
     public OptionsPagesController? Options { get; }
     private readonly Func<FrontEndWidget, FrontEndRect> _hitBounds;
-    private readonly Dictionary<FrontEndWidgetId, HoverState> _hover = new();
+    private readonly Dictionary<FrontEndWidgetId, HoverState> _hover = new Dictionary<FrontEndWidgetId, HoverState>();
     private FrontEndWidgetId? _underPointer;
     private bool _held;
     public FrontEndMenuController(FrontEndSession session, Func<FrontEndWidget, FrontEndRect> hitBounds, CampaignMapController? campaign = null, OptionsPagesController? options = null)
@@ -51,12 +51,12 @@ public sealed class FrontEndMenuController : IDisposable
 
     public event Action? QuitRequested;
     public event Action<FrontEndSoundRequest>? SoundRequested;
-    public SoundRequests Sounds { get; } = new();
+    public SoundRequests Sounds { get; } = new SoundRequests();
 
     private void RequestSound(int id, SoundCategory category)
     {
         Sounds.Add(new SoundRequest(category, new SoundId((uint)id)));
-        SoundRequested?.Invoke(new(id));
+        SoundRequested?.Invoke(new FrontEndSoundRequest(id));
     }
     public FrontEndMovieGallery? Movies { get; private set; }
     public event Action<string>? MovieRequested;
@@ -106,7 +106,7 @@ public sealed class FrontEndMenuController : IDisposable
     public FrontEndWidgetState State(FrontEndWidget widget)
     {
         int fade = _hover.TryGetValue(widget.Id, out HoverState? state) ? state.Fade : -1;
-        return new(IsEnabled(widget), _underPointer == widget.Id, _underPointer == widget.Id && _held,
+        return new FrontEndWidgetState(IsEnabled(widget), _underPointer == widget.Id, _underPointer == widget.Id && _held,
             fade > 0 ? Math.Min(fade - 1, 3) : -1);
     }
 
@@ -204,7 +204,7 @@ public sealed class FrontEndMenuController : IDisposable
         if (Page == FrontEndPage.Load)
         {
             if (id.Value == 73) { LoadRequested?.Invoke(Saves!.Selected!.Path); return true; }
-            return _session.TryTransition(new(FrontEndPath.MultiplayerToEntry, FrontEndState.ReturnSinglePlayer));
+            return _session.TryTransition(new FrontEndTransition(FrontEndPath.MultiplayerToEntry, FrontEndState.ReturnSinglePlayer));
         }
         if (Campaign is not null)
         {
@@ -240,7 +240,7 @@ public sealed class FrontEndMenuController : IDisposable
                     return Campaign.StartNew();
                 }
 
-                Dialog = new(140, 2847, FrontEndPage.SinglePlayer, FrontEndDialogKind.ResetCampaign, 15);
+                Dialog = new FrontEndDialog(140, 2847, FrontEndPage.SinglePlayer, FrontEndDialogKind.ResetCampaign, 15);
                 return _session.TryShowPage(FrontEndPage.Dialog);
             }
         }
@@ -262,11 +262,11 @@ public sealed class FrontEndMenuController : IDisposable
         {
             FrontEndTransition? transition = action.Arguments.Command switch
             {
-                5 => new(FrontEndPath.EntryToOptions, FrontEndState.OptionsReady),
-                6 => new(FrontEndPath.EntryToExtras, FrontEndState.ExtrasReady),
-                7 when Saves is not null => new(FrontEndPath.EntryToMultiplayer, FrontEndState.LoadReady),
-                15 => new(FrontEndPath.OptionsToEntry, FrontEndState.ReturnMain),
-                16 => new(FrontEndPath.ExtrasToEntry, FrontEndState.ReturnMain),
+                5 => new FrontEndTransition(FrontEndPath.EntryToOptions, FrontEndState.OptionsReady),
+                6 => new FrontEndTransition(FrontEndPath.EntryToExtras, FrontEndState.ExtrasReady),
+                7 when Saves is not null => new FrontEndTransition(FrontEndPath.EntryToMultiplayer, FrontEndState.LoadReady),
+                15 => new FrontEndTransition(FrontEndPath.OptionsToEntry, FrontEndState.ReturnMain),
+                16 => new FrontEndTransition(FrontEndPath.ExtrasToEntry, FrontEndState.ReturnMain),
                 _ => null,
             };
             if (transition.HasValue)
@@ -276,7 +276,7 @@ public sealed class FrontEndMenuController : IDisposable
 
             if (action.Arguments.Command == 8)
             {
-                Dialog = new(28, 15, FrontEndPage.Main);
+                Dialog = new FrontEndDialog(28, 15, FrontEndPage.Main);
                 return _session.TryShowPage(FrontEndPage.Dialog);
             }
         }
@@ -305,7 +305,7 @@ public sealed class FrontEndMenuController : IDisposable
     {
         if (!_hover.TryGetValue(id, out HoverState? state))
         {
-            _hover.Add(id, state = new());
+            _hover.Add(id, state = new HoverState());
         }
 
         return state;

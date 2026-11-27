@@ -28,7 +28,7 @@ public static class ClassicFullMapMarkers
             return false;
         }
 
-        marker = new(MinimapMarkerKind.FullMapRoom,
+        marker = new MinimapMarker(MinimapMarkerKind.FullMapRoom,
             new FpPosition3(new Fp32(centre.X * Fp32.One), new Fp32(centre.Y * Fp32.One), default),
             0xffffffff, RoomType: roomType);
         return true;
@@ -43,7 +43,7 @@ public static class ClassicFullMapMarkers
             return false;
         }
 
-        marker = new(MinimapMarkerKind.FullMapCreature, position, palette.Colours[17 + owner.Value]);
+        marker = new MinimapMarker(MinimapMarkerKind.FullMapCreature, position, palette.Colours[17 + owner.Value]);
         return true;
     }
 }

@@ -46,14 +46,14 @@ public static class PoseInterpolator
 
     public static DrawPoint Position(in CreatureView pose, float fraction)
     {
-        return new(
+        return new DrawPoint(
         Tiles(pose.PreviousPosX, pose.PosX, fraction), Tiles(pose.PreviousPosY, pose.PosY, fraction),
         Tiles(pose.PreviousHeight, pose.Height, fraction));
     }
 
     public static DrawPoint Position(in ObjectView pose, float fraction)
     {
-        return new(
+        return new DrawPoint(
         Tiles(pose.PreviousPosX, pose.PosX, fraction), Tiles(pose.PreviousPosY, pose.PosY, fraction),
         Tiles(pose.PreviousHeight, pose.Height, fraction));
     }

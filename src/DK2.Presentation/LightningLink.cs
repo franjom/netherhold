@@ -27,7 +27,7 @@ public sealed class LightningLink(ProceduralArtKind kind)
     {
         if (_kind == ProceduralArtKind.FixedLightning)
         {
-            return new(shotPoint, shotPoint with { Z = new(Fp32.One) }, 1);
+            return new LightningEndpoints(shotPoint, shotPoint with { Z = new Fp32(Fp32.One) }, 1);
         }
 
         if (_kind is not (ProceduralArtKind.Lightning or ProceduralArtKind.TripleLightning) || !_linked)
@@ -47,7 +47,7 @@ public sealed class LightningLink(ProceduralArtKind kind)
                 _casterLinkCleared = true;
             }
         }
-        return new(shotPoint, target.BasePoint, _kind == ProceduralArtKind.TripleLightning ? 3 : 1);
+        return new LightningEndpoints(shotPoint, target.BasePoint, _kind == ProceduralArtKind.TripleLightning ? 3 : 1);
     }
 }
 
@@ -58,7 +58,7 @@ public sealed class CreatureLightningVisual
     private bool _crackle;
     public void Ignite(GameTick tick)
     {
-        _expiresAt = new(tick.Value + 20);
+        _expiresAt = new GameTick(tick.Value + 20);
     }
 
     public bool Choose(GameTick tick, bool animationInstalled)

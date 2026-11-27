@@ -18,18 +18,18 @@ public static class TileHoverOutline
     public const float Radius = .03f, BluePeak = .61328125f;
     private static readonly TileHoverSegment[] Segments =
     [
-        new(0,1,(TileHoverEdges)1), new(1,2,(TileHoverEdges)1),
-        new(18,19,(TileHoverEdges)17), new(19,20,(TileHoverEdges)17),
-        new(2,5,(TileHoverEdges)8), new(5,8,(TileHoverEdges)8),
-        new(20,23,(TileHoverEdges)24), new(23,26,(TileHoverEdges)24),
-        new(6,7,(TileHoverEdges)2), new(7,8,(TileHoverEdges)2),
-        new(24,25,(TileHoverEdges)18), new(25,26,(TileHoverEdges)18),
-        new(0,3,(TileHoverEdges)4), new(3,6,(TileHoverEdges)4),
-        new(18,21,(TileHoverEdges)20), new(21,24,(TileHoverEdges)20),
-        new(0,9,(TileHoverEdges)21), new(9,18,(TileHoverEdges)21),
-        new(2,11,(TileHoverEdges)25), new(11,20,(TileHoverEdges)25),
-        new(8,17,(TileHoverEdges)26), new(17,26,(TileHoverEdges)26),
-        new(6,15,(TileHoverEdges)22), new(15,24,(TileHoverEdges)22),
+        new TileHoverSegment(0,1,(TileHoverEdges)1), new TileHoverSegment(1,2,(TileHoverEdges)1),
+        new TileHoverSegment(18,19,(TileHoverEdges)17), new TileHoverSegment(19,20,(TileHoverEdges)17),
+        new TileHoverSegment(2,5,(TileHoverEdges)8), new TileHoverSegment(5,8,(TileHoverEdges)8),
+        new TileHoverSegment(20,23,(TileHoverEdges)24), new TileHoverSegment(23,26,(TileHoverEdges)24),
+        new TileHoverSegment(6,7,(TileHoverEdges)2), new TileHoverSegment(7,8,(TileHoverEdges)2),
+        new TileHoverSegment(24,25,(TileHoverEdges)18), new TileHoverSegment(25,26,(TileHoverEdges)18),
+        new TileHoverSegment(0,3,(TileHoverEdges)4), new TileHoverSegment(3,6,(TileHoverEdges)4),
+        new TileHoverSegment(18,21,(TileHoverEdges)20), new TileHoverSegment(21,24,(TileHoverEdges)20),
+        new TileHoverSegment(0,9,(TileHoverEdges)21), new TileHoverSegment(9,18,(TileHoverEdges)21),
+        new TileHoverSegment(2,11,(TileHoverEdges)25), new TileHoverSegment(11,20,(TileHoverEdges)25),
+        new TileHoverSegment(8,17,(TileHoverEdges)26), new TileHoverSegment(17,26,(TileHoverEdges)26),
+        new TileHoverSegment(6,15,(TileHoverEdges)22), new TileHoverSegment(15,24,(TileHoverEdges)22),
     ];
 
     public static void Grid(TilePos tile, Span<Vector3> points)
@@ -45,7 +45,7 @@ public static class TileHoverOutline
             {
                 for (int column = 0; column < 3; column++)
                 {
-                    points[layer * 9 + row * 3 + column] = new(tile.X + column * .5f, tile.Y + row * .5f, -2.05f + layer * .5f);
+                    points[layer * 9 + row * 3 + column] = new Vector3(tile.X + column * .5f, tile.Y + row * .5f, -2.05f + layer * .5f);
                 }
             }
         }
@@ -134,7 +134,7 @@ public static class TileHoverOutline
     /// <summary>Unity's <c>Vector3.Cross</c>, component by component, so the ribbon keeps Unity's floats.</summary>
     private static Vector3 Cross(Vector3 l, Vector3 r)
     {
-        return new(l.Y * r.Z - l.Z * r.Y, l.Z * r.X - l.X * r.Z, l.X * r.Y - l.Y * r.X);
+        return new Vector3(l.Y * r.Z - l.Z * r.Y, l.Z * r.X - l.X * r.Z, l.X * r.Y - l.Y * r.X);
     }
 
     /// <summary>Unity's <c>Vector3.normalized</c>: zero at a length of 1e-5 or less (an eye on the segment's line).</summary>
@@ -185,7 +185,7 @@ public sealed class TileHoverRibbon
     /// <summary>The ribbon's additive RGB, 0 to 1.</summary>
     public Vector3 Colour { get; internal set; }
 
-    internal TileHoverPulse Pulse { get; } = new();
+    internal TileHoverPulse Pulse { get; } = new TileHoverPulse();
     internal long LastMilliseconds { get; set; }
     internal Vector3[] Grid { get; } = new Vector3[27];
     internal Vector3[] Points { get; } = new Vector3[27];

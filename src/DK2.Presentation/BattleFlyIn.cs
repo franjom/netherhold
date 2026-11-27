@@ -34,8 +34,8 @@ public sealed class BattleFlyIn
     /// <summary>The start and end sounds, in GUI sound slot 15's category.</summary>
     public const uint StartSound = 0x32B, EndSound = 0x32C;
 
-    private static readonly SoundCategory Category = new("gui_button_tab_new_combat");
-    private readonly RewardTablet _tablet = new(endScale: 0, holdMilliseconds: 0);
+    private static readonly SoundCategory Category = new SoundCategory("gui_button_tab_new_combat");
+    private readonly RewardTablet _tablet = new RewardTablet(endScale: 0, holdMilliseconds: 0);
 
     public BattleFlyIn() { }
 
@@ -55,7 +55,7 @@ public sealed class BattleFlyIn
         }
     }
 
-    public SoundRequests Sounds { get; } = new();
+    public SoundRequests Sounds { get; } = new SoundRequests();
 
     /// <summary><c>0x0042C0D0</c>: refused while one runs; else the start sound, the latch and the
     /// tablet at <paramref name="startX"/>, <paramref name="startY"/> bound for the blades' centre.</summary>

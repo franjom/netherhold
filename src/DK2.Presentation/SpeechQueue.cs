@@ -10,7 +10,7 @@ namespace DK2.Presentation;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/mentor-speech-and-notifications.md#2-the-speech-queue")]
 public sealed class SpeechQueue
 {
-    private readonly Queue<SoundRequest> _waiting = new();
+    private readonly Queue<SoundRequest> _waiting = new Queue<SoundRequest>();
     private long? _lastEndedMilliseconds;
     public SoundRequest? Current { get; private set; }
     public int WaitingCount

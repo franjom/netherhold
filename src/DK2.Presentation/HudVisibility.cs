@@ -12,7 +12,7 @@ public readonly record struct CameraModeId(ushort Value)
     {
         get
         {
-            return new(3);
+            return new CameraModeId(3);
         }
     }
 
@@ -20,7 +20,7 @@ public readonly record struct CameraModeId(ushort Value)
     {
         get
         {
-            return new(10);
+            return new CameraModeId(10);
         }
     }
 
@@ -28,7 +28,7 @@ public readonly record struct CameraModeId(ushort Value)
     {
         get
         {
-            return new(18);
+            return new CameraModeId(18);
         }
     }
 
@@ -89,7 +89,7 @@ public static class HudVisibilityRules
     public static HudVisibility ForCamera(CameraModeId mode, int letterboxRequests, bool cameraInputBlocked = false)
     {
         bool letterboxAllowsHud = letterboxRequests == 0 || mode.IsPossession;
-        return new(mode != CameraModeId.ScriptedPath && letterboxAllowsHud,
+        return new HudVisibility(mode != CameraModeId.ScriptedPath && letterboxAllowsHud,
             !cameraInputBlocked && !mode.BlocksOrdinaryInput && letterboxAllowsHud);
     }
 }

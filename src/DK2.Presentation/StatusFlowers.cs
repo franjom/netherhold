@@ -416,11 +416,11 @@ public sealed class StatusFlowers
 {
     private readonly GameDatabase _database;
     private readonly PlayerId _viewer;
-    private readonly List<StatusFlower> _shown = new();
-    private readonly Dictionary<int, GameTick> _hoverUntil = new();
-    private readonly Dictionary<int, HealthWatch> _health = new();
-    private readonly List<int> _stale = new();
-    private readonly Dictionary<int, (StatusFlowerMode Mode, long Until)> _centre = new();
+    private readonly List<StatusFlower> _shown = new List<StatusFlower>();
+    private readonly Dictionary<int, GameTick> _hoverUntil = new Dictionary<int, GameTick>();
+    private readonly Dictionary<int, HealthWatch> _health = new Dictionary<int, HealthWatch>();
+    private readonly List<int> _stale = new List<int>();
+    private readonly Dictionary<int, (StatusFlowerMode Mode, long Until)> _centre = new Dictionary<int, (StatusFlowerMode Mode, long Until)>();
     private WorldState? _world;
     private int _capture;
     private long _blinkUntil, _paletteUntil;

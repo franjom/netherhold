@@ -44,7 +44,7 @@ public static class GameSessionStarter
     /// <see cref="PlayersOf"/>.</summary>
     public static GameSimulation FromDk2Save(GameDatabase database, LevelMap map, ulong seed, bool fogOfWarEnabled)
     {
-        return new(database, WorldState.FromMap(database, map, PlayersOf(map), fogOfWarEnabled: fogOfWarEnabled), seed,
+        return new GameSimulation(database, WorldState.FromMap(database, map, PlayersOf(map), fogOfWarEnabled: fogOfWarEnabled), seed,
             SimulationSystems.Default());
     }
 

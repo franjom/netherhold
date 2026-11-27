@@ -23,7 +23,7 @@ public static class ClassicTorchFlame
 
     public static FpPosition3 Position(in TorchView torch)
     {
-        return new(
+        return new FpPosition3(
         new Fp32(torch.MeshPosX + (torch.Yaw == 0 ? 512 : torch.Yaw == 1024 ? -512 : 0)),
         new Fp32(torch.MeshPosY + (torch.Yaw == 512 ? 512 : torch.Yaw == 1536 ? -512 : 0)),
         new Fp32(torch.Height + 1200));
@@ -48,7 +48,7 @@ public static class ClassicTorchFlame
 /// <see cref="Dk2Lcg"/> seeded 1, in the order the torches are first seen, and kept until the torch goes.</summary>
 public sealed class ClassicTorchFlamePhases
 {
-    private readonly Dk2Lcg _random = new(1);
+    private readonly Dk2Lcg _random = new Dk2Lcg(1);
     private readonly Dictionary<int, int> _offsets = [];
 
     /// <summary>The flame's offset over <paramref name="floorTileIndex"/>, 0 to 4095; a torch not yet seen draws one.</summary>

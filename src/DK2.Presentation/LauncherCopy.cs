@@ -49,12 +49,12 @@ public static class LauncherCopy
     {
         return check switch
         {
-            Dk2InstallCheck.Found => new("Found Dungeon Keeper 2.", LauncherTone.Ready),
-            Dk2InstallCheck.NoData => new("This folder has DKII.EXE but no Data folder. Choose the folder the game was installed to.",
+            Dk2InstallCheck.Found => new LauncherMessage("Found Dungeon Keeper 2.", LauncherTone.Ready),
+            Dk2InstallCheck.NoData => new LauncherMessage("This folder has DKII.EXE but no Data folder. Choose the folder the game was installed to.",
                 LauncherTone.Problem),
-            Dk2InstallCheck.NoGame => new("This folder has no DKII.EXE. Choose the folder the game was installed to.",
+            Dk2InstallCheck.NoGame => new LauncherMessage("This folder has no DKII.EXE. Choose the folder the game was installed to.",
                 LauncherTone.Problem),
-            _ => new("Choose the folder that holds DKII.EXE and the Data folder.", LauncherTone.Plain),
+            _ => new LauncherMessage("Choose the folder that holds DKII.EXE and the Data folder.", LauncherTone.Plain),
         };
     }
 
@@ -63,10 +63,10 @@ public static class LauncherCopy
     {
         return check switch
         {
-            LauncherFontCheck.Found => new("The menu's labels and the subtitles will use this font.", LauncherTone.Ready),
-            LauncherFontCheck.Missing => new("There is no file at this path.", LauncherTone.Problem),
-            LauncherFontCheck.NotAFont => new("Choose a TrueType or OpenType font (.ttf or .otf).", LauncherTone.Problem),
-            _ => new("Leave this empty and the menu and the subtitles use the game's own lettering.", LauncherTone.Plain),
+            LauncherFontCheck.Found => new LauncherMessage("The menu's labels and the subtitles will use this font.", LauncherTone.Ready),
+            LauncherFontCheck.Missing => new LauncherMessage("There is no file at this path.", LauncherTone.Problem),
+            LauncherFontCheck.NotAFont => new LauncherMessage("Choose a TrueType or OpenType font (.ttf or .otf).", LauncherTone.Problem),
+            _ => new LauncherMessage("Leave this empty and the menu and the subtitles use the game's own lettering.", LauncherTone.Plain),
         };
     }
 

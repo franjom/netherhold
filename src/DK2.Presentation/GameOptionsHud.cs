@@ -40,10 +40,10 @@ public sealed class GameOptionsHud
     private readonly Func<uint, string> _text;
     private readonly Func<int, BitmapFont> _font;
     private readonly Func<KeyScanCode, string> _keyName;
-    private readonly List<Part> _parts = new();
-    private readonly List<((HudText Text, int Width, int Height)?[] Cells, bool Enabled, GameAction Action)> _rows = new();
-    private readonly List<(HudRect Rect, Hit Kind, int Index)> _hits = new();
-    private readonly TextScrollBar _keyScroll = new();
+    private readonly List<Part> _parts = new List<Part>();
+    private readonly List<((HudText Text, int Width, int Height)?[] Cells, bool Enabled, GameAction Action)> _rows = new List<((HudText Text, int Width, int Height)?[] Cells, bool Enabled, GameAction Action)>();
+    private readonly List<(HudRect Rect, Hit Kind, int Index)> _hits = new List<(HudRect Rect, Hit Kind, int Index)>();
+    private readonly TextScrollBar _keyScroll = new TextScrollBar();
     private InGameOptionsPage _shown;
     private GameSettings? _shownSettings;
     private GameAction? _shownCapture;
@@ -523,7 +523,7 @@ public sealed class GameOptionsHud
 
     private static HudRect Virtual(FrontEndRect r)
     {
-        return new(r.X * Unit, r.Y * Unit, r.Width * Unit, r.Height * Unit);
+        return new HudRect(r.X * Unit, r.Y * Unit, r.Width * Unit, r.Height * Unit);
     }
 
     private static void Quad(HudFrame frame, HudImage image, FrontEndRect rect, HudColor tint)

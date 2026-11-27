@@ -19,10 +19,10 @@ public sealed class InstallBottomPanelArt : IBottomPanelArt, IDisposable
     private readonly InstallHudSources _sources;
     private readonly bool _owned;
     private readonly Dk2StringTable _strings;
-    private readonly Dictionary<BottomPanelChoiceKey, string> _names = new();
-    private readonly Dictionary<BottomPanelChoiceKey, string> _icons = new();
-    private readonly Dictionary<BottomPanelChoiceKey, string> _upgradedIcons = new();
-    private readonly Dictionary<BottomPanelChoiceKey, int> _order = new();
+    private readonly Dictionary<BottomPanelChoiceKey, string> _names = new Dictionary<BottomPanelChoiceKey, string>();
+    private readonly Dictionary<BottomPanelChoiceKey, string> _icons = new Dictionary<BottomPanelChoiceKey, string>();
+    private readonly Dictionary<BottomPanelChoiceKey, string> _upgradedIcons = new Dictionary<BottomPanelChoiceKey, string>();
+    private readonly Dictionary<BottomPanelChoiceKey, int> _order = new Dictionary<BottomPanelChoiceKey, int>();
 
     /// <summary>From the install alone, owning the texture archive it opens.</summary>
     public InstallBottomPanelArt(string install, GameDatabase database)

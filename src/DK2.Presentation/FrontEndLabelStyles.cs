@@ -30,13 +30,13 @@ public static class FrontEndLabelStyles
     {
         return draw switch
         {
-            FrontEndDrawKind.SmallText => new(FrontEndFontFamily.FrontEnd, 12),
-            FrontEndDrawKind.MediumText => new(FrontEndFontFamily.FrontEnd, 14),
-            FrontEndDrawKind.OptionText => new(FrontEndFontFamily.InGame, 16),
-            FrontEndDrawKind.KeyboardText => new(FrontEndFontFamily.InGame, 18),
-            FrontEndDrawKind.DialogTitle => new(FrontEndFontFamily.InGame, 24),
-            FrontEndDrawKind.Title => new(FrontEndFontFamily.FrontEnd, 36),
-            _ => new(FrontEndFontFamily.FrontEnd, 20),
+            FrontEndDrawKind.SmallText => new FrontEndFont(FrontEndFontFamily.FrontEnd, 12),
+            FrontEndDrawKind.MediumText => new FrontEndFont(FrontEndFontFamily.FrontEnd, 14),
+            FrontEndDrawKind.OptionText => new FrontEndFont(FrontEndFontFamily.InGame, 16),
+            FrontEndDrawKind.KeyboardText => new FrontEndFont(FrontEndFontFamily.InGame, 18),
+            FrontEndDrawKind.DialogTitle => new FrontEndFont(FrontEndFontFamily.InGame, 24),
+            FrontEndDrawKind.Title => new FrontEndFont(FrontEndFontFamily.FrontEnd, 36),
+            _ => new FrontEndFont(FrontEndFontFamily.FrontEnd, 20),
         };
     }
 

@@ -23,7 +23,7 @@ public readonly record struct ObjectMaterialLook(string Texture, KmfBlend Blend,
     /// <summary>The recipe's own look: an additive recipe at full white, any other with its self-illumination added.</summary>
     public static ObjectMaterialLook Own(in ClassicMaterialRecipe recipe)
     {
-        return new(recipe.Texture ?? "", recipe.Blend, recipe.WritesDepth, recipe.Blend == KmfBlend.Additive, Vector4.One,
+        return new ObjectMaterialLook(recipe.Texture ?? "", recipe.Blend, recipe.WritesDepth, recipe.Blend == KmfBlend.Additive, Vector4.One,
             new Vector3(recipe.AddedLight));
     }
 
@@ -102,7 +102,7 @@ public readonly record struct ObjectMaterialLook(string Texture, KmfBlend Blend,
     /// <summary>The light <see cref="InstanceTinted"/> adds to a look that takes added light: the RGB over 255.</summary>
     public static Vector3 InstanceTintLight(byte red, byte green, byte blue)
     {
-        return new(red / 255f, green / 255f, blue / 255f);
+        return new Vector3(red / 255f, green / 255f, blue / 255f);
     }
 
     /// <summary>Lit by a RenderInfo tint more, the element's RGB over 255 (<c>0x00580480</c>, <c>0x00581BE0</c>): an

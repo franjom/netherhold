@@ -12,7 +12,7 @@ public static class PossessionObjectDeathView
 {
     public static CameraFlightState Target(in CameraFlightState current, CameraThing preset, Fp32 floorHeight)
     {
-        return new(current.X, current.Y, floorHeight.Raw + 0x100, preset.Zoom, preset.Lens, 0,
+        return new CameraFlightState(current.X, current.Y, floorHeight.Raw + 0x100, preset.Zoom, preset.Lens, 0,
             current.Yaw & 0x7FF, 400, 200);
     }
 }

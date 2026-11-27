@@ -59,9 +59,9 @@ public sealed class BottomPanelHud
     private readonly BottomPanelRect[] _panelArea = new BottomPanelRect[MaxPanels];
     private readonly int[] _page = new int[4], _pages = [1, 1, 1, 1];
     private readonly GuiSoundSlot[] _panelSlot = new GuiSoundSlot[MaxPanels];
-    private readonly BottomPanelTabs _tabState = new();
-    private readonly FlashChime _chime = new();
-    private readonly BottomPanelSparkles _sparkleState = new();
+    private readonly BottomPanelTabs _tabState = new BottomPanelTabs();
+    private readonly FlashChime _chime = new FlashChime();
+    private readonly BottomPanelSparkles _sparkleState = new BottomPanelSparkles();
     private int _panelCount, _count;
     private bool _captured, _pointerKnown;
     private float _pointerX, _pointerY;
@@ -226,7 +226,7 @@ public sealed class BottomPanelHud
     {
         get
         {
-            return new(472, 1460 + Drop, Math.Max(0, _width - 760), Tall - (1460 + Drop));
+            return new HudRect(472, 1460 + Drop, Math.Max(0, _width - 760), Tall - (1460 + Drop));
         }
     }
 
@@ -234,7 +234,7 @@ public sealed class BottomPanelHud
     {
         get
         {
-            return new(_width - 288, 1612, 264, 264);
+            return new HudRect(_width - 288, 1612, 264, 264);
         }
     }
 
@@ -970,12 +970,12 @@ public sealed class BottomPanelHud
 
     private BottomPanelRect Dropped(BottomPanelRect rectangle)
     {
-        return new(rectangle.X, rectangle.Y + Drop, rectangle.Width, rectangle.Height);
+        return new BottomPanelRect(rectangle.X, rectangle.Y + Drop, rectangle.Width, rectangle.Height);
     }
 
     private static readonly HudColor Dark = HudColor.Grey(BottomPanelFlash.DarkTint);
     private static readonly HudColor RechargeTint = HudColor.Grey(0x66);
-    private static readonly HudColor ManufactureTint = new(0x78, 0x00, 0x78);
+    private static readonly HudColor ManufactureTint = new HudColor(0x78, 0x00, 0x78);
     // Unity's Color(1, .3f, .3f) as Color32: .3f * 255 is 76.5 in float, rounded half to even.
-    private static readonly HudColor ResearchUnknownTint = new(255, 76, 76);
+    private static readonly HudColor ResearchUnknownTint = new HudColor(255, 76, 76);
 }

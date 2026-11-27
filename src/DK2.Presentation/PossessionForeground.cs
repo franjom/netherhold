@@ -21,7 +21,7 @@ public sealed class PossessionForeground
         "King-FGBS_Slash", "L-Punch", "R-Punch", "L-Scythe_Slash", "R-Scythe_Slash", "Mistress_Slash",
         "Small_Slash", "Staff_Strike", "Sword_Slash", "Light_Arrow", "Dark_Arrow", "L-Bile_Smash",
         "R-Bile_Smash", "Hypnotise", "L-Small_Punch", "R-Small_Punch", "L-King-FGBS_Slash", "R-King-FGBS_Slash"];
-    private readonly Dictionary<string, Clip?> _clips = new();
+    private readonly Dictionary<string, Clip?> _clips = new Dictionary<string, Clip?>();
     private PossessionForegroundKind _kind;
     private long _start, _deadline;
     private long? _fade;
@@ -109,7 +109,7 @@ public sealed class PossessionForeground
 
     public static Vector2 Project(Vector3 renderPosition, int width, int height)
     {
-        return new(width / 2 + renderPosition.X * (width * 1000 / 640), height / 2 - renderPosition.Z * (width * 1000 / 640));
+        return new Vector2(width / 2 + renderPosition.X * (width * 1000 / 640), height / 2 - renderPosition.Z * (width * 1000 / 640));
     }
 
     public void Build(InstallArtProvider art, int width, int height, long milliseconds, HudFrame frame)
@@ -150,20 +150,20 @@ public sealed class PossessionForeground
             {
                 int index = indices[i];
                 Vector2 xy = Project(clip.Positions[index], width, height), uv = clip.Animation.Mesh.Uvs[index];
-                clip.Triangles[i] = new(xy.X, xy.Y, uv.X, uv.Y);
+                clip.Triangles[i] = new HudVertex(xy.X, xy.Y, uv.X, uv.Y);
             }
             int textureFrame = Math.Clamp((int)(texture.TextureNames.Count * sample.Phase), 0, texture.TextureNames.Count - 1);
             byte color = sample.Brightness;
             // The native type6 path consumes RGB, not the fourth fade byte.
-            frame.AddTriangles(new(texture.TextureNames[textureFrame]), clip.Triangles.AsSpan(0, indices.Length),
-                new(color, color, color, 255), texture.Blend == KmfBlend.Additive ? HudBlend.Additive : HudBlend.Alpha);
+            frame.AddTriangles(new HudImage(texture.TextureNames[textureFrame]), clip.Triangles.AsSpan(0, indices.Length),
+                new HudColor(color, color, color, 255), texture.Blend == KmfBlend.Additive ? HudBlend.Additive : HudBlend.Alpha);
         }
     }
 
     private sealed class Clip(KmfModel model)
     {
         public KmfModel Model { get; } = model;
-        public RenderAnimation Animation { get; } = new(model);
+        public RenderAnimation Animation { get; } = new RenderAnimation(model);
         public Vector3[] Positions { get; } = new Vector3[RenderMesh.FromModel(model).Positions.Count];
         public HudVertex[] Triangles = [];
     }

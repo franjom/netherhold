@@ -11,7 +11,7 @@ namespace DK2.Presentation;
 
 public readonly record struct ClassicVisibilityHeightRange(float Minimum, float Maximum)
 {
-    public static readonly ClassicVisibilityHeightRange Native = new(-9, 0);
+    public static readonly ClassicVisibilityHeightRange Native = new ClassicVisibilityHeightRange(-9, 0);
 }
 
 /// <summary>Native clipped camera volume and tile scan conversion; classic-light-visibility.md owns evidence.</summary>
@@ -265,7 +265,7 @@ public static class ClassicLightVisibility
 
     private static TilePos ToTile(Vector3 point)
     {
-        return new(ToTileCoordinate(point.X), ToTileCoordinate(point.Y));
+        return new TilePos(ToTileCoordinate(point.X), ToTileCoordinate(point.Y));
     }
 
     // Native x87 keeps both subtractions extended until the final single-precision store.
@@ -277,6 +277,6 @@ public static class ClassicLightVisibility
 
     private static Vector3 ToNative(Vector3 unity)
     {
-        return new(unity.X, -unity.Z, -unity.Y);
+        return new Vector3(unity.X, -unity.Z, -unity.Y);
     }
 }

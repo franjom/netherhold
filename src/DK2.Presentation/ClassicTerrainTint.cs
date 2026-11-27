@@ -11,7 +11,7 @@ public static class ClassicTerrainTint
 {
     public static TerrainLightColour PieceColour(TerrainLightColour colour)
     {
-        return new(
+        return new TerrainLightColour(
         colour.Red & 255, colour.Green & 255, colour.Blue & 255);
     }
 

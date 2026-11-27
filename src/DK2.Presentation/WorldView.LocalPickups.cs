@@ -5,5 +5,5 @@
 namespace DK2.Presentation;
 public sealed partial class WorldView
 {
-    public LocalPickupFeedback LocalPickups { get; } = new();
+    public LocalPickupFeedback LocalPickups { get; } = new LocalPickupFeedback();
 }

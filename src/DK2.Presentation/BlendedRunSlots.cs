@@ -24,7 +24,7 @@ public sealed class BlendedRunSlots<TMaterial> where TMaterial : class
     /// (a 128-tile level stays under 2^8, whose step is 2^-15), and small against a tile.</summary>
     public const float KeyStep = 1f / 1024f;
 
-    private readonly Dictionary<TMaterial, List<BlendedRunSlot<TMaterial>>> _pools = new();
+    private readonly Dictionary<TMaterial, List<BlendedRunSlot<TMaterial>>> _pools = new Dictionary<TMaterial, List<BlendedRunSlot<TMaterial>>>();
     // By stream vertex, the slot that last drew it as a triangle's first corner, or -1.
     private int[] _owner = [];
     // The collected vertices, copied once a collection so the updates read an array.
@@ -32,8 +32,8 @@ public sealed class BlendedRunSlots<TMaterial> where TMaterial : class
     private int _vertexCount;
     // This update's slot for each run, filled in two passes.
     private BlendedRunSlot<TMaterial>?[] _assigned = [];
-    private readonly List<BlendedRunSlot<TMaterial>> _slots = new();
-    private readonly List<BlendedRunSlot<TMaterial>> _drawn = new();
+    private readonly List<BlendedRunSlot<TMaterial>> _slots = new List<BlendedRunSlot<TMaterial>>();
+    private readonly List<BlendedRunSlot<TMaterial>> _drawn = new List<BlendedRunSlot<TMaterial>>();
     private BlendedTerrainStream<TMaterial>? _stream;
     private long _revision = -1;
 
@@ -62,7 +62,7 @@ public sealed class BlendedRunSlots<TMaterial> where TMaterial : class
     {
         get
         {
-            return new(_vertices, 0, _vertexCount);
+            return new ReadOnlySpan<BlendedVertex>(_vertices, 0, _vertexCount);
         }
     }
 
@@ -189,8 +189,8 @@ public sealed class BlendedRunSlot<TMaterial> where TMaterial : class
     public const int SpareVertices = 64;
 
     // Sized for a run of a few dozen triangles and its spare vertices, so a slot seldom grows once it exists.
-    private readonly Dictionary<int, int> _slotVertexOf = new(256);
-    private readonly List<int> _vertices = new(256);
+    private readonly Dictionary<int, int> _slotVertexOf = new Dictionary<int, int>(256);
+    private readonly List<int> _vertices = new List<int>(256);
     private int[] _indices = new int[384];
     private int[] _touched = new int[256];
     private int _epoch;
@@ -246,7 +246,7 @@ public sealed class BlendedRunSlot<TMaterial> where TMaterial : class
     {
         get
         {
-            return new(_indices, 0, IndexCount);
+            return new ReadOnlySpan<int>(_indices, 0, IndexCount);
         }
     }
 

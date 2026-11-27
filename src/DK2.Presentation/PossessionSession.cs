@@ -39,9 +39,9 @@ public sealed class PossessionSession : ITurnPoseSource
 
     private readonly GameDatabase _database;
     private readonly CameraThing _preset;
-    private readonly PossessionView _view = new();
-    private readonly PossessionControls _controls = new();
-    private readonly PossessionFlight _flight = new();
+    private readonly PossessionView _view = new PossessionView();
+    private readonly PossessionControls _controls = new PossessionControls();
+    private readonly PossessionFlight _flight = new PossessionFlight();
     private readonly PossessionSniper _sniper;
     private PossessionWorld? _world;
     private CreatureState? _possessed;
@@ -55,7 +55,7 @@ public sealed class PossessionSession : ITurnPoseSource
     private int _bodyId;
     private long _deadSince;
     private CreatureState? _colourSource;
-    private readonly Queue<PossessionColourEvent> _colourEvents = new();
+    private readonly Queue<PossessionColourEvent> _colourEvents = new Queue<PossessionColourEvent>();
 
     // After a possession: nothing, the death view's move, its hold, or the move back to the ordinary camera.
     private enum Ending { None, Dying, Dead, Out }
@@ -153,7 +153,7 @@ public sealed class PossessionSession : ITurnPoseSource
         }
     }
 
-    public PossessionForeground Foreground { get; } = new();
+    public PossessionForeground Foreground { get; } = new PossessionForeground();
     public PossessionFlight Flight
     {
         get
@@ -162,7 +162,7 @@ public sealed class PossessionSession : ITurnPoseSource
         }
     }
 
-    public PossessionColours Colours { get; } = new();
+    public PossessionColours Colours { get; } = new PossessionColours();
 
     /// <summary>One frame. <paramref name="ordinary"/> is the ordinary camera the timed moves start
     /// from and return to, null when the host has none (then the view cuts); <paramref name="ordinaryFocus"/>
@@ -498,7 +498,7 @@ public sealed class PossessionSession : ITurnPoseSource
 
         CameraFlightState from = PossessionFlight.FirstPerson(_view,
             _preset with { Lens = _sniper.Lens, ViewDistance = _sniper.ViewDistance });
-        Fp32 floor = new(FloorHeightRules.At(world, _database, from.X, from.Y));
+        var floor = new Fp32(FloorHeightRules.At(world, _database, from.X, from.Y));
         Reset();
         Colours.Death(clockMilliseconds);
         _flight.Start(from, PossessionObjectDeathView.Target(from, _preset, floor), clockMilliseconds, DeathMove);

@@ -14,7 +14,7 @@ namespace DK2.Presentation;
 /// tracked creature's head is rewritten in its own slot, so a draw allocates nothing.</summary>
 public sealed class CreatureHeadTable
 {
-    private readonly ConcurrentDictionary<CreatureId, Slot> _heads = new();
+    private readonly ConcurrentDictionary<CreatureId, Slot> _heads = new ConcurrentDictionary<CreatureId, Slot>();
 
     /// <summary>A creature the scene now draws, with no head yet; one already tracked keeps its head.</summary>
     public void Add(CreatureId creature)

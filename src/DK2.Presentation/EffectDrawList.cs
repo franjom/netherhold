@@ -23,7 +23,7 @@ public readonly record struct EffectColour(byte Red, byte Green, byte Blue)
     {
         get
         {
-            return new(255, 255, 255);
+            return new EffectColour(255, 255, 255);
         }
     }
 }
@@ -45,7 +45,7 @@ public readonly record struct EffectSpriteShape(bool IsFlat, bool StandsOnPoint,
 {
     public static EffectSpriteShape Of(EffectElementDef definition, EffectSpriteResource resource)
     {
-        return new(
+        return new EffectSpriteShape(
         IsFlat: (definition.ArtResource.Flags & 0x100) != 0,
         StandsOnPoint: (definition.ArtResource.Flags & 0x40) != 0,
         WidthPerScale: resource.WidthRaw / 4096f,
@@ -175,8 +175,8 @@ public sealed class EffectDrawList
     private const float Deg2Rad = (float)Math.PI * 2f / 360f;   // Unity's Mathf.Deg2Rad, which the quads were turned with
 
     private static readonly Stopwatch Clock = Stopwatch.StartNew();
-    private readonly List<EffectLightView> _lights = new();
-    private readonly Dictionary<EffectElementDef, AssetRef> _keys = new(ReferenceComparer.Instance);
+    private readonly List<EffectLightView> _lights = new List<EffectLightView>();
+    private readonly Dictionary<EffectElementDef, AssetRef> _keys = new Dictionary<EffectElementDef, AssetRef>(ReferenceComparer.Instance);
 
     public EffectDrawList(GameDatabase database, ulong seed, Func<EffectTime>? clock = null,
         Func<RoomConstructionEffect, bool>? visible = null,
@@ -218,7 +218,7 @@ public sealed class EffectDrawList
     {
         get
         {
-            return new(Model.Particles, ShotBodies.Particles);
+            return new EffectParticleStream(Model.Particles, ShotBodies.Particles);
         }
     }
 
@@ -230,7 +230,7 @@ public sealed class EffectDrawList
 
     private static EffectTime ReadClock()
     {
-        return new(Clock.ElapsedMilliseconds);
+        return new EffectTime(Clock.ElapsedMilliseconds);
     }
 
     /// <summary>Runs the effect updates due by now and returns the instances' lights, then the shot bodies', which the
@@ -283,7 +283,7 @@ public sealed class EffectDrawList
 
     public static EffectBlend Blend(EffectSpriteBlend blend)
     {
-        return new(
+        return new EffectBlend(
         blend == EffectSpriteBlend.Alpha ? EffectBlendFactor.SourceAlpha : EffectBlendFactor.One,
         blend == EffectSpriteBlend.Additive ? EffectBlendFactor.One
             : blend == EffectSpriteBlend.Alpha ? EffectBlendFactor.OneMinusSourceAlpha : EffectBlendFactor.Zero);
@@ -325,7 +325,7 @@ public sealed class EffectDrawList
 
     public static EffectColour Tint(ConstructionParticle source)
     {
-        return new(source.Red, source.Green, source.Blue);
+        return new EffectColour(source.Red, source.Green, source.Blue);
     }
 
     /// <summary>A sprite's colour: an additive sprite's tint alone; a lit one's (art types 1 and 2) tint plus its tile
@@ -450,7 +450,7 @@ public sealed class EffectDrawList
 
     private sealed class ReferenceComparer : IEqualityComparer<EffectElementDef>
     {
-        public static readonly ReferenceComparer Instance = new();
+        public static readonly ReferenceComparer Instance = new ReferenceComparer();
         public bool Equals(EffectElementDef? x, EffectElementDef? y)
         {
             return ReferenceEquals(x, y);

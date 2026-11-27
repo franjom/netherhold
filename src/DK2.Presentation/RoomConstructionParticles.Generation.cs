@@ -26,7 +26,7 @@ public sealed partial class RoomConstructionParticles
     private static ViewEffectRequest FreeRequest(ViewEffectRequest request, EffectId id,
         FpPosition3 point, Dk2Angle heading)
     {
-        return new(id, request.Owner, point, heading);
+        return new ViewEffectRequest(id, request.Owner, point, heading);
     }
 
     private void Generate(Emitter emitter)
@@ -45,7 +45,7 @@ public sealed partial class RoomConstructionParticles
                         if (effect.GenerateIds[slot] != 0)
                         {
                             SpawnFreeEffect(effect.GenerateIds[slot], emitter.Request,
-                                emitter.Request.Position, new((ushort)_random.NextInt(2048)));
+                                emitter.Request.Position, new Dk2Angle((ushort)_random.NextInt(2048)));
                         }
                     }
                 }
@@ -135,8 +135,8 @@ public sealed partial class RoomConstructionParticles
             {
                 var heading = new Dk2Angle((ushort)_random.NextInt(2048));
                 FpPosition3 at = emitter.Request.Position;
-                at = new(new(at.X.Raw + _random.NextInt(range) + offset),
-                    new(at.Y.Raw + _random.NextInt(range) + offset), new(at.Z.Raw + 4096));
+                at = new FpPosition3(new Fp32(at.X.Raw + _random.NextInt(range) + offset),
+                    new Fp32(at.Y.Raw + _random.NextInt(range) + offset), new Fp32(at.Z.Raw + 4096));
                 if (!_database.EffectElements.TryGetValue(id, out EffectElementDef? element))
                 {
                     continue;
@@ -172,8 +172,8 @@ public sealed partial class RoomConstructionParticles
         {
             FpPosition3 at = emitter.Request.Position;
             SpawnFreeEffect(effect.OuterOriginRange, emitter.Request,
-                new(new(at.X.Raw + 2048), new(at.Y.Raw + 2048), new(at.Z.Raw + 4096)),
-                new((ushort)_random.NextInt(2048)));
+                new FpPosition3(new Fp32(at.X.Raw + 2048), new Fp32(at.Y.Raw + 2048), new Fp32(at.Z.Raw + 4096)),
+                new Dk2Angle((ushort)_random.NextInt(2048)));
         }
     }
 
@@ -185,7 +185,7 @@ public sealed partial class RoomConstructionParticles
         }
         // Generation, contact children and element NextEffect use view slot94, the ungated
         // allocator; only caller requests and teardown use slot90's visibility test.
-        ViewEffectRequest request = FreeRequest(source, new(id), at, heading) with { Visibility = EffectVisibility.Ungated };
+        ViewEffectRequest request = FreeRequest(source, new EffectId(id), at, heading) with { Visibility = EffectVisibility.Ungated };
         AddEmitterChain(definition, request);
     }
 
@@ -194,7 +194,7 @@ public sealed partial class RoomConstructionParticles
         if (_parents.TryGetValue(particle, out Emitter? parent))
         {
             SpawnFreeEffect(particle.Definition.NextEffectId, parent.Request,
-                new(new(particle.XRaw), new(particle.YRaw), new(particle.HeightRaw)), new((ushort)particle.HeadingRaw));
+                new FpPosition3(new Fp32(particle.XRaw), new Fp32(particle.YRaw), new Fp32(particle.HeightRaw)), new Dk2Angle((ushort)particle.HeadingRaw));
         }
     }
 }

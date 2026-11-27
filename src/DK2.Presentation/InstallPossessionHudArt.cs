@@ -13,7 +13,7 @@ namespace DK2.Presentation;
 /// shipped definitions. Textures remain behind the shared install art abstraction.</summary>
 public sealed class InstallPossessionHudArt
 {
-    private readonly Dictionary<CreatureOverviewType, (string Icon, string Portrait, string Melee)> _creatures = new();
+    private readonly Dictionary<CreatureOverviewType, (string Icon, string Portrait, string Melee)> _creatures = new Dictionary<CreatureOverviewType, (string Icon, string Portrait, string Melee)>();
     public string GoldIcon { get; }
 
     public InstallPossessionHudArt(string install)
@@ -39,7 +39,7 @@ public sealed class InstallPossessionHudArt
                     return Encoding.ASCII.GetString(chunk.Content, at + offset, 64).TrimEnd('\0');
                 }
 
-                _creatures[new(chunk.Content[at + 0xF4B])] = (Name(0xC44), Name(0xD40), Name(0x1027));
+                _creatures[new CreatureOverviewType(chunk.Content[at + 0xF4B])] = (Name(0xC44), Name(0xD40), Name(0x1027));
             }
         }
     }

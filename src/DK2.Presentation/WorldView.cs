@@ -317,7 +317,7 @@ public readonly struct CreatureView
     {
         get
         {
-            return new(PosX / Fp32.One, PosY / Fp32.One);
+            return new TilePos(PosX / Fp32.One, PosY / Fp32.One);
         }
     }
 }
@@ -633,8 +633,8 @@ public sealed partial class WorldView
     }
     private bool _previewTagged;
     private int _previewX1, _previewY1, _previewX2, _previewY2;
-    private readonly Dictionary<TilePos, (bool Tagged, GameTick AppliesAt)> _queuedTagPreviews = new();
-    private readonly List<TilePos> _completedTagPreviews = new();
+    private readonly Dictionary<TilePos, (bool Tagged, GameTick AppliesAt)> _queuedTagPreviews = new Dictionary<TilePos, (bool Tagged, GameTick AppliesAt)>();
+    private readonly List<TilePos> _completedTagPreviews = new List<TilePos>();
 
     public void QueueTagPreview(TagTilesCommand command, GameTick appliesAt)
     {
@@ -2036,9 +2036,9 @@ public sealed partial class WorldView
             int posX = creature.PosX, posY = creature.PosY;
             bool flying = WaterSpeedRules.IsFlying(_database.CreatureById(creature.CreatureTypeId), creature);
             int height = flying ? FloorZ : CreatureGroundHeight(world,
-                new FpPosition3(new(posX), new(posY), new(FloorZ))).Raw;
+                new FpPosition3(new Fp32(posX), new Fp32(posY), new Fp32(FloorZ))).Raw;
             int previousHeight = flying ? FloorZ : CreatureGroundHeight(world,
-                new FpPosition3(new(creature.LastPosX), new(creature.LastPosY), new(FloorZ))).Raw;
+                new FpPosition3(new Fp32(creature.LastPosX), new Fp32(creature.LastPosY), new Fp32(FloorZ))).Raw;
             // State 75 raises the creature before insertion into the hand (0x0046EA60).
             if (creature.Dk2StateId == HandRules.PreparationState)
             {

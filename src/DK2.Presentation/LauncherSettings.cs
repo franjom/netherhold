@@ -54,7 +54,7 @@ public sealed record LauncherSettings
     public LauncherWindowSize? WindowSize { get; init; }
     public bool StartDirectly { get; init; }
 
-    public static LauncherSettings Default { get; } = new();
+    public static LauncherSettings Default { get; } = new LauncherSettings();
 
     public static LauncherSettings Parse(string text)
     {

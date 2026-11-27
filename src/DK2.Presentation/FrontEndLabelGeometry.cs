@@ -62,7 +62,7 @@ public sealed class FrontEndLabelGeometry
                 if (x1 >= x0)
                 {
                     var ink = new FrontEndRect(pen + glyph.OffsetX + x0, lineIndex * font.LineHeight + glyph.OffsetY + y0, x1 - x0 + 1, y1 - y0 + 1);
-                    glyphs.Add(new(character, ink, new(x0, y0, ink.Width, ink.Height)));
+                    glyphs.Add(new FrontEndGlyph(character, ink, new FrontEndRect(x0, y0, ink.Width, ink.Height)));
                     left = Math.Min(left, (int)ink.X); top = Math.Min(top, (int)ink.Y);
                     right = Math.Max(right, (int)(ink.X + ink.Width)); bottom = Math.Max(bottom, (int)(ink.Y + ink.Height));
                 }
@@ -71,7 +71,7 @@ public sealed class FrontEndLabelGeometry
             maximumAdvance = Math.Max(maximumAdvance, pen); lineIndex++;
         }
         FrontEndRect bounds = glyphs.Count == 0 ? default : new FrontEndRect(left, top, right - left, bottom - top);
-        return new(bounds, maximumAdvance, font.LineHeight, lines.Count * font.LineHeight, glyphs.AsReadOnly());
+        return new FrontEndLabelGeometry(bounds, maximumAdvance, font.LineHeight, lines.Count * font.LineHeight, glyphs.AsReadOnly());
     }
 
     private static IReadOnlyList<string> Lines(BitmapFont font, string text, int width)
@@ -108,7 +108,7 @@ public sealed class FrontEndLabelGeometry
         FrontEndVerticalAlignment vertical = FrontEndVerticalAlignment.Centre)
     {
         FrontEndRect canvas = PlaceCanvas(box, alignment, vertical);
-        return new(canvas.X + InkBounds.X, canvas.Y + InkBounds.Y, InkBounds.Width, InkBounds.Height);
+        return new FrontEndRect(canvas.X + InkBounds.X, canvas.Y + InkBounds.Y, InkBounds.Width, InkBounds.Height);
     }
 
     public FrontEndRect PlaceCanvas(FrontEndRect box, FrontEndTextAlignment alignment,
@@ -120,6 +120,6 @@ public sealed class FrontEndLabelGeometry
             FrontEndTextAlignment.Right => box.X + box.Width - Advance,
             _ => box.X + MathF.Truncate((box.Width - Advance) / 2),
         };
-        return new(x, box.Y + (vertical == FrontEndVerticalAlignment.Top ? 0 : MathF.Truncate((box.Height - CanvasHeight) / 2)), Advance, CanvasHeight);
+        return new FrontEndRect(x, box.Y + (vertical == FrontEndVerticalAlignment.Top ? 0 : MathF.Truncate((box.Height - CanvasHeight) / 2)), Advance, CanvasHeight);
     }
 }

@@ -30,7 +30,7 @@ public sealed class PossessionHud
     {
         get
         {
-            return new(664, 22, 280, 100);
+            return new HudRect(664, 22, 280, 100);
         }
     }
 
@@ -71,18 +71,18 @@ public sealed class PossessionHud
 
     public static HudVisibility OrdinaryVisibility(HudVisibility ordinary, bool possessionCameraHeld)
     {
-        return possessionCameraHeld ? new(false, false) : ordinary;
+        return possessionCameraHeld ? new HudVisibility(false, false) : ordinary;
     }
 
     public static HudVisibility OrdinaryVisibility(HudVisibility ordinary, bool possessionCameraHeld,
         bool possessing, bool firstPersonCameraSettled)
     {
-        return !possessionCameraHeld ? ordinary : new(ordinary.ShowNormalHud && possessing && !firstPersonCameraSettled, false);
+        return !possessionCameraHeld ? ordinary : new HudVisibility(ordinary.ShowNormalHud && possessing && !firstPersonCameraSettled, false);
     }
 
     public static HudVisibility OrdinaryVisibility(HudVisibility ordinary, PossessionSession? session)
     {
-        return session is not { CameraHeld: true } ? ordinary : new(ordinary.ShowNormalHud && session.OrdinaryHudDuringTransition, false);
+        return session is not { CameraHeld: true } ? ordinary : new HudVisibility(ordinary.ShowNormalHud && session.OrdinaryHudDuringTransition, false);
     }
 
     public static GameShortcutContext ShortcutContext(GameShortcutContext ordinary, bool possessionCameraHeld, bool possessing = true)
@@ -99,12 +99,12 @@ public sealed class PossessionHud
 
     public static HudVisibility MinimapVisibility(HudVisibility ordinary, bool possessing, bool possessionCameraHeld = false)
     {
-        return possessing ? new(ordinary.ShowNormalHud, false) : OrdinaryVisibility(ordinary, possessionCameraHeld);
+        return possessing ? new HudVisibility(ordinary.ShowNormalHud, false) : OrdinaryVisibility(ordinary, possessionCameraHeld);
     }
 
     public static HudVisibility MinimapVisibility(HudVisibility ordinary, PossessionSession? session)
     {
-        return session is { Possessing: true } ? new(ordinary.ShowNormalHud, false) : OrdinaryVisibility(ordinary, session);
+        return session is { Possessing: true } ? new HudVisibility(ordinary.ShowNormalHud, false) : OrdinaryVisibility(ordinary, session);
     }
 
     public static bool ShowPanel(bool possessing, HudVisibility ordinary)
@@ -182,7 +182,7 @@ public sealed class PossessionHud
 
     private static Metrics Of(HudScaleLayout layout)
     {
-        return new(layout.Screen, ContentXScale(layout), 1920 / layout.Factor);
+        return new Metrics(layout.Screen, ContentXScale(layout), 1920 / layout.Factor);
     }
 
     private static void Build(Metrics metrics, PossessionHudSnapshot? snapshot, HudFrame frame)
@@ -201,15 +201,15 @@ public sealed class PossessionHud
 
         foreach (string overlay in snapshot.Overlays)
         {
-            Quad(frame, overlay, new(0, 0, m.Screen.VirtualWidth, m.VisibleHeight));
+            Quad(frame, overlay, new HudRect(0, 0, m.Screen.VirtualWidth, m.VisibleHeight));
         }
 
         if (!string.IsNullOrWhiteSpace(snapshot.Overlay))
         {
-            Quad(frame, snapshot.Overlay!, new(0, 0, m.Screen.VirtualWidth, m.VisibleHeight));
+            Quad(frame, snapshot.Overlay!, new HudRect(0, 0, m.Screen.VirtualWidth, m.VisibleHeight));
         }
 
-        Quad(frame, "GUI\\Windows\\Bar-00", new(0, m.VisibleHeight - 128, m.Screen.VirtualWidth, 88));
+        Quad(frame, "GUI\\Windows\\Bar-00", new HudRect(0, m.VisibleHeight - 128, m.Screen.VirtualWidth, 88));
     }
 
     private static void CreaturePanel(Metrics m, PossessionHudSnapshot? snapshot, HudFrame frame)
@@ -219,9 +219,9 @@ public sealed class PossessionHud
             return;
         }
 
-        HudQuads.Tiled(frame, "GUI\\Windows\\Bar-00", new(0, 20, m.Screen.VirtualWidth, 88), m.X(512), 88, HudColor.White);
+        HudQuads.Tiled(frame, "GUI\\Windows\\Bar-00", new HudRect(0, 20, m.Screen.VirtualWidth, 88), m.X(512), 88, HudColor.White);
         float square = m.X(128), delta = 140 - square;
-        Quad(frame, snapshot.Portrait, new(m.X(520), 8, square, square));
+        Quad(frame, snapshot.Portrait, new HudRect(m.X(520), 8, square, square));
         var healthArea = new HudRect(m.X(656), 8, m.X(292), square);
         Quad(frame, "GUI\\Map\\m-hp_bg", healthArea);
         float health = Math.Clamp(snapshot.HealthPercent, 0, 100) / 100f;
@@ -229,11 +229,11 @@ public sealed class PossessionHud
         {
             var fill = new HudRect(m.X(664), 8 + delta / 2 + m.X(8),
                 (m.X(292) - delta) * health, square - delta - 2 * m.X(8));
-            frame.Add(new(HudDrawKind.Quad, HealthFill, fill, HudColor.White, Uv: new HudRect(0, 0, health, 1)));
+            frame.Add(new HudDraw(HudDrawKind.Quad, HealthFill, fill, HudColor.White, Uv: new HudRect(0, 0, health, 1)));
         }
         Quad(frame, "GUI\\Map\\m-h-tone-bg", healthArea);
-        Quad(frame, snapshot.CarriedGoldIcon, new(m.X(956), 8, square, square));
-        Quad(frame, "GUI\\Map\\m-h-bg", new(m.X(1084), 8, 496 - square, square));
+        Quad(frame, snapshot.CarriedGoldIcon, new HudRect(m.X(956), 8, square, square));
+        Quad(frame, "GUI\\Map\\m-h-bg", new HudRect(m.X(1084), 8, 496 - square, square));
         Digits(frame, snapshot.Gold.Value, m, 956, 8 + square / 3);
         int column = 0;
         foreach (PossessionHudIcon icon in snapshot.Actions)
@@ -243,7 +243,7 @@ public sealed class PossessionHud
                 continue;
             }
 
-            Icon(frame, icon, new(m.X(956) + 496 - 40 + m.X(column++ * 136), 8, square, square));
+            Icon(frame, icon, new HudRect(m.X(956) + 496 - 40 + m.X(column++ * 136), 8, square, square));
         }
     }
 
@@ -270,7 +270,7 @@ public sealed class PossessionHud
         int column = 0;
         foreach (string follower in snapshot.Followers)
         {
-            Quad(frame, follower, new(m.X(628 + column++ * 136), m.X(1624) + 12 + m.BottomShift, m.X(128), 264));
+            Quad(frame, follower, new HudRect(m.X(628 + column++ * 136), m.X(1624) + 12 + m.BottomShift, m.X(128), 264));
         }
     }
 
@@ -288,7 +288,7 @@ public sealed class PossessionHud
             Quad(frame, icon.Image, rect, ready == 100 ? HudColor.White : HudColor.Grey(102));
             if (ready is > 0 and < 100)
             {
-                frame.Add(new(HudDrawKind.Sector, icon.Image, rect, HudColor.White, Percent: ready));
+                frame.Add(new HudDraw(HudDrawKind.Sector, icon.Image, rect, HudColor.White, Percent: ready));
             }
         }
         if (icon.Selected)
@@ -302,7 +302,7 @@ public sealed class PossessionHud
     {
         if (!image.IsNone)
         {
-            frame.Add(new(HudDrawKind.Quad, image, rect, tint ?? HudColor.White));
+            frame.Add(new HudDraw(HudDrawKind.Quad, image, rect, tint ?? HudColor.White));
         }
     }
 
@@ -312,7 +312,7 @@ public sealed class PossessionHud
         int start = Math.Max(0, 10 - text.Length);
         for (int i = 0; i < text.Length; i++)
         {
-            Quad(frame, KeeperResourceHud.LargeDigits + text[i], new(m.X(nativeX + (start + i) * 40), y, m.X(48), m.X(48)));
+            Quad(frame, KeeperResourceHud.LargeDigits + text[i], new HudRect(m.X(nativeX + (start + i) * 40), y, m.X(48), m.X(48)));
         }
     }
 }

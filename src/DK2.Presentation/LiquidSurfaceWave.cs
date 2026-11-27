@@ -126,7 +126,7 @@ public sealed class LiquidSurfaceWave
     {
         get
         {
-            return new(_tiles, 0, TileCount);
+            return new ReadOnlySpan<int>(_tiles, 0, TileCount);
         }
     }
 

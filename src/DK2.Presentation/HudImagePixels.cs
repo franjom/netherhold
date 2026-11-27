@@ -98,7 +98,7 @@ public static class HudImagePixels
     /// counts from the top of the stored image and, as the class remarks, y from its bottom.</summary>
     public static Vector2 GaugeOffset(int x, int row, int width, int height)
     {
-        return new(x + .5f - width / 2f, height / 2f - (height - 1 - row) - .5f);
+        return new Vector2(x + .5f - width / 2f, height / 2f - (height - 1 - row) - .5f);
     }
 
     private static float Repeat(float t, float length)

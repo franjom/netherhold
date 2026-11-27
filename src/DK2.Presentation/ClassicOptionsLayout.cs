@@ -41,31 +41,31 @@ public static class ClassicOptionsLayout
 
     private static IReadOnlyList<ClassicOptionsEntry> ExitEntries { get; } = new ClassicOptionsEntry[]
     {
-        new(ClassicOptionsAction.ReturnToMenu,12,8,136,1008),
-        new(ClassicOptionsAction.QuitGame,13,8,200,1008),
-        new(ClassicOptionsAction.ContinueGame,142,8,512,496),
-        new(ClassicOptionsAction.Back,20,512,512,496),
+        new ClassicOptionsEntry(ClassicOptionsAction.ReturnToMenu,12,8,136,1008),
+        new ClassicOptionsEntry(ClassicOptionsAction.QuitGame,13,8,200,1008),
+        new ClassicOptionsEntry(ClassicOptionsAction.ContinueGame,142,8,512,496),
+        new ClassicOptionsEntry(ClassicOptionsAction.Back,20,512,512,496),
     };
     private static IReadOnlyList<ClassicOptionsEntry> ConfirmationEntries { get; } = new ClassicOptionsEntry[]
     {
-        new(ClassicOptionsAction.None,15,8,192,1008),
-        new(ClassicOptionsAction.Confirm,21,8,352,1008),
-        new(ClassicOptionsAction.ContinueGame,142,8,512,496),
-        new(ClassicOptionsAction.Cancel,20,512,512,496),
+        new ClassicOptionsEntry(ClassicOptionsAction.None,15,8,192,1008),
+        new ClassicOptionsEntry(ClassicOptionsAction.Confirm,21,8,352,1008),
+        new ClassicOptionsEntry(ClassicOptionsAction.ContinueGame,142,8,512,496),
+        new ClassicOptionsEntry(ClassicOptionsAction.Cancel,20,512,512,496),
     };
     public static IReadOnlyList<ClassicOptionsEntry> ObjectiveEntries { get; } = new ClassicOptionsEntry[]
     {
-        new(ClassicOptionsAction.ContinueGame,142,8,512,496),
-        new(ClassicOptionsAction.Back,20,512,512,496),
+        new ClassicOptionsEntry(ClassicOptionsAction.ContinueGame,142,8,512,496),
+        new ClassicOptionsEntry(ClassicOptionsAction.Back,20,512,512,496),
     };
     public static IReadOnlyList<ClassicOptionsEntry> Entries { get; } = new ClassicOptionsEntry[]
     {
-        new(ClassicOptionsAction.LevelObjective,537,8,136,496),
-        new(ClassicOptionsAction.GameOptions,1265,8,200,496),
-        new(ClassicOptionsAction.Load,143,8,264,496),
-        new(ClassicOptionsAction.Save,201,8,328,496),
-        new(ClassicOptionsAction.EndGame,1266,512,136,496),
-        new(ClassicOptionsAction.RestartLevel,1269,512,200,1008),
-        new(ClassicOptionsAction.ContinueGame,142,8,512,496),
+        new ClassicOptionsEntry(ClassicOptionsAction.LevelObjective,537,8,136,496),
+        new ClassicOptionsEntry(ClassicOptionsAction.GameOptions,1265,8,200,496),
+        new ClassicOptionsEntry(ClassicOptionsAction.Load,143,8,264,496),
+        new ClassicOptionsEntry(ClassicOptionsAction.Save,201,8,328,496),
+        new ClassicOptionsEntry(ClassicOptionsAction.EndGame,1266,512,136,496),
+        new ClassicOptionsEntry(ClassicOptionsAction.RestartLevel,1269,512,200,1008),
+        new ClassicOptionsEntry(ClassicOptionsAction.ContinueGame,142,8,512,496),
     };
 }

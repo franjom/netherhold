@@ -16,23 +16,23 @@ public static class RightHandedFrame
 {
     public static Vector3 Point(Vector3 point)
     {
-        return new(point.X, point.Y, -point.Z);
+        return new Vector3(point.X, point.Y, -point.Z);
     }
 
     public static Vector3 Normal(Vector3 normal)
     {
-        return new(normal.X, normal.Y, -normal.Z);
+        return new Vector3(normal.X, normal.Y, -normal.Z);
     }
 
     public static Vector3 Direction(Vector3 direction)
     {
-        return new(direction.X, direction.Y, -direction.Z);
+        return new Vector3(direction.X, direction.Y, -direction.Z);
     }
 
     /// <summary>S·R·S for a rotation (or any linear part) R; a translation row is mirrored as a point.</summary>
     public static Matrix4x4 Rotation(Matrix4x4 r)
     {
-        return new(
+        return new Matrix4x4(
         r.M11, r.M12, -r.M13, r.M14,
         r.M21, r.M22, -r.M23, r.M24,
         -r.M31, -r.M32, r.M33, -r.M34,
@@ -42,7 +42,7 @@ public static class RightHandedFrame
     /// <summary>S·R·S as a quaternion: the axis mirrored and the angle reversed.</summary>
     public static Quaternion Rotation(Quaternion q)
     {
-        return new(-q.X, -q.Y, q.Z, q.W);
+        return new Quaternion(-q.X, -q.Y, q.Z, q.W);
     }
 
     /// <summary>A ray between the frames, either way.</summary>

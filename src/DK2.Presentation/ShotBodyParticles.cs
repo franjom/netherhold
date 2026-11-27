@@ -26,7 +26,7 @@ public sealed class ShotBodyParticles
     public ShotBodyParticles(GameDatabase database, uint seed, Func<ShotState, bool>? visible = null)
     {
         _database = database;
-        _random = new(seed);
+        _random = new Dk2Lcg(seed);
         _visible = visible;
         foreach (ShotDef shot in database.Shots.Values)
         {
@@ -71,7 +71,7 @@ public sealed class ShotBodyParticles
             KwdLight light = definition.Light;
             if ((light.Flags & 1) != 0)
             {
-                _lights.Add(new(-shot.Id, light, new PlayerId(shot.OwnerPlayerId), point.X.Raw, point.Y.Raw, point.Z.Raw, 1, 1));
+                _lights.Add(new EffectLightView(-shot.Id, light, new PlayerId(shot.OwnerPlayerId), point.X.Raw, point.Y.Raw, point.Z.Raw, 1, 1));
             }
 
             if (!_definitions.TryGetValue(shot.ShotTypeId, out EffectElementDef? element))
@@ -114,9 +114,9 @@ public sealed class ShotBodyParticles
     public static FpPosition3 Interpolate(FpPosition3 previous, FpPosition3 current, float fraction)
     {
         float t = Math.Clamp(fraction, 0, 1);
-        return new(new(previous.X.Raw + (int)((current.X.Raw - previous.X.Raw) * t)),
-            new(previous.Y.Raw + (int)((current.Y.Raw - previous.Y.Raw) * t)),
-            new(previous.Z.Raw + (int)((current.Z.Raw - previous.Z.Raw) * t)));
+        return new FpPosition3(new Fp32(previous.X.Raw + (int)((current.X.Raw - previous.X.Raw) * t)),
+            new Fp32(previous.Y.Raw + (int)((current.Y.Raw - previous.Y.Raw) * t)),
+            new Fp32(previous.Z.Raw + (int)((current.Z.Raw - previous.Z.Raw) * t)));
     }
 
     public static int FrameIndex(Fp32 phase, int frameCount)

@@ -70,7 +70,7 @@ public sealed class DevOverlayModel
     private readonly char[][] _values = new char[MaxRows][];
     private readonly int[] _lengths = new int[MaxRows];
     private readonly string?[] _playerNames = new string?[256];
-    private readonly Dictionary<FrontEndPage, string> _pageNames = new();
+    private readonly Dictionary<FrontEndPage, string> _pageNames = new Dictionary<FrontEndPage, string>();
     private Func<byte, string>? _playerName;
     private int _count;
 
@@ -117,7 +117,7 @@ public sealed class DevOverlayModel
 
     public ReadOnlySpan<char> Value(int row)
     {
-        return new(_values[row], 0, _lengths[row]);
+        return new ReadOnlySpan<char>(_values[row], 0, _lengths[row]);
     }
 
     /// <summary>Whether a state hash is shown (<see cref="SetHash"/>).</summary>

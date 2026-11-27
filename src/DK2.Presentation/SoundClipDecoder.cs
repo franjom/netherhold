@@ -14,9 +14,9 @@ namespace DK2.Presentation;
 public sealed class SoundClipDecoder
 {
     private readonly IClassicSoundAssets _assets;
-    private readonly ConcurrentDictionary<ResolvedSound, PcmClip?> _ready = new();
-    private readonly ConcurrentDictionary<ResolvedSound, byte> _decoding = new();
-    private readonly ConcurrentQueue<string> _failures = new();
+    private readonly ConcurrentDictionary<ResolvedSound, PcmClip?> _ready = new ConcurrentDictionary<ResolvedSound, PcmClip?>();
+    private readonly ConcurrentDictionary<ResolvedSound, byte> _decoding = new ConcurrentDictionary<ResolvedSound, byte>();
+    private readonly ConcurrentQueue<string> _failures = new ConcurrentQueue<string>();
     private long _decodedSamples;
 
     public SoundClipDecoder(IClassicSoundAssets assets)

@@ -15,7 +15,7 @@ public readonly record struct VertexColour(byte R, byte G, byte B, byte A)
     {
         get
         {
-            return new(255, 255, 255, 255);
+            return new VertexColour(255, 255, 255, 255);
         }
     }
 }
@@ -24,7 +24,7 @@ public readonly record struct VertexColour(byte R, byte G, byte B, byte A)
 public readonly record struct BlendedVertex(Vector3 Position, Vector3 Normal, Vector2 Uv, Vector2 LightAnchor, VertexColour Colour)
 {
     /// <summary>Terrain tag/tint sources; unused for models and effects.</summary>
-    public Vector2 StateSources { get; init; } = new(-1);
+    public Vector2 StateSources { get; init; } = new Vector2(-1);
 }
 
 /// <summary>The stream's markers and its sorting-order rule, shared by every material type.</summary>
@@ -68,26 +68,26 @@ public sealed class BlendedTerrainStream<TMaterial> where TMaterial : class
 
     private readonly Func<TMaterial, bool> _isTagOverlay;
     // By chunk, ascending; read by index, as enumerating a sorted dictionary allocates its walk.
-    private readonly SortedList<int, Source> _sources = new();
+    private readonly SortedList<int, Source> _sources = new SortedList<int, Source>();
 
     private int _chunk = -1;
     private IReadOnlyList<BlendedVertex>? _chunkVertices;
-    private readonly Dictionary<int, int> _remap = new();
-    private readonly List<BlendedVertex> _kept = new();
-    private readonly List<TMaterial> _chunkMaterials = new();
-    private readonly List<int[]> _chunkTriangles = new();
+    private readonly Dictionary<int, int> _remap = new Dictionary<int, int>();
+    private readonly List<BlendedVertex> _kept = new List<BlendedVertex>();
+    private readonly List<TMaterial> _chunkMaterials = new List<TMaterial>();
+    private readonly List<int[]> _chunkTriangles = new List<int[]>();
 
-    private readonly List<Effect> _effects = new();
+    private readonly List<Effect> _effects = new List<Effect>();
     private int _effectCount;
 
-    private readonly List<BlendedVertex> _vertices = new();
-    private readonly List<TMaterial> _materials = new();
-    private readonly List<bool> _overlays = new();
-    private readonly Dictionary<TMaterial, int> _slots = new();
-    private readonly List<RenderTriangle> _triangles = new();
-    private readonly List<RenderTriangle> _visible = new();
-    private readonly List<Vector3> _world = new();
-    private readonly TriangleDepthOrderBuffer _sort = new();
+    private readonly List<BlendedVertex> _vertices = new List<BlendedVertex>();
+    private readonly List<TMaterial> _materials = new List<TMaterial>();
+    private readonly List<bool> _overlays = new List<bool>();
+    private readonly Dictionary<TMaterial, int> _slots = new Dictionary<TMaterial, int>();
+    private readonly List<RenderTriangle> _triangles = new List<RenderTriangle>();
+    private readonly List<RenderTriangle> _visible = new List<RenderTriangle>();
+    private readonly List<Vector3> _world = new List<Vector3>();
+    private readonly TriangleDepthOrderBuffer _sort = new TriangleDepthOrderBuffer();
     private IReadOnlyList<TriangleDepthOrderBuffer.Run> _runs = Array.Empty<TriangleDepthOrderBuffer.Run>();
 
     private bool _dirty = true;

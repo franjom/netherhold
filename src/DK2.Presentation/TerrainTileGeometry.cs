@@ -11,8 +11,8 @@ namespace DK2.Presentation;
 /// vertex. A chunk copies these; a rebuild of an unchanged tile need not run again.</summary>
 public sealed class TerrainTileGeometry
 {
-    internal readonly List<TerrainTileBuilder.PlacedPiece> Pieces = new();
-    internal readonly List<TerrainTileBuilder.TriangleGroup> Groups = new();
+    internal readonly List<TerrainTileBuilder.PlacedPiece> Pieces = new List<TerrainTileBuilder.PlacedPiece>();
+    internal readonly List<TerrainTileBuilder.TriangleGroup> Groups = new List<TerrainTileBuilder.TriangleGroup>();
     internal int[] PieceStarts = new int[8];
     internal int X, Y;
     internal bool Red;
@@ -147,7 +147,7 @@ public sealed class TerrainIndexList
 
     public ReadOnlySpan<int> AsSpan()
     {
-        return new(_items, 0, Count);
+        return new ReadOnlySpan<int>(_items, 0, Count);
     }
 
     internal void Add(int value)

@@ -20,7 +20,7 @@ public readonly record struct HoverTextSnapshot(string TopStatus, string Tooltip
     {
         get
         {
-            return new("", "", default);
+            return new HoverTextSnapshot("", "", default);
         }
     }
 }
@@ -32,8 +32,8 @@ public sealed class WorldHoverText
     private readonly Func<uint, string> _resolve;
     private readonly PlayerId _viewer;
     private readonly CampaignSlot _playedSlot;
-    private readonly Dictionary<int, string> _tokens = new();
-    private readonly Dictionary<int, string> _typeTokens = new();
+    private readonly Dictionary<int, string> _tokens = new Dictionary<int, string>();
+    private readonly Dictionary<int, string> _typeTokens = new Dictionary<int, string>();
     private CreatureDef? _typeDefinition;
     private HoverTextSnapshot _typeSnapshot;
     private IReadOnlyList<RoomInstance> _rooms = Array.Empty<RoomInstance>();
@@ -81,7 +81,7 @@ public sealed class WorldHoverText
         ref TileState tile = ref world.Tile(hit.Tile);
         if (world.FogOfWarEnabled && !tile.IsExploredBy(_viewer))
         {
-            return new(_resolve(2473), _resolve(348), hit);
+            return new HoverTextSnapshot(_resolve(2473), _resolve(348), hit);
         }
 
         if (hit.Kind == WorldHoverKind.Creature && world.CreatureById(hit.EntityId) is { } creature)
@@ -104,7 +104,7 @@ public sealed class WorldHoverText
         if (hit.Kind == WorldHoverKind.Object && world.ObjectById(hit.EntityId) is { } obj
             && _database.ObjectById(obj.ObjectTypeId) is { NameStringId: > 0 } definition)
         {
-            return new(ObjectStatus(world, obj, definition), _resolve(definition.NameStringId), hit);
+            return new HoverTextSnapshot(ObjectStatus(world, obj, definition), _resolve(definition.NameStringId), hit);
         }
         // Ours keeps a store tile's gold in the tile and draws DK2's Gold Pile 1 as a decoration
         // (WorldView.StorePiles); hovered, it reads as that object would: "%73 Gold" (SHOT0228).
@@ -114,7 +114,7 @@ public sealed class WorldHoverText
             && _database.ObjectById(ObjectHoverHighlight.StorePileObjectId) is { NameStringId: > 0 } pile)
         {
             _tokens[73] = Number(world.TileAtIndex(pileTile).GoldHeld);
-            return new(Substitute(_resolve(2543u), _tokens), _resolve(pile.NameStringId), hit);
+            return new HoverTextSnapshot(Substitute(_resolve(2543u), _tokens), _resolve(pile.NameStringId), hit);
         }
         int tileIndex = world.TileIndex(hit.Tile);
         foreach (RoomInstance room in _rooms)
@@ -127,7 +127,7 @@ public sealed class WorldHoverText
 
         if (tile.SecretDoor)
         {
-            return new(_resolve(2481), _resolve(2480), hit);
+            return new HoverTextSnapshot(_resolve(2481), _resolve(2480), hit);
         }
 
         TerrainDef terrain = _database.TerrainById(tile.TerrainId);
@@ -142,7 +142,7 @@ public sealed class WorldHoverText
             26 or 36 => own ? 2465u : 2471u, 27 or 38 => 2473, 28 or 29 or 33 or 34 or 37 => 2468,
             31 => 2497, 32 => own ? 2799u : 2501u, 35 => 2470, _ => terrain.TooltipStringId,
         };
-        return new(terrainTemplate == 0 ? "" : Substitute(_resolve(terrainTemplate), _tokens),
+        return new HoverTextSnapshot(terrainTemplate == 0 ? "" : Substitute(_resolve(terrainTemplate), _tokens),
             terrain.NameStringId == 0 ? "" : _resolve(terrain.NameStringId), hit);
     }
 
@@ -177,7 +177,7 @@ public sealed class WorldHoverText
             FightStyle.Blitzer => 2424u, FightStyle.Blocker => 2423u, FightStyle.Flanker => 2425u,
             FightStyle.Support => 2426u, _ => 2427u,
         });
-        _typeSnapshot = new(Substitute(_resolve(definition.DescriptionStringId), _typeTokens), "", default);
+        _typeSnapshot = new HoverTextSnapshot(Substitute(_resolve(definition.DescriptionStringId), _typeTokens), "", default);
         _typeDefinition = definition;
         return _typeSnapshot;
     }
@@ -230,21 +230,21 @@ public sealed class WorldHoverText
         _tokens[37] = Number(HealthPercent(door.Health, definition.Health));
         if (door.UnderConstruction)
         {
-            return new(Substitute(_resolve(2512), _tokens), name, hit);
+            return new HoverTextSnapshot(Substitute(_resolve(2512), _tokens), name, hit);
         }
 
         if (door.PlayerId != _viewer.Value)
         {
-            return new(name, name, hit);
+            return new HoverTextSnapshot(name, name, hit);
         }
 
         if (((definition.Flags & DoorFlags.Barricade) == DoorFlags.Barricade))
         {
-            return new(Substitute(_resolve(2536), _tokens), name, hit);
+            return new HoverTextSnapshot(Substitute(_resolve(2536), _tokens), name, hit);
         }
 
         _tokens[72] = _resolve(door.LockMode != 0 ? 2516u : 2515u);
-        return new(Substitute(_resolve(2532), _tokens), name, hit);
+        return new HoverTextSnapshot(Substitute(_resolve(2532), _tokens), name, hit);
     }
 
     /// <summary><c>0x004A9B70</c> (trap vtable <c>0x0066D754</c> +0x4C): a blueprint reads 2512; another
@@ -260,21 +260,21 @@ public sealed class WorldHoverText
         _tokens[26] = Number(definition.ManaCostToFire);
         if (trap.UnderConstruction)
         {
-            return new(Substitute(_resolve(2512), _tokens), name, hit);
+            return new HoverTextSnapshot(Substitute(_resolve(2512), _tokens), name, hit);
         }
 
         if (trap.PlayerId != _viewer.Value)
         {
-            return new(name, name, hit);
+            return new HoverTextSnapshot(name, name, hit);
         }
 
         if ((definition.Flags & TrapRules.GuardPostBranch) != 0)
         {
-            return new(_resolve(2538), name, hit);
+            return new HoverTextSnapshot(_resolve(2538), name, hit);
         }
 
         _tokens[71] = _resolve(2514);
-        return new(Substitute(_resolve(2527), _tokens), name, hit);
+        return new HoverTextSnapshot(Substitute(_resolve(2527), _tokens), name, hit);
     }
 
     /// <summary>The structure health percentage of <c>0x004A68C0</c>/<c>0x004A9B70</c>: 12.12 fixed
@@ -307,7 +307,7 @@ public sealed class WorldHoverText
 
             _tokens[30] = kind;
             _tokens[88] = Number(creature.Level);
-            return new(Substitute(_resolve(2791), _tokens), kind, hit);
+            return new HoverTextSnapshot(Substitute(_resolve(2791), _tokens), kind, hit);
         }
         string popup = special != 0 ? _resolve(special) : kind;
         _tokens[29] = creature.CreatureTypeId == LordOfTheLandCreatureId ? _resolve(LordNameTextId(mode, _playedSlot))
@@ -315,22 +315,22 @@ public sealed class WorldHoverText
         _tokens[30] = kind;
         if (creature.OwnerPlayerId == PlayerIds.Good)
         {
-            return new(Substitute(_resolve(2412), _tokens), popup, hit);
+            return new HoverTextSnapshot(Substitute(_resolve(2412), _tokens), popup, hit);
         }
 
         if (creature.OwnerPlayerId == PlayerIds.Neutral)
         {
-            return new(Substitute(_resolve(2415), _tokens), popup, hit);
+            return new HoverTextSnapshot(Substitute(_resolve(2415), _tokens), popup, hit);
         }
 
         if (creature.OwnerPlayerId != _viewer)
         {
-            return new("", popup, hit);
+            return new HoverTextSnapshot("", popup, hit);
         }
 
         if (((definition.Flags & CreatureFlags.IsHorny) == CreatureFlags.IsHorny))
         {
-            return new(Substitute(_resolve(2793), _tokens), popup, hit);
+            return new HoverTextSnapshot(Substitute(_resolve(2793), _tokens), popup, hit);
         }
 
         _tokens[31] = _resolve((uint)ActionStringId(creature.Dk2StateId, creature.UtilityNewState));
@@ -339,7 +339,7 @@ public sealed class WorldHoverText
         {
             CreatureMood.Unhappy => 2342u, CreatureMood.Angry => 2344u, _ => 2340u,
         });
-        return new(Substitute(_resolve(2841), _tokens), popup, hit);
+        return new HoverTextSnapshot(Substitute(_resolve(2841), _tokens), popup, hit);
     }
 
     /// <summary>The Lord of the Land, creature 29 (0x1D), whose status name <c>0x0048D880</c> takes from
@@ -365,12 +365,12 @@ public sealed class WorldHoverText
 
     private HoverTextSnapshot Room(WorldState world, RoomInstance room, WorldHoverHit hit)
     {
-        hit = new(WorldHoverKind.Tile, world.TilePosition(room.TileIndices[0]));
+        hit = new WorldHoverHit(WorldHoverKind.Tile, world.TilePosition(room.TileIndices[0]));
         RoomDef definition = room.Definition;
         string name = _resolve(definition.NameStringId);
         if (room.OwnerPlayerId != _viewer)
         {
-            return new(_resolve(room.OwnerPlayerId == PlayerIds.Good && definition.RoomId >= 18 && definition.RoomId <= 23 ? 2468u : 2471u), name, hit);
+            return new HoverTextSnapshot(_resolve(room.OwnerPlayerId == PlayerIds.Good && definition.RoomId >= 18 && definition.RoomId <= 23 ? 2468u : 2471u), name, hit);
         }
 
         int cap = RoomHealthRules.Cap(_database, room);
@@ -410,7 +410,7 @@ public sealed class WorldHoverText
                 ref PlayerState player = ref world.Player(_viewer);
                 if (RoomRules.IsRuined(world, room))
                 {
-                    return new("", name, hit);   // 0x004E9393 tests the room
+                    return new HoverTextSnapshot("", name, hit);   // 0x004E9393 tests the room
                 }
 
                 int maxHealth = _database[VariableTypeId.DungeonHeartObjectHealth];
@@ -532,9 +532,9 @@ public sealed class WorldHoverText
                 template = 2465;
                 break;
             default:
-                return new(name, name, hit);
+                return new HoverTextSnapshot(name, name, hit);
         }
-        return new(Substitute(_resolve(template), _tokens), name, hit);
+        return new HoverTextSnapshot(Substitute(_resolve(template), _tokens), name, hit);
     }
 
     private void CapacityTokens(WorldState world, RoomInstance room)

@@ -132,11 +132,11 @@ public sealed class KeeperResourceView
             cutoff = 100;
         }
 
-        _snapshot = new KeeperResourceSnapshot(new(GoldStore.Total(world, _viewer)),
-            new(player.Mana), new(income[index]), new(upkeep[index]),
-            new(hasHeart ? player.HeartHealth : 0, _database[VariableTypeId.DungeonHeartObjectHealth]),
-            new((int)Math.Clamp(remaining, 0, int.MaxValue), (int)Math.Clamp(interval, 0, int.MaxValue)),
-            new(CasinoJackpotRules.WageBill(world, _database, _viewer)), _tick, player.LastPaydayTick,
+        _snapshot = new KeeperResourceSnapshot(new GoldAmount(GoldStore.Total(world, _viewer)),
+            new ManaAmount(player.Mana), new ManaPerSecond(income[index]), new ManaPerSecond(upkeep[index]),
+            new HudGaugeFraction(hasHeart ? player.HeartHealth : 0, _database[VariableTypeId.DungeonHeartObjectHealth]),
+            new HudGaugeFraction((int)Math.Clamp(remaining, 0, int.MaxValue), (int)Math.Clamp(interval, 0, int.MaxValue)),
+            new GoldAmount(CasinoJackpotRules.WageBill(world, _database, _viewer)), _tick, player.LastPaydayTick,
             player.NextPaydayTick, cutoff * SimulationTiming.OriginalTickPeriodTicks, _alarmUntil, heartTile);
         return _snapshot;
     }

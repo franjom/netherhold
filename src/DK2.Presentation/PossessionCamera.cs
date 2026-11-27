@@ -23,7 +23,7 @@ public static class PossessionCamera
 
     public static PossessionCameraPose Pose(PossessionView view)
     {
-        return new(
+        return new PossessionCameraPose(
         ToHost(view.X, view.Y, view.Z), Forward(view.Yaw, view.Pitch),
         (view.Roll >= 0x400 ? view.Roll - 0x800 : view.Roll) * (360f / 2048));
     }
@@ -55,7 +55,7 @@ public static class PossessionCamera
     /// <summary>A point in 1/4096 tile, height last, in host axes (<see cref="PartyPopSound"/>'s convention).</summary>
     public static Vector3 ToHost(int x, int y, int z)
     {
-        return new(x / (float)Fp32.One, z / (float)Fp32.One, -y / (float)Fp32.One);
+        return new Vector3(x / (float)Fp32.One, z / (float)Fp32.One, -y / (float)Fp32.One);
     }
 
     /// <summary>The vertical field of view, in degrees, of the preset's lens, by the ordinary camera's

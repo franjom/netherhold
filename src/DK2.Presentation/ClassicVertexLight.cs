@@ -14,7 +14,7 @@ public readonly record struct ClassicTileLightSource(Vector4 PositionRadiusSquar
     /// <summary>Packed intensity and flags: <c>round(I x 128) | flags &lt;&lt; 8</c>.</summary>
     public static ClassicTileLightSource Of(in ClassicPointLight light)
     {
-        return new(
+        return new ClassicTileLightSource(
         new Vector4(light.Position.X, light.Position.Y, light.Position.Z, light.Radius * light.Radius), light.Colour,
         (uint)Math.Round(light.Intensity * 128f) | ((uint)light.Flags << 8));
     }
@@ -154,7 +154,7 @@ public static class ClassicVertexLight
     /// clamped to 0..1.</summary>
     public static Vector3 PackedDiffuse(Vector3 sum)
     {
-        return new(Pack(sum.X), Pack(sum.Y), Pack(sum.Z));
+        return new Vector3(Pack(sum.X), Pack(sum.Y), Pack(sum.Z));
     }
 
     private static float Pack(float channel)
@@ -172,7 +172,7 @@ public static class ClassicVertexLight
     /// column-vector basis (a column of the row-vector <paramref name="m"/>) dotted with it.</summary>
     private static Vector3 Basis(in Matrix4x4 m, Vector3 v)
     {
-        return new(
+        return new Vector3(
         m.M11 * v.X + m.M21 * v.Y + m.M31 * v.Z,
         m.M12 * v.X + m.M22 * v.Y + m.M32 * v.Z,
         m.M13 * v.X + m.M23 * v.Y + m.M33 * v.Z);
@@ -238,7 +238,7 @@ public static class ClassicVertexLight
             return false;
         }
         // The basis transposed: each basis column dotted with the delta.
-        Vector3 direction = new(
+        var direction = new Vector3(
             m.M11 * delta.X + m.M12 * delta.Y + m.M13 * delta.Z,
             m.M21 * delta.X + m.M22 * delta.Y + m.M23 * delta.Z,
             m.M31 * delta.X + m.M32 * delta.Y + m.M33 * delta.Z);

@@ -27,20 +27,20 @@ public static class TerrainTileState
 
     public static Vector4 Encode(in TileView tile)
     {
-        return new(Pack(tile.AmbientTint), Pack(tile.QuarterAmbientTint),
+        return new Vector4(Pack(tile.AmbientTint), Pack(tile.QuarterAmbientTint),
         (tile.Tagged ? 1 : 0) | (tile.RedHighlighted ? 2 : 0), tile.SightFogOpacity);
     }
 
     public static TerrainLightColour DecodeColour(float packed)
     {
         int value = (int)packed;
-        return new(value & 255, (value >> 8) & 255, (value >> 16) & 255);
+        return new TerrainLightColour(value & 255, (value >> 8) & 255, (value >> 16) & 255);
     }
 
     /// <summary>The texel shader's added light, before the vertex diffuse clamp; material reference is TerrainMaterialKey.For.</summary>
     public static Vector3 AddedLight(in ClassicMaterialRecipe recipe, Vector4 own, Vector4 tag, Vector4 tint, bool quarter)
     {
-        Vector3 added = new(recipe.AddedLight);
+        var added = new Vector3(recipe.AddedLight);
         if (!recipe.TakesAddedLight)
         {
             return added;

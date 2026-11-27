@@ -120,7 +120,7 @@ public sealed class PossessionFlight
     /// halved view distance of a creature whose byte <c>+0x36F</c> is 0x2D are not applied.</summary>
     public static CameraFlightState FirstPerson(PossessionView view, CameraThing preset)
     {
-        return new(
+        return new CameraFlightState(
         view.X, view.Y, view.Z, preset.Zoom, preset.Lens, preset.ViewDistance, view.Yaw, view.Pitch, view.Roll);
     }
 }

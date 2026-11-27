@@ -19,21 +19,21 @@ namespace DK2.Presentation;
 public sealed class WorldSoundDirector(ISimulationEventSink? downstream = null, PlayerId? viewer = null)
     : ISimulationEventSink
 {
-    private readonly ConcurrentQueue<SoundRequest> _pending = new();
+    private readonly ConcurrentQueue<SoundRequest> _pending = new ConcurrentQueue<SoundRequest>();
     public bool TryTake(out SoundRequest request)
     {
         return _pending.TryDequeue(out request);
     }
 
     private uint _alternator;
-    private readonly SoundCategoryNames _categories = new();
+    private readonly SoundCategoryNames _categories = new SoundCategoryNames();
 
     public void Emit(in SimEvent simEvent)
     {
         // DK2's global counter for the chicken's step (0x006E4FD4): bit 0 is tested, then it counts, on every request.
         if (simEvent.ThingSound is { Stop: true, Voiced: true } stop)
         {
-            _pending.Enqueue(new(default, default, null, VoiceOf(stop.Source), Stop: true));
+            _pending.Enqueue(new SoundRequest(default, default, null, VoiceOf(stop.Source), Stop: true));
         }
 
         bool turn = simEvent.ThingSound is { Alternating: true } && (_alternator++ & 1) != 0;
@@ -50,7 +50,7 @@ public sealed class WorldSoundDirector(ISimulationEventSink? downstream = null, 
     private SoundRequest Listener(in ThingSoundRequest sound)
     {
         var place = new Vector3(sound.Position.X.Raw / 4096f, sound.Position.Z.Raw / 4096f, -sound.Position.Y.Raw / 4096f);
-        return new(_categories.Of(sound.Category), new SoundId((uint)sound.Event),
+        return new SoundRequest(_categories.Of(sound.Category), new SoundId((uint)sound.Event),
             sound.ListenerRelative ? null : place, sound.Voiced ? VoiceOf(sound.Source) : SoundVoiceId.None,
             VolumeAnchor: sound.ListenerRelative ? place : null);
     }
@@ -63,6 +63,6 @@ public sealed class WorldSoundDirector(ISimulationEventSink? downstream = null, 
 
     private static SoundVoiceId VoiceOf(SoundSourceId source)
     {
-        return new(0x80000000u | ((uint)source.Kind << 24) | ((uint)source.Value & 0x00FFFFFFu));
+        return new SoundVoiceId(0x80000000u | ((uint)source.Kind << 24) | ((uint)source.Value & 0x00FFFFFFu));
     }
 }

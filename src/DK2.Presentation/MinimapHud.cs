@@ -24,12 +24,12 @@ public sealed class MinimapHud
     public const string PossessionFrameArt = "GUI\\Map\\map-2";
 
     /// <summary>The map disc: 169.6 across, 12.8 from the left and 11.2 from the bottom (top 587.2), in 1024x768 units.</summary>
-    public static readonly HudRect Disc = new(32, 1468, 424, 424);
+    public static readonly HudRect Disc = new HudRect(32, 1468, 424, 424);
 
     /// <summary>The frame's clip, 179.2 x 176 at (8, 584); the padded texture extends past it, its size
     /// interpretation STRONGLY INFERRED (minimap-rendering.md).</summary>
-    private static readonly HudRect FrameClip = new(8 * Unit, 584 * Unit, 179.2f * Unit, 176 * Unit);
-    private static readonly HudRect FrameRect = new(8 * Unit, 584 * Unit, 204.8f * Unit, 204.8f * Unit);
+    private static readonly HudRect FrameClip = new HudRect(8 * Unit, 584 * Unit, 179.2f * Unit, 176 * Unit);
+    private static readonly HudRect FrameRect = new HudRect(8 * Unit, 584 * Unit, 204.8f * Unit, 204.8f * Unit);
 
     /// <summary>Each corner's art, inactive then active. The magnifier's plain art is the "selected-" file.</summary>
     private static readonly string[] Corners = BuildCorners();
@@ -39,8 +39,8 @@ public sealed class MinimapHud
         [ClassicHudAction.SelectQuery, ClassicHudAction.SelectSell, ClassicHudAction.ToggleOptions, ClassicHudAction.ZoomIn];
 
     private readonly MinimapClassGrid _grid;
-    private readonly List<MinimapMarker> _markers = new();
-    private HudVisibility _visibility = new(true, true);
+    private readonly List<MinimapMarker> _markers = new List<MinimapMarker>();
+    private HudVisibility _visibility = new HudVisibility(true, true);
     private MinimapZoom _zoom = MinimapZoom.WholeMap;
     private ClassicHudAction _selected;
     private bool _optionsVisible;
@@ -163,7 +163,7 @@ public sealed class MinimapHud
 
     private static Vector2 Reference(float x, float y)
     {
-        return new(x / Unit, y / Unit);
+        return new Vector2(x / Unit, y / Unit);
     }
 
     /// <summary>The corner action a press at a point in virtual units takes; None while the HUD or input is off.</summary>
@@ -295,7 +295,7 @@ public sealed class MinimapHud
     /// position the minimap centres on and navigates from.</summary>
     public static FpPosition3 FixedFocus(Vector3 focus)
     {
-        return new(new Fp32((int)(focus.X * Fp32.One)), new Fp32((int)(-focus.Z * Fp32.One)), new Fp32(0));
+        return new FpPosition3(new Fp32((int)(focus.X * Fp32.One)), new Fp32((int)(-focus.Z * Fp32.One)), new Fp32(0));
     }
 
     /// <summary>The disc's side in screen pixels for a screen height and HUD scale factor, at least 1 and at most 4096: the
@@ -331,14 +331,14 @@ public sealed class MinimapHud
         }
         HudQuads.Clipped(frame, PossessionFrameArt, PossessionRect(FrameRect, layout), PossessionRect(FrameClip, layout), HudColor.White);
         Vector2 north = MinimapNorth.SpriteOriginPixels(heading, layout.Height);
-        HudRect northRect = new(layout.Screen.Virtual(north.X), layout.Screen.Virtual(north.Y), 8 * Unit, 8 * Unit);
-        frame.Add(new(HudDrawKind.Quad, NorthArt, PossessionRect(northRect, layout), HudColor.White));
+        var northRect = new HudRect(layout.Screen.Virtual(north.X), layout.Screen.Virtual(north.Y), 8 * Unit, 8 * Unit);
+        frame.Add(new HudDraw(HudDrawKind.Quad, NorthArt, PossessionRect(northRect, layout), HudColor.White));
     }
 
     private static HudRect PossessionRect(HudRect rect, HudScaleLayout layout)
     {
         float scale = PossessionHud.ContentXScale(layout), shift = 1920 / layout.Factor - 1920;
-        return new(rect.X * scale, rect.Y + shift, rect.Width * scale, rect.Height);
+        return new HudRect(rect.X * scale, rect.Y + shift, rect.Width * scale, rect.Height);
     }
 
     /// <param name="pointer">The pointer in virtual units: the corner under it shows.</param>

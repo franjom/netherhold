@@ -85,7 +85,7 @@ public sealed record CampaignResults(IReadOnlyList<CampaignResultCell> Cells, ui
 
         int found = (sbyte)b.SpecialsFound, missed = (sbyte)b.SpecialsMissed;
         // In mode 1 the page prints the slot's Total Evil Rating (0x00561CC0), not its own sum.
-        return new(cells, KeeperRank.TitleTextId(profile.PlayerValues[StatisticsRow]), profile.TotalEvilRating[played.Value - 1])
+        return new CampaignResults(cells, KeeperRank.TitleTextId(profile.PlayerValues[StatisticsRow]), profile.TotalEvilRating[played.Value - 1])
         {
             Overall = played.Value <= 25 ? overall : null,
             Specials = $"{found} / {found + missed}",
@@ -99,16 +99,16 @@ public sealed record CampaignResults(IReadOnlyList<CampaignResultCell> Cells, ui
     /// The layout's alignment is the style's default, taken as left and top.</summary>
     public IEnumerable<CampaignResultText> Summary()
     {
-        yield return new(Box(191, 110, 640, 480), RankTitleTextId, null, FrontEndTextColour.Rank);
-        yield return new(Box(191, 148, 459, 170), 1641, null, FrontEndTextColour.Label);
-        yield return new(Box(460, 148, 640, 170), 0, Total.ToString(), FrontEndTextColour.Red);
+        yield return new CampaignResultText(Box(191, 110, 640, 480), RankTitleTextId, null, FrontEndTextColour.Rank);
+        yield return new CampaignResultText(Box(191, 148, 459, 170), 1641, null, FrontEndTextColour.Label);
+        yield return new CampaignResultText(Box(460, 148, 640, 170), 0, Total.ToString(), FrontEndTextColour.Red);
         if (Overall is uint overall)
         {
-            yield return new(Box(191, 172, 459, 194), 1637, null, FrontEndTextColour.Grey);
-            yield return new(Box(460, 172, 640, 194), 0, overall.ToString(), FrontEndTextColour.Grey);
+            yield return new CampaignResultText(Box(191, 172, 459, 194), 1637, null, FrontEndTextColour.Grey);
+            yield return new CampaignResultText(Box(460, 172, 640, 194), 0, overall.ToString(), FrontEndTextColour.Grey);
         }
-        yield return new(Box(191, 194, 459, 216), 1638, null, FrontEndTextColour.Grey);
-        yield return new(Box(460, 194, 640, 216), 0, Specials, FrontEndTextColour.Grey);
+        yield return new CampaignResultText(Box(191, 194, 459, 216), 1638, null, FrontEndTextColour.Grey);
+        yield return new CampaignResultText(Box(460, 194, 640, 216), 0, Specials, FrontEndTextColour.Grey);
     }
 
     /// <summary><c>0x0053D270</c> in the list widget's box: seven cells from <paramref name="first"/>, the
@@ -133,8 +133,8 @@ public sealed record CampaignResults(IReadOnlyList<CampaignResultCell> Cells, ui
             }
 
             float height = Math.Min(list.Height, bottom - y);
-            yield return new(new(list.X, y, list.Width, height), cell.LabelTextId, null, FrontEndTextColour.Label);
-            yield return new(new(list.X + 250 * 4, y, list.Width - 250 * 4, height), cell.ValueTextId,
+            yield return new CampaignResultText(new FrontEndRect(list.X, y, list.Width, height), cell.LabelTextId, null, FrontEndTextColour.Label);
+            yield return new CampaignResultText(new FrontEndRect(list.X + 250 * 4, y, list.Width - 250 * 4, height), cell.ValueTextId,
                 cell.ValueTextId != 0 ? null : cell.Value, FrontEndTextColour.Value, FrontEndTextAlignment.Right);
             y += 25 * 4;
         }
@@ -152,6 +152,6 @@ public sealed record CampaignResults(IReadOnlyList<CampaignResultCell> Cells, ui
 
     private static FrontEndRect Box(float left, float top, float right, float bottom)
     {
-        return new(left * 4, top * 4, (right - left) * 4, (bottom - top) * 4);
+        return new FrontEndRect(left * 4, top * 4, (right - left) * 4, (bottom - top) * 4);
     }
 }

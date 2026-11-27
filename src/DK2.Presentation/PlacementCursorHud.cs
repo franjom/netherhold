@@ -205,7 +205,7 @@ public sealed class PlacementCursorHud
 
     private static HudRect Rect(HudScreen screen, float x, float y, float size)
     {
-        return new(screen.Virtual(x), screen.Virtual(y), screen.Virtual(size), screen.Virtual(size));
+        return new HudRect(screen.Virtual(x), screen.Virtual(y), screen.Virtual(size), screen.Virtual(size));
     }
 
     private static string[] Digits(string family)

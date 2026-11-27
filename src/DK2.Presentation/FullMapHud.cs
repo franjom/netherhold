@@ -21,9 +21,9 @@ public sealed class FullMapHud
 {
     private readonly MinimapPalette _palette;
     private readonly int _mapWidth, _mapHeight;
-    private readonly List<MinimapMarker> _markers = new();
-    private readonly List<PlayerId> _players = new();
-    private readonly List<(PlayerId Player, HudText Text, int Width, int Height)> _legend = new();
+    private readonly List<MinimapMarker> _markers = new List<MinimapMarker>();
+    private readonly List<PlayerId> _players = new List<PlayerId>();
+    private readonly List<(PlayerId Player, HudText Text, int Width, int Height)> _legend = new List<(PlayerId Player, HudText Text, int Width, int Height)>();
     private MinimapMarker? _room;
     private Func<int, BitmapFont>? _font;
     private Func<byte, string>? _playerName;
@@ -215,6 +215,6 @@ public sealed class FullMapHud
 
     private static HudColor Colour(uint argb)
     {
-        return new((byte)(argb >> 16), (byte)(argb >> 8), (byte)argb, (byte)(argb >> 24));
+        return new HudColor((byte)(argb >> 16), (byte)(argb >> 8), (byte)argb, (byte)(argb >> 24));
     }
 }

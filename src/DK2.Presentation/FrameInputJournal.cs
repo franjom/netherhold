@@ -99,7 +99,7 @@ public sealed class FrameInputJournalWriter : IDisposable
 
     private readonly Stream _stream;
     private readonly BinaryWriter _w;
-    private readonly MemoryStream _buffer = new();
+    private readonly MemoryStream _buffer = new MemoryStream();
     private readonly BinaryWriter _b;
     private int _unflushed;
 
@@ -313,7 +313,7 @@ public sealed class FrameInputJournal
 
     private static FrameInputRecord Decode(BinaryReader r)
     {
-        return new()
+        return new FrameInputRecord()
         {
             Frame = r.ReadInt64(),
             UnscaledDeltaSeconds = r.ReadDouble(),

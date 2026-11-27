@@ -23,13 +23,13 @@ public static class AnimationClipRequest
 {
     public static CreatureClipIdentity Identity(in CreatureView creature, AssetRef animation)
     {
-        return new(creature.PlaysAnimation ? animation : default, creature.AnimationStartedAt, creature.AnimationLoops,
+        return new CreatureClipIdentity(creature.PlaysAnimation ? animation : default, creature.AnimationStartedAt, creature.AnimationLoops,
             creature.AnimationDeferred);
     }
 
     public static ObjectClipIdentity Identity(in ObjectView pose, AssetRef mesh)
     {
-        return new(mesh, pose.AnimationStartedAt, pose.AnimationLoops, pose.AddedLight, pose.AnimationInitialPhase);
+        return new ObjectClipIdentity(mesh, pose.AnimationStartedAt, pose.AnimationLoops, pose.AddedLight, pose.AnimationInitialPhase);
     }
 
     /// <summary>A deferred clip waits for the playing one to finish (<see cref="RenderAnimationClock.Replace"/>).</summary>

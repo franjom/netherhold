@@ -72,7 +72,7 @@ public sealed class PossessionControls
     public static OpenPossessedPrisonCommand? PickLock(WorldState world, GameDatabase database, PlayerId player,
         PossessionView view, CreatureState creature)
     {
-        TilePos cameraPoint = new(view.X >> 12, view.Y >> 12);
+        var cameraPoint = new TilePos(view.X >> 12, view.Y >> 12);
         return PrisonAt(cameraPoint) && PrisonAt(creature.Tile)
             ? new OpenPossessedPrisonCommand(player, creature.Tile) : null;
 
@@ -136,7 +136,7 @@ public sealed class PossessionControls
     /// <summary><c>0x004100F0</c>'s action 26, from the camera's point and its yaw and pitch.</summary>
     public ActPossessedCreatureCommand Fire(PlayerId player, PossessionView view)
     {
-        return new(player, Aim(view), Melee, new PossessedSlot(Slot));
+        return new ActPossessedCreatureCommand(player, Aim(view), Melee, new PossessedSlot(Slot));
     }
 
     /// <summary>The once-a-turn pose of <c>0x004039A0</c>.</summary>
@@ -149,7 +149,7 @@ public sealed class PossessionControls
 
     public static PossessionAim Aim(PossessionView view)
     {
-        return new(new FpPosition3(new Fp32(view.X), new Fp32(view.Y), new Fp32(view.Z)),
+        return new PossessionAim(new FpPosition3(new Fp32(view.X), new Fp32(view.Y), new Fp32(view.Z)),
             new Dk2Angle((ushort)view.Yaw), new Dk2Angle((ushort)view.Pitch));
     }
 }

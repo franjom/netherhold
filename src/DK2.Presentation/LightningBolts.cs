@@ -30,7 +30,7 @@ public enum LightningAmplitude { Shot = 192, Creature = 256 }
 /// <summary>A reused bolt path, valid until the next BuildInto call.</summary>
 public sealed class LightningPathBuffer
 {
-    internal List<Vector3> Points { get; } = new();
+    internal List<Vector3> Points { get; } = new List<Vector3>();
     public IReadOnlyList<Vector3> Nodes
     {
         get
@@ -45,9 +45,9 @@ public sealed class LightningPathBuffer
 
 public sealed class LightningBolts(uint seed)
 {
-    private readonly LightningRandom _random = new(seed);
-    private readonly List<LightningPathBuffer> _pool = new();
-    private readonly List<LightningPathBuffer> _paths = new();
+    private readonly LightningRandom _random = new LightningRandom(seed);
+    private readonly List<LightningPathBuffer> _pool = new List<LightningPathBuffer>();
+    private readonly List<LightningPathBuffer> _paths = new List<LightningPathBuffer>();
     private int _usedPaths;
     public const float SegmentLimit = .06f;
     public const float RibbonHalfWidth = .03f;
@@ -154,7 +154,7 @@ public sealed class LightningBolts(uint seed)
                 thinned.Add(nodes[^1]);
                 nodes = thinned;
             }
-            paths.Add(new(nodes, count, longest));
+            paths.Add(new LightningPath(nodes, count, longest));
 
             void Subdivide(Vector3 left, Vector3 right)
             {
@@ -178,7 +178,7 @@ public sealed class LightningBolts(uint seed)
 
     private Vector3 Jitter(float scale)
     {
-        return new(_random.Symmetric() * scale,
+        return new Vector3(_random.Symmetric() * scale,
         _random.Symmetric() * scale, _random.Symmetric() * scale);
     }
 

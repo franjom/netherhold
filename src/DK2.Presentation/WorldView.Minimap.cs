@@ -15,7 +15,7 @@ public sealed partial class WorldView
     private readonly Dictionary<int, GameTick> _minimapPickups = [];
     private readonly List<int> _settledMinimapPickups = [];
     private WorldState? _minimapHeartWorld;
-    private TilePos _minimapHeartTile = new(FearRules.NoHeartTile, FearRules.NoHeartTile);
+    private TilePos _minimapHeartTile = new TilePos(FearRules.NoHeartTile, FearRules.NoHeartTile);
     private readonly byte? _minimapHeartTerrain;
     public TilePos? MinimapHeartTile { get; private set; }
 
@@ -52,7 +52,7 @@ public sealed partial class WorldView
         if (_minimapHeartWorld != world)
         {
             _minimapHeartWorld = world;
-            _minimapHeartTile = new(FearRules.NoHeartTile, FearRules.NoHeartTile);
+            _minimapHeartTile = new TilePos(FearRules.NoHeartTile, FearRules.NoHeartTile);
         }
         bool hasRooms = world.Width > 1 && world.Height > 1;
         // The room sweep is kept per world and revalidated here; the heart is read from it rather than found by a second
@@ -104,7 +104,7 @@ public sealed partial class WorldView
                     continue;
                 }
 
-                FpPosition3 position = new(new(trap.PosX), new(trap.PosY), new(0));
+                var position = new FpPosition3(new Fp32(trap.PosX), new Fp32(trap.PosY), new Fp32(0));
                 Add(MinimapMarkerKind.Trap, position,
                     owner, trap.Hidden ? MinimapMarkerFlags.Hidden : 0);
                 if (owner != _viewingPlayerId)
@@ -119,7 +119,7 @@ public sealed partial class WorldView
 
                 if (definition.ShotTypeId == 13)
                 {
-                    if (MinimapMarkerRules.IsAlarmRingActive(world.CurrentTick, new(trap.RechargeAt)))
+                    if (MinimapMarkerRules.IsAlarmRingActive(world.CurrentTick, new GameTick(trap.RechargeAt)))
                     {
                         output.Add(MinimapMarkerRules.AlarmRing(position, world.CurrentTick));
                     }
@@ -143,7 +143,7 @@ public sealed partial class WorldView
                 }
 
                 Add(door.Orientation == 0 ? MinimapMarkerKind.VerticalDoor : MinimapMarkerKind.HorizontalDoor,
-                    new(new((door.X << 12) + 0x800), new((door.Y << 12) + 0x800), new(0)), owner, 0);
+                    new FpPosition3(new Fp32((door.X << 12) + 0x800), new Fp32((door.Y << 12) + 0x800), new Fp32(0)), owner, 0);
             }
         }
 
@@ -163,7 +163,7 @@ public sealed partial class WorldView
                     flags |= MinimapMarkerFlags.InViewerHand;
                 }
 
-                FpPosition3 position = new(new(creature.PosX), new(creature.PosY), new(creature.PosZ));
+                var position = new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ));
                 int before = output.Count;
                 Add(MinimapMarkerKind.Creature, position, owner, flags);
                 if (output.Count != before && owner == _viewingPlayerId && creature.Possessed)
@@ -246,12 +246,12 @@ public sealed partial class WorldView
 
         if (maxX >= 0)
         {
-            _minimapHeartTile = new((minX + maxX) / 2, (minY + maxY) / 2);
+            _minimapHeartTile = new TilePos((minX + maxX) / 2, (minY + maxY) / 2);
         }
     }
 
     private static FpPosition3 TileCentre(TilePos position)
     {
-        return new(new((position.X << 12) + 0x800), new((position.Y << 12) + 0x800), new(0));
+        return new FpPosition3(new Fp32((position.X << 12) + 0x800), new Fp32((position.Y << 12) + 0x800), new Fp32(0));
     }
 }

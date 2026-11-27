@@ -40,12 +40,12 @@ public readonly record struct PlayerActionResolution
 
     public static PlayerActionResolution Of(PlayerCommand command)
     {
-        return new([command], PlayerRefusalReason.None);
+        return new PlayerActionResolution([command], PlayerRefusalReason.None);
     }
 
     public static PlayerActionResolution Refused(PlayerRefusalReason reason)
     {
-        return reason == PlayerRefusalReason.None ? throw new ArgumentException("A refusal needs a reason.", nameof(reason)) : new(null, reason);
+        return reason == PlayerRefusalReason.None ? throw new ArgumentException("A refusal needs a reason.", nameof(reason)) : new PlayerActionResolution(null, reason);
     }
 }
 

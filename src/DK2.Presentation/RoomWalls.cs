@@ -67,7 +67,7 @@ public readonly struct RoomWalls : IEquatable<RoomWalls>
 
     internal RoomWalls WithWholePiece(int side, int piece, int rotation)
     {
-        return new(_bits | ((ulong)(Present | Whole) << (side * 4))
+        return new RoomWalls(_bits | ((ulong)(Present | Whole) << (side * 4))
             | ((ulong)(0x40 | (piece & 0xF) | ((rotation & 3) << 4)) << (16 + side * 7)));
     }
 
@@ -87,12 +87,12 @@ public readonly struct RoomWalls : IEquatable<RoomWalls>
 
     internal RoomWalls WithWhole(int side, bool decorated = false)
     {
-        return new(_bits | ((ulong)(Present | Whole | (decorated ? BitA : 0)) << (side * 4)));
+        return new RoomWalls(_bits | ((ulong)(Present | Whole | (decorated ? BitA : 0)) << (side * 4)));
     }
 
     internal RoomWalls WithHalves(int side, bool aRunsOn, bool bRunsOn)
     {
-        return new(_bits | ((ulong)(Present | (aRunsOn ? BitA : 0) | (bRunsOn ? BitB : 0)) << (side * 4)));
+        return new RoomWalls(_bits | ((ulong)(Present | (aRunsOn ? BitA : 0) | (bRunsOn ? BitB : 0)) << (side * 4)));
     }
 
     private int Side(int side)

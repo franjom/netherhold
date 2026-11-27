@@ -12,13 +12,13 @@ namespace DK2.Presentation;
 /// rebuilds. Points are the renderers' frame (<see cref="RenderWorld"/>): X east, Y up, Z north.</summary>
 public sealed class TerrainCeilingGeometry
 {
-    public List<Vector3> Positions { get; } = new();
-    public List<Vector3> Normals { get; } = new();
-    public List<Vector2> Uvs { get; } = new();
+    public List<Vector3> Positions { get; } = new List<Vector3>();
+    public List<Vector3> Normals { get; } = new List<Vector3>();
+    public List<Vector2> Uvs { get; } = new List<Vector2>();
     /// <summary>Each vertex's tile index and <see cref="TerrainCeilingScheduler.RoofAnchor"/>.</summary>
-    public List<Vector2> LightAnchors { get; } = new();
+    public List<Vector2> LightAnchors { get; } = new List<Vector2>();
     /// <summary>DK2's triangle order: clockwise seen from below in the renderers' frame.</summary>
-    public List<int> Triangles { get; } = new();
+    public List<int> Triangles { get; } = new List<int>();
 
     public void Clear()
     {
@@ -46,7 +46,7 @@ public sealed class TerrainCeilingScheduler
     private readonly TerrainCeilingField _field;
     private readonly int _width, _height, _chunksX;
     private readonly bool[] _dirty;
-    private readonly List<int> _changed = new();
+    private readonly List<int> _changed = new List<int>();
     private readonly Vector3[] _piecePositions = new Vector3[TerrainCeiling.Vertices];
     private readonly Vector3[] _pieceNormals = new Vector3[TerrainCeiling.Vertices];
     private long _readTick = long.MinValue;
