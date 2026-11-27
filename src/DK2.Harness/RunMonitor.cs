@@ -85,7 +85,10 @@ internal sealed class RunMonitor(
         }
     }
 
-    public void ControllerIssued(PlayerId player, int inputTick) => _lastCommandTick[player.Value] = inputTick;
+    public void ControllerIssued(PlayerId player, int inputTick)
+    {
+        _lastCommandTick[player.Value] = inputTick;
+    }
 
     /// <summary>After tick <paramref name="tick"/> ran with <paramref name="given"/> and the live
     /// world's hash is <paramref name="liveHash"/>.</summary>
@@ -123,10 +126,13 @@ internal sealed class RunMonitor(
         options.AfterTick?.Invoke(tick, live);
     }
 
-    public RunCoverage? Coverage(IReadOnlyList<SimEvent> events) => options.Coverage
+    public RunCoverage? Coverage(IReadOnlyList<SimEvent> events)
+    {
+        return options.Coverage
         ? new RunCoverage(_reached.Count, _states,
             events.GroupBy(e => e.Kind).ToDictionary(g => g.Key, g => g.Count(), StringComparer.Ordinal))
         : null;
+    }
 
     private void StartShadow(GameSimulation live, int done)
     {
@@ -240,8 +246,10 @@ internal sealed class RunMonitor(
             : $"player {sample.Player}: controller idle (no command) from tick {still.Since} to {sample.Tick}");
     }
 
-    private static bool Moved(ProgressSample a, ProgressSample b) =>
-        a.OwnedTiles != b.OwnedTiles || a.RoomTiles != b.RoomTiles || a.Gold != b.Gold || a.Creatures != b.Creatures || a.Status != b.Status;
+    private static bool Moved(ProgressSample a, ProgressSample b)
+    {
+        return a.OwnedTiles != b.OwnedTiles || a.RoomTiles != b.RoomTiles || a.Gold != b.Gold || a.Creatures != b.Creatures || a.Status != b.Status;
+    }
 }
 
 /// <summary>A fuzzer asked for on the command line; the seed defaults to the scenario's.</summary>
@@ -253,14 +261,17 @@ public sealed record RunTemplate(FuzzSpec? Fuzz, bool Coverage, int ProgressEver
     /// <summary>A campaign player for one keeper (<c>--campaign-player</c>); null for none.</summary>
     public CampaignPlayerSpec? Player { get; init; }
 
-    public RunOptions For(Scenario scenario, Stream journal) => new()
+    public RunOptions For(Scenario scenario, Stream journal)
     {
-        Controllers = Fuzz is null
+        return new()
+        {
+            Controllers = Fuzz is null
             ? []
             : [LegalActionFuzzer.Create(Fuzz.Player, Fuzz.Seed ?? scenario.Seed, Fuzz.IntervalTicks)],
-        Journal = journal,
-        Coverage = Coverage,
-        ProgressEvery = ProgressEvery,
-        SnapshotCheckEvery = SnapshotCheckEvery,
-    };
+            Journal = journal,
+            Coverage = Coverage,
+            ProgressEvery = ProgressEvery,
+            SnapshotCheckEvery = SnapshotCheckEvery,
+        };
+    }
 }

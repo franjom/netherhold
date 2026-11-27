@@ -23,7 +23,10 @@ public static class JournalHeader
     /// recorded tick count rather than the scenario's duration.</summary>
     public const string PlayerRunSchema = "player.run.schema";
 
-    public static bool IsPlayerRun(InputJournal journal) => journal.Header.ContainsKey(PlayerRunSchema);
+    public static bool IsPlayerRun(InputJournal journal)
+    {
+        return journal.Header.ContainsKey(PlayerRunSchema);
+    }
 
     public static IReadOnlyDictionary<string, string> For(Scenario scenario, IReadOnlyList<ScenarioController> controllers,
         IReadOnlyDictionary<string, string>? extra = null)
@@ -117,11 +120,15 @@ public static class JournalHeader
         ReplayTicks(scenario, journal);
     }
 
-    private static string Value(InputJournal journal, string key) =>
-        journal.Header.TryGetValue(key, out string? value) ? value : "unknown";
+    private static string Value(InputJournal journal, string key)
+    {
+        return journal.Header.TryGetValue(key, out string? value) ? value : "unknown";
+    }
 
-    internal static string Sha256(string path) =>
-        File.Exists(path) ? Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant() : "none";
+    internal static string Sha256(string path)
+    {
+        return File.Exists(path) ? Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant() : "none";
+    }
 
     /// <summary>The commit and whether <c>src/</c> is dirty, from the repository holding the scenario
     /// (or the working directory). "unknown" when git is missing or the file is outside a repository.</summary>
@@ -184,7 +191,13 @@ public static class JournalHeader
 /// <summary>A replay's verdict: how many recorded hashes it checked and the first that differed.</summary>
 public sealed record ReplayReport(int ComparedTicks, long? FirstDivergentTick, ulong Recorded, ulong Replayed, bool JournalTruncated)
 {
-    public bool Matches => FirstDivergentTick is null;
+    public bool Matches
+    {
+        get
+        {
+            return FirstDivergentTick is null;
+        }
+    }
 }
 
 /// <summary>Compares a replay's hashes with its journal's as the run goes; inert for an ordinary run.</summary>
@@ -213,6 +226,8 @@ internal sealed class ReplayComparison(InputJournal? journal)
         _replayed = hash;
     }
 
-    public ReplayReport? Report() =>
-        journal is null ? null : new ReplayReport(_compared, _first, _recorded, _replayed, journal.Truncated);
+    public ReplayReport? Report()
+    {
+        return journal is null ? null : new ReplayReport(_compared, _first, _recorded, _replayed, journal.Truncated);
+    }
 }

@@ -205,8 +205,14 @@ internal static class JournalReportCommand
         html.AppendLine("<p><small>This report compares existing evidence offline. It neither runs a replay nor reconstructs world state or subsystem causes.</small></p></body></html>");
         return html.ToString();
 
-        void Row(string key, string value) => html.AppendLine($"<tr><th>{Encode(key)}</th><td><code>{Encode(value)}</code></td></tr>");
+        void Row(string key, string value)
+        {
+            html.AppendLine($"<tr><th>{Encode(key)}</th><td><code>{Encode(value)}</code></td></tr>");
+        }
     }
 
-    private static string Encode(string value) => WebUtility.HtmlEncode(value);
+    private static string Encode(string value)
+    {
+        return WebUtility.HtmlEncode(value);
+    }
 }

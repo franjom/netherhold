@@ -36,10 +36,12 @@ public static class PlaybookAvailableCommand
     /// <summary>Skips the intro, then waits: the run only has to reach a playable tick.</summary>
     private sealed class Probe : IPlayerController
     {
-        public PlayerDecision Decide(PlayerObservation observation) =>
-            (observation.Offers.Actions & PlayerActionKinds.SkipIntro) != 0
+        public PlayerDecision Decide(PlayerObservation observation)
+        {
+            return (observation.Offers.Actions & PlayerActionKinds.SkipIntro) != 0
                 ? new PlayerDecision([new PlayerAction.SkipIntro()], 1, "skip the intro")
                 : PlayerDecision.Wait(1, "probe");
+        }
     }
 
     /// <summary>The command: writes the section to stdout, or into the playbook at <paramref name="output"/>
@@ -150,25 +152,31 @@ public static class PlaybookAvailableCommand
         return new Available(ScenarioRunner.CampaignPrefix + level, start, creatures, changes, world.CurrentTick.Value);
     }
 
-    private static PlaybookItem? ItemOf(GameDatabase database, BottomPanelChoiceKind kind, byte id) => kind switch
+    private static PlaybookItem? ItemOf(GameDatabase database, BottomPanelChoiceKind kind, byte id)
     {
-        BottomPanelChoiceKind.Room => ItemOf(database, AvailabilityKind.Room, id),
-        BottomPanelChoiceKind.Spell => ItemOf(database, AvailabilityKind.Spell, id),
-        BottomPanelChoiceKind.Door => ItemOf(database, AvailabilityKind.Door, id),
-        BottomPanelChoiceKind.Trap => ItemOf(database, AvailabilityKind.Trap, id),
-        _ => null,
-    };
+        return kind switch
+        {
+            BottomPanelChoiceKind.Room => ItemOf(database, AvailabilityKind.Room, id),
+            BottomPanelChoiceKind.Spell => ItemOf(database, AvailabilityKind.Spell, id),
+            BottomPanelChoiceKind.Door => ItemOf(database, AvailabilityKind.Door, id),
+            BottomPanelChoiceKind.Trap => ItemOf(database, AvailabilityKind.Trap, id),
+            _ => null,
+        };
+    }
 
     /// <summary>An item by its availability kind and type id, named as the game data names it.</summary>
-    public static PlaybookItem? ItemOf(GameDatabase database, AvailabilityKind kind, int id) => kind switch
+    public static PlaybookItem? ItemOf(GameDatabase database, AvailabilityKind kind, int id)
     {
-        AvailabilityKind.Room when Enum.IsDefined(typeof(RoomTypeId), (byte)id) => PlaybookItem.Room((RoomTypeId)id),
-        AvailabilityKind.Spell when database.KeeperSpellById(id) is KeeperSpellDef spell => new PlaybookItem(PlaybookItemKind.Spell, spell.Name),
-        AvailabilityKind.Door when database.Doors.TryGetValue((byte)id, out DoorDef? door) => new PlaybookItem(PlaybookItemKind.Door, door.Name),
-        AvailabilityKind.Trap when database.Traps.TryGetValue((byte)id, out TrapDef? trap) => new PlaybookItem(PlaybookItemKind.Trap, trap.Name),
-        AvailabilityKind.Creature when database.Creatures.TryGetValue((byte)id, out CreatureDef? creature) => new PlaybookItem(PlaybookItemKind.Creature, creature.Name),
-        _ => null,
-    };
+        return kind switch
+        {
+            AvailabilityKind.Room when Enum.IsDefined(typeof(RoomTypeId), (byte)id) => PlaybookItem.Room((RoomTypeId)id),
+            AvailabilityKind.Spell when database.KeeperSpellById(id) is KeeperSpellDef spell => new PlaybookItem(PlaybookItemKind.Spell, spell.Name),
+            AvailabilityKind.Door when database.Doors.TryGetValue((byte)id, out DoorDef? door) => new PlaybookItem(PlaybookItemKind.Door, door.Name),
+            AvailabilityKind.Trap when database.Traps.TryGetValue((byte)id, out TrapDef? trap) => new PlaybookItem(PlaybookItemKind.Trap, trap.Name),
+            AvailabilityKind.Creature when database.Creatures.TryGetValue((byte)id, out CreatureDef? creature) => new PlaybookItem(PlaybookItemKind.Creature, creature.Name),
+            _ => null,
+        };
+    }
 
     /// <summary>The <c>available</c> section as YAML, deterministic: the header comment, then start in the
     /// panel's order, creatures by id, may-change by trigger id then research list order.</summary>
@@ -195,7 +203,10 @@ public static class PlaybookAvailableCommand
         return text.ToString();
     }
 
-    private static string Quote(PlaybookItem item) => "\"" + item.ToString().Replace("\"", "\\\"", StringComparison.Ordinal) + "\"";
+    private static string Quote(PlaybookItem item)
+    {
+        return "\"" + item.ToString().Replace("\"", "\\\"", StringComparison.Ordinal) + "\"";
+    }
 
     /// <summary><paramref name="playbook"/>'s text with its <c>available</c> section (the key and its indented
     /// lines) replaced by <paramref name="section"/>, everything else kept, line endings included; or a new

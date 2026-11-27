@@ -119,8 +119,10 @@ internal sealed class StateModel
     };
 
     /// <summary>The column a read of <paramref name="member"/> counts in, given where it sits.</summary>
-    internal static int ReadColumn(ISymbol member, int column) =>
-        member.ContainingType is { } owner && ReadColumns.TryGetValue(owner.Name, out int read) ? read : column;
+    internal static int ReadColumn(ISymbol member, int column)
+    {
+        return member.ContainingType is { } owner && ReadColumns.TryGetValue(owner.Name, out int read) ? read : column;
+    }
 
     private readonly Dictionary<INamedTypeSymbol, int> _typeColumn = new(SymbolEqualityComparer.Default);
     private readonly Dictionary<INamedTypeSymbol, List<int>> _reachedFrom = new(SymbolEqualityComparer.Default);
@@ -260,25 +262,42 @@ internal sealed class StateModel
     internal List<string> Unmapped { get; } = [];
 
     /// <summary>Every state type and its column, <see cref="Excluded"/> included.</summary>
-    internal IReadOnlyDictionary<INamedTypeSymbol, int> TypeColumn => _typeColumn;
+    internal IReadOnlyDictionary<INamedTypeSymbol, int> TypeColumn
+    {
+        get
+        {
+            return _typeColumn;
+        }
+    }
 
     /// <summary>State types reached from more than one column at their nearest depth. A value type among them is
     /// shared: its own fields count for nothing, and a write into one counts as a write of the field that holds it.</summary>
-    internal IEnumerable<(INamedTypeSymbol Type, IReadOnlyCollection<int> Columns)> MultiColumn =>
-        _reachedFrom.Where(p => p.Value.Count > 1 && !TypeColumns.ContainsKey(p.Key.Name)).Select(p => (p.Key, (IReadOnlyCollection<int>)p.Value));
+    internal IEnumerable<(INamedTypeSymbol Type, IReadOnlyCollection<int> Columns)> MultiColumn
+    {
+        get
+        {
+            return _reachedFrom.Where(p => p.Value.Count > 1 && !TypeColumns.ContainsKey(p.Key.Name)).Select(p => (p.Key, (IReadOnlyCollection<int>)p.Value));
+        }
+    }
 
     /// <summary>A value type that counts through the field holding it, not in a column of its own: one declared
     /// outside <c>DK2.Simulation</c> (a position, an angle, a tick), or one several columns reach at the same depth.</summary>
-    internal bool IsShared(INamedTypeSymbol type) =>
-        type.IsValueType && _typeColumn.ContainsKey(type) && !TypeColumns.ContainsKey(type.Name)
+    internal bool IsShared(INamedTypeSymbol type)
+    {
+        return type.IsValueType && _typeColumn.ContainsKey(type) && !TypeColumns.ContainsKey(type.Name)
         && (_reachedFrom[type].Count > 1 || !type.ToDisplayString().StartsWith("DK2.Simulation.", StringComparison.Ordinal));
+    }
 
-    internal bool IsSystemType(INamedTypeSymbol type) =>
-        _systemTypes.Contains(type) || (type.ContainingType is { } outer && IsSystemType(outer));
+    internal bool IsSystemType(INamedTypeSymbol type)
+    {
+        return _systemTypes.Contains(type) || (type.ContainingType is { } outer && IsSystemType(outer));
+    }
 
-    internal bool IsExcludedType(INamedTypeSymbol type) =>
-        _typeColumn.TryGetValue(type, out int c) && c == Excluded
+    internal bool IsExcludedType(INamedTypeSymbol type)
+    {
+        return _typeColumn.TryGetValue(type, out int c) && c == Excluded
         || TypeColumns.TryGetValue(type.Name, out int fixedColumn) && fixedColumn == Excluded;
+    }
 
     /// <summary>Where a field, auto-property or event lives, and its column.</summary>
     /// <param name="writtenStatics">Static fields some method writes: only those are state.</param>
@@ -355,17 +374,25 @@ internal sealed class StateModel
 
     /// <summary>Where a member of a source type is declared, to compare two members of the same type: a field and a
     /// property interleave, as <c>TileState</c>'s do, so a field's index among the fields says nothing about a property's.</summary>
-    private static int Position(ISymbol member) => member.DeclaringSyntaxReferences[0].Span.Start;
+    private static int Position(ISymbol member)
+    {
+        return member.DeclaringSyntaxReferences[0].Span.Start;
+    }
 
     /// <summary>The member of <c>TileState</c> a write is a write of: a property's backing field (<c>_roomRuined</c> of
     /// <c>RoomRuined</c>, whose setter counts the change) stands for the property, which is where it is declared in the column order.</summary>
-    private ISymbol TileMember(ISymbol member) =>
-        member is IFieldSymbol { IsImplicitlyDeclared: false } field && field.Name.StartsWith('_')
+    private ISymbol TileMember(ISymbol member)
+    {
+        return member is IFieldSymbol { IsImplicitlyDeclared: false } field && field.Name.StartsWith('_')
         && _tile.GetMembers().OfType<IPropertySymbol>().FirstOrDefault(p => string.Equals(p.Name, field.Name[1..], StringComparison.OrdinalIgnoreCase)) is { } property
             ? property
             : member;
+    }
 
-    private static (FieldPlace, int) Columned(int column) => column == Excluded ? (FieldPlace.NotState, 0) : (FieldPlace.Column, column);
+    private static (FieldPlace, int) Columned(int column)
+    {
+        return column == Excluded ? (FieldPlace.NotState, 0) : (FieldPlace.Column, column);
+    }
 
     /// <summary>A type's instance fields and the fields behind its auto-properties, its source base types' included.</summary>
     internal static IEnumerable<(ISymbol Member, ITypeSymbol Type)> InstanceMembers(INamedTypeSymbol type)

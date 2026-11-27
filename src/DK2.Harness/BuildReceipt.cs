@@ -30,7 +30,13 @@ public static class BuildReceipt
     /// <paramref name="PatchSha256"/> (the tracked patch's hash) and the source list then identify.</summary>
     public sealed record Verification(string Directory, string? Head, IReadOnlyList<string> Problems, bool Dirty = false, string? PatchSha256 = null)
     {
-        public bool Matches => Problems.Count == 0;
+        public bool Matches
+        {
+            get
+            {
+                return Problems.Count == 0;
+            }
+        }
     }
 
     /// <summary>Checks the receipt in <paramref name="receiptDirectory"/> against <paramref name="harnessDirectory"/>
@@ -122,7 +128,10 @@ public static class BuildReceipt
         return problems;
     }
 
-    private static string? ReadOptional(string path) => File.Exists(path) ? File.ReadAllText(path).Trim() : null;
+    private static string? ReadOptional(string path)
+    {
+        return File.Exists(path) ? File.ReadAllText(path).Trim() : null;
+    }
 
     /// <summary>The repository root above <paramref name="start"/> (the folder holding DK2.slnx), or null.</summary>
     public static string? RepositoryRootAbove(string start)

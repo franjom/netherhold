@@ -50,8 +50,10 @@ internal partial class Program
             ["kwd"] = KwdCommands.Run,
         };
 
-    internal static int Dispatch(string[] args) =>
-        args.Length > 0 && Registry.TryGetValue(args[0], out Func<string[], int>? run) ? run(args) : Usage();
+    internal static int Dispatch(string[] args)
+    {
+        return args.Length > 0 && Registry.TryGetValue(args[0], out Func<string[], int>? run) ? run(args) : Usage();
+    }
 
     internal static int Usage()
 

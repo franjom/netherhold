@@ -192,11 +192,17 @@ public static class VerificationLedger
         return source.Length - 1;
     }
 
-    private static string[] Distinct(MatchCollection matches) => [.. matches.Select(match => match.Value)
+    private static string[] Distinct(MatchCollection matches)
+    {
+        return [.. matches.Select(match => match.Value)
         .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(value => value, StringComparer.OrdinalIgnoreCase)];
+    }
 
-    private static string EscapeCsv(string value) => value.Contains('"') || value.Contains(',') || value.Contains('\n')
+    private static string EscapeCsv(string value)
+    {
+        return value.Contains('"') || value.Contains(',') || value.Contains('\n')
         ? "\"" + value.Replace("\"", "\"\"") + "\"" : value;
+    }
 
     private static List<string> ParseCsv(string line)
     {

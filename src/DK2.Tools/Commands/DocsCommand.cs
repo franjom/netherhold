@@ -38,7 +38,9 @@ internal static class DocsCommand
         var context = DocsContext.TryLoad(docsRoot, findings);
 
         void Report(string file, string what, int actual, int budget)
-            => findings.Add($"{file}: {what} is {actual}, budget {budget}");
+        {
+            findings.Add($"{file}: {what} is {actual}, budget {budget}");
+        }
 
         // A commit message, for a commit-msg hook. The subject line is exempt;
         // the trailer is not the author's prose either.
@@ -103,20 +105,31 @@ internal static class DocsCommand
     }
 
     internal static int CommitBodyLines(string[] msg)
-        => msg.Skip(1)
-            .Where(l => !l.StartsWith("Co-Authored-By:", StringComparison.Ordinal))
-            .Where(l => !l.StartsWith('#'))
-            .Count(l => l.Length > 0);
+    {
+        return msg.Skip(1)
+                .Where(l => !l.StartsWith("Co-Authored-By:", StringComparison.Ordinal))
+                .Where(l => !l.StartsWith('#'))
+                .Count(l => l.Length > 0);
+    }
 
     /// <param name="context">The systems and the notes' tags, for the ADR-0643 rules; null skips them.</param>
     internal static void CheckFile(string relative, string[] lines, string[] baseLines, bool all,
         HashSet<int>? touched, List<string> findings, DocsContext? context = null)
     {
         void Report(string file, string what, int actual, int budget)
-            => findings.Add($"{file}: {what} is {actual}, budget {budget}");
-        bool Worse(int now, int before) => all || now > before;
+        {
+            findings.Add($"{file}: {what} is {actual}, budget {budget}");
+        }
+
+        bool Worse(int now, int before)
+        {
+            return all || now > before;
+        }
+
         bool Touched(int from, int to)
-            => touched is null || Enumerable.Range(from, to - from + 1).Any(touched.Contains);
+        {
+            return touched is null || Enumerable.Range(from, to - from + 1).Any(touched.Contains);
+        }
 
         // Whole-file budgets.
         if (relative.Equals("docs/HANDOFF.md", StringComparison.OrdinalIgnoreCase)
@@ -318,11 +331,16 @@ internal static class DocsCommand
         }
 
         static string Trim(string heading)
-            => heading.Length <= 40 ? heading : heading[..40] + "...";
+        {
+            return heading.Length <= 40 ? heading : heading[..40] + "...";
+        }
     }
 
     /// <summary>A research note's length less its front matter, which the budget leaves out.</summary>
-    static int Prose(string[] lines) => lines.Length - ResearchNotes.FrontMatterLength(lines);
+    static int Prose(string[] lines)
+    {
+        return lines.Length - ResearchNotes.FrontMatterLength(lines);
+    }
 
     /// <summary>ADR-0643: an ADR number heads one ADR (judged over the whole file, it is cheap), and an
     /// ADR you touch resolves to a status and to systems that exist.</summary>

@@ -25,13 +25,32 @@ public sealed class PacketLog
     public readonly record struct PacketRecordStamp(GameTick PlaybackTurn, uint RecordedStamp, int HeaderOffset);
     public IReadOnlyList<PacketRecordStamp> Records { get; }
 
-    public int ActionCount => _turns.Values.Sum(actions => actions.Count);
-    public int TurnCount => _turns.Count;
-    public IReadOnlyList<(long Turn, uint Original, PacketEntityKind Kind)> EntityReferences =>
-        [.. _turns.OrderBy(pair => pair.Key)
+    public int ActionCount
+    {
+        get
+        {
+            return _turns.Values.Sum(actions => actions.Count);
+        }
+    }
+
+    public int TurnCount
+    {
+        get
+        {
+            return _turns.Count;
+        }
+    }
+
+    public IReadOnlyList<(long Turn, uint Original, PacketEntityKind Kind)> EntityReferences
+    {
+        get
+        {
+            return [.. _turns.OrderBy(pair => pair.Key)
             .SelectMany(pair => pair.Value
                 .Where(action => action.Kind is 55 or 57 or 59 or 62 or 88 or 93 or 137)
                 .SelectMany(action => References(pair.Key, action)))];
+        }
+    }
 
     private static IEnumerable<(long Turn, uint Original, PacketEntityKind Kind)> References(long turn, PacketAction action)
     {
@@ -287,19 +306,28 @@ public sealed class PacketLog
         }
         return commands.Count == 0 ? InputFrame.Empty : new InputFrame(commands);
 
-        int Resolve(uint original, PacketEntityKind kind) => entityIds.TryResolve(original, turn, kind, out int ours)
+        int Resolve(uint original, PacketEntityKind kind)
+        {
+            return entityIds.TryResolve(original, turn, kind, out int ours)
             ? ours : throw new InvalidDataException(
                 $"Original entity {original} at turn {turn} has no observed simulation mapping.");
+        }
     }
 
-    private static TilePos PackedTile(uint packed) =>
-        new((int)(packed & 0xffff), (int)(packed >> 16));
+    private static TilePos PackedTile(uint packed)
+    {
+        return new((int)(packed & 0xffff), (int)(packed >> 16));
+    }
 
-    private static uint U32(byte[] data, int at) =>
-        BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(at, 4));
+    private static uint U32(byte[] data, int at)
+    {
+        return BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(at, 4));
+    }
 
-    private static ushort U16(byte[] data, int at) =>
-        BinaryPrimitives.ReadUInt16LittleEndian(data.AsSpan(at, 2));
+    private static ushort U16(byte[] data, int at)
+    {
+        return BinaryPrimitives.ReadUInt16LittleEndian(data.AsSpan(at, 2));
+    }
 
     private readonly record struct PacketAction(
         uint First, uint Second, uint Third, uint Kind, ushort Player);

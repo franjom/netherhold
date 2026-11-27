@@ -132,7 +132,9 @@ public static partial class AdrIndex
 
     /// <summary>Every ADR number that heads more than one ADR (amendments excluded), ascending.</summary>
     public static IEnumerable<int> Duplicates(IEnumerable<Adr> adrs)
-        => adrs.GroupBy(a => a.Number).Where(g => g.Count() > 1).Select(g => g.Key).Order();
+    {
+        return adrs.GroupBy(a => a.Number).Where(g => g.Count() > 1).Select(g => g.Key).Order();
+    }
 
     /// <summary>Numbers below the highest that no ADR uses, ascending.</summary>
     public static IEnumerable<int> Gaps(IEnumerable<Adr> adrs)

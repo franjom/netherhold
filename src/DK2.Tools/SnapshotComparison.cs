@@ -103,15 +103,18 @@ internal static class SnapshotComparison
         }
     }
 
-    private static object Metadata(GameSimulation simulation) => new
+    private static object Metadata(GameSimulation simulation)
     {
-        Tick = simulation.CurrentTick.Value,
-        simulation.World.Width,
-        simulation.World.Height,
-        simulation.World.FogOfWarEnabled,
-        simulation.World.GameMode,
-        Rng = Random(simulation.Rng),
-    };
+        return new
+        {
+            Tick = simulation.CurrentTick.Value,
+            simulation.World.Width,
+            simulation.World.Height,
+            simulation.World.FogOfWarEnabled,
+            simulation.World.GameMode,
+            Rng = Random(simulation.Rng),
+        };
+    }
 
     private static SortedDictionary<string, string> Random(SimRandom random)
     {

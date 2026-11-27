@@ -26,8 +26,11 @@ internal static class CaptureCommands
             TriggerCaptureComparisonResult result = TriggerCaptureComparison.Compare(
                 arguments[1], arguments[2], anchor);
 
-            static string Ids(IReadOnlyList<string> ids) =>
-                ids.Count == 0 ? "(none)" : string.Join(", ", ids);
+            static string Ids(IReadOnlyList<string> ids)
+            {
+                return ids.Count == 0 ? "(none)" : string.Join(", ", ids);
+            }
+
             Console.WriteLine("event set:");
             Console.WriteLine($"  in both ({result.InBoth.Count}): {Ids(result.InBoth)}");
             Console.WriteLine($"  capture only ({result.CaptureOnly.Count}): {Ids(result.CaptureOnly)}");

@@ -93,7 +93,9 @@ public static class HumanCommandPolicy
     /// <summary>True when a human could issue this command in ordinary play: its type is
     /// <see cref="HumanCommandClass.Play"/> and it takes the form the human path builds (a room
     /// is built from a dragged rectangle, never placed tile by tile).</summary>
-    public static bool AllowsInPlay(PlayerCommand command) =>
-        Classes.TryGetValue(command.GetType(), out HumanCommandClass c) && c == HumanCommandClass.Play
+    public static bool AllowsInPlay(PlayerCommand command)
+    {
+        return Classes.TryGetValue(command.GetType(), out HumanCommandClass c) && c == HumanCommandClass.Play
         && command is not BuildRoomCommand { Mode: not RoomBuildMode.PlayerWave };
+    }
 }

@@ -333,7 +333,10 @@ internal static class ReplayCommands
 
         // A recorded door or trap placement on a tile ours has not claimed yet waits for it
         // (BlueprintRetry, ADR-0570).
-        InputFrame Blueprints(long turn, InputFrame frame) => blueprints?.Filter(turn, frame) ?? frame;
+        InputFrame Blueprints(long turn, InputFrame frame)
+        {
+            return blueprints?.Filter(turn, frame) ?? frame;
+        }
 
         bool OwnsTile(PlayerCommand command)
         {
@@ -806,7 +809,10 @@ sealed class TagTally : ISimulationEventSink
     private int _dropRefused;
     private int _slapped;
 
-    public TagTally(TextWriter? events = null) => _events = events;
+    public TagTally(TextWriter? events = null)
+    {
+        _events = events;
+    }
 
     public void Emit(in SimEvent simEvent)
     {

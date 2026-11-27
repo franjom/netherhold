@@ -128,12 +128,16 @@ public sealed class ScenarioRunner
     /// <param name="journal">When given, the run's input journal is written to it as the run goes
     /// (<see cref="InputJournalWriter"/>), ending with "completed" or the exception that stopped it.</param>
     public ScenarioResult Run(
-        Scenario scenario, IReadOnlyList<ScenarioController>? controllers = null, Stream? journal = null) =>
-        Run(scenario, new RunOptions { Controllers = controllers ?? [], Journal = journal });
+        Scenario scenario, IReadOnlyList<ScenarioController>? controllers = null, Stream? journal = null)
+    {
+        return Run(scenario, new RunOptions { Controllers = controllers ?? [], Journal = journal });
+    }
 
     /// <summary>Runs a scenario with controllers, a journal and the observers in <paramref name="options"/>.</summary>
-    public ScenarioResult Run(Scenario scenario, RunOptions options) =>
-        RunOnLevel(scenario, new RunMode(options, null));
+    public ScenarioResult Run(Scenario scenario, RunOptions options)
+    {
+        return RunOnLevel(scenario, new RunMode(options, null));
+    }
 
     /// <summary>
     /// Replays a journal against its scenario: the scenario's world, setup and <c>work</c> as
@@ -143,7 +147,10 @@ public sealed class ScenarioRunner
     /// fails again here, which is the reproduction. Refuses a journal from another
     /// <c>HashVersion</c> or another version of the scenario file.
     /// </summary>
-    public ScenarioResult Replay(Scenario scenario, InputJournal journal) => Replay(scenario, journal, new RunOptions());
+    public ScenarioResult Replay(Scenario scenario, InputJournal journal)
+    {
+        return Replay(scenario, journal, new RunOptions());
+    }
 
     /// <summary>A replay with observers; <paramref name="options"/>' controllers and journal are ignored.
     /// <paramref name="acceptOtherHashVersion"/> replays a journal from another <c>HashVersion</c> anyway, for
@@ -170,8 +177,21 @@ public sealed class ScenarioRunner
     /// <summary>Where a run's input comes from besides the scenario, and where it is journalled.</summary>
     private sealed record RunMode(RunOptions Options, InputJournal? Replay)
     {
-        public IReadOnlyList<ScenarioController> Controllers => Options.Controllers;
-        public Stream? Record => Options.Journal;
+        public IReadOnlyList<ScenarioController> Controllers
+        {
+            get
+            {
+                return Options.Controllers;
+            }
+        }
+
+        public Stream? Record
+        {
+            get
+            {
+                return Options.Journal;
+            }
+        }
     }
 
     /// <summary>The level's own VARIABLES, for a scenario that names a campaign map.</summary>
@@ -183,10 +203,12 @@ public sealed class ScenarioRunner
             : GameDatabaseLoader.LoadCampaignVariables(_installDir, level);
     }
 
-    private static string? LevelNameOf(string mapSpec) =>
-        mapSpec.StartsWith(CampaignPrefix, StringComparison.OrdinalIgnoreCase)
+    private static string? LevelNameOf(string mapSpec)
+    {
+        return mapSpec.StartsWith(CampaignPrefix, StringComparison.OrdinalIgnoreCase)
             ? mapSpec[CampaignPrefix.Length..].Trim()
             : null;
+    }
 
     private ScenarioResult RunAgainstThisDatabase(
         Scenario scenario, string? campaignLevel, RunMode mode)
@@ -205,7 +227,10 @@ public sealed class ScenarioRunner
               $"{Count(_database.Variables.Availabilities.Count, "availability entry", "availability entries")}, " +
               $"{Count(_database.Variables.CreaturePool.Count, "creature-pool entry", "creature-pool entries")})";
 
-        static string Count(int n, string one, string many) => $"{n} {(n == 1 ? one : many)}";
+        static string Count(int n, string one, string many)
+        {
+            return $"{n} {(n == 1 ? one : many)}";
+        }
 
         foreach (string key in scenario.UnknownKeys)
         {
@@ -643,5 +668,7 @@ public sealed class ScenarioRunner
 
     /// <summary>Writes the run's evidence trail under the given directory.</summary>
     public static void WriteReport(ScenarioResult result, string outputDir)
-        => ScenarioReportWriter.Write(result, outputDir);
+    {
+        ScenarioReportWriter.Write(result, outputDir);
+    }
 }

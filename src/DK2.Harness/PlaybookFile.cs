@@ -23,7 +23,13 @@ public static class PlaybookFile
 
     public sealed record Loaded(Playbook Playbook, IReadOnlyList<string> Warnings, string Sha256);
 
-    private static IDeserializer Yaml => new DeserializerBuilder().WithNamingConvention(HyphenatedNamingConvention.Instance).Build();
+    private static IDeserializer Yaml
+    {
+        get
+        {
+            return new DeserializerBuilder().WithNamingConvention(HyphenatedNamingConvention.Instance).Build();
+        }
+    }
 
     /// <summary>The playbook at <paramref name="path"/>, reviewed against <paramref name="hashVersion"/>.</summary>
     public static Loaded Load(string path, ulong hashVersion)
@@ -54,8 +60,10 @@ public static class PlaybookFile
         catch (YamlDotNet.Core.YamlException ex) { throw new InvalidDataException($"playbook '{path}' is refused: {ex.Message}", ex); }
     }
 
-    private static PlaybookCaps Caps(CapsEntry? caps) =>
-        caps is null ? new PlaybookCaps() : new PlaybookCaps(caps.MaxTicks, caps.MaxActions, caps.WallSeconds, caps.OutputMib);
+    private static PlaybookCaps Caps(CapsEntry? caps)
+    {
+        return caps is null ? new PlaybookCaps() : new PlaybookCaps(caps.MaxTicks, caps.MaxActions, caps.WallSeconds, caps.OutputMib);
+    }
 
     private static Playbook Read(Document d, List<string> problems)
     {

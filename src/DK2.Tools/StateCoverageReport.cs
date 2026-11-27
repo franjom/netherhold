@@ -42,6 +42,8 @@ internal static class StateCoverageReport
         return 0;
     }
 
-    private static int Count(IEnumerable<StateCoverageRow> rows, StateStatus status) =>
-        rows.Count(r => r.Status == status);
+    private static int Count(IEnumerable<StateCoverageRow> rows, StateStatus status)
+    {
+        return rows.Count(r => r.Status == status);
+    }
 }

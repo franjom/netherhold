@@ -78,15 +78,22 @@ internal sealed class SourceIndex
     /// <summary>Every type declared in the source, nested types included.</summary>
     internal IReadOnlyList<INamedTypeSymbol> Types { get; }
 
-    internal SemanticModel Model(SyntaxTree tree) => _models.GetOrAdd(tree, t => Compilation.GetSemanticModel(t));
+    internal SemanticModel Model(SyntaxTree tree)
+    {
+        return _models.GetOrAdd(tree, t => Compilation.GetSemanticModel(t));
+    }
 
     /// <summary>A type declared in the source, outside <c>DK2.Data.Model</c>.</summary>
-    internal bool IsStateSource(INamedTypeSymbol type) =>
-        type.DeclaringSyntaxReferences is { Length: > 0 } references && !_definitions.Contains(references[0].SyntaxTree);
+    internal bool IsStateSource(INamedTypeSymbol type)
+    {
+        return type.DeclaringSyntaxReferences is { Length: > 0 } references && !_definitions.Contains(references[0].SyntaxTree);
+    }
 
     /// <summary>Source classes and structs that derive from or implement <paramref name="type"/>.</summary>
-    internal IEnumerable<INamedTypeSymbol> Implementations(INamedTypeSymbol type) =>
-        _derived.TryGetValue(type.OriginalDefinition, out List<INamedTypeSymbol>? list) ? list : [];
+    internal IEnumerable<INamedTypeSymbol> Implementations(INamedTypeSymbol type)
+    {
+        return _derived.TryGetValue(type.OriginalDefinition, out List<INamedTypeSymbol>? list) ? list : [];
+    }
 
     /// <summary>The source methods a call to <paramref name="method"/> can run: its overrides and implementations,
     /// and itself when it has a body.</summary>
@@ -106,10 +113,16 @@ internal sealed class SourceIndex
         }
     }
 
-    internal static bool IsSource(ISymbol symbol) => symbol.DeclaringSyntaxReferences.Length > 0;
+    internal static bool IsSource(ISymbol symbol)
+    {
+        return symbol.DeclaringSyntaxReferences.Length > 0;
+    }
 
     /// <summary>The definition a call names: the unreduced, unconstructed method.</summary>
-    internal static IMethodSymbol Definition(IMethodSymbol method) => (method.ReducedFrom ?? method).OriginalDefinition;
+    internal static IMethodSymbol Definition(IMethodSymbol method)
+    {
+        return (method.ReducedFrom ?? method).OriginalDefinition;
+    }
 
     private void AddDispatch(IMethodSymbol? from, IMethodSymbol? to)
     {

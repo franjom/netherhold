@@ -72,9 +72,29 @@ public sealed class PlayerRunDiagnostics
     }
 
     public int SampleEveryTicks { get; }
-    public IReadOnlyList<PlayerMetricSample> Samples => _samples;
-    public IReadOnlyList<PlayerCreatureLoss> Losses => _losses;
-    public int Kills => _kills;
+    public IReadOnlyList<PlayerMetricSample> Samples
+    {
+        get
+        {
+            return _samples;
+        }
+    }
+
+    public IReadOnlyList<PlayerCreatureLoss> Losses
+    {
+        get
+        {
+            return _losses;
+        }
+    }
+
+    public int Kills
+    {
+        get
+        {
+            return _kills;
+        }
+    }
 
     /// <summary>Called after every completed tick.</summary>
     public void AfterTick(WorldState world, GameTick tick)
@@ -211,10 +231,15 @@ public sealed class PlayerRunDiagnostics
 
     /// <summary>Whether <paramref name="owner"/> is the controlled player's enemy: owned, and not allied
     /// (<c>CombatRules.IsHostile</c>).</summary>
-    private bool Hostile(WorldState world, byte owner) =>
-        owner != 0 && owner != _player.Value && CombatRules.IsHostile(world, _player.Value, owner);
+    private bool Hostile(WorldState world, byte owner)
+    {
+        return owner != 0 && owner != _player.Value && CombatRules.IsHostile(world, _player.Value, owner);
+    }
 
-    private string TrapName(byte id) => _database.Traps.TryGetValue(id, out TrapDef? trap) ? trap.Name : $"trap-{id}";
+    private string TrapName(byte id)
+    {
+        return _database.Traps.TryGetValue(id, out TrapDef? trap) ? trap.Name : $"trap-{id}";
+    }
 
     private void Sample(WorldState world, GameTick tick)
     {
@@ -522,5 +547,8 @@ public sealed class PlayerRunDiagnostics
         };
     }
 
-    private static string Tsv(string text) => text.Replace('\t', ' ').Replace('\n', ' ').Replace('\r', ' ');
+    private static string Tsv(string text)
+    {
+        return text.Replace('\t', ' ').Replace('\n', ' ').Replace('\r', ' ');
+    }
 }

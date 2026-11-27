@@ -402,15 +402,23 @@ public static class DecisionCheck
     /// <summary>Prints a traced choice's events (<c>DK2_DECIDE_TRACE=&lt;tick&gt;</c>).</summary>
     private sealed class TraceSink : ISimulationEventSink
     {
-        public void Emit(in SimEvent simEvent) =>
+        public void Emit(in SimEvent simEvent)
+        {
             Console.WriteLine($"  {simEvent.System} {simEvent.Kind} {simEvent.Detail}");
+        }
     }
 
     /// <summary>The one system the check runs: the decider's choice, and nothing else moving.</summary>
     private sealed class Probe(
         ImpTaskSystem imps, CreatureState decider, List<(CreatureState Holder, TilePos Face)> faces) : ISimulationSystem
     {
-        public string Name => "DecisionProbe";
+        public string Name
+        {
+            get
+            {
+                return "DecisionProbe";
+            }
+        }
 
         public bool Took { get; private set; }
 

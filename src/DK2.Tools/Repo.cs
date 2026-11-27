@@ -104,9 +104,11 @@ static class Repo
     /// nothing left in them to measure.
     /// </summary>
     internal static IEnumerable<string> StagedFiles(string root)
-        => RunGit(root, "diff", "--cached", "--name-only", "--diff-filter=d").Split('\n')
-            .Select(l => l.Trim())
-            .Where(l => l.Length > 0);
+    {
+        return RunGit(root, "diff", "--cached", "--name-only", "--diff-filter=d").Split('\n')
+                .Select(l => l.Trim())
+                .Where(l => l.Length > 0);
+    }
 
     /// <summary>
     /// One blob's lines, from the index (<c>:path</c>) or a commit (<c>ref:path</c>).
@@ -135,17 +137,21 @@ static class Repo
     /// <summary>The author and commit days of the commits in <c>baseRef..HEAD</c> that touch this path,
     /// merged-in side branches included.</summary>
     internal static IEnumerable<DateOnly> CommitDays(string root, string baseRef, string relative)
-        => RunGit(root, "log", "--full-history", "--format=%ad%n%cd", "--date=short", $"{baseRef}..HEAD", "--", relative)
-            .Split('\n')
-            .Select(l => l.Trim())
-            .Where(l => l.Length > 0)
-            .Select(l => DateOnly.ParseExact(l, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture));
+    {
+        return RunGit(root, "log", "--full-history", "--format=%ad%n%cd", "--date=short", $"{baseRef}..HEAD", "--", relative)
+                .Split('\n')
+                .Select(l => l.Trim())
+                .Where(l => l.Length > 0)
+                .Select(l => DateOnly.ParseExact(l, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture));
+    }
 
     /// <summary>Every tracked path, for the --all backlog report.</summary>
     internal static IEnumerable<string> AllTrackedFiles(string root)
-        => RunGit(root, "ls-files").Split('\n')
-            .Select(l => l.Trim())
-            .Where(l => l.Length > 0);
+    {
+        return RunGit(root, "ls-files").Split('\n')
+                .Select(l => l.Trim())
+                .Where(l => l.Length > 0);
+    }
 
     /// <summary>
     /// The 1-based line numbers this change adds to one file.

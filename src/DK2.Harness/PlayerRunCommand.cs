@@ -26,8 +26,10 @@ namespace DK2.Harness;
 public static class PlayerRunCommand
 {
     public static int Run(ScenarioRunner runner, GameDatabase database, string? installDirectory, Scenario scenario,
-        RunTemplate template, string outRoot, string? runId, TextWriter output, TextWriter error) =>
-        Run(runner, database, installDirectory, scenario, template, outRoot, runId, output, error, tune: null);
+        RunTemplate template, string outRoot, string? runId, TextWriter output, TextWriter error)
+    {
+        return Run(runner, database, installDirectory, scenario, template, outRoot, runId, output, error, tune: null);
+    }
 
     /// <summary>As above; <paramref name="tune"/> lets a test change the run's options (a failing host hook).</summary>
     internal static int Run(ScenarioRunner runner, GameDatabase database, string? installDirectory, Scenario scenario,
@@ -389,7 +391,11 @@ public static class PlayerRunCommand
     /// <summary>The spec with each playbook cap standing in for a limit the command line did not give.</summary>
     internal static CampaignPlayerSpec WithCaps(CampaignPlayerSpec spec, PlaybookCaps caps)
     {
-        bool Free(PlayerLimitFlags limit) => (spec.GivenLimits & limit) == 0;
+        bool Free(PlayerLimitFlags limit)
+        {
+            return (spec.GivenLimits & limit) == 0;
+        }
+
         return spec with
         {
             MaxTicks = caps.MaxTicks is int ticks && Free(PlayerLimitFlags.MaxTicks) ? ticks : spec.MaxTicks,
@@ -414,8 +420,10 @@ public static class PlayerRunCommand
         }
     }
 
-    private static long FolderBytes(string directory) =>
-        new DirectoryInfo(directory).EnumerateFiles("*", SearchOption.AllDirectories).Sum(f => f.Length);
+    private static long FolderBytes(string directory)
+    {
+        return new DirectoryInfo(directory).EnumerateFiles("*", SearchOption.AllDirectories).Sum(f => f.Length);
+    }
 
     /// <summary>Before replaying a player-run journal: its manifest must match this build, data and
     /// scenario. Returns null to proceed, or the exit code 2 after printing why not.</summary>

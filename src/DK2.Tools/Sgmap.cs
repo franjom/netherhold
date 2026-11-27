@@ -397,12 +397,19 @@ public sealed class SgmapDatabase
         return answer < 0 ? null : Globals[answer];
     }
 
-    public string StructName(string id) => StructById(id).Name;
+    public string StructName(string id)
+    {
+        return StructById(id).Name;
+    }
 
     public string Format(SgmapType type)
     {
-        string? Child(string key) => type.Children.FirstOrDefault(c => c.Label == key)?.Type is { } child
+        string? Child(string key)
+        {
+            return type.Children.FirstOrDefault(c => c.Label == key)?.Type is { } child
             ? Format(child) : null;
+        }
+
         return type.Kind switch
         {
             "void" => "void",
@@ -531,14 +538,17 @@ public sealed class SgmapDatabase
         return checked(offset + parent.Size - (parent.VtableId is null ? 0u : 4u));
     }
 
-    private uint SizeOf(SgmapType type) => type.Kind switch
+    private uint SizeOf(SgmapType type)
     {
-        "int" or "float" or "winapi" => type.UInt("size"),
-        "ptr" => 4,
-        "struct" => StructById(type.Required("id")).Size,
-        "array" => checked(type.UInt("count") * SizeOf(type.Child("type"))),
-        _ => throw new FormatException($"Type '{type.Kind}' has no storage size."),
-    };
+        return type.Kind switch
+        {
+            "int" or "float" or "winapi" => type.UInt("size"),
+            "ptr" => 4,
+            "struct" => StructById(type.Required("id")).Size,
+            "array" => checked(type.UInt("count") * SizeOf(type.Child("type"))),
+            _ => throw new FormatException($"Type '{type.Kind}' has no storage size."),
+        };
+    }
 
     private string FormatFunction(SgmapType type)
     {
@@ -550,8 +560,11 @@ public sealed class SgmapDatabase
         return $"{convention} ({args}) -> {result}";
     }
 
-    private SgmapStruct StructById(string id) => _structsById.TryGetValue(id, out SgmapStruct? value)
+    private SgmapStruct StructById(string id)
+    {
+        return _structsById.TryGetValue(id, out SgmapStruct? value)
         ? value : throw new FormatException($"Structure id '{id}' was not declared.");
+    }
 
     private void ValidateReferences()
     {
@@ -652,36 +665,81 @@ public sealed record SgmapTypeChild(string Label, SgmapType Type);
 public sealed record SgmapType(string Kind, IReadOnlyDictionary<string, string> Properties,
     IReadOnlyList<SgmapTypeChild> Children)
 {
-    public string Required(string key) => Properties.TryGetValue(key, out string? value)
+    public string Required(string key)
+    {
+        return Properties.TryGetValue(key, out string? value)
         ? value : throw new FormatException($"Type '{Kind}' has no '{key}' property.");
-    public uint UInt(string key) => uint.TryParse(Required(key), NumberStyles.None,
-        CultureInfo.InvariantCulture, out uint value) ? value
-        : throw new FormatException($"Type '{Kind}' has invalid '{key}'.");
-    public bool Bool(string key) => Properties.TryGetValue(key, out string? value)
-        && bool.TryParse(value, out bool parsed) && parsed;
-    public SgmapType Child(string label) => Children.SingleOrDefault(c => c.Label == label)?.Type
-        ?? throw new FormatException($"Type '{Kind}' has no '{label}' child.");
+    }
+
+    public uint UInt(string key)
+    {
+        return uint.TryParse(Required(key), NumberStyles.None,
+            CultureInfo.InvariantCulture, out uint value) ? value
+            : throw new FormatException($"Type '{Kind}' has invalid '{key}'.");
+    }
+
+    public bool Bool(string key)
+    {
+        return Properties.TryGetValue(key, out string? value)
+            && bool.TryParse(value, out bool parsed) && parsed;
+    }
+
+    public SgmapType Child(string label)
+    {
+        return Children.SingleOrDefault(c => c.Label == label)?.Type
+            ?? throw new FormatException($"Type '{Kind}' has no '{label}' child.");
+    }
 }
 
 internal sealed class SgmapNode(
     string key, Dictionary<string, string> properties, int lineNumber)
 {
     public string Key { get; } = key;
-    public IReadOnlyDictionary<string, string> Properties => properties;
+    public IReadOnlyDictionary<string, string> Properties
+    {
+        get
+        {
+            return properties;
+        }
+    }
+
     public List<SgmapNode> Children { get; } = [];
 
-    public string Required(string name) => properties.TryGetValue(name, out string? value)
+    public string Required(string name)
+    {
+        return properties.TryGetValue(name, out string? value)
         ? value : throw Error($"Missing property '{name}'");
-    public string? Optional(string name) => properties.GetValueOrDefault(name);
-    public uint UInt(string name) => uint.TryParse(Required(name), NumberStyles.None,
-        CultureInfo.InvariantCulture, out uint value) ? value
-        : throw Error($"Invalid unsigned integer in '{name}'");
-    public uint Hex(string name) => uint.TryParse(Required(name), NumberStyles.AllowHexSpecifier,
-        CultureInfo.InvariantCulture, out uint value) ? value
-        : throw Error($"Invalid hexadecimal integer in '{name}'");
-    public bool Bool(string name) => properties.TryGetValue(name, out string? value)
-        && bool.TryParse(value, out bool parsed) && parsed;
-    public FormatException Error(string message) => new($"Line {lineNumber}: {message}.");
+    }
+
+    public string? Optional(string name)
+    {
+        return properties.GetValueOrDefault(name);
+    }
+
+    public uint UInt(string name)
+    {
+        return uint.TryParse(Required(name), NumberStyles.None,
+            CultureInfo.InvariantCulture, out uint value) ? value
+            : throw Error($"Invalid unsigned integer in '{name}'");
+    }
+
+    public uint Hex(string name)
+    {
+        return uint.TryParse(Required(name), NumberStyles.AllowHexSpecifier,
+            CultureInfo.InvariantCulture, out uint value) ? value
+            : throw Error($"Invalid hexadecimal integer in '{name}'");
+    }
+
+    public bool Bool(string name)
+    {
+        return properties.TryGetValue(name, out string? value)
+            && bool.TryParse(value, out bool parsed) && parsed;
+    }
+
+    public FormatException Error(string message)
+    {
+        return new($"Line {lineNumber}: {message}.");
+    }
 }
 
 internal static class SgmapSyntax

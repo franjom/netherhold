@@ -15,7 +15,13 @@ public sealed record FunctionRecord(
     IReadOnlyList<string> Evidence, IReadOnlyList<string> Implements, string Body, IReadOnlyList<HistoryEntry> History)
 {
     /// <summary>The header as one string, so "did the verdict change" is one comparison.</summary>
-    public string HeaderKey => string.Join("\n", Name, Role, Confidence, Status, string.Join(",", Evidence), string.Join(",", Implements));
+    public string HeaderKey
+    {
+        get
+        {
+            return string.Join("\n", Name, Role, Confidence, Status, string.Join(",", Evidence), string.Join(",", Implements));
+        }
+    }
 }
 
 public static partial class FunctionKb
@@ -92,7 +98,10 @@ public static partial class FunctionKb
 
             return v[0];
         }
-        IReadOnlyList<string> Many(string key) => header.TryGetValue(key, out List<string>? v) ? v : [];
+        IReadOnlyList<string> Many(string key)
+        {
+            return header.TryGetValue(key, out List<string>? v) ? v : [];
+        }
 
         string addressText = One("address");
         Match m = AddressRx().Match(addressText.ToUpperInvariant());
@@ -160,15 +169,22 @@ public static partial class FunctionKb
 
     /// <summary>Every FUN_00xxxxxx in the text, as eight upper-case hex digits.</summary>
     public static IEnumerable<string> Mentions(string text)
-        => MentionRx().Matches(text).Select(m => m.Groups[1].Value.ToUpperInvariant());
+    {
+        return MentionRx().Matches(text).Select(m => m.Groups[1].Value.ToUpperInvariant());
+    }
 
     /// <summary>Whether <paramref name="text"/> cites <paramref name="address"/> (eight hex digits): after
     /// <c>0x</c> or <c>FUN_</c> with any leading zeros, or as the bare eight digits, case-insensitively.</summary>
-    public static bool Cites(string text, string address) => CitationRx(address).IsMatch(text);
+    public static bool Cites(string text, string address)
+    {
+        return CitationRx(address).IsMatch(text);
+    }
 
-    static Regex CitationRx(string address) =>
-        new($"(?<![0-9A-Za-z_])(?:(?:0[xX]|FUN_)0*{address.TrimStart('0')}|{address})(?![0-9A-Za-z])",
+    static Regex CitationRx(string address)
+    {
+        return new($"(?<![0-9A-Za-z_])(?:(?:0[xX]|FUN_)0*{address.TrimStart('0')}|{address})(?![0-9A-Za-z])",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+    }
 
     /// <summary>Status and <c>implements:</c> lines agree (ADR-0660): BUILT and PARTIAL name the code that mirrors the
     /// function, and READ names none. Checked on a record whose header a change touches, or a new one, so records
@@ -198,7 +214,9 @@ public static partial class FunctionKb
 
     /// <summary>Whether a change gave this record a new reading: it is new, or it gained a History line.</summary>
     public static bool GainedReading(FunctionRecord now, FunctionRecord? before)
-        => before is null || now.History.Count > before.History.Count;
+    {
+        return before is null || now.History.Count > before.History.Count;
+    }
 
     /// <summary>For each changed record, the files outside the change that cite its address. A note, not
     /// a finding: the reading moved, and code or prose written against the old one does not move with it
@@ -309,12 +327,17 @@ public static partial class FunctionKb
         return sb.ToString();
     }
 
-    static string Cell(string text) => text.Replace("|", "\\|");   // a pipe in a role would split the row
+    static string Cell(string text)
+    {
+        return text.Replace("|", "\\|");   // a pipe in a role would split the row
+    }
 
     /// <summary>A header that differs from its base, or a record with no base, needs a History line dated today.
     /// In a merge, a header equal to the incoming side's (<paramref name="merged"/>, MERGE_HEAD) was dated there.</summary>
     public static IEnumerable<string> HistoryRequired(FunctionRecord now, FunctionRecord? before, DateOnly today, FunctionRecord? merged = null)
-        => HistoryRequired(now, before, [today], merged);
+    {
+        return HistoryRequired(now, before, [today], merged);
+    }
 
     /// <summary>As above, with any of <paramref name="days"/> accepted: a range check (CI's <c>--since</c>)
     /// accepts the days the range's commits touched the record, since it runs after they were written.</summary>

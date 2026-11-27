@@ -28,7 +28,13 @@ internal sealed class BlueprintRetry(Func<PlayerCommand, bool> ownsTile, TextWri
     public int SentLater { get; private set; }
 
     /// <summary>Held placements still waiting.</summary>
-    public int Pending => _pending.Count;
+    public int Pending
+    {
+        get
+        {
+            return _pending.Count;
+        }
+    }
 
     /// <summary>The frame to send on <paramref name="turn"/>: <paramref name="frame"/> without the
     /// placements on a tile ours does not own, then the held ones whose tile ours now owns, in the
@@ -66,10 +72,13 @@ internal sealed class BlueprintRetry(Func<PlayerCommand, bool> ownsTile, TextWri
         return kept is null ? frame : kept.Count == 0 ? InputFrame.Empty : new InputFrame(kept);
     }
 
-    private static string Describe(PlayerCommand command) => command switch
+    private static string Describe(PlayerCommand command)
     {
-        PlaceDoorCommand d => $"player={d.PlayerId} kind=door type={d.DoorId} at=({d.Tile.X},{d.Tile.Y})",
-        PlaceTrapCommand t => $"player={t.PlayerId} kind=trap type={t.TrapId} at=({t.Tile.X},{t.Tile.Y})",
-        _ => command.ToString() ?? string.Empty,
-    };
+        return command switch
+        {
+            PlaceDoorCommand d => $"player={d.PlayerId} kind=door type={d.DoorId} at=({d.Tile.X},{d.Tile.Y})",
+            PlaceTrapCommand t => $"player={t.PlayerId} kind=trap type={t.TrapId} at=({t.Tile.X},{t.Tile.Y})",
+            _ => command.ToString() ?? string.Empty,
+        };
+    }
 }

@@ -73,8 +73,10 @@ internal static partial class KwdCommands
         // for any non-zero file value. It mirrors
         // SimulationTiming.LoaderRatePerTick, which is the authority.
         const int ticksPerGameSecond = 4;
-        static int PerTick(int tabled) =>
-            tabled == 0 ? 0 : Math.Max(tabled / ticksPerGameSecond, 1);
+        static int PerTick(int tabled)
+        {
+            return tabled == 0 ? 0 : Math.Max(tabled / ticksPerGameSecond, 1);
+        }
 
         Console.WriteLine(" id name                 tabled  perTick  perSecond  lost  lvl10");
         int researchers = 0;
@@ -406,12 +408,15 @@ internal static partial class KwdCommands
                     continue;
                 }
 
-                int Read(byte[] r) => width switch
+                int Read(byte[] r)
                 {
-                    "u8" => r[off],
-                    "u16" => r[off] | (r[off + 1] << 8),
-                    _ => (short)(r[off] | (r[off + 1] << 8)),
-                };
+                    return width switch
+                    {
+                        "u8" => r[off],
+                        "u16" => r[off] | (r[off + 1] << 8),
+                        _ => (short)(r[off] | (r[off + 1] << 8)),
+                    };
+                }
 
                 if (Read(records[anchor].Bytes) != target)
                 {
@@ -919,9 +924,12 @@ internal static partial class KwdCommands
         {
             List<CreatureDef> sacCreatures = KwdCreatures.Parse(KwdReader.ReadFile(
                 Path.Combine(Dk2Install.Require(), "Data", "editor", "Creatures.kwd")));
-            string Name(byte type, byte id) => type == 0 && id == 0
+            string Name(byte type, byte id)
+            {
+                return type == 0 && id == 0
                 ? "-"
                 : $"t{type}:" + (sacCreatures.FirstOrDefault(c => c.CreatureId == id)?.Name ?? $"#{id}");
+            }
 
             Console.WriteLine();
             Console.WriteLine($"Sacrifice recipes ({vars.Sacrifices.Count}):");

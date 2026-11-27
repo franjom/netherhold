@@ -515,7 +515,10 @@ internal static partial class KwdCommands
     /// </summary>
     static string DescribeThing(ThingRecord record)
     {
-        static string Pos(int x, int y) => $"({x,3},{y,3})";
+        static string Pos(int x, int y)
+        {
+            return $"({x,3},{y,3})";
+        }
 
         return record switch
         {

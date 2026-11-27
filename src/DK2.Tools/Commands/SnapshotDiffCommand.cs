@@ -134,13 +134,16 @@ internal static class SnapshotDiffCommand
         return new(Path.GetFullPath(path), "DK2G", session.Header.LevelName, bytes, session.Snapshot);
     }
 
-    private static object Source(SnapshotInput input, GameSimulation simulation) => new
+    private static object Source(SnapshotInput input, GameSimulation simulation)
     {
-        input.Path,
-        input.Format,
-        Sha256 = System.Convert.ToHexString(SHA256.HashData(input.FileBytes)).ToLowerInvariant(),
-        SnapshotSha256 = System.Convert.ToHexString(SHA256.HashData(input.Snapshot)).ToLowerInvariant(),
-        Tick = simulation.CurrentTick.Value,
-        FormatVersion = GameSimulation.CurrentHashVersion,
-    };
+        return new
+        {
+            input.Path,
+            input.Format,
+            Sha256 = System.Convert.ToHexString(SHA256.HashData(input.FileBytes)).ToLowerInvariant(),
+            SnapshotSha256 = System.Convert.ToHexString(SHA256.HashData(input.Snapshot)).ToLowerInvariant(),
+            Tick = simulation.CurrentTick.Value,
+            FormatVersion = GameSimulation.CurrentHashVersion,
+        };
+    }
 }

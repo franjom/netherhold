@@ -38,7 +38,14 @@ public sealed class NativeBirths
 
     public readonly record struct Birth(uint Slot, long Turn, byte Type, byte Owner);
 
-    public IReadOnlyList<Birth> Births => _births;
+    public IReadOnlyList<Birth> Births
+    {
+        get
+        {
+            return _births;
+        }
+    }
+
     public int PairedCount { get; private set; }
 
     /// <summary>Births seen in headers after <paramref name="afterTurn"/>, the resync's, in turn then
@@ -168,5 +175,8 @@ public sealed class NativeBirths
         return true;
     }
 
-    private long From(Birth birth) => Math.Max(birth.Turn, _afterTurn + 1);
+    private long From(Birth birth)
+    {
+        return Math.Max(birth.Turn, _afterTurn + 1);
+    }
 }

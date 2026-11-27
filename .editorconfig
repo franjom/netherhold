@@ -304,3 +304,39 @@ dotnet_diagnostic.IDE0025.severity = warning
 dotnet_diagnostic.IDE0026.severity = warning
 dotnet_diagnostic.IDE0027.severity = warning
 dotnet_diagnostic.IDE0061.severity = warning
+
+[src/DK2.Tools/**.cs]
+csharp_style_expression_bodied_constructors = false
+csharp_style_expression_bodied_methods = false
+csharp_style_expression_bodied_conversion_operators = false
+csharp_style_expression_bodied_operators = false
+csharp_style_expression_bodied_properties = false
+csharp_style_expression_bodied_indexers = false
+csharp_style_expression_bodied_accessors = false
+csharp_style_expression_bodied_local_functions = false
+dotnet_diagnostic.IDE0021.severity = warning
+dotnet_diagnostic.IDE0022.severity = warning
+dotnet_diagnostic.IDE0023.severity = warning
+dotnet_diagnostic.IDE0024.severity = warning
+dotnet_diagnostic.IDE0025.severity = warning
+dotnet_diagnostic.IDE0026.severity = warning
+dotnet_diagnostic.IDE0027.severity = warning
+dotnet_diagnostic.IDE0061.severity = warning
+
+[src/DK2.Harness/**.cs]
+csharp_style_expression_bodied_constructors = false
+csharp_style_expression_bodied_methods = false
+csharp_style_expression_bodied_conversion_operators = false
+csharp_style_expression_bodied_operators = false
+csharp_style_expression_bodied_properties = false
+csharp_style_expression_bodied_indexers = false
+csharp_style_expression_bodied_accessors = false
+csharp_style_expression_bodied_local_functions = false
+dotnet_diagnostic.IDE0021.severity = warning
+dotnet_diagnostic.IDE0022.severity = warning
+dotnet_diagnostic.IDE0023.severity = warning
+dotnet_diagnostic.IDE0024.severity = warning
+dotnet_diagnostic.IDE0025.severity = warning
+dotnet_diagnostic.IDE0026.severity = warning
+dotnet_diagnostic.IDE0027.severity = warning
+dotnet_diagnostic.IDE0061.severity = warning

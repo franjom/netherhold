@@ -38,7 +38,13 @@ public sealed class RunTimings
     public TimeSpan Ticking { get; }
 
     /// <summary>Building the world and everything else outside a tick.</summary>
-    public TimeSpan Setup => Total - Ticking;
+    public TimeSpan Setup
+    {
+        get
+        {
+            return Total - Ticking;
+        }
+    }
 
     /// <summary>Bytes allocated on the run's thread during ticks.</summary>
     public long Allocated { get; }
@@ -50,7 +56,13 @@ public sealed class RunTimings
     public IReadOnlyList<MarkerTiming> Markers { get; }
 
     /// <summary>Tick time no marker covers.</summary>
-    public TimeSpan Unmarked => Ticking - TimeSpan.FromTicks(Markers.Sum(m => m.Self.Ticks));
+    public TimeSpan Unmarked
+    {
+        get
+        {
+            return Ticking - TimeSpan.FromTicks(Markers.Sum(m => m.Self.Ticks));
+        }
+    }
 
     /// <summary>The slowest tick, marker by marker.</summary>
     public WorstTick Worst { get; }
@@ -94,12 +106,20 @@ public sealed class RunTimings
         return text.ToString();
     }
 
-    private TimeSpan PerTickOf(TimeSpan time) => Ticks == 0 ? TimeSpan.Zero : time / Ticks;
+    private TimeSpan PerTickOf(TimeSpan time)
+    {
+        return Ticks == 0 ? TimeSpan.Zero : time / Ticks;
+    }
 
-    private static string Ms(TimeSpan time) => string.Create(CultureInfo.InvariantCulture, $"{time.TotalMilliseconds:F3} ms");
+    private static string Ms(TimeSpan time)
+    {
+        return string.Create(CultureInfo.InvariantCulture, $"{time.TotalMilliseconds:F3} ms");
+    }
 
-    private static string Kb(long bytes, int ticks) => string.Create(CultureInfo.InvariantCulture, $"{bytes / 1024.0 / Math.Max(1, ticks):F1}");
-
+    private static string Kb(long bytes, int ticks)
+    {
+        return string.Create(CultureInfo.InvariantCulture, $"{bytes / 1024.0 / Math.Max(1, ticks):F1}");
+    }
 }
 
 public readonly record struct TickDistribution(TimeSpan P50, TimeSpan P99, TimeSpan Max);
@@ -303,8 +323,10 @@ internal sealed class RunClock : ISimulationProfiler
     }
 
     /// <summary>Nearest rank over a sorted, non-empty series.</summary>
-    private static long Percentile(long[] sorted, int percent) =>
-        sorted[Math.Clamp((int)Math.Ceiling(sorted.Length * percent / 100.0) - 1, 0, sorted.Length - 1)];
+    private static long Percentile(long[] sorted, int percent)
+    {
+        return sorted[Math.Clamp((int)Math.Ceiling(sorted.Length * percent / 100.0) - 1, 0, sorted.Length - 1)];
+    }
 
     private void Grow(int id)
     {
@@ -315,8 +337,10 @@ internal sealed class RunClock : ISimulationProfiler
         Array.Resize(ref _calls, size);
     }
 
-    private static TimeSpan Elapsed(long timestamps) =>
-        TimeSpan.FromSeconds((double)timestamps / Stopwatch.Frequency);
+    private static TimeSpan Elapsed(long timestamps)
+    {
+        return TimeSpan.FromSeconds((double)timestamps / Stopwatch.Frequency);
+    }
 
     private struct Frame(SimulationMarker marker, long allocStart, long start)
     {
@@ -329,8 +353,10 @@ internal sealed class RunClock : ISimulationProfiler
 
     private readonly record struct MarkerSpan(int Id, long Calls, long Total, long Self, long Allocated)
     {
-        public MarkerSpan Plus(MarkerSpan other) =>
-            new(Id, Calls + other.Calls, Total + other.Total, Self + other.Self, Allocated + other.Allocated);
+        public MarkerSpan Plus(MarkerSpan other)
+        {
+            return new(Id, Calls + other.Calls, Total + other.Total, Self + other.Self, Allocated + other.Allocated);
+        }
     }
 
     private sealed record TickRecord(int Tick, long Time, long Allocated, MarkerSpan[] Spans);

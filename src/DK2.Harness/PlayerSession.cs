@@ -85,11 +85,38 @@ public sealed class PlayerSession
         _limits = limits ?? new PlayerSessionLimits();
     }
 
-    public PlayerRunId RunId => _run;
-    public PlayerId Player => _player;
+    public PlayerRunId RunId
+    {
+        get
+        {
+            return _run;
+        }
+    }
+
+    public PlayerId Player
+    {
+        get
+        {
+            return _player;
+        }
+    }
+
     public bool IsCancelled { get; private set; }
-    public int QueuedCount => _queued.Count;
-    public int AdmittedCount => _admitted;
+    public int QueuedCount
+    {
+        get
+        {
+            return _queued.Count;
+        }
+    }
+
+    public int AdmittedCount
+    {
+        get
+        {
+            return _admitted;
+        }
+    }
 
     /// <summary>The observation requests are now judged against. Revisions only increase; requests
     /// still queued from the previous observation are cancelled as stale, never carried forward, and
@@ -294,6 +321,8 @@ public sealed class PlayerSession
     }
 
     /// <summary>Ordinary play, or the intro skip: nothing else may enter a controlled player's frame.</summary>
-    private static bool IsHumanCommand(PlayerCommand command) =>
-        HumanCommandPolicy.AllowsInPlay(command) || command is SkipCameraPathCommand;
+    private static bool IsHumanCommand(PlayerCommand command)
+    {
+        return HumanCommandPolicy.AllowsInPlay(command) || command is SkipCameraPathCommand;
+    }
 }

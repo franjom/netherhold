@@ -27,7 +27,13 @@ internal static class KeeperKnowledgeCommand
     private const string MapLevel = "level1";
 
     /// <summary>Square sides a room is measured at.</summary>
-    public static IEnumerable<int> Sides => Enumerable.Range(MinSide, MaxSide - MinSide + 1);
+    public static IEnumerable<int> Sides
+    {
+        get
+        {
+            return Enumerable.Range(MinSide, MaxSide - MinSide + 1);
+        }
+    }
 
     /// <summary>The terrain set on the ring around a measured square: a reinforced wall (solid, takes room walls),
     /// as a room dug out and claimed ends up; and dirt path (open ground), as a room built into a cavern.</summary>
@@ -53,14 +59,17 @@ internal static class KeeperKnowledgeCommand
 
     /// <summary>Whether a keeper's portal can ever offer the type (<c>PortalRules.CanComeFromPortal</c>): heroes and
     /// the Graveyard's and Prison's creatures cannot, whatever their attraction entries say.</summary>
-    private static bool FromKeeperPortal(GameDatabase database, CreatureDef creature) =>
-        PortalRules.CanComeFromPortal(creature, database.Room(RoomTypeId.Portal));
+    private static bool FromKeeperPortal(GameDatabase database, CreatureDef creature)
+    {
+        return PortalRules.CanComeFromPortal(creature, database.Room(RoomTypeId.Portal));
+    }
 
     /// <summary>Each creature's portal requirements, read as <c>PortalRules.IsAttracted</c> and
     /// <c>AttractionBudget.Admits</c> read them: kind 1 a room type's total tiles, 2 gold, 3 mana (room id
     /// and size packed); the first entry, when it is a room other than the Lair, caps the count.</summary>
-    public static IReadOnlyList<Needs> CreatureNeeds(GameDatabase database) =>
-        [.. database.Creatures.Values.Where(c => c.Attractions.Any(a => a.Present != 0)).OrderBy(c => c.CreatureId).Select(c =>
+    public static IReadOnlyList<Needs> CreatureNeeds(GameDatabase database)
+    {
+        return [.. database.Creatures.Values.Where(c => c.Attractions.Any(a => a.Present != 0)).OrderBy(c => c.CreatureId).Select(c =>
         {
             var rooms = new List<(RoomTypeId, int)>();
             int gold = 0, mana = 0;
@@ -74,6 +83,7 @@ internal static class KeeperKnowledgeCommand
             return new Needs(c.CreatureId, c.Name.Trim(), rooms, gold, mana,
                 roomFirst && !lair ? (RoomTypeId)first.RoomId : null, Uncapped: !roomFirst || lair, FromKeeperPortal(database, c));
         })];
+    }
 
     public static int Run(string install, string? output, TextWriter log)
     {
@@ -228,8 +238,14 @@ internal static class KeeperKnowledgeCommand
         }
         return s.ToString();
 
-        static string Bool(bool value) => value ? "true" : "false";
+        static string Bool(bool value)
+        {
+            return value ? "true" : "false";
+        }
     }
 
-    private static string Invariant(FormattableString value) => value.ToString(CultureInfo.InvariantCulture);
+    private static string Invariant(FormattableString value)
+    {
+        return value.ToString(CultureInfo.InvariantCulture);
+    }
 }

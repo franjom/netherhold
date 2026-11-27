@@ -50,7 +50,10 @@ internal static class SimMatrixAnalysis
     internal const string WorldSteeringType = "DK2.Simulation.Navigation.WorldSteering";
     internal const string EventSinkType = "DK2.Simulation.ISimulationEventSink";
 
-    internal static SimMatrixResult Run(string root) => Run(SimCompilation.Load(root));
+    internal static SimMatrixResult Run(string root)
+    {
+        return Run(SimCompilation.Load(root));
+    }
 
     internal static SimMatrixResult Run(SimCompilation source)
     {
@@ -70,15 +73,23 @@ internal static class SimMatrixAnalysis
             new("WorldSteering.Refresh", m => m.Name == "Refresh" && SymbolEqualityComparer.Default.Equals(m.ContainingType, steering)),
         ];
 
-        bool Stop(IMethodSymbol m) =>
-            entryFaces.Any(face => SymbolEqualityComparer.Default.Equals(m.ContainingType, face))
+        bool Stop(IMethodSymbol m)
+        {
+            return entryFaces.Any(face => SymbolEqualityComparer.Default.Equals(m.ContainingType, face))
             || model.IsExcludedType(m.ContainingType);
-        ISymbol? Sink(IMethodSymbol m) =>
-            SymbolEqualityComparer.Default.Equals(m.ContainingType, sink)
-            || m.ContainingType.AllInterfaces.Contains(sink, SymbolEqualityComparer.Default) ? sinkKey : null;
+        }
+
+        ISymbol? Sink(IMethodSymbol m)
+        {
+            return SymbolEqualityComparer.Default.Equals(m.ContainingType, sink)
+                    || m.ContainingType.AllInterfaces.Contains(sink, SymbolEqualityComparer.Default) ? sinkKey : null;
+        }
 
         var summaries = new ConcurrentDictionary<IMethodSymbol, MethodSummary>(SymbolEqualityComparer.Default);
-        MethodSummary Summary(IMethodSymbol m) => summaries.GetOrAdd(m, x => MethodWalker.Summarise(x, index, Stop, Sink));
+        MethodSummary Summary(IMethodSymbol m)
+        {
+            return summaries.GetOrAdd(m, x => MethodWalker.Summarise(x, index, Stop, Sink));
+        }
 
         HashSet<IMethodSymbol> Reach(IEnumerable<IMethodSymbol> entries, Func<IMethodSymbol, bool> stopAt)
         {
@@ -181,10 +192,17 @@ internal static class SimMatrixAnalysis
                 hubs.Where(h => reach.Any(h.Contains)).Select(h => h.Name).ToArray());
         }
 
-        string Name(ISymbol key) => SymbolEqualityComparer.Default.Equals(key, sinkKey)
+        string Name(ISymbol key)
+        {
+            return SymbolEqualityComparer.Default.Equals(key, sinkKey)
             ? "events"
             : $"{SimRows.Display(key.ContainingType)}.{key.Name}";
-        IReadOnlyList<string> Names(IEnumerable<ISymbol> keys) => keys.Select(Name).Distinct().Order(StringComparer.Ordinal).ToArray();
+        }
+
+        IReadOnlyList<string> Names(IEnumerable<ISymbol> keys)
+        {
+            return keys.Select(Name).Distinct().Order(StringComparer.Ordinal).ToArray();
+        }
 
         RowResult[] results = [.. rows.Select((row, i) => new RowResult(row, View(core[i]), View(full[i])))];
 
@@ -221,10 +239,13 @@ internal static class SimMatrixAnalysis
             }
             }
         }
-        WrittenField[] Listed(bool systemOwned) => [.. writers
+        WrittenField[] Listed(bool systemOwned)
+        {
+            return [.. writers
             .Where(p => (columnOf[p.Key] == "") == systemOwned)
             .OrderBy(p => p.Key, StringComparer.Ordinal)
             .Select(p => new WrittenField(p.Key, columnOf[p.Key], p.Value.ToArray()))];
+        }
 
         return new SimMatrixResult(
             source.Files,

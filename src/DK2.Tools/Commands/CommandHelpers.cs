@@ -8,16 +8,22 @@ namespace DK2.Tools.Commands;
 
 internal static class CommandHelpers
 {
-    internal static string ResolveData(string arg) =>
-        File.Exists(arg) ? arg : Path.Combine(Dk2Install.Require(), "Data", arg);
+    internal static string ResolveData(string arg)
+    {
+        return File.Exists(arg) ? arg : Path.Combine(Dk2Install.Require(), "Data", arg);
+    }
 
-    internal static string ResolveText(string arg) =>
-        File.Exists(arg)
+    internal static string ResolveText(string arg)
+    {
+        return File.Exists(arg)
             ? arg
             : Path.Combine(Dk2Install.Require(), "Data", "Text", "Default", arg);
+    }
 
-    internal static string EscapeForOneLine(string value) =>
-        value.Replace("\\", "\\\\").Replace("\r", "\\r").Replace("\n", "\\n").Replace("\t", "\\t");
+    internal static string EscapeForOneLine(string value)
+    {
+        return value.Replace("\\", "\\\\").Replace("\r", "\\r").Replace("\n", "\\n").Replace("\t", "\\t");
+    }
 
     internal static string ResolveEditor(string arg)
     {

@@ -210,8 +210,11 @@ internal static class SimMatrixReport
     /// <summary>A view; with <paramref name="core"/>, the full view's fields that the core view lacks.</summary>
     private static void View(Utf8JsonWriter w, string name, RowView view, RowView? core)
     {
-        IEnumerable<string> Added(IReadOnlyList<string> full, Func<RowView, IReadOnlyList<string>> part) =>
-            core is null ? full : full.Except(part(core), StringComparer.Ordinal);
+        IEnumerable<string> Added(IReadOnlyList<string> full, Func<RowView, IReadOnlyList<string>> part)
+        {
+            return core is null ? full : full.Except(part(core), StringComparer.Ordinal);
+        }
+
         w.WriteStartObject(name);
         w.WriteNumber("methods", view.Methods);
         w.WriteNumber("delegateCalls", view.DelegateCalls);
@@ -278,11 +281,18 @@ internal static class SimMatrixReport
         }
     }
 
-    private static string Cell(string core, string full) =>
-        core == full ? core : core + full.ToLowerInvariant();
+    private static string Cell(string core, string full)
+    {
+        return core == full ? core : core + full.ToLowerInvariant();
+    }
 
-    private static string Label(SimRow row) =>
-        (row.Parent > 0 ? "&nbsp;&nbsp;↳ " : "") + "`" + row.Name.Replace("|", "\\|", StringComparison.Ordinal) + "`";
+    private static string Label(SimRow row)
+    {
+        return (row.Parent > 0 ? "&nbsp;&nbsp;↳ " : "") + "`" + row.Name.Replace("|", "\\|", StringComparison.Ordinal) + "`";
+    }
 
-    private static string Short(SimRow row) => $"{row.Number} `{row.Name}`";
+    private static string Short(SimRow row)
+    {
+        return $"{row.Number} `{row.Name}`";
+    }
 }

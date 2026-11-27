@@ -377,8 +377,10 @@ internal static class StatusCommand
         parts.Add(Run(start, prev));
         return string.Join(" plus ", parts);
 
-        static string Run(int a, int b) =>
-            a == b ? $"ADR-{a:D4}" : $"ADR-{a:D4} \u2026 ADR-{b:D4}";
+        static string Run(int a, int b)
+        {
+            return a == b ? $"ADR-{a:D4}" : $"ADR-{a:D4} \u2026 ADR-{b:D4}";
+        }
     }
 
     /// <summary>The ids skipped between runs, which are the reserved ones.</summary>

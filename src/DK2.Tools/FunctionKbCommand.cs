@@ -136,9 +136,23 @@ static class FunctionKbCommand
         }
 
         /// <summary>Paths git listed for the index; 0 in staged mode means git answered nothing.</summary>
-        public int TrackedCount => _tracked?.Count ?? 0;
-        public string Full(string relative) => Path.Combine(_root, relative.Replace('/', Path.DirectorySeparatorChar));
-        public bool Exists(string relative) => _tracked is null ? File.Exists(Full(relative)) : _tracked.Contains(relative);
+        public int TrackedCount
+        {
+            get
+            {
+                return _tracked?.Count ?? 0;
+            }
+        }
+
+        public string Full(string relative)
+        {
+            return Path.Combine(_root, relative.Replace('/', Path.DirectorySeparatorChar));
+        }
+
+        public bool Exists(string relative)
+        {
+            return _tracked is null ? File.Exists(Full(relative)) : _tracked.Contains(relative);
+        }
 
         public string[] Lines(string relative)
         {
@@ -163,14 +177,21 @@ static class FunctionKbCommand
             return paths.Where(p => p.EndsWith(".md", StringComparison.Ordinal) && !IsIndex(p)).Order(StringComparer.Ordinal);
         }
 
-        public static bool IsIndex(string relative) => relative.EndsWith("/INDEX.md", StringComparison.Ordinal);
+        public static bool IsIndex(string relative)
+        {
+            return relative.EndsWith("/INDEX.md", StringComparison.Ordinal);
+        }
 
         static HashSet<string> Paths(string text)
-            => text.Split('\n').Select(l => l.Trim()).Where(l => l.Length > 0).ToHashSet(StringComparer.Ordinal);
+        {
+            return text.Split('\n').Select(l => l.Trim()).Where(l => l.Length > 0).ToHashSet(StringComparer.Ordinal);
+        }
     }
 
     internal static List<FunctionRecord> Load(Source source, List<string> errors)
-        => [.. source.RecordPaths().Select(p => FunctionKb.Parse(p, source.Lines(p), errors))];
+    {
+        return [.. source.RecordPaths().Select(p => FunctionKb.Parse(p, source.Lines(p), errors))];
+    }
 
     static int Check(string root, string[] args)
     {
@@ -312,15 +333,19 @@ public static class FunctionKbNames
     /// <summary>ADDRESS&lt;TAB&gt;name rows by address: every record whose name is not Ghidra's FUN_ default,
     /// except SUPERSEDED ones, whose address may not even be a function entry.</summary>
     public static string Table(IEnumerable<FunctionRecord> records)
-        => string.Concat(records
-            .Where(r => r.Address.Length > 0 && r.Name.Length > 0 && !r.Name.StartsWith("FUN_", StringComparison.Ordinal))
-            .Where(r => r.Status != "SUPERSEDED")
-            .OrderBy(r => r.Address, StringComparer.Ordinal)
-            .Select(r => $"{r.Address}\t{GhidraName(r)}\n"));
+    {
+        return string.Concat(records
+                .Where(r => r.Address.Length > 0 && r.Name.Length > 0 && !r.Name.StartsWith("FUN_", StringComparison.Ordinal))
+                .Where(r => r.Status != "SUPERSEDED")
+                .OrderBy(r => r.Address, StringComparer.Ordinal)
+                .Select(r => $"{r.Address}\t{GhidraName(r)}\n"));
+    }
 
     /// <summary>The name a decompile shows: a CONFIRMED or STRONGLY INFERRED record's name as it is, any
     /// other with its confidence appended (Treasury_Tick_HYPOTHESIS), because a plain name in Ghidra reads
     /// as settled (owner, 2026-10-14; scale ADR-0642).</summary>
     public static string GhidraName(FunctionRecord record)
-        => record.Confidence is "CONFIRMED" or "STRONGLY INFERRED" or "" ? record.Name : $"{record.Name}_{record.Confidence}";
+    {
+        return record.Confidence is "CONFIRMED" or "STRONGLY INFERRED" or "" ? record.Name : $"{record.Name}_{record.Confidence}";
+    }
 }

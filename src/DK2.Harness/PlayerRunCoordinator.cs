@@ -53,7 +53,13 @@ public sealed record PlayerRunOptions
     public Action<WorldState, PlayerObservation>? Observed { get; init; }
 
     /// <summary>A controller's name for the journal; the controller's type name by default.</summary>
-    public string ControllerName => Controller.GetType().FullName ?? Controller.GetType().Name;
+    public string ControllerName
+    {
+        get
+        {
+            return Controller.GetType().FullName ?? Controller.GetType().Name;
+        }
+    }
 
     internal void Validate()
     {
@@ -147,15 +153,48 @@ public sealed class PlayerRunCoordinator
         _session = new PlayerSession(options.RunId, options.Player, new PlayerActionAdapter(database, options.Player), options.Limits);
     }
 
-    public PlayerRunOptions Options => _options;
-    public PlayerSession Session => _session;
-    public IReadOnlyList<PlayerDecisionRecord> Decisions => _decisions;
+    public PlayerRunOptions Options
+    {
+        get
+        {
+            return _options;
+        }
+    }
+
+    public PlayerSession Session
+    {
+        get
+        {
+            return _session;
+        }
+    }
+
+    public IReadOnlyList<PlayerDecisionRecord> Decisions
+    {
+        get
+        {
+            return _decisions;
+        }
+    }
 
     /// <summary>The host's privileged view of the run (ground truth beside what the controller saw).</summary>
-    public PlayerRunDiagnostics Diagnostics => _diagnostics;
+    public PlayerRunDiagnostics Diagnostics
+    {
+        get
+        {
+            return _diagnostics;
+        }
+    }
 
     public PlayerRunStop Stop { get; private set; }
-    public bool Stopped => Stop != PlayerRunStop.None;
+    public bool Stopped
+    {
+        get
+        {
+            return Stop != PlayerRunStop.None;
+        }
+    }
+
     /// <summary>The controller limitation that stopped the run, if one did.</summary>
     public string? Limitation { get; private set; }
     /// <summary>The input tick whose completion showed the player's result, if it ended.</summary>
@@ -361,27 +400,33 @@ public sealed class PlayerRunCoordinator
 
     /// <summary>The journal's end reason: "completed" only for a win (task 4), so a replay or a
     /// listing can never take another outcome for a pass.</summary>
-    public string EndReason(int ticksRun) => Stop switch
+    public string EndReason(int ticksRun)
     {
-        PlayerRunStop.Won => "completed",
-        PlayerRunStop.Defeated => "player:defeated",
-        PlayerRunStop.ControllerLimited => $"player:controller-limited: {Limitation}",
-        PlayerRunStop.Cancelled => Limitation is null ? "player:cancelled" : $"player:cancelled: {Limitation}",
-        _ => string.Create(CultureInfo.InvariantCulture, $"player:no-result after {ticksRun} ticks"),
-    };
+        return Stop switch
+        {
+            PlayerRunStop.Won => "completed",
+            PlayerRunStop.Defeated => "player:defeated",
+            PlayerRunStop.ControllerLimited => $"player:controller-limited: {Limitation}",
+            PlayerRunStop.Cancelled => Limitation is null ? "player:cancelled" : $"player:cancelled: {Limitation}",
+            _ => string.Create(CultureInfo.InvariantCulture, $"player:no-result after {ticksRun} ticks"),
+        };
+    }
 
     /// <summary>Additive journal header keys describing this run (the scenario's keys stay as they are).</summary>
-    public IReadOnlyDictionary<string, string> JournalKeys() => new Dictionary<string, string>(StringComparer.Ordinal)
+    public IReadOnlyDictionary<string, string> JournalKeys()
     {
-        [JournalHeader.PlayerRunSchema] = "1",
-        ["player.run.id"] = _options.RunId.Value,
-        ["player.id"] = _options.Player.ToString(),
-        ["player.controller"] = _options.ControllerName,
-        ["player.observation.schema"] = PlayerObservation.SchemaVersion.ToString(CultureInfo.InvariantCulture),
-        ["player.visibility"] = "human view: WorldView fog gate, input targets, own HUD and messages",
-        ["player.limits"] = string.Create(CultureInfo.InvariantCulture,
+        return new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            [JournalHeader.PlayerRunSchema] = "1",
+            ["player.run.id"] = _options.RunId.Value,
+            ["player.id"] = _options.Player.ToString(),
+            ["player.controller"] = _options.ControllerName,
+            ["player.observation.schema"] = PlayerObservation.SchemaVersion.ToString(CultureInfo.InvariantCulture),
+            ["player.visibility"] = "human view: WorldView fog gate, input targets, own HUD and messages",
+            ["player.limits"] = string.Create(CultureInfo.InvariantCulture,
             $"max_ticks={_options.MaxTicks};max_advance={_options.MaxAdvanceTicks};finale_ticks={_options.FinaleTicks};" +
             $"requests_per_decision={_options.Limits.MaxRequestsPerObservation};max_actions={_options.Limits.MaxAdmittedActions}"),
-        ["player.pacing"] = "headless: the simulation waits at completed ticks for each decision",
-    };
+            ["player.pacing"] = "headless: the simulation waits at completed ticks for each decision",
+        };
+    }
 }

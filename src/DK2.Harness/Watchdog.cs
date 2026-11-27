@@ -14,8 +14,22 @@ namespace DK2.Harness;
 public sealed record WatchLimits(TimeSpan PerRun, TimeSpan Total, int MaxRuns, int Jobs = 1)
 {
     private int _jobs = Positive(Jobs);
-    public int Jobs { get => _jobs; init => _jobs = Positive(value); }
-    private static int Positive(int value) => value >= 1 ? value : throw new ArgumentOutOfRangeException(nameof(Jobs));
+    public int Jobs
+    {
+        get
+        {
+            return _jobs;
+        }
+
+        init
+        {
+            _jobs = Positive(value);
+        }
+    }
+    private static int Positive(int value)
+    {
+        return value >= 1 ? value : throw new ArgumentOutOfRangeException(nameof(Jobs));
+    }
 
     public static readonly WatchLimits Default = new(TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(30), 20);
 }
@@ -57,8 +71,10 @@ public sealed class Watchdog(string outRoot, WatchLimits limits, Func<WatchJob, 
         }
     }
 
-    public WatchSummary Watch(IReadOnlyList<string> scenarioFiles, TextWriter log) =>
-        Watch(scenarioFiles.Select(f => new WatchJob(f, [], "")).ToList(), log);
+    public WatchSummary Watch(IReadOnlyList<string> scenarioFiles, TextWriter log)
+    {
+        return Watch(scenarioFiles.Select(f => new WatchJob(f, [], "")).ToList(), log);
+    }
 
     public WatchSummary Watch(IReadOnlyList<WatchJob> jobs, TextWriter log)
     {
@@ -232,10 +248,12 @@ public sealed class Watchdog(string outRoot, WatchLimits limits, Func<WatchJob, 
     /// <summary>A run's verdict from how its process ended. Exit 1 is the harness's own failure (an
     /// unmet expectation or a refused scenario); 2 and 3 are usage and a missing installation. A
     /// Ctrl+C reaches the child too, so a cancelled watch names its last run cancelled however it ended.</summary>
-    public static string Classify(bool exited, int exitCode, bool cancelled) =>
-        cancelled ? "cancelled"
+    public static string Classify(bool exited, int exitCode, bool cancelled)
+    {
+        return cancelled ? "cancelled"
         : !exited ? "timeout"
         : exitCode switch { 0 => "passed", 1 => "failed", 2 or 3 => "setup", _ => "crashed" };
+    }
 
     private static void Kill(Process? process)
     {
@@ -300,11 +318,15 @@ public sealed class Watchdog(string outRoot, WatchLimits limits, Func<WatchJob, 
         return text.ToString();
     }
 
-    private static string Header(InputJournal journal, string key) =>
-        journal.Header.TryGetValue(key, out string? value) ? value : "unknown";
+    private static string Header(InputJournal journal, string key)
+    {
+        return journal.Header.TryGetValue(key, out string? value) ? value : "unknown";
+    }
 
-    private static ProcessStartInfo SelfRun(WatchJob job, string runOut) =>
-        SelfStart(["run", job.File, "--out", runOut, .. job.Args]);
+    private static ProcessStartInfo SelfRun(WatchJob job, string runOut)
+    {
+        return SelfStart(["run", job.File, "--out", runOut, .. job.Args]);
+    }
 
     /// <summary>This harness again, whether it was started as an apphost or through <c>dotnet</c>.</summary>
     private static ProcessStartInfo SelfStart(params string[] args)

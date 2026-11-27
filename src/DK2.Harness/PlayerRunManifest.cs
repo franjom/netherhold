@@ -37,7 +37,13 @@ public static class PlayerRunManifest
     /// <summary>A replay may proceed only with no blocking difference.</summary>
     public sealed record Verification(IReadOnlyList<string> Blocking, IReadOnlyList<string> Diagnostic)
     {
-        public bool MayReplay => Blocking.Count == 0;
+        public bool MayReplay
+        {
+            get
+            {
+                return Blocking.Count == 0;
+            }
+        }
     }
 
     public static Identity Compute(Scenario scenario, string? installDirectory, PlayerRunId runId, string? playbookSha256 = null)
@@ -135,7 +141,10 @@ public static class PlayerRunManifest
         return new Verification(blocking, diagnostic);
     }
 
-    private static Verification Blocked(string why) => new([why], []);
+    private static Verification Blocked(string why)
+    {
+        return new([why], []);
+    }
 
     private static readonly JsonSerializerOptions Indented = new() { WriteIndented = true };
 
@@ -194,11 +203,13 @@ public static class PlayerRunManifest
 
     /// <summary>Files under <paramref name="root"/> with one of the extensions, any case, as relative
     /// '/' paths; build output folders are skipped.</summary>
-    private static IEnumerable<string> Files(string root, params string[] extensions) =>
-        Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)
+    private static IEnumerable<string> Files(string root, params string[] extensions)
+    {
+        return Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)
             .Select(f => Path.GetRelativePath(root, f).Replace('\\', '/'))
             .Where(f => extensions.Any(e => f.EndsWith(e, StringComparison.OrdinalIgnoreCase))
                         && !("/" + f).Contains("/bin/", StringComparison.Ordinal) && !("/" + f).Contains("/obj/", StringComparison.Ordinal));
+    }
 
     /// <summary>One SHA-256 over (relative path, file hash) lines in ordinal path order.</summary>
     private static (string Sha256, int Files) TreeHash(string root, List<string> relativePaths)
@@ -241,5 +252,8 @@ public static class PlayerRunManifest
         return Hex(SHA256.HashData(stream));
     }
 
-    private static string Hex(byte[] bytes) => Convert.ToHexString(bytes).ToLowerInvariant();
+    private static string Hex(byte[] bytes)
+    {
+        return Convert.ToHexString(bytes).ToLowerInvariant();
+    }
 }

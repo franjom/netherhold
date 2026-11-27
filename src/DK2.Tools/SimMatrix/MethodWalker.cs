@@ -141,9 +141,11 @@ internal sealed class MethodWalker
         }
     }
 
-    private bool IsCreation(IOperation? value) =>
-        Unwrap(value) is IObjectCreationOperation or IArrayCreationOperation
+    private bool IsCreation(IOperation? value)
+    {
+        return Unwrap(value) is IObjectCreationOperation or IArrayCreationOperation
             or ICollectionExpressionOperation or IAnonymousObjectCreationOperation;
+    }
 
     private void Visit(IOperation? operation)
     {
@@ -309,17 +311,21 @@ internal sealed class MethodWalker
 
     /// <summary>A non-readonly method of a struct, called on a struct: not one an enum inherits from
     /// <c>System.Enum</c> (<c>HasFlag</c>, <c>ToString</c>), nor a primitive's.</summary>
-    private static bool MutatesStruct(IInvocationOperation invocation) =>
-        invocation.Instance is { Type: { TypeKind: TypeKind.Struct, SpecialType: SpecialType.None } } and not IInstanceReferenceOperation
+    private static bool MutatesStruct(IInvocationOperation invocation)
+    {
+        return invocation.Instance is { Type: { TypeKind: TypeKind.Struct, SpecialType: SpecialType.None } } and not IInstanceReferenceOperation
         && invocation.TargetMethod.ContainingType.TypeKind == TypeKind.Struct
         && !invocation.TargetMethod.IsStatic
         && !invocation.TargetMethod.IsReadOnly
         && !invocation.TargetMethod.ContainingType.IsReadOnly;
+    }
 
     /// <summary>A receiver the mutating names apply to: a class or interface, or a span; not a string, an enum
     /// or a value like <c>DateTime</c> whose <c>Add</c> returns a new one.</summary>
-    private static bool IsCollection(ITypeSymbol? type) =>
-        type is { SpecialType: SpecialType.None } && type.TypeKind != TypeKind.Enum && (!type.IsValueType || type.IsRefLikeType);
+    private static bool IsCollection(ITypeSymbol? type)
+    {
+        return type is { SpecialType: SpecialType.None } && type.TypeKind != TypeKind.Enum && (!type.IsValueType || type.IsRefLikeType);
+    }
 
     private void Call(IMethodSymbol? method)
     {
@@ -557,20 +563,28 @@ internal sealed class MethodWalker
         }
     }
 
-    private void Read(ISymbol key) => _summary.Reads.Add(key);
+    private void Read(ISymbol key)
+    {
+        _summary.Reads.Add(key);
+    }
 
     /// <summary>A field's key: the property it backs, when it is an auto-property's or a <c>field</c> keyword's, or
     /// the hand-written property of a struct that counts its writes (<c>TileState._roomRuined</c> of <c>RoomRuined</c>):
     /// the state is the property's, however its setter is written.</summary>
-    private static ISymbol Key(IFieldSymbol field) => (field.AssociatedSymbol ?? BackedProperty(field) ?? field).OriginalDefinition;
+    private static ISymbol Key(IFieldSymbol field)
+    {
+        return (field.AssociatedSymbol ?? BackedProperty(field) ?? field).OriginalDefinition;
+    }
 
-    private static ISymbol? BackedProperty(IFieldSymbol field) =>
-        field.ContainingType is { TypeKind: TypeKind.Struct } owner && field.DeclaredAccessibility == Accessibility.Private
+    private static ISymbol? BackedProperty(IFieldSymbol field)
+    {
+        return field.ContainingType is { TypeKind: TypeKind.Struct } owner && field.DeclaredAccessibility == Accessibility.Private
         && field.Name.Length > 1 && field.Name[0] == '_'
             ? owner.GetMembers().OfType<IPropertySymbol>().FirstOrDefault(p =>
                 !p.IsIndexer && !p.IsStatic && SymbolEqualityComparer.Default.Equals(p.Type, field.Type)
                 && string.Equals(p.Name, field.Name.Substring(1), StringComparison.OrdinalIgnoreCase))
             : null;
+    }
 
     /// <summary>What <c>x?.</c> stands for: the receiver of the conditional access whose right-hand side holds it.</summary>
     private static IOperation? Receiver(IConditionalAccessInstanceOperation instance)

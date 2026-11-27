@@ -28,7 +28,13 @@ public sealed record CampaignPlayerSpec(
 {
     /// <summary>The knowledge directory the player reads (Task 3a), or null for none; <c>run</c> fills in
     /// the repository's <c>knowledge/</c> unless <c>--player-knowledge</c> names one or <c>none</c>.</summary>
-    public string? KnowledgeDirectory => Knowledge is null || Knowledge == KeeperKnowledgeFile.None ? null : Knowledge;
+    public string? KnowledgeDirectory
+    {
+        get
+        {
+            return Knowledge is null || Knowledge == KeeperKnowledgeFile.None ? null : Knowledge;
+        }
+    }
 
     /// <summary>The level's playbook file (Task 3b, <c>--playbook</c>), or null for none.</summary>
     public string? Playbook { get; init; }
@@ -40,7 +46,13 @@ public sealed record CampaignPlayerSpec(
     public PlaybookFile.Loaded? LoadedPlaybook { get; init; }
 
     /// <summary>The knowledge rules the playbook switches on.</summary>
-    public IReadOnlyList<string> PlaybookRules => LoadedPlaybook?.Playbook.Rules ?? [];
+    public IReadOnlyList<string> PlaybookRules
+    {
+        get
+        {
+            return LoadedPlaybook?.Playbook.Rules ?? [];
+        }
+    }
 
     /// <summary>The limit flags a playbook's caps stand in for, each with its bit.</summary>
     public static readonly IReadOnlyList<(string Flag, PlayerLimitFlags Limit)> CappedFlags =
@@ -52,7 +64,13 @@ public sealed record CampaignPlayerSpec(
     /// <summary>Bytes kept back from the output budget for the final journal record and report.</summary>
     public const long ReserveBytes = 1024 * 1024;
 
-    public long OutputBytes => (long)OutputMiB * 1024 * 1024;
+    public long OutputBytes
+    {
+        get
+        {
+            return (long)OutputMiB * 1024 * 1024;
+        }
+    }
 }
 
 /// <summary>Builds a player run's verdict and writes its evidence beside the journal:
@@ -93,12 +111,15 @@ public static class PlayerRunReport
     }
 
     /// <summary>The process exit code: 0 only for Completed, 2 for incomplete evidence, else 1.</summary>
-    public static int ExitCode(PlayerRunOutcome outcome) => outcome switch
+    public static int ExitCode(PlayerRunOutcome outcome)
     {
-        PlayerRunOutcome.Completed => 0,
-        PlayerRunOutcome.IncompleteEvidence => 2,
-        _ => 1,
-    };
+        return outcome switch
+        {
+            PlayerRunOutcome.Completed => 0,
+            PlayerRunOutcome.IncompleteEvidence => 2,
+            _ => 1,
+        };
+    }
 
     /// <summary>The prefix of every acceptance line that claims nothing; the reasons follow it.</summary>
     public const string NotClaimed = "not claimed: ";
@@ -243,16 +264,19 @@ public static class PlayerRunReport
 
     /// <summary>What the player had built and kept by its last observation (campaign bot stage 3 plan,
     /// Task 2): owned room tiles by type, own creatures by type id, gold. Null when it never decided.</summary>
-    private static object? Development(PlayerObservation? last) => last is null ? null : new
+    private static object? Development(PlayerObservation? last)
     {
-        tick = last.Stamp.Tick.Value,
-        gold = last.Gold.Value,
-        room_tiles = last.Rooms.GroupBy(r => r.Type.ToString()).OrderBy(g => g.Key, StringComparer.Ordinal)
+        return last is null ? null : new
+        {
+            tick = last.Stamp.Tick.Value,
+            gold = last.Gold.Value,
+            room_tiles = last.Rooms.GroupBy(r => r.Type.ToString()).OrderBy(g => g.Key, StringComparer.Ordinal)
             .ToDictionary(g => g.Key, g => g.Sum(r => r.TileCount)),
-        creatures = last.Creatures.Count,
-        creature_types = last.Creatures.GroupBy(c => c.Type.Value).OrderBy(g => g.Key)
+            creatures = last.Creatures.Count,
+            creature_types = last.Creatures.GroupBy(c => c.Type.Value).OrderBy(g => g.Key)
             .ToDictionary(g => g.Key.ToString(CultureInfo.InvariantCulture), g => g.Count()),
-    };
+        };
+    }
 
     /// <summary>The decision and action tables: what the controller saw and sent.</summary>
     public static void WriteTables(string directory, ScenarioResult result)
@@ -301,7 +325,10 @@ public static class PlayerRunReport
         }, new JsonSerializerOptions { WriteIndented = true }));
     }
 
-    private static string Tsv(string? text) => (text ?? "").Replace('\t', ' ').Replace('\n', ' ').Replace('\r', ' ');
+    private static string Tsv(string? text)
+    {
+        return (text ?? "").Replace('\t', ' ').Replace('\n', ' ').Replace('\r', ' ');
+    }
 
     /// <summary>Evidence is never overwritten.</summary>
     public static void WriteNew(string path, byte[] bytes)
@@ -324,9 +351,18 @@ public sealed class BudgetedStream(Stream inner, long budgetBytes, long reserveB
     public long Written { get; private set; }
 
     /// <summary>True once writing on would eat into the reserve.</summary>
-    public bool Exhausted => Written >= budgetBytes - reserveBytes;
+    public bool Exhausted
+    {
+        get
+        {
+            return Written >= budgetBytes - reserveBytes;
+        }
+    }
 
-    public override void Write(byte[] buffer, int offset, int count) => Write(buffer.AsSpan(offset, count));
+    public override void Write(byte[] buffer, int offset, int count)
+    {
+        Write(buffer.AsSpan(offset, count));
+    }
 
     public override void Write(ReadOnlySpan<byte> buffer)
     {
@@ -340,21 +376,74 @@ public sealed class BudgetedStream(Stream inner, long budgetBytes, long reserveB
         Written += buffer.Length;
     }
 
-    public override void WriteByte(byte value) => Write([value]);
+    public override void WriteByte(byte value)
+    {
+        Write([value]);
+    }
 
     public override void Flush()
     {
         try { inner.Flush(); }
         catch (IOException ex) { throw new EvidenceWriteException($"The journal could not be flushed: {ex.Message}", ex); }
     }
-    public override bool CanRead => false;
-    public override bool CanSeek => false;
-    public override bool CanWrite => true;
-    public override long Length => Written;
-    public override long Position { get => Written; set => throw new NotSupportedException(); }
-    public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
-    public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
-    public override void SetLength(long value) => throw new NotSupportedException();
+    public override bool CanRead
+    {
+        get
+        {
+            return false;
+        }
+    }
+
+    public override bool CanSeek
+    {
+        get
+        {
+            return false;
+        }
+    }
+
+    public override bool CanWrite
+    {
+        get
+        {
+            return true;
+        }
+    }
+
+    public override long Length
+    {
+        get
+        {
+            return Written;
+        }
+    }
+
+    public override long Position
+    {
+        get
+        {
+            return Written;
+        }
+
+        set
+        {
+            throw new NotSupportedException();
+        }
+    }
+    public override int Read(byte[] buffer, int offset, int count)
+    {
+        throw new NotSupportedException();
+    }
+
+    public override long Seek(long offset, SeekOrigin origin)
+    {
+        throw new NotSupportedException();
+    }
+
+    public override void SetLength(long value)
+    {
+        throw new NotSupportedException();
+    }
 
     protected override void Dispose(bool disposing)
     {

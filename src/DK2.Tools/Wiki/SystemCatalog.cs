@@ -26,10 +26,16 @@ public sealed partial class SystemCatalog
 
     public IReadOnlyList<SystemEntry> Systems { get; }
 
-    public bool Contains(string id) => _order.ContainsKey(id);
+    public bool Contains(string id)
+    {
+        return _order.ContainsKey(id);
+    }
 
     /// <summary>The catalogue position of <paramref name="id"/>, for sorting system lists; unknown ids sort last.</summary>
-    public int OrderOf(string id) => _order.TryGetValue(id, out int i) ? i : int.MaxValue;
+    public int OrderOf(string id)
+    {
+        return _order.TryGetValue(id, out int i) ? i : int.MaxValue;
+    }
 
     [GeneratedRegex("^[a-z][a-z0-9]*(-[a-z0-9]+)*$")] private static partial Regex IdRx();
 
@@ -79,7 +85,9 @@ public sealed partial class SystemCatalog
     }
 
     public static SystemCatalog Load(string root)
-        => Parse(System.IO.File.ReadAllText(Path.Combine(root, RelativePath.Replace('/', Path.DirectorySeparatorChar))));
+    {
+        return Parse(System.IO.File.ReadAllText(Path.Combine(root, RelativePath.Replace('/', Path.DirectorySeparatorChar))));
+    }
 
     sealed class File
     {

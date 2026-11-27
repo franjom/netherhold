@@ -79,12 +79,16 @@ internal static class SimRows
         return rows;
     }
 
-    internal static INamedTypeSymbol Type(Compilation compilation, string name) =>
-        compilation.GetTypeByMetadataName(name) ?? throw new InvalidDataException($"type {name} is not in the simulation source.");
+    internal static INamedTypeSymbol Type(Compilation compilation, string name)
+    {
+        return compilation.GetTypeByMetadataName(name) ?? throw new InvalidDataException($"type {name} is not in the simulation source.");
+    }
 
     /// <summary>A type's name as the source writes it from outside: containing types, then the type.</summary>
-    internal static string Display(INamedTypeSymbol type) =>
-        type.ContainingType is { } outer ? Display(outer) + "." + type.Name : type.Name;
+    internal static string Display(INamedTypeSymbol type)
+    {
+        return type.ContainingType is { } outer ? Display(outer) + "." + type.Name : type.Name;
+    }
 
     private sealed class Reader(
         Compilation compilation,

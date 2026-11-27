@@ -50,10 +50,12 @@ internal static partial class KwdCommands
             ["vars"] = args => args.Length >= 2 ? RunVars(args) : Program.Usage(),
         };
 
-    internal static int Run(string[] args) =>
-        args.Length >= 2 && Subcommands.TryGetValue(args[1], out Func<string[], int>? run)
+    internal static int Run(string[] args)
+    {
+        return args.Length >= 2 && Subcommands.TryGetValue(args[1], out Func<string[], int>? run)
             ? run(args)
             : Program.Usage();
+    }
 
     internal static int RunChunks(string[] args)
     {
@@ -181,8 +183,10 @@ internal static partial class KwdCommands
         return 0;
     }
 
-    internal static int RunRewrite(string[] args) =>
-        KwdRewriteCommand.Run(args[2..],Console.Out,Console.Error);
+    internal static int RunRewrite(string[] args)
+    {
+        return KwdRewriteCommand.Run(args[2..], Console.Out, Console.Error);
+    }
 
     internal static int RunCorpus(string[] args)
     {

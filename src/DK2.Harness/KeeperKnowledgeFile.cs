@@ -42,7 +42,10 @@ public static class KeeperKnowledgeFile
     /// and Specials (<c>0x004E1AC0</c>), and an upgrade, which makes no book, still needs a slot with room
     /// (research-tree.md section 4, library-and-research.md section 7). So the smallest count with room for every
     /// book and one more. Specials share the slots and are not counted: a Library that shelves them needs more.</summary>
-    public static int ResearchSlots(int researchable) => researchable / ResearchTreeRules.ShelfCapacity + 1;
+    public static int ResearchSlots(int researchable)
+    {
+        return researchable / ResearchTreeRules.ShelfCapacity + 1;
+    }
 
     /// <summary>How many items <paramref name="player"/> may research on a campaign level: the entries of the
     /// research list (GlobalVariables, research-tree.md section 1) that <c>0x004C3000</c>'s first pass can
@@ -220,8 +223,12 @@ public static class KeeperKnowledgeFile
         }
 
         // A rule in force acts always, or on a level whose playbook asks for it.
-        bool Acts(RuleEntry rule) => rule.Status != "refuted"
+        bool Acts(RuleEntry rule)
+        {
+            return rule.Status != "refuted"
             && (rule.Applies == "always" || (rule.Applies == "playbook" && playbookRules?.Contains(rule.Id!) == true));
+        }
+
         return new Loaded(new KeeperKnowledge(facts), attraction, tiles, acting, Sha256(roomsPath), Sha256(rulesPath)) { SlotTargets = slots };
     }
 
@@ -232,7 +239,10 @@ public static class KeeperKnowledgeFile
         return name is not null && Enum.GetNames<RoomTypeId>().Contains(name, StringComparer.Ordinal) && Enum.TryParse(name, out room);
     }
 
-    private static string Sha256(string path) => Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(path)));
+    private static string Sha256(string path)
+    {
+        return Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(path)));
+    }
 
     private sealed class RoomsDocument
     {

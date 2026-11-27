@@ -41,7 +41,10 @@ public sealed class LegalActionFuzzer
 
     private readonly SimRandom _rng;
 
-    private LegalActionFuzzer(ulong seed, PlayerId player) => _rng = new SimRandom(seed ^ player.Value);
+    private LegalActionFuzzer(ulong seed, PlayerId player)
+    {
+        _rng = new SimRandom(seed ^ player.Value);
+    }
 
     /// <summary>A controller for <paramref name="player"/>, seeded as the computer keeper is
     /// (seed xor player id), deciding every <paramref name="intervalTicks"/> ticks.</summary>
@@ -235,11 +238,15 @@ public sealed class LegalActionFuzzer
         return new CastSpellAtPlaceCommand(view.PlayerId, spell.KeeperSpellId, CreatureState.CentreOf(at.X), CreatureState.CentreOf(at.Y));
     }
 
-    private static bool Selectable(KeeperView view, AvailabilityKind kind, int typeId) =>
-        BottomPanelView.IsSelectable(view.Availability(kind, typeId));
+    private static bool Selectable(KeeperView view, AvailabilityKind kind, int typeId)
+    {
+        return BottomPanelView.IsSelectable(view.Availability(kind, typeId));
+    }
 
-    private static bool OwnsWorkshop(KeeperView view) =>
-        view.OwnRooms.Any(r => r.Definition.RoomId == (byte)RoomTypeId.Workshop);
+    private static bool OwnsWorkshop(KeeperView view)
+    {
+        return view.OwnRooms.Any(r => r.Definition.RoomId == (byte)RoomTypeId.Workshop);
+    }
 
     private static TilePos[] Tiles(KeeperView view, Func<TilePos, bool> where)
     {
@@ -255,8 +262,13 @@ public sealed class LegalActionFuzzer
         return [.. tiles];
     }
 
-    private T? Pick<T>(T[] items) where T : struct => items.Length == 0 ? null : items[_rng.NextInt(items.Length)];
+    private T? Pick<T>(T[] items) where T : struct
+    {
+        return items.Length == 0 ? null : items[_rng.NextInt(items.Length)];
+    }
 
-    private T? Pick<T>(IReadOnlyList<T> items) where T : class =>
-        items.Count == 0 ? null : items[_rng.NextInt(items.Count)];
+    private T? Pick<T>(IReadOnlyList<T> items) where T : class
+    {
+        return items.Count == 0 ? null : items[_rng.NextInt(items.Count)];
+    }
 }

@@ -113,10 +113,16 @@ internal static class SnapshotFields
         return name.Length > 1 && name[0] == '_' ? char.ToUpperInvariant(name[1]) + name[2..] : name;
     }
 
-    private static string Key(object? value) => JsonSerializer.Serialize(Capture(value, "value"));
+    private static string Key(object? value)
+    {
+        return JsonSerializer.Serialize(Capture(value, "value"));
+    }
 
-    private static string DictionaryPath(string path, object key) => key is string text
+    private static string DictionaryPath(string path, object key)
+    {
+        return key is string text
         && text.Length > 0 && char.IsAsciiLetter(text[0]) && text.All(c => char.IsAsciiLetterOrDigit(c) || c == '_')
             ? path + "." + text
             : path + "[" + Key(key) + "]";
+    }
 }

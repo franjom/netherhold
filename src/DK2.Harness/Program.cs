@@ -448,7 +448,9 @@ switch (args[0])
         return 2;
 }
 
-static List<string> FindScenarios(string dir) =>
-    Directory.Exists(dir)
+static List<string> FindScenarios(string dir)
+{
+    return Directory.Exists(dir)
         ? [.. Directory.EnumerateFiles(dir, "*.yaml", SearchOption.AllDirectories).OrderBy(f => f, StringComparer.Ordinal)]
         : [];
+}
