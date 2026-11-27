@@ -93,7 +93,7 @@ public partial class ClassicFrontEndMenu : Node
         _assets = new ClassicFrontEndMenuAssets(install);
         Func<int, IReadOnlyList<KcsFrame>?> paths = EngineCameraPaths.Loader(install);
         _session = new FrontEndSession(path => paths((int)path), returnPage);
-        // Load the campaign profile and hi-scores. The map can write changes back.
+        // The map can write changes back.
         _profiles = new CampaignProfileStore(InstalledCampaignRegistry.ReadCurrentUser, () => DateTime.Now);
         CampaignProfile profile = UserFolders.LoadProfile(_profiles, folders.Profile, GameSessionMode.FrontEnd, returnPage);
         var hiScores = new HiScoreStore(folders.HiScores, install);

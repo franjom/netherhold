@@ -553,7 +553,6 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
             material = WorldMaterial(look.Texture, look.Blend, look.WritesDepth, look.FullLight, look.Colour, look.AddedLight);
             ConfigureTerrainMaterial(material, key, look);
             _lookMaterials.Add(shaderKey, material);
-            // Every non-opaque look goes to the transparent queue.
             if (look.Blend != KmfBlend.Opaque)
             {
                 _blendedMaterials.Add(material);

@@ -80,7 +80,6 @@ public partial class WorldScene
         Global(LightTablesGlobal, RenderingServer.GlobalShaderParameterType.Sampler2Darray, _lightTables.Texture);
         Global(LightGridGlobal, RenderingServer.GlobalShaderParameterType.Ivec2, new Vector2I(width, height));
         Global(AmbientGlobal, RenderingServer.GlobalShaderParameterType.Vec3, Vector3.Zero);
-        // Set every fill term to zero while fill is disabled.
         Global(FillSkyGlobal, RenderingServer.GlobalShaderParameterType.Vec3, Fill ? FillSky : Vector3.Zero);
         Global(FillEquatorGlobal, RenderingServer.GlobalShaderParameterType.Vec3, Fill ? FillEquator : Vector3.Zero);
         Global(FillGroundGlobal, RenderingServer.GlobalShaderParameterType.Vec3, Fill ? FillGround : Vector3.Zero);

@@ -133,7 +133,6 @@ public partial class HudCanvas : Node2D
             Rect2 r = Snapped(draw.Rect);
             if (draw.Kind == HudDrawKind.Sector)
             {
-                // Lay the fan over the snapped rectangle.
                 int n = HudSector.Fan(new HudRect(r.Position.X, r.Position.Y, r.Size.X, r.Size.Y), draw.Percent, fan);
                 if (n == 0)
                 {

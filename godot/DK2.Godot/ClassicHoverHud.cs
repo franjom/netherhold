@@ -49,7 +49,6 @@ public partial class ClassicHoverHud : Node
         {
             throw new ArgumentNullException(nameof(sources));
         }
-        // Read the status bar image once for its size and texture.
         RgbaImage bar = sources.Texture(HoverHud.Bar.Path!);
         string barPath = HoverHud.Bar.Path!;
         Func<string, RgbaImage> load = path => path == barPath ? bar : sources.Texture(path);
