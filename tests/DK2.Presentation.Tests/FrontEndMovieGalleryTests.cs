@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using DK2.Art.Textures;
 using DK2.Data.Model;
 using DK2.Data.Wad;
-using DK2.Art.Textures;
 using DK2.TestSupport;
 
 namespace DK2.Presentation.Tests;

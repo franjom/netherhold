@@ -3,8 +3,8 @@
 // See LICENSE in the project root for the full license text.
 
 using DK2.Core;
-using DK2.Data.Model;
 using DK2.Data;
+using DK2.Data.Model;
 using DK2.Data.Text;
 using DK2.Simulation;
 using DK2.TestSupport;

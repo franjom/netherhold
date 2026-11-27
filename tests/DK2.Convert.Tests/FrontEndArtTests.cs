@@ -4,9 +4,9 @@
 
 using DK2.Art;
 using DK2.Assets;
+using DK2.Core;
 using DK2.Data;
 using DK2.Data.Model;
-using DK2.Core;
 using DK2.TestSupport;
 
 namespace DK2.Convert.Tests;

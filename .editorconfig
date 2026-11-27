@@ -107,41 +107,4 @@ dotnet_diagnostic.IDE0306.severity = warning
 csharp_style_namespace_declarations = file_scoped
 dotnet_diagnostic.IDE0161.severity = warning
 
-[src/DK2.Simulation/**.cs]
-dotnet_sort_system_directives_first = true
-
-[src/DK2.AI/**.cs]
-dotnet_sort_system_directives_first = true
-
-[src/DK2.Pathfinding/**.cs]
-dotnet_sort_system_directives_first = true
-
-[src/DK2.Core/**.cs]
-dotnet_sort_system_directives_first = true
-
-[src/DK2.Data/**.cs]
-dotnet_sort_system_directives_first = true
-
-[src/DK2.Data.Model/**.cs]
-dotnet_sort_system_directives_first = true
-
-[src/DK2.Assets/**.cs]
-dotnet_sort_system_directives_first = true
-
-[src/DK2.Art/**.cs]
-dotnet_sort_system_directives_first = true
-
-[src/DK2.Convert/**.cs]
-dotnet_sort_system_directives_first = true
-
-[src/DK2.Presentation/**.cs]
-dotnet_sort_system_directives_first = true
-
-[src/DK2.Tools/**.cs]
-dotnet_sort_system_directives_first = true
-
-[src/DK2.Harness/**.cs]
-dotnet_sort_system_directives_first = true
-
-[godot/DK2.Godot/**.cs]
 dotnet_sort_system_directives_first = true

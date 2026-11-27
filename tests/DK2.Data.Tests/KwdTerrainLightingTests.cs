@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.Buffers.Binary;
+using DK2.Core;
 using DK2.Data.Kwd;
 using DK2.Data.Model;
-using DK2.Core;
-using System.Buffers.Binary;
 
 namespace DK2.Data.Tests;
 

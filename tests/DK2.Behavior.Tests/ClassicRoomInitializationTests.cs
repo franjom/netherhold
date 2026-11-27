@@ -8,8 +8,8 @@ using DK2.Data.Model;
 using DK2.Simulation;
 using DK2.Simulation.Combat;
 using DK2.Simulation.Navigation;
-using DK2.Simulation.Systems;
 using DK2.Simulation.Steering;
+using DK2.Simulation.Systems;
 using DK2.TestSupport;
 
 namespace DK2.Behavior.Tests;

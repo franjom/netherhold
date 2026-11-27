@@ -4,9 +4,9 @@
 
 using DK2.Core;
 using DK2.Data.Model;
-using DK2.Simulation.Systems;
 using DK2.Simulation.Commands;
 using DK2.Simulation.Navigation;
+using DK2.Simulation.Systems;
 namespace DK2.Simulation.Tests;
 
 public sealed class CombatPitRoomTests

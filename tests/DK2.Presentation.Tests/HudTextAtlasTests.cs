@@ -3,8 +3,8 @@
 // See LICENSE in the project root for the full license text.
 
 using System.Numerics;
-using DK2.Data.Text;
 using DK2.Data.Model;
+using DK2.Data.Text;
 using DK2.TestSupport;
 
 namespace DK2.Presentation.Tests;

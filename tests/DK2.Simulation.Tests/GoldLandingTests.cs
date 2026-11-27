@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.Text.Json;
 using DK2.Core;
 using DK2.Data.Model;
 using DK2.Simulation.Commands;
 using DK2.Simulation.Systems;
-using System.Text.Json;
 
 namespace DK2.Simulation.Tests;
 

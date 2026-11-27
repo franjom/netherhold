@@ -2,13 +2,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
+using System.Numerics;
 using DK2.Assets;
 using DK2.Core;
 using DK2.Data;
 using DK2.Data.Model;
 using DK2.Simulation;
 using DK2.TestSupport;
-using System.Numerics;
 
 namespace DK2.Presentation.Tests;
 
