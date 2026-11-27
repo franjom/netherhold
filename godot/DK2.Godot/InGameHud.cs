@@ -287,8 +287,9 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         CampaignLevelData level;
         try
         {
-            level = CampaignLevelData.Load(install, levelName);
-            _simulation = resume?.Resume?.Simulation ?? (_context.ImportedTerrain is { } imported
+            GameSimulation? resumedSimulation = resume?.Resume?.Simulation;
+            level = CampaignLevelData.Load(install, levelName, resumedSimulation?.Database);
+            _simulation = resumedSimulation ?? (_context.ImportedTerrain is { } imported
                 ? GameSessionStarter.FromDk2Save(level.Database, imported, seed, fogOfWarEnabled: true)
                 : level.CreateSimulation(seed, fogOfWarEnabled: true));
             if (resume?.Resume != null && _context.Mode == GameSessionMode.ImportedTerrain)

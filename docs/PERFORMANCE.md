@@ -149,6 +149,15 @@ packed-word probe matched the uncached encoders for 1,039,920 inputs. On the Lev
 Mean pack time fell from 2.130 to 1.780 ms (16.5%), and p95 fell from 3.966 to 3.311 ms. Across three real-time
 pairs, whole-frame median p50 (10.75 to 10.82 ms) and p99 (30.16 to 30.49 ms) stayed within run-to-run variance.
 
+When resuming a save, `CampaignLevelData.Load` reuses the simulation’s `GameDatabase` for presentation. Alternating
+room lookups from creature rendering and the possession badge had used different database instances for the same
+level, evicting the same per-world `RoomIndex` cache entry.
+Three pairs of fixed-60 runs at 1920×1080 (D3D12, Debug C#) resumed the Level6a turn-200 save with seed 1.
+Each run had 90 warm-up and 600 measured frames with zero dropped samples. Rebuilds fell from 1,198 per run
+(599 per path) to zero.
+The eliminated misses accounted for 499–546 ms and 29,940,416 B per run. All-thread managed allocations fell by
+30,532,952–30,752,528 B. Frame p50 moved in both directions across the pairs.
+
 ## Hardware tiers and captures on other machines (2026-11-06)
 
 The owner's laptop is the floor, not the goal. Revised targets, by tier:
