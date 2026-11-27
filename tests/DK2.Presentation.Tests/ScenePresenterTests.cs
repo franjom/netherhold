@@ -592,7 +592,6 @@ public class ScenePresenterTests
         Assert.Equal(0, rig.Target.CreatureCreates);
         Assert.Equal(0, rig.Target.CreatureUpdates);
 
-        // Moved: an update.
         rig.Target.Clear();
         spawned.PosX += 1;
         rig.Presenter.Present(world);
