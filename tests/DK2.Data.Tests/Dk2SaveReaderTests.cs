@@ -37,6 +37,31 @@ public class Dk2SaveReaderTests
         Assert.Equal((byte)4, map.Tiles[0].PlayerId);
     }
 
+    /// <summary>Both grid readers reject an empty grid, and a size so large that 32-bit arithmetic would wrap
+    /// past the length check, before they allocate.</summary>
+    [Theory]
+    [InlineData(0, 1)]
+    [InlineData(1, -1)]
+    public void BothGridReadersRejectANonPositiveSize(int width, int height)
+    {
+        byte[] save = new byte[Dk2SaveReader.TileRecordSize];
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => Dk2SaveReader.ReadTiles(save, 0, width, height));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Dk2SaveReader.ReadGrid(save, 0, width, height));
+    }
+
+    [Theory]
+    [InlineData(0, 65536, 65536)]
+    [InlineData(0, 46341, 46341)]
+    [InlineData(-10, 1, 1)]
+    public void BothGridReadersRejectAGridTheSaveCannotHold(int gridOffset, int width, int height)
+    {
+        byte[] save = new byte[Dk2SaveReader.TileRecordSize];
+
+        Assert.Throws<InvalidDataException>(() => Dk2SaveReader.ReadTiles(save, gridOffset, width, height));
+        Assert.Throws<InvalidDataException>(() => Dk2SaveReader.ReadGrid(save, gridOffset, width, height));
+    }
+
     [Fact]
     public void GridSearchPreservesBothEndRecordsAndAdjacentRoomIds()
     {

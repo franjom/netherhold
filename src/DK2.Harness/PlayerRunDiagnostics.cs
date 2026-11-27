@@ -126,7 +126,7 @@ public sealed class PlayerRunDiagnostics
 
         foreach (TrapState trap in world.Traps)
         {
-            if (trap.PlayerId == _player.Value || trap.UnderConstruction)
+            if (!Hostile(world, new PlayerId(trap.PlayerId)) || trap.UnderConstruction)
             {
                 continue;
             }
@@ -205,7 +205,7 @@ public sealed class PlayerRunDiagnostics
         string? type = null;
         foreach (TrapState trap in world.Traps)
         {
-            if (trap.PlayerId == _player.Value || trap.UnderConstruction)
+            if (!Hostile(world, new PlayerId(trap.PlayerId)) || trap.UnderConstruction)
             {
                 continue;
             }

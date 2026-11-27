@@ -272,6 +272,25 @@ public static class Dk2SaveReader
     }
 
     /// <summary>
+    /// Rejects a grid that is empty or does not fit in the save. The size is
+    /// computed in 64 bits so huge dimensions cannot wrap past the check.
+    /// </summary>
+    private static void RequireGrid(int saveLength, int gridOffset, int width, int height)
+    {
+        if (width <= 0 || height <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(width), "grid dimensions must be positive.");
+        }
+
+        long needed = gridOffset + ((long)width * height * TileRecordSize);
+        if (gridOffset < 0 || saveLength < needed)
+        {
+            throw new InvalidDataException(
+                $"a {width}x{height} grid at {gridOffset} needs {needed} bytes; the save is {saveLength}.");
+        }
+    }
+
+    /// <summary>
     /// Reads the grid at the given dimensions, which come from the level's own
     /// design map — the save's map header also records them — and at
     /// the offset <see cref="FindGridOffset"/> located.
@@ -279,17 +298,7 @@ public static class Dk2SaveReader
     public static LevelMap ReadGrid(
         ReadOnlySpan<byte> save, int gridOffset, int width, int height)
     {
-        if (width <= 0 || height <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(width), "grid dimensions must be positive.");
-        }
-
-        int needed = gridOffset + (width * height * TileRecordSize);
-        if (save.Length < needed)
-        {
-            throw new InvalidDataException(
-                $"a {width}x{height} grid needs {needed} bytes; the save is {save.Length}.");
-        }
+        RequireGrid(save.Length, gridOffset, width, height);
 
         var tiles = new MapTile[width * height];
         for (int i = 0; i < tiles.Length; i++)
@@ -316,12 +325,7 @@ public static class Dk2SaveReader
     /// </summary>
     public static SavedTile[] ReadTiles(byte[] save, int gridOffset, int width, int height)
     {
-        int needed = gridOffset + (width * height * TileRecordSize);
-        if (save.Length < needed)
-        {
-            throw new InvalidDataException(
-                $"a {width}x{height} grid needs {needed} bytes; the save is {save.Length}.");
-        }
+        RequireGrid(save.Length, gridOffset, width, height);
 
         var tiles = new SavedTile[width * height];
         for (int i = 0; i < tiles.Length; i++)
