@@ -125,7 +125,7 @@ static class FunctionKbCommand
 
         public Source(string root, bool staged)
         {
-            this._root = root;
+            _root = root;
             if (!staged)
             {
                 return;
