@@ -24,7 +24,13 @@ public partial class HudCanvas : Node2D
     /// <summary>A draw's texture as the rebuild uses it.</summary>
     private readonly record struct Resolved(Rid Texture, Vector2 Size, bool Nearest, Rid Material = default)
     {
-        public bool IsValid => Texture.IsValid;
+        public bool IsValid
+        {
+            get
+            {
+                return Texture.IsValid;
+            }
+        }
     }
 
     /// <summary>Reads a catalogue image by name; set before the first <see cref="Present"/>.</summary>
@@ -248,7 +254,10 @@ public partial class HudCanvas : Node2D
 
     /// <summary>A virtual rect in screen pixels as the last <see cref="Present"/> placed its draws, for a host that draws
     /// beside the canvas on the same grid (the minimap's disc).</summary>
-    public Rect2 ScreenRect(HudRect rect) => Snapped(rect);
+    public Rect2 ScreenRect(HudRect rect)
+    {
+        return Snapped(rect);
+    }
 
     /// <summary>A virtual rectangle in screen pixels with edges on whole pixels.</summary>
     private Rect2 Snapped(HudRect r)

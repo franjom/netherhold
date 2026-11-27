@@ -20,10 +20,30 @@ public partial class InGameHud
     private Vector2 _possessionScripted = new(float.NaN, float.NaN);
     private bool _pointerCaptured;
 
-    private bool Possessing => _possession is { Possessing: true };
-    private bool PossessionCameraHeld => _possession is { CameraHeld: true };
+    private bool Possessing
+    {
+        get
+        {
+            return _possession is { Possessing: true };
+        }
+    }
+
+    private bool PossessionCameraHeld
+    {
+        get
+        {
+            return _possession is { CameraHeld: true };
+        }
+    }
+
     /// <summary>The pointer is the view's: the Hand is not drawn and the hover is off.</summary>
-    private bool PossessionPointerHeld => _possession is { PointerLockWanted: true };
+    private bool PossessionPointerHeld
+    {
+        get
+        {
+            return _possession is { PointerLockWanted: true };
+        }
+    }
 
     /// <summary>Begin the possession session on camera preset 2. The check argument
     /// <c>--possess-first-creature</c> (<see cref="PossessionStaging"/>), once the level's first turn has run.</summary>

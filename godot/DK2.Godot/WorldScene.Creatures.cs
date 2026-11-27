@@ -24,7 +24,10 @@ public partial class WorldScene : ISceneFrameHost
     private long _createPushBytes, _clipPushWarmUpBytes, _clipPushBytes, _plainPushBytes;
     private int _createPushes, _clipPushes, _plainPushes, _creatureClipStarts, _countedClipStarts;
 
-    public WorldScene() => _frame = new SceneFrame(this);
+    public WorldScene()
+    {
+        _frame = new SceneFrame(this);
+    }
 
     /// <summary>The last drawn position of a creature in rendering coordinates. Returns false for a creature that was not drawn.</summary>
     public bool TryGetCreaturePosition(CreatureQueryTarget target, out NVector3 position)
@@ -86,7 +89,10 @@ public partial class WorldScene : ISceneFrameHost
         slot.Slot.ApplyLooks();
     }
 
-    public void RemoveCreature(int creatureId) => RemoveCreature(creatureId, keepHead: false);
+    public void RemoveCreature(int creatureId)
+    {
+        RemoveCreature(creatureId, keepHead: false);
+    }
 
     private void RemoveCreature(int creatureId, bool keepHead)
     {
@@ -117,9 +123,11 @@ public partial class WorldScene : ISceneFrameHost
 
     /// <summary>A model stands at the creature's point and height, modelled in tiles about
     /// its feet, turned by <see cref="MeshOrientation.Mesh"/>; each frame then moves it between turns, keeping the turns.</summary>
-    private static void PlaceCreature(ModelSlot slot, in CreatureView creature) =>
+    private static void PlaceCreature(ModelSlot slot, in CreatureView creature)
+    {
         slot.Place(new NVector3(creature.PosX / (float)Fp32.One, creature.Height / (float)Fp32.One, -creature.PosY / (float)Fp32.One),
             MeshOrientation.Mesh(creature.MeshYaw, creature.Pitch, creature.Roll), Vector3.One);
+    }
 
     /// <summary>A clip starts once per <see cref="AnimationClipRequest.Identity(in
     /// CreatureView, AssetRef)"/>; a creature playing none, or whose clip the install lacks, shows its model.</summary>
@@ -192,8 +200,10 @@ public partial class WorldScene : ISceneFrameHost
         return true;
     }
 
-    void ISceneFrameHost.DrawCreatureClip(CreatureId creature, in CreatureView pose, double seconds) =>
+    void ISceneFrameHost.DrawCreatureClip(CreatureId creature, in CreatureView pose, double seconds)
+    {
         _drawn!.Slot.Animation?.Player.Draw(seconds, pose.AnimationMovementSpeed, pose.AnimationPaused);
+    }
 
     // Every drawn frame, as a new look shows its node again (ModelSlot.ApplyLooks); WorldScene.Possession.cs shows it again.
     void ISceneFrameHost.HideCreatureModel(CreatureId creature)
@@ -204,7 +214,10 @@ public partial class WorldScene : ISceneFrameHost
         }
     }
 
-    int ISceneFrameHost.FootstepCrossing(CreatureId creature) => _drawn!.Slot.Animation?.Player.FootstepCrossing ?? 0;
+    int ISceneFrameHost.FootstepCrossing(CreatureId creature)
+    {
+        return _drawn!.Slot.Animation?.Player.FootstepCrossing ?? 0;
+    }
 
     // Use the drawn point to play a step only when the camera sees the creature, as
     // DK2's pass draws only those (CreatureFootsteps).
@@ -222,7 +235,10 @@ public partial class WorldScene : ISceneFrameHost
         }
     }
 
-    void ISceneFrameHost.DrawCrackle(CreatureId creature, GameTick tick) => DrawCreatureLightning(creature, tick);
+    void ISceneFrameHost.DrawCrackle(CreatureId creature, GameTick tick)
+    {
+        DrawCreatureLightning(creature, tick);
+    }
 
     bool ISceneFrameHost.TryGetControlPoint(CreatureId creature, uint point, out NVector3 render)
     {
@@ -237,7 +253,10 @@ public partial class WorldScene : ISceneFrameHost
         return true;
     }
 
-    EffectTime ISceneFrameHost.EffectClock() => new(_frameMilliseconds);
+    EffectTime ISceneFrameHost.EffectClock()
+    {
+        return new(_frameMilliseconds);
+    }
 
     private void FreeCreatures()
     {

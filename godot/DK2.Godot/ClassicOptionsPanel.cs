@@ -47,10 +47,16 @@ public partial class ClassicOptionsPanel : Node
     }
 
     /// <summary>An unsupported action's entry is greyed and takes no press.</summary>
-    public void SetSupported(ClassicOptionsAction action, bool supported) => _hud?.SetSupported(action, supported);
+    public void SetSupported(ClassicOptionsAction action, bool supported)
+    {
+        _hud?.SetSupported(action, supported);
+    }
 
     /// <summary>Whether an entry takes a press (<see cref="OptionsHud.Supported"/>).</summary>
-    public bool Supported(ClassicOptionsAction action) => _hud != null && _hud.Supported(action);
+    public bool Supported(ClassicOptionsAction action)
+    {
+        return _hud != null && _hud.Supported(action);
+    }
 
     public void SetVisible(bool visible)
     {
@@ -62,10 +68,16 @@ public partial class ClassicOptionsPanel : Node
         _hud.SetVisible(visible); _canvas.Visible = visible;
     }
 
-    public void SetPage(ClassicOptionsPage page, ClassicSessionAction confirmation) => _hud?.SetPage(page, confirmation);
+    public void SetPage(ClassicOptionsPage page, ClassicSessionAction confirmation)
+    {
+        _hud?.SetPage(page, confirmation);
+    }
 
     /// <summary>Whether the full-screen options menu is open.</summary>
-    public bool ContainsPointer(Vector2 screenPosition) => _hud != null && _hud.Visible;
+    public bool ContainsPointer(Vector2 screenPosition)
+    {
+        return _hud != null && _hud.Visible;
+    }
 
     /// <summary>Lays the page out for the viewport and presents it, the entry under the pointer lit.</summary>
     public void Draw()
@@ -124,5 +136,8 @@ public partial class ClassicOptionsPanel : Node
     }
 
     /// <summary>Convert a screen pixel with top-left origin to virtual units, 1920 per screen height.</summary>
-    private (float X, float Y) ToVirtual(Vector2 screen) => (screen.X / _scale, screen.Y / _scale);
+    private (float X, float Y) ToVirtual(Vector2 screen)
+    {
+        return (screen.X / _scale, screen.Y / _scale);
+    }
 }

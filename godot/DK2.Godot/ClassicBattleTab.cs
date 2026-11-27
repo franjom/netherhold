@@ -144,7 +144,10 @@ public partial class ClassicBattleTab : Node
         }
     }
 
-    private void Raise(BattleTabButton button, int mouse) => Clicked?.Invoke(button, mouse);
+    private void Raise(BattleTabButton button, int mouse)
+    {
+        Clicked?.Invoke(button, mouse);
+    }
 
     public override void _Notification(int what)
     {
@@ -164,6 +167,8 @@ public partial class ClassicBattleTab : Node
 
     /// <summary>A screen pixel in the model's virtual units, from the
     /// same rounded origin the drawing uses, so hits land on the art at any HUD scale.</summary>
-    private (float X, float Y) ToVirtual(Vector2 screen) =>
-        ((screen.X - _origin.X) / _layout.Factor / _scale, (screen.Y - _origin.Y) / _layout.Factor / _scale);
+    private (float X, float Y) ToVirtual(Vector2 screen)
+    {
+        return ((screen.X - _origin.X) / _layout.Factor / _scale, (screen.Y - _origin.Y) / _layout.Factor / _scale);
+    }
 }

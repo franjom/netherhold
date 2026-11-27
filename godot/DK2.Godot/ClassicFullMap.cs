@@ -80,9 +80,18 @@ public partial class ClassicFullMap : Node
         world.PreviewPose = preview.Pose;
         world.PreviewViewport = new CameraViewport((int)preview.Size.X, (int)preview.Size.X, (int)preview.Size.Y);
     }
-    private static Vector3 ToGodot(System.Numerics.Vector3 value) => new(value.X, value.Y, value.Z);
+    private static Vector3 ToGodot(System.Numerics.Vector3 value)
+    {
+        return new(value.X, value.Y, value.Z);
+    }
 
-    public bool Visible => _hud != null && _hud.Visible;
+    public bool Visible
+    {
+        get
+        {
+            return _hud != null && _hud.Visible;
+        }
+    }
 
     /// <summary>Opens the map, hidden; call before it enters the tree.</summary>
     /// <param name="minimap">The class grid's source, which the minimap captures.</param>

@@ -89,7 +89,10 @@ internal sealed class ClassicTabletCanvas : IDisposable
         _visible = false;
     }
 
-    public void Dispose() => RenderingServer.FreeRid(_item);
+    public void Dispose()
+    {
+        RenderingServer.FreeRid(_item);
+    }
 
     private sealed class TriangleBuffer
     {

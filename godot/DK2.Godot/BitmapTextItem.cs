@@ -38,7 +38,11 @@ internal sealed class BitmapTextItem : IDisposable
     /// bitmap. Not owned.</summary>
     public FontFile? ReplacementFont
     {
-        get => _face;
+        get
+        {
+            return _face;
+        }
+
         set
         {
             if (_face == value)

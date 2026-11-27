@@ -15,5 +15,8 @@ public partial class PerformanceReportTail : Node
     /// <summary>The stamp of this frame's last process callback (<see cref="Stopwatch.GetTimestamp"/>).</summary>
     public long Stamp { get; private set; }
 
-    public override void _Process(double delta) => Stamp = Stopwatch.GetTimestamp();
+    public override void _Process(double delta)
+    {
+        Stamp = Stopwatch.GetTimestamp();
+    }
 }

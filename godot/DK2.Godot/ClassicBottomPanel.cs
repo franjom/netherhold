@@ -22,7 +22,13 @@ public partial class ClassicBottomPanel : Node, IPointerGestureHolder
     private bool _holding;
 
     /// <summary>The panel model; its events are the clicks a host turns into commands.</summary>
-    public BottomPanelHud Model => _hud ?? throw new InvalidOperationException("The panel is not open.");
+    public BottomPanelHud Model
+    {
+        get
+        {
+            return _hud ?? throw new InvalidOperationException("The panel is not open.");
+        }
+    }
 
     /// <summary>The HUD scale percent.</summary>
     public int UiScale { get; set; } = 100;
@@ -60,7 +66,13 @@ public partial class ClassicBottomPanel : Node, IPointerGestureHolder
     }
 
     /// <summary>The hovered widget's texts, or the open panel's description, for the status line.</summary>
-    public HoverTextSnapshot HoverText => _hud?.HoverText ?? HoverTextSnapshot.Empty;
+    public HoverTextSnapshot HoverText
+    {
+        get
+        {
+            return _hud?.HoverText ?? HoverTextSnapshot.Empty;
+        }
+    }
 
     /// <summary>Whether a screen pixel (top-left origin) is the panel's, so a host keeps it from the world.</summary>
     public bool ContainsPointer(Vector2 screenPosition)
@@ -185,10 +197,15 @@ public partial class ClassicBottomPanel : Node, IPointerGestureHolder
 
     /// <summary>A screen pixel in the model's virtual units, from the
     /// same rounded origin the drawing uses, so hits land on the art at any HUD scale.</summary>
-    private (float X, float Y) ToVirtual(Vector2 screen) =>
-        ((screen.X - _origin.X) / _layout.Factor / _scale, (screen.Y - _origin.Y) / _layout.Factor / _scale);
+    private (float X, float Y) ToVirtual(Vector2 screen)
+    {
+        return ((screen.X - _origin.X) / _layout.Factor / _scale, (screen.Y - _origin.Y) / _layout.Factor / _scale);
+    }
 
-    private void Handled() => GetViewport().SetInputAsHandled();
+    private void Handled()
+    {
+        GetViewport().SetInputAsHandled();
+    }
 
     /// <summary>Drops the held press once the model has let go of it.</summary>
     private void SyncCapture()

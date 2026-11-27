@@ -59,7 +59,13 @@ public partial class ClassicMessageTabs : Node
     }
 
     /// <summary>The hovered tab's message text, or the Review Objective button's own texts, for the status line.</summary>
-    public HoverTextSnapshot HoverText => _hud?.HoverText ?? HoverTextSnapshot.Empty;
+    public HoverTextSnapshot HoverText
+    {
+        get
+        {
+            return _hud?.HoverText ?? HoverTextSnapshot.Empty;
+        }
+    }
 
     /// <summary>Whether a screen pixel (top-left origin) is the panel's, so a host keeps it from the world.</summary>
     public bool ContainsPointer(Vector2 screenPosition)
@@ -148,6 +154,8 @@ public partial class ClassicMessageTabs : Node
 
     /// <summary>A screen pixel in the model's virtual units, from the
     /// same rounded origin the drawing uses, so hits land on the art at any HUD scale.</summary>
-    private (float X, float Y) ToVirtual(Vector2 screen) =>
-        ((screen.X - _origin.X) / _layout.Factor / _scale, (screen.Y - _origin.Y) / _layout.Factor / _scale);
+    private (float X, float Y) ToVirtual(Vector2 screen)
+    {
+        return ((screen.X - _origin.X) / _layout.Factor / _scale, (screen.Y - _origin.Y) / _layout.Factor / _scale);
+    }
 }

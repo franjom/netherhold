@@ -15,8 +15,10 @@ public static class LauncherSettingsStore
 {
     private static LauncherSettings? s_settings;
 
-    public static string PathFor(IReadOnlyList<string> args) =>
-        LauncherSettingsFile.PathFor(args, ProjectSettings.GlobalizePath("user://"));
+    public static string PathFor(IReadOnlyList<string> args)
+    {
+        return LauncherSettingsFile.PathFor(args, ProjectSettings.GlobalizePath("user://"));
+    }
 
     public static LauncherSettings Current(IReadOnlyList<string> args)
     {
@@ -49,8 +51,10 @@ public static class LauncherSettingsStore
     }
 
     /// <summary>The install: DK2_DIR, then <c>--dk2Install</c>, then the launcher's folder, then the usual locations.</summary>
-    public static string? FindInstall(IReadOnlyList<string> args) =>
-        Dk2Install.Find(LaunchArguments.Value(args, "--dk2Install"), Current(args).InstallFolder);
+    public static string? FindInstall(IReadOnlyList<string> args)
+    {
+        return Dk2Install.Find(LaunchArguments.Value(args, "--dk2Install"), Current(args).InstallFolder);
+    }
 
     /// <summary>The folder this run named when <see cref="FindInstall"/> found none: DK2_DIR, then <c>--dk2Install</c>,
     /// either of which decides alone; null when the run named neither.</summary>

@@ -104,9 +104,15 @@ public partial class Launcher : Control
         }
     }
 
-    private void FitViewport() => Size = GetViewport().GetVisibleRect().Size;
+    private void FitViewport()
+    {
+        Size = GetViewport().GetVisibleRect().Size;
+    }
 
-    public override void _ExitTree() => GetViewport().SizeChanged -= FitViewport;
+    public override void _ExitTree()
+    {
+        GetViewport().SizeChanged -= FitViewport;
+    }
 
     private void BuildSeam()
     {
@@ -205,7 +211,10 @@ public partial class Launcher : Control
         bottom.AddChild(_play);
     }
 
-    private static Control Gap(float height) => new() { CustomMinimumSize = new Vector2(0, height), MouseFilter = MouseFilterEnum.Ignore };
+    private static Control Gap(float height)
+    {
+        return new() { CustomMinimumSize = new Vector2(0, height), MouseFilter = MouseFilterEnum.Ignore };
+    }
 
     /// <summary>A numbered section: the number in its own column, the heading and <paramref name="column"/>'s body beside it.</summary>
     private static VBoxContainer Section(VBoxContainer column, string number, string heading)
@@ -277,8 +286,10 @@ public partial class Launcher : Control
         }
     }
 
-    private void CheckFont() =>
+    private void CheckFont()
+    {
         ShowMessage(_fontStatus, LauncherCopy.Font(LauncherCopy.CheckFont(LauncherCopy.CleanPath(_font.Text), File.Exists)));
+    }
 
     private static void ShowMessage(Label label, LauncherMessage message)
     {
@@ -406,13 +417,22 @@ public partial class Launcher : Control
         PlayRequested?.Invoke(settings);
     }
 
-    private void Quit() => GetTree().Quit();
+    private void Quit()
+    {
+        GetTree().Quit();
+    }
 
-    private void BrowseInstall() => Browse(FileDialog.FileModeEnum.OpenDir, LauncherCopy.ChooseInstall, _install.Text, [],
+    private void BrowseInstall()
+    {
+        Browse(FileDialog.FileModeEnum.OpenDir, LauncherCopy.ChooseInstall, _install.Text, [],
         path => { _install.Text = path; CheckInstall(fromUser: true); _install.GrabFocus(); });
+    }
 
-    private void BrowseFont() => Browse(FileDialog.FileModeEnum.OpenFile, LauncherCopy.ChooseFont, _font.Text,
+    private void BrowseFont()
+    {
+        Browse(FileDialog.FileModeEnum.OpenFile, LauncherCopy.ChooseFont, _font.Text,
         ["*.ttf, *.otf ; Fonts"], path => { _font.Text = path; CheckFont(); _font.GrabFocus(); });
+    }
 
     /// <summary>The system's own file dialog where Godot has one, else Godot's, starting at the field's folder.</summary>
     private void Browse(FileDialog.FileModeEnum mode, string title, string current, string[] filters, Action<string> chosen)

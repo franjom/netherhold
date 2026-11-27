@@ -20,7 +20,10 @@ public partial class HudCanvas
 
     /// <summary>Decodes an image before the first frame that draws it.
     /// <see cref="Load"/> must be set.</summary>
-    public void Preload(HudImage image) => Texture(image);
+    public void Preload(HudImage image)
+    {
+        Texture(image);
+    }
 
     private Resolved Texture(HudImage image)
     {
@@ -73,8 +76,10 @@ public partial class HudCanvas
         return texture;
     }
 
-    private RgbaImage Catalogue(string path) =>
-        (Load ?? throw new InvalidOperationException("HudCanvas.Load is not set."))(path);
+    private RgbaImage Catalogue(string path)
+    {
+        return (Load ?? throw new InvalidOperationException("HudCanvas.Load is not set."))(path);
+    }
 
     /// <summary>Free a text or label texture once no frame draws it.</summary>
     private void ReleaseUnusedText()

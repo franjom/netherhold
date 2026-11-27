@@ -37,9 +37,11 @@ public partial class WorldScene
 
     /// <summary>The session's pose while the camera is the possession's (the first-person view and the timed moves to and
     /// from it). Null leaves the ordinary camera in control.</summary>
-    private ClassicCameraPose? PossessionPose(CameraViewport viewport) =>
-        Possession is { CameraHeld: true } session && session.TryCamera(ClassicCamera, viewport, out ClassicCameraPose pose)
+    private ClassicCameraPose? PossessionPose(CameraViewport viewport)
+    {
+        return Possession is { CameraHeld: true } session && session.TryCamera(ClassicCamera, viewport, out ClassicCameraPose pose)
             ? pose : null;
+    }
 
     /// <summary>Before the present: the possession cameras' latch (<see cref="PossessionScene.Latch"/>), and the creature
     /// whose model the frame leaves out (<see cref="PossessionSession.HiddenCreatureId"/>).</summary>

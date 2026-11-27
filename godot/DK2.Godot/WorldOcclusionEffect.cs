@@ -147,7 +147,11 @@ public partial class WorldOcclusionEffect : CompositorEffect
         if (spirv.CompileErrorCompute.Length != 0) { GD.PushError(spirv.CompileErrorCompute); return default; }
         return _rd.ShaderCreateFromSpirV(spirv);
     }
-    private static string Defined(string source, string define) => source.Replace("#version 450", "#version 450\n#define " + define);
+    private static string Defined(string source, string define)
+    {
+        return source.Replace("#version 450", "#version 450\n#define " + define);
+    }
+
     private void Initialize()
     {
         _rawShader = Compile(_rawSource);

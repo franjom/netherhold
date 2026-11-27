@@ -35,7 +35,13 @@ public partial class MinimapGpuDisc : Node
     private int _capacity;
     private long _renders, _classUploads, _paletteUploads, _classBytes, _markerUploads;
     public int Diameter { get; private set; }
-    public Texture2D Texture => _disc.GetTexture();
+    public Texture2D Texture
+    {
+        get
+        {
+            return _disc.GetTexture();
+        }
+    }
 
     public MinimapGpuDisc()
     {
@@ -190,14 +196,24 @@ public partial class MinimapGpuDisc : Node
         else { image.SetData(width, height, false, format, bytes); texture!.Update(image); }
     }
 
-    private static SubViewport Viewport(bool transparent) => new()
+    private static SubViewport Viewport(bool transparent)
     {
-        Size = new Vector2I(2, 2), Disable3D = true, TransparentBg = transparent, World2D = new World2D(),
-        RenderTargetUpdateMode = SubViewport.UpdateMode.Disabled, UseHdr2D = false,
-        CanvasItemDefaultTextureFilter = Godot.Viewport.DefaultCanvasItemTextureFilter.Nearest,
-    };
+        return new()
+        {
+            Size = new Vector2I(2, 2),
+            Disable3D = true,
+            TransparentBg = transparent,
+            World2D = new World2D(),
+            RenderTargetUpdateMode = SubViewport.UpdateMode.Disabled,
+            UseHdr2D = false,
+            CanvasItemDefaultTextureFilter = Godot.Viewport.DefaultCanvasItemTextureFilter.Nearest,
+        };
+    }
 
-    private static ShaderMaterial Material(string name) => new() { Shader = GD.Load<Shader>("res://Shaders/" + name + ".gdshader") };
+    private static ShaderMaterial Material(string name)
+    {
+        return new() { Shader = GD.Load<Shader>("res://Shaders/" + name + ".gdshader") };
+    }
 
     private void SetMapParameter(StringName name, Variant value)
     {

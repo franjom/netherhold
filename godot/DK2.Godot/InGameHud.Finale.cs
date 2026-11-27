@@ -54,7 +54,10 @@ public partial class InGameHud
         _scriptedView.WinScreenRequested += StartWinScreen;
     }
 
-    private void QueueRewardSpeech(uint id) => _mixer?.QueueSpeech(SoundCategory.Mentor, new SoundId(id + 1));
+    private void QueueRewardSpeech(uint id)
+    {
+        _mixer?.QueueSpeech(SoundCategory.Mentor, new SoundId(id + 1));
+    }
 
     private void StartWinScreen()
     {

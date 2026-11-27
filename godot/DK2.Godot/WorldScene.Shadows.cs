@@ -59,7 +59,13 @@ public partial class WorldScene
     /// <see cref="Open"/>.</summary>
     public bool TorchShadows { get; set; }
 
-    private bool TorchShadowsActive => TorchShadows && PerPixelLight;
+    private bool TorchShadowsActive
+    {
+        get
+        {
+            return TorchShadows && PerPixelLight;
+        }
+    }
 
     /// <summary>The shadow views and the globals the shaders read; nothing when the shadows are off.</summary>
     private void OpenShadows()
@@ -251,6 +257,9 @@ public partial class WorldScene
         slot.ShadowFades = fades;
         slot.Node.SetInstanceShaderParameter(ShadowFadeParameter, fades);
 
-        float Fade(int i) => _shadowSlotKeys[i] >= 0 ? _shadowSelector.FadeFor(_shadowSlotKeys[i]) : 0f;
+        float Fade(int i)
+        {
+            return _shadowSlotKeys[i] >= 0 ? _shadowSelector.FadeFor(_shadowSlotKeys[i]) : 0f;
+        }
     }
 }

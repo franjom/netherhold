@@ -67,7 +67,13 @@ public partial class WorldScene
         }
     }
 
-    private static void Add(List<KeyValuePair<string, double>> into, string key, double value) => into.Add(new(key, value));
+    private static void Add(List<KeyValuePair<string, double>> into, string key, double value)
+    {
+        into.Add(new(key, value));
+    }
 
-    private static double Ms(long ticks) => ticks * 1000.0 / Stopwatch.Frequency;
+    private static double Ms(long ticks)
+    {
+        return ticks * 1000.0 / Stopwatch.Frequency;
+    }
 }

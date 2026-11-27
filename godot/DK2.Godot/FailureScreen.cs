@@ -137,11 +137,16 @@ public partial class FailureScreen : CanvasLayer
         first?.GrabFocus();
     }
 
-    private static Label Paragraph(string text, string variation) => new()
+    private static Label Paragraph(string text, string variation)
     {
-        Text = text, ThemeTypeVariation = variation, AutowrapMode = TextServer.AutowrapMode.WordSmart,
-        SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-    };
+        return new()
+        {
+            Text = text,
+            ThemeTypeVariation = variation,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+        };
+    }
 
     public override void _Input(InputEvent @event)
     {

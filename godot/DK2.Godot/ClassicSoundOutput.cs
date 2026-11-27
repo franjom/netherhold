@@ -76,7 +76,10 @@ public partial class ClassicSoundOutput : Node, ISoundOutput
         return stream;
     }
 
-    void ISoundOutput.Warn(string message) => GD.PushWarning("DK2.Godot: " + message);
+    void ISoundOutput.Warn(string message)
+    {
+        GD.PushWarning("DK2.Godot: " + message);
+    }
 
     public override void _Process(double delta)
     {
@@ -128,7 +131,13 @@ public partial class ClassicSoundOutput : Node, ISoundOutput
 
     private sealed class FlatSource(ClassicSoundOutput owner, AudioStreamPlayer player) : ISoundSource
     {
-        public bool IsPlaying => player.Playing;
+        public bool IsPlaying
+        {
+            get
+            {
+                return player.Playing;
+            }
+        }
 
         public void Play(PcmClip clip, bool loop)
         {
@@ -136,14 +145,28 @@ public partial class ClassicSoundOutput : Node, ISoundOutput
             player.Play();
         }
 
-        public void Stop() => player.Stop();
-        public void SetVolume(float volume) => player.VolumeLinear = volume;
+        public void Stop()
+        {
+            player.Stop();
+        }
+
+        public void SetVolume(float volume)
+        {
+            player.VolumeLinear = volume;
+        }
+
         public void Place(System.Numerics.Vector2? offset) { }
     }
 
     private sealed class SpatialSource(ClassicSoundOutput owner, AudioStreamPlayer3D player) : ISoundSource
     {
-        public bool IsPlaying => player.Playing;
+        public bool IsPlaying
+        {
+            get
+            {
+                return player.Playing;
+            }
+        }
 
         public void Play(PcmClip clip, bool loop)
         {
@@ -151,8 +174,15 @@ public partial class ClassicSoundOutput : Node, ISoundOutput
             player.Play();
         }
 
-        public void Stop() => player.Stop();
-        public void SetVolume(float volume) => player.VolumeLinear = volume;
+        public void Stop()
+        {
+            player.Stop();
+        }
+
+        public void SetVolume(float volume)
+        {
+            player.VolumeLinear = volume;
+        }
 
         /// <summary>The offset in the view space's x and z, which are Godot's world axes here (<see cref="RenderWorld"/>); a
         /// source with none sounds at the camera, unpanned.</summary>
@@ -169,7 +199,10 @@ public partial class ClassicSoundOutput : Node, ISoundOutput
     {
         private bool _disposed;
 
-        public void SetVolume(float volume) => player.VolumeLinear = volume;
+        public void SetVolume(float volume)
+        {
+            player.VolumeLinear = volume;
+        }
 
         public void Pump(Vector2[] chunk)
         {

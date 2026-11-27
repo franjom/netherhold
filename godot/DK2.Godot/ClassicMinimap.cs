@@ -41,7 +41,13 @@ public partial class ClassicMinimap : Node
     public int UiScale { get; set; } = 100;
 
     /// <summary>The model, whose class grid and palette the full map shares.</summary>
-    public MinimapHud? Model => _hud;
+    public MinimapHud? Model
+    {
+        get
+        {
+            return _hud;
+        }
+    }
 
 
     /// <summary>The palette from the native colour strip's PNG (<see cref="IMinimapAssets.PalettePng"/>), decoded by Godot
@@ -124,7 +130,10 @@ public partial class ClassicMinimap : Node
         return true;
     }
 
-    public void SetVisibility(HudVisibility visibility) => _hud?.SetVisibility(visibility);
+    public void SetVisibility(HudVisibility visibility)
+    {
+        _hud?.SetVisibility(visibility);
+    }
 
     /// <summary>A press on the magnifier at a screen pixel zooms (<see cref="MinimapHud.ZoomPress"/>).</summary>
     public void HandleZoomPress(Vector2 screenPosition, bool primary, bool secondary)
@@ -312,6 +321,8 @@ public partial class ClassicMinimap : Node
 
     /// <summary>A screen pixel in the model's virtual units, from the same rounded origin the
     /// drawing uses, so hits land on the art at any HUD scale.</summary>
-    private (float X, float Y) ToVirtual(Vector2 screen) =>
-        ((screen.X - _origin.X) / _layout.Factor / _scale, (screen.Y - _origin.Y) / _layout.Factor / _scale);
+    private (float X, float Y) ToVirtual(Vector2 screen)
+    {
+        return ((screen.X - _origin.X) / _layout.Factor / _scale, (screen.Y - _origin.Y) / _layout.Factor / _scale);
+    }
 }

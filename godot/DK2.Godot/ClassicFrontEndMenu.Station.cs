@@ -23,14 +23,22 @@ public partial class ClassicFrontEndMenu
     private readonly ClassicKeyboard _keyboard = new();
 
     /// <summary>The station's 3D world, or null when the front-end level could not be read.</summary>
-    public WorldScene? Station => _world;
+    public WorldScene? Station
+    {
+        get
+        {
+            return _world;
+        }
+    }
 
     private Action? _openStation;
 
     /// <summary>Keeps the station's start for <see cref="_Ready"/>: its world needs the node in the tree.</summary>
     private void PrepareStation(string install, CampaignProfile profile, bool secretFiveAvailable, ulong seed, float? brightness,
-        string[] args) =>
+        string[] args)
+    {
         _openStation = () => OpenStation(install, profile, secretFiveAvailable, seed, brightness, args);
+    }
 
     public override void _Ready()
     {

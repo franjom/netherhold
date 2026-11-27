@@ -17,7 +17,10 @@ public sealed class ClassicFrontEndMenuAssets : IFrontEndMenuSources, IDisposabl
     private FontFile? _replacementFont;
     private bool _replacementSearched;
 
-    public ClassicFrontEndMenuAssets(string install) => _sources = new InstallFrontEndSources(install, DecodePng);
+    public ClassicFrontEndMenuAssets(string install)
+    {
+        _sources = new InstallFrontEndSources(install, DecodePng);
+    }
 
     /// <summary>Bullfrog's DungeonKeeperII TrueType face, or null when this machine has none. It is not ours to ship, so
     /// it is never committed or imported: it is read from an absolute path, in order DK2_REPLACEMENT_FONT, <c>--menu-font</c>,
@@ -77,17 +80,36 @@ public sealed class ClassicFrontEndMenuAssets : IFrontEndMenuSources, IDisposabl
         return File.Exists(local) ? local : null;
     }
 
-    public string Text(uint id) => _sources.Text(id);
+    public string Text(uint id)
+    {
+        return _sources.Text(id);
+    }
 
-    public BitmapFont Font(FrontEndFont font) => _sources.Font(font);
-    internal BitmapFont LegibleFont(int height) => _sources.Hud.Font(InterfaceFonts.LegibleFileName(height));
+    public BitmapFont Font(FrontEndFont font)
+    {
+        return _sources.Font(font);
+    }
 
-    public CampaignBriefing Briefing(CampaignSlot slot) => _sources.Briefing(slot);
+    internal BitmapFont LegibleFont(int height)
+    {
+        return _sources.Hud.Font(InterfaceFonts.LegibleFileName(height));
+    }
+
+    public CampaignBriefing Briefing(CampaignSlot slot)
+    {
+        return _sources.Briefing(slot);
+    }
 
     /// <summary>A front-end image's pixels by name; the menu's <see cref="HudCanvas"/> reads its art through this.</summary>
-    public RgbaImage Load(string name) => _sources.Load(name);
+    public RgbaImage Load(string name)
+    {
+        return _sources.Load(name);
+    }
 
-    public (int Width, int Height)? ImageSize(string name) => _sources.ImageSize(name);
+    public (int Width, int Height)? ImageSize(string name)
+    {
+        return _sources.ImageSize(name);
+    }
 
     /// <summary>A DK2 PNG's stored bytes as RGBA, its colour-space chunks dropped (Godot's decoder would apply them).</summary>
     internal static RgbaImage DecodePng(byte[] bytes)

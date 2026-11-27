@@ -32,7 +32,10 @@ public partial class InGameHud : IDevOverlayHost
         _devOverlay = DevOverlay.Attach(this, this, args, PlayerNames.From(level.Players));
     }
 
-    private long PartStamp() => _recorder != null || _devTiming != null ? Stopwatch.GetTimestamp() : 0;
+    private long PartStamp()
+    {
+        return _recorder != null || _devTiming != null ? Stopwatch.GetTimestamp() : 0;
+    }
 
     private void PartSpent(FrameTelemetryPart part, long started)
     {

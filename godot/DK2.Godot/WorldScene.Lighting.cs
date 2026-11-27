@@ -111,11 +111,16 @@ public partial class WorldScene
     private static readonly HashSet<string> Globals = new();
 
     /// <summary>DK2's ambient level from the ambient keys (<see cref="ClassicAmbientLight.Normalized"/>), grey.</summary>
-    public void SetAmbient(float level) =>
+    public void SetAmbient(float level)
+    {
         RenderingServer.GlobalShaderParameterSet(AmbientGlobal, new Vector3(level, level, level));
+    }
 
     /// <summary>The Hand's light, drawn from the next <see cref="FinishFrame"/>.</summary>
-    public void SetHandLight(ClassicPointLight? light) => _handLight = light;
+    public void SetHandLight(ClassicPointLight? light)
+    {
+        _handLight = light;
+    }
 
     /// <summary>A tile's terrain light and whether it takes the full fill.</summary>
     private void SetTileLight(int tileIndex, in TileView tile)
@@ -188,7 +193,8 @@ public partial class WorldScene
         }
     }
 
-    private void ReportLighting() =>
+    private void ReportLighting()
+    {
         GD.Print("DK2.Godot lighting: ", _lightFrames, " frames, ", _lightPublishes, " published, ", _lightTables?.RowsUploaded ?? 0,
             " table rows uploaded (in ", Milliseconds(_lightTables?.UploadTicks ?? 0), " ms), ", _worldMaterialsMade,
             " world materials; after the first ", DrawWarmUp, " frames ", _lightBytes, " B allocated in ",
@@ -196,6 +202,7 @@ public partial class WorldScene
             " B of it by WorldView.LightObjects) and ", _lightMovedBytes, " B in ", _lightMovedFrames, " that moved it; ",
             Milliseconds(_lightTicks / Math.Max(1, _lightFrames - DrawWarmUp - _lightMovedFrames)), " ms mean and ",
             Milliseconds(_lightMaxTicks), " ms max with it still");
+    }
 
     /// <summary>The shader light tables: a float texture array with a layer per row of tiles,
     /// <see cref="TexelsPerTile"/> texels a tile: the count and
@@ -321,7 +328,10 @@ public partial class WorldScene
             UploadTicks += System.Diagnostics.Stopwatch.GetTimestamp() - started;
         }
 
-        private int Base(int x, int y) => ClassicLightTableLayout.FloatIndex(new TilePos(x, y), 0, _width);
+        private int Base(int x, int y)
+        {
+            return ClassicLightTableLayout.FloatIndex(new TilePos(x, y), 0, _width);
+        }
 
         private bool Write(int index, float value)
         {

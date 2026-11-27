@@ -32,7 +32,11 @@ public partial class HudCanvas
     /// <summary>The TrueType font to draw labels with instead of their bitmaps, or null for the bitmaps.</summary>
     public FontFile? ReplacementFont
     {
-        get => _replacement;
+        get
+        {
+            return _replacement;
+        }
+
         set
         {
             if (_replacement == value)
@@ -51,7 +55,13 @@ public partial class HudCanvas
     }
 
     /// <summary>Whether the last presented frame drew any label with the replacement font.</summary>
-    public bool UsingReplacementFont => _usingFont;
+    public bool UsingReplacementFont
+    {
+        get
+        {
+            return _usingFont;
+        }
+    }
 
     /// <summary>Resolves each plain label draw's glyph cells at its on-screen size, leaving a null for a draw that shows
     /// its bitmap: no font, a glow, or a glyph the face lacks. Labels no longer drawn are forgotten.</summary>

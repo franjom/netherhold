@@ -24,7 +24,13 @@ public partial class ClassicCreatureOverview : Node
     /// <summary>The HUD scale percent.</summary>
     public int UiScale { get; set; } = 100;
 
-    public CreatureOverviewMode Mode => _hud?.Mode ?? CreatureOverviewMode.Total;
+    public CreatureOverviewMode Mode
+    {
+        get
+        {
+            return _hud?.Mode ?? CreatureOverviewMode.Total;
+        }
+    }
 
     /// <summary>Opens the overview over <paramref name="art"/> and <paramref name="view"/>; call before it enters the tree.</summary>
     public void Open(InstallCreatureOverviewArt art, CreatureOverview view)
@@ -148,6 +154,8 @@ public partial class ClassicCreatureOverview : Node
 
     /// <summary>A screen pixel in the model's virtual units, from the
     /// same rounded origin the drawing uses, so hits land on the art at any HUD scale.</summary>
-    private (float X, float Y) ToVirtual(Vector2 screen) =>
-        ((screen.X - _origin.X) / _layout.Factor / _scale, (screen.Y - _origin.Y) / _layout.Factor / _scale);
+    private (float X, float Y) ToVirtual(Vector2 screen)
+    {
+        return ((screen.X - _origin.X) / _layout.Factor / _scale, (screen.Y - _origin.Y) / _layout.Factor / _scale);
+    }
 }

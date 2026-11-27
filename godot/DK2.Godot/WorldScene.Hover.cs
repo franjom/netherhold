@@ -17,7 +17,13 @@ public partial class WorldScene
     private readonly List<ModelSlot> _hoverSlots = new();
 
     /// <summary>The view the pick culls by (the classic pose's frustum); null before the camera is placed.</summary>
-    public ViewFrustum? PickFrustum => View == null ? null : PlacedFrustum;
+    public ViewFrustum? PickFrustum
+    {
+        get
+        {
+            return View == null ? null : PlacedFrustum;
+        }
+    }
 
     /// <summary>After <see cref="WorldHoverPicker.Begin"/>, offer every drawn creature, object
     /// that is a hover target, door and trap offered with its measures; the rendered result, else the 3x3 sweep over where
@@ -147,6 +153,8 @@ public partial class WorldScene
     }
 
     // Apply the hover overlay's red pass to burning creatures.
-    void ISceneFrameHost.DrawBurningRed(CreatureId creature, in CreatureView pose) =>
+    void ISceneFrameHost.DrawBurningRed(CreatureId creature, in CreatureView pose)
+    {
         DrawHoverOverlay(new WorldHoverHit(WorldHoverKind.Creature, pose.Tile, creature.Value));
+    }
 }

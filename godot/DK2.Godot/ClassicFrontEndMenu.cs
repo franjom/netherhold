@@ -28,12 +28,22 @@ public partial class ClassicFrontEndMenu : Node
 
     private bool _useReplacement;
 
-    public FrontEndMenuController? Model => _hud?.Model;
+    public FrontEndMenuController? Model
+    {
+        get
+        {
+            return _hud?.Model;
+        }
+    }
 
     /// <summary>Use the replacement TrueType face where it can draw labels. Otherwise use the BF4 bitmap.</summary>
     public bool UseReplacementFont
     {
-        get => _useReplacement;
+        get
+        {
+            return _useReplacement;
+        }
+
         set
         {
             _useReplacement = value;
@@ -53,11 +63,19 @@ public partial class ClassicFrontEndMenu : Node
     }
 
     /// <summary>Whether the last presented frame drew any label with the replacement font.</summary>
-    public bool UsingReplacementFont => _canvas?.UsingReplacementFont ?? false;
+    public bool UsingReplacementFont
+    {
+        get
+        {
+            return _canvas?.UsingReplacementFont ?? false;
+        }
+    }
 
     /// <summary>A widget's pointer region in 640 x 480 units.</summary>
-    public FrontEndRect HitBounds(FrontEndWidget widget) =>
-        (_hud ?? throw new InvalidOperationException("The menu is not open.")).HitBounds(widget);
+    public FrontEndRect HitBounds(FrontEndWidget widget)
+    {
+        return (_hud ?? throw new InvalidOperationException("The menu is not open.")).HitBounds(widget);
+    }
 
     /// <summary>Opens the menu over an install with the player's files in <paramref name="folders"/>; call before the
     /// node enters the tree. A missing profile is created here (from the original game's registry entry on Windows); an
@@ -266,10 +284,16 @@ public partial class ClassicFrontEndMenu : Node
         GD.Print("DK2.Godot front end: page ", page.ToString(), " at process frame ", Engine.GetProcessFrames());
     }
 
-    private void Quit() => GetTree().Quit();
+    private void Quit()
+    {
+        GetTree().Quit();
+    }
 
     /// <summary>Refresh gallery unlocks after the campaign map changes the profile.</summary>
-    private void RefreshMovies(CampaignProfile profile) => _hud?.Model.Movies?.Refresh(profile);
+    private void RefreshMovies(CampaignProfile profile)
+    {
+        _hud?.Model.Movies?.Refresh(profile);
+    }
 
     public override void _ExitTree()
     {

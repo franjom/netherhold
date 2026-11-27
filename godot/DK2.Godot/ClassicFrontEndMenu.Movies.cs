@@ -34,10 +34,22 @@ public partial class ClassicFrontEndMenu : ICampaignCutsceneHost
     private bool _keyPressed;
 
     /// <summary>The movie on screen (a startup, attract, gallery or cutscene movie), or null.</summary>
-    public ClassicMoviePlayer? PlayingMovie => _movie ?? _cutscenePlayer;
+    public ClassicMoviePlayer? PlayingMovie
+    {
+        get
+        {
+            return _movie ?? _cutscenePlayer;
+        }
+    }
 
     /// <summary>The won map's title card and cutscene runner, or null outside one.</summary>
-    public CampaignCutsceneRunner? Cutscenes => _cutscenes;
+    public CampaignCutsceneRunner? Cutscenes
+    {
+        get
+        {
+            return _cutscenes;
+        }
+    }
 
     private void OpenMovies(string install, bool skipStartup, FrontEndPage returnPage)
     {
@@ -150,7 +162,13 @@ public partial class ClassicFrontEndMenu : ICampaignCutsceneHost
         return true;
     }
 
-    private TimeSpan FrontEndTime => TimeSpan.FromSeconds(Math.Max(0, _elapsed - _frontEndStarted));
+    private TimeSpan FrontEndTime
+    {
+        get
+        {
+            return TimeSpan.FromSeconds(Math.Max(0, _elapsed - _frontEndStarted));
+        }
+    }
 
     private void PlayFrontEndMovie(string path)
     {
@@ -273,7 +291,13 @@ public partial class ClassicFrontEndMenu : ICampaignCutsceneHost
         _titleImage = null;
     }
 
-    bool ICampaignCutsceneHost.SpeechBusy => _mixer?.SpeechBusy ?? false;
+    bool ICampaignCutsceneHost.SpeechBusy
+    {
+        get
+        {
+            return _mixer?.SpeechBusy ?? false;
+        }
+    }
 
     void ICampaignCutsceneHost.QueueSpeech(SoundId speech)
     {
@@ -286,7 +310,13 @@ public partial class ClassicFrontEndMenu : ICampaignCutsceneHost
         _mixer?.QueueSpeech(SoundCategory.Mentor, speech, clearWaiting: true);
     }
 
-    bool ICampaignCutsceneHost.MoviePlaying => _cutscenePlayer != null;
+    bool ICampaignCutsceneHost.MoviePlaying
+    {
+        get
+        {
+            return _cutscenePlayer != null;
+        }
+    }
 
     void ICampaignCutsceneHost.PlayMovie(string relativePath, string install)
     {

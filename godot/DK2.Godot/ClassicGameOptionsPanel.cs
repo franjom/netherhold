@@ -61,10 +61,16 @@ public partial class ClassicGameOptionsPanel : Node
     }
 
     /// <summary>Binds this frame's key to the row being captured (<see cref="GameOptionsHud.CaptureKey"/>).</summary>
-    public void CaptureKey(GameBindingInput keys) => _hud?.CaptureKey(keys);
+    public void CaptureKey(GameBindingInput keys)
+    {
+        _hud?.CaptureKey(keys);
+    }
 
     /// <summary>Whether the pages show: they hold the whole screen.</summary>
-    public bool ContainsPointer(Vector2 screenPosition) => _hud != null && _hud.Visible;
+    public bool ContainsPointer(Vector2 screenPosition)
+    {
+        return _hud != null && _hud.Visible;
+    }
 
     /// <summary>Lays the page out for the viewport and presents it, the label under the pointer lit.</summary>
     public void Draw(Vector2 pointer)

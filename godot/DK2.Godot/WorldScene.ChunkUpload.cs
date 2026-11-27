@@ -263,9 +263,29 @@ public partial class WorldScene
         public int VertexCount { get; private set; }
         public int IndexCount { get; private set; }
         public Aabb Bounds { get; private set; }
-        public Span<byte> VertexData => _vertices.AsSpan(0, _vertexBytes);
-        public Span<byte> AttributeData => _attributes.AsSpan(0, _attributeBytes);
-        public Span<byte> IndexData => _indices.AsSpan(0, _indexBytes);
+        public Span<byte> VertexData
+        {
+            get
+            {
+                return _vertices.AsSpan(0, _vertexBytes);
+            }
+        }
+
+        public Span<byte> AttributeData
+        {
+            get
+            {
+                return _attributes.AsSpan(0, _attributeBytes);
+            }
+        }
+
+        public Span<byte> IndexData
+        {
+            get
+            {
+                return _indices.AsSpan(0, _indexBytes);
+            }
+        }
 
         public void Write(SurfaceBuffer source)
         {

@@ -34,7 +34,11 @@ public partial class WorldScene
         _lightningView = view;
     }
 
-    private void BeginLightning() => SetLightningCamera(beginFrame: true);
+    private void BeginLightning()
+    {
+        SetLightningCamera(beginFrame: true);
+    }
+
     private void SetLightningCamera(bool beginFrame)
     {
         if (_lightning == null)

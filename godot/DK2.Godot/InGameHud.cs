@@ -1472,10 +1472,16 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     }
 
     /// <summary>The bottom panel's collapse moves the view axis.</summary>
-    private void PanelCollapsed(bool collapsed) => _world?.SetPanelCollapsed(collapsed);
+    private void PanelCollapsed(bool collapsed)
+    {
+        _world?.SetPanelCollapsed(collapsed);
+    }
 
     /// <summary>Apply the script's camera zoom.</summary>
-    private void ScriptZoom(int zoom, int unused) => _world?.ClassicCamera?.SetZoom(new Fp32(zoom));
+    private void ScriptZoom(int zoom, int unused)
+    {
+        _world?.ClassicCamera?.SetZoom(new Fp32(zoom));
+    }
 
     /// <summary>A mouse press reaching the window before any panel can mark it handled.
     /// <see cref="QueueInput"/> routes it in the next frame.</summary>
@@ -1593,7 +1599,10 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         }
     }
 
-    FpPosition2? IWorldPointerHost.PointerPosition(TilePos tile) => PointerPosition(_pressPointer, tile);
+    FpPosition2? IWorldPointerHost.PointerPosition(TilePos tile)
+    {
+        return PointerPosition(_pressPointer, tile);
+    }
 
     /// <summary>The tile under a screen pixel (top-left origin) by <see cref="TilePicker"/>, which
     /// meets the columns at the heights the scene draws; null over the HUD, off the map or before the camera is placed.</summary>
@@ -1672,10 +1681,22 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
 
     /// <summary>Whether the window counts as focused: always under a scripted pointer, which a capture must not lose to
     /// the owner's other windows.</summary>
-    private bool Focused => _pointerScript != null || GetWindow().HasFocus();
+    private bool Focused
+    {
+        get
+        {
+            return _pointerScript != null || GetWindow().HasFocus();
+        }
+    }
 
     /// <summary>The primary button held, the scripted pointer's or the OS's.</summary>
-    private bool PrimaryHeld => _pointerScript != null ? _scripted.PrimaryHeld : Input.IsMouseButtonPressed(MouseButton.Left);
+    private bool PrimaryHeld
+    {
+        get
+        {
+            return _pointerScript != null ? _scripted.PrimaryHeld : Input.IsMouseButtonPressed(MouseButton.Left);
+        }
+    }
 
     /// <summary>The frame's pointer: the OS pointer, or the script's sample, whose motion and presses are pushed into the
     /// viewport for the panels and whose presses and releases are this frame's (<see cref="QueueInput"/>), as
@@ -1750,7 +1771,10 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     /// <summary>Apply the options key and panel actions through <see cref="HudActionRouter"/>: the options
     /// menu's entries, the save browser's Back and Continue lines and the minimap's corners (zoom, and query and sell, which
     /// post their GUI button and set the tool) and right click, and the portal, Heart and fight navigation's glides.</summary>
-    private void ApplyHudAction(ClassicHudAction action) => ApplyHudAction(action, _pointer);
+    private void ApplyHudAction(ClassicHudAction action)
+    {
+        ApplyHudAction(action, _pointer);
+    }
 
     /// <param name="pointer">Where the press was, in screen pixels: the magnifier zooms only under it.</param>
     private void ApplyHudAction(ClassicHudAction action, Vector2 pointer)
@@ -1759,7 +1783,10 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _router?.Apply(action, _panel, _view);
     }
 
-    void IHudActionHost.NavigatePortal() => NavigateRoom(RoomTypeId.Portal);
+    void IHudActionHost.NavigatePortal()
+    {
+        NavigateRoom(RoomTypeId.Portal);
+    }
 
     void IHudActionHost.NavigateHeart()
     {
@@ -1777,12 +1804,22 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         }
     }
 
-    void IHudActionHost.ZoomMinimap(bool zoomIn, bool zoomOut) => _minimap?.HandleZoomPress(_actionPointer, zoomIn, zoomOut);
-    void IHudActionHost.PostGuiButton(GuiButtonTarget target) => PostGuiButton(target);
+    void IHudActionHost.ZoomMinimap(bool zoomIn, bool zoomOut)
+    {
+        _minimap?.HandleZoomPress(_actionPointer, zoomIn, zoomOut);
+    }
+
+    void IHudActionHost.PostGuiButton(GuiButtonTarget target)
+    {
+        PostGuiButton(target);
+    }
 
     // What HudPressRouter asks of this scene, at this frame's pointer: the panels' hit tests and the camera; the session is
     // InGameHud.SessionActions.cs's.
-    void IHudPressHost.ApplyHudAction(ClassicHudAction action) => ApplyHudAction(action, _pressPointer);
+    void IHudPressHost.ApplyHudAction(ClassicHudAction action)
+    {
+        ApplyHudAction(action, _pressPointer);
+    }
 
     void IHudPressHost.GoToFullMapTile()
     {
@@ -1801,11 +1838,20 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _glide.Stop();
     }
 
-    void IHudPressHost.PollGameOptionsKeyboard() => _gameOptionsPanel?.CaptureKey(_keyboard.Read(_settings));
+    void IHudPressHost.PollGameOptionsKeyboard()
+    {
+        _gameOptionsPanel?.CaptureKey(_keyboard.Read(_settings));
+    }
 
-    ClassicOptionsAction IHudPressHost.OptionsActionAtPointer() => _options?.ActionAt(_pressPointer) ?? ClassicOptionsAction.None;
+    ClassicOptionsAction IHudPressHost.OptionsActionAtPointer()
+    {
+        return _options?.ActionAt(_pressPointer) ?? ClassicOptionsAction.None;
+    }
 
-    void IHudPressHost.RefreshSaves() => _saves?.Refresh();
+    void IHudPressHost.RefreshSaves()
+    {
+        _saves?.Refresh();
+    }
 
     bool IHudPressHost.TryPressOverview(in HudPress press, out CreatureOverviewRequest request)
     {
@@ -1824,15 +1870,32 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         _glide.Stop();
     }
 
-    ClassicHudAction IHudPressHost.PressMinimap(in HudPress press) =>
-        _minimap?.HandlePress(_pressPointer, press.Primary, press.Secondary) ?? ClassicHudAction.None;
+    ClassicHudAction IHudPressHost.PressMinimap(in HudPress press)
+    {
+        return _minimap?.HandlePress(_pressPointer, press.Primary, press.Secondary) ?? ClassicHudAction.None;
+    }
 
-    KeeperResourceKind IHudPressHost.ResourceAtPointer() => _resources?.ResourceAt(_pressPointer) ?? KeeperResourceKind.None;
+    KeeperResourceKind IHudPressHost.ResourceAtPointer()
+    {
+        return _resources?.ResourceAt(_pressPointer) ?? KeeperResourceKind.None;
+    }
 
     // What WorldClickCommands and WorldPointerInput ask of this scene, at this frame's press pointer.
-    bool IWorldClickHost.PointerOverHud() => PointerOverHud(_pressPointer, _pressVisibility);
-    TilePos? IWorldClickHost.PointerTile() => PointerTile(_pressPointer, _pressVisibility);
-    WorldHoverHit IWorldClickHost.Hover(TilePos tile) => ResolveWorldHover(_pressPointer, tile, _pressVisibility);
+    bool IWorldClickHost.PointerOverHud()
+    {
+        return PointerOverHud(_pressPointer, _pressVisibility);
+    }
+
+    TilePos? IWorldClickHost.PointerTile()
+    {
+        return PointerTile(_pressPointer, _pressVisibility);
+    }
+
+    WorldHoverHit IWorldClickHost.Hover(TilePos tile)
+    {
+        return ResolveWorldHover(_pressPointer, tile, _pressVisibility);
+    }
+
     void IWorldClickHost.FollowQueriedCreature()
     {
         _glide.Stop();
@@ -1927,7 +1990,10 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
 
     /// <summary>Write the settings pages' save request through <see cref="GameSettingsFile"/>. A
     /// failed write is a warning, and the settings stay applied.</summary>
-    private void SaveSettings(GameSettings settings) => SaveSettings(_settingsPath, settings);
+    private void SaveSettings(GameSettings settings)
+    {
+        SaveSettings(_settingsPath, settings);
+    }
 
     internal static void SaveSettings(string path, GameSettings settings)
     {
@@ -1938,8 +2004,10 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
         }
     }
 
-    private static bool IsFileError(Exception e) =>
-        e is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException or System.Security.SecurityException;
+    private static bool IsFileError(Exception e)
+    {
+        return e is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException or System.Security.SecurityException;
+    }
 
     /// <summary>Handle the save browser's Enter key and row or Load presses.
     /// <see cref="SessionSaver"/> writes the typed name, world checkpoint and campaign profile.
@@ -2004,7 +2072,10 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     }
 
     /// <summary>Forward the panel selection to <see cref="HudToolState.SelectPanelChoice"/>.</summary>
-    private void SelectPanelChoice(BottomPanelSelection selection) => _tools.SelectPanelChoice(selection, _input, _queryView);
+    private void SelectPanelChoice(BottomPanelSelection selection)
+    {
+        _tools.SelectPanelChoice(selection, _input, _queryView);
+    }
 
     /// <summary>A stored special's slot: action 88, or targeting with the panel and the tool back on the hand
     /// (<see cref="HudToolState.ActivateStoredSpecial(PlayerId, BottomPanelChoice, PlayerInputTranslator, BottomPanelView)"/>).</summary>
@@ -2023,7 +2094,10 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     }
 
     /// <summary>Action 0x72, a GUI button (ADR-0670).</summary>
-    private void PostGuiButton(GuiButtonTarget target) => _pending.Add(new GuiButtonCommand(_viewer, target));
+    private void PostGuiButton(GuiButtonTarget target)
+    {
+        _pending.Add(new GuiButtonCommand(_viewer, target));
+    }
 
     /// <summary>Refresh the controls', panel's, view's, messages' and settings pages'
     /// requests, then the messages' speech; without a mixer they are dropped so they do not pile up.</summary>
@@ -2049,42 +2123,89 @@ public partial class InGameHud : Node, IHudHoverSources, IHudActionHost, IHudPre
     }
 
     /// <summary>Collect the panels this scene has through <see cref="HudPointerMap"/>.</summary>
-    private bool PointerOverHud(Vector2 position, HudVisibility visibility) =>
-        HudPointerMap.Over(new PointerPanels(this, position, visibility), fullMapVisible: _hudControls.FullMapVisible,
+    private bool PointerOverHud(Vector2 position, HudVisibility visibility)
+    {
+        return HudPointerMap.Over(new PointerPanels(this, position, visibility), fullMapVisible: _hudControls.FullMapVisible,
             queryHasTarget: _queryView != null && _queryView.Target != CreatureQueryTarget.None, modal: _hudControls.Modal);
+    }
 
     /// <summary>This scene's panels at one pointer, for <see cref="HudPointerMap"/>; a struct, so a query allocates nothing.</summary>
     private readonly struct PointerPanels(InGameHud hud, Vector2 position, HudVisibility visibility) : IHudPointerPanels
     {
-        public bool Contains(HudPointerPanel panel) => panel switch
+        public bool Contains(HudPointerPanel panel)
         {
-            HudPointerPanel.Minimap => hud._minimap != null && hud._minimap.ContainsPointer(position),
-            HudPointerPanel.HoverHud => hud._hover != null && hud._hover.ContainsPointer(position),
-            HudPointerPanel.ResourceStrip => hud._resources != null && hud._resources.ContainsPointer(position),
-            HudPointerPanel.GameOptions => hud._gameOptionsPanel != null && hud._gameOptionsPanel.ContainsPointer(position),
-            HudPointerPanel.BottomPanel => hud._panel != null && hud._panel.ContainsPointer(position),
-            HudPointerPanel.MessageTabs => hud._messages != null && hud._messages.ContainsPointer(position),
-            HudPointerPanel.BattleTab => hud._battleTab != null && hud._battleTab.ContainsPointer(position),
-            HudPointerPanel.CreatureOverview => hud._overview != null && hud._overview.ContainsPointer(position),
-            HudPointerPanel.OptionsMenu => hud._options != null && hud._options.ContainsPointer(position),
-            HudPointerPanel.CreatureQuery => hud._queryPanel != null && hud._queryPanel.ContainsPointer(position, visibility),
-            _ => false,
-        };
+            return panel switch
+            {
+                HudPointerPanel.Minimap => hud._minimap != null && hud._minimap.ContainsPointer(position),
+                HudPointerPanel.HoverHud => hud._hover != null && hud._hover.ContainsPointer(position),
+                HudPointerPanel.ResourceStrip => hud._resources != null && hud._resources.ContainsPointer(position),
+                HudPointerPanel.GameOptions => hud._gameOptionsPanel != null && hud._gameOptionsPanel.ContainsPointer(position),
+                HudPointerPanel.BottomPanel => hud._panel != null && hud._panel.ContainsPointer(position),
+                HudPointerPanel.MessageTabs => hud._messages != null && hud._messages.ContainsPointer(position),
+                HudPointerPanel.BattleTab => hud._battleTab != null && hud._battleTab.ContainsPointer(position),
+                HudPointerPanel.CreatureOverview => hud._overview != null && hud._overview.ContainsPointer(position),
+                HudPointerPanel.OptionsMenu => hud._options != null && hud._options.ContainsPointer(position),
+                HudPointerPanel.CreatureQuery => hud._queryPanel != null && hud._queryPanel.ContainsPointer(position, visibility),
+                _ => false,
+            };
+        }
     }
 
     // Report the panels under the pointer to HudHoverText.
-    int IHudHoverSources.OverviewTextId() => _overview?.HoveredTextId(_pointer) ?? 0;
-    CreatureOverviewType? IHudHoverSources.OverviewColumn() => _overview?.HoveredColumnType(_pointer);
-    HoverTextSnapshot IHudHoverSources.CreatureTypeText(CreatureOverviewType column) =>
-        _typeText != null && _simulation != null ? _typeText.CreatureType(_simulation.Database.CreatureById(column.Value)) : HoverTextSnapshot.Empty;
-    bool IHudHoverSources.OverMessageTabs() => _messages != null && _messages.ContainsPointer(_pointer);
-    HoverTextSnapshot IHudHoverSources.MessageTabsText() => _messages?.HoverText ?? HoverTextSnapshot.Empty;
-    bool IHudHoverSources.OverBattleTab() => _battleTab != null && _battleTab.ContainsPointer(_pointer);
-    HoverTextSnapshot IHudHoverSources.BattleTabText() => _battleTab?.HoverText(_pointer) ?? HoverTextSnapshot.Empty;
-    bool IHudHoverSources.OverBottomPanel() => _panel != null && _panel.ContainsPointer(_pointer);
-    HoverTextSnapshot IHudHoverSources.BottomPanelText() => _panel?.HoverText ?? HoverTextSnapshot.Empty;
-    ClassicHudAction IHudHoverSources.MinimapControl() => _minimap?.HoveredControl(_pointer) ?? ClassicHudAction.None;
-    KeeperResourceKind IHudHoverSources.Resource() => _resources?.ResourceAt(_pointer) ?? KeeperResourceKind.None;
+    int IHudHoverSources.OverviewTextId()
+    {
+        return _overview?.HoveredTextId(_pointer) ?? 0;
+    }
+
+    CreatureOverviewType? IHudHoverSources.OverviewColumn()
+    {
+        return _overview?.HoveredColumnType(_pointer);
+    }
+
+    HoverTextSnapshot IHudHoverSources.CreatureTypeText(CreatureOverviewType column)
+    {
+        return _typeText != null && _simulation != null ? _typeText.CreatureType(_simulation.Database.CreatureById(column.Value)) : HoverTextSnapshot.Empty;
+    }
+
+    bool IHudHoverSources.OverMessageTabs()
+    {
+        return _messages != null && _messages.ContainsPointer(_pointer);
+    }
+
+    HoverTextSnapshot IHudHoverSources.MessageTabsText()
+    {
+        return _messages?.HoverText ?? HoverTextSnapshot.Empty;
+    }
+
+    bool IHudHoverSources.OverBattleTab()
+    {
+        return _battleTab != null && _battleTab.ContainsPointer(_pointer);
+    }
+
+    HoverTextSnapshot IHudHoverSources.BattleTabText()
+    {
+        return _battleTab?.HoverText(_pointer) ?? HoverTextSnapshot.Empty;
+    }
+
+    bool IHudHoverSources.OverBottomPanel()
+    {
+        return _panel != null && _panel.ContainsPointer(_pointer);
+    }
+
+    HoverTextSnapshot IHudHoverSources.BottomPanelText()
+    {
+        return _panel?.HoverText ?? HoverTextSnapshot.Empty;
+    }
+
+    ClassicHudAction IHudHoverSources.MinimapControl()
+    {
+        return _minimap?.HoveredControl(_pointer) ?? ClassicHudAction.None;
+    }
+
+    KeeperResourceKind IHudHoverSources.Resource()
+    {
+        return _resources?.ResourceAt(_pointer) ?? KeeperResourceKind.None;
+    }
 
     /// <summary>Release the heart observer and sound player when the level closes.</summary>
     public override void _ExitTree()

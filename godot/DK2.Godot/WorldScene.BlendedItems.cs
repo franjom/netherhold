@@ -228,7 +228,10 @@ public partial class WorldScene
     }
 
     /// <summary>Charges what the thread allocated since <paramref name="start"/> to the frame's item steps.</summary>
-    private void ItemBytes(long start) => _itemFrameBytes += GC.GetAllocatedBytesForCurrentThread() - start;
+    private void ItemBytes(long start)
+    {
+        _itemFrameBytes += GC.GetAllocatedBytesForCurrentThread() - start;
+    }
 
     /// <summary>Charges the time since <paramref name="start"/> to <paramref name="step"/>; returns now.</summary>
     private long ItemTime(ItemStep step, long start)

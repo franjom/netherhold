@@ -8,7 +8,11 @@ public partial class WorldScene
 {
     /// <summary>Modern ambient occlusion applied to opaque world surfaces before transparent effects.</summary>
     public bool PostOcclusion { get; set; }
-    private void OpenPostEffects() => AttachOcclusion(_camera!);
+    private void OpenPostEffects()
+    {
+        AttachOcclusion(_camera!);
+    }
+
     /// <summary>Each world camera owns its AO buffers; shadow cameras do not call this.</summary>
     public void AttachOcclusion(Camera3D camera)
     {

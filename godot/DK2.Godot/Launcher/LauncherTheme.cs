@@ -121,9 +121,15 @@ public static class LauncherTheme
         return theme;
     }
 
-    public static Color Fade(Color colour, float alpha) => new(colour.R, colour.G, colour.B, alpha);
+    public static Color Fade(Color colour, float alpha)
+    {
+        return new(colour.R, colour.G, colour.B, alpha);
+    }
 
-    private static void Variation(Theme theme, string name, string baseType) => theme.SetTypeVariation(name, baseType);
+    private static void Variation(Theme theme, string name, string baseType)
+    {
+        theme.SetTypeVariation(name, baseType);
+    }
 
     private static void ButtonStyles(Theme theme, string type, StyleBox normal, StyleBox hover, StyleBox pressed,
         StyleBox disabled, StyleBox focus, Color text, Color disabledText)
@@ -180,7 +186,10 @@ public static class LauncherTheme
         return texture;
     }
 
-    private static (float, float) RadioOff(Vector2 p, float size) => (Mathf.Abs(p.DistanceTo(Centre(size)) - 7.5f) - .8f, 1e9f);
+    private static (float, float) RadioOff(Vector2 p, float size)
+    {
+        return (Mathf.Abs(p.DistanceTo(Centre(size)) - 7.5f) - .8f, 1e9f);
+    }
 
     private static (float, float) RadioOn(Vector2 p, float size)
     {
@@ -188,9 +197,15 @@ public static class LauncherTheme
         return (Mathf.Min(Mathf.Abs(r - 7.5f) - .8f, r - 4f), 1e9f);
     }
 
-    private static (float, float) Dot(Vector2 p, float size) => (p.DistanceTo(Centre(size)) - 3.5f, 1e9f);
+    private static (float, float) Dot(Vector2 p, float size)
+    {
+        return (p.DistanceTo(Centre(size)) - 3.5f, 1e9f);
+    }
 
-    private static (float, float) BoxOff(Vector2 p, float size) => (Mathf.Abs(RoundedBox(p, size, 7.5f, 2.5f)) - .8f, 1e9f);
+    private static (float, float) BoxOff(Vector2 p, float size)
+    {
+        return (Mathf.Abs(RoundedBox(p, size, 7.5f, 2.5f)) - .8f, 1e9f);
+    }
 
     /// <summary>A filled box with the tick cut out of it.</summary>
     private static (float, float) BoxOn(Vector2 p, float size)
@@ -200,11 +215,16 @@ public static class LauncherTheme
         return (RoundedBox(p, size, 8f, 2.5f), tick);
     }
 
-    private static (float, float) Chevron(Vector2 p, float size) =>
-        (Mathf.Min(Segment(p, new Vector2(3.5f, 5.5f), new Vector2(7f, 9f)), Segment(p, new Vector2(7f, 9f), new Vector2(10.5f, 5.5f))) - .8f,
+    private static (float, float) Chevron(Vector2 p, float size)
+    {
+        return (Mathf.Min(Segment(p, new Vector2(3.5f, 5.5f), new Vector2(7f, 9f)), Segment(p, new Vector2(7f, 9f), new Vector2(10.5f, 5.5f))) - .8f,
             1e9f);
+    }
 
-    private static Vector2 Centre(float size) => new(size * .5f, size * .5f);
+    private static Vector2 Centre(float size)
+    {
+        return new(size * .5f, size * .5f);
+    }
 
     private static float RoundedBox(Vector2 p, float size, float half, float radius)
     {

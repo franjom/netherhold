@@ -80,22 +80,39 @@ public partial class FrameRecorder : Node
         Add("Hitches", "the Godot log (pass --log-file)");
     }
 
-    private void Add(string key, string value) => _engine.Add(new(key, value));
+    private void Add(string key, string value)
+    {
+        _engine.Add(new(key, value));
+    }
 
-    public long Stamp() => Stopwatch.GetTimestamp();
+    public long Stamp()
+    {
+        return Stopwatch.GetTimestamp();
+    }
 
-    public double Elapsed(long started) => _telemetry.Milliseconds(started, Stopwatch.GetTimestamp());
+    public double Elapsed(long started)
+    {
+        return _telemetry.Milliseconds(started, Stopwatch.GetTimestamp());
+    }
 
     /// <summary>At the top of a frame with a running level.</summary>
-    public void BeginFrame() => _telemetry.BeginFrame(Stopwatch.GetTimestamp(), GC.CollectionCount(0));
+    public void BeginFrame()
+    {
+        _telemetry.BeginFrame(Stopwatch.GetTimestamp(), GC.CollectionCount(0));
+    }
 
     /// <summary>Adds the time since <paramref name="started"/> to one part of this frame.</summary>
-    public void Spent(FrameTelemetryPart part, long started) => _telemetry.Spent(part, started, Stopwatch.GetTimestamp());
+    public void Spent(FrameTelemetryPart part, long started)
+    {
+        _telemetry.Spent(part, started, Stopwatch.GetTimestamp());
+    }
 
     public void EndFrame(int ticks, double tickMs, double renderTick, System.Numerics.Vector3 camera, bool pathPlaying,
-        double chunkRebuildMs) =>
+        double chunkRebuildMs)
+    {
         _telemetry.EndFrame(Stopwatch.GetTimestamp(),
             new FrameTelemetryEnd(ticks, tickMs, renderTick, camera, pathPlaying, chunkRebuildMs, GC.CollectionCount(0)));
+    }
 
     public override void _ExitTree()
     {

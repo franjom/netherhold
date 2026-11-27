@@ -106,7 +106,10 @@ public partial class ClassicFrontEndMenu
         _importDialog.PopupCenteredRatio(.7f);
     }
 
-    private void ImportPickerClosed() => _importDialogOpen = false;
+    private void ImportPickerClosed()
+    {
+        _importDialogOpen = false;
+    }
 
     private bool ImportPickerOwnsPointer(bool primaryHeld)
     {

@@ -20,7 +20,13 @@ public partial class ClassicPlacementOverlay : Node
 
     /// <summary>The cursor's rules, for the host to set its icon names (<see cref="PlacementCursorHud.SpellIconName"/> and
     /// the held icons').</summary>
-    public PlacementCursorHud Model => _hud;
+    public PlacementCursorHud Model
+    {
+        get
+        {
+            return _hud;
+        }
+    }
 
     /// <summary>Opens the cursor over the HUD's catalogue images (<paramref name="load"/>); call before it enters the tree.</summary>
     public void Open(Func<string, RgbaImage> load)

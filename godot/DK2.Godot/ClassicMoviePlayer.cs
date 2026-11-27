@@ -41,10 +41,22 @@ public partial class ClassicMoviePlayer : Node
     public event Action? Finished;
 
     /// <summary>The movie playing, for the subtitles and anything else that follows it; null once finished.</summary>
-    public MoviePlayback? Playback => _done ? null : _movie;
+    public MoviePlayback? Playback
+    {
+        get
+        {
+            return _done ? null : _movie;
+        }
+    }
 
     /// <summary>True once the first picture is up; until then the caller keeps the screen covered.</summary>
-    public bool HasFrame => _movie?.HasFrame ?? false;
+    public bool HasFrame
+    {
+        get
+        {
+            return _movie?.HasFrame ?? false;
+        }
+    }
 
     /// <summary>Starts <paramref name="relativePath"/> from <paramref name="install"/> on a new node under
     /// <paramref name="parent"/>; a movie that cannot be opened warns and finishes on its first frame.</summary>

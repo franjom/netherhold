@@ -22,8 +22,14 @@ public partial class ClassicHoverHud : Node
     /// <summary>Whether a creature's name pops up (the options' creature tooltip setting).</summary>
     public bool ShowCreatureTooltip
     {
-        get => _hud?.ShowCreatureTooltip ?? true;
-        set { if (_hud != null)
+        get
+        {
+            return _hud?.ShowCreatureTooltip ?? true;
+        }
+
+        set
+        {
+            if (_hud != null)
             {
                 _hud.ShowCreatureTooltip = value;
             }

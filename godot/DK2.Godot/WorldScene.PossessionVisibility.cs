@@ -77,9 +77,23 @@ public partial class WorldScene
 
         _flames?.SetPossessionVisibility();
     }
-    private PossessionDrawVisibility DrawVisibility => new(_possessionVisibility == null ? default : _possessionVisibility.Mask,
+    private PossessionDrawVisibility DrawVisibility
+    {
+        get
+        {
+            return new(_possessionVisibility == null ? default : _possessionVisibility.Mask,
         _possessionWidth, _possessionVisibilityEnabled, _frame.HiddenCreature);
-    private bool PossessionTileVisible(TilePos tile) => DrawVisibility.Tile(tile);
+        }
+    }
+
+    private bool PossessionTileVisible(TilePos tile)
+    {
+        return DrawVisibility.Tile(tile);
+    }
+
     // TorchFloorTileIndex is already an index into the map storage, unlike an interpolated flame position.
-    private bool PossessionFloorVisible(int tileIndex) => DrawVisibility.Floor(tileIndex);
+    private bool PossessionFloorVisible(int tileIndex)
+    {
+        return DrawVisibility.Floor(tileIndex);
+    }
 }

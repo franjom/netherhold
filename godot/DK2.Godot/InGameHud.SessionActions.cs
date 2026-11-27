@@ -54,7 +54,10 @@ public partial class InGameHud
     }
 
     /// <summary>Hands the script frames to the instance a reload makes.</summary>
-    private void CarryScriptFrames() => s_carriedScriptFrames = (_scriptFrame, _keyFrame);
+    private void CarryScriptFrames()
+    {
+        s_carriedScriptFrames = (_scriptFrame, _keyFrame);
+    }
 
     /// <summary>The frames a handover carried, once; a fresh start begins at -1.</summary>
     private void TakeCarriedScriptFrames()
@@ -67,8 +70,10 @@ public partial class InGameHud
         s_carriedScriptFrames = null;
     }
 
-    private void OpenResultPrompt(CanvasLayer layer, FontFile? face) =>
+    private void OpenResultPrompt(CanvasLayer layer, FontFile? face)
+    {
         _resultPrompt = new BitmapTextItem(layer.GetCanvas()) { ReplacementFont = face };
+    }
 
     /// <summary>Once the result is recorded, the flow's line
     /// (<see cref="CampaignResultFlow.Prompt"/>) in <see cref="SubtitleLayout.ResultPromptBox"/>, over the win screen.</summary>

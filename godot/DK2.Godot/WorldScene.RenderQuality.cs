@@ -23,7 +23,11 @@ public partial class WorldScene
     /// <summary>The full map's preview viewport (<see cref="ClassicFullMap"/>); it takes the view's MSAA and SMAA.</summary>
     public SubViewport? PreviewRenderViewport
     {
-        get => _previewRenderViewport;
+        get
+        {
+            return _previewRenderViewport;
+        }
+
         set
         {
             _previewRenderViewport = value;

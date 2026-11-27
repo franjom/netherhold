@@ -67,8 +67,10 @@ public partial class ClassicSaveLoadPanel : Node
         Present(view, visible, save, typed, wheel, frontEnd: false);
     }
 
-    internal void ShowFrontEnd(SaveSlotsView? view, bool visible, int wheel) =>
+    internal void ShowFrontEnd(SaveSlotsView? view, bool visible, int wheel)
+    {
         Present(view, visible, save: false, default, wheel, frontEnd: true);
+    }
 
     internal void FrontEndPointerDown(Vector2 point)
     {
@@ -120,7 +122,10 @@ public partial class ClassicSaveLoadPanel : Node
     }
 
     /// <summary>Shows why a save or load failed under the list.</summary>
-    public void Error(string message) => _hud?.Error(message);
+    public void Error(string message)
+    {
+        _hud?.Error(message);
+    }
 
     public override void _Input(InputEvent @event)
     {
@@ -158,6 +163,13 @@ public partial class ClassicSaveLoadPanel : Node
         Submit = null; HudAction = null; _hud = null; _canvas = null;
     }
 
-    private void RaiseSubmit() => Submit?.Invoke();
-    private void RaiseHudAction(ClassicHudAction action) => HudAction?.Invoke(action);
+    private void RaiseSubmit()
+    {
+        Submit?.Invoke();
+    }
+
+    private void RaiseHudAction(ClassicHudAction action)
+    {
+        HudAction?.Invoke(action);
+    }
 }

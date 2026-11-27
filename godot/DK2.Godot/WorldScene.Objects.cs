@@ -54,7 +54,10 @@ public partial class WorldScene
 
     /// <summary>A Heart's health change from the world's event. The next
     /// <see cref="DrawFrame"/> advances each Heart of the owner by its phase step.</summary>
-    public void QueueHeartHealthChange(PlayerId owner, DungeonHeartVisual visual) => _heartPulse.QueueHealthChange(owner, visual);
+    public void QueueHeartHealthChange(PlayerId owner, DungeonHeartVisual visual)
+    {
+        _heartPulse.QueueHealthChange(owner, visual);
+    }
 
     /// <summary>The draw clock and fraction for clips starting on the next present.</summary>
     public void SetFrameTime(GameTick tick, float fraction, long milliseconds)
@@ -291,7 +294,10 @@ public partial class WorldScene
         SetTorchLight(floorTileIndex, torch);
     }
 
-    public void UpdateTorch(int floorTileIndex, in TorchView torch, in ResolvedAsset mesh) => CreateTorch(floorTileIndex, torch, mesh);
+    public void UpdateTorch(int floorTileIndex, in TorchView torch, in ResolvedAsset mesh)
+    {
+        CreateTorch(floorTileIndex, torch, mesh);
+    }
 
     public void RemoveTorch(int floorTileIndex)
     {
@@ -594,12 +600,20 @@ public partial class WorldScene
     /// materials made from opaque and from blended KMF ones (<see cref="HoverOverlayPlan.Submesh"/>).</summary>
     private readonly record struct HoverLooks(bool Swap, bool RedOpaque, bool RedBlended)
     {
-        public bool Any => Swap || RedOpaque || RedBlended;
+        public bool Any
+        {
+            get
+            {
+                return Swap || RedOpaque || RedBlended;
+            }
+        }
 
         /// <summary>This and <paramref name="other"/>: a creature red twice in a frame draws red once
         /// (<see cref="HoverOverlayPlan"/>), so the two never ask for the same material.</summary>
-        public HoverLooks With(HoverLooks other) =>
-            new(Swap || other.Swap, RedOpaque || other.RedOpaque, RedBlended || other.RedBlended);
+        public HoverLooks With(HoverLooks other)
+        {
+            return new(Swap || other.Swap, RedOpaque || other.RedOpaque, RedBlended || other.RedBlended);
+        }
     }
 
     /// <summary>Rewrites bent torch positions through one reused buffer, by source vertex in the renderers' frame.
@@ -829,10 +843,23 @@ public partial class WorldScene
         }
 
         public MeshInstance3D Node { get; }
-        public WorldScene Scene => _scene;
+        public WorldScene Scene
+        {
+            get
+            {
+                return _scene;
+            }
+        }
+
         /// <summary>The fade distance per shadowed torch slot last given its instance (<see cref="PrepareShadows"/>).</summary>
         public Vector4 ShadowFades;
-        public RenderMesh ShadowMesh => _shown.Source;
+        public RenderMesh ShadowMesh
+        {
+            get
+            {
+                return _shown.Source;
+            }
+        }
 
         public IReadOnlyList<NVector3> ShadowPositions(out PickBox bounds)
         {
@@ -841,12 +868,23 @@ public partial class WorldScene
             return vertices;
         }
         /// <summary>Where DK2's shadow selection measures from: the shown model's bound-sphere centre, else its origin.</summary>
-        public NVector3 ShadowCentre => _shown.Sphere is PickSphere sphere ? ToRender(sphere.Centre) : RenderPosition;
+        public NVector3 ShadowCentre
+        {
+            get
+            {
+                return _shown.Sphere is PickSphere sphere ? ToRender(sphere.Centre) : RenderPosition;
+            }
+        }
+
         public SlotKind Kind { get; private set; }
         /// <summary>An object's view; whether it moves between turns is read once here.</summary>
         public ObjectView Pose
         {
-            get => _pose;
+            get
+            {
+                return _pose;
+            }
+
             set
             {
                 _pose = value;
@@ -868,7 +906,11 @@ public partial class WorldScene
         /// <summary>A structure's view: its plan colour or its tint decide its looks.</summary>
         public StructureView Structure
         {
-            get => _structure;
+            get
+            {
+                return _structure;
+            }
+
             set { _structure = value; Kind = SlotKind.Structure; }
         }
 
@@ -893,7 +935,10 @@ public partial class WorldScene
         }
 
         /// <summary>Transform a model-local point into rendering coordinates.</summary>
-        public NVector3 ToRender(NVector3 local) => RenderPosition + NVector3.Transform(local * RenderScale, RenderTurn);
+        public NVector3 ToRender(NVector3 local)
+        {
+            return RenderPosition + NVector3.Transform(local * RenderScale, RenderTurn);
+        }
 
         public void ShowStatic(ModelMesh model)
         {
@@ -1107,8 +1152,14 @@ public partial class WorldScene
         }
 
         /// <summary>The shown model's KMF sphere placed in the drawn world, available before sampling the pose.</summary>
-        public PickSphere? Sphere => _shown.Sphere is PickSphere own && own.Usable
+        public PickSphere? Sphere
+        {
+            get
+            {
+                return _shown.Sphere is PickSphere own && own.Usable
             ? own.Placed(RenderPosition, RenderTurn, RenderScale) : null;
+            }
+        }
 
         /// <summary>The exact posed box and KMF sphere where drawn; samples the current clip lazily.</summary>
         public void Measure(out PickBox bounds, out PickSphere? sphere)
@@ -1164,7 +1215,13 @@ public partial class WorldScene
         }
 
         public CreatureAnimationPlayer<ModelMesh?[]> Player { get; }
-        public bool ShowsMain => Player.Clock == null || _shown == AnimationSegment.Main;
+        public bool ShowsMain
+        {
+            get
+            {
+                return Player.Clock == null || _shown == AnimationSegment.Main;
+            }
+        }
 
         public bool TryGetSample(out NVector3[] vertices, out PickBox box)
         {
@@ -1211,8 +1268,10 @@ public partial class WorldScene
             _slot.Scene._animationPoseUpdates++;
         }
 
-        void ICreatureAnimationSurface<ModelMesh?[]>.Upload(AnimationSegment segment, NVector3[] vertices) =>
+        void ICreatureAnimationSurface<ModelMesh?[]>.Upload(AnimationSegment segment, NVector3[] vertices)
+        {
             throw new InvalidOperationException("A GPU animation surface receives phases, not CPU uploads.");
+        }
 
         public void Free()
         {
@@ -1255,7 +1314,13 @@ public partial class WorldScene
         /// its order matters (see <see cref="ModelSlot.TransparentOrdered"/>).</summary>
         public bool Transparent { get; private set; }
         public bool TransparentOrdered { get; private set; }
-        public MeshInstance3D? Node => _node;
+        public MeshInstance3D? Node
+        {
+            get
+            {
+                return _node;
+            }
+        }
 
         public void Set(in TorchView torch)
         {
@@ -1452,8 +1517,21 @@ public partial class WorldScene
         }
 
         /// <summary>The flames placed, and the frames in the array.</summary>
-        public int Count => _drawn.Count;
-        public int FrameCount => _frameCount;
+        public int Count
+        {
+            get
+            {
+                return _drawn.Count;
+            }
+        }
+
+        public int FrameCount
+        {
+            get
+            {
+                return _frameCount;
+            }
+        }
 
         public void Set(in TorchView torch)
         {

@@ -24,21 +24,47 @@ public sealed class ClassicKeyboard
     }
 
     /// <summary>Shift, Control and Alt from either side.</summary>
-    public KeyModifiers Modifiers =>
-        (_held[0x2A] || _held[0x36] ? KeyModifiers.Shift : 0)
+    public KeyModifiers Modifiers
+    {
+        get
+        {
+            return (_held[0x2A] || _held[0x36] ? KeyModifiers.Shift : 0)
         | (_held[0x1D] || _held[0x9D] ? KeyModifiers.Control : 0)
         | (_held[0x38] || _held[0xB8] ? KeyModifiers.Alt : 0);
+        }
+    }
 
     /// <summary>Escape went down this frame, whatever it is bound to.</summary>
-    public bool EscapePressed => _pressed[0x01];
+    public bool EscapePressed
+    {
+        get
+        {
+            return _pressed[0x01];
+        }
+    }
 
     /// <summary>Space went down this frame, whatever it is bound to.</summary>
-    public bool SpacePressed => _pressed[0x39];
+    public bool SpacePressed
+    {
+        get
+        {
+            return _pressed[0x39];
+        }
+    }
 
-    public GameBindingInput Read(GameSettings settings) => new(settings, Modifiers, _readHeld, _readPressed);
+    public GameBindingInput Read(GameSettings settings)
+    {
+        return new(settings, Modifiers, _readHeld, _readPressed);
+    }
 
     /// <summary>Characters typed since the last <see cref="EndFrame"/>, including key repeats.</summary>
-    public ReadOnlySpan<char> Typed => _typed.Text;
+    public ReadOnlySpan<char> Typed
+    {
+        get
+        {
+            return _typed.Text;
+        }
+    }
 
     /// <summary>Takes a key event; returns whether it was a key the table knows.</summary>
     public bool Feed(InputEventKey key)

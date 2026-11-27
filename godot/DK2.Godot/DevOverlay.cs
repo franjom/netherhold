@@ -48,7 +48,13 @@ public partial class DevOverlay : CanvasLayer
     private bool _hashCounted;
 
     /// <summary>The model while the overlay shows, for the host's per-frame times; null while it is off.</summary>
-    public DevOverlayModel? Active => s_on ? _model : null;
+    public DevOverlayModel? Active
+    {
+        get
+        {
+            return s_on ? _model : null;
+        }
+    }
 
     /// <summary>Adds the overlay to <paramref name="parent"/>; the first scene of the process reads <c>--dev-overlay</c>.</summary>
     public static DevOverlay Attach(Node parent, IDevOverlayHost host, string[] args, Func<byte, string>? playerNames = null)
@@ -178,12 +184,15 @@ public partial class DevOverlay : CanvasLayer
         Draw(_model);
     }
 
-    private int Size(DevOverlayRowKind kind) => Mathf.RoundToInt((kind switch
+    private int Size(DevOverlayRowKind kind)
     {
-        DevOverlayRowKind.Heading => 18f,
-        DevOverlayRowKind.Hint => 14f,
-        _ => 17f,
-    }) * _scale);
+        return Mathf.RoundToInt((kind switch
+        {
+            DevOverlayRowKind.Heading => 18f,
+            DevOverlayRowKind.Hint => 14f,
+            _ => 17f,
+        }) * _scale);
+    }
 
     /// <summary>Records the panel: a measuring pass for its size, then the backdrop and every row.</summary>
     private void Draw(DevOverlayModel model)
@@ -239,8 +248,10 @@ public partial class DevOverlay : CanvasLayer
         }
     }
 
-    private float LineHeight(FontFile font, int size, DevOverlayRowKind kind) =>
-        font.GetHeight(size) + (kind == DevOverlayRowKind.Heading ? 6f * _scale : kind == DevOverlayRowKind.Hint ? 4f * _scale : 1f * _scale);
+    private float LineHeight(FontFile font, int size, DevOverlayRowKind kind)
+    {
+        return font.GetHeight(size) + (kind == DevOverlayRowKind.Heading ? 6f * _scale : kind == DevOverlayRowKind.Hint ? 4f * _scale : 1f * _scale);
+    }
 
     private static float Measure(FontFile font, ReadOnlySpan<char> text, int size)
     {

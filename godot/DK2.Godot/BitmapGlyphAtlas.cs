@@ -17,9 +17,22 @@ internal sealed class BitmapGlyphAtlas
     private readonly ImageTexture _texture;
     private int _users;
 
-    public Rid Texture => _texture.GetRid();
+    public Rid Texture
+    {
+        get
+        {
+            return _texture.GetRid();
+        }
+    }
+
     /// <summary>The atlas's bytes on the GPU, for the HUD's texture budget.</summary>
-    public long Bytes => (long)_texture.GetWidth() * _texture.GetHeight() * 2;
+    public long Bytes
+    {
+        get
+        {
+            return (long)_texture.GetWidth() * _texture.GetHeight() * 2;
+        }
+    }
 
     private BitmapGlyphAtlas(BitmapFont font)
     {
@@ -62,9 +75,15 @@ internal sealed class BitmapGlyphAtlas
         _texture = ImageTexture.CreateFromImage(image);
     }
 
-    public Vector2I Corner(BitmapGlyph glyph) => _corners[glyph];
+    public Vector2I Corner(BitmapGlyph glyph)
+    {
+        return _corners[glyph];
+    }
 
-    public static BitmapGlyphAtlas Of(BitmapFont font) => Shared[font];
+    public static BitmapGlyphAtlas Of(BitmapFont font)
+    {
+        return Shared[font];
+    }
 
     public static void Acquire(BitmapFont font)
     {

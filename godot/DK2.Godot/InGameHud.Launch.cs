@@ -22,7 +22,10 @@ public partial class InGameHud
 
     /// <summary>Queues <paramref name="request"/> for the next instance of this scene (the front end then changes to it);
     /// null withdraws a request whose scene change failed.</summary>
-    internal static void QueueSession(GameSessionRequest? request) => s_launch = request;
+    internal static void QueueSession(GameSessionRequest? request)
+    {
+        s_launch = request;
+    }
 
     /// <summary>The session this instance starts, taking the queued launch: its level, mode and return page, from which the
     /// level end's front-end launch rule follows (<see cref="SessionContext.LaunchedFromFrontEnd"/>).</summary>
@@ -52,14 +55,18 @@ public partial class InGameHud
         return SessionContext.Starting(resume, launched, levelArgument, Array.IndexOf(args, "--from-map") >= 0);
     }
 
-    internal static bool IsLegacyImportError(Exception ex) =>
-        ex is IOException or InvalidDataException or UnauthorizedAccessException or InvalidOperationException
+    internal static bool IsLegacyImportError(Exception ex)
+    {
+        return ex is IOException or InvalidDataException or UnauthorizedAccessException or InvalidOperationException
             or ArgumentException or KeyNotFoundException;
+    }
 
     /// <summary>Shows the import's failure screen, naming <paramref name="path"/> (the <c>--dk2-save</c> argument, null for a
     /// front-end import).</summary>
-    private void ReportLegacyImportError(Exception error, string? path) =>
+    private void ReportLegacyImportError(Exception error, string? path)
+    {
         Fail(new GameFailure(GameFailureKind.SaveImportFailed, error.Message, Path: path), overFrame: false, error);
+    }
 
     /// <summary>Stops the scene on <paramref name="failure"/> and shows its screen (<see cref="FailureScreen"/>), over the last
     /// frame drawn when <paramref name="overFrame"/>: no more turns, sound or input, the pointer given back. Without a display

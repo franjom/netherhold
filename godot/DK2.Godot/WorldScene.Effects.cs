@@ -75,7 +75,11 @@ public partial class WorldScene : ISimulationEventSink
     /// <see cref="OpenEffects"/>.</summary>
     public LevelSoundDriver? Sound
     {
-        get => _sound;
+        get
+        {
+            return _sound;
+        }
+
         set
         {
             _sound = value;
@@ -109,7 +113,10 @@ public partial class WorldScene : ISimulationEventSink
     }
 
     /// <summary>Run the initial effect update before the first frame.</summary>
-    public void StartEffects() => _effects?.Model.UpdateNow();
+    public void StartEffects()
+    {
+        _effects?.Model.UpdateNow();
+    }
 
     public void Emit(in SimEvent simEvent)
     {
@@ -168,7 +175,10 @@ public partial class WorldScene : ISimulationEventSink
     }
 
     /// <summary>A Heart's beat let through: its mana effect (its sound is <see cref="Sound"/>'s).</summary>
-    private void RequestHeartEffect(in ViewEffectRequest request) => _effectFrame?.RequestFromScene(request);
+    private void RequestHeartEffect(in ViewEffectRequest request)
+    {
+        _effectFrame?.RequestFromScene(request);
+    }
 
     /// <summary>Step 1 of the frame's effect requests (<see cref="EffectFrame"/>), after the present and before the scene
     /// frame: the loose gems' idle effects for the turns crossed.</summary>
@@ -327,10 +337,18 @@ public partial class WorldScene : ISimulationEventSink
     }
 
     // SceneFrame's step 8 draws the gem carrier's sparkle (0x0043A8E0) for the viewer.
-    bool ISceneFrameHost.TakesGemSparkles => _effects != null;
+    bool ISceneFrameHost.TakesGemSparkles
+    {
+        get
+        {
+            return _effects != null;
+        }
+    }
 
-    void ISceneFrameHost.RequestGemSparkle(FpPosition3 point) =>
+    void ISceneFrameHost.RequestGemSparkle(FpPosition3 point)
+    {
         _effectFrame?.RequestFromScene(new ViewEffectRequest(new EffectId(CreatureView.GemDustSparkle.EffectId), _effectViewer, point));
+    }
 
     private void FreeEffects()
     {

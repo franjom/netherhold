@@ -12,9 +12,11 @@ namespace DK2.GodotAdapter;
 
 public partial class WorldScene
 {
-    internal TabletMesh? LoadTabletMesh() =>
-        _art != null && _art.TryResolveEntry("Tablet", out ResolvedAsset asset)
+    internal TabletMesh? LoadTabletMesh()
+    {
+        return _art != null && _art.TryResolveEntry("Tablet", out ResolvedAsset asset)
         && _art.TryLoadModel(asset, out KmfModel model) && model.Mesh != null ? new TabletMesh(model) : null;
+    }
 
     internal Texture2D? TabletTexture(string name)
     {

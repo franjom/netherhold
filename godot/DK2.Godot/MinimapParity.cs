@@ -236,5 +236,8 @@ public partial class MinimapParity : Node
         return equal;
     }
 
-    private static FpPosition3 At(float x, float y) => new(new Fp32((int)(x * 4096)), new Fp32((int)(y * 4096)), default);
+    private static FpPosition3 At(float x, float y)
+    {
+        return new(new Fp32((int)(x * 4096)), new Fp32((int)(y * 4096)), default);
+    }
 }

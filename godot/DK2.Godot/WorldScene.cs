@@ -96,7 +96,13 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
 
     /// <summary>The ordinary camera's controls over the map's focus bounds (<see cref="ClassicCameraSetup.Create"/>); null
     /// when the level has no dungeon camera preset.</summary>
-    public ClassicCameraControls? Controls => _controls;
+    public ClassicCameraControls? Controls
+    {
+        get
+        {
+            return _controls;
+        }
+    }
 
     /// <summary>The ordinary camera the controls move; null with them.</summary>
     public ClassicCamera? ClassicCamera { get; private set; }
@@ -207,9 +213,23 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     /// the off-centre projection as a frustum offset. Write the camera only
     /// when the pose changed. Allocation-free.</summary>
     public ScriptedViewDirector? ScriptedView { get; set; }
-    public float LetterboxBar => ScriptedView?.LetterboxBar ?? 0;
+    public float LetterboxBar
+    {
+        get
+        {
+            return ScriptedView?.LetterboxBar ?? 0;
+        }
+    }
+
     public ClassicCameraPose? PreviewPose { get; set; }
-    public Godot.Environment? CameraEnvironment => _camera?.Environment;
+    public Godot.Environment? CameraEnvironment
+    {
+        get
+        {
+            return _camera?.Environment;
+        }
+    }
+
     public bool MeasurePreviewRenderTime { get; set; }
     public CameraViewport PreviewViewport { get; set; }
     private const uint MainBlendedLayer = 1u << 18, PreviewBlendedLayer = 1u << 19;
@@ -370,9 +390,15 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         _cage.Show(shown, blue, view.Position, _lattice, milliseconds);
     }
 
-    public void CreateTile(int tileIndex, in TileView tile, in ResolvedAsset ground, in ResolvedAsset furniture) => SetTile(tileIndex, tile);
+    public void CreateTile(int tileIndex, in TileView tile, in ResolvedAsset ground, in ResolvedAsset furniture)
+    {
+        SetTile(tileIndex, tile);
+    }
 
-    public void UpdateTile(int tileIndex, in TileView tile, in ResolvedAsset ground, in ResolvedAsset furniture) => SetTile(tileIndex, tile);
+    public void UpdateTile(int tileIndex, in TileView tile, in ResolvedAsset ground, in ResolvedAsset furniture)
+    {
+        SetTile(tileIndex, tile);
+    }
 
     private void SetTile(int tileIndex, in TileView tile)
     {
@@ -444,7 +470,10 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         }
     }
 
-    void ITerrainChunkSink.AddTile(int tileIndex, TerrainTileGeometry geometry) => GatherTile(geometry);
+    void ITerrainChunkSink.AddTile(int tileIndex, TerrainTileGeometry geometry)
+    {
+        GatherTile(geometry);
+    }
 
     /// <summary>The opaque keys' surfaces the build task packed as the chunk's mesh (WorldScene.ChunkUpload.cs); the
     /// blended ones join the stream.</summary>
@@ -571,13 +600,16 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     /// The default per-vertex light is the resource as it ships; <see cref="PerPixelLight"/> and
     /// <see cref="TorchShadowsActive"/> add their defines to its text, once a run. Everything else a look varies is a
     /// uniform (<see cref="WorldMaterial"/>) or, per drawn thing, an instance uniform (<see cref="ModelSlot.ApplyLooks"/>).</summary>
-    private Shader ShaderFor(KmfBlend blend, bool writesDepth) => ShaderFor(blend switch
+    private Shader ShaderFor(KmfBlend blend, bool writesDepth)
     {
-        KmfBlend.Opaque => 0,
-        KmfBlend.AlphaBlend when writesDepth => 2,
-        KmfBlend.AlphaBlend => 1,
-        _ => 3,
-    });
+        return ShaderFor(blend switch
+        {
+            KmfBlend.Opaque => 0,
+            KmfBlend.AlphaBlend when writesDepth => 2,
+            KmfBlend.AlphaBlend => 1,
+            _ => 3,
+        });
+    }
 
     /// <summary>The world shader of <paramref name="state"/>, an index in <see cref="WorldShaderPaths"/>, in the run's
     /// light mode.</summary>
@@ -610,14 +642,22 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     }
 
     /// <summary>The world shader's light mode: 0 per vertex, 1 per pixel, 2 per pixel with the torch shadows.</summary>
-    private int WorldLightMode => TorchShadowsActive ? 2 : PerPixelLight ? 1 : 0;
+    private int WorldLightMode
+    {
+        get
+        {
+            return TorchShadowsActive ? 2 : PerPixelLight ? 1 : 0;
+        }
+    }
 
     /// <summary>A world material: the texture times <paramref name="colour"/>, lit by DK2's light plus
     /// <paramref name="addedLight"/> unless at <paramref name="fullLight"/>; a terrain vertex's light inputs unless the
     /// caller sets <c>model_vertex</c>. Uniforms left at the shader's defaults are not set.</summary>
     private ShaderMaterial WorldMaterial(string texture, KmfBlend blend, bool writesDepth, bool fullLight,
-        System.Numerics.Vector4 colour, NVector3 addedLight) =>
-        WorldMaterial(ShaderFor(blend, writesDepth), texture, fullLight, colour, addedLight);
+        System.Numerics.Vector4 colour, NVector3 addedLight)
+    {
+        return WorldMaterial(ShaderFor(blend, writesDepth), texture, fullLight, colour, addedLight);
+    }
 
     private ShaderMaterial WorldMaterial(Shader shader, string texture, bool fullLight, System.Numerics.Vector4 colour,
         NVector3 addedLight)
@@ -644,18 +684,21 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
     /// tonemap still encodes as if linear (<c>linear_to_srgb</c> in tonemap.glsl at 4.8 beta 3, c51ff06e8). A 1D colour
     /// correction table of <c>srgb_to_linear</c>, applied after that encoding, undoes it, so the window shows the buffer's
     /// values and every blend happened in gamma space, as in Unity's gamma colour space. Linear tonemap, exposure 1.</summary>
-    private static Godot.Environment GammaOutput() => new()
+    private static Godot.Environment GammaOutput()
     {
-        BackgroundMode = Godot.Environment.BGMode.ClearColor,
-        TonemapMode = Godot.Environment.ToneMapper.Linear,
-        TonemapExposure = 1f,
-        TonemapWhite = 1f,
-        AdjustmentEnabled = true,
-        AdjustmentBrightness = 1f,
-        AdjustmentContrast = 1f,
-        AdjustmentSaturation = 1f,
-        AdjustmentColorCorrection = GammaTable(1f),
-    };
+        return new()
+        {
+            BackgroundMode = Godot.Environment.BGMode.ClearColor,
+            TonemapMode = Godot.Environment.ToneMapper.Linear,
+            TonemapExposure = 1f,
+            TonemapWhite = 1f,
+            AdjustmentEnabled = true,
+            AdjustmentBrightness = 1f,
+            AdjustmentContrast = 1f,
+            AdjustmentSaturation = 1f,
+            AdjustmentColorCorrection = GammaTable(1f),
+        };
+    }
 
     /// <summary><see cref="GammaOutput"/>'s table, each display value then raised to <paramref name="exponent"/> (the
     /// brightness curve, <see cref="SetBrightness"/>; 1 leaves it).</summary>
@@ -785,10 +828,15 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         return texture;
     }
 
-    private static Vector3 ToGodot(NVector3 v) => new(v.X, v.Y, v.Z);
+    private static Vector3 ToGodot(NVector3 v)
+    {
+        return new(v.X, v.Y, v.Z);
+    }
 
-    private static string Milliseconds(long ticks) =>
-        (Math.Max(0, ticks) * 1000.0 / Stopwatch.Frequency).ToString("0.000", CultureInfo.InvariantCulture);
+    private static string Milliseconds(long ticks)
+    {
+        return (Math.Max(0, ticks) * 1000.0 / Stopwatch.Frequency).ToString("0.000", CultureInfo.InvariantCulture);
+    }
 
     public override void _ExitTree()
     {
@@ -1021,8 +1069,21 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
         }
 
         /// <summary>Whether the ribbon is drawn, and its box (Godot sorts it by the centre): a blended item's barrier.</summary>
-        public bool Visible => _visible && _written > 0;
-        public Aabb Box => _box;
+        public bool Visible
+        {
+            get
+            {
+                return _visible && _written > 0;
+            }
+        }
+
+        public Aabb Box
+        {
+            get
+            {
+                return _box;
+            }
+        }
 
         public void Free()
         {
@@ -1328,13 +1389,61 @@ public partial class WorldScene : Node3D, IRenderTarget, ITerrainChunkSink
 
         public TerrainMaterialKey Key { get; private set; }
         public int IndexCount { get; private set; }
-        public int VertexCount => _vertexCount;
-        public ReadOnlySpan<NVector3> Positions => _positions.AsSpan(0, _vertexCount);
-        public ReadOnlySpan<NVector3> Normals => _normals.AsSpan(0, _vertexCount);
-        public ReadOnlySpan<NVector2> Uvs => _uvs.AsSpan(0, _vertexCount);
-        public ReadOnlySpan<NVector2> Anchors => _anchors.AsSpan(0, _vertexCount);
-        public ReadOnlySpan<NVector2> StateSources => _stateSources.AsSpan(0, _vertexCount);
-        public ReadOnlySpan<int> Indices => _indices.AsSpan(0, IndexCount);
+        public int VertexCount
+        {
+            get
+            {
+                return _vertexCount;
+            }
+        }
+
+        public ReadOnlySpan<NVector3> Positions
+        {
+            get
+            {
+                return _positions.AsSpan(0, _vertexCount);
+            }
+        }
+
+        public ReadOnlySpan<NVector3> Normals
+        {
+            get
+            {
+                return _normals.AsSpan(0, _vertexCount);
+            }
+        }
+
+        public ReadOnlySpan<NVector2> Uvs
+        {
+            get
+            {
+                return _uvs.AsSpan(0, _vertexCount);
+            }
+        }
+
+        public ReadOnlySpan<NVector2> Anchors
+        {
+            get
+            {
+                return _anchors.AsSpan(0, _vertexCount);
+            }
+        }
+
+        public ReadOnlySpan<NVector2> StateSources
+        {
+            get
+            {
+                return _stateSources.AsSpan(0, _vertexCount);
+            }
+        }
+
+        public ReadOnlySpan<int> Indices
+        {
+            get
+            {
+                return _indices.AsSpan(0, IndexCount);
+            }
+        }
 
         public void Reset(in TerrainMaterialKey key)
         {
