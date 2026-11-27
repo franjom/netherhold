@@ -44,11 +44,18 @@ public readonly record struct ClassicLitVertex(Vector3 Position, Vector3 Normal,
 
 /// <summary>The light tables of a grid of tiles, <see cref="ClassicLightTable.MaximumSources"/> sources a tile, and how many
 /// each tile holds.</summary>
-public readonly ref struct ClassicTileLightGrid(ReadOnlySpan<ClassicTileLightSource> sources, ReadOnlySpan<uint> counts, int width)
+public readonly ref struct ClassicTileLightGrid
 {
-    public ReadOnlySpan<ClassicTileLightSource> Sources { get; } = sources;
-    public ReadOnlySpan<uint> Counts { get; } = counts;
-    public int Width { get; } = width;
+    public ClassicTileLightGrid(ReadOnlySpan<ClassicTileLightSource> sources, ReadOnlySpan<uint> counts, int width)
+    {
+        Sources = sources;
+        Counts = counts;
+        Width = width;
+    }
+
+    public ReadOnlySpan<ClassicTileLightSource> Sources { get; }
+    public ReadOnlySpan<uint> Counts { get; }
+    public int Width { get; }
 }
 
 /// <summary>The tested reference for the world shader's DK2 lighting: the table a vertex reads,

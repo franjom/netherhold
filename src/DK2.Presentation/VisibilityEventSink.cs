@@ -9,9 +9,22 @@ namespace DK2.Presentation;
 
 /// <summary>Applies visibility changes before downstream events are filtered.
 /// Caller exclusively owns the world and view during event delivery.</summary>
-public sealed class VisibilityEventSink(WorldView view, Func<WorldState> world, PlayerId viewer,
-    ISimulationEventSink? downstream = null) : ISimulationEventSink
+public sealed class VisibilityEventSink : ISimulationEventSink
 {
+    private readonly WorldView _view;
+    private readonly Func<WorldState> _world;
+    private readonly PlayerId _viewer;
+    private readonly ISimulationEventSink? _downstream;
+
+    public VisibilityEventSink(WorldView view, Func<WorldState> world, PlayerId viewer,
+        ISimulationEventSink? downstream = null)
+    {
+        _view = view;
+        _world = world;
+        _viewer = viewer;
+        _downstream = downstream;
+    }
+
     /// <summary>Over one world; the runner passes the world its frame reads, which changes
     /// instance with the presented world (ADR-0694).</summary>
     public VisibilityEventSink(WorldView view, WorldState world, PlayerId viewer, ISimulationEventSink? downstream = null)
@@ -21,9 +34,9 @@ public sealed class VisibilityEventSink(WorldView view, Func<WorldState> world, 
 
     public void Emit(in SimEvent simEvent)
     {
-        WorldState current = world();
-        view.SetPossessionView(current.Player(viewer).PossessedCreatureId != 0);
-        view.ApplySightRegion(simEvent, current);
-        downstream?.Emit(simEvent);
+        WorldState current = _world();
+        _view.SetPossessionView(current.Player(_viewer).PossessedCreatureId != 0);
+        _view.ApplySightRegion(simEvent, current);
+        _downstream?.Emit(simEvent);
     }
 }

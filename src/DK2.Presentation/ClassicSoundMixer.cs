@@ -407,12 +407,20 @@ public sealed class ClassicSoundMixer : IDisposable
     /// <summary>A sound whose clip was not decoded when it was asked for: it plays when the decode is done
     /// (<see cref="PlayDecoded"/>), unless its voice is stopped or asked again first, or it waited longer than
     /// <see cref="MaxDecodeWaitMs"/>.</summary>
-    private readonly struct DecodingSound(SoundRequest request, ResolvedSound reference, SoundPriority priority, uint since)
+    private readonly struct DecodingSound
     {
-        public SoundRequest Request { get; } = request;
-        public ResolvedSound Reference { get; } = reference;
-        public SoundPriority Priority { get; } = priority;
-        public uint Since { get; } = since;
+        public DecodingSound(SoundRequest request, ResolvedSound reference, SoundPriority priority, uint since)
+        {
+            Request = request;
+            Reference = reference;
+            Priority = priority;
+            Since = since;
+        }
+
+        public SoundRequest Request { get; }
+        public ResolvedSound Reference { get; }
+        public SoundPriority Priority { get; }
+        public uint Since { get; }
     }
 
     private bool IsDecoding(SoundVoiceId voice, SoundId id)
@@ -708,19 +716,26 @@ public sealed class ClassicSoundMixer : IDisposable
 
     /// <summary>A pooled engine source and what the mixer knows of its sound: its place, mapping and gains, and the last
     /// volume and offset handed to the engine, so a frame that changes nothing calls the engine for nothing.</summary>
-    private sealed class Source(ISoundSource engine)
+    private sealed class Source
     {
+        public Source(ISoundSource engine)
+        {
+            Engine = engine;
+            AnchorGain = 1f;
+            DistanceGain = 1f;
+        }
+
         private float _volume = float.NaN;
         private Vector2? _offset;
         private bool _placed;
 
-        public ISoundSource Engine { get; } = engine;
+        public ISoundSource Engine { get; }
         public bool Loop { get; set; }
         public SoundDistanceMapping? Mapping { get; set; }
         public Vector2? Flat { get; set; }
-        public float AnchorGain { get; set; } = 1f;
+        public float AnchorGain { get; set; }
         public Vector3? FollowAnchor { get; set; }
-        public float DistanceGain { get; set; } = 1f;
+        public float DistanceGain { get; set; }
 
         public void SetVolume(float volume)
         {
@@ -746,12 +761,20 @@ public sealed class ClassicSoundMixer : IDisposable
         }
     }
 
-    private sealed class LinkedChannel(ISoundStream stream, PcmAudioQueue samples, MusicSegmentPicker picker, SoundResolver resolver)
+    private sealed class LinkedChannel
     {
-        public ISoundStream Stream { get; } = stream;
-        public PcmAudioQueue Samples { get; } = samples;
-        public MusicSegmentPicker Picker { get; } = picker;
-        public SoundResolver Resolver { get; } = resolver;
+        public LinkedChannel(ISoundStream stream, PcmAudioQueue samples, MusicSegmentPicker picker, SoundResolver resolver)
+        {
+            Stream = stream;
+            Samples = samples;
+            Picker = picker;
+            Resolver = resolver;
+        }
+
+        public ISoundStream Stream { get; }
+        public PcmAudioQueue Samples { get; }
+        public MusicSegmentPicker Picker { get; }
+        public SoundResolver Resolver { get; }
         /// <summary>The segment picked and waiting for its decode, and its gain.</summary>
         public ResolvedSound? Decoding { get; set; }
         public float DecodingGain { get; set; }

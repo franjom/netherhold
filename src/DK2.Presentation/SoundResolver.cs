@@ -9,9 +9,14 @@ namespace DK2.Presentation;
 
 /// <summary>The sound system's own LCG; never uses the simulation's RNG.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/sound-playback.md#category-and-sample-selection")]
-public sealed class SoundRand(uint seed)
+public sealed class SoundRand
 {
-    private uint _state = seed;
+    public SoundRand(uint seed)
+    {
+        _state = seed;
+    }
+
+    private uint _state;
     public uint Next()
     {
         _state = unchecked(_state * 1664525u + 1013904223u);
@@ -80,8 +85,17 @@ public readonly record struct SoundDistanceMapping(float Minimum, float Maximum,
 }
 
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/sound-playback.md#category-and-sample-selection")]
-public sealed class SoundResolver(BankMap banks, SfxMap map)
+public sealed class SoundResolver
 {
+    private readonly BankMap _banks;
+    private readonly SfxMap _map;
+
+    public SoundResolver(BankMap banks, SfxMap map)
+    {
+        _banks = banks;
+        _map = map;
+    }
+
     // The first group of each id, as a search of the map's groups in order finds it; built on first use, so a request
     // costs one lookup and allocates nothing (the frame's thread asks several times per sound).
     private Dictionary<SoundId, SoundGroup>? _groups;
@@ -90,8 +104,8 @@ public sealed class SoundResolver(BankMap banks, SfxMap map)
     {
         if (_groups == null)
         {
-            var groups = new Dictionary<SoundId, SoundGroup>(map.Groups.Count);
-            foreach (SoundGroup group in map.Groups)
+            var groups = new Dictionary<SoundId, SoundGroup>(_map.Groups.Count);
+            foreach (SoundGroup group in _map.Groups)
             {
                 if (!groups.ContainsKey(group.Id))
                 {
@@ -158,7 +172,7 @@ public sealed class SoundResolver(BankMap banks, SfxMap map)
     public void SamplesOf(SoundId id, List<ResolvedSound> into)
     {
         into.Clear();
-        foreach (SoundGroup group in map.Groups)
+        foreach (SoundGroup group in _map.Groups)
         {
             if (group.Id != id)
             {
@@ -169,7 +183,7 @@ public sealed class SoundResolver(BankMap banks, SfxMap map)
             {
                 foreach (SoundSample sample in item.Sounds)
                 {
-                    if (Locate(banks, sample) is ResolvedSound found)
+                    if (Locate(_banks, sample) is ResolvedSound found)
                     {
                         into.Add(found);
                     }
@@ -209,11 +223,11 @@ public sealed class SoundResolver(BankMap banks, SfxMap map)
             }
         }
         int bank = sample.Archive.Value - 1;
-        if (bank < 0 || bank >= banks.Archives.Count || sample.Index == 0 || sample.Index > int.MaxValue)
+        if (bank < 0 || bank >= _banks.Archives.Count || sample.Index == 0 || sample.Index > int.MaxValue)
         {
             throw new InvalidDataException("Sound map sample references an invalid archive or entry.");
         }
 
-        return new ResolvedSound(banks.Archives[bank].Name, new SoundEntryId((int)sample.Index - 1));
+        return new ResolvedSound(_banks.Archives[bank].Name, new SoundEntryId((int)sample.Index - 1));
     }
 }

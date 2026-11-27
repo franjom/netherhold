@@ -26,13 +26,19 @@ public interface ICampaignCutsceneHost
 
 /// <summary>The won-level title card and cutscene before the front end (0x0053B980). The title follows a pause,
 /// then its voiced line and another pause, then each movie in turn. The clock is unscaled seconds.</summary>
-public sealed class CampaignCutsceneRunner(ICampaignCutsceneHost host)
+public sealed class CampaignCutsceneRunner
 {
-    private readonly ICampaignCutsceneHost _host = host ?? throw new ArgumentNullException(nameof(host));
+    public CampaignCutsceneRunner(ICampaignCutsceneHost host)
+    {
+        _host = host ?? throw new ArgumentNullException(nameof(host));
+        _movie = -1;
+    }
+
+    private readonly ICampaignCutsceneHost _host;
     private int _titlePhase;
     private string? _install;
     private float _titleEnds;
-    private int _movie = -1;
+    private int _movie;
 
     /// <summary>The cutscene playing, or null.</summary>
     public CampaignCutscene? Cutscene { get; private set; }

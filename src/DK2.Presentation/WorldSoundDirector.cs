@@ -15,10 +15,18 @@ namespace DK2.Presentation;
 /// A request DK2 makes with handle 0 (<see cref="ThingSoundRequest.Voiced"/> false) has none.
 /// Positions are in the view's space, <c>DungeonScene.Ground</c>'s (x, height, -y) in tiles. A request DK2
 /// makes only for the local player's own thing (<see cref="ThingSoundRequest.ViewerOnlyFor"/>) plays only for
-/// <paramref name="viewer"/>, as the heart's opening effects do.</summary>
-public sealed class WorldSoundDirector(ISimulationEventSink? downstream = null, PlayerId? viewer = null)
-    : ISimulationEventSink
+/// the configured viewer, as the heart's opening effects do.</summary>
+public sealed class WorldSoundDirector : ISimulationEventSink
 {
+    private readonly ISimulationEventSink? _downstream;
+    private readonly PlayerId? _viewer;
+
+    public WorldSoundDirector(ISimulationEventSink? downstream = null, PlayerId? viewer = null)
+    {
+        _downstream = downstream;
+        _viewer = viewer;
+    }
+
     private readonly ConcurrentQueue<SoundRequest> _pending = new ConcurrentQueue<SoundRequest>();
     public bool TryTake(out SoundRequest request)
     {
@@ -39,12 +47,12 @@ public sealed class WorldSoundDirector(ISimulationEventSink? downstream = null, 
         bool turn = simEvent.ThingSound is { Alternating: true } && (_alternator++ & 1) != 0;
         if (simEvent.ThingSound is { Stop: false } sound && !string.IsNullOrEmpty(sound.Category)
             && (!sound.Alternating || turn)
-            && (sound.ViewerOnlyFor is not { } owner || owner == viewer))
+            && (sound.ViewerOnlyFor is not { } owner || owner == _viewer))
         {
             _pending.Enqueue(Listener(sound));
         }
 
-        downstream?.Emit(simEvent);
+        _downstream?.Emit(simEvent);
     }
 
     private SoundRequest Listener(in ThingSoundRequest sound)

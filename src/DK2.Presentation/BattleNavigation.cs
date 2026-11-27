@@ -8,8 +8,15 @@ using DK2.Data.Model;
 namespace DK2.Presentation;
 
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/battle-tab.md#4-clicks-and-the-f-key--strongly-inferred")]
-public sealed class BattleNavigation(PlayerId viewer)
+public sealed class BattleNavigation
 {
+    private readonly PlayerId _viewer;
+
+    public BattleNavigation(PlayerId viewer)
+    {
+        _viewer = viewer;
+    }
+
     public BattleViewSlot Last { get; private set; } = BattleViewSlot.None;
 
     public TilePos? Next(IReadOnlyList<BattleViewSnapshot> battles)
@@ -19,7 +26,7 @@ public sealed class BattleNavigation(PlayerId viewer)
             var slot = new BattleViewSlot((Last.Value + step) & 7);
             foreach (BattleViewSnapshot battle in battles)
             {
-                if (battle.Slot == slot && battle.MemberCount > 0 && battle.Owners.Contains(viewer))
+                if (battle.Slot == slot && battle.MemberCount > 0 && battle.Owners.Contains(_viewer))
                 {
                     Last = slot;
                     return battle.Centre;

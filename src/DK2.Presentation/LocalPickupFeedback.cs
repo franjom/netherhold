@@ -11,12 +11,20 @@ namespace DK2.Presentation;
 /// <summary>Local pickup feedback, separate from authoritative hand insertion; see 0040DD20 and 0040E0D0.</summary>
 public sealed class LocalPickupFeedback
 {
-    private sealed class Pending(PlayerId player, int id, byte type, long milliseconds)
+    private sealed class Pending
     {
-        public readonly PlayerId Player = player;
-        public readonly int Id = id;
-        public readonly byte Type = type;
-        public readonly long Milliseconds = milliseconds;
+        public Pending(PlayerId player, int id, byte type, long milliseconds)
+        {
+            Player = player;
+            Id = id;
+            Type = type;
+            Milliseconds = milliseconds;
+        }
+
+        public readonly PlayerId Player;
+        public readonly int Id;
+        public readonly byte Type;
+        public readonly long Milliseconds;
         public DropCommand? Drop;
         public bool DropDispatched;
     }

@@ -44,8 +44,15 @@ public readonly record struct FrontEndStep(FrontEndPath? StartPath = null, Front
     FrontEndOperation Operation = FrontEndOperation.None);
 
 /// <summary>The station machine of 0x005384F0. Widgets and level/profile operations are consumers.</summary>
-public sealed class FrontEndFlow(FrontEndPage returnPage = FrontEndPage.None)
+public sealed class FrontEndFlow
 {
+    private readonly FrontEndPage _returnPage;
+
+    public FrontEndFlow(FrontEndPage returnPage = FrontEndPage.None)
+    {
+        _returnPage = returnPage;
+    }
+
     private bool _routeReturn = true;
     public FrontEndState State { get; private set; } = FrontEndState.Intro;
 
@@ -65,7 +72,7 @@ public sealed class FrontEndFlow(FrontEndPage returnPage = FrontEndPage.None)
         if (_routeReturn)
         {
             _routeReturn = false;
-            FrontEndTransition? initial = returnPage switch
+            FrontEndTransition? initial = _returnPage switch
             {
                 FrontEndPage.CampaignMap => new FrontEndTransition(FrontEndPath.EntryToTable, FrontEndState.CampaignMap),
                 FrontEndPage.Lobby => new FrontEndTransition(FrontEndPath.EntryToExtras, FrontEndState.SkirmishReady),
@@ -74,7 +81,7 @@ public sealed class FrontEndFlow(FrontEndPage returnPage = FrontEndPage.None)
                 FrontEndPage.PetDungeon => new FrontEndTransition(FrontEndPath.StaticPetDungeon, FrontEndState.PetDungeonReady),
                 _ => null,
             };
-            FrontEndState? results = returnPage switch
+            FrontEndState? results = _returnPage switch
             {
                 FrontEndPage.CampaignResults => FrontEndState.ResultsFourth,
                 FrontEndPage.MultiplayerResults => FrontEndState.ResultsSecond,
@@ -86,12 +93,12 @@ public sealed class FrontEndFlow(FrontEndPage returnPage = FrontEndPage.None)
             {
                 // 0x00534F70 shows the statistics page at once; the station machine takes the state next frame.
                 State = results.Value;
-                return new FrontEndStep(ShowPage: returnPage);
+                return new FrontEndStep(ShowPage: _returnPage);
             }
             if (initial.HasValue)
             {
                 FrontEndStep routed = BeginTransition(initial.Value);
-                return returnPage == FrontEndPage.CampaignMap
+                return _returnPage == FrontEndPage.CampaignMap
                     ? routed with { Operation = FrontEndOperation.EnterCampaignMap }
                     : routed;
             }

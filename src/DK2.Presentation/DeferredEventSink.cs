@@ -11,8 +11,15 @@ namespace DK2.Presentation;
 /// frame's thread when the batch they belong to is taken over (ADR-0694): the sinks downstream
 /// (sight regions, the hand's feedback, sounds, scripted views, construction particles) write the
 /// view, which the frame reads meanwhile.</summary>
-public sealed class DeferredEventSink(ISimulationEventSink downstream) : ISimulationEventSink
+public sealed class DeferredEventSink : ISimulationEventSink
 {
+    private readonly ISimulationEventSink _downstream;
+
+    public DeferredEventSink(ISimulationEventSink downstream)
+    {
+        _downstream = downstream;
+    }
+
     private readonly ConcurrentQueue<SimEvent> _pending = new ConcurrentQueue<SimEvent>();
 
     public void Emit(in SimEvent simEvent)
@@ -25,7 +32,7 @@ public sealed class DeferredEventSink(ISimulationEventSink downstream) : ISimula
     {
         while (_pending.TryDequeue(out SimEvent simEvent))
         {
-            downstream.Emit(simEvent);
+            _downstream.Emit(simEvent);
         }
     }
 }

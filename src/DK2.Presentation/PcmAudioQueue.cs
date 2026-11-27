@@ -7,8 +7,15 @@ using DK2.Data.Media;
 namespace DK2.Presentation;
 
 /// <summary>Main-thread decoded segments consumed by a stereo PCM audio callback; never decodes on that callback.</summary>
-public sealed class PcmAudioQueue(int sampleRate)
+public sealed class PcmAudioQueue
 {
+    private readonly int _sampleRate;
+
+    public PcmAudioQueue(int sampleRate)
+    {
+        _sampleRate = sampleRate;
+    }
+
     private readonly object _gate = new object();
     private readonly Queue<(PcmClip Clip, float Gain)> _queued = new Queue<(PcmClip Clip, float Gain)>();
     private PcmClip? _current;
@@ -21,13 +28,13 @@ public sealed class PcmAudioQueue(int sampleRate)
     {
         get
         {
-            return sampleRate;
+            return _sampleRate;
         }
     }
 
     public void Enqueue(PcmClip clip, float gain = 1)
     {
-        if (clip.SampleRate != sampleRate || clip.Channels is not (1 or 2) || clip.Samples.Length % clip.Channels != 0)
+        if (clip.SampleRate != _sampleRate || clip.Channels is not (1 or 2) || clip.Samples.Length % clip.Channels != 0)
         {
             throw new ArgumentException("Queued audio must match the stream rate and be mono or stereo.", nameof(clip));
         }

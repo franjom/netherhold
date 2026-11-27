@@ -22,11 +22,18 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
 
     /// <summary>A dynamic source: an object's light or an effect instance's. Both are engine lights
     /// in one list (<c>+0x33A</c>), so they share each tile's insertion order.</summary>
-    private sealed class ObjectSource(long key, int tile, ClassicPointLight light)
+    private sealed class ObjectSource
     {
-        public readonly long Key = key;
-        public int Tile = tile;
-        public ClassicPointLight Light = light;
+        public ObjectSource(long key, int tile, ClassicPointLight light)
+        {
+            Key = key;
+            Tile = tile;
+            Light = light;
+        }
+
+        public readonly long Key;
+        public int Tile;
+        public ClassicPointLight Light;
         public bool Seen;
     }
 

@@ -15,12 +15,20 @@ public readonly record struct PortalLightView(PortalLightId Id, ClassicPointLigh
 /// <summary>Standalone entrance sources and the native wall-clock pulse; portal-visibility.md.</summary>
 public sealed class PortalCentreLights
 {
-    private sealed class Source(TilePos tile)
+    private sealed class Source
     {
-        public readonly TilePos Tile = tile;
-        public int Phase = 1;
-        public bool Rising = true;
-        public TerrainLightColour Colour = new TerrainLightColour(255, 33, 26);
+        public Source(TilePos tile)
+        {
+            Tile = tile;
+            Phase = 1;
+            Rising = true;
+            Colour = new TerrainLightColour(255, 33, 26);
+        }
+
+        public readonly TilePos Tile;
+        public int Phase;
+        public bool Rising;
+        public TerrainLightColour Colour;
     }
 
     private readonly List<Source> _sources = new List<Source>();

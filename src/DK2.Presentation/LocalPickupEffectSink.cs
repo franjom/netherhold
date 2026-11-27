@@ -5,15 +5,24 @@
 using DK2.Simulation;
 namespace DK2.Presentation;
 /// <summary>Consumes the authoritative echo of dust already shown for a local pickup.</summary>
-public sealed class LocalPickupEffectSink(LocalPickupFeedback feedback, ISimulationEventSink downstream) : ISimulationEventSink
+public sealed class LocalPickupEffectSink : ISimulationEventSink
 {
+    private readonly LocalPickupFeedback _feedback;
+    private readonly ISimulationEventSink _downstream;
+
+    public LocalPickupEffectSink(LocalPickupFeedback feedback, ISimulationEventSink downstream)
+    {
+        _feedback = feedback;
+        _downstream = downstream;
+    }
+
     public void Emit(in SimEvent simEvent)
     {
-        if (simEvent.System == "Hand" && simEvent.EffectRequest is { } effect && feedback.ConsumeDust(effect))
+        if (simEvent.System == "Hand" && simEvent.EffectRequest is { } effect && _feedback.ConsumeDust(effect))
         {
             return;
         }
 
-        downstream.Emit(simEvent);
+        _downstream.Emit(simEvent);
     }
 }

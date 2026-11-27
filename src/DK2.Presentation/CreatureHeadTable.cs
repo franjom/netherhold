@@ -58,9 +58,14 @@ public sealed class CreatureHeadTable
     }
 
     /// <summary>One creature's head, read and written whole under a lock on the slot (private, so no one else takes it).</summary>
-    private sealed class Slot(FpPosition3? head)
+    private sealed class Slot
     {
-        private FpPosition3? _head = head;
+        public Slot(FpPosition3? head)
+        {
+            _head = head;
+        }
+
+        private FpPosition3? _head;
 
         public FpPosition3? Read()
         {

@@ -105,12 +105,21 @@ public sealed class BlendedItemOrder
     private int _drawCount;
     private readonly List<BlendedItemSegment> _segments = new List<BlendedItemSegment>();
 
-    private readonly struct Entry(int index, int batch, float distance, BlendedItemBlend blend, in BlendedItemRect rect)
+    private readonly struct Entry
     {
-        public readonly int Index = index, Batch = batch;
-        public readonly float Distance = distance;
-        public readonly BlendedItemBlend Blend = blend;
-        public readonly BlendedItemRect Rect = rect;
+        public Entry(int index, int batch, float distance, BlendedItemBlend blend, in BlendedItemRect rect)
+        {
+            Index = index;
+            Batch = batch;
+            Distance = distance;
+            Blend = blend;
+            Rect = rect;
+        }
+
+        public readonly int Index, Batch;
+        public readonly float Distance;
+        public readonly BlendedItemBlend Blend;
+        public readonly BlendedItemRect Rect;
     }
 
     private struct Draw

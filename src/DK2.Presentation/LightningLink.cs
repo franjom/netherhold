@@ -12,10 +12,16 @@ public readonly record struct LightningCaster(bool HasLink, FpPosition3? Point);
 public readonly record struct LightningEndpoints(FpPosition3 Start, FpPosition3 End, int BoltCount);
 
 /// <summary>The procedural art's render link, independent of the simulation's target word.</summary>
-public sealed class LightningLink(ProceduralArtKind kind)
+public sealed class LightningLink
 {
-    private ProceduralArtKind _kind = kind;
-    private bool _linked = true;
+    public LightningLink(ProceduralArtKind kind)
+    {
+        _kind = kind;
+        _linked = true;
+    }
+
+    private ProceduralArtKind _kind;
+    private bool _linked;
     private bool _casterLinkCleared;
     internal void Reset(ProceduralArtKind kind)
     {

@@ -17,8 +17,15 @@ public readonly record struct LightningControlPoint(uint Id, Vector3 Position)
 }
 public readonly record struct LightningSegment(Vector3 Start, Vector3 End);
 
-public sealed class LightningCracklePairs(IRandomAlgorithm random)
+public sealed class LightningCracklePairs
 {
+    private readonly IRandomAlgorithm _random;
+
+    public LightningCracklePairs(IRandomAlgorithm random)
+    {
+        _random = random;
+    }
+
     private readonly List<LightningControlPoint> _points = new List<LightningControlPoint>();
 
     public void ChooseInto(IReadOnlyList<LightningControlPoint> controlPoints, List<LightningSegment> output)
@@ -40,7 +47,7 @@ public sealed class LightningCracklePairs(IRandomAlgorithm random)
             {
                 if (unchecked(_points[previous].Id - _points[j].Id) > 1)
                 {
-                    if (random.NextInt(8 * i) == 1)
+                    if (_random.NextInt(8 * i) == 1)
                     {
                         output.Add(new LightningSegment(_points[j].Position, _points[i].Position));
                     }
@@ -62,7 +69,7 @@ public sealed class LightningCracklePairs(IRandomAlgorithm random)
             {
                 if (unchecked(points[previous].Id - points[j].Id) > 1)
                 {
-                    if (random.NextInt(8 * i) == 1)
+                    if (_random.NextInt(8 * i) == 1)
                     {
                         yield return new LightningSegment(points[j].Position, points[i].Position);
                     }

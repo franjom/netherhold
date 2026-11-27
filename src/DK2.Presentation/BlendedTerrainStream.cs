@@ -52,11 +52,18 @@ public static class BlendedTerrainStream
 /// The adapter uploads <see cref="Runs"/> over <see cref="Vertices"/> in <see cref="BlendedTerrainStream.SortingOrder"/>.</summary>
 public sealed class BlendedTerrainStream<TMaterial> where TMaterial : class
 {
-    private sealed class Source(BlendedVertex[] vertices, TMaterial[] materials, int[][] triangles)
+    private sealed class Source
     {
-        public readonly BlendedVertex[] Vertices = vertices;
-        public readonly TMaterial[] Materials = materials;
-        public readonly int[][] Triangles = triangles;
+        public Source(BlendedVertex[] vertices, TMaterial[] materials, int[][] triangles)
+        {
+            Vertices = vertices;
+            Materials = materials;
+            Triangles = triangles;
+        }
+
+        public readonly BlendedVertex[] Vertices;
+        public readonly TMaterial[] Materials;
+        public readonly int[][] Triangles;
     }
 
     private sealed class Effect

@@ -160,11 +160,19 @@ public sealed class PossessionForeground
         }
     }
 
-    private sealed class Clip(KmfModel model)
+    private sealed class Clip
     {
-        public KmfModel Model { get; } = model;
-        public RenderAnimation Animation { get; } = new RenderAnimation(model);
-        public Vector3[] Positions { get; } = new Vector3[RenderMesh.FromModel(model).Positions.Count];
-        public HudVertex[] Triangles = [];
+        public Clip(KmfModel model)
+        {
+            Model = model;
+            Animation = new RenderAnimation(model);
+            Positions = new Vector3[RenderMesh.FromModel(model).Positions.Count];
+            Triangles = [];
+        }
+
+        public KmfModel Model { get; }
+        public RenderAnimation Animation { get; }
+        public Vector3[] Positions { get; }
+        public HudVertex[] Triangles;
     }
 }

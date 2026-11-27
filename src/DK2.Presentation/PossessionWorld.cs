@@ -16,8 +16,15 @@ namespace DK2.Presentation;
 /// never writes. Call <see cref="Bind"/> when the world or the possessed creature changes; the
 /// navigation bytes are captured then, as the tile cache DK2's client reads is the turn's.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/possession-client.md")]
-public sealed class PossessionWorld(GameDatabase database) : IPossessionWorld
+public sealed class PossessionWorld : IPossessionWorld
 {
+    private readonly GameDatabase _database;
+
+    public PossessionWorld(GameDatabase database)
+    {
+        _database = database;
+    }
+
     private readonly List<SteeringObstacle> _obstacles = [];
     private readonly List<SteeringNeighbour> _neighbours = [];
     private WorldState? _world;
@@ -62,13 +69,13 @@ public sealed class PossessionWorld(GameDatabase database) : IPossessionWorld
     {
         if (!ReferenceEquals(world, _world))
         {
-            _steering = new WorldSteering(database, world);
+            _steering = new WorldSteering(_database, world);
         }
 
         _world = world;
         _creature = creature;
-        _definition = database.CreatureById(creature.CreatureTypeId);
-        _nav = WorldSteering.CaptureNavigationBytes(database, world);
+        _definition = _database.CreatureById(creature.CreatureTypeId);
+        _nav = WorldSteering.CaptureNavigationBytes(_database, world);
     }
 
     /// <summary>The creature as the step reads it. The three speeds are <c>0x0048ABB0</c>: the
@@ -80,9 +87,9 @@ public sealed class PossessionWorld(GameDatabase database) : IPossessionWorld
         CreatureState me = Creature;
         CreatureDef def = _definition!;
         bool flying = WaterSpeedRules.IsFlying(def, me);
-        TerrainDef terrain = database.TerrainById(World.Tile(me.PosX >> 12, me.PosY >> 12).TerrainId);
-        bool weak = LowHealthSpeedRules.IsWeak(database, def, me);
-        int stat = database.FirstPersonStat(CreatureStatId.Speed) + 100;
+        TerrainDef terrain = _database.TerrainById(World.Tile(me.PosX >> 12, me.PosY >> 12).TerrainId);
+        bool weak = LowHealthSpeedRules.IsWeak(_database, def, me);
+        int stat = _database.FirstPersonStat(CreatureStatId.Speed) + 100;
         return new PossessedBody(Speed(def.Speed), Speed(def.RunSpeed), Speed(def.ShuffleSpeed), me.Creeping, flying,
             StepLocked: me.PossessionPraying, KeysLocked: false, def.FootprintRadius.Raw & 0xFFFF, def.EyeHeight.Raw & 0xFFFF,
             def.FirstPersonWaddle, def.FirstPersonBob, def.FirstPersonWalkCycleScale,
@@ -156,7 +163,7 @@ public sealed class PossessionWorld(GameDatabase database) : IPossessionWorld
         }
 
         int index = (tileY * world.Width) + tileX;
-        RoomInstance? room = RoomIndex.RoomAt(world, database, index);
+        RoomInstance? room = RoomIndex.RoomAt(world, _database, index);
         return room?.Definition.TypeId switch
         {
             RoomTypeId.HeroGateTile or RoomTypeId.HeroGate2By2 or RoomTypeId.HeroGate3By1 => false,
@@ -268,12 +275,12 @@ public sealed class PossessionWorld(GameDatabase database) : IPossessionWorld
 
     public int FloorHeight(int x, int y)
     {
-        return FloorHeightRules.At(World, database, x, y);
+        return FloorHeightRules.At(World, _database, x, y);
     }
 
     public bool WetAt(int x, int y)
     {
-        return World.Contains(x >> 12, y >> 12) && database.TerrainById(World.Tile(x >> 12, y >> 12).TerrainId).IsWater;
+        return World.Contains(x >> 12, y >> 12) && _database.TerrainById(World.Tile(x >> 12, y >> 12).TerrainId).IsWater;
     }
 
     private byte Nav(int tileX, int tileY)

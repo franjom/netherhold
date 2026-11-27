@@ -7,26 +7,35 @@ using DK2.Data.Model;
 namespace DK2.Presentation;
 /// <summary>Sniper's action 14: an immediate distance change and a 300 ms incremental lens move.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/possession-special-abilities.md")]
-public sealed class PossessionSniper(CameraThing preset)
+public sealed class PossessionSniper
 {
-    public int Lens { get; private set; } = preset.Lens;
-    public int ViewDistance { get; private set; } = preset.ViewDistance;
+    private readonly CameraThing _preset;
+
+    public PossessionSniper(CameraThing preset)
+    {
+        _preset = preset;
+        Lens = preset.Lens;
+        ViewDistance = preset.ViewDistance;
+    }
+
+    public int Lens { get; private set; }
+    public int ViewDistance { get; private set; }
     private int _target;
     private long _previousMilliseconds, _endMilliseconds;
     public void Reset()
     {
-        Lens = preset.Lens;
-        ViewDistance = preset.ViewDistance;
+        Lens = _preset.Lens;
+        ViewDistance = _preset.ViewDistance;
         _endMilliseconds = 0;
     }
     public void Toggle(Fp32 multiplier, bool currentlyOn, long clockMilliseconds)
     {
         Step(clockMilliseconds);
-        _target = currentlyOn ? preset.Lens : unchecked(preset.Lens * (int)((uint)multiplier.Raw >> 12));
+        _target = currentlyOn ? _preset.Lens : unchecked(_preset.Lens * (int)((uint)multiplier.Raw >> 12));
         if (_target != Lens)
         {
             int requested = ViewDistance + (_target > Lens ? 0xA000 : -0xA000);
-            ViewDistance = Math.Clamp(requested, preset.MinViewDistance, preset.MaxViewDistance - 1);
+            ViewDistance = Math.Clamp(requested, _preset.MinViewDistance, _preset.MaxViewDistance - 1);
         }
         _previousMilliseconds = clockMilliseconds;
         _endMilliseconds = clockMilliseconds + 300;

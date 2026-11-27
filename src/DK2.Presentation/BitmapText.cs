@@ -241,12 +241,27 @@ public static class BitmapTextPlacement
 }
 
 /// <summary>The glyphs <see cref="BitmapTextPlacement.Place"/> places, as a struct enumerable.</summary>
-public readonly struct PlacedBitmapGlyphs(BitmapFont font, HudRect box, IReadOnlyList<BitmapTextLine> lines, float scale,
-    bool centred)
+public readonly struct PlacedBitmapGlyphs
 {
+    private readonly BitmapFont _font;
+    private readonly HudRect _box;
+    private readonly IReadOnlyList<BitmapTextLine> _lines;
+    private readonly float _scale;
+    private readonly bool _centred;
+
+    public PlacedBitmapGlyphs(BitmapFont font, HudRect box, IReadOnlyList<BitmapTextLine> lines, float scale,
+        bool centred)
+    {
+        _font = font;
+        _box = box;
+        _lines = lines;
+        _scale = scale;
+        _centred = centred;
+    }
+
     public Enumerator GetEnumerator()
     {
-        return new Enumerator(font, box, lines, scale, centred);
+        return new Enumerator(_font, _box, _lines, _scale, _centred);
     }
 
     public struct Enumerator

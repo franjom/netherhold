@@ -17,12 +17,25 @@ namespace DK2.Presentation;
 /// dropped, as DK2 runs those arms for its local player only.</summary>
 /// <remarks>Requests arrive during a tick, possibly off the main thread, and are applied by
 /// <see cref="Update"/>.</remarks>
-public sealed class ScriptedViewDirector(
-    PlayerId viewer,
-    Func<int, IReadOnlyList<KcsFrame>?> loadPath,
-    Func<int, string?> subtitle,
-    ISimulationEventSink? downstream = null) : ISimulationEventSink
+public sealed class ScriptedViewDirector : ISimulationEventSink
 {
+    private readonly PlayerId _viewer;
+    private readonly Func<int, IReadOnlyList<KcsFrame>?> _loadPath;
+    private readonly Func<int, string?> _subtitle;
+    private readonly ISimulationEventSink? _downstream;
+
+    public ScriptedViewDirector(
+        PlayerId viewer,
+        Func<int, IReadOnlyList<KcsFrame>?> loadPath,
+        Func<int, string?> subtitle,
+        ISimulationEventSink? downstream = null)
+    {
+        _viewer = viewer;
+        _loadPath = loadPath;
+        _subtitle = subtitle;
+        _downstream = downstream;
+    }
+
     private readonly ConcurrentQueue<ScriptedViewRequest> _requests = new ConcurrentQueue<ScriptedViewRequest>();
     private readonly CinematicLetterbox _letterbox = new CinematicLetterbox();
     private readonly SubtitleQueue _subtitles = new SubtitleQueue();
@@ -59,14 +72,14 @@ public sealed class ScriptedViewDirector(
         // The kinds DK2 sends to no keeper in particular (the flash descriptor, the Mentor countdown,
         // a creature tree's camera glide) reach every viewer when addressed to no keeper
         // (ADR-0767, ADR-0768); any other kind only its own keeper.
-        if (simEvent.ScriptedView is { } request && (request.Player == viewer
+        if (simEvent.ScriptedView is { } request && (request.Player == _viewer
                 || request.Player == PlayerIds.Unowned
                     && request.Kind is ScriptedViewKind.FlashButton or ScriptedViewKind.MentorSpeech or ScriptedViewKind.CameraMove))
         {
             _requests.Enqueue(request);
         }
 
-        downstream?.Emit(simEvent);
+        _downstream?.Emit(simEvent);
     }
 
     public bool PathPlaying
@@ -189,7 +202,7 @@ public sealed class ScriptedViewDirector(
         get
         {
             int line = _speechAudioEnabled ? _speechLine?.Value ?? -1 : _subtitles.Current;
-            return _path is not null && line >= 0 ? subtitle(line) : null;
+            return _path is not null && line >= 0 ? _subtitle(line) : null;
         }
     }
     public void SetSpeechPlayback(bool enabled, SpeechLineId? line)
@@ -311,7 +324,7 @@ public sealed class ScriptedViewDirector(
             case ScriptedViewKind.CameraPath:
                 // The simulation refuses a start while a path plays (CameraPathRules.TryStart), so
                 // a request it sent is the path the script now has; one still drawn gives way.
-                if (loadPath(request.Value) is not { Count: > 0 } frames)
+                if (_loadPath(request.Value) is not { Count: > 0 } frames)
                 {
                     return;
                 }
@@ -388,7 +401,7 @@ public sealed class ScriptedViewDirector(
                 }
 
                 int line = request.Value - 1;
-                if (subtitle(line) is { } text)
+                if (_subtitle(line) is { } text)
                 {
                     _subtitles.Enqueue(line, text.Length);
                 }

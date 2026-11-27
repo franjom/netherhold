@@ -941,23 +941,36 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
             (byte)Math.Max(48, (int)colour.Blue));
     }
 
-    private sealed class Emitter(int id, EffectDef definition, ViewEffectRequest request, int health,
-        int velocityX, int velocityY, int velocityZ)
+    private sealed class Emitter
     {
-        public readonly int Id = id;
-        public readonly EffectDef Definition = definition;
-        public ViewEffectRequest Request = request;
+        public Emitter(int id, EffectDef definition, ViewEffectRequest request, int health,
+                int velocityX, int velocityY, int velocityZ)
+        {
+            Id = id;
+            Definition = definition;
+            Request = request;
+            Health = health;
+            VelocityX = velocityX;
+            VelocityY = velocityY;
+            VelocityZ = velocityZ;
+            RampSteps = 1;
+            RampShown = 1;
+        }
+
+        public readonly int Id;
+        public readonly EffectDef Definition;
+        public ViewEffectRequest Request;
         public CaptureEdges? CaptureBoundary;
-        public int Health = health;
+        public int Health;
         public int ChildCount;
         public int Age;
-        public int VelocityX = velocityX, VelocityY = velocityY, VelocityZ = velocityZ;
+        public int VelocityX, VelocityY, VelocityZ;
         /// <summary>The instance's light (<c>+0x12B</c>) and its fade ramp: the mode (light
         /// <c>+0x134</c> bits 0x100 in, 0x200 out, 0x400 in then out), the steps (<c>+0x138</c>), the
         /// counter (<c>+0x13A</c>) and the step its colour was last scaled by (<c>+0x111</c>).</summary>
         public bool HasLight;
         public LightRamp Ramp;
-        public int RampSteps = 1, RampCounter, RampShown = 1;
+        public int RampSteps, RampCounter, RampShown;
     }
 
     private enum LightRamp { Steady, In, Out, InThenOut }

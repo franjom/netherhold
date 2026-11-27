@@ -23,8 +23,17 @@ public readonly record struct BattleViewSnapshot(BattleViewSlot Slot, TilePos Ce
 
 /// <summary>View-owned battle membership and music raises captured from each settled turn; never writes the world.</summary>
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/music.md#8-pseudocode-ours")]
-public sealed class MusicWorldObserver(PlayerId viewer, MusicDirector music)
+public sealed class MusicWorldObserver
 {
+    private readonly PlayerId _viewer;
+    private readonly MusicDirector _music;
+
+    public MusicWorldObserver(PlayerId viewer, MusicDirector music)
+    {
+        _viewer = viewer;
+        _music = music;
+    }
+
     private sealed class Battle
     {
         public readonly Dictionary<int, long> Members = new Dictionary<int, long>();
@@ -72,7 +81,7 @@ public sealed class MusicWorldObserver(PlayerId viewer, MusicDirector music)
             {
                 if (moving && resume is 164 or 180 or 184 || state == 186)
                 {
-                    music.Raise(MusicLevel.Raid);
+                    _music.Raise(MusicLevel.Raid);
                 }
             }
 
@@ -82,17 +91,17 @@ public sealed class MusicWorldObserver(PlayerId viewer, MusicDirector music)
             {
                 if ((world.Player(creature.OwnerPlayerId).Finale.Flags & FinaleRules.SequenceStarted) != 0)
                 {
-                    music.Set(MusicLevel.Silent);
+                    _music.Set(MusicLevel.Silent);
                 }
                 else
                 {
-                    music.Raise(MusicLevel.Reaper);
+                    _music.Raise(MusicLevel.Reaper);
                 }
             }
         }
         if (tick.Value + 1 == HeartIntroRules.StartTurn(database) + HeartIntroRules.SequenceSeconds * SimulationTiming.TicksPerSecond)
         {
-            music.Set(MusicLevel.Silent);
+            _music.Set(MusicLevel.Silent);
         }
 
         foreach (Battle battle in _battles)
@@ -115,7 +124,7 @@ public sealed class MusicWorldObserver(PlayerId viewer, MusicDirector music)
                 if (creature is null || !CreatureStateMachine.HasState(creature) || creature.Health <= 0
                     || !fighting && tick.Value >= battle.Members[id])
                 { battle.Members.Remove(id); continue; }
-                if (fighting && creature.OwnerPlayerId != viewer
+                if (fighting && creature.OwnerPlayerId != _viewer
                     && database.Creatures.TryGetValue(creature.CreatureTypeId, out CreatureDef? definition))
                 {
                     threat += FearRules.ThreatAtLevel(database, definition, creature.Level);
@@ -124,15 +133,15 @@ public sealed class MusicWorldObserver(PlayerId viewer, MusicDirector music)
             Recenter(battle, world);
             if (threat >= database[VariableTypeId.MusicLevelFourThreatThreshold])
             {
-                music.Raise(MusicLevel.Reaper);
+                _music.Raise(MusicLevel.Reaper);
             }
             else if (threat >= database[VariableTypeId.MusicLevelThreeThreatThreshold])
             {
-                music.Raise(MusicLevel.LargeBattle);
+                _music.Raise(MusicLevel.LargeBattle);
             }
             else if (threat >= database[VariableTypeId.MusicLevelTwoThreatThreshold])
             {
-                music.Raise(MusicLevel.Battle);
+                _music.Raise(MusicLevel.Battle);
             }
         }
         for (byte owner = 0; owner < 8; owner++)
@@ -166,7 +175,7 @@ public sealed class MusicWorldObserver(PlayerId viewer, MusicDirector music)
 
                 Battle chosen = nearest is not null && distance <= 0x1900 ? nearest
                     : FirstEmptyBattle() ?? nearest!;
-                if (creature.OwnerPlayerId == viewer && !HoldsCreatureOf(chosen, world, viewer))
+                if (creature.OwnerPlayerId == _viewer && !HoldsCreatureOf(chosen, world, _viewer))
                 {
                     ViewerBattleEntries++;
                 }

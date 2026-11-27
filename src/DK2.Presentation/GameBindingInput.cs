@@ -20,17 +20,30 @@ public readonly record struct GameShortcutContext
 }
 
 /// <summary>Host binding resolution, independent of the keyboard platform and simulation.</summary>
-public readonly struct GameBindingInput(GameSettings settings, KeyModifiers modifiers,
-    Func<KeyScanCode, bool> held, Func<KeyScanCode, bool> pressed)
+public readonly struct GameBindingInput
 {
+    private readonly GameSettings _settings;
+    private readonly KeyModifiers _modifiers;
+    private readonly Func<KeyScanCode, bool> _held;
+    private readonly Func<KeyScanCode, bool> _pressed;
+
+    public GameBindingInput(GameSettings settings, KeyModifiers modifiers,
+        Func<KeyScanCode, bool> held, Func<KeyScanCode, bool> pressed)
+    {
+        _settings = settings;
+        _modifiers = modifiers;
+        _held = held;
+        _pressed = pressed;
+    }
+
     public bool Held(GameAction action, bool exactModifiers = false)
     {
-        return Matches(action, held, exactModifiers);
+        return Matches(action, _held, exactModifiers);
     }
 
     public bool Pressed(GameAction action)
     {
-        return Matches(action, pressed, exact: true);
+        return Matches(action, _pressed, exact: true);
     }
 
     /// <summary>Shift, Control and Alt as held now.</summary>
@@ -38,14 +51,14 @@ public readonly struct GameBindingInput(GameSettings settings, KeyModifiers modi
     {
         get
         {
-            return modifiers;
+            return _modifiers;
         }
     }
 
     /// <summary>Whether a key went down this frame, whatever it is bound to.</summary>
     public bool KeyPressed(KeyScanCode scan)
     {
-        return pressed(scan);
+        return _pressed(scan);
     }
 
     private bool Matches(GameAction action, Func<KeyScanCode, bool> read, bool exact)
@@ -55,17 +68,17 @@ public readonly struct GameBindingInput(GameSettings settings, KeyModifiers modi
             return false;
         }
 
-        GameKeyBinding binding = settings.Binding(action);
+        GameKeyBinding binding = _settings.Binding(action);
         bool active = read(binding.ScanCode);
         if (action is GameAction.CameraModifier or GameAction.FastScroll)
         {
             KeyModifiers role = binding.ScanCode switch { 0x1d or 0x9d => KeyModifiers.Control, 0x2a or 0x36 => KeyModifiers.Shift, _ => KeyModifiers.None };
             if (role != KeyModifiers.None)
             {
-                active = (modifiers & role) != 0;
+                active = (_modifiers & role) != 0;
             }
         }
-        return binding.ScanCode != 0 && (exact ? modifiers == binding.Modifiers : (modifiers & binding.Modifiers) == binding.Modifiers) && active;
+        return binding.ScanCode != 0 && (exact ? _modifiers == binding.Modifiers : (_modifiers & binding.Modifiers) == binding.Modifiers) && active;
     }
     public ClassicHudAction HudShortcut(GameShortcutContext context, bool escapePressed = false)
     {

@@ -7,9 +7,14 @@ using System.Numerics;
 namespace DK2.Presentation;
 
 /// <summary>The private presentation CRT stream; never a simulation random source.</summary>
-public sealed class LightningRandom(uint seed)
+public sealed class LightningRandom
 {
-    private uint _seed = seed;
+    public LightningRandom(uint seed)
+    {
+        _seed = seed;
+    }
+
+    private uint _seed;
     public int Next15()
     {
         _seed = unchecked(_seed * 0x343FD + 0x269EC3);
@@ -43,11 +48,18 @@ public sealed class LightningPathBuffer
     public float SubdivisionMaximumSegmentLength { get; internal set; }
 }
 
-public sealed class LightningBolts(uint seed)
+public sealed class LightningBolts
 {
-    private readonly LightningRandom _random = new LightningRandom(seed);
-    private readonly List<LightningPathBuffer> _pool = new List<LightningPathBuffer>();
-    private readonly List<LightningPathBuffer> _paths = new List<LightningPathBuffer>();
+    public LightningBolts(uint seed)
+    {
+        _random = new LightningRandom(seed);
+        _pool = new List<LightningPathBuffer>();
+        _paths = new List<LightningPathBuffer>();
+    }
+
+    private readonly LightningRandom _random;
+    private readonly List<LightningPathBuffer> _pool;
+    private readonly List<LightningPathBuffer> _paths;
     private int _usedPaths;
     public const float SegmentLimit = .06f;
     public const float RibbonHalfWidth = .03f;
