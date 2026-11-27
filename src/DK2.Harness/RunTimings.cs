@@ -342,11 +342,18 @@ internal sealed class RunClock : ISimulationProfiler
         return TimeSpan.FromSeconds((double)timestamps / Stopwatch.Frequency);
     }
 
-    private struct Frame(SimulationMarker marker, long allocStart, long start)
+    private struct Frame
     {
-        public readonly SimulationMarker Marker = marker;
-        public readonly long AllocStart = allocStart;
-        public readonly long Start = start;
+        public Frame(SimulationMarker marker, long allocStart, long start)
+        {
+            Marker = marker;
+            AllocStart = allocStart;
+            Start = start;
+        }
+
+        public readonly SimulationMarker Marker;
+        public readonly long AllocStart;
+        public readonly long Start;
         public long ChildTime;
         public long ChildAllocated;
     }

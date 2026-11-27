@@ -409,9 +409,20 @@ public static class DecisionCheck
     }
 
     /// <summary>The one system the check runs: the decider's choice, and nothing else moving.</summary>
-    private sealed class Probe(
-        ImpTaskSystem imps, CreatureState decider, List<(CreatureState Holder, TilePos Face)> faces) : ISimulationSystem
+    private sealed class Probe : ISimulationSystem
     {
+        private readonly ImpTaskSystem _imps;
+        private readonly CreatureState _decider;
+        private readonly List<(CreatureState Holder, TilePos Face)> _faces;
+
+        public Probe(
+                ImpTaskSystem imps, CreatureState decider, List<(CreatureState Holder, TilePos Face)> faces)
+        {
+            _imps = imps;
+            _decider = decider;
+            _faces = faces;
+        }
+
         public string Name
         {
             get
@@ -426,7 +437,7 @@ public static class DecisionCheck
         {
             // A holder keeps where DK2 had it, for the stealing distance, and walks to its face,
             // which is what our crowding counts; one with no route is put there.
-            foreach ((CreatureState holder, TilePos face) in faces)
+            foreach ((CreatureState holder, TilePos face) in _faces)
             {
                 if (holder.Tile == face || context.Navigation.TryRoute(holder, face, Simulation.Navigation.MoveOptions.Plain))
                 {
@@ -437,7 +448,7 @@ public static class DecisionCheck
                 holder.PosY = holder.LastPosY = CreatureState.CentreOf(face.Y);
             }
 
-            Took = imps.ChooseJob(context, decider);
+            Took = _imps.ChooseJob(context, _decider);
         }
     }
 }

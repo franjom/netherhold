@@ -691,29 +691,40 @@ public sealed record SgmapType(string Kind, IReadOnlyDictionary<string, string> 
     }
 }
 
-internal sealed class SgmapNode(
-    string key, Dictionary<string, string> properties, int lineNumber)
+internal sealed class SgmapNode
 {
-    public string Key { get; } = key;
+    private readonly Dictionary<string, string> _properties;
+    private readonly int _lineNumber;
+
+    public SgmapNode(
+        string key, Dictionary<string, string> properties, int lineNumber)
+    {
+        _properties = properties;
+        _lineNumber = lineNumber;
+        Key = key;
+        Children = [];
+    }
+
+    public string Key { get; }
     public IReadOnlyDictionary<string, string> Properties
     {
         get
         {
-            return properties;
+            return _properties;
         }
     }
 
-    public List<SgmapNode> Children { get; } = [];
+    public List<SgmapNode> Children { get; }
 
     public string Required(string name)
     {
-        return properties.TryGetValue(name, out string? value)
+        return _properties.TryGetValue(name, out string? value)
         ? value : throw Error($"Missing property '{name}'");
     }
 
     public string? Optional(string name)
     {
-        return properties.GetValueOrDefault(name);
+        return _properties.GetValueOrDefault(name);
     }
 
     public uint UInt(string name)
@@ -732,13 +743,13 @@ internal sealed class SgmapNode(
 
     public bool Bool(string name)
     {
-        return properties.TryGetValue(name, out string? value)
+        return _properties.TryGetValue(name, out string? value)
             && bool.TryParse(value, out bool parsed) && parsed;
     }
 
     public FormatException Error(string message)
     {
-        return new FormatException($"Line {lineNumber}: {message}.");
+        return new FormatException($"Line {_lineNumber}: {message}.");
     }
 }
 

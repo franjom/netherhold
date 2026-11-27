@@ -48,11 +48,18 @@ public sealed class PlayerRunDiagnostics
     private readonly Dictionary<int, EnemyTrap> _enemyTraps = [];
 
     /// <summary>An enemy trap as last seen: <see cref="Fires"/> counts the times its recharge moved forward (each a firing).</summary>
-    private sealed class EnemyTrap(string type, byte owner, TilePos tile)
+    private sealed class EnemyTrap
     {
-        public string Type { get; } = type;
-        public byte Owner { get; } = owner;
-        public TilePos Tile { get; } = tile;
+        public EnemyTrap(string type, byte owner, TilePos tile)
+        {
+            Type = type;
+            Owner = owner;
+            Tile = tile;
+        }
+
+        public string Type { get; }
+        public byte Owner { get; }
+        public TilePos Tile { get; }
         public long RechargeAt;
         public int Fires, Health;
         public bool Hidden, Gone;

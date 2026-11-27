@@ -201,8 +201,15 @@ public sealed record ReplayReport(int ComparedTicks, long? FirstDivergentTick, u
 }
 
 /// <summary>Compares a replay's hashes with its journal's as the run goes; inert for an ordinary run.</summary>
-internal sealed class ReplayComparison(InputJournal? journal)
+internal sealed class ReplayComparison
 {
+    private readonly InputJournal? _journal;
+
+    public ReplayComparison(InputJournal? journal)
+    {
+        _journal = journal;
+    }
+
     private int _compared;
     private long? _first;
     private ulong _recorded;
@@ -210,7 +217,7 @@ internal sealed class ReplayComparison(InputJournal? journal)
 
     public void Compare(long tick, ulong hash)
     {
-        if (journal is null || !journal.Hashes.TryGetValue(tick, out ulong recorded))
+        if (_journal is null || !_journal.Hashes.TryGetValue(tick, out ulong recorded))
         {
             return;
         }
@@ -228,6 +235,6 @@ internal sealed class ReplayComparison(InputJournal? journal)
 
     public ReplayReport? Report()
     {
-        return journal is null ? null : new ReplayReport(_compared, _first, _recorded, _replayed, journal.Truncated);
+        return _journal is null ? null : new ReplayReport(_compared, _first, _recorded, _replayed, _journal.Truncated);
     }
 }

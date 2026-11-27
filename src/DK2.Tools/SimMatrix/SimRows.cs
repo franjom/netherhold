@@ -90,20 +90,35 @@ internal static class SimRows
         return type.ContainingType is { } outer ? Display(outer) + "." + type.Name : type.Name;
     }
 
-    private sealed class Reader(
-        Compilation compilation,
-        INamedTypeSymbol systems,
-        INamedTypeSymbol system,
-        INamedTypeSymbol creatureStep,
-        INamedTypeSymbol roomStep)
+    private sealed class Reader
     {
+        private readonly Compilation _compilation;
+        private readonly INamedTypeSymbol _systems;
+        private readonly INamedTypeSymbol _system;
+        private readonly INamedTypeSymbol _creatureStep;
+        private readonly INamedTypeSymbol _roomStep;
+
+        public Reader(
+                Compilation compilation,
+                INamedTypeSymbol systems,
+                INamedTypeSymbol system,
+                INamedTypeSymbol creatureStep,
+                INamedTypeSymbol roomStep)
+        {
+            _compilation = compilation;
+            _systems = systems;
+            _system = system;
+            _creatureStep = creatureStep;
+            _roomStep = roomStep;
+        }
+
         private readonly Dictionary<SyntaxTree, SemanticModel> _models = [];
 
         internal SemanticModel Model(SyntaxNode node)
         {
             if (!_models.TryGetValue(node.SyntaxTree, out SemanticModel? model))
             {
-                _models[node.SyntaxTree] = model = compilation.GetSemanticModel(node.SyntaxTree);
+                _models[node.SyntaxTree] = model = _compilation.GetSemanticModel(node.SyntaxTree);
             }
 
             return model;
@@ -122,7 +137,7 @@ internal static class SimRows
             // A helper that builds a container, such as CreatureUpdate(): its returned expression.
             if (expression is InvocationExpressionSyntax call
                 && Model(call).GetSymbolInfo(call).Symbol is IMethodSymbol helper
-                && SymbolEqualityComparer.Default.Equals(helper.ContainingType, systems))
+                && SymbolEqualityComparer.Default.Equals(helper.ContainingType, _systems))
             {
                 Add(rows, phase, Returned(helper) ?? throw new InvalidDataException($"SimulationSystems.{helper.Name}() returns nothing readable."), kind, parent);
                 return;
@@ -155,12 +170,12 @@ internal static class SimRows
             {
                 if (constructor.Parameters is [{ IsParams: true, Type: IArrayTypeSymbol { ElementType: var element } }])
                 {
-                    if (SymbolEqualityComparer.Default.Equals(element, creatureStep))
+                    if (SymbolEqualityComparer.Default.Equals(element, _creatureStep))
                     {
                         return RowKind.CreatureStep;
                     }
 
-                    if (SymbolEqualityComparer.Default.Equals(element, roomStep))
+                    if (SymbolEqualityComparer.Default.Equals(element, _roomStep))
                     {
                         return RowKind.RoomStep;
                     }
@@ -177,7 +192,7 @@ internal static class SimRows
                 RowKind.CreatureStep => ["BeginTurn", "Update", "EndTurn"],
                 _ => ["BeginTurn", "Applies", "Tick", "EndTurn"],
             };
-            INamedTypeSymbol face = kind switch { RowKind.System => system, RowKind.CreatureStep => creatureStep, _ => roomStep };
+            INamedTypeSymbol face = kind switch { RowKind.System => _system, RowKind.CreatureStep => _creatureStep, _ => _roomStep };
             return names
                 .Select(n => face.GetMembers(n).OfType<IMethodSymbol>().Single())
                 .Select(m => type.FindImplementationForInterfaceMember(m) as IMethodSymbol
@@ -220,7 +235,7 @@ internal static class SimRows
             {
                 INamedTypeSymbol[] created = [.. syntax.DescendantNodes().OfType<BaseObjectCreationExpressionSyntax>()
                     .Select(n => Model(n).GetTypeInfo(n).Type).OfType<INamedTypeSymbol>()
-                    .Where(t => compilation.HasImplicitConversion(t, property.Type))
+                    .Where(t => _compilation.HasImplicitConversion(t, property.Type))
                     .Distinct<INamedTypeSymbol>(SymbolEqualityComparer.Default)];
                 if (created.Length == 1)
                 {

@@ -17,8 +17,17 @@ namespace DK2.Tools;
 /// gold) is the simulation's, as recorded. "Sent" is not "placed": a sent placement can still be
 /// refused by those.
 /// </summary>
-internal sealed class BlueprintRetry(Func<PlayerCommand, bool> ownsTile, TextWriter? events = null)
+internal sealed class BlueprintRetry
 {
+    private readonly Func<PlayerCommand, bool> _ownsTile;
+    private readonly TextWriter? _events;
+
+    public BlueprintRetry(Func<PlayerCommand, bool> ownsTile, TextWriter? events = null)
+    {
+        _ownsTile = ownsTile;
+        _events = events;
+    }
+
     private readonly List<(long Turn, PlayerCommand Command)> _pending = [];
 
     /// <summary>Placements held for a tile ours did not own when they were recorded.</summary>
@@ -46,12 +55,12 @@ internal sealed class BlueprintRetry(Func<PlayerCommand, bool> ownsTile, TextWri
         for (int i = 0; i < all.Count; i++)
         {
             PlayerCommand command = all[i];
-            if (command is PlaceDoorCommand or PlaceTrapCommand && !ownsTile(command))
+            if (command is PlaceDoorCommand or PlaceTrapCommand && !_ownsTile(command))
             {
                 kept ??= [.. all.Take(i)];
                 _pending.Add((turn, command));
                 Held++;
-                events?.WriteLine($"{turn}\treplay\tblueprint_held\t{Describe(command)}");
+                _events?.WriteLine($"{turn}\treplay\tblueprint_held\t{Describe(command)}");
                 continue;
             }
             kept?.Add(command);
@@ -59,7 +68,7 @@ internal sealed class BlueprintRetry(Func<PlayerCommand, bool> ownsTile, TextWri
         for (int i = 0; i < _pending.Count; i++)
         {
             (long heldAt, PlayerCommand command) = _pending[i];
-            if (!ownsTile(command))
+            if (!_ownsTile(command))
             {
                 continue;
             }
@@ -67,7 +76,7 @@ internal sealed class BlueprintRetry(Func<PlayerCommand, bool> ownsTile, TextWri
             (kept ??= [.. all]).Add(command);
             _pending.RemoveAt(i--);
             SentLater++;
-            events?.WriteLine($"{turn}\treplay\tblueprint_sent_later\t{Describe(command)} recorded={heldAt}");
+            _events?.WriteLine($"{turn}\treplay\tblueprint_sent_later\t{Describe(command)} recorded={heldAt}");
         }
         return kept is null ? frame : kept.Count == 0 ? InputFrame.Empty : new InputFrame(kept);
     }

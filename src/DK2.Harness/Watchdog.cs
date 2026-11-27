@@ -47,10 +47,21 @@ public sealed record WatchSummary(string Root, int Ran, int NotPassed, int Unrun
 /// deleted or mistaken for an earlier run's. The child writes its report and journal; for a run
 /// that did not pass, the watchdog adds <c>failure.md</c> and keeps the child's output.
 /// </summary>
-/// <param name="launch">Starts one job into an output folder. Defaults to this harness's <c>run</c>
-/// verb; tests substitute another process.</param>
-public sealed class Watchdog(string outRoot, WatchLimits limits, Func<WatchJob, string, ProcessStartInfo>? launch = null)
+public sealed class Watchdog
 {
+    private readonly string _outRoot;
+    private readonly WatchLimits _limits;
+    private readonly Func<WatchJob, string, ProcessStartInfo>? _launch;
+
+    /// <param name="launch">Starts one job into an output folder. Defaults to this harness's <c>run</c>
+    /// verb; tests substitute another process.</param>
+    public Watchdog(string outRoot, WatchLimits limits, Func<WatchJob, string, ProcessStartInfo>? launch = null)
+    {
+        _outRoot = outRoot;
+        _limits = limits;
+        _launch = launch;
+    }
+
     private volatile bool _cancelled;
     private readonly object _childrenGate = new object();
     private readonly HashSet<Process> _children = [];
@@ -78,7 +89,7 @@ public sealed class Watchdog(string outRoot, WatchLimits limits, Func<WatchJob, 
 
     public WatchSummary Watch(IReadOnlyList<WatchJob> jobs, TextWriter log)
     {
-        string root = Path.Combine(outRoot, "watch-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-fff", CultureInfo.InvariantCulture));
+        string root = Path.Combine(_outRoot, "watch-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-fff", CultureInfo.InvariantCulture));
         Directory.CreateDirectory(root);
         log.WriteLine($"watch output: {root}");
         string summaryPath = Path.Combine(root, "watch-summary.tsv");
@@ -90,7 +101,7 @@ public sealed class Watchdog(string outRoot, WatchLimits limits, Func<WatchJob, 
         string? stopped = null;
         var outcomes = new Outcome?[jobs.Count];
         object outputGate = new object();
-        using var slots = new SemaphoreSlim(limits.Jobs, limits.Jobs);
+        using var slots = new SemaphoreSlim(_limits.Jobs, _limits.Jobs);
         var workers = new List<Task>();
         try
         {
@@ -100,14 +111,14 @@ public sealed class Watchdog(string outRoot, WatchLimits limits, Func<WatchJob, 
                 bool launched = false;
                 try
                 {
-                    TimeSpan left = limits.Total - total.Elapsed;
-                    if (_cancelled || run >= limits.MaxRuns || left <= TimeSpan.Zero)
+                    TimeSpan left = _limits.Total - total.Elapsed;
+                    if (_cancelled || run >= _limits.MaxRuns || left <= TimeSpan.Zero)
                     {
-                        stopped = $"stopping before {job.File}: {(_cancelled ? "cancelled" : run >= limits.MaxRuns ? "run limit" : "time budget")} reached";
+                        stopped = $"stopping before {job.File}: {(_cancelled ? "cancelled" : run >= _limits.MaxRuns ? "run limit" : "time budget")} reached";
                         break;
                     }
                     int index = run++;
-                    TimeSpan limit = left < limits.PerRun ? left : limits.PerRun;
+                    TimeSpan limit = left < _limits.PerRun ? left : _limits.PerRun;
                     workers.Add(Task.Run(() =>
                     {
                         try
@@ -181,7 +192,7 @@ public sealed class Watchdog(string outRoot, WatchLimits limits, Func<WatchJob, 
         var stdout = new StringBuilder();
         var stderr = new StringBuilder();
         var clock = Stopwatch.StartNew();
-        ProcessStartInfo start = (launch ?? SelfRun)(job, runOut);
+        ProcessStartInfo start = (_launch ?? SelfRun)(job, runOut);
         start.RedirectStandardOutput = start.RedirectStandardError = true;
         start.UseShellExecute = false;
         start.CreateNoWindow = true;

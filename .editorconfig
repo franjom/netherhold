@@ -173,3 +173,9 @@ csharp_style_prefer_primary_constructors = false
 
 [src/DK2.Presentation/**.cs]
 csharp_style_prefer_primary_constructors = false
+
+[src/DK2.Tools/**.cs]
+csharp_style_prefer_primary_constructors = false
+
+[src/DK2.Harness/**.cs]
+csharp_style_prefer_primary_constructors = false

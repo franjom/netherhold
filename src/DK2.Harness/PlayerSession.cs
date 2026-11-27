@@ -48,12 +48,19 @@ public sealed record PlayerSessionLimits
 /// </summary>
 public sealed class PlayerSession
 {
-    private sealed class Entry(PlayerRequest request, PlayerReceipt receipt, IReadOnlyList<PlayerCommand> commands)
+    private sealed class Entry
     {
-        public PlayerRequest Request { get; } = request;
-        public PlayerReceipt Receipt { get; set; } = receipt;
+        public Entry(PlayerRequest request, PlayerReceipt receipt, IReadOnlyList<PlayerCommand> commands)
+        {
+            Request = request;
+            Receipt = receipt;
+            Commands = commands;
+        }
+
+        public PlayerRequest Request { get; }
+        public PlayerReceipt Receipt { get; set; }
         /// <summary>Released once drained or cancelled, so the ledger keeps only what retries need.</summary>
-        public IReadOnlyList<PlayerCommand> Commands { get; set; } = commands;
+        public IReadOnlyList<PlayerCommand> Commands { get; set; }
     }
 
     private readonly PlayerRunId _run;

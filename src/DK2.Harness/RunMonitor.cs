@@ -59,9 +59,24 @@ public sealed record RunCoverage(
 /// project's own contract: a restored world continues with identical hashes (<c>WorldSnapshot</c>,
 /// <c>SnapshotTests</c>).
 /// </summary>
-internal sealed class RunMonitor(
-    RunOptions options, GameDatabase database, Func<TriggerTree?> freshTriggers, List<ScenarioWork> work, int durationTicks)
+internal sealed class RunMonitor
 {
+    private readonly RunOptions _options;
+    private readonly GameDatabase _database;
+    private readonly Func<TriggerTree?> _freshTriggers;
+    private readonly List<ScenarioWork> _work;
+    private readonly int _durationTicks;
+
+    public RunMonitor(
+        RunOptions options, GameDatabase database, Func<TriggerTree?> freshTriggers, List<ScenarioWork> work, int durationTicks)
+    {
+        _options = options;
+        _database = database;
+        _freshTriggers = freshTriggers;
+        _work = work;
+        _durationTicks = durationTicks;
+    }
+
     private readonly HashSet<ushort> _reached = [];
     private readonly Dictionary<int, long> _states = [];
     private readonly Dictionary<byte, int> _lastCommandTick = [];
@@ -79,7 +94,7 @@ internal sealed class RunMonitor(
 
     public void Start(GameSimulation simulation)
     {
-        if (options.Coverage)
+        if (_options.Coverage)
         {
             simulation.TrackTriggerReach = true;
         }
@@ -100,12 +115,12 @@ internal sealed class RunMonitor(
             StepShadow(tick, given, liveHash);
         }
         // A check started on the last tick could never step, so none is.
-        if (options.SnapshotCheckEvery > 0 && _shadow is null && done % options.SnapshotCheckEvery == 0 && done < durationTicks)
+        if (_options.SnapshotCheckEvery > 0 && _shadow is null && done % _options.SnapshotCheckEvery == 0 && done < _durationTicks)
         {
             StartShadow(live, done);
         }
 
-        if (options.Coverage)
+        if (_options.Coverage)
         {
             if (live.LastTriggerRun?.Reached is HashSet<ushort> reached)
             {
@@ -118,17 +133,17 @@ internal sealed class RunMonitor(
             }
         }
 
-        if (options.ProgressEvery > 0 && done % options.ProgressEvery == 0)
+        if (_options.ProgressEvery > 0 && done % _options.ProgressEvery == 0)
         {
             Sample(live.World, done);
         }
 
-        options.AfterTick?.Invoke(tick, live);
+        _options.AfterTick?.Invoke(tick, live);
     }
 
     public RunCoverage? Coverage(IReadOnlyList<SimEvent> events)
     {
-        return options.Coverage
+        return _options.Coverage
         ? new RunCoverage(_reached.Count, _states,
             events.GroupBy(e => e.Kind).ToDictionary(g => g.Key, g => g.Count(), StringComparer.Ordinal))
         : null;
@@ -136,14 +151,14 @@ internal sealed class RunMonitor(
 
     private void StartShadow(GameSimulation live, int done)
     {
-        _shadowUntil = done + options.SnapshotCheckTicks;
+        _shadowUntil = done + _options.SnapshotCheckTicks;
         SnapshotChecks++;
         try
         {
             using var stream = new MemoryStream();
             WorldSnapshot.Write(stream, live);
             stream.Position = 0;
-            _shadow = WorldSnapshot.Read(stream, database, SimulationSystems.Default(), freshTriggers());
+            _shadow = WorldSnapshot.Read(stream, _database, SimulationSystems.Default(), _freshTriggers());
         }
         catch (Exception ex)
         {
@@ -163,13 +178,13 @@ internal sealed class RunMonitor(
     {
         try
         {
-            ScenarioInputBuilder.InjectWork(_shadow!.World, work, tick);
+            ScenarioInputBuilder.InjectWork(_shadow!.World, _work, tick);
             _shadow.Tick(given);
         }
         catch (Exception ex)
         {
             InvariantFailures.Add(
-                $"snapshot continuation: the world restored at tick {_shadowUntil - options.SnapshotCheckTicks} " +
+                $"snapshot continuation: the world restored at tick {_shadowUntil - _options.SnapshotCheckTicks} " +
                 $"threw at tick {tick + 1}: {ex.GetType().FullName}: {ex.Message}");
             _shadow = null;
             return;
@@ -177,7 +192,7 @@ internal sealed class RunMonitor(
         if (_shadow.StateHash() != liveHash)
         {
             InvariantFailures.Add(
-                $"snapshot continuation: the world restored at tick {_shadowUntil - options.SnapshotCheckTicks} " +
+                $"snapshot continuation: the world restored at tick {_shadowUntil - _options.SnapshotCheckTicks} " +
                 $"diverged from the live run after tick {tick + 1}");
             _shadow = null;
         }
@@ -197,7 +212,7 @@ internal sealed class RunMonitor(
         {
             TileState tile = world.TileAtIndex(i);
             owned[tile.OwnerPlayerId]++;
-            if (database.TerrainById(tile.TerrainId).IsRoom)
+            if (_database.TerrainById(tile.TerrainId).IsRoom)
             {
                 roomTiles[tile.OwnerPlayerId]++;
             }
@@ -224,7 +239,7 @@ internal sealed class RunMonitor(
     /// is a stall candidate. Only controlled players are judged, once each.</summary>
     private void JudgeStall(ProgressSample sample)
     {
-        if (!options.Controllers.Any(c => c.PlayerId.Value == sample.Player) || _flagged.Contains(sample.Player))
+        if (!_options.Controllers.Any(c => c.PlayerId.Value == sample.Player) || _flagged.Contains(sample.Player))
         {
             return;
         }
@@ -234,7 +249,7 @@ internal sealed class RunMonitor(
             _still[sample.Player] = (sample.Tick, sample);
             return;
         }
-        if (sample.Tick - still.Since < options.StallWindowTicks)
+        if (sample.Tick - still.Since < _options.StallWindowTicks)
         {
             return;
         }

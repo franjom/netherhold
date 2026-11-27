@@ -339,15 +339,36 @@ public static class PlayerRunReport
 }
 
 /// <summary>Evidence did not reach disk: the run's verdict is incomplete evidence, not a technical failure.</summary>
-public sealed class EvidenceWriteException(string message, Exception? inner = null) : IOException(message, inner);
+public sealed class EvidenceWriteException : IOException
+{
+    public EvidenceWriteException(string message, Exception? inner = null) : base(message, inner)
+    {
+    }
+}
 
 /// <summary>A configuration the run refuses before any tick (exit 2, not a technical failure).</summary>
-public sealed class PlayerRunRefusedException(string message, string? parameter = null) : ArgumentException(message, parameter);
+public sealed class PlayerRunRefusedException : ArgumentException
+{
+    public PlayerRunRefusedException(string message, string? parameter = null) : base(message, parameter)
+    {
+    }
+}
 
 /// <summary>A write-only stream that counts what passes through and reports when a budget less its
 /// reserve is reached, so the run can stop with room left for the final journal record and report.</summary>
-public sealed class BudgetedStream(Stream inner, long budgetBytes, long reserveBytes) : Stream
+public sealed class BudgetedStream : Stream
 {
+    private readonly Stream _inner;
+    private readonly long _budgetBytes;
+    private readonly long _reserveBytes;
+
+    public BudgetedStream(Stream inner, long budgetBytes, long reserveBytes)
+    {
+        _inner = inner;
+        _budgetBytes = budgetBytes;
+        _reserveBytes = reserveBytes;
+    }
+
     public long Written { get; private set; }
 
     /// <summary>True once writing on would eat into the reserve.</summary>
@@ -355,7 +376,7 @@ public sealed class BudgetedStream(Stream inner, long budgetBytes, long reserveB
     {
         get
         {
-            return Written >= budgetBytes - reserveBytes;
+            return Written >= _budgetBytes - _reserveBytes;
         }
     }
 
@@ -366,12 +387,12 @@ public sealed class BudgetedStream(Stream inner, long budgetBytes, long reserveB
 
     public override void Write(ReadOnlySpan<byte> buffer)
     {
-        if (Written + buffer.Length > budgetBytes)
+        if (Written + buffer.Length > _budgetBytes)
         {
-            throw new EvidenceWriteException($"The output budget of {budgetBytes} bytes is exhausted.");
+            throw new EvidenceWriteException($"The output budget of {_budgetBytes} bytes is exhausted.");
         }
 
-        try { inner.Write(buffer); }
+        try { _inner.Write(buffer); }
         catch (IOException ex) { throw new EvidenceWriteException($"The journal could not be written: {ex.Message}", ex); }
         Written += buffer.Length;
     }
@@ -383,7 +404,7 @@ public sealed class BudgetedStream(Stream inner, long budgetBytes, long reserveB
 
     public override void Flush()
     {
-        try { inner.Flush(); }
+        try { _inner.Flush(); }
         catch (IOException ex) { throw new EvidenceWriteException($"The journal could not be flushed: {ex.Message}", ex); }
     }
     public override bool CanRead
@@ -451,7 +472,7 @@ public sealed class BudgetedStream(Stream inner, long budgetBytes, long reserveB
         {
             if (disposing)
             {
-                inner.Dispose();
+                _inner.Dispose();
             }
         }
         catch (IOException ex) when (ex is not EvidenceWriteException)
