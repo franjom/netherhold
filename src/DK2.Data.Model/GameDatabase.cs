@@ -304,10 +304,10 @@ public sealed class GameDatabase
                 CreatureStatId.Fear => c with { Fear = (ushort)e.Value },
                 CreatureStatId.Threat => c with { Threat = (ushort)e.Value },
                 CreatureStatId.MeleeDamage => c with { MeleeDamage = (ushort)e.Value },
-                (CreatureStatId)21 => c with { Speed = new Fp32(e.Value) },
-                (CreatureStatId)22 => c with { RunSpeed = new Fp32(e.Value) },
+                CreatureStatId.Speed => c with { Speed = new Fp32(e.Value) },
+                CreatureStatId.RunSpeed => c with { RunSpeed = new Fp32(e.Value) },
                 // A raw dword in whole tiles: the loader itself rounds the file's 12.12 value to tiles.
-                (CreatureStatId)30 => c with { DistanceCanHear = new Fp32(e.Value << 12) },
+                CreatureStatId.DistanceCanHear => c with { DistanceCanHear = new Fp32(e.Value << 12) },
                 _ => throw new InvalidDataException($"VARIABLES id 77 selector {e.Selector} is not mapped (creature {e.CreatureId})."),
             };
         }

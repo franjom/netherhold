@@ -1,8 +1,5 @@
 # Assembly|Source path|Containing symbol|Enum type|Underlying value|Count
 DK2.Behavior.Tests|tests/DK2.Behavior.Tests/ObjectsOnRealDataTests.cs|M:DK2.Behavior.Tests.ObjectsOnRealDataTests.TheCarryFlagsNameOneBookFifteenSpecialsAndEighteenCratesAndNoFurniture|global::DK2.Data.Model.ObjectFlags|0|1
-DK2.Data.Model|src/DK2.Data.Model/GameDatabase.cs|M:DK2.Data.Model.GameDatabase.WithFieldOverrides(System.Collections.Generic.IEnumerable{DK2.Data.Model.CreatureDef},DK2.Data.Model.GlobalVariables)|global::DK2.Data.Model.CreatureStatId|21|1
-DK2.Data.Model|src/DK2.Data.Model/GameDatabase.cs|M:DK2.Data.Model.GameDatabase.WithFieldOverrides(System.Collections.Generic.IEnumerable{DK2.Data.Model.CreatureDef},DK2.Data.Model.GlobalVariables)|global::DK2.Data.Model.CreatureStatId|22|1
-DK2.Data.Model|src/DK2.Data.Model/GameDatabase.cs|M:DK2.Data.Model.GameDatabase.WithFieldOverrides(System.Collections.Generic.IEnumerable{DK2.Data.Model.CreatureDef},DK2.Data.Model.GlobalVariables)|global::DK2.Data.Model.CreatureStatId|30|1
 DK2.Data.Tests|tests/DK2.Data.Tests/KwdCreaturesWriterTests.cs|M:DK2.Data.Tests.KwdCreaturesWriterTests.FilteredListsEditTheirActiveSourceSlotsAndPreserveEmptySlots|global::DK2.Data.Model.JobType|13|1
 DK2.Data.Tests|tests/DK2.Data.Tests/KwdVariablesWriterTests.cs|M:DK2.Data.Tests.KwdVariablesWriterTests.RefusesAnEntryThatDoesNotMatchTheTemplateShape(System.Int32)|global::DK2.Data.Model.VariableTypeId|3|1
 DK2.Presentation.Tests|tests/DK2.Presentation.Tests/BottomPanelFlashTests.cs|M:DK2.Presentation.Tests.BottomPanelFlashTests.UsingTheFlashedItemClearsIt_RoomIdAssumedTheRoomType|global::DK2.Data.Model.RoomTypeId|2|2
