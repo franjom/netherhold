@@ -118,3 +118,18 @@ dotnet_sort_system_directives_first = true
 
 [src/DK2.Core/**.cs]
 dotnet_sort_system_directives_first = true
+
+[src/DK2.Data/**.cs]
+dotnet_sort_system_directives_first = true
+
+[src/DK2.Data.Model/**.cs]
+dotnet_sort_system_directives_first = true
+
+[src/DK2.Assets/**.cs]
+dotnet_sort_system_directives_first = true
+
+[src/DK2.Art/**.cs]
+dotnet_sort_system_directives_first = true
+
+[src/DK2.Convert/**.cs]
+dotnet_sort_system_directives_first = true

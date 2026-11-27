@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
-using System.Text;
 using System.Buffers.Binary;
+using System.Text;
 using DK2.Data.Model;
 
 namespace DK2.Data;
