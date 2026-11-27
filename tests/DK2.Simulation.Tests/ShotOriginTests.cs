@@ -13,7 +13,7 @@ namespace DK2.Simulation.Tests;
 /// (<c>0x00498989</c>, combat-spells.md §7, ADR-0489): the Dark Elf's (0, −2048) is half a tile ahead.</summary>
 public class ShotOriginTests
 {
-    private static readonly CreatureSpellSlot DarkElf = new(12, 1, new Fp32(0), 1, 0, -2048, 2662);
+    private static readonly CreatureSpellSlot DarkElf = new CreatureSpellSlot(12, 1, new Fp32(0), 1, 0, -2048, 2662);
 
     [Theory]
     [InlineData(0, 0, -2048)]      // facing -Y

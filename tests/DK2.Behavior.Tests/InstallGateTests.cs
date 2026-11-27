@@ -42,7 +42,7 @@ public class InstallGateTests
     /// </summary>
     private static DirectoryInfo RepoRoot()
     {
-        DirectoryInfo? dir = new(AppContext.BaseDirectory);
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "DK2.slnx")))
         {
             dir = dir.Parent;

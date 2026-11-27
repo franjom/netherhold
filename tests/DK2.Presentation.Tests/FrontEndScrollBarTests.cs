@@ -6,7 +6,7 @@ namespace DK2.Presentation.Tests;
 
 public sealed class FrontEndScrollBarTests
 {
-    private static readonly FrontEndRect StatisticsList = new(760, 968, 1500, 512);   // widget 180
+    private static readonly FrontEndRect StatisticsList = new FrontEndRect(760, 968, 1500, 512);   // widget 180
 
     private static FrontEndScrollBar Armed()
     {

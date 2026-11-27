@@ -10,7 +10,7 @@ namespace DK2.Simulation.Tests;
 public sealed class CombatPitTransportTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
-    private static readonly TilePos Floor = new(6, 6);
+    private static readonly TilePos Floor = new TilePos(6, 6);
 
     private static ISimulationSystem[] Steps(bool movement)
     {

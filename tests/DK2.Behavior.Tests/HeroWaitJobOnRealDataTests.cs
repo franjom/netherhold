@@ -31,7 +31,7 @@ public class HeroWaitJobOnRealDataTests
             GameDatabaseLoader.LoadCampaignThings(install, level)!,
             GameDatabaseLoader.LoadCampaignTriggers(install, level)!, seed: 1);
         sim.Tick();
-        TilePos spawn = new(27, 43);
+        var spawn = new TilePos(27, 43);
         CreatureState guard = Assert.Single(sim.World.Creatures, c => c.Tile == spawn
             && c.OwnerPlayerId == PlayerIds.Good && db.CreatureById(c.CreatureTypeId).Name == "Guard");
         CreatureState dwarf = Assert.Single(sim.World.Creatures, c => c.Tile == spawn

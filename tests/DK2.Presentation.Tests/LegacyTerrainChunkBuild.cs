@@ -18,7 +18,7 @@ internal sealed class LegacyTerrainChunkBuild
 {
     private static readonly Vector2[] QuadrantCentres =
     [
-        new(-0.25f, 0.25f), new(0.25f, 0.25f), new(0.25f, -0.25f), new(-0.25f, -0.25f),
+        new Vector2(-0.25f, 0.25f), new Vector2(0.25f, 0.25f), new Vector2(0.25f, -0.25f), new Vector2(-0.25f, -0.25f),
     ];
 
     private static readonly UnityTurn[] Turns =
@@ -29,7 +29,7 @@ internal sealed class LegacyTerrainChunkBuild
     private static readonly int[] SideDx = [0, 1, 0, -1], SideDy = [-1, 0, 1, 0];
 
     private readonly ITerrainPieceSource _pieces;
-    private readonly Materials _classic = new();
+    private readonly Materials _classic = new Materials();
     private readonly TerrainLattice? _lattice;
     private readonly int _width;
     private readonly TileView[] _tiles;
@@ -79,7 +79,7 @@ internal sealed class LegacyTerrainChunkBuild
     /// cached; an additive (Unlit, no _EmissionColor) material is its own tagged and tinted twin.</summary>
     internal sealed class Materials
     {
-        private readonly Dictionary<object, Material> _cache = new();
+        private readonly Dictionary<object, Material> _cache = new Dictionary<object, Material>();
 
         public Material ForTexture(ClassicMaterialRecipe recipe)
         {
@@ -176,8 +176,8 @@ internal sealed class LegacyTerrainChunkBuild
 
     internal sealed class TileGeometry
     {
-        public readonly List<PlacedPiece> Pieces = new();
-        public readonly List<TriangleGroup> Groups = new();
+        public readonly List<PlacedPiece> Pieces = new List<PlacedPiece>();
+        public readonly List<TriangleGroup> Groups = new List<TriangleGroup>();
         public Material[] Materials = new Material[4];
         public int MaterialCount;
         public Vector2 LightAnchor;
@@ -224,7 +224,7 @@ internal sealed class LegacyTerrainChunkBuild
 
     private static Vector3 Ground(float x, float y, float height = 0f)
     {
-        return new(x, height, -y);
+        return new Vector3(x, height, -y);
     }
 
     private PieceSource? Piece(AssetRef key, int textureIndex = -1)

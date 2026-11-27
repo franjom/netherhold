@@ -28,9 +28,9 @@ public class CreatureFieldOverrideTests
         CreatureDef warlock = database.CreatureById(Dk2TerrainFixture.WarlockCreatureId);
 
         GameDatabase level = database.ForLevel(Level(
-            new(Dk2TerrainFixture.GoblinCreatureId, (int)CreatureStatId.MeleeDamage, 200),
-            new(Dk2TerrainFixture.GoblinCreatureId, (int)CreatureStatId.Threat, 125),
-            new(Dk2TerrainFixture.GoblinCreatureId, 21, 6144)));
+            new CreatureFieldOverrideEntry(Dk2TerrainFixture.GoblinCreatureId, (int)CreatureStatId.MeleeDamage, 200),
+            new CreatureFieldOverrideEntry(Dk2TerrainFixture.GoblinCreatureId, (int)CreatureStatId.Threat, 125),
+            new CreatureFieldOverrideEntry(Dk2TerrainFixture.GoblinCreatureId, 21, 6144)));
 
         CreatureDef changed = level.CreatureById(Dk2TerrainFixture.GoblinCreatureId);
         Assert.Equal((ushort)200, changed.MeleeDamage);
@@ -48,9 +48,9 @@ public class CreatureFieldOverrideTests
         GameDatabase database = Dk2TerrainFixture.Database();
 
         GameDatabase level = database.ForLevel(Level(
-            new(Dk2TerrainFixture.GoblinCreatureId, (int)CreatureStatId.Fear, 0),
-            new(Dk2TerrainFixture.GoblinCreatureId, (int)CreatureStatId.Fear, 5000),
-            new(250, (int)CreatureStatId.Health, 50)));
+            new CreatureFieldOverrideEntry(Dk2TerrainFixture.GoblinCreatureId, (int)CreatureStatId.Fear, 0),
+            new CreatureFieldOverrideEntry(Dk2TerrainFixture.GoblinCreatureId, (int)CreatureStatId.Fear, 5000),
+            new CreatureFieldOverrideEntry(250, (int)CreatureStatId.Health, 50)));
 
         Assert.Equal((ushort)5000, level.CreatureById(Dk2TerrainFixture.GoblinCreatureId).Fear);
     }
@@ -63,8 +63,8 @@ public class CreatureFieldOverrideTests
         GameDatabase database = Dk2TerrainFixture.Database();
 
         CreatureDef goblin = database.ForLevel(Level(
-            new(Dk2TerrainFixture.GoblinCreatureId, 30, 7),
-            new(Dk2TerrainFixture.GoblinCreatureId, (int)CreatureStatId.Health, 50))).CreatureById(Dk2TerrainFixture.GoblinCreatureId);
+            new CreatureFieldOverrideEntry(Dk2TerrainFixture.GoblinCreatureId, 30, 7),
+            new CreatureFieldOverrideEntry(Dk2TerrainFixture.GoblinCreatureId, (int)CreatureStatId.Health, 50))).CreatureById(Dk2TerrainFixture.GoblinCreatureId);
 
         Assert.Equal(new Fp32(7 << 12), goblin.DistanceCanHear);
         Assert.Equal((ushort)50, goblin.Hp);

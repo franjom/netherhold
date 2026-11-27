@@ -13,7 +13,7 @@ public sealed class CampaignCutsceneRunnerTests
 {
     private sealed class Host : ICampaignCutsceneHost
     {
-        public readonly List<string> Calls = new();
+        public readonly List<string> Calls = new List<string>();
         public bool SpeechBusy { get; set; }
         public bool MoviePlaying { get; set; }
         public void QueueSpeech(SoundId speech)

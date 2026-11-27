@@ -48,7 +48,7 @@ public sealed class CombatSoundTests
 
     private static FpPosition3 Where(CreatureState c)
     {
-        return new(new Fp32(c.PosX), new Fp32(c.PosY), new Fp32(c.PosZ));
+        return new FpPosition3(new Fp32(c.PosX), new Fp32(c.PosY), new Fp32(c.PosZ));
     }
 
     private static GameSimulation Run(GameDatabase db, WorldState world, Action<SimulationContext> rule, out ListEventSink events)

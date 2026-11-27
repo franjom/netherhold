@@ -120,7 +120,7 @@ public class TutorialTileHighlightTests
 
     private static ActionTriggerRecord Record(byte id, bool enabled, int durationTicks)
     {
-        return new(new byte[16])
+        return new ActionTriggerRecord(new byte[16])
         {
             Body = new byte[8],
             Type = 16,

@@ -8,7 +8,7 @@ public class CreatureEligibilityTests
 {
     private static CreatureState Free()
     {
-        return new() { Id = 1, Health = 100 };
+        return new CreatureState() { Id = 1, Health = 100 };
     }
 
     [Fact]

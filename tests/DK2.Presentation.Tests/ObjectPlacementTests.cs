@@ -19,7 +19,7 @@ namespace DK2.Presentation.Tests;
 public class ObjectPlacementTests
 {
     private const int X0 = 10, Y0 = 10;
-    private static readonly PlayerId Keeper = new(3);
+    private static readonly PlayerId Keeper = new PlayerId(3);
 
     private sealed record Room(GameDatabase Database, WorldState World, WorldView View);
 

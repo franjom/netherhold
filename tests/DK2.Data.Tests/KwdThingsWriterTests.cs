@@ -15,7 +15,7 @@ public class KwdThingsWriterTests
     {
         get
         {
-            return new()
+            return new TheoryData<int, int, string>()
     {
         {194,24,"X:0:4 Y:4:4 Unknown_0008:8:4 KeeperSpellId:C:4 MoneyAmount:10:4 TriggerId:14:2 ObjectId:16:1 PlayerId:17:1"},
         {195,16,"X:0:4 Y:4:4 Unknown_0008:8:4 NumberOfShots:C:1 TrapId:D:1 PlayerId:E:1 Unknown_000F:F:1"},

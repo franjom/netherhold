@@ -11,7 +11,7 @@ namespace DK2.Simulation.Tests;
 public class ImpWorkVisibilityTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
-    private static readonly TilePos Wall = new(4, 2);
+    private static readonly TilePos Wall = new TilePos(4, 2);
 
     [Theory]
     [InlineData(true)]

@@ -87,7 +87,7 @@ public class RoomBorderFlameTests
         ViewEffectRequest flame = Assert.Single(sink.Events, e => e.EffectRequest.HasValue).EffectRequest!.Value;
         Assert.Equal(RoomBorderRules.FlameEffectId, flame.EffectId.Value);
         Assert.Equal(Keeper, flame.Owner.Value);
-        Assert.Equal(new FpPosition3(new(0x1000 | 0x200), new(0x1000 | (0xFFF - 800)), new(Fp32.One)), flame.Position);
+        Assert.Equal(new FpPosition3(new Fp32(0x1000 | 0x200), new Fp32(0x1000 | (0xFFF - 800)), new Fp32(Fp32.One)), flame.Position);
         Assert.Equal(default, flame.Heading);
         RoomBorderCursor cursor = Assert.Single(world.RoomBorderCursors);
         Assert.Equal(1600, cursor.Phase);

@@ -62,14 +62,14 @@ internal static class KeeperWorld
     public const byte MoodyCreature = 5;
 
     public const byte Keeper = 3;
-    public static readonly TilePos HeartAt = new(15, 15);
+    public static readonly TilePos HeartAt = new TilePos(15, 15);
 
     /// <param name="workshop">Adds the Workshop, doors 1 (Wooden), 2 (a Barricade) and 3 and traps 1
     /// (trigger 0), 2 (the Boulder) and 3 (trigger 1), for the trap and door step.</param>
     public static GameDatabase Database(int handCapacity = 64, bool workshop = false, bool torture = false,
         int firstPortalCreatures = 0)
     {
-        return new(
+        return new GameDatabase(
         [
             Terrain(Impenetrable, "Impenetrable Rock", TerrainFlags.Solid | TerrainFlags.Impenetrable, 0),
             Terrain(Rock, "Rock", TerrainFlags.Solid | TerrainFlags.Taggable, 165, destroyedType: DirtPath),
@@ -135,7 +135,7 @@ internal static class KeeperWorld
                 JobClass.Fighter, FightStyle.Blocker) with
             {
                 Pay = 100, HungerFill = 1,
-                HappyJobs = [new(JobType.Research, 0, 0, 50), new(JobType.Train, 0, 0, 50)],
+                HappyJobs = [new CreatureJobPreference(JobType.Research, 0, 0, 50), new CreatureJobPreference(JobType.Train, 0, 0, 50)],
             },
         ],
         variables: Variables(handCapacity, firstPortalCreatures),
@@ -166,7 +166,7 @@ internal static class KeeperWorld
 
     private static DoorDef Door(byte id, DoorFlags flags)
     {
-        return new()
+        return new DoorDef()
         {
             Name = "Door " + id,
             DoorId = id,
@@ -179,7 +179,7 @@ internal static class KeeperWorld
 
     private static TrapDef Trap(byte id, byte trigger)
     {
-        return new()
+        return new TrapDef()
         {
             Name = "Trap " + id,
             TrapId = id,
@@ -201,20 +201,20 @@ internal static class KeeperWorld
         return [
         Spell("Sight Of Evil", KeeperSpellRules.SightOfEvil, 5000, KeeperSpellFlags.ExcludedFromBattle, 5, 4, SightShotId, data1: 5),
         Spell("Possession", 2, 500, KeeperSpellFlags.ExcludedFromBattle, 5, 6),
-        new()
+        new KeeperSpellDef()
         {
             Name = KeeperSpellName.CallToArms, KeeperSpellId = CallToArmsRules.SpellId, ManaCost = 10000, ManaUpkeepPerSecond = 90,
             Flags = KeeperSpellFlags.ExcludedFromBattle, LocationSelector = 4, TargetSelector = 4,
             ShotTypeId = CreateObjectShotId, ShotData1 = CallToArmsRules.ObjectTypeId,
             BonusShotTypeId = CreateObjectShotId, BonusShotData1 = CallToArmsRules.ObjectTypeId,
         },
-        new() { Name = KeeperSpellName.CreateImp, KeeperSpellId = 4, ManaCost = 1500, ManaUpkeepPerSecond = 7, Flags = KeeperSpellFlags.ExcludedFromBattle },
+        new KeeperSpellDef() { Name = KeeperSpellName.CreateImp, KeeperSpellId = 4, ManaCost = 1500, ManaUpkeepPerSecond = 7, Flags = KeeperSpellFlags.ExcludedFromBattle },
         Spell("Summon Horny", 5, 100000, KeeperSpellFlags.ExcludedFromBattle, 1, 4),
         Spell("Thunderbolt", KeeperSpellRules.Thunderbolt, 6000, KeeperSpellFlags.Offensive, 1, 2, LightningShotId),
         Spell("Unbuilt", 7, 10000, KeeperSpellFlags.Offensive, 1, 3),
         Spell("Tremor", 8, 30000, KeeperSpellFlags.Offensive | KeeperSpellFlags.ExcludedFromBattle, 5, 4),
         Spell("Inferno", KeeperSpellRules.Inferno, 50000, KeeperSpellFlags.Offensive, 1, 5, InfernoShotId, data1: 100, data2: 1),
-        new()
+        new KeeperSpellDef()
         {
             Name = "Heal", KeeperSpellId = KeeperSpellRules.Heal, ManaCost = 5000, ManaUpkeepPerSecond = 0,
             Flags = KeeperSpellFlags.Supportive, LocationSelector = 4, TargetSelector = 1,
@@ -239,7 +239,7 @@ internal static class KeeperWorld
     private static KeeperSpellDef Spell(string name, byte id, int cost, KeeperSpellFlags flags, byte location, byte target, byte shot = 0,
         int data1 = 0, int data2 = 0)
     {
-        return new()
+        return new KeeperSpellDef()
         {
             Name = name,
             KeeperSpellId = id,
@@ -262,7 +262,7 @@ internal static class KeeperWorld
 
     private static ObjectDef TrainingDummy()
     {
-        return new()
+        return new ObjectDef()
         {
             Name = "Training Dummy",
             ObjectId = TrainingDummyObjectId,
@@ -284,7 +284,7 @@ internal static class KeeperWorld
     /// <summary>A creature bed: <c>TypeLair</c> is the bit the Lair rules read (shipped flags 0x04034020).</summary>
     private static ObjectDef Bed()
     {
-        return new()
+        return new ObjectDef()
         {
             Name = "Creature Bed",
             ObjectId = BedObjectId,
@@ -306,7 +306,7 @@ internal static class KeeperWorld
     /// <summary>Object 1, "Gold": the floor pile a sale's refund lands in when no store takes it.</summary>
     private static ObjectDef FloorGoldPile()
     {
-        return new()
+        return new ObjectDef()
         {
             Name = "Gold",
             ObjectId = FloorGold.FloorGoldObjectId,
@@ -328,7 +328,7 @@ internal static class KeeperWorld
     /// <summary>The coop, egg and chicken with their shipped flags, capacity and width.</summary>
     private static ObjectDef Hatchery(byte id, uint flags, byte capacity, int width)
     {
-        return new()
+        return new ObjectDef()
         {
             Name = $"Hatchery object {id}",
             ObjectId = id,
@@ -371,7 +371,7 @@ internal static class KeeperWorld
     /// <summary>A magic box: <c>TypeSpecial</c> (definition <c>+0xF4</c> bit 2) is the bit the specials step reads.</summary>
     private static ObjectDef Special(byte id)
     {
-        return new()
+        return new ObjectDef()
         {
             Name = $"Special {id}",
             ObjectId = id,
@@ -393,7 +393,7 @@ internal static class KeeperWorld
     /// <summary>The Call to Arms flag, OBJECTS record 10 as shipped: start state 12, 128 health.</summary>
     private static ObjectDef Flag()
     {
-        return new()
+        return new ObjectDef()
         {
             Name = "Call To Arms",
             ObjectId = CallToArmsRules.ObjectTypeId,
@@ -414,7 +414,7 @@ internal static class KeeperWorld
 
     private static ShotDef Shot(string name, byte id, int speed, ushort health, uint flags, uint processFlags, byte process, byte collide = 0)
     {
-        return new(new byte[239])
+        return new ShotDef(new byte[239])
         {
             Name = name,
             MeshResource = new KwdArtResource("", 0, default, 0, 0, 0, 0),
@@ -438,7 +438,7 @@ internal static class KeeperWorld
     public static KeeperAIParameters Parameters(byte speed = 1, byte roomSize = 9, ushort money = 1000, byte maxImps = 0, byte gap = 0,
         bool withdraw = false, byte imprison = 0)
     {
-        return new()
+        return new KeeperAIParameters()
         {
             EditorAiType = 0,
             TendancySpeed = speed,
@@ -661,7 +661,7 @@ internal static class KeeperWorld
     private static CreatureDef Creature(string name, byte id, CreatureFlags flags, ushort hp, ushort threat,
         JobClass job, FightStyle style)
     {
-        return new()
+        return new CreatureDef()
         {
             Name = name,
             CreatureId = id,
@@ -739,7 +739,7 @@ internal static class KeeperWorld
         byte id, string name, TerrainFlags flags, ushort health,
         byte maxHealthType = 0, byte destroyedType = 0, ushort gold = 0)
     {
-        return new()
+        return new TerrainDef()
         {
             Name = name,
             TerrainId = id,
@@ -763,7 +763,7 @@ internal static class KeeperWorld
     private static RoomDef Room(RoomTypeId id, string name, ushort cost, byte terrainId, bool buildable,
         RoomFlags ground = RoomFlags.PlaceableOnLand | RoomFlags.NormalTiles, byte[]? objectIds = null)
     {
-        return new()
+        return new RoomDef()
         {
             Name = name,
             RoomId = (byte)id,

@@ -75,7 +75,7 @@ public sealed class HandCursorTests
         Assert.Equal(new Vector2(4, 51), sprite.Hotspot);
         Assert.Equal(1, sprite.FrameCount);
         Assert.Equal(1, sprite.FramesPerSecond);
-        HandCursorPlacement placement = HandCursor.Place(HandCursorKind.Dig, 0, new(640, 400), 1440);
+        HandCursorPlacement placement = HandCursor.Place(HandCursorKind.Dig, 0, new Vector2(640, 400), 1440);
         Assert.Equal(new Vector2(628, 247), placement.Origin);
         Assert.Equal(new Vector2(252, 258), placement.Size);
     }
@@ -92,9 +92,9 @@ public sealed class HandCursorTests
         HandCursorSprite sprite = HandCursor.Sprite(HandCursorKind.Point);
         Assert.Equal(new Vector2(2, 17), sprite.Hotspot);
         Vector2 tip = HandCursor.Anchor(HandCursorKind.Point, frame);
-        HandCursorPlacement placement = HandCursor.Place(HandCursorKind.Point, frame, new(x, y), screenHeight);
+        HandCursorPlacement placement = HandCursor.Place(HandCursorKind.Point, frame, new Vector2(x, y), screenHeight);
         Vector2 tipOnScreen = placement.Origin + tip * (placement.Size.Y / sprite.FrameSize.Y);
-        Assert.True(Vector2.Distance(new(x, y), tipOnScreen) < 1e-3f);
+        Assert.True(Vector2.Distance(new Vector2(x, y), tipOnScreen) < 1e-3f);
     }
 
     /// <summary>One anchor for the whole loop, frame 0's resting claw tip, so the hand stays still
@@ -114,7 +114,7 @@ public sealed class HandCursorTests
     [Fact]
     public void PointFrameZeroDrawsUpAndLeftOfDk2sPlacementByTheTipOffset()
     {
-        HandCursorPlacement placement = HandCursor.Place(HandCursorKind.Point, 0, new(1280, 720), 1440);
+        HandCursorPlacement placement = HandCursor.Place(HandCursorKind.Point, 0, new Vector2(1280, 720), 1440);
         Assert.Equal(new Vector2(1280 - 18, 720 - 99), placement.Origin);
         Assert.Equal(new Vector2(246, 159), placement.Size);
     }
@@ -214,8 +214,8 @@ public sealed class HandCursorTests
     public void ClickingUsesTheHoveredEntityRatherThanAnotherCreatureOnTheCursorTile()
     {
         var snapshot = new PlayerInputSnapshot(false,
-            [new(PlayerInputTargetKind.Creature, 1, new TilePos(5, 5)),
-             new(PlayerInputTargetKind.Creature, 2, new TilePos(6, 5))]);
+            [new PlayerInputTarget(PlayerInputTargetKind.Creature, 1, new TilePos(5, 5)),
+             new PlayerInputTarget(PlayerInputTargetKind.Creature, 2, new TilePos(6, 5))]);
         var hover = new WorldHoverHit(WorldHoverKind.Creature, new TilePos(5, 5), 2);
         var translator = new PlayerInputTranslator();
         InputFrame frame = translator.Translate(new PlayerIntent(PlayerIds.FirstKeeper, PlayerToolMode.Hand,
@@ -228,7 +228,7 @@ public sealed class HandCursorTests
     [Fact]
     public void ExploredFloorTakesThePointingHandAndUnexploredFogTakesTheDigCursor_FogClauseLikely()
     {
-        GameDatabase database = new(
+        var database = new GameDatabase(
             [Terrain(1, "Floor", TerrainFlags.Ownable), Terrain(3, "Gold", TerrainFlags.Solid | TerrainFlags.Taggable)],
             rooms: [], creatures: [], variables: new GlobalVariables());
         var map = new LevelMap(5, 1,
@@ -254,7 +254,7 @@ public sealed class HandCursorTests
 
     private static TerrainDef Terrain(byte id, string name, TerrainFlags flags)
     {
-        return new()
+        return new TerrainDef()
         {
             Name = name,
             TerrainId = id,

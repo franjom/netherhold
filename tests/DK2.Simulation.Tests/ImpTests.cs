@@ -103,7 +103,7 @@ public class ImpTests
         Run run = Start(new TilePos(5, 2));
         GameDatabase database = Dk2TerrainFixture.Database();
 
-        var pocket = new List<TilePos> { new(5, 2) };
+        var pocket = new List<TilePos> { new TilePos(5, 2) };
         for (int i = 0; i < extraTiles; i++)
         {
             pocket.Add(new TilePos(5, 3 + i));
@@ -186,7 +186,7 @@ public class ImpTests
         Run run = StartOnOwnedFloor();
         GameDatabase database = Dk2TerrainFixture.Database();
         ushort full = database.TerrainById(Dk2TerrainFixture.ReinforcedWall).MaxHealth;
-        foreach (TilePos side in new TilePos[] { new(9, 5), new(7, 5), new(8, 6), new(8, 4) })
+        foreach (TilePos side in new TilePos[] { new TilePos(9, 5), new TilePos(7, 5), new TilePos(8, 6), new TilePos(8, 4) })
         {
             ref TileState wall = ref run.World.Tile(side);
             wall.TerrainId = Dk2TerrainFixture.ReinforcedWall;
@@ -678,8 +678,8 @@ public class ImpTests
         GameDatabase database = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
-        TilePos face = new(8, 5);
-        TilePos wall = new(8, 4);
+        var face = new TilePos(8, 5);
+        var wall = new TilePos(8, 4);
         ref TileState floor = ref world.Tile(face);
         floor.TerrainId = Dk2TerrainFixture.ClaimedPath;
         floor.OwnerPlayerId = Keeper;
@@ -708,7 +708,7 @@ public class ImpTests
         GameDatabase database = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
-        TilePos wall = new(8, 4);
+        var wall = new TilePos(8, 4);
         for (int y = 2; y <= 6; y++)
         {
             for (int x = 6; x <= 10; x++)
@@ -722,7 +722,7 @@ public class ImpTests
         target.Health = database.TerrainById(target.TerrainId).StartingHealth;
         TilePos[] faces =
         [
-            new(7, 4), new(9, 4), new(8, 3), new(8, 5),
+            new TilePos(7, 4), new TilePos(9, 4), new TilePos(8, 3), new TilePos(8, 5),
         ];
         foreach (TilePos face in faces)
         {

@@ -30,7 +30,7 @@ public class WikiTests
 
     static DocsContext Context(params (string Note, string[] Systems)[] notes)
     {
-        return new(SystemCatalog.Parse(Catalog),
+        return new DocsContext(SystemCatalog.Parse(Catalog),
                 notes.ToDictionary(n => n.Note, n => (IReadOnlyList<string>)n.Systems, StringComparer.Ordinal),
                 notes.Select(n => n.Note).ToHashSet(StringComparer.Ordinal));
     }

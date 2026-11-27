@@ -15,7 +15,7 @@ public class ProviderTests
     /// <summary>A probe that says yes to a fixed set of paths. No files touched.</summary>
     private sealed class FakeFiles(params string[] present) : FileAssetProvider.IFileProbe
     {
-        private readonly HashSet<string> _present = new(present, StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<string> _present = new HashSet<string>(present, StringComparer.OrdinalIgnoreCase);
         public bool Exists(string path)
         {
             return _present.Contains(path);
@@ -179,7 +179,7 @@ public class ProviderTests
 
     private sealed class CountingFiles(params string[] present) : FileAssetProvider.IFileProbe
     {
-        private readonly FakeFiles _files = new(present);
+        private readonly FakeFiles _files = new FakeFiles(present);
         public int Checks { get; private set; }
 
         public bool Exists(string path)

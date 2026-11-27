@@ -128,9 +128,9 @@ public class GlbWriterTests
     {
         var vertices = new KmfVertex[]
         {
-            new(new Vector3(0, 0, 0), Vector3.UnitY, Vector2.Zero),
-            new(new Vector3(1, 0, 0), Vector3.UnitY, Vector2.UnitX),
-            new(new Vector3(1, 2, 3), Vector3.UnitY, Vector2.One),
+            new KmfVertex(new Vector3(0, 0, 0), Vector3.UnitY, Vector2.Zero),
+            new KmfVertex(new Vector3(1, 0, 0), Vector3.UnitY, Vector2.UnitX),
+            new KmfVertex(new Vector3(1, 2, 3), Vector3.UnitY, Vector2.One),
         };
         var primitive = new KmfPrimitive(0, 1, vertices,
             new IReadOnlyList<byte>[] { new byte[] { 0, 1, 2 } });

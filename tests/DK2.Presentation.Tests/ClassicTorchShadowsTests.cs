@@ -15,11 +15,11 @@ public class ClassicTorchShadowsTests
     {
         var selector = new ClassicShadowSourceSelector();
         selector.Begin(Vector3.Zero);
-        selector.Offer(1, new(2, 0, 0));
-        selector.Offer(2, new(0, 0, 1));
-        selector.Offer(3, new(0, 3, 0));      // beyond 2.5 in 3D
-        selector.Offer(4, new(0, 0, 1.5f));
-        selector.Offer(5, new(.5f, 0, 0));
+        selector.Offer(1, new Vector3(2, 0, 0));
+        selector.Offer(2, new Vector3(0, 0, 1));
+        selector.Offer(3, new Vector3(0, 3, 0));      // beyond 2.5 in 3D
+        selector.Offer(4, new Vector3(0, 0, 1.5f));
+        selector.Offer(5, new Vector3(.5f, 0, 0));
         Assert.Equal(3, selector.Count);
         Assert.Equal(5, selector.SourceKey(0));
         Assert.Equal(2, selector.SourceKey(1));
@@ -35,12 +35,12 @@ public class ClassicTorchShadowsTests
     {
         var selector = new ClassicShadowSourceSelector();
         selector.Begin(Vector3.Zero);
-        selector.Offer(9, new(1, 0, 0));
-        selector.Offer(7, new(-1, 0, 0));
+        selector.Offer(9, new Vector3(1, 0, 0));
+        selector.Offer(7, new Vector3(-1, 0, 0));
         Assert.Equal(2, selector.Count);
         Assert.Equal(7, selector.SourceKey(0));
         Assert.Equal(ClassicMeshShadow.MaximumDistance, selector.FadeDistance);
-        selector.Begin(new(10, 0, 0));
+        selector.Begin(new Vector3(10, 0, 0));
         Assert.Equal(0, selector.Count);
         Assert.Equal(0f, selector.FadeFor(7));
     }
@@ -49,7 +49,7 @@ public class ClassicTorchShadowsTests
     public void SlotsTakeTheTorchesNearestTheFocusHorizontally()
     {
         int[] keys = [10, 11, 12, 13, 14, 15];
-        Vector3[] positions = [new(5, 0, 0), new(1, 9, 0), new(0, 0, 3), new(-3, 0, 0), new(30, 0, 0), new(0, 0, -1)];
+        Vector3[] positions = [new Vector3(5, 0, 0), new Vector3(1, 9, 0), new Vector3(0, 0, 3), new Vector3(-3, 0, 0), new Vector3(30, 0, 0), new Vector3(0, 0, -1)];
         Span<int> chosen = stackalloc int[4];
         int count = ClassicTorchShadowSlots.Choose(Vector3.Zero, keys, positions, 20f, chosen);
         Assert.Equal(4, count);
@@ -61,7 +61,7 @@ public class ClassicTorchShadowsTests
     public void HeldTorchesCountNearerAndReachFarther()
     {
         int[] keys = [1, 2, 3];
-        Vector3[] positions = [new(2, 0, 0), new(3, 0, 0), new(15, 0, 0)];
+        Vector3[] positions = [new Vector3(2, 0, 0), new Vector3(3, 0, 0), new Vector3(15, 0, 0)];
         Span<int> chosen = stackalloc int[1];
         Assert.Equal(1, ClassicTorchShadowSlots.Choose(Vector3.Zero, keys, positions, 14f, chosen));
         Assert.Equal(0, chosen[0]);
@@ -77,7 +77,7 @@ public class ClassicTorchShadowsTests
     [Fact]
     public void StrengthIsTheProjectionsStrength()
     {
-        Assert.True(ClassicMeshShadow.TryProject(new(new(0, 1, 0), .25f, 1), new(new(-1.2f, 1, 0), 2f), out ClassicShadowProjection shadow));
+        Assert.True(ClassicMeshShadow.TryProject(new ClassicShadowCaster(new Vector3(0, 1, 0), .25f, 1), new ClassicShadowSource(new Vector3(-1.2f, 1, 0), 2f), out ClassicShadowProjection shadow));
         Assert.Equal(shadow.Strength, ClassicMeshShadow.Strength(1.2f, 2f));
         Assert.Equal(.7f, ClassicMeshShadow.Strength(0f, 2.5f));
     }

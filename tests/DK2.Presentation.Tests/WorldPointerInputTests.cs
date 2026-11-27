@@ -13,7 +13,7 @@ namespace DK2.Presentation.Tests;
 public sealed class WorldPointerInputTests
 {
     private static readonly PlayerId Keeper = PressFixture.Keeper;
-    private static readonly TilePos Tile = new(2, 2);
+    private static readonly TilePos Tile = new TilePos(2, 2);
 
     private sealed class Host(ClassicHudControls controls) : IWorldPointerHost, IHudPressHost
     {
@@ -76,9 +76,9 @@ public sealed class WorldPointerInputTests
     {
         public readonly GameDatabase Database = PressFixture.Database();
         public readonly WorldState World;
-        public readonly ClassicHudControls Controls = new();
-        public readonly HudToolState Tools = new();
-        public readonly PlayerInputTranslator Input = new();
+        public readonly ClassicHudControls Controls = new ClassicHudControls();
+        public readonly HudToolState Tools = new HudToolState();
+        public readonly PlayerInputTranslator Input = new PlayerInputTranslator();
         public readonly WorldView View;
         public readonly Host Host;
         public readonly BottomPanelView Panel;

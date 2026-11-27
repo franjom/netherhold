@@ -200,7 +200,7 @@ public class ImpStateTests
     private static void OpenTheSeam(GameSimulation sim)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        foreach (TilePos p in new TilePos[] { new(4, 3), new(4, 4), new(4, 5) })
+        foreach (TilePos p in new TilePos[] { new TilePos(4, 3), new TilePos(4, 4), new TilePos(4, 5) })
         {
             ref TileState tile = ref sim.World.Tile(p);
             tile.TerrainId = Dk2TerrainFixture.DirtPath;
@@ -400,7 +400,7 @@ public class ImpStateTests
         // for a spell book, 33 for a Special; the carry state stores it and sets 10.
         GameDatabase db = Dk2TerrainFixture.Database();
         (GameSimulation sim, ListEventSink events) = Start(new TilePos(2, 2));
-        foreach (TilePos p in new TilePos[] { new(3, 3), new(3, 2) })
+        foreach (TilePos p in new TilePos[] { new TilePos(3, 3), new TilePos(3, 2) })
         {
             ref TileState tile = ref sim.World.Tile(p);
             RoomRules.Place(db, ref tile, db.Room(RoomTypeId.Library), Keeper);

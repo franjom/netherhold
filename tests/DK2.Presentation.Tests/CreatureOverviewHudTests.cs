@@ -12,8 +12,8 @@ namespace DK2.Presentation.Tests;
 /// <summary>The engine-free creature overview (ADR-0805).</summary>
 public sealed class CreatureOverviewHudTests
 {
-    private static readonly HudScreen FullHd = new(1920, 1080);
-    private static readonly HudVisibility Shown = new(ShowNormalHud: true, AllowOrdinaryInput: true);
+    private static readonly HudScreen FullHd = new HudScreen(1920, 1080);
+    private static readonly HudVisibility Shown = new HudVisibility(ShowNormalHud: true, AllowOrdinaryInput: true);
 
     private static (CreatureOverviewHud Hud, CreatureOverviewType Goblin) Overview()
     {
@@ -21,8 +21,8 @@ public sealed class CreatureOverviewHudTests
         var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
             [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
         CreatureDef goblin = db.CreatureByName("Goblin")!;
-        world.SpawnCreature(db, goblin.CreatureId, PlayerIds.FirstKeeper, new(8, 8));
-        world.SpawnCreature(db, goblin.CreatureId, PlayerIds.FirstKeeper, new(9, 8));
+        world.SpawnCreature(db, goblin.CreatureId, PlayerIds.FirstKeeper, new Core.TilePos(8, 8));
+        world.SpawnCreature(db, goblin.CreatureId, PlayerIds.FirstKeeper, new Core.TilePos(9, 8));
         var view = new CreatureOverview(db, PlayerIds.FirstKeeper, (_, fallback) => fallback);
         view.Capture(world);
         return (new CreatureOverviewHud(type => "portrait " + type.Value, view), new CreatureOverviewType(goblin.CreatureId));

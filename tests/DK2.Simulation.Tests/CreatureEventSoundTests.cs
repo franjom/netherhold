@@ -23,7 +23,7 @@ public sealed class CreatureEventSoundTests
 
     private static FpPosition3 At(CreatureState creature)
     {
-        return new(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ));
+        return new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ));
     }
 
     /// <summary>State 235 (<c>0x00474740</c>) requests <c>0x32D</c> with the Reaper's handle at its position on its first

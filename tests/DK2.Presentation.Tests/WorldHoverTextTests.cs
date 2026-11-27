@@ -24,7 +24,7 @@ public sealed class WorldHoverTextTests
         ref TileState tile = ref world.Tile(10, 10);
         tile.TerrainId = 2; tile.OwnerPlayerId = owner; tile.SecretDoor = true;
         var text = new WorldHoverText(db, id => id.ToString(), PlayerIds.FirstKeeper);
-        HoverTextSnapshot snapshot = text.Capture(world, new(WorldHoverKind.Tile, new TilePos(10, 10)));
+        HoverTextSnapshot snapshot = text.Capture(world, new WorldHoverHit(WorldHoverKind.Tile, new TilePos(10, 10)));
         Assert.Equal("2481", snapshot.TopStatus); Assert.Equal("2480", snapshot.TooltipName);
     }
 
@@ -78,10 +78,10 @@ public sealed class WorldHoverTextTests
         world.SpawnObject(db, crate, PlayerIds.FirstKeeper, world.TileIndex(new TilePos(21, 11)));
         var strings = Dk2StringTable.Open(Path.Combine(install, "Data", "Text", "Default", "Text.str"));
         var text = new WorldHoverText(db, strings.Resolve, PlayerIds.FirstKeeper);
-        HoverTextSnapshot library = text.Capture(world, new(WorldHoverKind.Tile, new TilePos(11, 11)));
+        HoverTextSnapshot library = text.Capture(world, new WorldHoverHit(WorldHoverKind.Tile, new TilePos(11, 11)));
         Assert.Contains("Researchers: 1 / 2.", library.TopStatus);
         Assert.Contains("Shelf space filled: 1 / 2.", library.TopStatus);
-        HoverTextSnapshot workshop = text.Capture(world, new(WorldHoverKind.Tile, new TilePos(21, 11)));
+        HoverTextSnapshot workshop = text.Capture(world, new WorldHoverHit(WorldHoverKind.Tile, new TilePos(21, 11)));
         Assert.Contains("Crate space filled: 1 / ", workshop.TopStatus);
         Assert.DoesNotContain("?", workshop.TopStatus);
     }
@@ -102,9 +102,9 @@ public sealed class WorldHoverTextTests
         var text = new WorldHoverText(db, strings.Resolve, PlayerIds.FirstKeeper);
         var simulation = new GameSimulation(db, world, seed: 7);
         ulong before = simulation.StateHash();
-        HoverTextSnapshot treasury = text.Capture(world, new(WorldHoverKind.Tile, new TilePos(10, 10)));
+        HoverTextSnapshot treasury = text.Capture(world, new WorldHoverHit(WorldHoverKind.Tile, new TilePos(10, 10)));
         Assert.Contains("Gold storage used: 444 / ", treasury.TopStatus);
-        HoverTextSnapshot lair = text.Capture(world, new(WorldHoverKind.Tile, new TilePos(15, 10)));
+        HoverTextSnapshot lair = text.Capture(world, new WorldHoverHit(WorldHoverKind.Tile, new TilePos(15, 10)));
         Assert.Contains("Capacity used: 0 / 2 Bed spaces.", lair.TopStatus);
         Assert.Equal(before, simulation.StateHash());
         Assert.DoesNotContain("?", lair.TopStatus);
@@ -145,7 +145,7 @@ public sealed class WorldHoverTextTests
         }
 
         var portalCapture = new WorldHoverText(database, strings.Resolve, PlayerIds.FirstKeeper);
-        HoverTextSnapshot portalText = portalCapture.Capture(world, new(WorldHoverKind.Tile, world.TilePosition(portal.TileIndices[0])));
+        HoverTextSnapshot portalText = portalCapture.Capture(world, new WorldHoverHit(WorldHoverKind.Tile, world.TilePosition(portal.TileIndices[0])));
         Assert.Equal("Portal", portalText.TooltipName);
         Assert.Contains("Portals owned: 1.", portalText.TopStatus);
         Assert.DoesNotContain("%43", portalText.TopStatus);
@@ -184,12 +184,12 @@ public sealed class WorldHoverTextTests
         TilePos tile = world.TilePosition(portal.TileIndices[0]);
         world.Tile(tile).ClearExploredBy(PlayerIds.FirstKeeper);
         var fog = new WorldHoverText(database, strings.Resolve, PlayerIds.FirstKeeper);
-        HoverTextSnapshot hidden = fog.Capture(world, new(WorldHoverKind.Creature, tile, 999));
+        HoverTextSnapshot hidden = fog.Capture(world, new WorldHoverHit(WorldHoverKind.Creature, tile, 999));
         Assert.Equal("Fog of War", hidden.TooltipName);
         Assert.Equal(strings.Resolve(2473), hidden.TopStatus);
         world.Tile(tile).SetExploredBy(PlayerIds.FirstKeeper);
         var visible = new WorldHoverText(database, strings.Resolve, PlayerIds.FirstKeeper);
-        HoverTextSnapshot neutral = visible.Capture(world, new(WorldHoverKind.Tile, tile));
+        HoverTextSnapshot neutral = visible.Capture(world, new WorldHoverHit(WorldHoverKind.Tile, tile));
         Assert.Equal("Portal", neutral.TooltipName);
         Assert.Equal(strings.Resolve(2471), neutral.TopStatus);
     }
@@ -241,7 +241,7 @@ public sealed class WorldHoverTextTests
         var strings = Dk2StringTable.Open(Path.Combine(install, "Data", "Text", "Default", "Text.str"));
         HoverTextSnapshot Status(PlayerId viewer, WorldHoverKind kind, int id, int x)
         {
-            return new WorldHoverText(db, strings.Resolve, viewer).Capture(world, new(kind, new TilePos(x, 10), id));
+            return new WorldHoverText(db, strings.Resolve, viewer).Capture(world, new WorldHoverHit(kind, new TilePos(x, 10), id));
         }
 
         HoverTextSnapshot blueprint = Status(me, WorldHoverKind.Door, door.Id, 10);
@@ -286,7 +286,7 @@ public sealed class WorldHoverTextTests
         body.Dk2StateId = -1;
         Assert.True(CreatureDeathRules.IsCorpse(body));
         HoverTextSnapshot dead = new WorldHoverText(db, strings.Resolve, PlayerIds.FirstKeeper)
-            .Capture(world, new(WorldHoverKind.Creature, body.Tile, body.Id));
+            .Capture(world, new WorldHoverHit(WorldHoverKind.Creature, body.Tile, body.Id));
         // HYPOTHESIS (Q634): for an ordinary creature 0x004B1740 never writes the %29 buffer, so the two
         // spaces after "of" are ours, not observed; and no Hand pick reaches a dead body (0x005992B0).
         Assert.Equal(("It's the dead body of  a level 3 Warlock.", "Warlock"), (dead.TopStatus, dead.TooltipName));
@@ -298,10 +298,10 @@ public sealed class WorldHoverTextTests
 
         ObjectState lever = world.SpawnObject(db, AutoFurnitureRules.CasinoLeverObjectId, PlayerIds.FirstKeeper, world.TileIndex(new TilePos(21, 20)));
         var capture = new WorldHoverText(db, strings.Resolve, PlayerIds.FirstKeeper);
-        Assert.Equal(strings.Resolve(2508), capture.Capture(world, new(WorldHoverKind.Object, new TilePos(21, 20), lever.Id)).TopStatus);
+        Assert.Equal(strings.Resolve(2508), capture.Capture(world, new WorldHoverHit(WorldHoverKind.Object, new TilePos(21, 20), lever.Id)).TopStatus);
         lever.Setting = 1;
         Assert.Equal(strings.Resolve(2509), new WorldHoverText(db, strings.Resolve, PlayerIds.FirstKeeper)
-            .Capture(world, new(WorldHoverKind.Object, new TilePos(21, 20), lever.Id)).TopStatus);
+            .Capture(world, new WorldHoverHit(WorldHoverKind.Object, new TilePos(21, 20), lever.Id)).TopStatus);
     }
 
     [InstallFact]
@@ -317,13 +317,13 @@ public sealed class WorldHoverTextTests
         CreatureState grubb = world.SpawnCreature(db, unique.CreatureId, PlayerIds.FirstKeeper, new TilePos(11, 11));
         // 0x0048D880: a non-zero def+0x895 replaces the name-pool name; 0x0042D4A0 shows it as the popup.
         HoverTextSnapshot live = new WorldHoverText(db, strings.Resolve, PlayerIds.FirstKeeper)
-            .Capture(world, new(WorldHoverKind.Creature, grubb.Tile, grubb.Id), "Delver");
+            .Capture(world, new WorldHoverHit(WorldHoverKind.Creature, grubb.Tile, grubb.Id), "Delver");
         Assert.Contains("Name: Grubb", live.TopStatus);
         Assert.DoesNotContain("Delver", live.TopStatus);
         Assert.Equal("Grubb", live.TooltipName);
         // Another keeper's special creature: no status, the popup still names it (no owner test).
         HoverTextSnapshot enemy = new WorldHoverText(db, strings.Resolve, PlayerIds.Good)
-            .Capture(world, new(WorldHoverKind.Creature, grubb.Tile, grubb.Id), "Delver");
+            .Capture(world, new WorldHoverHit(WorldHoverKind.Creature, grubb.Tile, grubb.Id), "Delver");
         Assert.Equal(("", "Grubb"), (enemy.TopStatus, enemy.TooltipName));
 
         // 0x004B1740 writes %29 only for a special definition, and then with the type name +0x6AA of
@@ -333,7 +333,7 @@ public sealed class WorldHoverTextTests
         grubb.Dk2StateId = -1;
         Assert.True(CreatureDeathRules.IsCorpse(grubb));
         HoverTextSnapshot dead = new WorldHoverText(db, strings.Resolve, PlayerIds.FirstKeeper)
-            .Capture(world, new(WorldHoverKind.Creature, grubb.Tile, grubb.Id), "Delver");
+            .Capture(world, new WorldHoverHit(WorldHoverKind.Creature, grubb.Tile, grubb.Id), "Delver");
         Assert.Equal(("It's the dead body of Goblin a level 3 Goblin.", "Goblin"), (dead.TopStatus, dead.TooltipName));
     }
 

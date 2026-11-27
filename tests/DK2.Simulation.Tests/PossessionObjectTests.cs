@@ -64,7 +64,7 @@ public sealed class PossessionObjectTests
 
     private static ActPossessedCreatureCommand Act(CreatureState me, bool melee = true, int slot = 0)
     {
-        return new(Keeper, new(new(new(me.PosX), new(me.PosY), new(me.PosZ)), new(East), new(Level)), melee, new(slot));
+        return new ActPossessedCreatureCommand(Keeper, new PossessionAim(new FpPosition3(new Fp32(me.PosX), new Fp32(me.PosY), new Fp32(me.PosZ)), new Dk2Angle(East), new Dk2Angle(Level)), melee, new PossessedSlot(slot));
     }
 
     /// <summary>An object a little east of the creature, inside its reach.</summary>
@@ -206,7 +206,7 @@ public sealed class PossessionObjectTests
         GameSimulation sim = Sim(db, world, new CombatSystem());
         int before = world.Player(Rival).HeartHealth;
         sim.Tick(InputFrame.Of(new ActPossessedCreatureCommand(Rival,
-            new(new(new(me.PosX), new(me.PosY), new(me.PosZ)), new(East), new(Level)), true, new(0))));
+            new PossessionAim(new FpPosition3(new Fp32(me.PosX), new Fp32(me.PosY), new Fp32(me.PosZ)), new Dk2Angle(East), new Dk2Angle(Level)), true, new PossessedSlot(0))));
         Assert.Equal(before, world.Player(Rival).HeartHealth);
         Assert.NotEqual(FightTargetKind.Heart, me.SwingTargetKind);
     }

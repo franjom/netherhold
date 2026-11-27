@@ -16,7 +16,7 @@ public sealed class MinimapMarkerTests
     [InlineData(0, -1, true)]
     public void AlarmRingIncludesItsUnsignedDeadline(long tick, long rechargeAt, bool visible)
     {
-        Assert.Equal(visible, MinimapMarkerRules.IsAlarmRingActive(new(tick), new(rechargeAt)));
+        Assert.Equal(visible, MinimapMarkerRules.IsAlarmRingActive(new GameTick(tick), new GameTick(rechargeAt)));
     }
 
     [Theory]
@@ -25,7 +25,7 @@ public sealed class MinimapMarkerTests
     [InlineData(4294967296, 0)]
     public void AlarmRingUsesMagentaAndTheWrappedWorldTurnModuloThirty(long tick, int radius)
     {
-        MinimapMarker ring = MinimapMarkerRules.AlarmRing(Position, new(tick));
+        MinimapMarker ring = MinimapMarkerRules.AlarmRing(Position, new GameTick(tick));
         Assert.Equal(radius, ring.RadiusRasterPixels);
         Assert.Equal(0xFFDC32FFu, ring.ColourArgb);
     }
@@ -50,13 +50,13 @@ public sealed class MinimapMarkerTests
     [InlineData(8, 0)]
     public void PossessionRingUsesTheWorldTurnModuloEight(long tick, int radius)
     {
-        MinimapMarker ring = MinimapMarkerRules.PossessionRing(Position, new(tick));
+        MinimapMarker ring = MinimapMarkerRules.PossessionRing(Position, new GameTick(tick));
         Assert.Equal(MinimapMarkerKind.Ring, ring.Kind);
         Assert.Equal(radius, ring.RadiusRasterPixels);
         Assert.Equal(0xFFFFFFFFu, ring.ColourArgb);
     }
 
-    private static readonly FpPosition3 Position = new(new(0x1800), new(0x2800), new(0));
+    private static readonly FpPosition3 Position = new FpPosition3(new Fp32(0x1800), new Fp32(0x2800), new Fp32(0));
     private static MinimapPalette Palette()
     {
         uint[] pixels = new uint[37];
@@ -73,11 +73,11 @@ public sealed class MinimapMarkerTests
     public void OwnMarkersBypassExplorationButOthersRequireIt(MinimapMarkerKind kind)
     {
         var own = new MinimapMarkerFacts(kind, Position, PlayerIds.FirstKeeper, 0);
-        Assert.True(MinimapMarkerRules.TryCreate(own, PlayerIds.FirstKeeper, new(1), Palette(), out _));
+        Assert.True(MinimapMarkerRules.TryCreate(own, PlayerIds.FirstKeeper, new GameTick(1), Palette(), out _));
         MinimapMarkerFacts enemy = own with { Owner = new PlayerId(4) };
-        Assert.False(MinimapMarkerRules.TryCreate(enemy, PlayerIds.FirstKeeper, new(1), Palette(), out _));
+        Assert.False(MinimapMarkerRules.TryCreate(enemy, PlayerIds.FirstKeeper, new GameTick(1), Palette(), out _));
         Assert.True(MinimapMarkerRules.TryCreate(enemy with { Flags = MinimapMarkerFlags.Explored },
-            PlayerIds.FirstKeeper, new(1), Palette(), out _));
+            PlayerIds.FirstKeeper, new GameTick(1), Palette(), out _));
     }
 
     [Theory]
@@ -87,7 +87,7 @@ public sealed class MinimapMarkerTests
     {
         var facts = new MinimapMarkerFacts(MinimapMarkerKind.Creature, Position,
             PlayerIds.FirstKeeper, flag | MinimapMarkerFlags.Explored);
-        Assert.False(MinimapMarkerRules.TryCreate(facts, PlayerIds.FirstKeeper, new(1), Palette(), out _));
+        Assert.False(MinimapMarkerRules.TryCreate(facts, PlayerIds.FirstKeeper, new GameTick(1), Palette(), out _));
     }
 
     [Fact]
@@ -95,8 +95,8 @@ public sealed class MinimapMarkerTests
     {
         var facts = new MinimapMarkerFacts(MinimapMarkerKind.Trap, Position, new PlayerId(4),
             MinimapMarkerFlags.Explored | MinimapMarkerFlags.Hidden);
-        Assert.False(MinimapMarkerRules.TryCreate(facts, PlayerIds.FirstKeeper, new(1), Palette(), out _));
-        Assert.True(MinimapMarkerRules.TryCreate(facts, new PlayerId(4), new(1), Palette(), out _));
+        Assert.False(MinimapMarkerRules.TryCreate(facts, PlayerIds.FirstKeeper, new GameTick(1), Palette(), out _));
+        Assert.True(MinimapMarkerRules.TryCreate(facts, new PlayerId(4), new GameTick(1), Palette(), out _));
     }
 
     [Theory]
@@ -109,7 +109,7 @@ public sealed class MinimapMarkerTests
     public void MarkerKindsUseTheirNativeBlinkPhase(MinimapMarkerKind kind, long tick, uint expected)
     {
         var facts = new MinimapMarkerFacts(kind, Position, PlayerIds.FirstKeeper, 0);
-        Assert.True(MinimapMarkerRules.TryCreate(facts, PlayerIds.FirstKeeper, new(tick), Palette(), out MinimapMarker marker));
+        Assert.True(MinimapMarkerRules.TryCreate(facts, PlayerIds.FirstKeeper, new GameTick(tick), Palette(), out MinimapMarker marker));
         Assert.Equal(expected, marker.ColourArgb);
         Assert.Equal(Position, marker.Position);
     }

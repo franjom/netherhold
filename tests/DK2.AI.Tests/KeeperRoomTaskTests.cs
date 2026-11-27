@@ -18,7 +18,7 @@ public class KeeperRoomTaskTests
     private const byte Keeper = KeeperWorld.Keeper;
 
     /// <summary>A 3x3 north of the heart's patch, walked from its south-west corner: east, then north.</summary>
-    private static readonly TilePos Start = new(14, 11);
+    private static readonly TilePos Start = new TilePos(14, 11);
 
     private static KeeperAI AtTask(KeeperTask task, byte speed = 1)
     {
@@ -120,7 +120,7 @@ public class KeeperRoomTaskTests
 
         TagTilesCommand tags = Assert.Single(commands.OfType<TagTilesCommand>());
         Assert.Equal(
-            [new(14, 11), new(15, 11), new(16, 11), new(14, 10), new(15, 10), new(16, 10), new(14, 9), new(15, 9), new(16, 9)],
+            [new TilePos(14, 11), new TilePos(15, 11), new TilePos(16, 11), new TilePos(14, 10), new TilePos(15, 10), new TilePos(16, 10), new TilePos(14, 9), new TilePos(15, 9), new TilePos(16, 9)],
             tags.Tiles);
         Assert.Equal(KeeperTask.PlaceRoom, keeper.State.Task);
         Assert.Equal(Start, keeper.State.DigRoomAtCurrent);

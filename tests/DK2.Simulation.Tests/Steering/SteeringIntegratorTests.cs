@@ -18,7 +18,7 @@ public class SteeringIntegratorTests
 
     private static FakeSteeringWorld Room()
     {
-        return new("#######", "#.....#", "#.....#", "#.....#", "#######");
+        return new FakeSteeringWorld("#######", "#.....#", "#.....#", "#.....#", "#######");
     }
 
     private static void Step(SteeringBody body, Fixed16Vector total, FakeSteeringWorld? world = null)

@@ -27,7 +27,7 @@ public class HandTests
     private const byte GoblinId = 7;
     private const int Second = SimulationTiming.TicksPerSecond;
 
-    private static readonly TilePos Floor = new(2, 2);
+    private static readonly TilePos Floor = new TilePos(2, 2);
 
     /// <summary>
     /// A tile of Rock the keeper's room touches, and the floor tile beside it.
@@ -37,12 +37,12 @@ public class HandTests
     /// stand a worker on. Marked work has to be on the room's edge for a drop
     /// to be able to aim at it, which is also how it works in the game.</para>
     /// </summary>
-    private static readonly TilePos Marked = new(4, 2);
-    private static readonly TilePos Beside = new(3, 2);
+    private static readonly TilePos Marked = new TilePos(4, 2);
+    private static readonly TilePos Beside = new TilePos(3, 2);
 
     /// <summary>The fixture's gold seam: 660 health and 3000 gold, which is the
     /// seam the owner measured.</summary>
-    private static readonly TilePos Seam = new(5, 5);
+    private static readonly TilePos Seam = new TilePos(5, 5);
 
     private static GameDatabase Db
     {

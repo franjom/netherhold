@@ -20,7 +20,7 @@ public class CampaignPlayerPitRescueTests
 {
     private const byte Keeper = 3;
     private const byte ClaimedPath = 8, ImpenetrableRock = 1, Goblin = 7, Imp = 1;
-    private static readonly PlayerRunId Run = new("pit-rescue-test");
+    private static readonly PlayerRunId Run = new PlayerRunId("pit-rescue-test");
 
     [InstallFact]
     public void ABeatenFighterRisesOnTheRimAndThePlayersImpCarriesItToBed()

@@ -128,7 +128,7 @@ public sealed class InstallEffectSpriteProviderTests
         Assert.Contains(image.Pixels.Where((_, index) => index % 4 == 3), alpha => alpha > 0);
     }
 
-    private static readonly RgbaImage Image = new(1, 1, [255, 255, 255, 255]);
+    private static readonly RgbaImage Image = new RgbaImage(1, 1, [255, 255, 255, 255]);
 
     [Fact]
     public void ParentAndElementWithTheSameNameResolveDifferentTextures()
@@ -150,7 +150,7 @@ public sealed class InstallEffectSpriteProviderTests
 
     private static GameDatabase Database(params EffectElementDef[] elements)
     {
-        return new([], [], [], new GlobalVariables(), effectElements: elements);
+        return new GameDatabase([], [], [], new GlobalVariables(), effectElements: elements);
     }
 
     private static EffectElementDef Element(string name, string texture, byte type, uint flags, int frames)
@@ -162,7 +162,7 @@ public sealed class InstallEffectSpriteProviderTests
         return new EffectElementDef([])
         {
             Name = name, EffectElementId = (ushort)(name == "Mesh" ? 2 : 1),
-            ArtResource = new(texture, flags, values, type, 0, 0, 0),
+            ArtResource = new KwdArtResource(texture, flags, values, type, 0, 0, 0),
         };
     }
 }

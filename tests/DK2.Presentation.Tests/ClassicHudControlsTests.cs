@@ -121,8 +121,8 @@ public sealed class ClassicHudControlsTests
         var controls = new ClassicHudControls();
         controls.Apply(ClassicHudAction.ToggleOptions);
         controls.UpdateResult(new HudResultState(HasResult: true));
-        Assert.False(controls.Visibility(new(true, true)).ShowNormalHud);
-        Assert.False(controls.Visibility(new(true, true)).AllowOrdinaryInput);
+        Assert.False(controls.Visibility(new HudVisibility(true, true)).ShowNormalHud);
+        Assert.False(controls.Visibility(new HudVisibility(true, true)).AllowOrdinaryInput);
         controls.Apply(ClassicHudAction.ToggleGui);
         Assert.False(controls.GuiVisible);
     }
@@ -134,7 +134,7 @@ public sealed class ClassicHudControlsTests
         controls.UpdateResult(new HudResultState(HasResult: true));
         controls.UpdateResult(default);
         Assert.False(controls.GuiVisible);
-        Assert.True(controls.Visibility(new(true, true)).AllowOrdinaryInput);
+        Assert.True(controls.Visibility(new HudVisibility(true, true)).AllowOrdinaryInput);
         controls.UpdateResult(new HudResultState(Continued: true));
         Assert.False(controls.GuiVisible);
         controls.UpdateResult(new HudResultState(Continued: true, RestoreRequested: true));
@@ -149,8 +149,8 @@ public sealed class ClassicHudControlsTests
         controls.UpdateResult(new HudResultState(HasResult: true));
         controls.UpdateResult(new HudResultState(Continued: true, RestoreRequested: true));
         Assert.True(controls.OptionsVisible);
-        Assert.False(controls.Visibility(HudVisibilityRules.ForCamera(new(3), 1)).ShowNormalHud);
-        Assert.True(controls.Visibility(HudVisibilityRules.ForCamera(new(3), 0)).ShowNormalHud);
+        Assert.False(controls.Visibility(HudVisibilityRules.ForCamera(new CameraModeId(3), 1)).ShowNormalHud);
+        Assert.True(controls.Visibility(HudVisibilityRules.ForCamera(new CameraModeId(3), 0)).ShowNormalHud);
     }
 
     [Fact]
@@ -172,8 +172,8 @@ public sealed class ClassicHudControlsTests
     {
         var controls = new ClassicHudControls();
         controls.Apply(ClassicHudAction.ToggleGui);
-        Assert.False(controls.Visibility(new(true, true)).ShowNormalHud);
-        Assert.True(controls.Visibility(new(true, true)).AllowOrdinaryInput);
+        Assert.False(controls.Visibility(new HudVisibility(true, true)).ShowNormalHud);
+        Assert.True(controls.Visibility(new HudVisibility(true, true)).AllowOrdinaryInput);
         controls.Apply(ClassicHudAction.ToggleOptions);
         Assert.True(controls.GuiVisible);
         Assert.True(controls.OptionsVisible);
@@ -194,8 +194,8 @@ public sealed class ClassicHudControlsTests
     [Fact]
     public void OnlyMagnifierAcceptsSecondaryChannel()
     {
-        Assert.Equal(ClassicHudAction.ZoomOut, ClassicHudControlLayout.ActionAt(new(160,740), true));
-        Assert.Equal(ClassicHudAction.None, ClassicHudControlLayout.ActionAt(new(16,590), true));
+        Assert.Equal(ClassicHudAction.ZoomOut, ClassicHudControlLayout.ActionAt(new Vector2(160,740), true));
+        Assert.Equal(ClassicHudAction.None, ClassicHudControlLayout.ActionAt(new Vector2(16,590), true));
     }
     [Fact]
     public void FullMapSuppressesNormalHudAndOnlyItsToggleIsDispatched()
@@ -206,9 +206,9 @@ public sealed class ClassicHudControlsTests
         controls.Apply(ClassicHudAction.ToggleOptions);
         Assert.True(controls.GuiVisible);
         Assert.False(controls.OptionsVisible);
-        Assert.False(controls.Visibility(new(true,true)).ShowNormalHud);
+        Assert.False(controls.Visibility(new HudVisibility(true,true)).ShowNormalHud);
         controls.Apply(ClassicHudAction.ToggleFullMap);
-        Assert.True(controls.Visibility(new(true,true)).ShowNormalHud);
+        Assert.True(controls.Visibility(new HudVisibility(true,true)).ShowNormalHud);
     }
 
     [Fact]

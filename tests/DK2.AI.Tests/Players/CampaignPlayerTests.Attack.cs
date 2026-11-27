@@ -13,8 +13,8 @@ namespace DK2.AI.Tests.Players;
 /// fit fighters are free, or with any four once the gold is short of a few paydays; fearless creatures first.</summary>
 public partial class CampaignPlayerTests
 {
-    private static readonly CreatureTypeId Skeleton = new(9);
-    private static readonly TilePos Objective = new(9, 1);
+    private static readonly CreatureTypeId Skeleton = new CreatureTypeId(9);
+    private static readonly TilePos Objective = new TilePos(9, 1);
 
     /// <summary>Fit fighters of <paramref name="types"/> along rows 7 and 8, each seen and in the creature panel at level 3.</summary>
     private static (PlayerVisibleThing[] Things, PlayerCreatureSummary[] Creatures) Army(params CreatureTypeId[] types)
@@ -77,14 +77,14 @@ public partial class CampaignPlayerTests
         Assert.Empty(Attack(none, types: [Goblin, Goblin, Goblin, Goblin, Goblin]).Actions.OfType<PlayerAction.PickUp>());
     }
 
-    private static readonly PlayerSpellOffer Bolt = new(6, "Thunderbolt", new ManaAmount(1000), Affordable: true, OnCreature: true);
+    private static readonly PlayerSpellOffer Bolt = new PlayerSpellOffer(6, "Thunderbolt", new ManaAmount(1000), Affordable: true, OnCreature: true);
 
     [Fact]
     public void ThunderboltHitsTheStrongestEnemyInAFightOnOwnGroundWhileTheManaHolds()
     {
         PlayerVisibleThing Hero(int ordinal, TilePos at, int level)
         {
-            return new(Handle(ordinal), PlayerThingKind.Creature, at, Heroes, PlayerThingActions.None, Goblin) { Level = level, Petals = 6 };
+            return new PlayerVisibleThing(Handle(ordinal), PlayerThingKind.Creature, at, Heroes, PlayerThingActions.None, Goblin) { Level = level, Petals = 6 };
         }
 
         PlayerVisibleThing weak = Hero(3, new TilePos(4, 3), 2), strong = Hero(4, new TilePos(5, 3), 5), onRock = Hero(6, new TilePos(5, 1), 9);

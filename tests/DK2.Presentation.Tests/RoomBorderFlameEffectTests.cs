@@ -23,7 +23,7 @@ public sealed class RoomBorderFlameEffectTests
         long now = 0;
         var model = new RoomConstructionParticles(Database(), 1, () => new EffectTime(now));
         model.Request(new ViewEffectRequest(new EffectId(Flame), new PlayerId(3),
-            new FpPosition3(new(8192 + 512), new(8192 + 2000), new(4096))));
+            new FpPosition3(new Fp32(8192 + 512), new Fp32(8192 + 2000), new Fp32(4096))));
 
         ConstructionParticle flame = Assert.Single(model.Particles);
         Assert.Equal("gtorch", flame.Definition.ArtResource.Name);
@@ -54,7 +54,7 @@ public sealed class RoomBorderFlameEffectTests
     {
         long now = 250;
         var model = new RoomConstructionParticles(Database(), 1, () => new EffectTime(now));
-        var at = new FpPosition3(new(8192), new(8192), new(4096));
+        var at = new FpPosition3(new Fp32(8192), new Fp32(8192), new Fp32(4096));
         model.Request(new ViewEffectRequest(new EffectId(Flame), new PlayerId(PlayerIds.Neutral), at));
         now = 640;
         model.Request(new ViewEffectRequest(new EffectId(Flame), new PlayerId(PlayerIds.Neutral), at));
@@ -75,7 +75,7 @@ public sealed class RoomBorderFlameEffectTests
         Assert.Equal([Spark], db.Effects[Data].GenerateIds.Where(id => id != 0));
         var model = new RoomConstructionParticles(db, 1, () => new EffectTime(0));
         model.Request(new ViewEffectRequest(new EffectId(Flame), new PlayerId(3),
-            new FpPosition3(new(8192), new(8192), new(4096))));
+            new FpPosition3(new Fp32(8192), new Fp32(8192), new Fp32(4096))));
         Assert.Single(model.Particles);
         model.AdvanceTo(new EffectTime(51));
         Assert.Equal(4, model.Particles.Count);

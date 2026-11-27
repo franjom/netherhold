@@ -17,7 +17,7 @@ namespace DK2.Behavior.Tests;
 /// </summary>
 public class RunMonitorTests
 {
-    private static readonly PlayerId Keeper = new(PlayerIds.FirstKeeper);
+    private static readonly PlayerId Keeper = new PlayerId(PlayerIds.FirstKeeper);
 
     [Fact]
     public void ASnapshotCopyFedOtherInput_IsAnInvariantFailure()

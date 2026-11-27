@@ -19,12 +19,12 @@ internal sealed class LegacyTerrainChunkSchedule
     private readonly int _chunksX;
     private readonly TileView[] _tiles;
     private readonly bool[] _drawn;
-    private readonly HashSet<int> _dirty = new();
-    private readonly List<int> _dirtyOrder = new();
-    private readonly HashSet<int> _chunks = new();
+    private readonly HashSet<int> _dirty = new HashSet<int>();
+    private readonly List<int> _dirtyOrder = new List<int>();
+    private readonly HashSet<int> _chunks = new HashSet<int>();
     private readonly TerrainTileGeometry?[] _geometry;
     private readonly bool[] _stale;
-    private readonly List<int> _building = new();
+    private readonly List<int> _building = new List<int>();
     private Task? _buildTask;
     private double _restartedAt;
 
@@ -56,7 +56,7 @@ internal sealed class LegacyTerrainChunkSchedule
         }
     }
 
-    public List<SchedulerLog.Upload> Uploads { get; } = new();
+    public List<SchedulerLog.Upload> Uploads { get; } = new List<SchedulerLog.Upload>();
 
     public bool TrySet(int tileIndex, in TileView tile)
     {
@@ -328,7 +328,7 @@ internal sealed class SchedulerLog : ITerrainChunkSink
 {
     private Upload? _open;
 
-    public List<Upload> Uploads { get; } = new();
+    public List<Upload> Uploads { get; } = new List<Upload>();
 
     public Action? Uploaded { get; set; }
 
@@ -353,8 +353,8 @@ internal sealed class SchedulerLog : ITerrainChunkSink
     internal sealed class Upload(int chunk)
     {
         public int Chunk { get; } = chunk;
-        public List<int> Tiles { get; } = new();
-        public List<float> Numbers { get; } = new();
+        public List<int> Tiles { get; } = new List<int>();
+        public List<float> Numbers { get; } = new List<float>();
         public int Vertices { get; private set; }
 
         public void Add(int tileIndex, TerrainTileGeometry geometry)

@@ -61,12 +61,12 @@ public class EggCollisionTests
     public void AZeroCollisionRollBreaksBeforeReflectionAndRequestsTheEffectAtTheOldPosition(bool defaultSystems)
     {
         (GameSimulation? sim, ObjectState? egg, ListEventSink? events, CollisionRandom? rng) = Start(0, defaultSystems);
-        var position = new FpPosition3(new(egg.PosX), new(egg.PosY), new(egg.PosZ));
+        var position = new FpPosition3(new Fp32(egg.PosX), new Fp32(egg.PosY), new Fp32(egg.PosZ));
         sim.Tick();
         Assert.DoesNotContain(egg, sim.World.Objects);
         Assert.Equal(0, egg.Health);
         Assert.Equal((0, 0, 0), (egg.PhysicalVelocityX, egg.PhysicalVelocityY, egg.PhysicalVelocityZ));
-        Assert.Equal(position, new FpPosition3(new(egg.PosX), new(egg.PosY), new(egg.PosZ)));
+        Assert.Equal(position, new FpPosition3(new Fp32(egg.PosX), new Fp32(egg.PosY), new Fp32(egg.PosZ)));
         ViewEffectRequest effect = Assert.Single(events.Events, e => e.EffectRequest?.EffectId == new EffectId(301)).EffectRequest!.Value;
         Assert.Equal(position, effect.Position);
         Assert.Equal(Keeper, effect.Owner.Value);
@@ -172,7 +172,7 @@ public class EggCollisionTests
         egg.ProcessCount = 1;
         egg.PhysicalVelocityX = 0;
         var art = new CreatureAnimationTiming[9];
-        art[0] = new() { ResourceType = 6, FrameCount = 45, FramesPerSecond = 30 };
+        art[0] = new CreatureAnimationTiming() { ResourceType = 6, FrameCount = 45, FramesPerSecond = 30 };
         GameDatabase db = sim.Database;
         db = new GameDatabase(db.Terrain.Values, db.Rooms.Values, db.Creatures.Values, db.Variables,
             objects: db.Objects.Values.Select(o => o.ObjectId == HatcheryRules.EggObjectId ? o with { ArtSlots = art } : o),
@@ -203,7 +203,7 @@ public class EggCollisionTests
         }
 
         var art = new CreatureAnimationTiming[9];
-        art[0] = art[5] = new() { ResourceType = 6, FrameCount = 45, FramesPerSecond = 30 };
+        art[0] = art[5] = new CreatureAnimationTiming() { ResourceType = 6, FrameCount = 45, FramesPerSecond = 30 };
         GameDatabase db = sim.Database;
         db = new GameDatabase(db.Terrain.Values, db.Rooms.Values, db.Creatures.Values, db.Variables,
             objects: db.Objects.Values.Select(o => o.ObjectId == thing.ObjectTypeId ? o with { ArtSlots = art } : o),

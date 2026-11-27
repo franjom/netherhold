@@ -57,8 +57,8 @@ public sealed class TriangleDepthOrderTests
     {
         // Depth 4 (far bar), 2 (post), 0 and -1 (near bars, one run). A flower at depth 1 sits in front
         // of the far bar and the post and behind the near bars (DK2's one blended list, 0x00588D00).
-        Vector3[] positions = [new(0, 0, 4), new(0, 0, 2), new(0, 0, 0), new(0, 0, -1)];
-        RenderTriangle[] triangles = [new(2, 2, 2, 0), new(0, 0, 0, 0), new(1, 1, 1, 1), new(3, 3, 3, 0)];
+        Vector3[] positions = [new Vector3(0, 0, 4), new Vector3(0, 0, 2), new Vector3(0, 0, 0), new Vector3(0, 0, -1)];
+        RenderTriangle[] triangles = [new RenderTriangle(2, 2, 2, 0), new RenderTriangle(0, 0, 0, 0), new RenderTriangle(1, 1, 1, 1), new RenderTriangle(3, 3, 3, 0)];
         var buffer = new TriangleDepthOrderBuffer();
         IReadOnlyList<TriangleDepthOrderBuffer.Run> runs = buffer.Sort(positions, triangles, Vector3.UnitZ);
         Assert.Equal([4f, 2f, -1f], runs.Select(r => r.NearestDepth));
@@ -76,8 +76,8 @@ public sealed class TriangleDepthOrderTests
         // A Prison fence of one material at depths 3, 1 and -1 is one run; a flower at depth 0 inside
         // it would draw wholly before or after the fence. The break splits it so the far bars draw
         // first and the near bar over the flower (0x0058B9D0's per-triangle list).
-        Vector3[] positions = [new(0, 0, 3), new(0, 0, 1), new(0, 0, -1)];
-        RenderTriangle[] triangles = [new(0, 0, 0, 0), new(1, 1, 1, 0), new(2, 2, 2, 0)];
+        Vector3[] positions = [new Vector3(0, 0, 3), new Vector3(0, 0, 1), new Vector3(0, 0, -1)];
+        RenderTriangle[] triangles = [new RenderTriangle(0, 0, 0, 0), new RenderTriangle(1, 1, 1, 0), new RenderTriangle(2, 2, 2, 0)];
         var buffer = new TriangleDepthOrderBuffer();
         Assert.Single(buffer.Sort(positions, triangles, Vector3.UnitZ));
         IReadOnlyList<TriangleDepthOrderBuffer.Run> runs = buffer.Split([0f]);
@@ -94,7 +94,7 @@ public sealed class TriangleDepthOrderTests
     public void ReusedSortAllocatesNoManagedMemoryAfterCapacityWarmup()
     {
         Vector3[] positions = [Vector3.Zero, Vector3.UnitZ, -Vector3.UnitZ];
-        RenderTriangle[] triangles = [new(0, 0, 0, 0), new(1, 1, 1, 1), new(2, 2, 2, 0)];
+        RenderTriangle[] triangles = [new RenderTriangle(0, 0, 0, 0), new RenderTriangle(1, 1, 1, 1), new RenderTriangle(2, 2, 2, 0)];
         var buffer = new TriangleDepthOrderBuffer();
         for (int i = 0; i < 100; i++)
         {
@@ -118,8 +118,8 @@ public sealed class TriangleDepthOrderTests
     [Fact]
     public void AlphaFacesInterleaveAcrossMaterialsAndReverseWithTheCamera()
     {
-        Vector3[] positions = [new(0, 0, 1), new(0, 0, 3), new(0, 0, 2)];
-        RenderTriangle[] triangles = [new(0, 0, 0, 0), new(1, 1, 1, 0), new(2, 2, 2, 1)];
+        Vector3[] positions = [new Vector3(0, 0, 1), new Vector3(0, 0, 3), new Vector3(0, 0, 2)];
+        RenderTriangle[] triangles = [new RenderTriangle(0, 0, 0, 0), new RenderTriangle(1, 1, 1, 0), new RenderTriangle(2, 2, 2, 1)];
         IReadOnlyList<RenderTriangleRun> front = TriangleDepthOrder.Sort(positions, triangles, Vector3.UnitZ);
         Assert.Equal([1, 2, 0], front.SelectMany(r => r.Triangles).Select(t => t.A));
         Assert.Equal([0, 1, 0], front.Select(r => r.MaterialIndex));
@@ -130,8 +130,8 @@ public sealed class TriangleDepthOrderTests
     [Fact]
     public void DepthUsesTheThreeVerticesTogetherAndEqualDepthKeepsSourceOrder()
     {
-        Vector3[] positions = [new(0, 0, 9), Vector3.Zero, new(0, 0, 4), new(1, 0, 4)];
-        RenderTriangle[] triangles = [new(0, 1, 1, 0), new(2, 2, 2, 1), new(3, 3, 3, 0)];
+        Vector3[] positions = [new Vector3(0, 0, 9), Vector3.Zero, new Vector3(0, 0, 4), new Vector3(1, 0, 4)];
+        RenderTriangle[] triangles = [new RenderTriangle(0, 1, 1, 0), new RenderTriangle(2, 2, 2, 1), new RenderTriangle(3, 3, 3, 0)];
         IReadOnlyList<RenderTriangleRun> sorted = TriangleDepthOrder.Sort(positions, triangles, Vector3.UnitZ);
         Assert.Equal([2, 3, 0], sorted.SelectMany(r => r.Triangles).Select(t => t.A));
     }
@@ -166,7 +166,7 @@ public sealed class TriangleDepthOrderTests
                 IReadOnlyList<byte> indices = primitive.IndicesByDetailLevel[0];
                 for (int i = 0; i < indices.Count; i += 3)
                 {
-                    triangles.Add(new(start + indices[i], start + indices[i + 1], start + indices[i + 2], slot));
+                    triangles.Add(new RenderTriangle(start + indices[i], start + indices[i + 1], start + indices[i + 2], slot));
                 }
             }
         }

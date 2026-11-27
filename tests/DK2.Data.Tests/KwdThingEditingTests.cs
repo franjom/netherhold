@@ -21,7 +21,7 @@ public class KwdThingEditingTests
         Array.Fill(chunk.HeaderBlock,(byte)0x5A,4,24);
         var editor=KwdLevelFileSet.Create(new Dictionary<string,IReadOnlyList<KwdChunk>> { ["things.kld"]=[chunk] });
         byte[] before=editor.ToBytes("things.kld");
-        editor.InsertThing(new("things.kld",0,0),((ObjectThing)KwdThings.Parse(194,body)) with { MoneyAmount=13 },template);
+        editor.InsertThing(new KwdRecordLocation("things.kld",0,0),((ObjectThing)KwdThings.Parse(194,body)) with { MoneyAmount=13 },template);
         KwdChunk result=Reload(editor.ToBytes("things.kld"));
         Assert.Equal(2,result.ItemCount); Assert.Equal(56,result.Content.Length);
         Assert.Equal(chunk.HeaderBlock[4..],result.HeaderBlock[4..]);
@@ -30,8 +30,8 @@ public class KwdThingEditingTests
         Assert.Equal(chunk.ContainerHeader!.ChunkEndOffset+32,result.ContainerHeader!.ChunkEndOffset);
         Assert.Equal(chunk.ContainerHeader.DeclaredContentSize+32,result.ContainerHeader.DeclaredContentSize);
         Assert.Equal(trap,result.Content[32..]); Assert.Equal(0x5A,result.Content[16]);
-        editor.RemoveThing(new("things.kld",0,0)); Assert.Equal(before,editor.ToBytes("things.kld"));
-        editor.RemoveThing(new("things.kld",0,0)); Assert.Empty(Reload(editor.ToBytes("things.kld")).Content);
+        editor.RemoveThing(new KwdRecordLocation("things.kld",0,0)); Assert.Equal(before,editor.ToBytes("things.kld"));
+        editor.RemoveThing(new KwdRecordLocation("things.kld",0,0)); Assert.Empty(Reload(editor.ToBytes("things.kld")).Content);
     }
 
     [Fact]
@@ -44,11 +44,11 @@ public class KwdThingEditingTests
         byte[] original=editor.ToBytes("things.kld"); byte[] body=new byte[24];
         var row=(ObjectThing)KwdThings.Parse(194,body);
         KwdRecordImage template =KwdThingsWriterTests.Image(194,body);
-        Assert.Throws<InvalidDataException>(()=>editor.InsertThing(new("things.kld",0,0),row with { TriggerId=14 },template));
-        Assert.Throws<ArgumentOutOfRangeException>(()=>editor.InsertThing(new("things.kld",0,1),row,template));
+        Assert.Throws<InvalidDataException>(()=>editor.InsertThing(new KwdRecordLocation("things.kld",0,0),row with { TriggerId=14 },template));
+        Assert.Throws<ArgumentOutOfRangeException>(()=>editor.InsertThing(new KwdRecordLocation("things.kld",0,1),row,template));
         Assert.Equal(original,editor.ToBytes("things.kld"));
-        editor.InsertThing(new("things.kld",0,0),row with { TriggerId=13 },template);
-        Assert.Equal(13,editor.ReadRecord<ObjectThing>(new("things.kld",0,0)).TriggerId);
+        editor.InsertThing(new KwdRecordLocation("things.kld",0,0),row with { TriggerId=13 },template);
+        Assert.Equal(13,editor.ReadRecord<ObjectThing>(new KwdRecordLocation("things.kld",0,0)).TriggerId);
     }
 
     internal static byte[] Trigger(int tag,ushort id,ushort next=0,ushort child=0)

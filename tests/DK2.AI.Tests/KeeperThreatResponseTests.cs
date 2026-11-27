@@ -21,12 +21,12 @@ public class KeeperThreatResponseTests
 
     private static KeeperAI NewKeeper(byte speed = 1, bool withdraw = false, byte imprison = 0, ulong seed = 7)
     {
-        return new(Keeper, KeeperWorld.Parameters(speed: speed, withdraw: withdraw, imprison: imprison), new SimRandom(seed));
+        return new KeeperAI(Keeper, KeeperWorld.Parameters(speed: speed, withdraw: withdraw, imprison: imprison), new SimRandom(seed));
     }
 
     private static GameSimulation Sim(WorldState world, params ISimulationSystem[] systems)
     {
-        return new(Db, world, 1, systems.Length == 0 ? [new HandSystem(), new RescuePrioritySystem()] : systems);
+        return new GameSimulation(Db, world, 1, systems.Length == 0 ? [new HandSystem(), new RescuePrioritySystem()] : systems);
     }
 
     private static CreatureState Fighter(WorldState world, byte owner, int x, int y)
@@ -513,7 +513,7 @@ public class KeeperThreatResponseTests
         KeeperAI another = NewKeeper();
         another.Think(Db, world);
         Assert.Equal(50, Assert.NotNull(another.State.Responses.Current).RemainingThreat);
-        KeeperView on = new(Db, world, Keeper);
+        var on = new KeeperView(Db, world, Keeper);
         Assert.True(on.CallToArms.On);
         Assert.All(on.Creatures.Where(c => c.OwnerPlayerId == Keeper), c => Assert.True(c.UnderCallToArms));
     }

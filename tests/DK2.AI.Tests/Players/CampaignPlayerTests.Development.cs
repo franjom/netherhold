@@ -31,16 +31,16 @@ public partial class CampaignPlayerTests
 
     private static readonly PlayerRoomOffer[] CoreOffers =
     [
-        new(RoomTypeId.Treasury, new GoldAmount(50), true),
-        new(RoomTypeId.Lair, new GoldAmount(50), true),
-        new(RoomTypeId.Hatchery, new GoldAmount(50), true),
+        new PlayerRoomOffer(RoomTypeId.Treasury, new GoldAmount(50), true),
+        new PlayerRoomOffer(RoomTypeId.Lair, new GoldAmount(50), true),
+        new PlayerRoomOffer(RoomTypeId.Hatchery, new GoldAmount(50), true),
     ];
 
     private static PlayerRoomSummary[] CoreOwned(int lair = 9, int treasury = 9, params PlayerRoomSummary[] more)
     {
         return [
-        new(RoomTypeId.DungeonHeart, 1), new(RoomTypeId.Treasury, treasury), new(RoomTypeId.Lair, lair),
-        new(RoomTypeId.Hatchery, 9), .. more,
+        new PlayerRoomSummary(RoomTypeId.DungeonHeart, 1), new PlayerRoomSummary(RoomTypeId.Treasury, treasury), new PlayerRoomSummary(RoomTypeId.Lair, lair),
+        new PlayerRoomSummary(RoomTypeId.Hatchery, 9), .. more,
     ];
     }
 
@@ -59,7 +59,7 @@ public partial class CampaignPlayerTests
 
     private static PlayerVisibleThing Creature(int ordinal, int x, int y, CreatureTypeId type, PlayerId? owner = null)
     {
-        return new(Handle(ordinal), PlayerThingKind.Creature, new TilePos(x, y), owner ?? Me, PlayerThingActions.PickUp, type);
+        return new PlayerVisibleThing(Handle(ordinal), PlayerThingKind.Creature, new TilePos(x, y), owner ?? Me, PlayerThingActions.PickUp, type);
     }
 
     [Fact]
@@ -105,7 +105,7 @@ public partial class CampaignPlayerTests
     {
         PlayerRoomOffer[] offers =
         [
-            .. CoreOffers, new(RoomTypeId.Workshop, new GoldAmount(50), true), new(RoomTypeId.TrainingRoom, new GoldAmount(50), true),
+            .. CoreOffers, new PlayerRoomOffer(RoomTypeId.Workshop, new GoldAmount(50), true), new PlayerRoomOffer(RoomTypeId.TrainingRoom, new GoldAmount(50), true),
         ];
         CampaignPlayer player = Player();
 
@@ -168,7 +168,7 @@ public partial class CampaignPlayerTests
         Assert.DoesNotContain(player.Decide(Observe(3, map: WithTraining, owned: owned, things: again, tick: 200)).Actions,
             a => a is PlayerAction.PickUp);
         Assert.Contains(new PlayerAction.PickUp(Handle(0, 4)),
-            player.Decide(Observe(4, map: WithTraining, owned: owned, things: [new(Handle(0, 4), PlayerThingKind.Creature,
+            player.Decide(Observe(4, map: WithTraining, owned: owned, things: [new PlayerVisibleThing(Handle(0, 4), PlayerThingKind.Creature,
                 new TilePos(7, 7), Me, PlayerThingActions.PickUp, Goblin)], tick: 300)).Actions);
     }
 
@@ -210,7 +210,7 @@ public partial class CampaignPlayerTests
         // Still held: the drop failed, and the creature goes down near home instead.
         Assert.DoesNotContain(new PlayerAction.DropAt(new TilePos(4, 4)), player.Decide(Observe(3, map: WithTraining, owned: owned, hand: 1, tick: 108)).Actions);
 
-        player.Decide(Observe(4, map: WithTraining, owned: owned, things: [new(Handle(0, 4), PlayerThingKind.Creature, new TilePos(7, 7), Me,
+        player.Decide(Observe(4, map: WithTraining, owned: owned, things: [new PlayerVisibleThing(Handle(0, 4), PlayerThingKind.Creature, new TilePos(7, 7), Me,
             PlayerThingActions.PickUp, Goblin)], tick: 400));
         // (4,3) and (3,4) are the next nearest the heart; Y then X.
         Assert.Contains(new PlayerAction.DropAt(new TilePos(4, 3)), player.Decide(Observe(5, map: WithTraining, owned: owned, hand: 1, tick: 404)).Actions);
@@ -231,8 +231,8 @@ public partial class CampaignPlayerTests
     [Fact]
     public void AnUnaffordableMissingListedRoomKeepsTheGoldFromGrowthAndExtras()
     {
-        PlayerRoomOffer[] offers = [new(RoomTypeId.Lair, new GoldAmount(500), false), new(RoomTypeId.TrainingRoom, new GoldAmount(50), true)];
-        PlayerRoomSummary[] noLair = [new(RoomTypeId.DungeonHeart, 1), new(RoomTypeId.Treasury, 9), new(RoomTypeId.Hatchery, 9)];
+        PlayerRoomOffer[] offers = [new PlayerRoomOffer(RoomTypeId.Lair, new GoldAmount(500), false), new PlayerRoomOffer(RoomTypeId.TrainingRoom, new GoldAmount(50), true)];
+        PlayerRoomSummary[] noLair = [new PlayerRoomSummary(RoomTypeId.DungeonHeart, 1), new PlayerRoomSummary(RoomTypeId.Treasury, 9), new PlayerRoomSummary(RoomTypeId.Hatchery, 9)];
         Assert.DoesNotContain(Player().Decide(Observe(rooms: offers, owned: noLair, gold: 3000)).Actions, a => a is PlayerAction.BuildRoom);
         // A listed room the panel does not offer yet holds nothing back.
         Assert.Equal(RoomTypeId.TrainingRoom, Assert.IsType<PlayerAction.BuildRoom>(
@@ -248,7 +248,7 @@ public partial class CampaignPlayerTests
         Assert.Equal((RoomTypeId.Hatchery, new TilePos(6, 5)), (build.Room, build.From));     // 9 tiles feed 18 of 20
 
         // Two of the nine tiles stand (gold ran short): the build is done, and 11 tiles still feed only 22 of 24.
-        PlayerRoomSummary[] part = [new(RoomTypeId.DungeonHeart, 1), new(RoomTypeId.Treasury, 9), new(RoomTypeId.Lair, 24), new(RoomTypeId.Hatchery, 11)];
+        PlayerRoomSummary[] part = [new PlayerRoomSummary(RoomTypeId.DungeonHeart, 1), new PlayerRoomSummary(RoomTypeId.Treasury, 9), new PlayerRoomSummary(RoomTypeId.Lair, 24), new PlayerRoomSummary(RoomTypeId.Hatchery, 11)];
         Assert.Contains(player.Decide(Observe(2, map: Developed, rooms: CoreOffers, owned: part, creatures: Goblins(24))).Actions,
             a => a is PlayerAction.BuildRoom { Room: RoomTypeId.Hatchery });
     }
@@ -271,7 +271,7 @@ public partial class CampaignPlayerTests
 
         player.Apply(player.Strategy with { UseRooms = [RoomTypeId.Workshop] });
         Assert.Contains(new PlayerAction.PickUp(Handle(0, 2)), player.Decide(Observe(2, map: map, owned: owned,
-            things: [new(Handle(0, 2), PlayerThingKind.Creature, new TilePos(7, 7), Me, PlayerThingActions.PickUp, Goblin)], tick: 400)).Actions);
+            things: [new PlayerVisibleThing(Handle(0, 2), PlayerThingKind.Creature, new TilePos(7, 7), Me, PlayerThingActions.PickUp, Goblin)], tick: 400)).Actions);
         Assert.Contains(new PlayerAction.DropAt(new TilePos(4, 4)), player.Decide(Observe(3, map: map, owned: owned, hand: 1, tick: 404)).Actions);
     }
 

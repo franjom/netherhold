@@ -35,8 +35,8 @@ public class TerrainTileStateTests
             Assert.Equal(expected.AddedLight, added);
             foreach (float light in new[] { 0f, .4f, .95f, 1f })
             {
-                Vector3 vertexLight = new(light);
-                Vector3 texture = new(.23f, .57f, .91f);
+                var vertexLight = new Vector3(light);
+                var texture = new Vector3(.23f, .57f, .91f);
                 Vector3 oldColour = texture * (expected.FullLight ? Vector3.One : Packed(vertexLight + expected.AddedLight));
                 Vector3 newColour = texture * (blend == KmfBlend.Additive ? Vector3.One : Packed(vertexLight + added));
                 Vector3 expectedOverlay = red ? TerrainMaterialLook.HoverOverlayColour : tag ? TerrainMaterialLook.TagOverlayColour : Vector3.Zero;
@@ -67,7 +67,7 @@ public class TerrainTileStateTests
 
     private static Vector3 Packed(Vector3 value)
     {
-        return new(Pack(value.X), Pack(value.Y), Pack(value.Z));
+        return new Vector3(Pack(value.X), Pack(value.Y), Pack(value.Z));
     }
 
     private static float Pack(float value)

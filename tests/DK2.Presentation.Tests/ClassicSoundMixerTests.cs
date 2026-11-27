@@ -16,8 +16,8 @@ namespace DK2.Presentation.Tests;
 /// command, loops that end with their thing, the speech duck (<c>0x00568490</c>), the source pool and the streams.</summary>
 public sealed class ClassicSoundMixerTests
 {
-    private static readonly SoundCategory Effects = new("effects");
-    private static readonly SoundCategory Speech = new("speech_test");
+    private static readonly SoundCategory Effects = new SoundCategory("effects");
+    private static readonly SoundCategory Speech = new SoundCategory("speech_test");
     private const uint Placed = 0x100, HeadRelative = 0x101, Looping = 0x102, Low = 0x103;
 
     private static FakeAssets Assets()
@@ -145,7 +145,7 @@ public sealed class ClassicSoundMixerTests
     /// <summary>Clips whose decode waits for <see cref="Release"/>, so a test sees the frame before a decode lands.</summary>
     private sealed class HeldAssets(FakeAssets inner) : IClassicSoundAssets
     {
-        public ManualResetEventSlim Release { get; } = new();
+        public ManualResetEventSlim Release { get; } = new ManualResetEventSlim();
         public SoundMaps Maps(SoundCategory category)
         {
             return inner.Maps(category);
@@ -256,7 +256,7 @@ public sealed class ClassicSoundMixerTests
 
     private static WorldState EmptyWorld()
     {
-        TerrainDef terrain = new()
+        var terrain = new TerrainDef()
         {
             Name = "test", TerrainId = 2, Flags = TerrainFlags.Solid, StartingHealth = 1, MaxHealth = 1, GoldValue = 0,
             ManaGain = 0, MaxManaGain = 0, Damage = 0, MaxHealthTypeTerrainId = 2, DestroyedTypeTerrainId = 2,
@@ -276,7 +276,7 @@ public sealed class ClassicSoundMixerTests
     internal sealed class FakeAssets : IClassicSoundAssets
     {
         public const int ClipFrames = 64;
-        private readonly Dictionary<SoundCategory, SoundMaps> _maps = new();
+        private readonly Dictionary<SoundCategory, SoundMaps> _maps = new Dictionary<SoundCategory, SoundMaps>();
 
         public FakeAssets With(SoundCategory category, SoundMaps maps)
         {
@@ -291,15 +291,15 @@ public sealed class ClassicSoundMixerTests
 
         public PcmClip? Clip(ResolvedSound reference)
         {
-            return new(22050, 2, new short[ClipFrames * 2]);
+            return new PcmClip(22050, 2, new short[ClipFrames * 2]);
         }
     }
 
     internal sealed class FakeOutput : ISoundOutput
     {
-        public List<FakeSource> Effects { get; } = new();
+        public List<FakeSource> Effects { get; } = new List<FakeSource>();
         public FakeSource? Speech { get; private set; }
-        public List<FakeStream> Streams { get; } = new();
+        public List<FakeStream> Streams { get; } = new List<FakeStream>();
 
         public ISoundSource CreateSource(SoundSourceRole role)
         {

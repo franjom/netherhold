@@ -40,10 +40,10 @@ public class CreatureMovementOrderTests
         CreatureState observed = crossingWalkerIsNewer ? first : second;
         CreatureState crossing = crossingWalkerIsNewer ? second : first;
         // Q613's captured boundary translated by (-20,-48) tiles; native arithmetic outcomes.
-        Prepare(observed, position: new(19770 << 4, 19770 << 4), velocity: new(21421, 21421),
-            waypoint: new(393216, 393216), target: new(393216, 393216), heading: 768);
-        Prepare(crossing, position: new(26021 << 4, 20238 << 4), velocity: new(-9640, 28908),
-            waypoint: new(316672, 622336), target: new(316736, 622576), heading: 1128);
+        Prepare(observed, position: new Fixed16Vector(19770 << 4, 19770 << 4), velocity: new Fixed16Vector(21421, 21421),
+            waypoint: new Fixed16Vector(393216, 393216), target: new Fixed16Vector(393216, 393216), heading: 768);
+        Prepare(crossing, position: new Fixed16Vector(26021 << 4, 20238 << 4), velocity: new Fixed16Vector(-9640, 28908),
+            waypoint: new Fixed16Vector(316672, 622336), target: new Fixed16Vector(316736, 622576), heading: 1128);
 
         new GameSimulation(db, world, 1, [new CreatureMovementSystem()]).Tick();
 

@@ -7,8 +7,8 @@ using DK2.Core;
 namespace DK2.Presentation.Tests;
 public sealed class PossessionVisibilityFieldTests
 {
-    private static readonly CameraViewport Screen = new(1920, 1920, 1080);
-    private static readonly ClassicCameraPose North = new(new Vector3(20.5f, 1.5f, -20.5f), Vector3.UnitZ,
+    private static readonly CameraViewport Screen = new CameraViewport(1920, 1920, 1080);
+    private static readonly ClassicCameraPose North = new ClassicCameraPose(new Vector3(20.5f, 1.5f, -20.5f), Vector3.UnitZ,
         Vector3.UnitY, 90f, 12f, 90f, 0f);
     [Fact]
     public void TheScaledViewPolygonSuppliesTheWalkAndTheWallHidesTheTilesBehindIt()

@@ -45,7 +45,7 @@ public static class StateGraph
 
     private sealed class Walk(object rootA, object rootB, IReadOnlySet<string> ignored, IReadOnlySet<string> shared)
     {
-        private readonly HashSet<(object, object)> _seen = new(ReferencePairComparer.Instance);
+        private readonly HashSet<(object, object)> _seen = new HashSet<(object, object)>(ReferencePairComparer.Instance);
 
         public void Visit(object? a, object? b, string path)
         {
@@ -165,7 +165,7 @@ public static class StateGraph
 
     private sealed class ReferencePairComparer : IEqualityComparer<(object, object)>
     {
-        public static readonly ReferencePairComparer Instance = new();
+        public static readonly ReferencePairComparer Instance = new ReferencePairComparer();
 
         public bool Equals((object, object) x, (object, object) y)
         {

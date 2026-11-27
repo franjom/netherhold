@@ -18,8 +18,8 @@ namespace DK2.Behavior.Tests;
 /// command the click sends (<c>PlacementCursor.Spell</c>).</summary>
 public class PlayerSpellTests
 {
-    private static readonly PlayerId Keeper = new(3);
-    private static readonly PlayerRunId Run = new("spell-test");
+    private static readonly PlayerId Keeper = new PlayerId(3);
+    private static readonly PlayerRunId Run = new PlayerRunId("spell-test");
 
     private sealed record Setup(GameDatabase Database, WorldState World, CreatureState Imp);
 

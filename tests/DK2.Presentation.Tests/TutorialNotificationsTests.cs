@@ -18,7 +18,7 @@ public sealed class TutorialNotificationsTests
     {
         (GameDatabase? db, WorldState? world) = LevelOneWorld();
         var sim = new GameSimulation(db, world, 1, [], PlayerTree(Action(24,
-            new() { ["SpeechId"] = 4, ["SpeakOnly"] = 0 })));
+            new Dictionary<string, long>() { ["SpeechId"] = 4, ["SpeakOnly"] = 0 })));
         sim.Tick();
         var view = new MessageTabsView(PlayerIds.FirstKeeper, db);
         view.Capture(world, 1000);
@@ -56,10 +56,10 @@ public sealed class TutorialNotificationsTests
             }
         }
 
-        TriggerTree tree = PlayerTree(Action(28, new() { ["CreatureId"] = 7, ["Level"] = 1 }));
+        TriggerTree tree = PlayerTree(Action(28, new Dictionary<string, long>() { ["CreatureId"] = 7, ["Level"] = 1 }));
         var sim = new GameSimulation(db, world, 1, [], tree);
         var sink = new ListEventSink(); sim.ObserveWith(sink);
-        TriggerRecord disable = Action(45, new() { ["Available"] = 0 });
+        TriggerRecord disable = Action(45, new Dictionary<string, long>() { ["Available"] = 0 });
         new TriggerExecutor(new TriggerTree([disable], disable.TriggerId), world.Triggers, world, db).Run(1);
         sim.Tick();
 
@@ -151,7 +151,7 @@ public sealed class TutorialNotificationsTests
 
     private static TriggerTree PlayerTree(TriggerRecord action)
     {
-        return new([action], 0, playerRoots: [new TriggerPlayerRoot(PlayerIds.FirstKeeper, action.TriggerId)]);
+        return new TriggerTree([action], 0, playerRoots: [new TriggerPlayerRoot(PlayerIds.FirstKeeper, action.TriggerId)]);
     }
 
     private static string Text(int reference)

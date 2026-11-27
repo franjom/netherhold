@@ -13,7 +13,7 @@ namespace DK2.Simulation.Tests;
 public class GoldLandingTests
 {
     private static readonly PlayerId Keeper = PlayerIds.FirstKeeper;
-    private static readonly TilePos Destination = new(2, 2);
+    private static readonly TilePos Destination = new TilePos(2, 2);
 
     [Theory]
     [InlineData(false)]

@@ -14,7 +14,7 @@ namespace DK2.Simulation.Tests;
 public sealed class ImpWorkAnimationTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
-    private static readonly TilePos Face = new(4, 2);
+    private static readonly TilePos Face = new TilePos(4, 2);
     private const long Collapse = 165;
 
     // Captured completions (imp-dig-stop-clock.md): the work state entered at `entered`, the

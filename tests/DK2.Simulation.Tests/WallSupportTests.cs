@@ -12,7 +12,7 @@ public class WallSupportTests
 {
     private static readonly GameDatabase Db = Dk2TerrainFixture.Database();
     private static readonly PlayerId Keeper = 3, Rival = 4;
-    private static readonly TilePos Centre = new(8, 6);
+    private static readonly TilePos Centre = new TilePos(8, 6);
 
     private static GameSimulation Simulation()
     {

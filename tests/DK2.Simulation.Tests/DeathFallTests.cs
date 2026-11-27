@@ -16,7 +16,7 @@ public class DeathFallTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte GoblinId = Dk2TerrainFixture.GoblinCreatureId;
-    private static readonly TilePos At = new(5, 5);
+    private static readonly TilePos At = new TilePos(5, 5);
 
     // Level 5 seed 1, turn 1720: DK2 logs 29 draws at Creature.cpp line 6461 from this seed when the
     // Wizard collapses. The layout (only the south open) is fitted to the sixteenths the log rejects;

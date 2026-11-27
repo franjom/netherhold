@@ -201,7 +201,7 @@ public class TriggerCaptureComparisonTests
 
     private static CsvRow Row(int tick, params (string Id, int Value)[] events)
     {
-        return new(tick, events);
+        return new CsvRow(tick, events);
     }
 
     private static StringReader Csv(params CsvRow[] rows)

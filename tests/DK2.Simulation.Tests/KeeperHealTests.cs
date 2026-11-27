@@ -441,7 +441,7 @@ public class KeeperHealTests
 
     private static KeeperSpellDef Spell()
     {
-        return new()
+        return new KeeperSpellDef()
         {
             Name = "Heal",
             KeeperSpellId = KeeperSpellRules.Heal,
@@ -461,12 +461,12 @@ public class KeeperHealTests
     /// class 3, 128 health, speed 3686, no death shot.</summary>
     private static ShotDef Shot()
     {
-        return new(new byte[239])
+        return new ShotDef(new byte[239])
         {
             Name = "Modify Health",
             ShotId = 4,
-            MeshResource = new("", 0, default, 0, 0, 0, 0),
-            Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0),
+            MeshResource = new KwdArtResource("", 0, default, 0, 0, 0, 0),
+            Light = new KwdLight(0, 0, 0, 0, 0, 0, 0, 0, 0),
             SoundCategory = "",
             Speed = 3686,
             Radius = 819,

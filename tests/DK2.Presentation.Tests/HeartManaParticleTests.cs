@@ -28,20 +28,20 @@ public class HeartManaParticleTests
         };
         var database = new GameDatabase([], heart.Rooms.Values, [], new GlobalVariables(),
             effects: [heart.Effects[59], lid], effectElements: [heart.EffectElements[98], cover]);
-        EffectTime now = new(0);
+        var now = new EffectTime(0);
         var model = new RoomConstructionParticles(database, 7, () => now, floorHeight: _ => new Fp32(0));
         var mana = new ViewEffectRequest(new EffectId(59), PlayerIds.FirstKeeper,
-            new(new(10240), new(14336), new(8192)));
+            new FpPosition3(new Fp32(10240), new Fp32(14336), new Fp32(8192)));
         model.Request(mana with { EffectId = new EffectId(lidEffect) });
         model.Request(mana);
-        model.AdvanceTo(now = new(51));
+        model.AdvanceTo(now = new EffectTime(51));
         Assert.DoesNotContain(model.Particles, p => p.Definition.EffectElementId == 98);
         model.Request(mana);
-        model.AdvanceTo(now = new(101));
+        model.AdvanceTo(now = new EffectTime(101));
         Assert.DoesNotContain(model.Particles, p => p.Definition.EffectElementId == 98);
-        model.AdvanceTo(now = new(151));
+        model.AdvanceTo(now = new EffectTime(151));
         model.Request(mana);
-        model.AdvanceTo(now = new(201));
+        model.AdvanceTo(now = new EffectTime(201));
         Assert.Contains(model.Particles, p => p.Definition.EffectElementId == 98);
     }
 
@@ -58,35 +58,35 @@ public class HeartManaParticleTests
         EffectDef burst = start with { EffectId = 215, MinHp = 1, MaxHp = 1, DeathEffectId = 0 };
         var database = new GameDatabase([], heart.Rooms.Values, [], new GlobalVariables(),
             effects: [heart.Effects[59], start, burst], effectElements: heart.EffectElements.Values);
-        EffectTime now = new(0);
+        var now = new EffectTime(0);
         var model = new RoomConstructionParticles(database, 7, () => now, floorHeight: _ => new Fp32(0));
         var mana = new ViewEffectRequest(new EffectId(59), PlayerIds.FirstKeeper,
-            new(new(10240), new(14336), new(8192)));
+            new FpPosition3(new Fp32(10240), new Fp32(14336), new Fp32(8192)));
         model.Request(mana with { EffectId = new EffectId(225) });
-        model.AdvanceTo(now = new(51));
+        model.AdvanceTo(now = new EffectTime(51));
         model.Request(mana);
-        model.AdvanceTo(now = new(101));
+        model.AdvanceTo(now = new EffectTime(101));
         Assert.Empty(model.Particles);
         model.Request(mana with { Owner = new PlayerId(2) });
-        model.AdvanceTo(now = new(151));
+        model.AdvanceTo(now = new EffectTime(151));
         Assert.NotEmpty(model.Particles);
         for (int ms = 201; ms <= 1501; ms += 50)
         {
-            model.AdvanceTo(now = new(ms));
+            model.AdvanceTo(now = new EffectTime(ms));
         }
 
-        model.AdvanceTo(now = new(8951));
+        model.AdvanceTo(now = new EffectTime(8951));
         model.Request(mana);
-        model.AdvanceTo(now = new(9001));
+        model.AdvanceTo(now = new EffectTime(9001));
         Assert.Empty(model.Particles);
         model.Request(mana);
-        model.AdvanceTo(now = new(9051));
+        model.AdvanceTo(now = new EffectTime(9051));
         if (startHp > 1)
         {
             Assert.Empty(model.Particles);
-            model.AdvanceTo(now = new(12501));
+            model.AdvanceTo(now = new EffectTime(12501));
             model.Request(mana);
-            model.AdvanceTo(now = new(12551));
+            model.AdvanceTo(now = new EffectTime(12551));
         }
         Assert.NotEmpty(model.Particles);
     }
@@ -162,7 +162,7 @@ public class HeartManaParticleTests
             floorHeight: _ => new Fp32(0), heartSparkleStyle: style);
         model.Emit(new SimEvent(new GameTick(0), "view", "effect", "")
         {
-            EffectRequest = new(new EffectId(59), PlayerIds.FirstKeeper, new(new(10240), new(14336), new(0)))
+            EffectRequest = new ViewEffectRequest(new EffectId(59), PlayerIds.FirstKeeper, new FpPosition3(new Fp32(10240), new Fp32(14336), new Fp32(0)))
         });
         int peak = 0, lowest = int.MaxValue;
         for (int call = 1; call <= 24; call++)
@@ -194,7 +194,7 @@ public class HeartManaParticleTests
         var effect = new EffectDef([])
         {
             Name = "Mana To Heart", EffectId = 59, ArtResource = art,
-            Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0), GenerateIds = [98],
+            Light = new KwdLight(0, 0, 0, 0, 0, 0, 0, 0, 0), GenerateIds = [98],
             Flags = 0x2280, GenerationType = 4, ElementsPerTurn = 1, MinHp = 2, MaxHp = 2,
             OuterOriginRange = 12, LowerHeightLimit = 200, UpperHeightLimit = 200,
             WhirlpoolRate = 32, CircularPathRate = 12, SpriteSpinRateRange = 78
@@ -207,7 +207,7 @@ public class HeartManaParticleTests
             RecommendedSizeX = 5, RecommendedSizeY = 5, OrderInEditor = 0, NameStringId = 0, TooltipStringId = 0,
             CreatedObjectEffectId = 59,
         };
-        return new([], [heart], [], new GlobalVariables(), effects: [effect], effectElements: [rising]);
+        return new GameDatabase([], [heart], [], new GlobalVariables(), effects: [effect], effectElements: [rising]);
     }
 
     private static RoomConstructionParticles Model(GameDatabase database)
@@ -215,8 +215,8 @@ public class HeartManaParticleTests
         var model = new RoomConstructionParticles(database, 7, () => new EffectTime(0));
         model.Emit(new SimEvent(new GameTick(0), "view", "effect", "")
         {
-            EffectRequest = new(new EffectId(59), PlayerIds.FirstKeeper,
-                new(new(10240), new(14336), new(8192)))
+            EffectRequest = new ViewEffectRequest(new EffectId(59), PlayerIds.FirstKeeper,
+                new FpPosition3(new Fp32(10240), new Fp32(14336), new Fp32(8192)))
         });
         return model;
     }
@@ -242,12 +242,12 @@ public class HeartManaParticleTests
         var effect = new EffectDef([])
         {
             Name = "mana", EffectId = 59, ArtResource = art,
-            Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0), GenerateIds = [98],
+            Light = new KwdLight(0, 0, 0, 0, 0, 0, 0, 0, 0), GenerateIds = [98],
             Flags = 0x80, GenerationType = 4, ElementsPerTurn = 1, MinHp = 1, MaxHp = 1,
             InnerOriginRange = circularRate != 0 ? (ushort)12 : (ushort)0,
             OuterOriginRange = circularRate != 0 ? (ushort)12 : (ushort)0,
             CircularPathRate = circularRate, SpriteSpinRateRange = deathElement ? (ushort)78 : (ushort)0
         };
-        return new([], [], [], new GlobalVariables(), effects: [effect], effectElements: [rising, falling]);
+        return new GameDatabase([], [], [], new GlobalVariables(), effects: [effect], effectElements: [rising, falling]);
     }
 }

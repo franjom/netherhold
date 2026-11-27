@@ -28,7 +28,7 @@ public sealed class StatusFlowersTests
             f => f.CreatureId == own.Id).Dollar);
     }
 
-    private static readonly StatusFlowerFacts OwnIdle = new(Own: true, Never: false, ViewerPossessing: false,
+    private static readonly StatusFlowerFacts OwnIdle = new StatusFlowerFacts(Own: true, Never: false, ViewerPossessing: false,
         Hovered: false, Dying: false, InCombat: false, CreatureMood.Content, BelowSixthHealth: false, InWindow: false);
 
     [Fact]
@@ -76,7 +76,7 @@ public sealed class StatusFlowersTests
     public void EnemyShowsAndOwnIsHiddenWithNothingToReport()
     {
         (GameDatabase db, WorldState world, CreatureState own) = Setup();
-        CreatureState enemy = world.SpawnCreature(db, db.CreatureByName("Goblin")!.CreatureId, PlayerIds.Good, new(9, 8));
+        CreatureState enemy = world.SpawnCreature(db, db.CreatureByName("Goblin")!.CreatureId, PlayerIds.Good, new TilePos(9, 8));
         var flowers = new StatusFlowers(db, PlayerIds.FirstKeeper);
         IReadOnlyList<StatusFlower> shown = flowers.Capture(world, new GameTick(10), CreatureQueryTarget.None);
         Assert.DoesNotContain(shown, f => f.CreatureId == own.Id);
@@ -155,8 +155,8 @@ public sealed class StatusFlowersTests
         // Owner 2026-10-20, from play: a knocked-out creature keeps its flower, own or enemy, and
         // an enemy in the viewer's prison shows one.
         (GameDatabase db, WorldState world, CreatureState own) = Setup();
-        CreatureState enemy = world.SpawnCreature(db, db.CreatureByName("Goblin")!.CreatureId, PlayerIds.Good, new(9, 8));
-        CreatureState prisoner = world.SpawnCreature(db, db.CreatureByName("Goblin")!.CreatureId, PlayerIds.Good, new(10, 8));
+        CreatureState enemy = world.SpawnCreature(db, db.CreatureByName("Goblin")!.CreatureId, PlayerIds.Good, new TilePos(9, 8));
+        CreatureState prisoner = world.SpawnCreature(db, db.CreatureByName("Goblin")!.CreatureId, PlayerIds.Good, new TilePos(10, 8));
         own.Dk2StateId = CreatureDeathRules.DyingState;
         enemy.Dk2StateId = CreatureDeathRules.DyingState;
         prisoner.Dk2StateId = PrisonRules.InTheCellState;
@@ -371,7 +371,7 @@ public sealed class StatusFlowersTests
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
             [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
-        CreatureState own = world.SpawnCreature(db, db.CreatureByName("Goblin")!.CreatureId, PlayerIds.FirstKeeper, new(8, 8));
+        CreatureState own = world.SpawnCreature(db, db.CreatureByName("Goblin")!.CreatureId, PlayerIds.FirstKeeper, new TilePos(8, 8));
         return (db, world, own);
     }
 }

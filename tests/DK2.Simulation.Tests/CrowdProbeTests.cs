@@ -59,7 +59,7 @@ public class CrowdProbeTests
         Assert.Empty(found);
     }
 
-    private static readonly Fixed16Vector Centre = new((5 << 16) + 0x8000, (5 << 16) + 0x8000);
+    private static readonly Fixed16Vector Centre = new Fixed16Vector((5 << 16) + 0x8000, (5 << 16) + 0x8000);
 
     private static (GameDatabase, WorldState, CreatureState) OneImp()
     {

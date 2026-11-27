@@ -386,7 +386,7 @@ public class CarryingTests
         goblin.Health = 0;
         imp.Health = 0;
 
-        GameSimulation sim = new(db, world, 42, [new CreatureHealthSystem()]);
+        var sim = new GameSimulation(db, world, 42, [new CreatureHealthSystem()]);
         for (int tick = 0; tick < Second * 5 && goblin.Dk2StateId != CreatureDeathRules.DyingState; tick++)
         {
             sim.Tick();
@@ -410,7 +410,7 @@ public class CarryingTests
         goblin.Health = 0;
         var sink = new ListEventSink();
         // With the systems that hand back a state id their creature has left beside it.
-        GameSimulation sim = new(db, world, 42,
+        var sim = new GameSimulation(db, world, 42,
             [new CreatureSleepSystem(), new CreatureJobSystem(), new CreatureHealthSystem()]);
         sim.ObserveWith(sink);
 
@@ -436,7 +436,7 @@ public class CarryingTests
         goblin.GoldHeld = 2999;
         goblin.Health = 0;
         var sink = new ListEventSink();
-        GameSimulation sim = new(db, world, 42, [new CreatureHealthSystem()]);
+        var sim = new GameSimulation(db, world, 42, [new CreatureHealthSystem()]);
         sim.ObserveWith(sink);
 
         for (int i = 0; i < 2 * Second && !sink.Events.Any(e => e.Kind == "creature_collapsed"); i++)
@@ -498,7 +498,7 @@ public class CarryingTests
         WorldState world = World(db);
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
         goblin.Health = 0;
-        GameSimulation sim = new(db, world, 42, [new CreatureHealthSystem()]);
+        var sim = new GameSimulation(db, world, 42, [new CreatureHealthSystem()]);
 
         sim.Run(Second * 10);
         Assert.Equal(CreatureDeathRules.DyingState, goblin.Dk2StateId);
@@ -784,7 +784,7 @@ public class CarryingTests
         CreatureState goblin = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(3, 3));
         goblin.Health = 0;
 
-        GameSimulation sim = new(db, world, 42, [new CreatureHealthSystem()]);
+        var sim = new GameSimulation(db, world, 42, [new CreatureHealthSystem()]);
         for (int tick = 0; tick < Second * 5 && goblin.Dk2StateId != CreatureDeathRules.DyingState; tick++)
         {
             sim.Tick();

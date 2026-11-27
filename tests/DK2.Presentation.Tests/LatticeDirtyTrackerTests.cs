@@ -80,7 +80,7 @@ public sealed class LatticeDirtyTrackerTests
     [Fact]
     public void TheLatticeForgetsTheCellsWithinOneOfAChange()
     {
-        TerrainDef rock = new()
+        var rock = new TerrainDef()
         {
             Name = "rock", TerrainId = 2, Flags = TerrainFlags.Solid, StartingHealth = 1, MaxHealth = 1, GoldValue = 0,
             ManaGain = 0, MaxManaGain = 0, Damage = 0, MaxHealthTypeTerrainId = 2, DestroyedTypeTerrainId = 2,

@@ -16,7 +16,7 @@ public class PlayerStrategyTests
     public void TheDefaultsAreTodaysOptions()
     {
         var options = new CampaignPlayerOptions(new PlayerRunId("strategy-test"), new PlayerId(3), [new CreatureTypeId(1)]);
-        PlayerStrategy fromOptions = options.Strategy, plain = new();
+        PlayerStrategy fromOptions = options.Strategy, plain = new PlayerStrategy();
 
         foreach (PlayerStrategy s in new[] { fromOptions, plain })
         {

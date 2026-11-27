@@ -12,7 +12,7 @@ public sealed class ClassicLightVisibilityTests
     [Fact]
     public void ScanIncludesBothEndsButExcludesMaximumRow()
     {
-        TilePos[] polygon = [new(-2, -1), new(2, -1), new(2, 2), new(-2, 2)];
+        TilePos[] polygon = [new TilePos(-2, -1), new TilePos(2, -1), new TilePos(2, 2), new TilePos(-2, 2)];
         TilePos[] actual = ClassicLightVisibility.EnumerateTiles(polygon);
         Assert.Equal(15, actual.Length);
         Assert.Equal(new TilePos(-2, -1), actual[0]);
@@ -24,14 +24,14 @@ public sealed class ClassicLightVisibilityTests
     public void ScanUsesTruncatedFixedPointSlopeAndArithmeticShift()
     {
         TilePos[] actual = ClassicLightVisibility.EnumerateTiles(
-            [new(-2, 0), new(0, 3), new(2, 0)]);
+            [new TilePos(-2, 0), new TilePos(0, 3), new TilePos(2, 0)]);
 #pragma warning disable IDE0300 // Preserve the original array construction or overload.
         Assert.Equal(new TilePos[]
         {
 #pragma warning restore IDE0300
-            new(-2,0), new(-1,0), new(0,0), new(1,0), new(2,0),
-            new(-2,1), new(-1,1), new(0,1), new(1,1),
-            new(-1,2), new(0,2)
+            new TilePos(-2,0), new TilePos(-1,0), new TilePos(0,0), new TilePos(1,0), new TilePos(2,0),
+            new TilePos(-2,1), new TilePos(-1,1), new TilePos(0,1), new TilePos(1,1),
+            new TilePos(-1,2), new TilePos(0,2)
         }, actual);
     }
 
@@ -39,23 +39,23 @@ public sealed class ClassicLightVisibilityTests
     public void FlatPolygonAndEmptyPolygonProduceNoTargets()
     {
         Assert.Empty(ClassicLightVisibility.EnumerateTiles([]));
-        Assert.Empty(ClassicLightVisibility.EnumerateTiles([new(0, 2), new(8, 2)]));
+        Assert.Empty(ClassicLightVisibility.EnumerateTiles([new TilePos(0, 2), new TilePos(8, 2)]));
     }
 
     [Fact]
     public void WindingAndStartingCornerDoNotChangeScanOrder()
     {
         TilePos[] expected = ClassicLightVisibility.EnumerateTiles(
-            [new(0, 0), new(4, 0), new(4, 3), new(0, 3)]);
+            [new TilePos(0, 0), new TilePos(4, 0), new TilePos(4, 3), new TilePos(0, 3)]);
         Assert.Equal(expected, ClassicLightVisibility.EnumerateTiles(
-            [new(4, 3), new(4, 0), new(0, 0), new(0, 3)]));
+            [new TilePos(4, 3), new TilePos(4, 0), new TilePos(0, 0), new TilePos(0, 3)]));
     }
 
     [Fact]
     public void TopDownVolumeIncludesHeightSlabAndCameraSpaceMargin()
     {
         // Native basis is identity: world height is -Unity Y, native Y is -Unity Z.
-        var pose = new ClassicCameraPose(new(20, 15, -30), -Vector3.UnitY,
+        var pose = new ClassicCameraPose(new Vector3(20, 15, -30), -Vector3.UnitY,
             Vector3.UnitZ, 90, 40, 90, 0);
         TilePos[] polygon = ClassicLightVisibility.BuildPolygon(pose,
             new CameraViewport(640, 640, 640), 10);
@@ -69,7 +69,7 @@ public sealed class ClassicLightVisibilityTests
     [Fact]
     public void VolumeEntirelyBelowHeightSlabIsEmpty()
     {
-        var pose = new ClassicCameraPose(new(20, -20, -30), -Vector3.UnitY,
+        var pose = new ClassicCameraPose(new Vector3(20, -20, -30), -Vector3.UnitY,
             Vector3.UnitZ, 90, 40, 90, 0);
         Assert.Empty(ClassicLightVisibility.BuildPolygon(pose,
             new CameraViewport(640, 640, 640), 10));
@@ -78,7 +78,7 @@ public sealed class ClassicLightVisibilityTests
     [Fact]
     public void HeightPlaneClipsFarVolumeInsteadOfProjectingAllCornersToFloor()
     {
-        var pose = new ClassicCameraPose(new(20, 5, -30), -Vector3.UnitY,
+        var pose = new ClassicCameraPose(new Vector3(20, 5, -30), -Vector3.UnitY,
             Vector3.UnitZ, 90, 40, 90, 0);
         TilePos[] tiles = ClassicLightVisibility.EnumerateTiles(
             ClassicLightVisibility.BuildPolygon(pose, new CameraViewport(640, 640, 640), 10));
@@ -91,7 +91,7 @@ public sealed class ClassicLightVisibilityTests
     [Fact]
     public void FlagEightContractsFarCornersWithoutChangingCentreDistance()
     {
-        var pose = new ClassicCameraPose(new(20, 15, -30), -Vector3.UnitY,
+        var pose = new ClassicCameraPose(new Vector3(20, 15, -30), -Vector3.UnitY,
             Vector3.UnitZ, 90, 40, 90, 0);
         var viewport = new CameraViewport(640, 640, 640);
         TilePos[] ordinary = ClassicLightVisibility.EnumerateTiles(
@@ -106,9 +106,9 @@ public sealed class ClassicLightVisibilityTests
     public void FlagEightPreservesProtrudingFarCentreAtShallowPitch()
     {
         float pitch = 10 * MathF.PI / 180;
-        var pose = new ClassicCameraPose(new(20, 5, -30),
-            new(0, -MathF.Sin(pitch), MathF.Cos(pitch)),
-            new(0, MathF.Cos(pitch), MathF.Sin(pitch)), 90, 40, 10, 0);
+        var pose = new ClassicCameraPose(new Vector3(20, 5, -30),
+            new Vector3(0, -MathF.Sin(pitch), MathF.Cos(pitch)),
+            new Vector3(0, MathF.Cos(pitch), MathF.Sin(pitch)), 90, 40, 10, 0);
         TilePos[] polygon = ClassicLightVisibility.BuildPolygon(pose,
             new CameraViewport(640, 640, 640), 10, scaleViewVolume: true);
         // Centre reaches native Y=20.15; contracting it moves the minimum row to22.
@@ -119,7 +119,7 @@ public sealed class ClassicLightVisibilityTests
     [Fact]
     public void NarrowViewportChangesHorizontalExtentOnly()
     {
-        var pose = new ClassicCameraPose(new(20, 15, -30), -Vector3.UnitY,
+        var pose = new ClassicCameraPose(new Vector3(20, 15, -30), -Vector3.UnitY,
             Vector3.UnitZ, 90, 40, 90, 0);
         TilePos[] tiles = ClassicLightVisibility.EnumerateTiles(
             ClassicLightVisibility.BuildPolygon(pose, new CameraViewport(640, 320, 640), 10));
@@ -132,7 +132,7 @@ public sealed class ClassicLightVisibilityTests
     [Fact]
     public void QuarterTurnExchangesNarrowViewportAxes()
     {
-        var pose = new ClassicCameraPose(new(20, 15, -30), -Vector3.UnitY,
+        var pose = new ClassicCameraPose(new Vector3(20, 15, -30), -Vector3.UnitY,
             Vector3.UnitX, 90, 40, 90, 90);
         TilePos[] tiles = ClassicLightVisibility.EnumerateTiles(
             ClassicLightVisibility.BuildPolygon(pose, new CameraViewport(640, 320, 640), 10));
@@ -145,7 +145,7 @@ public sealed class ClassicLightVisibilityTests
     [Fact]
     public void PresentationFarClipDoesNotChangeNativeVolume()
     {
-        var pose = new ClassicCameraPose(new(20, 15, -30), -Vector3.UnitY,
+        var pose = new ClassicCameraPose(new Vector3(20, 15, -30), -Vector3.UnitY,
             Vector3.UnitZ, 90, 40, 90, 0);
         var viewport = new CameraViewport(640, 640, 640);
         Assert.Equal(ClassicLightVisibility.BuildPolygon(pose, viewport, 10),

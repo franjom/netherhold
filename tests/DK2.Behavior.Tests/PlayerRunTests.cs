@@ -15,9 +15,9 @@ namespace DK2.Behavior.Tests;
 /// <summary>The controlled player inside the scenario loop (campaign player plan, task 4).</summary>
 public class PlayerRunTests
 {
-    private static readonly PlayerId Keeper = new(3);
-    private static readonly TilePos Rock = new(6, 4);
-    private static readonly PlayerRunId Run = new("player-run-test");
+    private static readonly PlayerId Keeper = new PlayerId(3);
+    private static readonly TilePos Rock = new TilePos(6, 4);
+    private static readonly PlayerRunId Run = new PlayerRunId("player-run-test");
 
     /// <summary>A scripted controller: a fixed action list at each decision, a fixed advance.</summary>
     private sealed class Scripted(int advance, Func<PlayerObservation, IEnumerable<PlayerAction>>? act = null) : IPlayerController

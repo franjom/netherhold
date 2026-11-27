@@ -20,8 +20,8 @@ public class KeeperPrisonerStepTests
     private const byte Keeper = KeeperWorld.Keeper;
     private const byte Enemy = 4;
 
-    private static readonly TilePos PrisonCell = new(20, 20);
-    private static readonly TilePos TortureSlot = new(25, 15);
+    private static readonly TilePos PrisonCell = new TilePos(20, 20);
+    private static readonly TilePos TortureSlot = new TilePos(25, 15);
 
     private static WorldState World(bool prison = true, bool lair = true, bool temple = true, bool pit = true, bool torture = true)
     {

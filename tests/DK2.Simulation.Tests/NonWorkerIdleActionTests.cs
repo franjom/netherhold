@@ -272,7 +272,7 @@ public class NonWorkerIdleActionTests
 
     private sealed class ObservedParameters(Action observe) : IReadOnlyDictionary<string, long>
     {
-        private readonly Dictionary<string, long> _values = new()
+        private readonly Dictionary<string, long> _values = new Dictionary<string, long>()
         { ["FlagId"] = 0, ["Flag"] = 10, ["Value"] = 1 };
         public long this[string key] { get { observe(); return _values[key]; } }
         public int Count

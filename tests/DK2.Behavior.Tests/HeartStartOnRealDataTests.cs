@@ -61,7 +61,7 @@ public class HeartStartOnRealDataTests(ITestOutputHelper output)
         var world = WorldState.FromMap(db,
             GameDatabaseLoader.LoadCampaignMap(install, "Level7")!, players.Select(p => p.PlayerId));
         ThingProjection.Place(world, db, things);
-        Assert.Equal(new PlayerId[] { new(4), new(3), new(2), new(1) }, world.ActivePlayerOrder);
+        Assert.Equal(new PlayerId[] { new PlayerId(4), new PlayerId(3), new PlayerId(2), new PlayerId(1) }, world.ActivePlayerOrder);
         Assert.Equal(1000, world.Player(4).HeartHealth);
         Assert.Equal(0, ImpSupplyRules.ImpCount(world, db, new PlayerId(4)));
         var simulation = new GameSimulation(db, world, 7,

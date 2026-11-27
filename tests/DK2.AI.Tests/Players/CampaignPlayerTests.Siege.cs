@@ -26,13 +26,13 @@ public partial class CampaignPlayerTests
 
     private static (PlayerVisibleThing[] Things, PlayerCreatureSummary[] Creatures) Army(int fighters, TilePos enemy, long revision)
     {
-        var things = new List<PlayerVisibleThing> { new(Handle(0, revision), PlayerThingKind.Creature, enemy, Heroes, PlayerThingActions.None,
+        var things = new List<PlayerVisibleThing> { new PlayerVisibleThing(Handle(0, revision), PlayerThingKind.Creature, enemy, Heroes, PlayerThingActions.None,
             creatureType: new CreatureTypeId(20)) };
         var creatures = new List<PlayerCreatureSummary>();
         for (int i = 0; i < fighters; i++)
         {
             var at = new TilePos(3 + i, 2);
-            things.Add(new(Handle(1 + i, revision), PlayerThingKind.Creature, at, Me, PlayerThingActions.PickUp, Goblin));
+            things.Add(new PlayerVisibleThing(Handle(1 + i, revision), PlayerThingKind.Creature, at, Me, PlayerThingActions.PickUp, Goblin));
             creatures.Add(new PlayerCreatureSummary(Goblin, at, false, Handle(1 + i, revision), Level: 2, Petals: 6, Mood: PlayerCreatureMood.Happy));
         }
         return ([.. things], [.. creatures]);
@@ -118,9 +118,9 @@ public partial class CampaignPlayerTests
         CampaignPlayer player = Besieged(enemy, LongStrip);
         (PlayerVisibleThing[]? few, PlayerCreatureSummary[]? fewCreatures) = Army(3, enemy, 3);
         var hurtAt = new TilePos(30, 2);
-        PlayerVisibleThing hurt = new(Handle(9, 3), PlayerThingKind.Creature, hurtAt, Me, PlayerThingActions.PickUp, Goblin);
-        PlayerCreatureSummary hurtFlower = new(Goblin, hurtAt, false, Handle(9, 3), Level: 2, Petals: 2, Mood: PlayerCreatureMood.Happy);
-        PlayerSpellOffer heal = new(10, "Heal", new ManaAmount(1000), true, OnCreature: true);
+        var hurt = new PlayerVisibleThing(Handle(9, 3), PlayerThingKind.Creature, hurtAt, Me, PlayerThingActions.PickUp, Goblin);
+        var hurtFlower = new PlayerCreatureSummary(Goblin, hurtAt, false, Handle(9, 3), Level: 2, Petals: 2, Mood: PlayerCreatureMood.Happy);
+        var heal = new PlayerSpellOffer(10, "Heal", new ManaAmount(1000), true, OnCreature: true);
         PlayerDecision decision = player.Decide(Observe(3, map: LongStrip, things: [.. few, hurt], creatures: [.. fewCreatures, hurtFlower],
             gold: 0, tick: 1500, spells: [heal], mana: 5000));
         Assert.Contains(new PlayerAction.CastSpell(10, Target: Handle(9, 3)), decision.Actions);

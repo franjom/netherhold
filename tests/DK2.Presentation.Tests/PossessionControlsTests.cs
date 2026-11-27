@@ -25,7 +25,7 @@ public sealed class PossessionControlsTests
             [1, 3, 4], fogOfWarEnabled: false);
         byte prison = db.Rooms.Values.Single(r => r.TypeId == RoomTypeId.Prison).TerrainId;
         byte ordinary = db.Terrain.Values.First(t => db.RoomByTerrain(t.TerrainId) == null).TerrainId;
-        TilePos cameraTile = new(4, 4), creatureTile = new(6, 4);
+        TilePos cameraTile = new TilePos(4, 4), creatureTile = new TilePos(6, 4);
         world.Tile(cameraTile).TerrainId = cameraInPrison ? prison : ordinary;
         world.Tile(creatureTile).TerrainId = creatureInPrison ? prison : ordinary;
         CreatureDef warlock = db.Creatures.Values.Single(c => c.Name == "Warlock");
@@ -87,7 +87,7 @@ public sealed class PossessionControlsTests
         ToggleSneakCommand sneak = Assert.IsType<ToggleSneakCommand>(controls.UsePrimary(Keeper, view, rogue));
         Assert.Equal((5, 6), (sneak.TileX, sneak.TileY));
     }
-    private static readonly PlayerId Keeper = new(3);
+    private static readonly PlayerId Keeper = new PlayerId(3);
 
     [Fact]
     public void MeleeKeepsTheSlotAndFollowersClearMelee_StronglyInferredFromBinary()

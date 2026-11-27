@@ -12,11 +12,11 @@ namespace DK2.Presentation.Tests;
 /// moved out of Unity's <c>DungeonMinimap</c>, and the footprint's triangle list.</summary>
 public sealed class MinimapCameraViewTests
 {
-    private static readonly CameraViewport FullHd = new(1920, 1920, 1080);
+    private static readonly CameraViewport FullHd = new CameraViewport(1920, 1920, 1080);
 
     private static ClassicCamera Camera(ushort yaw = 256, ushort pitch = 220)
     {
-        return new(new CameraThing(new byte[84])
+        return new ClassicCamera(new CameraThing(new byte[84])
         {
             CameraId = 3,
             Z = 4096,
@@ -30,7 +30,7 @@ public sealed class MinimapCameraViewTests
         { ReferenceScreenWidth = ClassicCameraSetup.ReferenceScreenWidth };
     }
 
-    private static readonly Vector3 Focus = new(40.5f, TileHeights.Floor, -30.5f);
+    private static readonly Vector3 Focus = new Vector3(40.5f, TileHeights.Floor, -30.5f);
 
     private static MinimapCameraView View(ClassicCamera camera, Vector3 focus)
     {
@@ -62,7 +62,7 @@ public sealed class MinimapCameraViewTests
         Assert.NotEqual(0, view.ProjectionCentreShift);
         Span<Vector2> corners = stackalloc Vector2[4];
         Assert.True(view.TryFloorCorners(corners));
-        Vector2[] expected = [new(0, 1), new(1, 1), new(1, 0), new(0, 0)];
+        Vector2[] expected = [new Vector2(0, 1), new Vector2(1, 1), new Vector2(1, 0), new Vector2(0, 0)];
         for (int i = 0; i < 4; i++)
         {
             Vector2 at = Project(view, new Vector3(corners[i].X, TileHeights.Floor, -corners[i].Y));
@@ -186,7 +186,7 @@ public sealed class MinimapCameraViewTests
         var right = Vector3.Normalize(Vector3.Cross(pose.Up, forward));
         var up = Vector3.Cross(forward, right);
         float tangent = MathF.Tan(pose.VerticalFieldOfView * MathF.PI / 360);
-        Vector2[] expected = [new(0, 1), new(1, 1), new(1, 0), new(0, 0)];
+        Vector2[] expected = [new Vector2(0, 1), new Vector2(1, 1), new Vector2(1, 0), new Vector2(0, 0)];
         for (int i = 0; i < 4; i++)
         {
             Vector3 d = new Vector3(corners[i].X, TileHeights.Floor, -corners[i].Y) - pose.Position;

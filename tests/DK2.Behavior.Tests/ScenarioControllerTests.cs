@@ -18,8 +18,8 @@ namespace DK2.Behavior.Tests;
 /// </summary>
 public class ScenarioControllerTests
 {
-    private static readonly PlayerId Keeper = new(3);
-    private static readonly TilePos Rock = new(6, 4);
+    private static readonly PlayerId Keeper = new PlayerId(3);
+    private static readonly TilePos Rock = new TilePos(6, 4);
 
     [Fact]
     public void AControllersCommand_IsTheSameInputAsTheScriptedCommandOneTickLater()

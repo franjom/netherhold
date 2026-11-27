@@ -155,7 +155,7 @@ public class HeroesDestroyedTests
         knight.DeathUncounted = true;
         world.Player(Keeper).HeroesDestroyed = 7;
 
-        GameSimulation original = new(db, world, 1, []);
+        var original = new GameSimulation(db, world, 1, []);
         GameSimulation restored = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(original), db, []);
 
         CreatureState again = restored.World.CreatureById(knight.Id)!;

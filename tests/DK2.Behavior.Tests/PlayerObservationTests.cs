@@ -21,16 +21,16 @@ namespace DK2.Behavior.Tests;
 /// </summary>
 public class PlayerObservationTests
 {
-    internal static readonly PlayerId Viewer = new(3), Rival = new(4);
+    internal static readonly PlayerId Viewer = new PlayerId(3), Rival = new PlayerId(4);
     internal const int Width = 8, Height = 3, Seen = 4; // columns 0-3 are explored by the viewer
     internal const byte Imp = 1, Fighter = 2, Pot = 1, Torch = 2;
     internal const byte DirtPath = 3, Treasury = 4, Gold = 5, Water = 6, Lava = 7, Rock = 2, RevealedFloor = 8;
-    internal static readonly TilePos HiddenFloor = new(6, 1), HiddenRoom = new(7, 2), OwnFloor = new(1, 1), Scanned = new(5, 2);
-    internal static readonly PlayerRunId Run = new("observation-test");
+    internal static readonly TilePos HiddenFloor = new TilePos(6, 1), HiddenRoom = new TilePos(7, 2), OwnFloor = new TilePos(1, 1), Scanned = new TilePos(5, 2);
+    internal static readonly PlayerRunId Run = new PlayerRunId("observation-test");
 
     internal static PlayerStamp Stamp(WorldState world, long revision = 1)
     {
-        return new(Run, Viewer, world.CurrentTick, new PlayerRevision(revision));
+        return new PlayerStamp(Run, Viewer, world.CurrentTick, new PlayerRevision(revision));
     }
 
     internal static GameDatabase Database()
@@ -53,7 +53,7 @@ public class PlayerObservationTests
         CreatureDef imp = basic.CreatureById(Imp);
         ObjectDef Object(byte id, string name, ObjectFlags flags)
         {
-            return new()
+            return new ObjectDef()
             {
                 Name = name,
                 ObjectId = id,
@@ -376,8 +376,8 @@ public class PlayerObservationTests
         (GameDatabase? database, WorldState? world) = World();
         PlayerReceipt[] receipts =
         [
-            new(new PlayerActionId(1), PlayerReceiptStatus.Submitted, scheduledTick: new GameTick(1)),
-            new(new PlayerActionId(2), PlayerReceiptStatus.Refused, PlayerRefusalReason.StaleObservation),
+            new PlayerReceipt(new PlayerActionId(1), PlayerReceiptStatus.Submitted, scheduledTick: new GameTick(1)),
+            new PlayerReceipt(new PlayerActionId(2), PlayerReceiptStatus.Refused, PlayerRefusalReason.StaleObservation),
         ];
         Assert.Equal(receipts, new PlayerObservationBuilder(database, Viewer).Capture(world, Stamp(world), receipts).Observation.Receipts);
     }

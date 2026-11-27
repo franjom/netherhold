@@ -45,7 +45,7 @@ public class HeroLairTrestleTests
 
     private static GameSimulation Simulation(GameDatabase db, WorldState world, uint seed)
     {
-        return new(db, world, new SimRandom(new Dk2Lcg(seed)), []);
+        return new GameSimulation(db, world, new SimRandom(new Dk2Lcg(seed)), []);
     }
 
     private static uint Seed(GameSimulation sim)

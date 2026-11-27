@@ -15,16 +15,16 @@ namespace DK2.Presentation.Tests;
 /// <c>0x8000</c>, and on an unexplored tile; the view's gates stand for those.</summary>
 public sealed class PartyPopSoundTests
 {
-    private static readonly KwdArtResource EmptyArt = new("", 0, new byte[12], 0, 0, 0, 0);
+    private static readonly KwdArtResource EmptyArt = new KwdArtResource("", 0, new byte[12], 0, 0, 0, 0);
 
     private static EffectDef Effect(uint flags)
     {
-        return new([])
+        return new EffectDef([])
         {
             Name = "Fireworks",
             EffectId = 320,
             ArtResource = EmptyArt,
-            Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0),
+            Light = new KwdLight(0, 0, 0, 0, 0, 0, 0, 0, 0),
             GenerateIds = [],
             GenerationType = 4,
             ElementsPerTurn = 1,
@@ -36,12 +36,12 @@ public sealed class PartyPopSoundTests
 
     private static ViewEffectRequest Request()
     {
-        return new(new(320), PlayerIds.FirstKeeper, new FpPosition3(new(0x3000), new(0x5000), new(0x1000)));
+        return new ViewEffectRequest(new EffectId(320), PlayerIds.FirstKeeper, new FpPosition3(new Fp32(0x3000), new Fp32(0x5000), new Fp32(0x1000)));
     }
 
     private static RoomConstructionParticles Model(uint flags, Func<bool> explored, Func<bool> inCamera)
     {
-        return new(new GameDatabase([], [], [], new GlobalVariables(), effects: [Effect(flags)]), 7, () => default,
+        return new RoomConstructionParticles(new GameDatabase([], [], [], new GlobalVariables(), effects: [Effect(flags)]), 7, () => default,
             effectVisible: _ => explored(), cameraVisible: _ => inCamera(), floorHeight: _ => default);
     }
 
@@ -81,6 +81,6 @@ public sealed class PartyPopSoundTests
         Assert.Equal(0x344u, pop.Id.Value);
         Assert.Equal(new Vector3(3f, 1f, -5f), pop.World);   // (x, height, -y) in tiles
         Assert.Equal(SoundVoiceId.None, pop.Voice);
-        Assert.Null(PartyPopSound.For(Request() with { EffectId = new(321) }));
+        Assert.Null(PartyPopSound.For(Request() with { EffectId = new EffectId(321) }));
     }
 }

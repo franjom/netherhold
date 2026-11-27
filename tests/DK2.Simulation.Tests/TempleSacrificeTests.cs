@@ -37,7 +37,7 @@ public class TempleSacrificeTests
 
     private const byte Keeper = PlayerIds.FirstKeeper;
     /// <summary>The centre of a 3×3 Temple, its pool: an offering is made only there (temple-states.md §3).</summary>
-    private static readonly TilePos Floor = new(2, 2);
+    private static readonly TilePos Floor = new TilePos(2, 2);
 
     [Fact]
     public void StronglyInferred_OrderedSuffixMatchClearsTheWholeRoomHistory()
@@ -146,7 +146,7 @@ public class TempleSacrificeTests
     [Fact]
     public void StronglyInferred_SeparateTempleRoomsKeepSeparateHistories()
     {
-        TilePos other = new(6, 2);
+        var other = new TilePos(6, 2);
         (GameDatabase db, WorldState world, GameSimulation sim) = Pools(Floor, other);
         db.Variables.Sacrifices.Add(new SacrificeEntry(
             1, Dk2TerrainFixture.GoblinCreatureId,
@@ -165,8 +165,8 @@ public class TempleSacrificeTests
     [Fact]
     public void OurAnchorPolicy_ExtensionMergeAndAnchorRemovalAreDeterministic()
     {
-        TilePos left = new(1, 1);
-        TilePos right = new(3, 1);
+        var left = new TilePos(1, 1);
+        var right = new TilePos(3, 1);
         (GameDatabase db, WorldState world, _) = Setup(left, right);
         RememberSpell(world, db, left, 4);
         RememberSpell(world, db, right, 7);
@@ -190,9 +190,9 @@ public class TempleSacrificeTests
     [Fact]
     public void OurAnchorPolicy_OnSplitOnlyTheComponentRetainingTheAnchorInheritsHistory()
     {
-        TilePos anchor = new(1, 1);
-        TilePos bridge = new(2, 1);
-        TilePos separated = new(3, 1);
+        var anchor = new TilePos(1, 1);
+        var bridge = new TilePos(2, 1);
+        var separated = new TilePos(3, 1);
         (GameDatabase db, WorldState world, _) = Setup(anchor, bridge, separated);
         RememberSpell(world, db, anchor, 4);
 
@@ -246,7 +246,7 @@ public class TempleSacrificeTests
 
     private static SacrificeEntry OneCreatureRecipe(byte input, byte output, byte speech)
     {
-        return new(1, input, 0, 0, 0, 0, 1, speech, output);
+        return new SacrificeEntry(1, input, 0, 0, 0, 0, 1, speech, output);
     }
 
     private static (GameDatabase Db, WorldState World, GameSimulation Sim) Setup(

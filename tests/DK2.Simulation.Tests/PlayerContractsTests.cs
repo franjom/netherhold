@@ -17,16 +17,16 @@ namespace DK2.Simulation.Tests;
 /// read-only observation storage and a closed action family that carries no engine reference.</summary>
 public class PlayerContractsTests
 {
-    private static readonly PlayerRunId Run = new("run-a");
+    private static readonly PlayerRunId Run = new PlayerRunId("run-a");
 
     private static PlayerStamp Stamp(long revision = 1)
     {
-        return new(Run, new PlayerId(3), new GameTick(revision), new PlayerRevision(revision));
+        return new PlayerStamp(Run, new PlayerId(3), new GameTick(revision), new PlayerRevision(revision));
     }
 
     private static PlayerThingHandle Handle(int ordinal)
     {
-        return new(new PlayerRevision(1), ordinal);
+        return new PlayerThingHandle(new PlayerRevision(1), ordinal);
     }
 
     [Fact]
@@ -120,15 +120,15 @@ public class PlayerContractsTests
     [Fact]
     public void ObservationOwnsItsCollections()
     {
-        var rooms = new List<PlayerRoomSummary> { new(RoomTypeId.Treasury, 9) };
-        var creatures = new List<PlayerCreatureSummary> { new(new CreatureTypeId(1), new TilePos(2, 2), false) };
+        var rooms = new List<PlayerRoomSummary> { new PlayerRoomSummary(RoomTypeId.Treasury, 9) };
+        var creatures = new List<PlayerCreatureSummary> { new PlayerCreatureSummary(new CreatureTypeId(1), new TilePos(2, 2), false) };
         var things = new List<PlayerVisibleThing>
         {
-            new(Handle(0), PlayerThingKind.Creature, new TilePos(2, 2), new PlayerId(3), PlayerThingActions.PickUp, new CreatureTypeId(1)),
+            new PlayerVisibleThing(Handle(0), PlayerThingKind.Creature, new TilePos(2, 2), new PlayerId(3), PlayerThingActions.PickUp, new CreatureTypeId(1)),
         };
-        var notices = new List<PlayerNotice> { new(new GameTick(1), 1, default) };
-        PlayerReceipt[] receipts = [new(new PlayerActionId(1), PlayerReceiptStatus.Queued)];
-        var roomOffers = new List<PlayerRoomOffer> { new(RoomTypeId.Treasury, new GoldAmount(50), true) };
+        var notices = new List<PlayerNotice> { new PlayerNotice(new GameTick(1), 1, default) };
+        PlayerReceipt[] receipts = [new PlayerReceipt(new PlayerActionId(1), PlayerReceiptStatus.Queued)];
+        var roomOffers = new List<PlayerRoomOffer> { new PlayerRoomOffer(RoomTypeId.Treasury, new GoldAmount(50), true) };
         var panels = new List<GuiButtonTarget> { GuiButtonTarget.Room(RoomTypeId.Treasury) };
         var tiles = new PlayerTile[4];
         tiles[0] = new PlayerTile(PlayerTileFlags.Known | PlayerTileFlags.Solid, default, default);

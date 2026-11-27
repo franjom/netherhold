@@ -11,11 +11,11 @@ namespace DK2.Presentation.Tests;
 /// <see cref="ScriptedViewDirector.PanelFlash"/>.</summary>
 public sealed class ScriptedViewHudTests
 {
-    private static readonly PlayerId Viewer = new(3);
+    private static readonly PlayerId Viewer = new PlayerId(3);
 
     private static SimEvent Request(ScriptedViewRequest request)
     {
-        return new(default, "t", "scripted_view", "") { ScriptedView = request };
+        return new SimEvent(default, "t", "scripted_view", "") { ScriptedView = request };
     }
 
     private static SimEvent Flash(HudFlashTarget target)
@@ -59,7 +59,7 @@ public sealed class ScriptedViewHudTests
     /// <summary>A flash target packs its category in the low byte and its button (the item) in the high byte.</summary>
     private static HudFlashTarget Item(byte category, byte button)
     {
-        return new((ushort)(category | button << 8));
+        return new HudFlashTarget((ushort)(category | button << 8));
     }
 
     private static void Choose(HudToolState tools, BottomPanelChoiceKind kind, byte value, PlayerToolMode tool, RoomTypeId room)

@@ -10,8 +10,8 @@ namespace DK2.Presentation.Tests;
 /// and each submesh's swap and red pass.</summary>
 public sealed class HoverOverlayPlanTests
 {
-    private static readonly WorldHoverHit Imp = new(WorldHoverKind.Creature, new TilePos(1, 1), 7);
-    private static readonly WorldHoverHit Gold = new(WorldHoverKind.Object, new TilePos(1, 1), 9);
+    private static readonly WorldHoverHit Imp = new WorldHoverHit(WorldHoverKind.Creature, new TilePos(1, 1), 7);
+    private static readonly WorldHoverHit Gold = new WorldHoverHit(WorldHoverKind.Object, new TilePos(1, 1), 9);
 
     [Fact]
     public void AFirstDrawDrawsRedOnOpaqueMaterialsOnly()

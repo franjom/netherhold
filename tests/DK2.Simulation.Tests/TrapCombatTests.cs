@@ -19,7 +19,7 @@ public class TrapCombatTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte Rival = PlayerIds.FirstKeeper + 1;
-    private static readonly TilePos TrapTile = new(8, 5);
+    private static readonly TilePos TrapTile = new TilePos(8, 5);
 
     private static (GameDatabase db, WorldState world) Open()
     {

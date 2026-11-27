@@ -12,11 +12,11 @@ namespace DK2.Presentation.Tests;
 public sealed class PossessionSceneTests
 {
     private const int Width = 8, Height = 6;
-    private static readonly PlayerId Viewer = new(PlayerIds.FirstKeeper);
+    private static readonly PlayerId Viewer = new PlayerId(PlayerIds.FirstKeeper);
 
     private static (GameDatabase Database, WorldState World) Staged()
     {
-        TerrainDef rock = new()
+        var rock = new TerrainDef()
         {
             Name = "rock", TerrainId = 2, Flags = TerrainFlags.Solid, StartingHealth = 1, MaxHealth = 1, GoldValue = 0,
             ManaGain = 0, MaxManaGain = 0, Damage = 0, MaxHealthTypeTerrainId = 2, DestroyedTypeTerrainId = 2,

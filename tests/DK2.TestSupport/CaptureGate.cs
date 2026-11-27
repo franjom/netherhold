@@ -51,7 +51,7 @@ public static class Dk2CaptureGate
 
     private static string RepositoryRoot()
     {
-        DirectoryInfo? dir = new(AppContext.BaseDirectory);
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir is not null && !File.Exists(System.IO.Path.Combine(dir.FullName, "DK2.slnx")))
         {
             dir = dir.Parent;

@@ -12,7 +12,7 @@ public sealed class FullMapImageTests
 {
     private static MinimapPalette Palette()
     {
-        return new(Enumerable.Range(0, 37).Select(i => 0x00102030u + (uint)i).ToArray());
+        return new MinimapPalette(Enumerable.Range(0, 37).Select(i => 0x00102030u + (uint)i).ToArray());
     }
 
     private static byte[] Pixel(FullMapImage image, int x, int y)

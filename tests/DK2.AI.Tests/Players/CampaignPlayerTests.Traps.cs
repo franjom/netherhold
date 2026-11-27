@@ -35,7 +35,7 @@ public partial class CampaignPlayerTests
 
     private static PlayerWorkshopOffer TrapOffer(byte id, int cost, bool affordable = true, bool needsWorkshop = false, string? name = null)
     {
-        return new(PlayerWorkshopKind.Trap, id, name ?? "trap " + id, new GoldAmount(cost), affordable, needsWorkshop);
+        return new PlayerWorkshopOffer(PlayerWorkshopKind.Trap, id, name ?? "trap " + id, new GoldAmount(cost), affordable, needsWorkshop);
     }
 
     private static readonly PlayerWorkshopOffer Boulder = TrapOffer(2, 1000, name: "Boulder Trap"), Gas = TrapOffer(1, 2000, name: "Gas Trap");
@@ -195,7 +195,7 @@ public partial class CampaignPlayerTests
         int index = first.Actions.ToList().FindIndex(a => a is PlayerAction.PlaceTrap);
         Assert.Equal(new TilePos(14, 2), ((PlayerAction.PlaceTrap)first.Actions[index]).Tile);
         Assert.Null(Placed(player, Observe(2, map: TrapRun, rooms: [], tick: 104, workshop: [Gas])));
-        PlayerReceipt refused = new(new PlayerActionId(index + 1), PlayerReceiptStatus.Refused, PlayerRefusalReason.NotOffered);
+        var refused = new PlayerReceipt(new PlayerActionId(index + 1), PlayerReceiptStatus.Refused, PlayerRefusalReason.NotOffered);
         Assert.Equal(new TilePos(13, 2), Placed(player, Observe(3, map: TrapRun, rooms: [], tick: 200, receipts: [refused], workshop: [Gas]))?.Tile);
     }
 

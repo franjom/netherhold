@@ -43,7 +43,7 @@ public class PlayerSessionTests
 
         public PlayerRequest Request(long id, PlayerAction action, PlayerStamp? basedOn = null)
         {
-            return new(basedOn ?? Current.Observation.Stamp, new PlayerActionId(id), action);
+            return new PlayerRequest(basedOn ?? Current.Observation.Stamp, new PlayerActionId(id), action);
         }
 
         public PlayerReceipt Submit(long id, PlayerAction action)
@@ -347,7 +347,7 @@ public class PlayerSessionTests
     {
         PlayerThingHandle Own(int ordinal)
         {
-            return new(new PlayerRevision(1), ordinal);
+            return new PlayerThingHandle(new PlayerRevision(1), ordinal);
         }
 
         PlayerAction[] probes =

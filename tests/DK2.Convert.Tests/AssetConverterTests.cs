@@ -22,7 +22,7 @@ public sealed class AssetConverterTests : IDisposable
     {
         var meshes = new FakeMeshes(("Gold Mesh.kmf", AnimatedKmfFixture.TwoFrames()));
         var textures = new FakeTextures("creature0");
-        Dk2ArtCatalogue art = Catalogue(objects: new() { [1] = [new("Gold Mesh", 0)], [2] = [new("Lantern", 0)] });
+        Dk2ArtCatalogue art = Catalogue(objects: new Dictionary<byte, IReadOnlyList<Dk2ArtResource>>() { [1] = [new Dk2ArtResource("Gold Mesh", 0)], [2] = [new Dk2ArtResource("Lantern", 0)] });
         GameDatabase database = Database(objects: [Object(2, "Lantern"), Object(1, "Gold Pile"), Object(3, "Barrel")]);
 
         IReadOnlyList<AssetConversionResult> results =
@@ -49,7 +49,7 @@ public sealed class AssetConverterTests : IDisposable
         string stale = Path.Combine(_root, "object", "lantern", "mesh.glb");
         Directory.CreateDirectory(Path.GetDirectoryName(stale)!);
         File.WriteAllBytes(stale, [1, 2, 3]);
-        Dk2ArtCatalogue art = Catalogue(objects: new() { [2] = [new("Lantern", 0)] });
+        Dk2ArtCatalogue art = Catalogue(objects: new Dictionary<byte, IReadOnlyList<Dk2ArtResource>>() { [2] = [new Dk2ArtResource("Lantern", 0)] });
 
         AssetConversionResult result = Assert.Single(AssetConverter.ConvertAll(
             art, new FakeMeshes(), new FakeTextures(), Database(objects: [Object(2, "Lantern")]), _root));
@@ -63,7 +63,7 @@ public sealed class AssetConverterTests : IDisposable
     public void AMissingEngineTextureReportsTheMeshAsMissing()
     {
         var meshes = new FakeMeshes(("Gold Mesh.kmf", AnimatedKmfFixture.TwoFrames()));
-        Dk2ArtCatalogue art = Catalogue(objects: new() { [1] = [new("Gold Mesh", 0)] });
+        Dk2ArtCatalogue art = Catalogue(objects: new Dictionary<byte, IReadOnlyList<Dk2ArtResource>>() { [1] = [new Dk2ArtResource("Gold Mesh", 0)] });
 
         AssetConversionResult result = Assert.Single(AssetConverter.ConvertAll(
             art, meshes, new FakeTextures(), Database(objects: [Object(1, "Gold Pile")]), _root));
@@ -78,7 +78,7 @@ public sealed class AssetConverterTests : IDisposable
     {
         var meshes = new FakeMeshes(
             ("Floor2.kmf", AnimatedKmfFixture.TwoFrames()), ("Floor1.kmf", AnimatedKmfFixture.TwoFrames()));
-        Dk2ArtCatalogue art = Catalogue(terrains: new() { [1] = [new("Floor", 0)] });
+        Dk2ArtCatalogue art = Catalogue(terrains: new Dictionary<byte, IReadOnlyList<Dk2ArtResource>>() { [1] = [new Dk2ArtResource("Floor", 0)] });
         GameDatabase database = Database(terrain: [Terrain(1, "Lava", damage: 4), Terrain(2, "Rock", solid: true)]);
 
         IReadOnlyList<AssetConversionResult> results =

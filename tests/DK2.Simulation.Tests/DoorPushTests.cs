@@ -18,7 +18,7 @@ public class DoorPushTests
     private const byte Rival = PlayerIds.FirstKeeper + 1;
     private const byte WoodenDoor = 1;
     private const byte Barricade = 6;
-    private static readonly TilePos DoorTile = new(10, 10);
+    private static readonly TilePos DoorTile = new TilePos(10, 10);
 
     private static int Centre(int tile)
     {
@@ -349,7 +349,7 @@ public class DoorPushTests
     {
         (GameDatabase db, WorldState world, _) = Walled(Barricade);
         CreatureState imp = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, new TilePos(5, 5));
-        GameSimulation sim = new(db, world, 1, []);
+        var sim = new GameSimulation(db, world, 1, []);
         ulong before = sim.StateHash();
 
         imp.PhysicalVelocityX = 77;

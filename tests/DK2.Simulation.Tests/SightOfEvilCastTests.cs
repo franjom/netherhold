@@ -15,11 +15,11 @@ namespace DK2.Simulation.Tests;
 public sealed class SightOfEvilCastTests
 {
     private const byte Keeper = 3, Rival = 4;
-    private static readonly TilePos At = new(10, 10);
+    private static readonly TilePos At = new TilePos(10, 10);
 
     private static KeeperSpellDef Spell()
     {
-        return new()
+        return new KeeperSpellDef()
         {
             Name = "Sight Of Evil",
             KeeperSpellId = KeeperSpellRules.SightOfEvil,
@@ -37,7 +37,7 @@ public sealed class SightOfEvilCastTests
 
     private static ShotDef SightShot()
     {
-        return new(new byte[239])
+        return new ShotDef(new byte[239])
         {
             Name = "Sight Of Evil",
             MeshResource = new KwdArtResource("", 0, default, 0, 0, 0, 0),
@@ -72,7 +72,7 @@ public sealed class SightOfEvilCastTests
 
     private static CastSpellAtPlaceCommand Cast()
     {
-        return new(Keeper, KeeperSpellRules.SightOfEvil, CreatureState.CentreOf(At.X), CreatureState.CentreOf(At.Y));
+        return new CastSpellAtPlaceCommand(Keeper, KeeperSpellRules.SightOfEvil, CreatureState.CentreOf(At.X), CreatureState.CentreOf(At.Y));
     }
 
     private static ISimulationSystem[] Systems()

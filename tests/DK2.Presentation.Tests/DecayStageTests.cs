@@ -15,7 +15,7 @@ public sealed class DecayStageTests
 {
     private static TerrainDef Wall(TerrainFlags flags, byte variants)
     {
-        return new()
+        return new TerrainDef()
         {
             Name = "Reinforced Wall",
             TerrainId = 9,

@@ -227,7 +227,7 @@ public class LiquidSurfaceWaveTests
 
     private static TileView Surface(int index, LiquidSurface surface)
     {
-        return new(new TilePos(index % Width, index / Width), default, default, default, false, false, 0, 1000, surface: surface);
+        return new TileView(new TilePos(index % Width, index / Width), default, default, default, false, false, 0, 1000, surface: surface);
     }
 
     private static LiquidSurface[] Kinds()

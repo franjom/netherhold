@@ -45,7 +45,7 @@ public class TriggerExecutorTests
     {
         var state = new TriggerState();
         TriggerRecord action = Action(1, 3, 0x02, 1);
-        TriggerRecord condition = Condition(1, repeat: 1, child: 0, next: 0, new()
+        TriggerRecord condition = Condition(1, repeat: 1, child: 0, next: 0, new Dictionary<string, long>()
         {
             ["Comparison"] = 4, ["FlagId"] = 3, ["Flag"] = 1,
             ["IndirectFlagId"] = 0, ["Value"] = 0,
@@ -62,7 +62,7 @@ public class TriggerExecutorTests
     public void InheritedRepeatOneRetiresSuccessfulActionBeforeVisitingItsChild()
     {
         var state = new TriggerState();
-        TriggerRecord condition = Condition(1, repeat: 1, child: 0xFFFF, next: 0, new()
+        TriggerRecord condition = Condition(1, repeat: 1, child: 0xFFFF, next: 0, new Dictionary<string, long>()
         {
             ["Comparison"] = 3, ["FlagId"] = 0, ["Flag"] = 1,
             ["IndirectFlagId"] = 0, ["Value"] = 0,
@@ -83,7 +83,7 @@ public class TriggerExecutorTests
     public void InactiveConditionIsSkippedWithItsChild()
     {
         var state = new TriggerState();
-        TriggerRecord inactive = Condition(1, repeat: 0, child: 0xFFFF, next: 0, new()
+        TriggerRecord inactive = Condition(1, repeat: 0, child: 0xFFFF, next: 0, new Dictionary<string, long>()
         {
             ["Comparison"] = 3, ["FlagId"] = 0, ["Flag"] = 1,
             ["IndirectFlagId"] = 0, ["Value"] = 0,
@@ -105,9 +105,9 @@ public class TriggerExecutorTests
     public void UnsupportedRecordIsCountedAndBlocksItsChildButNotItsSibling()
     {
         var state = new TriggerState();
-        TriggerRecord blocked = Condition(1, 1, 0xFFFF, 2, new());
+        TriggerRecord blocked = Condition(1, 1, 0xFFFF, 2, new Dictionary<string, long>());
         TriggerRecord child = Action(1, 3, 0x12, 1);
-        TriggerRecord sibling = Condition(2, 1, 0xFFFE, 0, new()
+        TriggerRecord sibling = Condition(2, 1, 0xFFFE, 0, new Dictionary<string, long>()
         {
             ["Comparison"] = 3, ["FlagId"] = 0, ["Flag"] = 1,
             ["IndirectFlagId"] = 0, ["Value"] = 0,
@@ -886,7 +886,7 @@ public class TriggerExecutorTests
 
     private static DoorThing Door(byte type, byte owner, bool underConstruction)
     {
-        return new(new byte[20])
+        return new DoorThing(new byte[20])
         {
             DoorId = type,
             PlayerId = owner,
@@ -897,7 +897,7 @@ public class TriggerExecutorTests
 
     private static TrapThing Trap(byte type, byte owner, bool underConstruction)
     {
-        return new(new byte[16])
+        return new TrapThing(new byte[16])
         {
             TrapId = type,
             PlayerId = owner,
@@ -2326,7 +2326,7 @@ public class TriggerExecutorTests
 
     private static Dictionary<string, long> FlagEquals(byte flag, int value)
     {
-        return new()
+        return new Dictionary<string, long>()
         {
             ["Comparison"] = 3,
             ["FlagId"] = flag,
@@ -2698,7 +2698,7 @@ public class TriggerExecutorTests
     private static HeroPartyThing Party(
         byte partyId, ushort triggerId, params (ushort Trigger, byte Creature)[] members)
     {
-        return new(new byte[555])
+        return new HeroPartyThing(new byte[555])
         {
             Name = string.Empty,
             TriggerId = triggerId,
@@ -2794,7 +2794,7 @@ public class TriggerExecutorTests
 
     private static Dictionary<string, long> FlagEqualsZero()
     {
-        return new()
+        return new Dictionary<string, long>()
         {
             ["Comparison"] = 3,
             ["FlagId"] = 0,

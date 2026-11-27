@@ -28,7 +28,7 @@ public class TriggerAreaConditionsTests
     {
         TriggerState state = Run(
             Point(4, root: 1, 5, 5, 6, 6),
-            Area(1, 41, new() { ["PlayerId"] = 1, ["TerrainId"] = TestWorld.DirtPath }));
+            Area(1, 41, new Dictionary<string, long>() { ["PlayerId"] = 1, ["TerrainId"] = TestWorld.DirtPath }));
 
         Assert.Equal(1, state.Read(Marker));
     }
@@ -38,7 +38,7 @@ public class TriggerAreaConditionsTests
     {
         TriggerState state = Run(
             Point(4, root: 0, 5, 5, 6, 6),
-            Area(1, 41, new() { ["PlayerId"] = 1, ["TerrainId"] = TestWorld.DirtPath }));
+            Area(1, 41, new Dictionary<string, long>() { ["PlayerId"] = 1, ["TerrainId"] = TestWorld.DirtPath }));
 
         Assert.Equal(0, state.Read(Marker));
     }
@@ -52,7 +52,7 @@ public class TriggerAreaConditionsTests
         // Rock at (1,5) and (1,6); exactly one of them tagged.
         TriggerState state = Run(
             Point(4, root: 1, 1, 5, 1, 6),
-            Area(1, 62, new() { ["Comparison"] = 3, ["PlayerId"] = 1, ["Value"] = value }),
+            Area(1, 62, new Dictionary<string, long>() { ["Comparison"] = 3, ["PlayerId"] = 1, ["Value"] = value }),
             world => world.Tile(1, 5).SetTaggedBy(1, true));
 
         Assert.Equal(expected, state.Read(Marker));
@@ -63,7 +63,7 @@ public class TriggerAreaConditionsTests
     {
         TriggerState state = Run(
             Point(4, root: 1, 1, 5, 1, 6),
-            Area(1, 62, new() { ["Comparison"] = 3, ["PlayerId"] = 2, ["Value"] = 0 }),
+            Area(1, 62, new Dictionary<string, long>() { ["Comparison"] = 3, ["PlayerId"] = 2, ["Value"] = 0 }),
             world => world.Tile(1, 5).SetTaggedBy(1, true));
 
         Assert.Equal(1, state.Read(Marker));
@@ -77,7 +77,7 @@ public class TriggerAreaConditionsTests
         // (1,5)..(1,7) is three rock tiles, and rock is the fixture's only taggable terrain.
         TriggerState state = Run(
             Point(4, root: 1, 1, 5, 1, 7),
-            Area(1, 69, new() { ["PlayerId"] = 1 }),
+            Area(1, 69, new Dictionary<string, long>() { ["PlayerId"] = 1 }),
             world =>
             {
                 for (int y = 5; y < 5 + tagged; y++)
@@ -96,7 +96,7 @@ public class TriggerAreaConditionsTests
     {
         TriggerState state = Run(
             Point(4, root: 1, 5, 5, 6, 6),
-            Area(1, type, new()
+            Area(1, type, new Dictionary<string, long>()
             {
                 ["Comparison"] = 3, ["PlayerId"] = 1,
                 ["TerrainId"] = TestWorld.DirtPath, ["Value"] = 4,
@@ -119,7 +119,7 @@ public class TriggerAreaConditionsTests
     {
         TriggerState state = Run(
             Point(4, root: 1, 1, 5, 1, 5),
-            Area(1, 40, new()
+            Area(1, 40, new Dictionary<string, long>()
             {
                 ["Comparison"] = 3, ["PlayerId"] = 1, ["TerrainId"] = terrain, ["Value"] = 1,
             }),
@@ -135,7 +135,7 @@ public class TriggerAreaConditionsTests
     {
         TriggerState state = Run(
             Point(4, root: 1, 22, 18, 25, 21),
-            Area(1, 40, new()
+            Area(1, 40, new Dictionary<string, long>()
             {
                 ["Comparison"] = 3, ["PlayerId"] = 0, ["TerrainId"] = 0, ["Value"] = 16,
             }));
@@ -150,7 +150,7 @@ public class TriggerAreaConditionsTests
     {
         TriggerState state = Run(
             Point(4, root: 1, 5, 5, 6, 6),
-            Area(1, 41, new() { ["PlayerId"] = 1, ["TerrainId"] = terrain }));
+            Area(1, 41, new Dictionary<string, long>() { ["PlayerId"] = 1, ["TerrainId"] = terrain }));
 
         Assert.Equal(expected, state.Read(Marker));
     }
@@ -234,7 +234,7 @@ public class TriggerAreaConditionsTests
             WorldState.FromMap(database, Dk2TerrainFixture.Map(), [(byte)0, (byte)1, (byte)2]),
             database,
             Point(4, root: 1, 5, 5, 6, 6),
-            Area(1, 39, new()
+            Area(1, 39, new Dictionary<string, long>()
             {
                 ["Comparison"] = 3, ["PlayerId"] = player,
                 ["TypeId"] = typeId, ["ThingType"] = thingType, ["Value"] = expected,
@@ -251,7 +251,7 @@ public class TriggerAreaConditionsTests
     {
         TriggerState state = Run(
             Point(4, root: 1, 5, 5, 6, 6),
-            Area(1, 70, new() { ["PlayerId"] = 1, ["TypeId"] = GoblinId, ["ThingType"] = 0 }),
+            Area(1, 70, new Dictionary<string, long>() { ["PlayerId"] = 1, ["TypeId"] = GoblinId, ["ThingType"] = 0 }),
             world =>
             {
                 GameDatabase db = Dk2TerrainFixture.Database();
@@ -272,7 +272,7 @@ public class TriggerAreaConditionsTests
     {
         TriggerState state = Run(
             Point(4, root: 1, 5, 5, 6, 6),
-            Area(1, 70, new() { ["PlayerId"] = owner, ["TypeId"] = typeId, ["ThingType"] = 0 }),
+            Area(1, 70, new Dictionary<string, long>() { ["PlayerId"] = owner, ["TypeId"] = typeId, ["ThingType"] = 0 }),
             world =>
             {
                 GameDatabase db = Dk2TerrainFixture.Database();
@@ -291,7 +291,7 @@ public class TriggerAreaConditionsTests
     {
         TriggerRunResult result = Execute(
             Point(4, root: 1, 5, 5, 6, 6),
-            Area(1, 70, new() { ["PlayerId"] = 1, ["TypeId"] = 0, ["ThingType"] = 6 }),
+            Area(1, 70, new Dictionary<string, long>() { ["PlayerId"] = 1, ["TypeId"] = 0, ["ThingType"] = 6 }),
             arrange: null, new TriggerState());
 
         Assert.Contains(result.Blocked, b => b.Tag == 213 && b.Type == 70);
@@ -305,7 +305,7 @@ public class TriggerAreaConditionsTests
     {
         TriggerState state = Run(
             Point(4, root: 1, 5, 5, 6, 6),
-            Area(1, 1, new()
+            Area(1, 1, new Dictionary<string, long>()
             {
                 ["Comparison"] = 3, ["FlagId"] = 0, ["Flag"] = 1,
                 ["IndirectFlagId"] = 0, ["Value"] = 0,
@@ -325,7 +325,7 @@ public class TriggerAreaConditionsTests
         WorldState world = TestWorld.World(database);
         var tree = new TriggerTree(
             [
-                Area(1, 62, new() { ["Comparison"] = 3, ["PlayerId"] = 1, ["Value"] = 0 }),
+                Area(1, 62, new Dictionary<string, long>() { ["Comparison"] = 3, ["PlayerId"] = 1, ["Value"] = 0 }),
                 FlagWrite(),
             ],
             rootTriggerId: 1);
@@ -349,7 +349,7 @@ public class TriggerAreaConditionsTests
     {
         // Rock over dirt path, so the root fails and the walk carries on to its sibling.
         TriggerRecord root = Area(
-            1, 41, new() { ["PlayerId"] = 1, ["TerrainId"] = TestWorld.Rock },
+            1, 41, new Dictionary<string, long>() { ["PlayerId"] = 1, ["TerrainId"] = TestWorld.Rock },
             next: Child, repeat: repeat);
 
         var state = new TriggerState();
@@ -404,7 +404,7 @@ public class TriggerAreaConditionsTests
 
     private static ActionPointThing Point(byte id, ushort root, int x0, int y0, int x1, int y1)
     {
-        return new(new byte[56])
+        return new ActionPointThing(new byte[56])
         {
             StartX = x0,
             StartY = y0,

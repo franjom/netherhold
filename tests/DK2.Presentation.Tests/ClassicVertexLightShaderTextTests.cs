@@ -14,7 +14,7 @@ public class ClassicVertexLightShaderTextTests
     private const string GodotWorld = "godot/DK2.Godot/Shaders/World.gdshaderinc";
     private const string PerPixel = "DK2_PER_PIXEL", Shadows = "DK2_TORCH_SHADOWS";
 
-    public static readonly TheoryData<string, int> Glsl = new()
+    public static readonly TheoryData<string, int> Glsl = new TheoryData<string, int>()
     {
         { $"vec4 dk2_texel(int tile, int texel) {{ int w = dk2_light_grid.x; int x = tile % w; return texelFetch(dk2_light_tables, ivec3((x % {ClassicLightTableLayout.TilesPerTextureRow}) * {ClassicLightTableLayout.TexelsPerTile} + texel, x / {ClassicLightTableLayout.TilesPerTextureRow}, tile / w), 0); }}", 1 },
         { "int dk2_bin(float d2) { return int(roundEven(d2 * 16.0 - 0.49999)); }", 1 },
@@ -304,7 +304,7 @@ public class ClassicVertexLightShaderTextTests
 
     private static string RepositoryRoot()
     {
-        DirectoryInfo? dir = new(AppContext.BaseDirectory);
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "DK2.slnx")))
         {
             dir = dir.Parent;

@@ -17,17 +17,17 @@ internal static class LegacyClassicVertexLit
         public float X = x, Y = y, Z = z;
         public static Float3 operator +(Float3 a, Float3 b)
         {
-            return new(a.X + b.X, a.Y + b.Y, a.Z + b.Z);
+            return new Float3(a.X + b.X, a.Y + b.Y, a.Z + b.Z);
         }
 
         public static Float3 operator -(Float3 a, Float3 b)
         {
-            return new(a.X - b.X, a.Y - b.Y, a.Z - b.Z);
+            return new Float3(a.X - b.X, a.Y - b.Y, a.Z - b.Z);
         }
 
         public static Float3 operator *(Float3 a, float s)
         {
-            return new(a.X * s, a.Y * s, a.Z * s);
+            return new Float3(a.X * s, a.Y * s, a.Z * s);
         }
     }
 
@@ -38,7 +38,7 @@ internal static class LegacyClassicVertexLit
         {
             get
             {
-                return new(X, Y, Z);
+                return new Float3(X, Y, Z);
             }
         }
     }
@@ -49,12 +49,12 @@ internal static class LegacyClassicVertexLit
         public Float3 R0 = row0, R1 = row1, R2 = row2;
         public readonly Float3 Mul(Float3 v)
         {
-            return new(Dot(R0, v), Dot(R1, v), Dot(R2, v));
+            return new Float3(Dot(R0, v), Dot(R1, v), Dot(R2, v));
         }
 
         public readonly Float3x3 Transpose()
         {
-            return new(new Float3(R0.X, R1.X, R2.X), new Float3(R0.Y, R1.Y, R2.Y), new Float3(R0.Z, R1.Z, R2.Z));
+            return new Float3x3(new Float3(R0.X, R1.X, R2.X), new Float3(R0.Y, R1.Y, R2.Y), new Float3(R0.Z, R1.Z, R2.Z));
         }
     }
 
@@ -143,7 +143,7 @@ internal static class LegacyClassicVertexLit
 
     public static Float3 DK2PackedDiffuse(Float3 sum)
     {
-        return new(Pack(sum.X), Pack(sum.Y), Pack(sum.Z));
+        return new Float3(Pack(sum.X), Pack(sum.Y), Pack(sum.Z));
     }
 
     private static float Pack(float c)
@@ -305,7 +305,7 @@ internal static class LegacyClassicVertexLit
     /// <summary><c>ClassicTileLightBuffer.Set</c>'s packing of one source at 4f398b59.</summary>
     public static TileSource Entry(in ClassicPointLight light)
     {
-        return new()
+        return new TileSource()
         {
             PositionRadiusSquared = new Float4(light.Position.X, light.Position.Y, light.Position.Z, light.Radius * light.Radius),
             Colour = new Float3(light.Colour.X, light.Colour.Y, light.Colour.Z),

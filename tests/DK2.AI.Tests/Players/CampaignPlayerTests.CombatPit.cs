@@ -32,9 +32,9 @@ public partial class CampaignPlayerTests
     ];
 
     private static readonly PlayerRoomSummary[] PitRooms =
-        [new(RoomTypeId.CombatPit, 16), new(RoomTypeId.Hatchery, 4), new(RoomTypeId.Lair, 4)];
+        [new PlayerRoomSummary(RoomTypeId.CombatPit, 16), new PlayerRoomSummary(RoomTypeId.Hatchery, 4), new PlayerRoomSummary(RoomTypeId.Lair, 4)];
 
-    private static readonly PlayerSpellOffer Heal = new(10, "Heal", new ManaAmount(1000), true, OnCreature: true);
+    private static readonly PlayerSpellOffer Heal = new PlayerSpellOffer(10, "Heal", new ManaAmount(1000), true, OnCreature: true);
 
     /// <summary>One own Goblin at <paramref name="at"/> with the given flower.</summary>
     private static (PlayerVisibleThing Thing, PlayerCreatureSummary Flower) Goblin1(TilePos at, int level, int petals,
@@ -139,8 +139,8 @@ public partial class CampaignPlayerTests
     {
         // One petal: collapsed on the Pit's rim (owner, 2026-11-15). No heal lands on it (Q823) and the hand does not lift it.
         (PlayerVisibleThing Thing, PlayerCreatureSummary Flower) body = Goblin1(new TilePos(2, 4), level: 4, petals: 1, ordinal: 0);
-        PlayerVisibleThing far = new(Handle(1), PlayerThingKind.Creature, new TilePos(10, 10), Me, PlayerThingActions.PickUp, creatureType: Imp);
-        PlayerVisibleThing near = new(Handle(2), PlayerThingKind.Creature, new TilePos(7, 4), Me, PlayerThingActions.PickUp, creatureType: Imp);
+        var far = new PlayerVisibleThing(Handle(1), PlayerThingKind.Creature, new TilePos(10, 10), Me, PlayerThingActions.PickUp, creatureType: Imp);
+        var near = new PlayerVisibleThing(Handle(2), PlayerThingKind.Creature, new TilePos(7, 4), Me, PlayerThingActions.PickUp, creatureType: Imp);
         PlayerObservation view = Observe(1, map: PitMap, rooms: [], owned: PitRooms, tick: 1000, spells: [Heal],
             things: [body.Thing, far, near], creatures: [body.Flower]);
         CampaignPlayer player = PitPlayer();
@@ -163,7 +163,7 @@ public partial class CampaignPlayerTests
         // Without a Lair there is no bed to carry it to: no Imp is sent, and the rest of the routine goes on.
         (PlayerVisibleThing Thing, PlayerCreatureSummary Flower) idle = Goblin1(new TilePos(9, 6), level: 3, petals: 6, ordinal: 3);
         (PlayerVisibleThing Thing, PlayerCreatureSummary Flower) partner = Goblin1(new TilePos(10, 6), level: 4, petals: 6, ordinal: 4);
-        PlayerDecision noBed = PitPlayer().Decide(Observe(1, map: PitMap, rooms: [], owned: [new(RoomTypeId.CombatPit, 16)], tick: 1000,
+        PlayerDecision noBed = PitPlayer().Decide(Observe(1, map: PitMap, rooms: [], owned: [new PlayerRoomSummary(RoomTypeId.CombatPit, 16)], tick: 1000,
             things: [body.Thing, near, idle.Thing, partner.Thing], creatures: [body.Flower, idle.Flower, partner.Flower]));
         Assert.Equal([new PlayerAction.PickUp(idle.Thing.Handle)], noBed.Actions.OfType<PlayerAction.PickUp>());
     }
@@ -172,7 +172,7 @@ public partial class CampaignPlayerTests
     public void ABodyStillOnThePitsFloorIsLeftToRiseOnTheRimThenFetchedAfterTheEstimated40TicksBesideItWhereTheHandMayDropOne()
     {
         (PlayerVisibleThing Thing, PlayerCreatureSummary Flower) body = Goblin1(new TilePos(3, 3), level: 4, petals: 1, ordinal: 0);                   // interior: a worker drop is refused there
-        PlayerVisibleThing imp = new(Handle(1), PlayerThingKind.Creature, new TilePos(9, 9), Me, PlayerThingActions.PickUp, creatureType: Imp);
+        var imp = new PlayerVisibleThing(Handle(1), PlayerThingKind.Creature, new TilePos(9, 9), Me, PlayerThingActions.PickUp, creatureType: Imp);
         CampaignPlayer player = PitPlayer();
         PlayerObservation Sinking(long revision, long tick)
         {
@@ -208,7 +208,7 @@ public partial class CampaignPlayerTests
         player.Decide(Observe(2, map: PitMap, hand: 1, rooms: [], owned: PitRooms, tick: 1004,
             things: [partner.Thing], creatures: [partner.Flower]));
         (PlayerVisibleThing Thing, PlayerCreatureSummary Flower) body = Goblin1(new TilePos(2, 4), level: 4, petals: 1, ordinal: 2);                   // the rim
-        PlayerVisibleThing imp = new(Handle(3), PlayerThingKind.Creature, new TilePos(7, 4), Me, PlayerThingActions.PickUp, creatureType: Imp);
+        var imp = new PlayerVisibleThing(Handle(3), PlayerThingKind.Creature, new TilePos(7, 4), Me, PlayerThingActions.PickUp, creatureType: Imp);
         PlayerObservation risen = Observe(3, map: PitMap, rooms: [], owned: PitRooms, tick: 1010,
             things: [body.Thing, imp, partner.Thing], creatures: [body.Flower, partner.Flower]);
         Assert.Contains(new PlayerAction.PickUp(imp.Handle), player.Decide(risen).Actions);
@@ -218,8 +218,8 @@ public partial class CampaignPlayerTests
     public void TheImpNearestTheBodyIsSentWhereverItIsListed()
     {
         (PlayerVisibleThing Thing, PlayerCreatureSummary Flower) body = Goblin1(new TilePos(2, 4), level: 4, petals: 1, ordinal: 0);                   // the rim
-        PlayerVisibleThing near = new(Handle(1), PlayerThingKind.Creature, new TilePos(1, 6), Me, PlayerThingActions.PickUp, creatureType: Imp);
-        PlayerVisibleThing far = new(Handle(2), PlayerThingKind.Creature, new TilePos(10, 10), Me, PlayerThingActions.PickUp, creatureType: Imp);
+        var near = new PlayerVisibleThing(Handle(1), PlayerThingKind.Creature, new TilePos(1, 6), Me, PlayerThingActions.PickUp, creatureType: Imp);
+        var far = new PlayerVisibleThing(Handle(2), PlayerThingKind.Creature, new TilePos(10, 10), Me, PlayerThingActions.PickUp, creatureType: Imp);
         foreach (PlayerVisibleThing[] order in (PlayerVisibleThing[][])[[near, far, body.Thing], [body.Thing, far, near], [near, body.Thing, far]])
         {
             Assert.Contains(new PlayerAction.PickUp(near.Handle), PitPlayer().Decide(Observe(1, map: PitMap, rooms: [], owned: PitRooms, tick: 1000,
@@ -231,17 +231,17 @@ public partial class CampaignPlayerTests
     public void ABodyBeingCarriedDrawsNoSecondImp()
     {
         (PlayerVisibleThing Thing, PlayerCreatureSummary Flower) body = Goblin1(new TilePos(2, 4), level: 4, petals: 1, ordinal: 0);                   // the rim
-        PlayerVisibleThing imp = new(Handle(1), PlayerThingKind.Creature, new TilePos(7, 4), Me, PlayerThingActions.PickUp, creatureType: Imp);
+        var imp = new PlayerVisibleThing(Handle(1), PlayerThingKind.Creature, new TilePos(7, 4), Me, PlayerThingActions.PickUp, creatureType: Imp);
         CampaignPlayer player = PitPlayer();
         Assert.Contains(new PlayerAction.PickUp(imp.Handle), player.Decide(Observe(1, map: PitMap, rooms: [], owned: PitRooms, tick: 1000,
             things: [body.Thing, imp], creatures: [body.Flower])).Actions);
         player.Decide(Observe(2, map: PitMap, hand: 1, rooms: [], owned: PitRooms, tick: 1004));
         // The Imp carries it along the rim: the body is on the carrier's tile, a new tile each step.
-        PlayerVisibleThing other = new(Handle(2), PlayerThingKind.Creature, new TilePos(9, 9), Me, PlayerThingActions.PickUp, creatureType: Imp);
+        var other = new PlayerVisibleThing(Handle(2), PlayerThingKind.Creature, new TilePos(9, 9), Me, PlayerThingActions.PickUp, creatureType: Imp);
         foreach ((int step, TilePos at) in (ReadOnlySpan<(int, TilePos)>)[(3, new TilePos(2, 3)), (4, new TilePos(2, 2))])
         {
             (PlayerVisibleThing Thing, PlayerCreatureSummary Flower) carried = Goblin1(at, level: 4, petals: 1, ordinal: 0);
-            PlayerVisibleThing carrier = new(Handle(1), PlayerThingKind.Creature, at, Me, PlayerThingActions.PickUp, creatureType: Imp);
+            var carrier = new PlayerVisibleThing(Handle(1), PlayerThingKind.Creature, at, Me, PlayerThingActions.PickUp, creatureType: Imp);
             Assert.Empty(player.Decide(Observe(step, map: PitMap, rooms: [], owned: PitRooms, tick: 1040 + 4 * step,
                 things: [carried.Thing, carrier, other], creatures: [carried.Flower])).Actions.OfType<PlayerAction.PickUp>());
         }

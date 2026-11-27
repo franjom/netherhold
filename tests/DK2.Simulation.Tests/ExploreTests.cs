@@ -121,7 +121,7 @@ public sealed class ExploreTests
 
     private static GameSimulation Sim(GameDatabase db, WorldState world, Action<SimulationContext> act)
     {
-        return new(db, world, new SimRandom(new Dk2Lcg(Seed)), [new Probe(act)]);
+        return new GameSimulation(db, world, new SimRandom(new Dk2Lcg(Seed)), [new Probe(act)]);
     }
 
     private static (GameDatabase, WorldState) Open()

@@ -19,11 +19,11 @@ namespace DK2.Simulation.Tests;
 /// </summary>
 public class CommandCodecTests
 {
-    private static readonly PlayerId P = new(3);
-    private static readonly TilePos T = new(5, 7);
-    private static readonly FpPosition2 F2 = new(new Fp32(20_481), new Fp32(-4_097));
-    private static readonly FpPosition3 F3 = new(new Fp32(12_345), new Fp32(23_456), new Fp32(-345));
-    private static readonly PossessionAim Aim = new(F3, new Dk2Angle(1_234), new Dk2Angle(77));
+    private static readonly PlayerId P = new PlayerId(3);
+    private static readonly TilePos T = new TilePos(5, 7);
+    private static readonly FpPosition2 F2 = new FpPosition2(new Fp32(20_481), new Fp32(-4_097));
+    private static readonly FpPosition3 F3 = new FpPosition3(new Fp32(12_345), new Fp32(23_456), new Fp32(-345));
+    private static readonly PossessionAim Aim = new PossessionAim(F3, new Dk2Angle(1_234), new Dk2Angle(77));
 
     public static IEnumerable<PlayerCommand> Samples()
     {

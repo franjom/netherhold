@@ -18,8 +18,8 @@ public sealed class BlueprintPlacementTests
     private const byte WoodenDoor = 1, Barricade = 6, Alarm = 7;
 
     // A corridor at y = 4 between walls at y = 3 and y = 5, from x = 2 to x = 8; open floor elsewhere.
-    private static readonly TilePos InTheCorridor = new(5, 4);
-    private static readonly TilePos OpenFloor = new(5, 7);
+    private static readonly TilePos InTheCorridor = new TilePos(5, 4);
+    private static readonly TilePos OpenFloor = new TilePos(5, 7);
 
     private static (GameDatabase, WorldState) World(int gold = 10_000)
     {

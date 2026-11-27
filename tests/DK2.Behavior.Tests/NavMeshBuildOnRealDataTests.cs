@@ -31,7 +31,7 @@ public class NavMeshBuildOnRealDataTests(ITestOutputHelper output)
     // corner order, split slots, constraint insertion and cell-cache locate; on the Level 10
     // capture it matches DK2's own mesh at level start in 2,826 of 2,828 triangles and 2,823 slots
     // (navigation-partial-rebuild.md).
-    private static readonly Dictionary<string, ulong> Pinned = new(StringComparer.Ordinal)
+    private static readonly Dictionary<string, ulong> Pinned = new Dictionary<string, ulong>(StringComparer.Ordinal)
     {
          ["Alcatraz"] = 0x8D435A47C2153380UL,
          ["Bottleneck"] = 0xAA2E0EAA7FD05689UL,

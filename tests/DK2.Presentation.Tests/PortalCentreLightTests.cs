@@ -11,7 +11,7 @@ namespace DK2.Presentation.Tests;
 
 public class PortalCentreLightTests
 {
-    private static readonly TilePos Centre = new(5, 5);
+    private static readonly TilePos Centre = new TilePos(5, 5);
 
     [Fact]
     public void InitialSourceHasNativeInputsAndCheapClassification()
@@ -190,7 +190,7 @@ public class PortalCentreLightTests
     {
         TerrainDef Terrain(byte id, TerrainFlags flags)
         {
-            return new()
+            return new TerrainDef()
             {
                 Name = id == 27 ? "Fog Of War" : id == 38 ? "Claim Scan" : "test",
                 TerrainId = id,
@@ -217,8 +217,8 @@ public class PortalCentreLightTests
             RecommendedSizeX = 3, RecommendedSizeY = 3, OrderInEditor = 0, NameStringId = 0, TooltipStringId = 0,
         };
         var variables = new GlobalVariables();
-        variables.Misc[VariableTypeId.DungeonHeartObjectHealth] = new(VariableTypeId.DungeonHeartObjectHealth, 100, 0, 0);
-        variables.Misc[VariableTypeId.ConvertRoomHealth] = new(VariableTypeId.ConvertRoomHealth, -100, 0, 0);
+        variables.Misc[VariableTypeId.DungeonHeartObjectHealth] = new MiscVariable(VariableTypeId.DungeonHeartObjectHealth, 100, 0, 0);
+        variables.Misc[VariableTypeId.ConvertRoomHealth] = new MiscVariable(VariableTypeId.ConvertRoomHealth, -100, 0, 0);
         var db = new GameDatabase([Terrain(2, TerrainFlags.Solid), Terrain(12, TerrainFlags.Room | TerrainFlags.Ownable | TerrainFlags.Attackable),
             Terrain(27, TerrainFlags.Solid), Terrain(38, TerrainFlags.Solid)], [room], [], variables);
         MapTile[] cells = [.. Enumerable.Repeat(new MapTile(2, 2, 0, 0), 64)];

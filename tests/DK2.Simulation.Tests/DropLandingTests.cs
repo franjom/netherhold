@@ -15,7 +15,7 @@ public class DropLandingTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte GoblinId = Dk2TerrainFixture.GoblinCreatureId;
-    private static readonly TilePos Floor = new(2, 2);
+    private static readonly TilePos Floor = new TilePos(2, 2);
 
     /// <summary>Off a room: stunned for the definition's <c>StunDuration</c> (Q201: drops flat,
     /// cannot fight, 2–3 s in the shipped data), up in 257 for the Goblin's eleven ticks (every

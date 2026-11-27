@@ -22,7 +22,7 @@ public class TerrainLightingViewTests
             flags |= TerrainFlags.AmbientLight;
         }
 
-        TerrainDef terrain = Definition(1, "Path", flags) with { Lighting = new(1, 2, 3, 10, 20, 30) };
+        TerrainDef terrain = Definition(1, "Path", flags) with { Lighting = new TerrainLighting(1, 2, 3, 10, 20, 30) };
         var database = new GameDatabase([terrain, Definition(27, "Fog Of War", TerrainFlags.Solid)],
             [], [], new GlobalVariables());
         var world = WorldState.FromMap(database, new LevelMap(1, 1, [new MapTile(1, 1, 0, 0)]),
@@ -38,7 +38,7 @@ public class TerrainLightingViewTests
 
     private static TerrainDef Definition(byte id, string name, TerrainFlags flags)
     {
-        return new()
+        return new TerrainDef()
         {
             Name = name,
             TerrainId = id,

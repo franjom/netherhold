@@ -14,7 +14,7 @@ public class LooseChickenTests
     private const byte Keeper = PlayerIds.FirstKeeper;
 
     // The four sides in DK2's order (0x006BC350): north, east, south, west.
-    private static readonly TilePos[] Sides = [new(0, -1), new(1, 0), new(0, 1), new(-1, 0)];
+    private static readonly TilePos[] Sides = [new TilePos(0, -1), new TilePos(1, 0), new TilePos(0, 1), new TilePos(-1, 0)];
 
     /// <summary>A bird loose at (2, 2), the middle of the fixture's 3x3 of the keeper's claimed path.</summary>
     private static (GameSimulation Sim, ObjectState Chicken, ListEventSink Sink) Start(uint seed, Action<GameDatabase, WorldState>? shape = null)

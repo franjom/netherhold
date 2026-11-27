@@ -134,7 +134,7 @@ public sealed class ObjectHoverHighlightTests
         var strings = Dk2StringTable.Open(Path.Combine(install, "Data", "Text", "Default", "Text.str"));
         var text = new WorldHoverText(db, strings.Resolve, PlayerIds.FirstKeeper);
         // The runner keeps the cursor tile beside the picked id; here the neighbour.
-        HoverTextSnapshot hover = text.Capture(world, new(WorldHoverKind.Object, new TilePos(11, 10), pile.Id));
+        HoverTextSnapshot hover = text.Capture(world, new WorldHoverHit(WorldHoverKind.Object, new TilePos(11, 10), pile.Id));
         Assert.Equal("2500 Gold", hover.TopStatus.Trim()); // string 2543 is " %73 Gold"
         Assert.Equal(strings.Resolve(db.ObjectById(ObjectHoverHighlight.StorePileObjectId)!.NameStringId), hover.TooltipName);
     }

@@ -10,7 +10,7 @@ namespace DK2.Presentation.Tests;
 public sealed class ClassicKeyNamesTests
 {
     /// <summary>Unity's <c>ClassicKeyBindings.Key</c> table, row by row, as scan code and <c>KeyCode</c> name.</summary>
-    private static readonly Dictionary<int, string> UnityTable = new()
+    private static readonly Dictionary<int, string> UnityTable = new Dictionary<int, string>()
     {
         [0x01] = "Escape",
         [0x02] = "Alpha1",

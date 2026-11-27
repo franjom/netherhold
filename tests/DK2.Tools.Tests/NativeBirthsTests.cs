@@ -31,7 +31,7 @@ public sealed class NativeBirthsTests
         NativeBirths births = Read(Slot425, afterTurn: 2400);
 
         Assert.Equal(
-            [new(425, 3042, 14, 1), new(425, 3522, 14, 1), new(425, 3882, 18, 1), new(425, 5782, 1, 3)],
+            [new NativeBirths.Birth(425, 3042, 14, 1), new NativeBirths.Birth(425, 3522, 14, 1), new NativeBirths.Birth(425, 3882, 18, 1), new NativeBirths.Birth(425, 5782, 1, 3)],
             births.Births);
     }
 

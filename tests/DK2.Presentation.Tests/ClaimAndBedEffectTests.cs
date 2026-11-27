@@ -36,8 +36,8 @@ public class ClaimAndBedEffectTests
         var view = new WorldView(db);
         FpPosition3 At(int x, int y)
         {
-            return new(new(x * Fp32.One + Fp32.One / 2),
-            new(y * Fp32.One + Fp32.One / 2), new(0));
+            return new FpPosition3(new Fp32(x * Fp32.One + Fp32.One / 2),
+            new Fp32(y * Fp32.One + Fp32.One / 2), new Fp32(0));
         }
 
         Assert.Equal(0, view.GroundHeightAt(world, At(3, 3)).Raw);
@@ -62,7 +62,7 @@ public class ClaimAndBedEffectTests
         var view = new WorldView(db);
         FpPosition3 At(int x, int y)
         {
-            return new(new Fp32(x * Fp32.One + Fp32.One / 2),
+            return new FpPosition3(new Fp32(x * Fp32.One + Fp32.One / 2),
             new Fp32(y * Fp32.One + Fp32.One / 2), new Fp32(0));
         }
 
@@ -376,14 +376,14 @@ public class ClaimAndBedEffectTests
             new EffectId(CaptureEffectLayout.RoomEffectId), PlayerIds.FirstKeeper, tile, new Fp32(0));
         }
 
-        Assert.Equal(CaptureEdges.None, CaptureEffectLayout.Boundary(world, db, Request(new(3, 3))));
+        Assert.Equal(CaptureEdges.None, CaptureEffectLayout.Boundary(world, db, Request(new TilePos(3, 3))));
         Assert.Equal(CaptureEdges.West | CaptureEdges.North,
-            CaptureEffectLayout.Boundary(world, db, Request(new(2, 2))));
+            CaptureEffectLayout.Boundary(world, db, Request(new TilePos(2, 2))));
         var model = new RoomConstructionParticles(db, 7, () => new EffectTime(0),
             captureEffectStyle: CaptureEffectStyle.Edges,
             captureEdges: r => CaptureEffectLayout.Boundary(world, db, r));
         model.Emit(new SimEvent(new GameTick(0), "test", "effect_request", "")
-            { EffectRequest = Request(new(3, 3)) });
+            { EffectRequest = Request(new TilePos(3, 3)) });
         model.AdvanceTo(new EffectTime(51));
         Assert.Empty(model.Particles);
     }
@@ -392,7 +392,7 @@ public class ClaimAndBedEffectTests
     public void DiggingRockEmitsOriginalDebrisOnlyWhenTheTileFalls()
     {
         (GameDatabase db, WorldState world) = Load();
-        TilePos at = new(3, 3);
+        var at = new TilePos(3, 3);
         TerrainDef rock = db.Terrain.Values.Single(t => t.Name == "Rock");
         Assert.Equal((ushort)6, rock.DestroyedEffectId);
         world.Tile(at).TerrainId = rock.TerrainId;
@@ -433,7 +433,7 @@ public class ClaimAndBedEffectTests
     public void CompletingFloorClaimShowsItsTwoOriginalParticleWaves()
     {
         (GameDatabase db, WorldState world) = Load();
-        TilePos at = new(3, 3);
+        var at = new TilePos(3, 3);
         TerrainDef floor = db.Terrain.Values.Single(t => t.Name == "Dirt Path");
         world.Tile(at).TerrainId = floor.TerrainId;
         world.Tile(at).OwnerPlayerId = PlayerIds.Unowned;

@@ -9,12 +9,12 @@ namespace DK2.Presentation.Tests;
 /// <summary>The engine-free creature query details (ADR-0805): menu 40's text widget and its scroll bar.</summary>
 public sealed class CreatureQueryHudTests
 {
-    private static readonly HudScreen FullHd = new(1920, 1080);
-    private static readonly HudVisibility Shown = new(ShowNormalHud: true, AllowOrdinaryInput: true);
-    private static readonly HudRect Widget = new(1040, 1000, 1096, 288);
+    private static readonly HudScreen FullHd = new HudScreen(1920, 1080);
+    private static readonly HudVisibility Shown = new HudVisibility(ShowNormalHud: true, AllowOrdinaryInput: true);
+    private static readonly HudRect Widget = new HudRect(1040, 1000, 1096, 288);
 
     /// <summary>One 2x2 glyph 'A' at full coverage, 3 wide with its spacing, in a 10-pixel line.</summary>
-    private static readonly BitmapFont Font = new(10, [new BitmapGlyph('A', 2, 2, 0, 0, 3, [15, 15, 15, 15])]);
+    private static readonly BitmapFont Font = new BitmapFont(10, [new BitmapGlyph('A', 2, 2, 0, 0, 3, [15, 15, 15, 15])]);
 
     private static HudDraw[] Build(CreatureQueryHud hud, string text, bool otherPanelOpen = false)
     {

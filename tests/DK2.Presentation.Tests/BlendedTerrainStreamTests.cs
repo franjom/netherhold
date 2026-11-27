@@ -10,19 +10,19 @@ namespace DK2.Presentation.Tests;
 
 public sealed class BlendedTerrainStreamTests
 {
-    private static readonly TestMaterial Water = new("water"), Fog = new("fog"), Glass = new("glass"),
-        Opaque = new("rock", transparent: false), Dig = new("dig", tagOverlay: true), Red = new("red", tagOverlay: true);
+    private static readonly TestMaterial Water = new TestMaterial("water"), Fog = new TestMaterial("fog"), Glass = new TestMaterial("glass"),
+        Opaque = new TestMaterial("rock", transparent: false), Dig = new TestMaterial("dig", tagOverlay: true), Red = new TestMaterial("red", tagOverlay: true);
 
     private static readonly TestMaterial[] Palette = [Water, Opaque, Fog, Dig, Glass, Red];
 
     /// <summary>Runs the same operations through the legacy transcription and the stream, comparing every upload.</summary>
     private sealed class Pair
     {
-        public readonly LegacyTransparentTerrain Legacy = new();
-        public readonly BlendedTerrainStream<TestMaterial> Stream = new(material => material.TagOverlay);
+        public readonly LegacyTransparentTerrain Legacy = new LegacyTransparentTerrain();
+        public readonly BlendedTerrainStream<TestMaterial> Stream = new BlendedTerrainStream<TestMaterial>(material => material.TagOverlay);
         // Unity's TerrainChunks kept one dictionary whose lists it cleared, so its order is first use across chunks.
-        private readonly Dictionary<TestMaterial, List<int>> _byMaterial = new();
-        private readonly List<int> _orders = new(), _legacyOrders = new();
+        private readonly Dictionary<TestMaterial, List<int>> _byMaterial = new Dictionary<TestMaterial, List<int>>();
+        private readonly List<int> _orders = new List<int>(), _legacyOrders = new List<int>();
 
         /// <summary>The stream's localToWorld and its inverse, in Unity's layout; effects are placed with the inverse
         /// when added, as Unity's adapter does, and the legacy copy collects with it.</summary>
@@ -229,7 +229,7 @@ public sealed class BlendedTerrainStreamTests
                     break;
                 case 3:
                 {
-                    Vector3[] quad = [new(0, 0, 0), new(1, 0, 0), new(1, 1, 0), new(0, 1, 0)];
+                    Vector3[] quad = [new Vector3(0, 0, 0), new Vector3(1, 0, 0), new Vector3(1, 1, 0), new Vector3(0, 1, 0)];
                     int[] indices = [0, 1, 2, 0, 2, 3];
                     var at = Matrix4x4.Transpose(Matrix4x4.CreateTranslation(focus + new Vector3(random.Next(-4, 5), 1, random.Next(-4, 5))));
                     if (random.Next(2) == 0)
@@ -307,7 +307,7 @@ public sealed class BlendedTerrainStreamTests
         var random = new Random(3);
         (List<Vector3> positions, List<(TestMaterial, int[])> groups) = RandomChunk(random, 1);
         pair.SetChunk(1, positions, groups);
-        Vector3[] quad = [new(8, 1, 0), new(9, 1, 0), new(9, 2, 0)];
+        Vector3[] quad = [new Vector3(8, 1, 0), new Vector3(9, 1, 0), new Vector3(9, 2, 0)];
         pair.Effects((quad, [0, 1, 2], Glass, Matrix4x4.Identity));
         var camera = Camera.At(new Vector3(10, 0, 4), 0f);
         pair.Refresh(camera);
@@ -363,9 +363,9 @@ public sealed class BlendedTerrainStreamTests
         Assert.True(stream.Refresh(Vector3.UnitZ, Matrix4x4.Identity, frustum));
         Assert.True(stream.GeometryChanged);
         Assert.Equal(first + 1, stream.GeometryRevision);
-        BlendedVertex[] effect = [new(new Vector3(0, 0, 4), Vector3.UnitY, default, default, VertexColour.White),
-            new(new Vector3(1, 0, 4), Vector3.UnitY, default, default, VertexColour.White),
-            new(new Vector3(1, 1, 4), Vector3.UnitY, default, default, VertexColour.White)];
+        BlendedVertex[] effect = [new BlendedVertex(new Vector3(0, 0, 4), Vector3.UnitY, default, default, VertexColour.White),
+            new BlendedVertex(new Vector3(1, 0, 4), Vector3.UnitY, default, default, VertexColour.White),
+            new BlendedVertex(new Vector3(1, 1, 4), Vector3.UnitY, default, default, VertexColour.White)];
         stream.BeginEffectFrame();
         stream.AddEffect(Glass, effect, [0, 1, 2]);
         stream.EndEffectFrame();
@@ -383,9 +383,9 @@ public sealed class BlendedTerrainStreamTests
     public void An_effect_whose_material_alone_changes_is_collected_again()
     {
         var stream = new BlendedTerrainStream<TestMaterial>(_ => false);
-        BlendedVertex[] triangle = [new(new Vector3(0, 0, 5), Vector3.UnitY, default, default, VertexColour.White),
-            new(new Vector3(1, 0, 5), Vector3.UnitY, default, default, VertexColour.White),
-            new(new Vector3(1, 1, 5), Vector3.UnitY, default, default, VertexColour.White)];
+        BlendedVertex[] triangle = [new BlendedVertex(new Vector3(0, 0, 5), Vector3.UnitY, default, default, VertexColour.White),
+            new BlendedVertex(new Vector3(1, 0, 5), Vector3.UnitY, default, default, VertexColour.White),
+            new BlendedVertex(new Vector3(1, 1, 5), Vector3.UnitY, default, default, VertexColour.White)];
         var pose = new ClassicCameraPose(new Vector3(.5f, .5f, 0f), Vector3.UnitZ, Vector3.UnitY, 60f, 50f, 0f, 0f);
         var frustum = ViewFrustum.FromPose(pose, 1f, .3f);
         stream.BeginEffectFrame();
@@ -431,9 +431,9 @@ public sealed class BlendedTerrainStreamTests
     public void An_effect_whose_indices_alone_change_is_collected_again()
     {
         var stream = new BlendedTerrainStream<TestMaterial>(_ => false);
-        BlendedVertex[] quad = [new(new Vector3(0, 0, 5), Vector3.UnitY, default, default, VertexColour.White),
-            new(new Vector3(1, 0, 5), Vector3.UnitY, default, default, VertexColour.White),
-            new(new Vector3(1, 1, 5), Vector3.UnitY, default, default, VertexColour.White)];
+        BlendedVertex[] quad = [new BlendedVertex(new Vector3(0, 0, 5), Vector3.UnitY, default, default, VertexColour.White),
+            new BlendedVertex(new Vector3(1, 0, 5), Vector3.UnitY, default, default, VertexColour.White),
+            new BlendedVertex(new Vector3(1, 1, 5), Vector3.UnitY, default, default, VertexColour.White)];
         var pose = new ClassicCameraPose(new Vector3(.5f, .5f, 0f), Vector3.UnitZ, Vector3.UnitY, 60f, 50f, 0f, 0f);
         var frustum = ViewFrustum.FromPose(pose, 1f, .3f);
         stream.BeginEffectFrame();
@@ -464,7 +464,7 @@ public sealed class BlendedTerrainStreamTests
         var vertices = new List<BlendedVertex>();
         foreach (float z in new[] { 9f, 6f, 3f })
         {
-            foreach (Vector3 corner in new Vector3[] { new(0, 0, z), new(1, 0, z), new(1, 1, z), new(0, 1, z) })
+            foreach (Vector3 corner in new Vector3[] { new Vector3(0, 0, z), new Vector3(1, 0, z), new Vector3(1, 1, z), new Vector3(0, 1, z) })
             {
                 vertices.Add(new BlendedVertex(corner, Vector3.UnitY, default, default, VertexColour.White));
             }
@@ -494,7 +494,7 @@ public sealed class BlendedTerrainStreamTests
         // One quad in view, one behind the camera.
         foreach (float z in new[] { 5f, -5f })
         {
-            foreach (Vector3 corner in new Vector3[] { new(0, 0, z), new(1, 0, z), new(1, 1, z) })
+            foreach (Vector3 corner in new Vector3[] { new Vector3(0, 0, z), new Vector3(1, 0, z), new Vector3(1, 1, z) })
             {
                 vertices.Add(new BlendedVertex(corner, Vector3.UnitY, default, default, VertexColour.White));
             }
@@ -516,7 +516,7 @@ public sealed class BlendedTerrainStreamTests
         var vertices = new List<BlendedVertex>();
         foreach (float z in new[] { 9f, 3f })
         {
-            foreach (Vector3 corner in new Vector3[] { new(0, 0, z), new(1, 0, z), new(1, 1, z) })
+            foreach (Vector3 corner in new Vector3[] { new Vector3(0, 0, z), new Vector3(1, 0, z), new Vector3(1, 1, z) })
             {
                 vertices.Add(new BlendedVertex(corner, Vector3.UnitY, default, default, VertexColour.White));
             }
@@ -543,9 +543,9 @@ public sealed class BlendedTerrainStreamTests
     public void An_unchanged_effect_frame_keeps_the_collected_stream()
     {
         var stream = new BlendedTerrainStream<TestMaterial>(_ => false);
-        BlendedVertex[] quad = [new(Vector3.Zero, Vector3.UnitY, default, default, VertexColour.White),
-            new(Vector3.UnitX, Vector3.UnitY, default, default, VertexColour.White),
-            new(Vector3.One, Vector3.UnitY, default, default, VertexColour.White)];
+        BlendedVertex[] quad = [new BlendedVertex(Vector3.Zero, Vector3.UnitY, default, default, VertexColour.White),
+            new BlendedVertex(Vector3.UnitX, Vector3.UnitY, default, default, VertexColour.White),
+            new BlendedVertex(Vector3.One, Vector3.UnitY, default, default, VertexColour.White)];
         var pose = new ClassicCameraPose(new Vector3(.5f, .5f, -2f), Vector3.UnitZ, Vector3.UnitY, 60f, 50f, 0f, 0f);
         var frustum = ViewFrustum.FromPose(pose, 1f, .3f);
         stream.BeginEffectFrame();

@@ -11,10 +11,10 @@ namespace DK2.Presentation.Tests;
 /// <summary>The engine-free options menu and named-save browser (ADR-0805).</summary>
 public sealed class OptionsHudTests
 {
-    private static readonly HudScreen FullHd = new(1920, 1080);
+    private static readonly HudScreen FullHd = new HudScreen(1920, 1080);
 
     /// <summary>One 2x2 glyph 'A' at full coverage, 3 wide with its spacing, in a 10-pixel line.</summary>
-    private static readonly BitmapFont Font = new(10, [new BitmapGlyph('A', 2, 2, 0, 0, 3, [15, 15, 15, 15])]);
+    private static readonly BitmapFont Font = new BitmapFont(10, [new BitmapGlyph('A', 2, 2, 0, 0, 3, [15, 15, 15, 15])]);
 
     private static OptionsHud Options()
     {
@@ -77,7 +77,7 @@ public sealed class OptionsHudTests
 
     private static SaveSlotsView Saves(int count)
     {
-        return new("saves", () => Enumerable.Range(0, count)
+        return new SaveSlotsView("saves", () => Enumerable.Range(0, count)
         .Select(i => new SavedSessionEntry($"save{i}.dk2save", null,
             new SaveIncompatibleException(SaveIncompatibleReason.Corrupt, "broken " + i))).ToArray());
     }

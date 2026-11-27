@@ -172,7 +172,7 @@ public class PoseInterpolatorTests
         DungeonHeartVisual? heart = null, Fp32 initialPhase = default, GameTick? startedAt = null, bool loops = true,
         TerrainLightColour addedLight = default)
     {
-        return new(1, 1, new PlayerId(1), new TilePos(1, 1), default, 0, Fp32.One, Fp32.One, Fp32.One, heading, scale,
+        return new ObjectView(1, 1, new PlayerId(1), new TilePos(1, 1), default, 0, Fp32.One, Fp32.One, Fp32.One, heading, scale,
             pitch: pitch, roll: roll, previousHeading: previousHeading, previousPitch: previousPitch,
             previousRoll: previousRoll, heartVisual: heart, texturePhase: texturePhase, animationInitialPhase: initialPhase,
             animationStartedAt: startedAt, animationLoops: loops, addedLight: addedLight);

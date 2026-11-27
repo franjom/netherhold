@@ -14,8 +14,8 @@ namespace DK2.Presentation.Tests;
 
 public class HandInputTests
 {
-    private static readonly PlayerId Keeper = new(3);
-    private static readonly TilePos Start = new(2, 2), End = new(4, 3);
+    private static readonly PlayerId Keeper = new PlayerId(3);
+    private static readonly TilePos Start = new TilePos(2, 2), End = new TilePos(4, 3);
 
     [Theory]
     [InlineData(false, false)]
@@ -33,7 +33,7 @@ public class HandInputTests
             input.Translate(Intent(end, PointerButtonTransition.Released), snapshot).All));
         Assert.Equal(!tagged, command.Tagged);
         TilePos[] expected = rectangle
-            ? [new(2, 2), new(3, 2), new(4, 2), new(2, 3), new(3, 3), new(4, 3)] : [Start];
+            ? [new TilePos(2, 2), new TilePos(3, 2), new TilePos(4, 2), new TilePos(2, 3), new TilePos(3, 3), new TilePos(4, 3)] : [Start];
         Assert.Equal(expected, command.Tiles.OrderBy(t => t.Y).ThenBy(t => t.X));
         Assert.Null(input.ExcavationPreviewTagged);
     }
@@ -214,13 +214,13 @@ public class HandInputTests
 
     private static PlayerInputSnapshot Creature(bool holding)
     {
-        return new(holding,
+        return new PlayerInputSnapshot(holding,
         [new PlayerInputTarget(PlayerInputTargetKind.Creature, 40, Start)]);
     }
 
     private static PlayerIntent Intent(TilePos? at, PointerButtonTransition primary = PointerButtonTransition.None,
         PointerButtonTransition secondary = PointerButtonTransition.None)
     {
-        return new(Keeper, PlayerToolMode.Hand, at, primary, SecondaryButton: secondary);
+        return new PlayerIntent(Keeper, PlayerToolMode.Hand, at, primary, SecondaryButton: secondary);
     }
 }

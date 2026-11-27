@@ -369,7 +369,7 @@ public class CombatAcquisitionTests
 
     private static GameSimulation Combat(GameDatabase db, WorldState world)
     {
-        return new(db, world, 1, [new CombatSystem()]);
+        return new GameSimulation(db, world, 1, [new CombatSystem()]);
     }
 
     private sealed class BitGrid : ISightBlocker

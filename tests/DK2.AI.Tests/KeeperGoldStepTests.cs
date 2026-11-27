@@ -48,12 +48,12 @@ public class KeeperGoldStepTests
 
     private static KeeperAI Keeper1(SimRandom? rng = null, byte speed = 1)
     {
-        return new(Keeper, KeeperWorld.Parameters(speed: speed, money: 1000), rng ?? new SimRandom(7));
+        return new KeeperAI(Keeper, KeeperWorld.Parameters(speed: speed, money: 1000), rng ?? new SimRandom(7));
     }
 
     private static CastSpellAtPlaceCommand ExpectedCast()
     {
-        return new(Keeper, KeeperSpellRules.CreateGold,
+        return new CastSpellAtPlaceCommand(Keeper, KeeperSpellRules.CreateGold,
             ((KeeperWorld.HeartAt.X + 1) << 12) + Centre, ((KeeperWorld.HeartAt.Y + 1) << 12) + Centre);
     }
 

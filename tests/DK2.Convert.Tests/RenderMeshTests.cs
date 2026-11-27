@@ -24,7 +24,7 @@ public sealed class RenderMeshTests
         var mesh = new KmfMesh("test", Vector3.Zero, 1, [primitive]);
         var model = new KmfModel(1, KmfKind.Animation, [], mesh, new KmfAnimation(1, [mesh]))
         {
-            ControlPoints = [new(0x10000, 1001), new(0, 1000), new(0, 1001)],
+            ControlPoints = [new KmfControlPoint(0x10000, 1001), new KmfControlPoint(0, 1000), new KmfControlPoint(0, 1001)],
         };
         var rendered = RenderMesh.FromModel(model);
         Assert.Equal(new uint[] { 1001, 1000, 1001 }, rendered.TaggedPoints.Select(p => p.Id));

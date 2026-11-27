@@ -17,11 +17,11 @@ namespace DK2.Presentation.Tests;
 public class CameraRulesTests
 {
     private const float RawUnit = 1f / Fp32.One;
-    private static readonly CameraViewport Viewport = new(1600, 1600, 1200);
+    private static readonly CameraViewport Viewport = new CameraViewport(1600, 1600, 1200);
 
     private static CameraThing Profile()
     {
-        return new(new byte[84])
+        return new CameraThing(new byte[84])
         {
             CameraId = 3,
             Z = 4096,
@@ -126,7 +126,7 @@ public class CameraRulesTests
 
     private static CameraPointerSample Pointer(float x, float y, bool focused = true, bool overHud = false, float wheel = 0)
     {
-        return new(new Vector2(x, y), 1600, 1200, focused, overHud, wheel);
+        return new CameraPointerSample(new Vector2(x, y), 1600, 1200, focused, overHud, wheel);
     }
 
     [Theory]
@@ -194,7 +194,7 @@ public class CameraRulesTests
     public void TheWheelZoomsOnlyAwayFromTheHud()
     {
         (ClassicCamera camera, ClassicCameraControls controls) = Camera();
-        Vector3 focus = new(10, 4095f / Fp32.One, -10);
+        var focus = new Vector3(10, 4095f / Fp32.One, -10);
         int start = camera.Zoom.Raw;
         ClassicCameraInput.Apply(controls, focus, Keys(), Pointer(800, 600, overHud: true, wheel: 1), new Vector2(800, 600), 10, 0);
         Assert.Equal(start, camera.Zoom.Raw);
@@ -209,7 +209,7 @@ public class CameraRulesTests
     {
         (ClassicCamera camera, ClassicCameraControls controls) = Camera();
         int start = camera.Zoom.Raw;
-        ClassicCameraInput.Apply(controls, new(10, 1, -10), Keys(GameAction.ZoomOut), Pointer(800, 600, overHud: true, wheel: 1),
+        ClassicCameraInput.Apply(controls, new Vector3(10, 1, -10), Keys(GameAction.ZoomOut), Pointer(800, 600, overHud: true, wheel: 1),
             new Vector2(800, 600), 10, 0);
         Assert.Equal(start * 270 >> 8, camera.Zoom.Raw);
     }
@@ -219,11 +219,11 @@ public class CameraRulesTests
     {
         (ClassicCamera camera, ClassicCameraControls controls) = Camera();
         int start = camera.Zoom.Raw;
-        ClassicCameraInput.Apply(controls, new(10, 1, -10), Keys(GameAction.ZoomIn), Pointer(800, 600, wheel: -1),
+        ClassicCameraInput.Apply(controls, new Vector3(10, 1, -10), Keys(GameAction.ZoomIn), Pointer(800, 600, wheel: -1),
             new Vector2(800, 600), 10, 0);
         Assert.Equal(start * 242 >> 8, camera.Zoom.Raw);
         (ClassicCamera other, ClassicCameraControls otherControls) = Camera();
-        ClassicCameraInput.Apply(otherControls, new(10, 1, -10), Keys(GameAction.ZoomOut), Pointer(800, 600, wheel: 1),
+        ClassicCameraInput.Apply(otherControls, new Vector3(10, 1, -10), Keys(GameAction.ZoomOut), Pointer(800, 600, wheel: 1),
             new Vector2(800, 600), 10, 0);
         Assert.Equal(start * 242 >> 8, other.Zoom.Raw);
     }
@@ -231,7 +231,7 @@ public class CameraRulesTests
     [Fact]
     public void TheFramePansAtTheZoomItStartedWithThenZooms()
     {
-        Vector3 focus = new(10, 4095f / Fp32.One, -10);
+        var focus = new Vector3(10, 4095f / Fp32.One, -10);
         (_, ClassicCameraControls reference) = Camera();
         Vector3 expected = reference.Advance(focus, ClassicCameraKeys.None, ClassicCameraInput.FrameTime(0.1), ClassicCameraKeys.Left);
         (ClassicCamera camera, ClassicCameraControls controls) = Camera();
@@ -245,7 +245,7 @@ public class CameraRulesTests
     public void AnEdgePansTheFocusWithinTheBounds()
     {
         (_, ClassicCameraControls controls) = Camera();
-        Vector3 focus = new(10, 4095f / Fp32.One, -10);
+        var focus = new Vector3(10, 4095f / Fp32.One, -10);
         Vector3 moved = ClassicCameraInput.Apply(controls, focus, Keys(), Pointer(0, 600), new Vector2(0, 600), 10, 0.1);
         Assert.True(moved.X < focus.X);
         Vector3 still = ClassicCameraInput.Apply(Camera().Controls, focus, Keys(), Pointer(800, 600), new Vector2(800, 600), 10, 0.1);
@@ -258,7 +258,7 @@ public class CameraRulesTests
         (ClassicCamera camera, ClassicCameraControls controls) = Camera();
         GameBindingInput rotate = Keys(GameAction.MouseRotate);
         Assert.True(rotate.Held(GameAction.MouseRotate, exactModifiers: true));
-        Vector3 focus = new(10, 1, -10);
+        var focus = new Vector3(10, 1, -10);
         ClassicCameraInput.Apply(controls, focus, rotate, Pointer(802, 600), new Vector2(800, 600), 20, 0);
         Assert.Equal(0, camera.Yaw.Value);
         ClassicCameraInput.Apply(controls, focus, rotate, Pointer(804, 600), new Vector2(802, 600), 20, 0);
@@ -326,7 +326,7 @@ public class CameraRulesTests
 
     private static PlayerDef Player(byte id, ushort cameraX, ushort cameraY)
     {
-        return new()
+        return new PlayerDef()
         {
             PlayerId = id,
             Name = "test",
@@ -415,7 +415,7 @@ public class CameraRulesTests
     [Fact]
     public void ThePointerPositionIsOnTheTileOrNothing()
     {
-        Vector3 down = new(0, -1, 0);
+        var down = new Vector3(0, -1, 0);
         FpPosition2? position = TileTopPlane.PositionOn(new Vector3(2.25f, 10, -3.5f), down, new TilePos(2, 3), solid: false);
         Assert.Equal(new FpPosition2(new Fp32(9216), new Fp32(14336)), position);
         Assert.Null(TileTopPlane.PositionOn(new Vector3(2.25f, 10, -3.5f), down, new TilePos(2, 2), solid: false));
@@ -446,7 +446,7 @@ public class CameraRulesTests
 
     private static LevelMap Map(params byte[] owners)
     {
-        return new(owners.Length, 1, [.. owners.Select(owner => new MapTile(2, owner, 0, 0))]);
+        return new LevelMap(owners.Length, 1, [.. owners.Select(owner => new MapTile(2, owner, 0, 0))]);
     }
 
     [Fact]
@@ -492,7 +492,7 @@ public class CameraRulesTests
 
     private static CampaignLevelData Level()
     {
-        TerrainDef terrain = new()
+        var terrain = new TerrainDef()
         {
             Name = "test", TerrainId = 2, Flags = TerrainFlags.Solid, StartingHealth = 1, MaxHealth = 1, GoldValue = 0,
             ManaGain = 0, MaxManaGain = 0, Damage = 0, MaxHealthTypeTerrainId = 2, DestroyedTypeTerrainId = 2,

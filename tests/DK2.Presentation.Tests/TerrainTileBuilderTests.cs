@@ -28,8 +28,8 @@ public class TerrainTileBuilderTests
         var geometry = new TerrainTileGeometry();
         builder.Prepare(1, 1, tiles, geometry);
         builder.Build(geometry);
-        Vector2[] expected = [new(-1, -7), new(-1, -7), new(-1, 5), new(-1, 5),
-            new(1, 1), new(6, -1), new(9, 9), new(4, 4), new(4, 4)];
+        Vector2[] expected = [new Vector2(-1, -7), new Vector2(-1, -7), new Vector2(-1, 5), new Vector2(-1, 5),
+            new Vector2(1, 1), new Vector2(6, -1), new Vector2(9, 9), new Vector2(4, 4), new Vector2(4, 4)];
         Assert.Equal(expected.Length, geometry.Pieces.Count);
         for (int p = 0; p < geometry.Pieces.Count; p++)
         {
@@ -90,8 +90,8 @@ public class TerrainTileBuilderTests
     private const int Width = 4, Height = 3;
     private const float Tolerance = 1e-6f;
 
-    private static readonly TerrainLightColour WallTint = new(300, 20, 40), RoomTint = new(12, 34, 56),
-        QuarterTint = new(70, 0, 0), NeighbourTint = new(5, 6, 7);
+    private static readonly TerrainLightColour WallTint = new TerrainLightColour(300, 20, 40), RoomTint = new TerrainLightColour(12, 34, 56),
+        QuarterTint = new TerrainLightColour(70, 0, 0), NeighbourTint = new TerrainLightColour(5, 6, 7);
 
     /// <summary>A wall: two faces at its decay stage's texture, a top with inverted normals, top quarters, tagged
     /// and tinted, so each group draws its tagged twin and the additive overlay.</summary>
@@ -173,7 +173,7 @@ public class TerrainTileBuilderTests
         TileView Tile(TerrainPieces pieces = default, TerrainPieceKeys? pieceKeys = null, RoomPieceKeys? roomKeys = null,
             TerrainPieceKeys? bedKeys = null, AssetRef fog = default)
         {
-            return new(new TilePos(0, 0), default, default, default, false, false, 0, 1000, pieces: pieces, pieceKeys: pieceKeys,
+            return new TileView(new TilePos(0, 0), default, default, default, false, false, 0, 1000, pieces: pieces, pieceKeys: pieceKeys,
                 roomKeys: roomKeys, bedKeys: bedKeys, sightFogOverlay: fog);
         }
 
@@ -231,7 +231,7 @@ public class TerrainTileBuilderTests
     {
         var piece = new TerrainPiece([new Vector3(0.5f, 1.5f, 0.25f)], [Vector3.UnitZ], [new Vector2(0.25f, 0.75f)],
             [[]], [new ClassicMaterialRecipe("t", KmfBlend.Opaque, 0f)]);
-        TerrainPieceKeys keys = new("Rock");
+        var keys = new TerrainPieceKeys("Rock");
         var tiles = new TileView[Width * Height];
         tiles[(1 * Width) + 2] = new TileView(new TilePos(2, 1), default, default, default, false, true, 0, 1000,
             pieces: default(TerrainPieces).WithFace(1), pieceKeys: keys);
@@ -356,13 +356,13 @@ public class TerrainTileBuilderTests
 
     private static Vector3 Quadrant(int x, int y, int quadrant)
     {
-        Vector2[] centres = [new(-0.25f, 0.25f), new(0.25f, 0.25f), new(0.25f, -0.25f), new(-0.25f, -0.25f)];
+        Vector2[] centres = [new Vector2(-0.25f, 0.25f), new Vector2(0.25f, 0.25f), new Vector2(0.25f, -0.25f), new Vector2(-0.25f, -0.25f)];
         return RenderWorld.Ground(x + .5f, y + .5f) + new Vector3(centres[quadrant].X, 0, centres[quadrant].Y);
     }
 
     private static RoomDef Room()
     {
-        return new()
+        return new RoomDef()
         {
             Name = "Lair",
             RoomId = (byte)RoomTypeId.Lair,
@@ -399,7 +399,7 @@ public class TerrainTileBuilderTests
             AssetRef sightFogOverlay = default, byte sightFogOpacity = 0, int faceTexture = -1, bool red = false,
             AssetRef extraRoomPiece = default)
         {
-            return new(new TilePos(x, y), default, default, default, tagged, false, 0, 1000, walls, pieces, pieceKeys,
+            return new TileView(new TilePos(x, y), default, default, default, tagged, false, 0, 1000, walls, pieces, pieceKeys,
                 roomFloor: roomFloor, roomKeys: roomKeys, bed: bed, bedKeys: bedKeys, ambientTint: ambientTint,
                 quarterAmbientTint: quarterAmbientTint, sightFogOverlay: sightFogOverlay, sightFogOpacity: sightFogOpacity,
                 faceTexture: faceTexture, redHighlighted: red, extraRoomPiece: extraRoomPiece);
@@ -439,7 +439,7 @@ public class TerrainTileBuilderTests
         var tiles = new TileView[Width * Height];
         TileView At(int x, int y, RoomWalls walls = default, TerrainPieces pieces = default, bool tagged = true)
         {
-            return new(new TilePos(x, y), default, default, default, tagged, false, 0, 1000, walls, pieces,
+            return new TileView(new TilePos(x, y), default, default, default, tagged, false, 0, 1000, walls, pieces,
                 walls.IsEmpty ? rock : null, roomKeys: walls.IsEmpty ? null : room,
                 roomFloor: walls.IsEmpty ? default : default(PieceSet).WithWhole(1, 0), ambientTint: NeighbourTint);
         }
@@ -465,8 +465,8 @@ public class TerrainTileBuilderTests
     /// axes, two triangle lists, and recipes that cover opaque, alpha-blended and additive.</summary>
     internal sealed class FakePieces : ITerrainPieceSource
     {
-        private readonly Dictionary<(AssetRef, int), TerrainPiece> _made = new();
-        private readonly Dictionary<AssetRef, TerrainPiece> _fixed = new();
+        private readonly Dictionary<(AssetRef, int), TerrainPiece> _made = new Dictionary<(AssetRef, int), TerrainPiece>();
+        private readonly Dictionary<AssetRef, TerrainPiece> _fixed = new Dictionary<AssetRef, TerrainPiece>();
 
         public TerrainPiece this[AssetRef key]
         {
@@ -519,8 +519,8 @@ public class TerrainTileBuilderTests
 
             Vector3[] positions =
             [
-                new(F(0), 1f + F(8), F(16)), new(F(4) + 0.3f, 1.2f, F(12)), new(-0.37f, 2f + F(20), 0.41f),
-                new(0.5f, 1f, -0.5f), new(F(24), 1.5f, F(2) - 0.1f),
+                new Vector3(F(0), 1f + F(8), F(16)), new Vector3(F(4) + 0.3f, 1.2f, F(12)), new Vector3(-0.37f, 2f + F(20), 0.41f),
+                new Vector3(0.5f, 1f, -0.5f), new Vector3(F(24), 1.5f, F(2) - 0.1f),
             ];
             Vector3[] normals = [.. positions.Select((p, i) => Vector3.Normalize(new Vector3(0.3f + i, 1f, F(i) - 0.2f)))];
             Vector2[] uvs = [.. positions.Select((p, i) => new Vector2(i * 0.125f, 1f - (i * 0.25f)))];

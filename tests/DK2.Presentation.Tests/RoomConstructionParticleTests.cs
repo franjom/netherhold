@@ -109,7 +109,7 @@ public class RoomConstructionParticleTests
 
     private static SimEvent Request()
     {
-        return new(new GameTick(0), "room", "construction_effect", "")
+        return new SimEvent(new GameTick(0), "room", "construction_effect", "")
         { ConstructionEffect = new RoomConstructionEffect(PlayerIds.FirstKeeper, new TilePos(2, 3)) };
     }
 
@@ -178,7 +178,7 @@ public class RoomConstructionParticleTests
         var art = new KwdArtResource("sprite", artFlags, descriptor, 2, 0, 0, 0);
         EffectElementDef Element(ushort id, int mass, int drag)
         {
-            return new([])
+            return new EffectElementDef([])
             {
                 Name = $"element{id}",
                 EffectElementId = id,

@@ -25,7 +25,7 @@ public sealed class ModelInstanceLookTests
         new KmfMaterial("m", ["A"], KmfMaterial.EnvironmentMapFlag, 0, 0.6f, "Env"))!.Value;
 
     private static readonly TerrainLightColour[] Tints =
-        [default, new(300, 40, 0), new(256, 512, 0), new(1000, 700, 90)];
+        [default, new TerrainLightColour(300, 40, 0), new TerrainLightColour(256, 512, 0), new TerrainLightColour(1000, 700, 90)];
 
     /// <summary>The look the shader draws a surface with under <paramref name="instance"/>.</summary>
     private static ObjectMaterialLook Drawn(ObjectMaterialLook look, ModelInstanceLook instance)

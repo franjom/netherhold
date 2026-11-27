@@ -47,7 +47,7 @@ public class TempleStateTests
 
     private static GameSimulation Simulation(GameDatabase db, WorldState world, int seed = 42)
     {
-        return new(db, world, seed: (ulong)seed, [new CreatureMovementSystem(), new CreatureJobSystem()]);
+        return new GameSimulation(db, world, seed: (ulong)seed, [new CreatureMovementSystem(), new CreatureJobSystem()]);
     }
 
     private static CreatureState Worshipper(GameDatabase db, WorldState world, TilePos at, int state = TempleStep.EnteringState)

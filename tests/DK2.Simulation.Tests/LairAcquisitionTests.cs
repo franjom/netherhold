@@ -404,8 +404,8 @@ public class LairAcquisitionTests
 
         TilePos[] expected =
         [
-            new(6, 1), new(6, 2), new(6, 3), new(7, 3),
-            new(8, 3), new(8, 2), new(8, 1), new(7, 1),
+            new TilePos(6, 1), new TilePos(6, 2), new TilePos(6, 3), new TilePos(7, 3),
+            new TilePos(8, 3), new TilePos(8, 2), new TilePos(8, 1), new TilePos(7, 1),
         ];
 
         // Take the centre, then each tile as it is found, and watch the order

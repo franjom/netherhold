@@ -27,7 +27,7 @@ public sealed class FrameJournalSessionTests : IDisposable
 
     private FrameJournalSession Session()
     {
-        return new(_logs.Add, _warnings.Add);
+        return new FrameJournalSession(_logs.Add, _warnings.Add);
     }
 
     [Fact]

@@ -68,7 +68,7 @@ public class PlayerMaskTests
     [Fact]
     public void AnIdWithoutABitIsNeverInTheMask_AndCannotBeAdded()
     {
-        PlayerMask full = new(ushort.MaxValue);
+        var full = new PlayerMask(ushort.MaxValue);
 
         Assert.True(full.Contains(PlayerMask.MaxPlayerId));
         Assert.False(full.Contains(PlayerMask.MaxPlayerId + 1));

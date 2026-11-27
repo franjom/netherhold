@@ -30,7 +30,7 @@ public sealed class ImpSecretDoorTests
 
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte Rival = Keeper + 1;
-    private static readonly TilePos DoorTile = new(4, 2);
+    private static readonly TilePos DoorTile = new TilePos(4, 2);
 
     private static (GameSimulation Sim, CreatureState Imp, DoorState Door, ListEventSink Events) Start(bool timed = false)
     {

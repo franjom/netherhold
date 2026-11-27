@@ -26,7 +26,7 @@ public sealed class RoomPositionTests
     [Fact]
     public void AnOwnedSlabCentroidWinsOverTheBoundingBoxMidpoint()
     {
-        (GameDatabase _, WorldState _, RoomInstance? room) = Setup([new(5, 5), new(6, 5), new(7, 5), new(5, 6), new(5, 7)]);
+        (GameDatabase _, WorldState _, RoomInstance? room) = Setup([new TilePos(5, 5), new TilePos(6, 5), new TilePos(7, 5), new TilePos(5, 6), new TilePos(5, 7)]);
         Assert.Equal(new TilePos(5, 5), Position(room));
     }
 
@@ -48,7 +48,7 @@ public sealed class RoomPositionTests
     {
         (GameDatabase? db, WorldState? world, RoomInstance _) = Setup(Ring(5));
         Place(world, db.Room(RoomTypeId.TrainingRoom),
-            otherOwner ? new PlayerId(4) : new PlayerId(3), [new(12, 12)]);
+            otherOwner ? new PlayerId(4) : new PlayerId(3), [new TilePos(12, 12)]);
         RoomInstance room = RoomIndex.Build(world, db).Single(r => r.TileCount == 16);
         Assert.Equal(new TilePos(14, 11), Position(room));
     }
@@ -84,7 +84,7 @@ public sealed class RoomPositionTests
 
     private static TilePos Position(RoomInstance room)
     {
-        return new(room.CentreFieldX, room.CentreFieldY);
+        return new TilePos(room.CentreFieldX, room.CentreFieldY);
     }
 
     private static TilePos[] Rectangle(TilePos first, int width, int height)

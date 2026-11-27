@@ -17,7 +17,7 @@ public sealed class EnterHookRefusalTests
     private const byte Keeper = 4;
     private const byte Rival = 5;
     private const byte GoblinId = 7;
-    private static readonly TilePos Vault = new(12, 8);
+    private static readonly TilePos Vault = new TilePos(12, 8);
 
     private static int Second
     {
@@ -88,7 +88,7 @@ public sealed class EnterHookRefusalTests
 
     private static StateHookContext Hooks(GameDatabase db, WorldState world)
     {
-        return new(world, db);
+        return new StateHookContext(world, db);
     }
 
     private static IEnumerable<PlayerMessage> Unpaid(WorldState world)

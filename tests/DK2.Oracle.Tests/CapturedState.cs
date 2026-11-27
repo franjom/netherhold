@@ -134,7 +134,7 @@ internal sealed record CapturedState(
         return unmatched;
     }
 
-    private static readonly JsonSerializerOptions Json = new() { PropertyNameCaseInsensitive = true };
+    private static readonly JsonSerializerOptions Json = new JsonSerializerOptions() { PropertyNameCaseInsensitive = true };
 }
 
 internal sealed record CapturedPlayer(int Id, int Tag, uint Ptr);

@@ -23,7 +23,7 @@ public sealed class LevelAllianceTests
     [Fact]
     public void TheShippedPatternAlliesNeutralWithEveryone_AndNobodyElse()
     {
-        WorldState world = Load(new(2, 1), new(3, 2), new(4, 2));
+        WorldState world = Load(new AllianceEntry(2, 1), new AllianceEntry(3, 2), new AllianceEntry(4, 2));
 
         Assert.True(world.AreAllied(PlayerIds.Neutral, PlayerIds.Good));
         Assert.True(world.AreAllied(Keeper, PlayerIds.Neutral));
@@ -35,7 +35,7 @@ public sealed class LevelAllianceTests
     [Fact]
     public void ARecordNamingAPlayerTheLevelLacks_OrOutsideTheArray_IsSkipped()
     {
-        WorldState world = Load(new(Keeper, 6), new(Keeper, 9), new(0, Keeper));
+        WorldState world = Load(new AllianceEntry(Keeper, 6), new AllianceEntry(Keeper, 9), new AllianceEntry(0, Keeper));
 
         for (int i = 0; i < world.PlayerCount; i++)
         {

@@ -15,7 +15,7 @@ public class ManufactureTests
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte MakerId = 61;
     private const int Second = SimulationTiming.TicksPerSecond;
-    private static readonly TilePos Bench = new(3, 3);
+    private static readonly TilePos Bench = new TilePos(3, 3);
 
     /// <summary>A Goblin that manufactures 40 a second: 10 a turn after the loader's division.</summary>
     private static GameDatabase Db()
@@ -166,7 +166,7 @@ public class ManufactureTests
 
     private static DoorThing Door(int x, int y)
     {
-        return new(new byte[20])
+        return new DoorThing(new byte[20])
         {
             X = x,
             Y = y,

@@ -69,7 +69,7 @@ public sealed class PossessionForegroundTests
     {
         var frame = new HudFrame();
         new PossessionHud().Build(new HudScreen(1600, 1200),
-            new PossessionHudSnapshot("portrait", 100, new(0), [], []) { Overlays = ["GUI\\Filters\\F-Black_Knight"] }, frame);
+            new PossessionHudSnapshot("portrait", 100, new Core.GoldAmount(0), [], []) { Overlays = ["GUI\\Filters\\F-Black_Knight"] }, frame);
         HudDraw[] draws = frame.Draws.ToArray();
         Assert.True(Array.FindIndex(draws, d => d.Image.Path == "GUI\\Filters\\F-Black_Knight")
             < Array.FindIndex(draws, d => d.Image.Path == "portrait"));

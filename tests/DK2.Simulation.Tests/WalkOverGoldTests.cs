@@ -14,7 +14,7 @@ namespace DK2.Simulation.Tests;
 public sealed class WalkOverGoldTests
 {
     private const byte Keeper = 3, Rival = 4;
-    private static readonly TilePos Spot = new(5, 5);
+    private static readonly TilePos Spot = new TilePos(5, 5);
 
     private sealed record Run(GameDatabase Db, WorldState World, GameSimulation Sim)
     {

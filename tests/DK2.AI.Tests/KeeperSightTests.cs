@@ -39,7 +39,7 @@ public class KeeperSightTests
 
     private static KeeperAI Keeper1(byte mode, SimRandom rng)
     {
-        return new(Keeper, KeeperWorld.Parameters() with { UseSightOfEvil = mode }, rng);
+        return new KeeperAI(Keeper, KeeperWorld.Parameters() with { UseSightOfEvil = mode }, rng);
     }
 
     /// <summary>The ranges of one tick's draws in order: the training roll, the traps-and-doors roll,

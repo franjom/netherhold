@@ -52,7 +52,7 @@ public class OneShotReaperLevelTests
     public void LevelMetadataSurvivesLaterVariableMergesWithoutInventingDefaults()
     {
         var variables = new GlobalVariables();
-        variables.Misc[VariableTypeId.MineGoldHealth] = new(VariableTypeId.MineGoldHealth, -300, 0, 0);
+        variables.Misc[VariableTypeId.MineGoldHealth] = new MiscVariable(VariableTypeId.MineGoldHealth, -300, 0, 0);
         var original = new GameDatabase([], [], [], variables);
         Assert.Null(original.Level);
         Assert.Same(original, original.ForLevel(null));
@@ -66,7 +66,7 @@ public class OneShotReaperLevelTests
         Assert.Null(original.Level);
 
         var overrides = new GlobalVariables();
-        overrides.Misc[VariableTypeId.MineGoldHealth] = new(VariableTypeId.MineGoldHealth, -400, 0, 0);
+        overrides.Misc[VariableTypeId.MineGoldHealth] = new MiscVariable(VariableTypeId.MineGoldHealth, -400, 0, 0);
         GameDatabase merged = attached.ForLevel(overrides);
         Assert.Same(level, merged.Level);
         Assert.Equal((byte)3, merged.Level!.OneShotReaperLevel);

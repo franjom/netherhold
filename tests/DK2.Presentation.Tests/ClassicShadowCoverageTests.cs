@@ -16,7 +16,7 @@ public sealed class ClassicShadowCoverageTests
     {
         const int size = ClassicMeshShadow.TextureSize;
         byte[] samples = new byte[size * size];
-        Vector2 a = new(2, 2), b = new(3, 2), c = new(2, 3);
+        Vector2 a = new Vector2(2, 2), b = new Vector2(3, 2), c = new Vector2(2, 3);
 
         if (reverse)
         {
@@ -37,7 +37,7 @@ public sealed class ClassicShadowCoverageTests
     {
         const int size = ClassicMeshShadow.TextureSize;
         byte[] samples = new byte[size * size];
-        ClassicShadowCoverage.AddTriangle(samples, new(-2, -2), new(4, -2), new(-2, 4));
+        ClassicShadowCoverage.AddTriangle(samples, new Vector2(-2, -2), new Vector2(4, -2), new Vector2(-2, 4));
         ClassicShadowCoverage.Resolve(samples);
         Assert.Equal(255, samples[0]);
         Assert.Equal(0, samples[^1]);

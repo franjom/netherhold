@@ -31,10 +31,10 @@ public class PrisonTests
     // cells are three of its nine tiles; the floor around it is paved so there is
     // somewhere to stand imps and lay bodies down. A 1x3 column is not a prison at
     // all under the capacity rule: no inner tile, no capacity, no room.
-    private static readonly TilePos CellA = new(4, 3);
-    private static readonly TilePos CellB = new(5, 4);
-    private static readonly TilePos CellC = new(6, 5);
-    private static readonly TilePos Floor = new(2, 3);
+    private static readonly TilePos CellA = new TilePos(4, 3);
+    private static readonly TilePos CellB = new TilePos(5, 4);
+    private static readonly TilePos CellC = new TilePos(6, 5);
+    private static readonly TilePos Floor = new TilePos(2, 3);
 
     private static GameDatabase Db
     {

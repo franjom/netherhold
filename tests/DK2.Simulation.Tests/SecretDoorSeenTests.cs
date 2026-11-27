@@ -18,9 +18,9 @@ public sealed class SecretDoorSeenTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte Rival = Keeper + 1;
-    private static readonly TilePos DoorTile = new(4, 2);
-    private static readonly TilePos Beside = new(3, 2);
-    private static readonly TilePos CorridorEnd = new(9, 2);
+    private static readonly TilePos DoorTile = new TilePos(4, 2);
+    private static readonly TilePos Beside = new TilePos(3, 2);
+    private static readonly TilePos CorridorEnd = new TilePos(9, 2);
     private const byte SecretDoorId = 5;
     private const byte PlainDoorId = 6;
     private const int SeeingRangeTiles = 4;

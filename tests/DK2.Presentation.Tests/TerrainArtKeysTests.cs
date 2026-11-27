@@ -13,7 +13,7 @@ namespace DK2.Presentation.Tests;
 /// <summary>The terrain key set covers the pieces exposed by individual tile views.</summary>
 public sealed class TerrainArtKeysTests
 {
-    private static readonly PlayerId Viewer = new(1);
+    private static readonly PlayerId Viewer = new PlayerId(1);
 
     [InstallFact]
     public void TheTerrainKeysCoverEveryPieceSetAnyTileHandsOut()

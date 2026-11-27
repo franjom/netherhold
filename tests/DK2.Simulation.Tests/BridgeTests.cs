@@ -118,7 +118,7 @@ public class BridgeTests
     [InlineData(false)]
     public void ADraggedSpanGrowsFromTheShoreWhicheverEndItIsLaidFrom(bool fromTheShore)
     {
-        TilePos near = new(6, 6), mid = new(7, 6), far = new(8, 6);
+        TilePos near = new TilePos(6, 6), mid = new TilePos(7, 6), far = new TilePos(8, 6);
         Run run = Start(Dk2TerrainFixture.Water, near);
         GiveHeart(run, new TilePos(1, 1), 1000);
         Lay(run, Dk2TerrainFixture.Water, mid, far);
@@ -133,7 +133,7 @@ public class BridgeTests
     [Fact]
     public void ADraggedSpanDoesNotSpreadThroughWaterOutsideTheOrder()
     {
-        TilePos near = new(6, 6), skipped = new(7, 6), far = new(8, 6);
+        TilePos near = new TilePos(6, 6), skipped = new TilePos(7, 6), far = new TilePos(8, 6);
         Run run = Start(Dk2TerrainFixture.Water, near);
         GiveHeart(run, new TilePos(1, 1), 1000);
         Lay(run, Dk2TerrainFixture.Water, skipped, far);
@@ -148,7 +148,7 @@ public class BridgeTests
     [Fact]
     public void ADraggedSpanStopsWhereItsHazardIsBroken()
     {
-        TilePos near = new(6, 6), far = new(8, 6); // (7,6) stays rock
+        TilePos near = new TilePos(6, 6), far = new TilePos(8, 6); // (7,6) stays rock
         Run run = Start(Dk2TerrainFixture.Water, near);
         GiveHeart(run, new TilePos(1, 1), 1000);
         Lay(run, Dk2TerrainFixture.Water, far);

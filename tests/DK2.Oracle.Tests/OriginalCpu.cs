@@ -102,7 +102,7 @@ internal static class OriginalCpu
 
     private static string Script(string name)
     {
-        for (DirectoryInfo? dir = new(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
+        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
         {
             string candidate = System.IO.Path.Combine(dir.FullName, "tools", "oracle", name);
             if (File.Exists(candidate))

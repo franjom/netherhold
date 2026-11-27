@@ -19,7 +19,7 @@ public class CountedAnimationDurationTests
     {
         get
         {
-            return new()
+            return new CreatureAnimationTiming()
             {
                 ResourceType = 6,
                 Flags = CreatureAnimationFlags.StartSegment | CreatureAnimationFlags.EndSegment,

@@ -19,10 +19,10 @@ public sealed class JailBreakTests
 
     // A 5x5 prison at (4..8, 2..6): its floor is the 3x3 at (5..7, 3..5). Placed as the map places a room, its
     // slab chain is row-major, so its door is (5, 2), at the west end (room-slab-chain.md §6; SlabChainTests builds).
-    private static readonly TilePos Door = new(5, 2);
-    private static readonly TilePos Cell = new(6, 4);
-    private static readonly TilePos Outside = new(10, 4);
-    private static readonly TilePos Rim = new(8, 4);
+    private static readonly TilePos Door = new TilePos(5, 2);
+    private static readonly TilePos Cell = new TilePos(6, 4);
+    private static readonly TilePos Outside = new TilePos(10, 4);
+    private static readonly TilePos Rim = new TilePos(8, 4);
 
     private static (GameDatabase, WorldState) World(int size = 5)
     {

@@ -37,7 +37,7 @@ public sealed class HudVisibilityTests
     public void CameraGateUsesNativeModeExceptionsAndTheRequestCount(
         int mode, int count, bool visible, bool inputAllowed)
     {
-        HudVisibility state = HudVisibilityRules.ForCamera(new((ushort)mode), count);
+        HudVisibility state = HudVisibilityRules.ForCamera(new CameraModeId((ushort)mode), count);
         Assert.Equal(visible, state.ShowNormalHud);
         Assert.Equal(inputAllowed, state.AllowOrdinaryInput);
     }
@@ -45,7 +45,7 @@ public sealed class HudVisibilityTests
     [Fact]
     public void CameraInputLockDoesNotHideAnOtherwiseVisibleHud()
     {
-        HudVisibility state = HudVisibilityRules.ForCamera(new(3), 0, cameraInputBlocked: true);
+        HudVisibility state = HudVisibilityRules.ForCamera(new CameraModeId(3), 0, cameraInputBlocked: true);
         Assert.True(state.ShowNormalHud);
         Assert.False(state.AllowOrdinaryInput);
     }

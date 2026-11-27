@@ -16,7 +16,7 @@ public class KwdEditingOwnershipTests
     public void DecodedRawSlicesCannotMutateTheOwnedFile()
     {
         KwdLevelFileSet editor =LevelSet(); byte[] original=editor.ToBytes("level.kwd");
-        LevelDef row=editor.ReadRecord<LevelDef>(new("level.kwd",0,0));
+        LevelDef row=editor.ReadRecord<LevelDef>(new KwdRecordLocation("level.kwd",0,0));
         Assert.True(MemoryMarshal.TryGetArray(row.Unknown_1184,out ArraySegment<byte> segment));
         segment.Array![segment.Offset]=13;
         Assert.Equal(original,editor.ToBytes("level.kwd"));
@@ -26,7 +26,7 @@ public class KwdEditingOwnershipTests
     public void AThrowingCallbackCannotLeaveRawMutationsBehind()
     {
         KwdLevelFileSet editor =LevelSet(); byte[] original=editor.ToBytes("level.kwd");
-        Assert.Throws<InvalidOperationException>(()=>editor.EditRecord<LevelDef>(new("level.kwd",0,0),row=>
+        Assert.Throws<InvalidOperationException>(()=>editor.EditRecord<LevelDef>(new KwdRecordLocation("level.kwd",0,0),row=>
         {
             Assert.True(MemoryMarshal.TryGetArray(row.Unknown_1184,out ArraySegment<byte> segment));
             segment.Array![segment.Offset]=13;
@@ -39,7 +39,7 @@ public class KwdEditingOwnershipTests
     public void MutatingACallbackPathListCannotBypassManifestRefusal()
     {
         KwdLevelFileSet editor =LevelSet(); byte[] original=editor.ToBytes("level.kwd");
-        Assert.Throws<InvalidDataException>(()=>editor.EditRecord<LevelDef>(new("level.kwd",0,0),row=>
+        Assert.Throws<InvalidDataException>(()=>editor.EditRecord<LevelDef>(new KwdRecordLocation("level.kwd",0,0),row=>
         {
             IList<KwdLevelFilePath> paths =Assert.IsAssignableFrom<IList<KwdLevelFilePath>>(row.Paths);
             paths[0]=paths[0] with { Path="other.kwd" };
@@ -54,7 +54,7 @@ public class KwdEditingOwnershipTests
         KwdChunk chunk=KwdLevelFileSetTests.Fixture(KwdRecordType.Things,KwdThingsWriterTests.Image(201,new byte[555]).ToBytes(),1);
         var editor=KwdLevelFileSet.Create(new Dictionary<string,IReadOnlyList<KwdChunk>> { ["things.kld"]=[chunk] });
         byte[] original=editor.ToBytes("things.kld");
-        Assert.Throws<InvalidDataException>(()=>editor.EditRecord<HeroPartyThing>(new("things.kld",0,0),row=>
+        Assert.Throws<InvalidDataException>(()=>editor.EditRecord<HeroPartyThing>(new KwdRecordLocation("things.kld",0,0),row=>
         {
             IList<GoodCreatureThing> members =Assert.IsAssignableFrom<IList<GoodCreatureThing>>(row.Members);
             members[0]=members[0] with { TriggerId=13 };
@@ -72,10 +72,10 @@ public class KwdEditingOwnershipTests
             ["things.kld"]=[KwdLevelFileSetTests.Fixture(KwdRecordType.Things,KwdThingsWriterTests.Image(194,body).ToBytes(),1)],
             ["triggers.kld"]=[KwdLevelFileSetTests.Fixture(KwdRecordType.Triggers,KwdThingEditingTests.Trigger(213,13),1)] });
         byte[] things=editor.ToBytes("things.kld"),triggers=editor.ToBytes("triggers.kld");
-        Assert.Throws<InvalidOperationException>(()=>editor.EditRecord<ObjectThing>(new("things.kld",0,0),row=>
+        Assert.Throws<InvalidOperationException>(()=>editor.EditRecord<ObjectThing>(new KwdRecordLocation("things.kld",0,0),row=>
         {
-            editor.RemoveThing(new("things.kld",0,0));
-            editor.RemoveTrigger(new("triggers.kld",0,0));
+            editor.RemoveThing(new KwdRecordLocation("things.kld",0,0));
+            editor.RemoveTrigger(new KwdRecordLocation("triggers.kld",0,0));
             return row with { MoneyAmount=13 };
         }));
         Assert.Equal(things,editor.ToBytes("things.kld")); Assert.Equal(triggers,editor.ToBytes("triggers.kld"));
@@ -108,8 +108,8 @@ public class KwdEditingOwnershipTests
         byte[] raw=new byte[80];
         BinaryPrimitives.WriteUInt32LittleEndian(raw,222);
         BinaryPrimitives.WriteUInt32LittleEndian(raw.AsSpan(4),72);
-        editor.EditRecord<LevelDef>(new("level.kwd",0,0),row=>row with { Unknown_6403=raw });
-        Assert.Equal(raw,editor.ReadRecord<LevelDef>(new("level.kwd",0,0)).Unknown_6403.ToArray());
+        editor.EditRecord<LevelDef>(new KwdRecordLocation("level.kwd",0,0),row=>row with { Unknown_6403=raw });
+        Assert.Equal(raw,editor.ReadRecord<LevelDef>(new KwdRecordLocation("level.kwd",0,0)).Unknown_6403.ToArray());
         byte[] result=editor.Chunks("level.kwd")[0].Content;
         for(int i=0;i<bytes.Length;i++)
         {

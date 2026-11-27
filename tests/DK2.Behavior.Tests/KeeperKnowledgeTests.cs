@@ -15,7 +15,7 @@ namespace DK2.Behavior.Tests;
 /// the player's options.</summary>
 public class KeeperKnowledgeTests(Xunit.Abstractions.ITestOutputHelper output)
 {
-    private static readonly Lazy<IReadOnlyList<KeeperKnowledgeCommand.RoomFacts>> Generated = new(() =>
+    private static readonly Lazy<IReadOnlyList<KeeperKnowledgeCommand.RoomFacts>> Generated = new Lazy<IReadOnlyList<KeeperKnowledgeCommand.RoomFacts>>(() =>
         KeeperKnowledgeCommand.Measure(ScenarioCorpus.Database,
             GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "level1")!));
 

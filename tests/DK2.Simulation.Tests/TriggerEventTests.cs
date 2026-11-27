@@ -245,7 +245,7 @@ public class TriggerEventTests
 
     private static TriggerExecutor Executor(TriggerRecord[] records, WorldState world, GameDatabase database)
     {
-        return new(new TriggerTree(records, 0), world.Triggers, world, database);
+        return new TriggerExecutor(new TriggerTree(records, 0), world.Triggers, world, database);
     }
 
     private static TriggerRecord Event(ushort id, CreatureTriggerEvent type, ushort child, ushort next = 0, byte repeat = 255)

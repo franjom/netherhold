@@ -10,11 +10,11 @@ namespace DK2.Presentation.Tests;
 
 public class WinScreenTests
 {
-    private static readonly PlayerId Viewer = new(3);
+    private static readonly PlayerId Viewer = new PlayerId(3);
 
     private static SimEvent View(ScriptedViewKind kind, int value = 0, bool flag = false, int value2 = 0)
     {
-        return new(default, "t", "scripted_view", "")
+        return new SimEvent(default, "t", "scripted_view", "")
         {
             ScriptedView = new ScriptedViewRequest(kind, Viewer, value, default, flag, Value2: value2),
         };

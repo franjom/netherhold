@@ -241,7 +241,7 @@ public sealed class FogOfWarViewTests
 
     private static GameDatabase Database()
     {
-        return new(
+        return new GameDatabase(
         [
             Terrain(1, "Secret", TerrainFlags.Ownable),
             Terrain(27, "Fog Of War", TerrainFlags.Solid | TerrainFlags.Impenetrable | TerrainFlags.Taggable),
@@ -257,7 +257,7 @@ public sealed class FogOfWarViewTests
 
     private static TerrainDef Terrain(byte id, string name, TerrainFlags flags)
     {
-        return new()
+        return new TerrainDef()
         {
             Name = name,
             TerrainId = id,

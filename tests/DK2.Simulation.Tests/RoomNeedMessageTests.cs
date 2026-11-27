@@ -431,7 +431,7 @@ public class RoomNeedMessageTests
     [Fact]
     public void TheEggCountIsHashedAndSurvivesASnapshot()
     {
-        GameSimulation a = new(Db, World(), 1), b = new(Db, World(), 1);
+        GameSimulation a = new GameSimulation(Db, World(), 1), b = new GameSimulation(Db, World(), 1);
         a.World.Tile(1, 1).ChickensGenerated = 3;
         Assert.NotEqual(a.StateHash(), b.StateHash());
         GameSimulation copy = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(a), Db, []);
@@ -461,7 +461,7 @@ public class RoomNeedMessageTests
     [Fact]
     public void TheStampIsHashedAndSurvivesASnapshot()
     {
-        GameSimulation a = new(Db, World(), 1), b = new(Db, World(), 1);
+        GameSimulation a = new GameSimulation(Db, World(), 1), b = new GameSimulation(Db, World(), 1);
         a.World.Tile(1, 1).RoomSizeChangedTick = 5;
         Assert.NotEqual(a.StateHash(), b.StateHash());
         GameSimulation copy = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(a), Db, []);

@@ -28,7 +28,7 @@ public class RenderAnimationClockTests
 
     private static CreatureAnimationTiming Timing(ushort frames = 8, ushort fps = 8)
     {
-        return new()
+        return new CreatureAnimationTiming()
         {
             ResourceType = 6,
             FrameCount = frames,

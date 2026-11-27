@@ -17,10 +17,10 @@ public class RescueTests
     private const byte Hero = PlayerIds.Good;
     private const byte GoblinId = 7;
 
-    private static readonly TilePos Cell = new(3, 3);
-    private static readonly TilePos Wheel = new(8, 3);
-    private static readonly TilePos Door = new(6, 3);
-    private static readonly TilePos Inside = new(7, 3);
+    private static readonly TilePos Cell = new TilePos(3, 3);
+    private static readonly TilePos Wheel = new TilePos(8, 3);
+    private static readonly TilePos Door = new TilePos(6, 3);
+    private static readonly TilePos Inside = new TilePos(7, 3);
 
     private static GameDatabase Db
     {

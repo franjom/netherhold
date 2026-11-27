@@ -96,7 +96,7 @@ public class ClassicVertexLightTests
     public void ATerrainVertexTakesThePointTermOnceOrTwiceByFlag()
     {
         ClassicPointLight light = Light(new Vector3(1.5f, 1f, -1.5f), ClassicLightFlags.None);
-        Vector3 at = new(1.5f, 0f, -1.2f), up = Vector3.UnitY;
+        Vector3 at = new Vector3(1.5f, 0f, -1.2f), up = Vector3.UnitY;
         Vector3 once = light.ContributionAt(at, up);
         Assert.NotEqual(Vector3.Zero, once);
         Assert.Equal(Vector3.Zero, Sum(light, ClassicLightFlags.None, Terrain(at, up)));
@@ -119,7 +119,7 @@ public class ClassicVertexLightTests
     {
         ClassicPointLight light = Light(new Vector3(2.4f, 1.2f, -1.5f), ClassicLightFlags.None);
         Matrix4x4 m = Matrix4x4.CreateRotationY(0.4f) * Matrix4x4.CreateTranslation(1.6f, 0.2f, -1.4f);
-        Vector3 local = new(0.1f, 0.3f, 0.05f), normal = Vector3.Normalize(new Vector3(1, 0.2f, 0));
+        Vector3 local = new Vector3(0.1f, 0.3f, 0.05f), normal = Vector3.Normalize(new Vector3(1, 0.2f, 0));
         ClassicLitVertex vertex = Instance(local, normal, m, new Vector4(0, 0.25f, 0, 0.3f), boundsKind: 0);
         Vector3 radial = light.RadialAt(m.Translation);
         var centre = Vector3.TransformNormal(new Vector3(0, 0.25f, 0), m);
@@ -141,7 +141,7 @@ public class ClassicVertexLightTests
     {
         // Radius 1 light 1.5 from the sample: a bound of 0.4 (scale 1) misses it, of 0.3 x 2 reaches it.
         ClassicPointLight light = Light(new Vector3(1.5f + 1.5f, 0.5f, -1.5f), ClassicLightFlags.None, radius: 1f);
-        Vector3 at = new(1.5f, 0.5f, -1.5f);
+        var at = new Vector3(1.5f, 0.5f, -1.5f);
         ClassicLitVertex near = Instance(Vector3.Zero, Vector3.UnitX, Matrix4x4.CreateTranslation(at), new Vector4(0, 0, 0, 0.4f), 1)
             with { LightKind = new Vector2(0, 1), WorldPosition = at + new Vector3(0.6f, 0, 0), WorldNormal = Vector3.UnitX };
         Assert.Equal(Vector3.Zero, Sum(light, ClassicLightFlags.Terrain, near));
@@ -292,12 +292,12 @@ public class ClassicVertexLightTests
 
     private static ClassicLitVertex Terrain(Vector3 at, Vector3 normal)
     {
-        return new(at, normal, new Vector2(1 * Width + 1, 1), Vector4.Zero, Vector2.Zero, Matrix4x4.Identity, at, normal);
+        return new ClassicLitVertex(at, normal, new Vector2(1 * Width + 1, 1), Vector4.Zero, Vector2.Zero, Matrix4x4.Identity, at, normal);
     }
 
     private static ClassicLitVertex Instance(Vector3 local, Vector3 normal, Matrix4x4 m, Vector4 bounds, int boundsKind)
     {
-        return new(local, normal, Vector2.Zero, bounds, new Vector2(1, boundsKind), m, Vector3.Transform(local, m),
+        return new ClassicLitVertex(local, normal, Vector2.Zero, bounds, new Vector2(1, boundsKind), m, Vector3.Transform(local, m),
             Vector3.Normalize(Vector3.TransformNormal(normal, m)));
     }
 
@@ -395,6 +395,6 @@ public class ClassicVertexLightTests
 
     private static L.Float3 F(Vector3 v)
     {
-        return new(v.X, v.Y, v.Z);
+        return new L.Float3(v.X, v.Y, v.Z);
     }
 }

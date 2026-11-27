@@ -21,8 +21,8 @@ public class CrateTests
     private const int Second = SimulationTiming.TicksPerSecond;
 
     // The fixture's claimed 3x3 at (1..3, 1..3) is the Workshop; a corridor runs east along y = 2.
-    private static readonly TilePos DoorAt = new(9, 2);
-    private static readonly TilePos ImpAt = new(6, 2);
+    private static readonly TilePos DoorAt = new TilePos(9, 2);
+    private static readonly TilePos ImpAt = new TilePos(6, 2);
 
     /// <summary>A maker at 40 a second whose content table is Manufacture alone, as the shipped
     /// Troll's is.</summary>
@@ -34,7 +34,7 @@ public class CrateTests
             CreatureId = MakerId,
             Name = "Maker",
             ManufacturePerSecond = 40,
-            HappyJobs = [new(JobType.Manufacture, 0, 0, 100)],
+            HappyJobs = [new CreatureJobPreference(JobType.Manufacture, 0, 0, 100)],
         });
     }
 
@@ -61,7 +61,7 @@ public class CrateTests
 
     private static DoorThing Door(TilePos at, byte flags = 0x02)
     {
-        return new(new byte[20])
+        return new DoorThing(new byte[20])
         {
             X = at.X,
             Y = at.Y,
@@ -74,7 +74,7 @@ public class CrateTests
 
     private static TrapThing Trap(TilePos at, byte shots = 0)
     {
-        return new(new byte[16])
+        return new TrapThing(new byte[16])
         {
             X = at.X,
             Y = at.Y,
@@ -184,7 +184,7 @@ public class CrateTests
             CreatureDef maker = Dk2TerrainFixture.Goblin() with
             {
                 CreatureId = MakerId, Name = "Maker", ManufacturePerSecond = 40,
-                HappyJobs = [new(JobType.Manufacture, 0, 0, 100)],
+                HappyJobs = [new CreatureJobPreference(JobType.Manufacture, 0, 0, 100)],
             };
             if (slotEight)
             {
@@ -274,7 +274,7 @@ public class CrateTests
         // chooser takes Manufacture again for a creature whose content table holds nothing else.
         GameDatabase db = Db();
         WorldState world = World(db);
-        TilePos at = new(2, 2);
+        var at = new TilePos(2, 2);
         CreatureState maker = Maker(db, world, at);
         ManufactureRules.Enqueue(ref world.Player(Keeper), new ManufactureOrder(CrateRules.DoorKind, 1, 1000));
         ManufactureRules.Enqueue(ref world.Player(Keeper), new ManufactureOrder(CrateRules.DoorKind, 1, 1000));

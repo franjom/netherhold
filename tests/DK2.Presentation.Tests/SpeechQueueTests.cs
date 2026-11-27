@@ -10,7 +10,7 @@ public class SpeechQueueTests
 {
     private static SoundRequest Line(uint id, string bank = "speech_mentor")
     {
-        return new(new SoundCategory(bank), new SoundId(id));
+        return new SoundRequest(new SoundCategory(bank), new SoundId(id));
     }
 
     [Fact]

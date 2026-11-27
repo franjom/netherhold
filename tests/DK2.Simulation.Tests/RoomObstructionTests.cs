@@ -17,7 +17,7 @@ public class RoomObstructionTests
     private const byte Rival = 4;
     private const byte GoblinId = 7;
 
-    private static readonly TilePos Floor = new(3, 3);
+    private static readonly TilePos Floor = new TilePos(3, 3);
 
     private static GameDatabase Db
     {
@@ -167,7 +167,7 @@ public class RoomObstructionTests
     public void ABridgeTileARivalStandsOnIsRefusedAlone()
     {
         GameDatabase db = Db;
-        TilePos near = new(6, 6), far = new(7, 6);
+        TilePos near = new TilePos(6, 6), far = new TilePos(7, 6);
         (GameSimulation? sim, ListEventSink? events) = Shore(db, near, far);
         sim.World.SpawnCreature(db, GoblinId, Rival, near);
 
@@ -183,7 +183,7 @@ public class RoomObstructionTests
     public void ADraggedSpanBridgesOverARivalOnATileItSpreadsTo()
     {
         GameDatabase db = Db;
-        TilePos near = new(6, 6), far = new(7, 6);
+        TilePos near = new TilePos(6, 6), far = new TilePos(7, 6);
         (GameSimulation? sim, ListEventSink _) = Shore(db, near, far);
         sim.World.SpawnCreature(db, GoblinId, Rival, far);
 
@@ -199,7 +199,7 @@ public class RoomObstructionTests
     public void ADraggedSpanWhoseOnlySeedIsObstructedLaysNothing()
     {
         GameDatabase db = Db;
-        TilePos near = new(6, 6), far = new(7, 6);
+        TilePos near = new TilePos(6, 6), far = new TilePos(7, 6);
         (GameSimulation? sim, ListEventSink _) = Shore(db, near, far);
         sim.World.SpawnCreature(db, GoblinId, Rival, near);
 

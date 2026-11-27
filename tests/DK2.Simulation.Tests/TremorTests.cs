@@ -12,7 +12,7 @@ namespace DK2.Simulation.Tests;
 public sealed class TremorTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
-    private static readonly TilePos At = new(10, 10);
+    private static readonly TilePos At = new TilePos(10, 10);
 
     private static (GameDatabase Db, WorldState World) Setup()
     {
@@ -46,7 +46,7 @@ public sealed class TremorTests
 
     private static CastSpellAtPlaceCommand Cast()
     {
-        return new(Keeper, 8, CreatureState.CentreOf(At.X), CreatureState.CentreOf(At.Y));
+        return new CastSpellAtPlaceCommand(Keeper, 8, CreatureState.CentreOf(At.X), CreatureState.CentreOf(At.Y));
     }
 
     [Theory]
@@ -97,7 +97,7 @@ public sealed class TremorTests
     public void FloorFallbackDamagesOwnedReinforcementWithoutAnOwnerFilter_StronglyInferredFromBinary(byte owner)
     {
         (GameDatabase? db, WorldState? world) = Setup();
-        TilePos wall = new(At.X, At.Y - 1);
+        var wall = new TilePos(At.X, At.Y - 1);
         world.Tile(wall).TerrainId = Dk2TerrainFixture.ReinforcedWall;
         world.Tile(wall).OwnerPlayerId = owner;
         world.Tile(wall).Health = db.TerrainById(Dk2TerrainFixture.ReinforcedWall).StartingHealth;
@@ -115,7 +115,7 @@ public sealed class TremorTests
     public void WallDamageUsesTheTerrainConversionAtZeroHealth_StronglyInferredFromBinary()
     {
         (GameDatabase? db, WorldState? world) = Setup();
-        TilePos wall = new(At.X, At.Y - 1);
+        var wall = new TilePos(At.X, At.Y - 1);
         world.Tile(wall).TerrainId = Dk2TerrainFixture.ReinforcedWall;
         world.Tile(wall).OwnerPlayerId = Keeper;
         int halfDamage = db[VariableTypeId.TremorDamagePerTerrainTilePerSecond] / 2;
@@ -134,7 +134,7 @@ public sealed class TremorTests
     public void AWallBrokenByATremorRequestsF4InTerrainWallAtItsCentreLikeTheApplierItCalls()
     {
         (GameDatabase? db, WorldState? world) = Setup();
-        TilePos wall = new(At.X, At.Y - 1);
+        var wall = new TilePos(At.X, At.Y - 1);
         world.Tile(wall).TerrainId = Dk2TerrainFixture.ReinforcedWall;
         world.Tile(wall).OwnerPlayerId = Keeper;
         int halfDamage = db[VariableTypeId.TremorDamagePerTerrainTilePerSecond] / 2;

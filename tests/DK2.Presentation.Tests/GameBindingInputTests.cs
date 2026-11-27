@@ -18,7 +18,7 @@ public class GameBindingInputTests
     {
         var settings = new GameSettings { Bindings = [new GameKeyBinding(action, 0x30)] };
         // Entry keeps possession; return releases it, but both timed moves still hold the camera.
-        GameShortcutContext context = PossessionHud.ShortcutContext(new(), possessionCameraHeld: true,
+        GameShortcutContext context = PossessionHud.ShortcutContext(new GameShortcutContext(), possessionCameraHeld: true,
             possessing: possessing, firstPersonCameraSettled: false);
         Assert.Equal(ClassicHudAction.None, Input(settings, scans: 0x30).HudShortcut(context));
         Assert.Equal(ClassicHudAction.None, Input().HudShortcut(context, escapePressed: true));
@@ -34,7 +34,7 @@ public class GameBindingInputTests
     public void PossessionAllowsOptionsAndGuiButNotOrdinaryNavigation(GameAction action, ClassicHudAction expected)
     {
         var settings = new GameSettings { Bindings = [new GameKeyBinding(action, 0x30)] };
-        GameShortcutContext context = PossessionHud.ShortcutContext(new(), possessionCameraHeld: true,
+        GameShortcutContext context = PossessionHud.ShortcutContext(new GameShortcutContext(), possessionCameraHeld: true,
             possessing: true, firstPersonCameraSettled: true);
         Assert.Equal(expected, Input(settings, scans: 0x30).HudShortcut(context));
     }
@@ -51,22 +51,22 @@ public class GameBindingInputTests
     [Fact]
     public void NoLivePossessedBodyKeepsShortcutsBlockedDuringTheDeathOrReturnView()
     {
-        GameShortcutContext context = PossessionHud.ShortcutContext(new(), possessionCameraHeld: true, possessing: false);
+        GameShortcutContext context = PossessionHud.ShortcutContext(new GameShortcutContext(), possessionCameraHeld: true, possessing: false);
         Assert.Equal(ClassicHudAction.None, Input(scans: 1).HudShortcut(context));
     }
     private static GameBindingInput Input(GameSettings? settings = null, KeyModifiers modifiers = KeyModifiers.None, params int[] scans)
     {
-        return new(settings ?? new GameSettings(), modifiers, s => scans.Contains(s.Value), s => scans.Contains(s.Value));
+        return new GameBindingInput(settings ?? new GameSettings(), modifiers, s => scans.Contains(s.Value), s => scans.Contains(s.Value));
     }
 
     [Fact]
     public void ReboundHeartReplacesTheDefaultAndRequiresExactModifiers()
     {
         var settings = new GameSettings { Bindings = new[] { new GameKeyBinding(GameAction.Heart, 0x30, KeyModifiers.Control) } };
-        Assert.Equal(ClassicHudAction.None, Input(settings, scans: 0x23).HudShortcut(new()));
-        Assert.Equal(ClassicHudAction.None, Input(settings, scans: 0x30).HudShortcut(new()));
-        Assert.Equal(ClassicHudAction.NavigateHeart, Input(settings, KeyModifiers.Control, 0x30).HudShortcut(new()));
-        Assert.Equal(ClassicHudAction.None, Input(settings, KeyModifiers.Control | KeyModifiers.Shift, 0x30).HudShortcut(new()));
+        Assert.Equal(ClassicHudAction.None, Input(settings, scans: 0x23).HudShortcut(new GameShortcutContext()));
+        Assert.Equal(ClassicHudAction.None, Input(settings, scans: 0x30).HudShortcut(new GameShortcutContext()));
+        Assert.Equal(ClassicHudAction.NavigateHeart, Input(settings, KeyModifiers.Control, 0x30).HudShortcut(new GameShortcutContext()));
+        Assert.Equal(ClassicHudAction.None, Input(settings, KeyModifiers.Control | KeyModifiers.Shift, 0x30).HudShortcut(new GameShortcutContext()));
     }
     [Fact]
     public void DirectCameraAndObjectActionsRejectExtraModifiersButScrollCombinesWithCameraModifier()
@@ -89,14 +89,14 @@ public class GameBindingInputTests
     public void ModalPrecedenceAllowsOnlyFullMapCloseAndRejectsEditingKeys()
     {
         GameBindingInput all = Input(scans: [1, 0x22, 0x23, 0x32, 0x19, 0x21]);
-        Assert.Equal(ClassicHudAction.ToggleFullMap, all.HudShortcut(new() { FullMapVisible = true }));
-        Assert.Equal(ClassicHudAction.None, all.HudShortcut(new() { CapturingKey = true }));
-        Assert.Equal(ClassicHudAction.None, all.HudShortcut(new() { EditingText = true, OptionsVisible = true }));
-        Assert.Equal(ClassicHudAction.None, all.HudShortcut(new() { OrdinaryInput = false }));
-        Assert.Equal(ClassicHudAction.ToggleOptions, all.HudShortcut(new() { OptionsVisible = true }));
-        Assert.Equal(ClassicHudAction.None, Input(scans: 1).HudShortcut(new() { AllowOptionsKey = false }));
-        Assert.Equal(ClassicHudAction.ToggleFullMap, Input().HudShortcut(new() { FullMapVisible = true }, escapePressed: true));
-        Assert.Equal(ClassicHudAction.NavigateFight, Input(scans: 0x21).HudShortcut(new()));
+        Assert.Equal(ClassicHudAction.ToggleFullMap, all.HudShortcut(new GameShortcutContext() { FullMapVisible = true }));
+        Assert.Equal(ClassicHudAction.None, all.HudShortcut(new GameShortcutContext() { CapturingKey = true }));
+        Assert.Equal(ClassicHudAction.None, all.HudShortcut(new GameShortcutContext() { EditingText = true, OptionsVisible = true }));
+        Assert.Equal(ClassicHudAction.None, all.HudShortcut(new GameShortcutContext() { OrdinaryInput = false }));
+        Assert.Equal(ClassicHudAction.ToggleOptions, all.HudShortcut(new GameShortcutContext() { OptionsVisible = true }));
+        Assert.Equal(ClassicHudAction.None, Input(scans: 1).HudShortcut(new GameShortcutContext() { AllowOptionsKey = false }));
+        Assert.Equal(ClassicHudAction.ToggleFullMap, Input().HudShortcut(new GameShortcutContext() { FullMapVisible = true }, escapePressed: true));
+        Assert.Equal(ClassicHudAction.NavigateFight, Input(scans: 0x21).HudShortcut(new GameShortcutContext()));
     }
     [Fact]
     public void ModifierRolesAcceptEitherPhysicalSideWithoutWeakeningDirectActions()

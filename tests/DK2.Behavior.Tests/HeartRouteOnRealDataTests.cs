@@ -34,7 +34,7 @@ public sealed class HeartRouteOnRealDataTests
             new Fixed16Vector(1824064, 3549856), profile, points));
         Assert.Equal(new Fixed16Vector[]
         {
-            new(1605632, 3473408), new(1703936, 3538944), new(1824000, 3549696),
+            new Fixed16Vector(1605632, 3473408), new Fixed16Vector(1703936, 3538944), new Fixed16Vector(1824000, 3549696),
         }, points);
     }
 }

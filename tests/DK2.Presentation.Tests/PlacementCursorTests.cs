@@ -67,7 +67,7 @@ public sealed class PlacementCursorTests
         PlacementFeedback poor = PlacementCursor.Room(world, db, keeper, treasury, own, null, 0);
         Assert.Equal((false, -cost, false, true), (poor.Valid, poor.Price, poor.Affordable, poor.NoGo));
 
-        TilePos rock = new(0, 0);
+        var rock = new TilePos(0, 0);
         PlacementFeedback refused = PlacementCursor.Room(world, db, keeper, treasury, rock, null, 100000);
         Assert.Equal((false, 0, true), (refused.Valid, refused.Price, refused.NoGo));
 
@@ -161,7 +161,7 @@ public sealed class PlacementCursorTests
             (ok.Valid, ok.NoGo, ok.Price, ok.Icon, ok.SpellId, ok.Cage));
 
         // Rock is solid to location selector 4, as the cast's own permission finds.
-        TilePos rock = new(0, 0);
+        var rock = new TilePos(0, 0);
         Assert.Equal(KeeperSpellRefusal.Location, KeeperSpellRules.CanCastAtPlace(world, db, simulation.Navigation,
             world.CurrentTick, new CastSpellAtPlaceCommand(keeper, spell, CreatureState.CentreOf(0), CreatureState.CentreOf(0))));
         PlacementFeedback refused = PlacementCursor.Spell(world, db, simulation.Navigation, keeper, spell, rock,

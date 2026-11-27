@@ -74,7 +74,7 @@ public sealed class PossessionInputTests
 
     private static PossessionAim Aim(CreatureState me)
     {
-        return new(new(new(me.PosX), new(me.PosY), new(me.PosZ)), new(East), new(Level));
+        return new PossessionAim(new FpPosition3(new Fp32(me.PosX), new Fp32(me.PosY), new Fp32(me.PosZ)), new Dk2Angle(East), new Dk2Angle(Level));
     }
 
     private static void Own(WorldState world, int x, int y, byte owner)
@@ -156,7 +156,7 @@ public sealed class PossessionInputTests
         GameSimulation sim = Sim(db, world, new CombatSystem());
         me.SneakingAs = Rival;
 
-        sim.Tick(InputFrame.Of(new ActPossessedCreatureCommand(Keeper, Aim(me), true, new(0))));
+        sim.Tick(InputFrame.Of(new ActPossessedCreatureCommand(Keeper, Aim(me), true, new PossessedSlot(0))));
 
         Assert.Equal(0, me.SneakingAs);
     }
@@ -265,7 +265,7 @@ public sealed class PossessionInputTests
         me.HypnotisedCreatureId = held.Id;
         GameSimulation sim = Sim(db, world);
 
-        sim.Tick(InputFrame.Of(new ActPossessedCreatureCommand(Keeper, Aim(me), true, new(0))));
+        sim.Tick(InputFrame.Of(new ActPossessedCreatureCommand(Keeper, Aim(me), true, new PossessedSlot(0))));
 
         Assert.True(held.AttackAbnormalTargets);
         Assert.Equal(enemy.Id, held.AttackingId);
@@ -316,7 +316,7 @@ public sealed class PossessionInputTests
         sim.Tick(InputFrame.Of(new SetSniperModeCommand(Keeper, true)));
         Assert.True(me.SniperMode);
 
-        sim.Tick(InputFrame.Of(new ActPossessedCreatureCommand(Keeper, Aim(me), false, new(0))));
+        sim.Tick(InputFrame.Of(new ActPossessedCreatureCommand(Keeper, Aim(me), false, new PossessedSlot(0))));
 
         ShotState shot = Assert.Single(world.Shots);
         Assert.True(shot.Sniper);
@@ -351,7 +351,7 @@ public sealed class PossessionInputTests
         GameSimulation sim = Sim(db, world, new CombatSystem());
         me.SneakingAs = Rival;
 
-        sim.Tick(InputFrame.Of(new ActPossessedCreatureCommand(Keeper, Aim(me), false, new(0))));
+        sim.Tick(InputFrame.Of(new ActPossessedCreatureCommand(Keeper, Aim(me), false, new PossessedSlot(0))));
 
         Assert.Equal(0, me.SneakingAs);
     }

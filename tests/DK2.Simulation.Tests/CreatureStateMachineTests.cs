@@ -29,7 +29,7 @@ public class CreatureStateMachineTests
 
     private static CreatureState Fresh()
     {
-        return new() { Id = 1 };
+        return new CreatureState() { Id = 1 };
     }
 
     /// <summary>The one refusal that is not the rule's: a claiming category's enter hook finds no

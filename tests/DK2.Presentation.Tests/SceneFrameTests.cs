@@ -110,9 +110,9 @@ public class SceneFrameTests
     private sealed class LegacyFrame(ISceneFrameHost host)
     {
         public readonly Dictionary<int, CreatureView> Poses = [];
-        public readonly CreatureHeadTable Heads = new();
+        public readonly CreatureHeadTable Heads = new CreatureHeadTable();
         public int HiddenCreatureId;
-        private readonly GemSparkleGate _gemSparkles = new();
+        private readonly GemSparkleGate _gemSparkles = new GemSparkleGate();
         private double _renderSeconds;
 
         public void Draw(GameTick tick, float fraction)
@@ -164,7 +164,7 @@ public class SceneFrameTests
 
     private static CreatureView Creature(int id, int x = 3, bool burning = false, bool gem = false)
     {
-        return new(id, new PlayerId(1), posX: x * Fp32.One, posY: 5 * Fp32.One, default, default, 0, height: Fp32.One / 2,
+        return new CreatureView(id, new PlayerId(1), posX: x * Fp32.One, posY: 5 * Fp32.One, default, default, 0, height: Fp32.One / 2,
             previousPosX: (x - 1) * Fp32.One, previousPosY: 5 * Fp32.One, gemCarrier: gem, burningRed: burning);
     }
 
@@ -359,7 +359,7 @@ public class SceneFrameTests
 
         public EffectTime EffectClock()
         {
-            return new(0);
+            return new EffectTime(0);
         }
 
         public void RequestGemSparkle(FpPosition3 point) { }

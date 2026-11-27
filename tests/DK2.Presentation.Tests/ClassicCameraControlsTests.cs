@@ -16,12 +16,12 @@ public class ClassicCameraControlsTests
         var camera = new ClassicCamera(Profile());
         var controls = new ClassicCameraControls(camera);
         controls.AdvancePointer(new Vector2(4, 0), rotateHeld: true, zoomHeld: false);
-        Assert.Equal(0 * 360f / 2048, camera.Pose(Vector3.Zero, new(1600, 1600, 1200)).YawDegrees);
+        Assert.Equal(0 * 360f / 2048, camera.Pose(Vector3.Zero, new CameraViewport(1600, 1600, 1200)).YawDegrees);
         controls.AdvancePointer(new Vector2(4, 0), rotateHeld: true, zoomHeld: false);
-        Assert.Equal(2016 * 360f / 2048, camera.Pose(Vector3.Zero, new(1600, 1600, 1200)).YawDegrees);
+        Assert.Equal(2016 * 360f / 2048, camera.Pose(Vector3.Zero, new CameraViewport(1600, 1600, 1200)).YawDegrees);
         controls.AdvancePointer(default, rotateHeld: false, zoomHeld: false);
         controls.AdvancePointer(new Vector2(4, 0), rotateHeld: true, zoomHeld: false);
-        Assert.Equal(2016 * 360f / 2048, camera.Pose(Vector3.Zero, new(1600, 1600, 1200)).YawDegrees);
+        Assert.Equal(2016 * 360f / 2048, camera.Pose(Vector3.Zero, new CameraViewport(1600, 1600, 1200)).YawDegrees);
     }
 
     [Fact]
@@ -34,7 +34,7 @@ public class ClassicCameraControlsTests
         Assert.Equal(38720, camera.Zoom.Raw);
         controls.AdvancePointer(new Vector2(1, 5), rotateHeld: true, zoomHeld: true);
         Assert.Equal(38720, camera.Zoom.Raw);
-        Assert.Equal(2040 * 360f / 2048, camera.Pose(Vector3.Zero, new(1600, 1600, 1200)).YawDegrees);
+        Assert.Equal(2040 * 360f / 2048, camera.Pose(Vector3.Zero, new CameraViewport(1600, 1600, 1200)).YawDegrees);
     }
 
     [Theory]
@@ -52,7 +52,7 @@ public class ClassicCameraControlsTests
 
     private static CameraThing Profile()
     {
-        return new(new byte[84])
+        return new CameraThing(new byte[84])
         {
             CameraId = 3,
             Zoom = 40960,
@@ -115,7 +115,7 @@ public class ClassicCameraControlsTests
         var controls = new ClassicCameraControls(camera);
         Assert.Equal(new Vector3(840 / 4096f, 0, 0), controls.Advance(System.Numerics.Vector3.Zero,
             ClassicCameraKeys.Right | ClassicCameraKeys.TurnRight, TimeSpan.FromMilliseconds(20)));
-        Assert.Equal(20 * 360f / 2048, camera.Pose(Vector3.Zero, new(1600, 1600, 1200)).YawDegrees);
+        Assert.Equal(20 * 360f / 2048, camera.Pose(Vector3.Zero, new CameraViewport(1600, 1600, 1200)).YawDegrees);
     }
 
     [Fact]
@@ -125,7 +125,7 @@ public class ClassicCameraControlsTests
         var controls = new ClassicCameraControls(camera);
         Assert.Equal(10880 / 4096f, controls.Advance(System.Numerics.Vector3.Zero,
             ClassicCameraKeys.Right | ClassicCameraKeys.TurnRight, TimeSpan.FromSeconds(2)).X);
-        Assert.Equal(2000 * 360f / 2048, camera.Pose(Vector3.Zero, new(1600, 1600, 1200)).YawDegrees);
+        Assert.Equal(2000 * 360f / 2048, camera.Pose(Vector3.Zero, new CameraViewport(1600, 1600, 1200)).YawDegrees);
     }
 
     [Fact]
@@ -138,7 +138,7 @@ public class ClassicCameraControlsTests
             controls.Advance(System.Numerics.Vector3.Zero, ClassicCameraKeys.TurnRight, TimeSpan.FromTicks(15_000));
         }
 
-        Assert.Equal(4 * 360f / 2048, camera.Pose(Vector3.Zero, new(1600, 1600, 1200)).YawDegrees);
+        Assert.Equal(4 * 360f / 2048, camera.Pose(Vector3.Zero, new CameraViewport(1600, 1600, 1200)).YawDegrees);
     }
 
     [Theory]
@@ -166,7 +166,7 @@ public class ClassicCameraControlsTests
         var controls = new ClassicCameraControls(camera);
         Assert.Equal(Vector3.Zero, controls.Advance(System.Numerics.Vector3.Zero, ClassicCameraKeys.Right | ClassicCameraKeys.TurnRight,
             TimeSpan.FromMilliseconds(20)));
-        Assert.Equal(0, camera.Pose(Vector3.Zero, new(1600, 1600, 1200)).YawDegrees);
+        Assert.Equal(0, camera.Pose(Vector3.Zero, new CameraViewport(1600, 1600, 1200)).YawDegrees);
     }
 
     [Fact]

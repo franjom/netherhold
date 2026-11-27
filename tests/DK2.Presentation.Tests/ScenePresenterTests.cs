@@ -85,7 +85,7 @@ public class ScenePresenterTests
     {
         TerrainDef Definition(byte id, byte red)
         {
-            return new()
+            return new TerrainDef()
             {
                 Name = "Path",
                 TerrainId = id,
@@ -623,7 +623,7 @@ public class ScenePresenterTests
         }
 
         WorldState world = rig.Simulation.World;
-        TilePos before = new(1, 1), current = new(2, 1);
+        TilePos before = new TilePos(1, 1), current = new TilePos(2, 1);
         world.Tile(before).TerrainId = rig.Database.WaterTerrain!.TerrainId;
         world.Tile(current).TerrainId = rig.Database.Room(RoomTypeId.Lair).TerrainId;
         CreatureState creature = world.SpawnCreature(rig.Database,

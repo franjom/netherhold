@@ -11,8 +11,8 @@ namespace DK2.AI.Tests;
 
 public class KeeperStagingTests
 {
-    private static readonly PlayerId Keeper = new(KeeperWorld.Keeper);
-    private static readonly PlayerId Other = new(4);
+    private static readonly PlayerId Keeper = new PlayerId(KeeperWorld.Keeper);
+    private static readonly PlayerId Other = new PlayerId(4);
 
     [Fact]
     public void AViewThroughStagingEqualsOneBuiltAlone()

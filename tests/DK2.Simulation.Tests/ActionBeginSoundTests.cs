@@ -18,7 +18,7 @@ public sealed class ActionBeginSoundTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte Rival = PlayerIds.FirstKeeper + 1;
-    private static readonly TilePos Face = new(4, 2);
+    private static readonly TilePos Face = new TilePos(4, 2);
 
     private static ThingSoundRequest[] Heard(ListEventSink events, int word)
     {
@@ -118,7 +118,7 @@ public sealed class ActionBeginSoundTests
         floor.Health = database.TerrainById(Dk2TerrainFixture.ClaimedPath).StartingHealth;
         floor.OwnerPlayerId = Keeper;
         ushort full = database.TerrainById(Dk2TerrainFixture.ReinforcedWall).MaxHealth;
-        foreach (TilePos side in new TilePos[] { new(9, 5), new(7, 5), new(8, 6), new(8, 4) })
+        foreach (TilePos side in new TilePos[] { new TilePos(9, 5), new TilePos(7, 5), new TilePos(8, 6), new TilePos(8, 4) })
         {
             ref TileState wall = ref world.Tile(side);
             wall.TerrainId = Dk2TerrainFixture.ReinforcedWall;
@@ -199,7 +199,7 @@ public sealed class ActionBeginSoundTests
 
     private static FpPosition3 Where(CreatureState c)
     {
-        return new(new Fp32(c.PosX), new Fp32(c.PosY), new Fp32(c.PosZ));
+        return new FpPosition3(new Fp32(c.PosX), new Fp32(c.PosY), new Fp32(c.PosZ));
     }
 
     [Fact]

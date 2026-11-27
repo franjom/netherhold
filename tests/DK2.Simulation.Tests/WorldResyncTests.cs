@@ -287,17 +287,17 @@ public class WorldResyncTests
 
     private static ResyncCreature Imp(int slot, TilePos at, int state, ResyncJob? job = null)
     {
-        return new(slot, Keeper, CreatureState.CentreOf(at.X), CreatureState.CentreOf(at.Y), Dk2TerrainFixture.ImpCreatureId, state, 1000, job ?? Job(0));
+        return new ResyncCreature(slot, Keeper, CreatureState.CentreOf(at.X), CreatureState.CentreOf(at.Y), Dk2TerrainFixture.ImpCreatureId, state, 1000, job ?? Job(0));
     }
 
     private static ResyncJob Job(int resume, int taskX = 0, int taskY = 0, int side = 0, int slot = 0, int lastKind = 0, int gold = 0)
     {
-        return new(resume, taskX, taskY, 1, side, slot, lastKind, 0, 0, gold);
+        return new ResyncJob(resume, taskX, taskY, 1, side, slot, lastKind, 0, 0, gold);
     }
 
     private static ResyncState State(WorldState world, ResyncCreature[] creatures, ResyncObject[]? objects = null, uint seed = 99)
     {
-        return new(10, world.Width, world.Height, [new ResyncPlayer(Keeper, 1234, 56)], TilesOf(world), null, creatures, objects, seed);
+        return new ResyncState(10, world.Width, world.Height, [new ResyncPlayer(Keeper, 1234, 56)], TilesOf(world), null, creatures, objects, seed);
     }
 
     /// <summary>
@@ -607,7 +607,7 @@ public class WorldResyncTests
         CreatureState extra = world.SpawnCreature(database, Dk2TerrainFixture.MistressCreatureId, Keeper, new TilePos(3, 3));
         ResyncCreature Native(int slot, byte type, TilePos at, int level = 0, ResyncFear? fear = null)
         {
-            return new(slot, Keeper, CreatureState.CentreOf(at.X), CreatureState.CentreOf(at.Y), type, 1, 700, null, fear, level);
+            return new ResyncCreature(slot, Keeper, CreatureState.CentreOf(at.X), CreatureState.CentreOf(at.Y), type, 1, 700, null, fear, level);
         }
 
         ResyncState state = State(world,
@@ -646,7 +646,7 @@ public class WorldResyncTests
         (ours.OldFightTileX, ours.OldFightTileY, ours.OldFightTick) = (9, 9, 1);
         ResyncCreature Native(int slot, TilePos at, ResyncFightReturn fight)
         {
-            return new(slot, Keeper, CreatureState.CentreOf(at.X), CreatureState.CentreOf(at.Y),
+            return new ResyncCreature(slot, Keeper, CreatureState.CentreOf(at.X), CreatureState.CentreOf(at.Y),
                 Dk2TerrainFixture.GoblinCreatureId, 1, 700, null, FightReturn: fight);
         }
 

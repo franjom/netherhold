@@ -15,7 +15,7 @@ public sealed class HeartBeatSoundTests
 {
     private static RoomDef HeartRoom()
     {
-        return new()
+        return new RoomDef()
         {
             Name = "Dungeon Heart",
             RoomId = (byte)RoomTypeId.DungeonHeart,
@@ -38,7 +38,7 @@ public sealed class HeartBeatSoundTests
 
     private static TerrainDef HeartTerrain(string category)
     {
-        return new()
+        return new TerrainDef()
         {
             Name = "Dungeon Heart",
             TerrainId = 14,

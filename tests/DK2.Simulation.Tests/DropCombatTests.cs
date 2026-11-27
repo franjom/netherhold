@@ -14,8 +14,8 @@ public class DropCombatTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte Rival = Keeper + 1;
-    private static readonly TilePos Landing = new(9, 10);
-    private static readonly TilePos DoorTile = new(10, 10);
+    private static readonly TilePos Landing = new TilePos(9, 10);
+    private static readonly TilePos DoorTile = new TilePos(10, 10);
 
     [Theory]
     [InlineData(Dk2TerrainFixture.GoblinCreatureId, false)]

@@ -97,7 +97,7 @@ public sealed class PossessionAbilityTests
     {
         (GameDatabase? db, WorldState? world, CreatureState? me) = Open();
         CreatureState enemy = world.SpawnArrived(db, Dk2TerrainFixture.GoblinCreatureId, 4, new TilePos(6, 5));
-        var aim = new PossessionAim(new(new(me.PosX), new(me.PosY), new(me.PosZ + Fp32.One)), new(0x200), new(0x200));
+        var aim = new PossessionAim(new FpPosition3(new Fp32(me.PosX), new Fp32(me.PosY), new Fp32(me.PosZ + Fp32.One)), new Dk2Angle(0x200), new Dk2Angle(0x200));
         var sim = new GameSimulation(db, world, 1, [new PossessionSystem(), new CreatureStatusSystem()]);
         CreatureId target = PossessionAbilityRules.PickFrightenTarget(world, db, me, aim);
         Assert.Equal(new CreatureId(enemy.Id), target);

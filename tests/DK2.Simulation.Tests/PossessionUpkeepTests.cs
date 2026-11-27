@@ -21,7 +21,7 @@ public sealed class PossessionUpkeepTests
 
     private static LevelDef Level(ushort flags)
     {
-        return new([])
+        return new LevelDef([])
         {
             Name = "",
             Description = "",

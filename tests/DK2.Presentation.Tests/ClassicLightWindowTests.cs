@@ -14,9 +14,9 @@ public class ClassicLightWindowTests
     {
         var cache = new PreparedCache();
         var tile = new TilePos(10, 10);
-        cache.Cells[tile] = new(
+        cache.Cells[tile] = new ClassicLightCacheCell(
             Enumerable.Range(1, 13).Select(id => Source(id, tile)).ToArray(),
-            Enumerable.Range(21, 14).Select(id => Source(id, tile)).ToArray(), new(1));
+            Enumerable.Range(21, 14).Select(id => Source(id, tile)).ToArray(), new ClassicLightFrame(1));
         var table = new ClassicLightTable(tile);
         new ClassicLightWindow().Gather(table, cache, new ClassicLightFrame(1));
         Assert.Equal(Enumerable.Range(1, 12).Concat(Enumerable.Range(21, 12)), Ids(table));
@@ -100,7 +100,7 @@ public class ClassicLightWindowTests
     {
         var cache = new PreparedCache();
         var tile = new TilePos(0, 0);
-        cache.Cells[new TilePos(-3, -3)] = new(new[] { Source(1, tile) }, new[] { Source(2, tile) }, new(1));
+        cache.Cells[new TilePos(-3, -3)] = new ClassicLightCacheCell(new[] { Source(1, tile) }, new[] { Source(2, tile) }, new ClassicLightFrame(1));
         var table = new ClassicLightTable(tile);
         var window = new ClassicLightWindow();
         window.Gather(table, cache, new ClassicLightFrame(1));
@@ -111,18 +111,18 @@ public class ClassicLightWindowTests
         Assert.Equal(49, cache.Reads.Count);
 
         cache.Cells.Clear();
-        cache.Cells[new TilePos(3, 3)] = new(new[] { Source(3, tile) }, new[] { Source(4, tile) }, new(1));
+        cache.Cells[new TilePos(3, 3)] = new ClassicLightCacheCell(new[] { Source(3, tile) }, new[] { Source(4, tile) }, new ClassicLightFrame(1));
         window.Gather(table, cache, new ClassicLightFrame(2));
 #pragma warning disable IDE0300 // Preserve the original array construction or overload.
         Assert.Equal(new[] { 1, 4 }, Ids(table));
-        cache.Cells[new TilePos(3, 3)] = cache.Cells[new TilePos(3, 3)] with { BuildFrame = new(3) };
+        cache.Cells[new TilePos(3, 3)] = cache.Cells[new TilePos(3, 3)] with { BuildFrame = new ClassicLightFrame(3) };
         window.Gather(table, cache, new ClassicLightFrame(3));
         Assert.Equal(new[] { 3, 4 }, Ids(table));
         cache.Cells.Clear();
         window.Gather(table, cache, new ClassicLightFrame(4));
         Assert.Equal(new[] { 3 }, Ids(table));
 #pragma warning restore IDE0300
-        cache.Cells[new TilePos(-3, -3)] = new(default, default, new(5));
+        cache.Cells[new TilePos(-3, -3)] = new ClassicLightCacheCell(default, default, new ClassicLightFrame(5));
         window.Gather(table, cache, new ClassicLightFrame(5));
         Assert.Empty(Ids(table));
     }
@@ -172,7 +172,7 @@ public class ClassicLightWindowTests
         {
             if (refreshStatic)
             {
-                cache.Cells[table.Tile] = cell with { BuildFrame = new(i) };
+                cache.Cells[table.Tile] = cell with { BuildFrame = new ClassicLightFrame(i) };
             }
 
             window.Gather(table, cache, new ClassicLightFrame(i));
@@ -188,7 +188,7 @@ public class ClassicLightWindowTests
                 frame++;
                 if (refreshStatic)
                 {
-                    cache.Cells[table.Tile] = cell with { BuildFrame = new(frame) };
+                    cache.Cells[table.Tile] = cell with { BuildFrame = new ClassicLightFrame(frame) };
                 }
 
                 window.Gather(table, cache, new ClassicLightFrame(frame));
@@ -207,7 +207,7 @@ public class ClassicLightWindowTests
         {
             int id = y * width + x + 1;
             cache.Cells[new TilePos(target.X - 3 + x, target.Y - 3 + y)] =
-                new(new[] { Source(id, sourcePosition ?? target) }, new[] { Source(100 + id, sourcePosition ?? target) }, new(1));
+                new ClassicLightCacheCell(new[] { Source(id, sourcePosition ?? target) }, new[] { Source(100 + id, sourcePosition ?? target) }, new ClassicLightFrame(1));
         }
         }
     }
@@ -224,8 +224,8 @@ public class ClassicLightWindowTests
 
     private sealed class PreparedCache : IClassicLightCache
     {
-        public readonly Dictionary<TilePos, ClassicLightCacheCell> Cells = new();
-        public readonly List<TilePos> Reads = new();
+        public readonly Dictionary<TilePos, ClassicLightCacheCell> Cells = new Dictionary<TilePos, ClassicLightCacheCell>();
+        public readonly List<TilePos> Reads = new List<TilePos>();
         public bool TrackReads = true;
 
         public ClassicLightCacheCell GetCell(TilePos tile)

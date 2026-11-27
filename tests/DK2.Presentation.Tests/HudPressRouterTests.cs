@@ -66,9 +66,9 @@ public sealed class HudPressRouterTests
     {
         public readonly GameDatabase Database;
         public readonly WorldState World;
-        public readonly ClassicHudControls Controls = new();
-        public readonly HudToolState Tools = new();
-        public readonly PlayerInputTranslator Input = new();
+        public readonly ClassicHudControls Controls = new ClassicHudControls();
+        public readonly HudToolState Tools = new HudToolState();
+        public readonly PlayerInputTranslator Input = new PlayerInputTranslator();
         public readonly BottomPanelView Panel;
         public readonly CreatureOverview Overview;
         public readonly WorldView View;

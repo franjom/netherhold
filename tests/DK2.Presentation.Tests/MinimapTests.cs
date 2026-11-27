@@ -13,33 +13,33 @@ public sealed class MinimapTests
     [Fact]
     public void MinimapClickUsesNativeWholeMapRoundingAndHeading()
     {
-        var view = new MinimapNavigationView(100, 80, MinimapZoom.WholeMap, default, new(0));
-        Assert.True(MinimapNavigation.TryResolve(new(97.6f, 672), view, out TilePos target));
+        var view = new MinimapNavigationView(100, 80, MinimapZoom.WholeMap, default, new Dk2Angle(0));
+        Assert.True(MinimapNavigation.TryResolve(new Vector2(97.6f, 672), view, out TilePos target));
         Assert.Equal(new TilePos(50, 40), target);
-        Assert.True(MinimapNavigation.TryResolve(new(113.6f, 672), view, out target));
+        Assert.True(MinimapNavigation.TryResolve(new Vector2(113.6f, 672), view, out target));
         Assert.Equal(new TilePos(61, 40), target);
-        Assert.True(MinimapNavigation.TryResolve(new(113.6f, 672), view with { Heading = new(512) }, out target));
+        Assert.True(MinimapNavigation.TryResolve(new Vector2(113.6f, 672), view with { Heading = new Dk2Angle(512) }, out target));
         Assert.Equal(new TilePos(50, 51), target);
-        Assert.True(MinimapNavigation.TryResolve(new(81.6f, 672), view, out target));
+        Assert.True(MinimapNavigation.TryResolve(new Vector2(81.6f, 672), view, out target));
         Assert.Equal(new TilePos(39, 40), target);
-        Assert.True(MinimapNavigation.TryResolve(new(73.6f, 650), view with { Heading = new(256) }, out target));
+        Assert.True(MinimapNavigation.TryResolve(new Vector2(73.6f, 650), view with { Heading = new Dk2Angle(256) }, out target));
         Assert.Equal(new TilePos(50, 18), target);
     }
 
     [Fact]
     public void MinimapClickUsesZoomScaleAndCapturedFractionalFocus()
     {
-        var view = new MinimapNavigationView(100, 80, new(1), new(new(0xA400), new(0x14C00), new(0)), new(0));
-        Assert.True(MinimapNavigation.TryResolve(new(97.6f, 672), view, out TilePos target));
+        var view = new MinimapNavigationView(100, 80, new MinimapZoom(1), new FpPosition3(new Fp32(0xA400), new Fp32(0x14C00), new Fp32(0)), new Dk2Angle(0));
+        Assert.True(MinimapNavigation.TryResolve(new Vector2(97.6f, 672), view, out TilePos target));
         Assert.Equal(new TilePos(10, 20), target);
-        Assert.True(MinimapNavigation.TryResolve(new(113.6f, 672), view, out target));
+        Assert.True(MinimapNavigation.TryResolve(new Vector2(113.6f, 672), view, out target));
         Assert.Equal(new TilePos(15, 20), target);
-        Assert.True(MinimapNavigation.TryResolve(new(81.6f, 672), view, out target));
+        Assert.True(MinimapNavigation.TryResolve(new Vector2(81.6f, 672), view, out target));
         Assert.Equal(new TilePos(5, 20), target);
         int[] eastTiles = [20, 15, 12, 11, 10];
         for (int level = 0; level <= 4; level++)
         {
-            Assert.True(MinimapNavigation.TryResolve(new(113.6f, 672), view with { Zoom = new(level) }, out target));
+            Assert.True(MinimapNavigation.TryResolve(new Vector2(113.6f, 672), view with { Zoom = new MinimapZoom(level) }, out target));
             Assert.Equal(new TilePos(eastTiles[level], 20), target);
         }
     }
@@ -54,27 +54,27 @@ public sealed class MinimapTests
     [InlineData(24, 672)]
     public void MinimapClickRejectsEarlierButtonsHitEdgesAndOutOfMapTargets(float x, float y)
     {
-        var view = new MinimapNavigationView(100, 80, MinimapZoom.WholeMap, default, new(0));
-        Assert.False(MinimapNavigation.TryResolve(new(x, y), view, out _));
+        var view = new MinimapNavigationView(100, 80, MinimapZoom.WholeMap, default, new Dk2Angle(0));
+        Assert.False(MinimapNavigation.TryResolve(new Vector2(x, y), view, out _));
     }
 
     [Fact]
     public void MagnifierUsesTheNativeAnchoredHitRectangle()
     {
-        Assert.True(MinimapControlLayout.IsMagnifier(new(153.6f, 729.6f)));
-        Assert.True(MinimapControlLayout.IsMagnifier(new(185.59f, 761.59f)));
-        Assert.False(MinimapControlLayout.IsMagnifier(new(134.4f, 710.4f)));
-        Assert.False(MinimapControlLayout.IsMagnifier(new(153.59f, 729.6f)));
-        Assert.False(MinimapControlLayout.IsMagnifier(new(185.6f, 729.6f)));
-        Assert.False(MinimapControlLayout.IsMagnifier(new(150, 761.6f)));
+        Assert.True(MinimapControlLayout.IsMagnifier(new Vector2(153.6f, 729.6f)));
+        Assert.True(MinimapControlLayout.IsMagnifier(new Vector2(185.59f, 761.59f)));
+        Assert.False(MinimapControlLayout.IsMagnifier(new Vector2(134.4f, 710.4f)));
+        Assert.False(MinimapControlLayout.IsMagnifier(new Vector2(153.59f, 729.6f)));
+        Assert.False(MinimapControlLayout.IsMagnifier(new Vector2(185.6f, 729.6f)));
+        Assert.False(MinimapControlLayout.IsMagnifier(new Vector2(150, 761.6f)));
     }
 
     [Fact]
     public void ZoomedTerrainAndMarkersPreserveTheirDistinctFractionalRounding()
     {
         var zoom = new MinimapZoom(1);
-        FpPosition3 focus = new(new(0x1400), new(0x1800), new(0));
-        FpPosition3 thing = new(new(0x1C00), new(0x1800), new(0));
+        var focus = new FpPosition3(new Fp32(0x1400), new Fp32(0x1800), new Fp32(0));
+        var thing = new FpPosition3(new Fp32(0x1C00), new Fp32(0x1800), new Fp32(0));
         Assert.Equal(new MinimapRasterPoint(61, 61), zoom.RasterOrigin(focus));
         Assert.Equal(new MinimapRasterPoint(65, 64), zoom.Project(thing, focus));
         Assert.Equal(new MinimapRasterPoint(64, 64), zoom.Project(focus, focus));
@@ -109,7 +109,7 @@ public sealed class MinimapTests
     [Fact]
     public void CameraFootprintMovesWithoutATickAndDoesNotAllocate()
     {
-        Vector2[] corners = [new(48, 48), new(80, 48), new(80, 80), new(48, 80)];
+        Vector2[] corners = [new Vector2(48, 48), new Vector2(80, 48), new Vector2(80, 80), new Vector2(48, 80)];
         var vertices = new Vector2[8];
         MinimapCameraFootprint.TryBuild(corners, 128, 128, 0, vertices);
         Vector2 before = vertices[0];
@@ -137,10 +137,10 @@ public sealed class MinimapTests
     [Fact]
     public void CameraFootprintUsesContinuousProjectionRotationAndRadialBorder()
     {
-        Vector2[] corners = [new(48, 48), new(80, 48), new(80, 80), new(48, 80)];
+        Vector2[] corners = [new Vector2(48, 48), new Vector2(80, 48), new Vector2(80, 80), new Vector2(48, 80)];
         var vertices = new Vector2[8];
         Assert.True(MinimapCameraFootprint.TryBuild(corners, 128, 128, 0, vertices));
-        Vector2 centre = new(95.2f, 672);
+        var centre = new Vector2(95.2f, 672);
         Vector2 midpoint = (vertices[0] + vertices[1]) * .5f;
         Assert.InRange(midpoint.X, 79.28f, 79.30f);
         Assert.InRange(midpoint.Y, 656.08f, 656.10f);
@@ -155,12 +155,12 @@ public sealed class MinimapTests
     [Fact]
     public void CameraFootprintClampsBeforeBuildingTheBorderAndRejectsInvalidPoints()
     {
-        Vector2[] corners = [new(-1000, -1000), new(1000, -1000), new(1000, 1000), new(-1000, 1000)];
+        Vector2[] corners = [new Vector2(-1000, -1000), new Vector2(1000, -1000), new Vector2(1000, 1000), new Vector2(-1000, 1000)];
         var vertices = new Vector2[8];
         Assert.True(MinimapCameraFootprint.TryBuild(corners, 128, 128, 0, vertices));
         Assert.Equal(new Vector2(12.8f, 588.8f), (vertices[0] + vertices[1]) * .5f);
         Assert.Equal(new Vector2(177.6f, 755.2f), (vertices[4] + vertices[5]) * .5f);
-        corners[0] = new(float.NaN, 1);
+        corners[0] = new Vector2(float.NaN, 1);
         Assert.False(MinimapCameraFootprint.TryBuild(corners, 128, 128, 0, vertices));
     }
 

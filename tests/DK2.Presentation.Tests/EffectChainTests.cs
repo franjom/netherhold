@@ -344,24 +344,24 @@ public class EffectChainTests
         {
             Name = "lit", EffectId = Lit, ArtResource = new KwdArtResource("", 0, new byte[12], 0, 0, 0, 0),
             // Effect 210's light: rgb 30,144,255, radius 10240, z 4096, flags 0x1002.
-            Light = new(0, 0, 4096, 10240, 0x1002, 30, 144, 255, 0),
+            Light = new KwdLight(0, 0, 4096, 10240, 0x1002, 30, 144, 255, 0),
             GenerateIds = generates ? [Sparkle] : [], Flags = 0x80 | fadeFlag, FadeDuration = fade,
             GenerationType = 4, ElementsPerTurn = 1, MinHp = hp, MaxHp = hp,
         };
         var unlit = new EffectDef([])
         {
             Name = "unlit", ArtResource = new KwdArtResource("", 0, new byte[12], 0, 0, 0, 0),
-            Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0), GenerationType = 4, ElementsPerTurn = 1, MinHp = 1, MaxHp = 1,
+            Light = new KwdLight(0, 0, 0, 0, 0, 0, 0, 0, 0), GenerationType = 4, ElementsPerTurn = 1, MinHp = 1, MaxHp = 1,
             GenerateIds = [],
         };
         EffectDef generator = unlit with { Name = "lit generator", EffectId = LitGenerator, GenerateIds = [Lit], Flags = 0x80 | 0x40 };
         EffectDef parent = unlit with { Name = "lit parent", EffectId = LitParent, DeathEffectId = Lit, Flags = 0x80 };
-        return new([], [], [], new GlobalVariables(), effects: [lit, generator, parent], effectElements: [sparkle]);
+        return new GameDatabase([], [], [], new GlobalVariables(), effects: [lit, generator, parent], effectElements: [sparkle]);
     }
 
     private static FpPosition3 Point(int height)
     {
-        return new(new(10240), new(14336), new(height));
+        return new FpPosition3(new Fp32(10240), new Fp32(14336), new Fp32(height));
     }
 
     private static RoomConstructionParticles Model(out GameDatabase database, ushort randomness = 0,
@@ -386,12 +386,12 @@ public class EffectChainTests
         EffectDef Effect(ushort id, string name, ushort hp, ushort[] generates, ushort next = 0, ushort death = 0,
             uint flags = 0x80, KwdArtResource? ownArt = null, byte perTurn = 1)
         {
-            return new([])
+            return new EffectDef([])
             {
                 Name = name,
                 EffectId = id,
                 ArtResource = ownArt ?? new KwdArtResource("", 0, new byte[12], 0, 0, 0, 0),
-                Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0),
+                Light = new KwdLight(0, 0, 0, 0, 0, 0, 0, 0, 0),
                 GenerateIds = generates,
                 Flags = flags,
                 GenerationType = 4,
@@ -410,7 +410,7 @@ public class EffectChainTests
         EffectDef generator = Effect(Generator, "generator", 1, [First], flags: 0x80 | 0x40);
         // Like the shipped 215: a group art and no wave of its own (ElementsPerTurn 0).
         EffectDef grouped = Effect(Grouped, "grouped", 1, [Part], ownArt: new KwdArtResource("Group_test", 0, new byte[12], 8, 0, 0, 0), perTurn: 0);
-        return new([], [], [], new GlobalVariables(), effects: [first, nextEffect, death, generator, grouped],
+        return new GameDatabase([], [], [], new GlobalVariables(), effects: [first, nextEffect, death, generator, grouped],
             effectElements: [sparkle, flake, part]);
     }
 }

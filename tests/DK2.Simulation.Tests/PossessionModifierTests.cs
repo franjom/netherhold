@@ -30,10 +30,10 @@ public sealed class PossessionModifierTests
         }
 
         variables.Misc[VariableTypeId.FirstPersonRechargeModifyPercentage] =
-            new(VariableTypeId.FirstPersonRechargeModifyPercentage, rechargePercent, 0, 0);
+            new MiscVariable(VariableTypeId.FirstPersonRechargeModifyPercentage, rechargePercent, 0, 0);
         variables.CreatureStats.AddRange(basis.Variables.CreatureStats);
-        variables.CreatureStats.Add(new((int)CreatureStatId.MeleeRecharge, stat, 9, true));
-        return new(basis.Terrain.Values, basis.Rooms.Values, basis.Creatures.Values, variables,
+        variables.CreatureStats.Add(new CreatureStatEntry((int)CreatureStatId.MeleeRecharge, stat, 9, true));
+        return new GameDatabase(basis.Terrain.Values, basis.Rooms.Values, basis.Creatures.Values, variables,
             creatureSpells: basis.CreatureSpells.Values);
     }
 
@@ -55,7 +55,7 @@ public sealed class PossessionModifierTests
     public void DamageTableStoresOnlyTheSignedLowWordAndLastRowIgnoresLevel()
     {
         GameDatabase db = Database();
-        db.Variables.CreatureStats.Add(new((int)CreatureStatId.MeleeDamage, 65535, -1, true));
+        db.Variables.CreatureStats.Add(new CreatureStatEntry((int)CreatureStatId.MeleeDamage, 65535, -1, true));
         Assert.Equal(-1, MeleeDamageRules.PossessionIncreasePercent(db));
     }
 
@@ -133,7 +133,7 @@ public sealed class PossessionModifierTests
     {
         GameDatabase db = Database();
         db.Variables.Misc[VariableTypeId.CombatPitMeleeDamageModifierPercentage] =
-            new(VariableTypeId.CombatPitMeleeDamageModifierPercentage, value, 0, 0);
+            new MiscVariable(VariableTypeId.CombatPitMeleeDamageModifierPercentage, value, 0, 0);
         Assert.Equal(expectedFactor,
             MeleeDamageRules.StanceMultiplier(db, MeleeDamageRules.Stance.CombatPitFighter));
     }
@@ -142,7 +142,7 @@ public sealed class PossessionModifierTests
     public void NegativeDamageStatNarrowsTheFixedProductBeforeIntegerConversion_StronglyInferredFromBinary()
     {
         GameDatabase db = Database();
-        db.Variables.CreatureStats.Add(new((int)CreatureStatId.MeleeDamage, -101, 0, true));
+        db.Variables.CreatureStats.Add(new CreatureStatEntry((int)CreatureStatId.MeleeDamage, -101, 0, true));
         CreatureDef definition = Dk2TerrainFixture.Goblin() with { MeleeDamage = 100 };
         Assert.Equal(-1, MeleeDamageRules.Swing(db, definition, 1, MeleeDamageRules.Stance.Possessed));
     }
@@ -160,7 +160,7 @@ public sealed class PossessionModifierTests
         GameDatabase db = Database(65561);
         Assert.Equal(25, db.FirstPersonStat(CreatureStatId.MeleeRecharge));
         Assert.Equal(100, db.FirstPersonStat(CreatureStatId.Speed));
-        db.Variables.CreatureStats.Add(new((int)CreatureStatId.MeleeRecharge, 65535, -1, true));
+        db.Variables.CreatureStats.Add(new CreatureStatEntry((int)CreatureStatId.MeleeRecharge, 65535, -1, true));
         Assert.Equal(-1, db.FirstPersonStat(CreatureStatId.MeleeRecharge));
         Assert.Equal(100, db.FirstPersonStat((CreatureStatId)32));
     }
@@ -172,7 +172,7 @@ public sealed class PossessionModifierTests
         int value, MeleeDamageRules.Stance stance, int factor)
     {
         GameDatabase db = Database();
-        db.Variables.CreatureStats.Add(new((int)CreatureStatId.MeleeDamage, value, 0, true));
+        db.Variables.CreatureStats.Add(new CreatureStatEntry((int)CreatureStatId.MeleeDamage, value, 0, true));
         Assert.Equal(factor, MeleeDamageRules.StanceMultiplier(db, stance));
     }
 }

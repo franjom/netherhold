@@ -25,7 +25,7 @@ public sealed class ImpJobSoundTests
     private sealed class Run
     {
         public readonly GameSimulation Sim;
-        public readonly ListEventSink Events = new();
+        public readonly ListEventSink Events = new ListEventSink();
         public readonly List<Heard> Sounds = [];
 
         public Run(GameDatabase db, WorldState world, params ISimulationSystem[] systems)
@@ -54,7 +54,7 @@ public sealed class ImpJobSoundTests
                     if (Events.Events[e].ThingSound is { } sound)
                     {
                         Sounds.Add(new Heard(Events.Events[e].Tick.Value, sound, imp!.Id,
-                            new(new Fp32(imp.PosX), new Fp32(imp.PosY), new Fp32(imp.PosZ)),
+                            new FpPosition3(new Fp32(imp.PosX), new Fp32(imp.PosY), new Fp32(imp.PosZ)),
                             imp.CarriedObjectId >= 0 || imp.CarriedCreatureId >= 0));
                     }
                 }
@@ -236,7 +236,7 @@ public sealed class ImpJobSoundTests
 
     private static Run CrateRun(GameDatabase db, WorldState world)
     {
-        return new(db, world, new HandSystem(),
+        return new Run(db, world, new HandSystem(),
         new CreatureMovementSystem(), new ImpTaskSystem(), new CreatureJobSystem(), new CarriedThingSoundSystem());
     }
 

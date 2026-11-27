@@ -12,7 +12,7 @@ namespace DK2.Simulation.Tests;
 public sealed class HandPickupEffectTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
-    private static readonly TilePos Floor = new(2, 2);
+    private static readonly TilePos Floor = new TilePos(2, 2);
 
     private static (GameDatabase Db, WorldState World, GameSimulation Sim, ListEventSink Events) Setup(bool stored = false)
     {
@@ -42,7 +42,7 @@ public sealed class HandPickupEffectTests
         creature.Heading = 0x321;
         var expected = new ViewEffectRequest(new EffectId(117), Keeper,
             new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(0x1000)), new Dk2Angle((ushort)creature.Heading))
-            { SourceCreatureId = new(creature.Id) };
+            { SourceCreatureId = new CreatureId(creature.Id) };
 
         sim.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, creature.Id)));
 

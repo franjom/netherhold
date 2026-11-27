@@ -453,7 +453,7 @@ public class DungeonHeartTests
 
     private static GameSimulation Simulation(GameDatabase database, WorldState world)
     {
-        return new(database, world, 1, [new DungeonHeartSystem()]);
+        return new GameSimulation(database, world, 1, [new DungeonHeartSystem()]);
     }
 
     /// <summary>Runs past the Heart's opening sequence, before which the room's ordinary frame

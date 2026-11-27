@@ -71,7 +71,7 @@ public sealed class HandEventTests
         };
         if (slapCountTest)
         {
-            records.Add(Condition(6, 71, child: 0xFFFF, new() { ["Comparison"] = 5, ["Value"] = 1 }));
+            records.Add(Condition(6, 71, child: 0xFFFF, new Dictionary<string, long>() { ["Comparison"] = 5, ["Value"] = 1 }));
         }
 
         records.Add(SetFlag(0xFFFF, flag: 1));

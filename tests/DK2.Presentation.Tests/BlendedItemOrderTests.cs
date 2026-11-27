@@ -79,8 +79,8 @@ public sealed class BlendedItemOrderTests
         Assert.Equal([1, 3], ItemsOf(order, 1));
     }
 
-    private static readonly BlendedItemRect Left = new(0f, 0f, 1f, 1f), Right = new(5f, 0f, 6f, 1f),
-        Middle = new(0.5f, 0f, 5.5f, 1f);
+    private static readonly BlendedItemRect Left = new BlendedItemRect(0f, 0f, 1f, 1f), Right = new BlendedItemRect(5f, 0f, 6f, 1f),
+        Middle = new BlendedItemRect(0.5f, 0f, 5.5f, 1f);
 
     private static BlendedItemOrder Boxed(float[] runs, params (int Batch, float Distance, BlendedItemBlend Blend, BlendedItemRect Rect)[] items)
     {

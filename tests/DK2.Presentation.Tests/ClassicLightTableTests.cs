@@ -10,7 +10,7 @@ namespace DK2.Presentation.Tests;
 
 public class ClassicLightTableTests
 {
-    private static readonly TilePos Tile = new(0, 0);
+    private static readonly TilePos Tile = new TilePos(0, 0);
     private static ClassicPointLight Source(int identity, float distance = 1, float height = 0)
     {
         return ClassicPointLight.FromTorch(new TorchView(identity, Tile,
@@ -21,7 +21,7 @@ public class ClassicLightTableTests
     [Fact]
     public void TerrainSourceUsesAuthoredHeightBoostedColourAndNativeDefaults()
     {
-        var light = ClassicPointLight.FromTerrain(new TilePos(2, 3), new Fp32(-2048), new(510, 128, 0));
+        var light = ClassicPointLight.FromTerrain(new TilePos(2, 3), new Fp32(-2048), new TerrainLightColour(510, 128, 0));
         Assert.Equal(new Vector3(2.5f, -.5f, -3.5f), light.Position);
         Assert.Equal(new Vector3(2, 128f / 255f, 0), light.Colour);
         Assert.Equal(1, light.Intensity);

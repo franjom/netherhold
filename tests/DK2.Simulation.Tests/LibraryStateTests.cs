@@ -60,7 +60,7 @@ public class LibraryStateTests
 
     private static GameSimulation Simulation(GameDatabase db, WorldState world, params ISimulationSystem[] extra)
     {
-        return new(db, world, seed: 42, [new AutoFurnitureSystem(), new CreatureMovementSystem(), new CreatureJobSystem(), .. extra]);
+        return new GameSimulation(db, world, seed: 42, [new AutoFurnitureSystem(), new CreatureMovementSystem(), new CreatureJobSystem(), .. extra]);
     }
 
     private static CreatureState Researcher(GameDatabase db, WorldState world, TilePos at, int state = ResearchStep.ChoosingState)

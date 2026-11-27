@@ -135,7 +135,7 @@ public class DeterminismTests
     /// <summary>Counts each marker's spans and fails on one that ends out of order.</summary>
     private sealed class RecordingProfiler : ISimulationProfiler
     {
-        private readonly Stack<SimulationMarker> _open = new();
+        private readonly Stack<SimulationMarker> _open = new Stack<SimulationMarker>();
         private readonly Dictionary<SimulationMarker, int> _calls = [];
 
         public int Depth

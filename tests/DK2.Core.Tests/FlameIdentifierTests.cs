@@ -27,7 +27,7 @@ public class FlameIdentifierTests
     /// sequence does not trip it; the hex digits are upper-case because that is
     /// how Flame writes them and lower-case would match too much English.
     /// </summary>
-    private static readonly Regex FlameShaped = new(
+    private static readonly Regex FlameShaped = new Regex(
         @"(?<![A-Za-z0-9_])f[0-9A-F]{2,4}_[A-Za-z]|(?<![A-Za-z0-9])sData_",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
@@ -114,7 +114,7 @@ public class FlameIdentifierTests
 
     private static string RepositoryRoot()
     {
-        DirectoryInfo? dir = new(AppContext.BaseDirectory);
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "DK2.slnx")))
         {
             dir = dir.Parent;

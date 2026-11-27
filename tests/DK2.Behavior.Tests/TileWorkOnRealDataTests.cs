@@ -32,7 +32,7 @@ public class TileWorkOnRealDataTests
     /// <summary>A tile of terrain <paramref name="id"/> at its shipped starting health.</summary>
     private static TileState Tile(GameDatabase db, byte id, byte owner = 0)
     {
-        return new()
+        return new TileState()
         {
             TerrainId = id,
             OwnerPlayerId = owner,

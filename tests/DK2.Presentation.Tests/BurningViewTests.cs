@@ -23,7 +23,7 @@ public class BurningViewTests
             .Select(i => new TilePos(i % world.Width, i / world.Width))
             .First(p => database.RoomsByTerrain.TryGetValue(world.Tile(p).TerrainId, out RoomDef? room)
                 && room.TypeId == RoomTypeId.Portal && view.GroundHeightAt(world,
-                    new(new(CreatureState.CentreOf(p.X)), new(CreatureState.CentreOf(p.Y)), default)).Raw == 0);
+                    new FpPosition3(new Fp32(CreatureState.CentreOf(p.X)), new Fp32(CreatureState.CentreOf(p.Y)), default)).Raw == 0);
         CreatureState creature = world.SpawnCreature(database, database.CreatureByName("Goblin")!.CreatureId, 1, portal);
         Assert.Equal(Fp32.One, view.CreatureEffectGround(world, creature).Raw);
         Assert.Equal(Fp32.One, view.Creatures(world).Single(c => c.Id == creature.Id).Height);
@@ -50,7 +50,7 @@ public class BurningViewTests
     {
         var view = new ScriptedViewDirector(PlayerIds.FirstKeeper, _ => null, _ => null);
         view.Emit(new SimEvent(default, "test", "shake", "")
-        { ScriptedView = new(ScriptedViewKind.CameraJitter, PlayerIds.FirstKeeper, 1, default, false) });
+        { ScriptedView = new ScriptedViewRequest(ScriptedViewKind.CameraJitter, PlayerIds.FirstKeeper, 1, default, false) });
         view.Update(0, 0);
         var random = new Dk2Lcg(1);
         var expected = new System.Numerics.Vector3(
@@ -69,17 +69,17 @@ public class BurningViewTests
         Send(new PlayerId(4), 9);
         Send(PlayerIds.FirstKeeper, 2);
         view.Update(0, 0);
-        Assert.Equal(new FpPosition3(new(expected.NextInt(200) - 100), new(expected.NextInt(200) - 100), new(0)), view.CameraJitter);
+        Assert.Equal(new FpPosition3(new Fp32(expected.NextInt(200) - 100), new Fp32(expected.NextInt(200) - 100), new Fp32(0)), view.CameraJitter);
         Assert.Equal(1, view.PendingCameraJitters);
         view.Update(1, 0); // Outside the 50ms particle gate, with fresh offsets, not a random walk.
-        Assert.Equal(new FpPosition3(new(expected.NextInt(200) - 100), new(expected.NextInt(200) - 100), new(0)), view.CameraJitter);
+        Assert.Equal(new FpPosition3(new Fp32(expected.NextInt(200) - 100), new Fp32(expected.NextInt(200) - 100), new Fp32(0)), view.CameraJitter);
         Assert.Equal(0, view.PendingCameraJitters);
         view.Update(2, 0);
         Assert.Equal(default, view.CameraJitter);
         void Send(PlayerId player, int count)
         {
             view.Emit(new SimEvent(default, "test", "shake", "")
-            { ScriptedView = new(ScriptedViewKind.CameraJitter, player, count, default, false) });
+            { ScriptedView = new ScriptedViewRequest(ScriptedViewKind.CameraJitter, player, count, default, false) });
         }
     }
 }

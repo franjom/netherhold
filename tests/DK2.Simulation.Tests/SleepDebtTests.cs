@@ -11,7 +11,7 @@ namespace DK2.Simulation.Tests;
 public sealed class SleepDebtTests
 {
     private static readonly PlayerId Keeper = PlayerIds.FirstKeeper;
-    private static readonly TilePos Bed = new(2, 2);
+    private static readonly TilePos Bed = new TilePos(2, 2);
 
     [Fact]
     public void AHealthyManualSleeperWithNoDebtLeavesOnItsFirstUpdate()

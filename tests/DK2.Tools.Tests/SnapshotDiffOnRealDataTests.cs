@@ -34,8 +34,8 @@ public class SnapshotDiffOnRealDataTests
         string before = Path.Combine(directory, "before.dk2g"), after = Path.Combine(directory, "after.dk2g");
         string output = Path.Combine(directory, "report.json");
         var header = new SavedSessionHeader("Level1", 1, 0, DateTime.UnixEpoch, "diagnostic fixture");
-        SavedSessionFile.Save(before, new(header, original, new CampaignProfile()));
-        SavedSessionFile.Save(after, new(header, changed, new CampaignProfile()));
+        SavedSessionFile.Save(before, new SavedSession(header, original, new CampaignProfile()));
+        SavedSessionFile.Save(after, new SavedSession(header, changed, new CampaignProfile()));
         byte[] beforeFile = File.ReadAllBytes(before), afterFile = File.ReadAllBytes(after);
 
         Assert.Equal(1, Program.Dispatch(["snapshot-diff", before, after, output]));

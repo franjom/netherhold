@@ -16,7 +16,7 @@ internal static class EventCounterTree
 
     public static TriggerTree For(CreatureTriggerEvent type)
     {
-        return new(
+        return new TriggerTree(
     [
         new GenericTriggerRecord(new byte[16])
         {

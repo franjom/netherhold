@@ -13,7 +13,7 @@ public sealed class HudIndicatorsTests
 {
     private static HudIndicatorSnapshot Shown(bool time = false, bool score = false, bool kills = false, bool next = false)
     {
-        return new(time, 400, score, 0, kills, 0, 0, false, 0, next ? (byte)1 : (byte)0);
+        return new HudIndicatorSnapshot(time, 400, score, 0, kills, 0, 0, false, 0, next ? (byte)1 : (byte)0);
     }
 
     [Fact]
@@ -79,7 +79,7 @@ public sealed class HudIndicatorsTests
 
     private static LevelDef Level(ushort flags)
     {
-        return new([])
+        return new LevelDef([])
         {
             Name = "fixture",
             Description = "",

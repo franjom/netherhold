@@ -59,7 +59,7 @@ public sealed class PossessionViewTests
     /// <summary>Walk 100, run 200, shuffle 50 a turn: at four turns a second a 100 ms frame's unit is 40, 80 or 20.</summary>
     private static PossessedBody Body(bool creeping = false, bool flying = false, int waddle = 0, int bob = 0, bool leans = false)
     {
-        return new(100, 200, 50, creeping, flying, false, false, Width, Eye, waddle, bob, 4, leans, 0);
+        return new PossessedBody(100, 200, 50, creeping, flying, false, false, Width, Eye, waddle, bob, 4, leans, 0);
     }
 
     private static PossessionView At(int x, int y, int yaw = 0)
@@ -69,7 +69,7 @@ public sealed class PossessionViewTests
         return view;
     }
 
-    private static readonly PossessionKeys Forward = new(true, false, false, false, false, false);
+    private static readonly PossessionKeys Forward = new PossessionKeys(true, false, false, false, false, false);
 
     [Fact]
     public void EnteringPutsTheCameraAtEyeHeightOnTheHorizon_StronglyInferredFromBinary()

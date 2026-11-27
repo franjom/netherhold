@@ -17,10 +17,10 @@ namespace DK2.Simulation.Tests;
 public sealed class SleepJobTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
-    private static readonly TilePos BedTile = new(1, 1);
-    private static readonly TilePos Adjacent = new(3, 3);
-    private static readonly TilePos OtherLair = new(7, 2);
-    private static readonly TilePos Vault = new(5, 2);
+    private static readonly TilePos BedTile = new TilePos(1, 1);
+    private static readonly TilePos Adjacent = new TilePos(3, 3);
+    private static readonly TilePos OtherLair = new TilePos(7, 2);
+    private static readonly TilePos Vault = new TilePos(5, 2);
 
     [Fact]
     public void ATiredCreatureDroppedInItsOwnLairSleepsAndWakesAndIsNotLeftInState81()

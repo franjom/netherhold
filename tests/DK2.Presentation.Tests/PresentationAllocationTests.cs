@@ -25,7 +25,7 @@ public sealed class PresentationAllocationTests
     }
 
     // The strings the HUD resolves, made once, the way a loaded table holds them.
-    private static readonly Dictionary<uint, string> Strings = new();
+    private static readonly Dictionary<uint, string> Strings = new Dictionary<uint, string>();
     private static string Text(uint id)
     {
         lock (Strings)
@@ -116,7 +116,7 @@ public sealed class PresentationAllocationTests
     {
         var hover = new HudHoverText(Text);
         var sources = new Sources(KeeperResourceKind.Heart);
-        var facts = new KeeperResourceSnapshot(new(5), new(5), new(1), new(1), new(60, 100), new(1, 2), new(40), new(10),
+        var facts = new KeeperResourceSnapshot(new GoldAmount(5), new ManaAmount(5), new ManaPerSecond(1), new ManaPerSecond(1), new HudGaugeFraction(60, 100), new HudGaugeFraction(1, 2), new GoldAmount(40), new GameTick(10),
             default, default, 100, default, new TilePos(3, 3));
         hover.Capture(sources, facts);
         long sum = 0;
@@ -124,19 +124,19 @@ public sealed class PresentationAllocationTests
 
         Assert.Equal(0, Allocated(() =>
         {
-            facts = facts with { Tick = new(++tick), Payday = new(1000 - (int)tick, 1000) };
+            facts = facts with { Tick = new GameTick(++tick), Payday = new HudGaugeFraction(1000 - (int)tick, 1000) };
             sum += hover.Capture(sources, facts).TopStatus.Length;
         }));
         Assert.True(sum > 0);
         // What the text is built from still rebuilds it.
         string first = hover.Capture(sources, facts).TopStatus;
-        Assert.NotEqual(first, hover.Capture(sources, facts with { HeartHealth = new(70, 100) }).TopStatus);
+        Assert.NotEqual(first, hover.Capture(sources, facts with { HeartHealth = new HudGaugeFraction(70, 100) }).TopStatus);
         sources.Kind = KeeperResourceKind.Payday;
         string payday = hover.Capture(sources, facts).TopStatus;
-        Assert.NotEqual(payday, hover.Capture(sources, facts with { WageBill = new(41) }).TopStatus);
+        Assert.NotEqual(payday, hover.Capture(sources, facts with { WageBill = new GoldAmount(41) }).TopStatus);
         Assert.Equal(0, Allocated(() =>
         {
-            facts = facts with { Tick = new(++tick), Payday = new(1000 - (int)tick, 1000) };
+            facts = facts with { Tick = new GameTick(++tick), Payday = new HudGaugeFraction(1000 - (int)tick, 1000) };
             sum += hover.Capture(sources, facts).TopStatus.Length;
         }));
     }
@@ -337,7 +337,7 @@ public sealed class PresentationAllocationTests
         foreach ((int x, int y, byte owner) in new[] { (2, 1, PlayerIds.FirstKeeper), (3, 1, PlayerIds.FirstKeeper),
             (7, 6, PlayerIds.FirstKeeper), (7, 8, PlayerIds.Good), (8, 8, PlayerIds.Good) })
         {
-            tiles[x + y * 10] = new(heart, owner, 0, 0);
+            tiles[x + y * 10] = new MapTile(heart, owner, 0, 0);
         }
 
         var world = WorldState.FromMap(database, new LevelMap(10, 10, tiles), [PlayerIds.FirstKeeper, PlayerIds.Good]);

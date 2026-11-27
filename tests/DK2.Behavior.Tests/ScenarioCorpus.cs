@@ -31,7 +31,7 @@ internal static class ScenarioCorpus
         "keepers/level18_nemesis_inferno_chicken.yaml",
     };
 
-    private static readonly Lazy<GameDatabase> InstallDatabase = new(() => GameDatabaseLoader.Load(Dk2InstallGate.Path));
+    private static readonly Lazy<GameDatabase> InstallDatabase = new Lazy<GameDatabase>(() => GameDatabaseLoader.Load(Dk2InstallGate.Path));
 
     /// <summary>The shipped database, loaded once for the whole assembly: a run never mutates it,
     /// and a level's own variables are layered on per run by <see cref="ScenarioRunner"/>.</summary>
@@ -79,7 +79,7 @@ internal static class ScenarioCorpus
 
     public static string RepositoryRoot()
     {
-        DirectoryInfo? dir = new(AppContext.BaseDirectory);
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "DK2.slnx")))
         {
             dir = dir.Parent;

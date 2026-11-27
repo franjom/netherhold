@@ -21,7 +21,7 @@ public class NeedInterruptTests
     private const int Walk = 6;
     private const int WalkToRoom = 7;
 
-    private static readonly TilePos InTraining = new(9, 3);
+    private static readonly TilePos InTraining = new TilePos(9, 3);
 
     private static GameDatabase Db
     {

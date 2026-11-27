@@ -27,12 +27,12 @@ public class GateWalkTests
 
     private static NavPoint P(int xTiles, int yTiles)
     {
-        return new(xTiles * U, yTiles * U);
+        return new NavPoint(xTiles * U, yTiles * U);
     }
 
     private static GateRecord Record(NavPoint a, NavPoint b, int selector = 0, NavPoint crossing = default)
     {
-        return new(a, b, selector) { Crossing = crossing };
+        return new GateRecord(a, b, selector) { Crossing = crossing };
     }
 
     [Theory]

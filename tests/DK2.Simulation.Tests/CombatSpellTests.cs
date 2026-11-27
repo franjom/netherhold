@@ -57,8 +57,8 @@ public class CombatSpellTests
         }
 
         variables.Misc[VariableTypeId.FirstPersonRechargeModifyPercentage] =
-            new(VariableTypeId.FirstPersonRechargeModifyPercentage, 50, 0, 0);
-        variables.CreatureStats.Add(new((int)CreatureStatId.MeleeRecharge, 25, 9, true));
+            new MiscVariable(VariableTypeId.FirstPersonRechargeModifyPercentage, 50, 0, 0);
+        variables.CreatureStats.Add(new CreatureStatEntry((int)CreatureStatId.MeleeRecharge, 25, 9, true));
         var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values, basis.Creatures.Values, variables,
             creatureSpells: basis.CreatureSpells.Values);
         var warlock = new CreatureState { CreatureTypeId = Dk2TerrainFixture.WarlockCreatureId, Level = 8, Possessed = true };
@@ -460,6 +460,6 @@ public class CombatSpellTests
 
     private static GameSimulation Combat(GameDatabase db, WorldState world)
     {
-        return new(db, world, 1, [new CombatSystem(), new PreviousPositionStep(), new CreatureMovementSystem(), new ShotSystem()]);
+        return new GameSimulation(db, world, 1, [new CombatSystem(), new PreviousPositionStep(), new CreatureMovementSystem(), new ShotSystem()]);
     }
 }

@@ -12,11 +12,11 @@ namespace DK2.Simulation.Tests;
 public sealed class CreateGoldTests
 {
     private const byte Keeper = 3, Rival = 4, SpellId = 13;
-    private static readonly TilePos At = new(10, 10);
+    private static readonly TilePos At = new TilePos(10, 10);
 
     private static KeeperSpellDef Spell()
     {
-        return new()
+        return new KeeperSpellDef()
         {
             Name = "Create Gold",
             KeeperSpellId = SpellId,
@@ -49,7 +49,7 @@ public sealed class CreateGoldTests
 
     private static CastSpellAtPlaceCommand Cast()
     {
-        return new(Keeper, SpellId, CreatureState.CentreOf(At.X), CreatureState.CentreOf(At.Y));
+        return new CastSpellAtPlaceCommand(Keeper, SpellId, CreatureState.CentreOf(At.X), CreatureState.CentreOf(At.Y));
     }
 
     private static CastSpellAtPlaceCommand CastAtOffsets(Fp32 x, Fp32 y)

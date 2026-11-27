@@ -133,7 +133,7 @@ public class TilePickerTests
 
     private static GameDatabase Database()
     {
-        return new(
+        return new GameDatabase(
         [
             Terrain(Wall, "Rock", TerrainFlags.Solid | TerrainFlags.Taggable),
             Terrain(Floor, "Dirt Path", TerrainFlags.Ownable),
@@ -143,7 +143,7 @@ public class TilePickerTests
 
     private static TerrainDef Terrain(byte id, string name, TerrainFlags flags)
     {
-        return new()
+        return new TerrainDef()
         {
             Name = name,
             TerrainId = id,

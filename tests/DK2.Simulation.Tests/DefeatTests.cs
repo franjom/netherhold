@@ -209,6 +209,6 @@ public class DefeatTests
 
     private static GameSimulation Simulation(GameDatabase db, WorldState world)
     {
-        return new(db, world, 1, [new DungeonHeartSystem(), new CreatureMovementSystem(), new CreatureHealthSystem()]);
+        return new GameSimulation(db, world, 1, [new DungeonHeartSystem(), new CreatureMovementSystem(), new CreatureHealthSystem()]);
     }
 }

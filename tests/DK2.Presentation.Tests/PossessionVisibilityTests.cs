@@ -49,11 +49,11 @@ public sealed class PossessionVisibilityTests
         Assert.Equal(
             new TilePos[]
             {
-                new(20, 20),
-                new(20, 19), new(19, 19), new(21, 19),
-                new(20, 21), new(19, 21), new(21, 21),
-                new(19, 20), new(21, 20),
-                new(20, 18),
+                new TilePos(20, 20),
+                new TilePos(20, 19), new TilePos(19, 19), new TilePos(21, 19),
+                new TilePos(20, 21), new TilePos(19, 21), new TilePos(21, 21),
+                new TilePos(19, 20), new TilePos(21, 20),
+                new TilePos(20, 18),
             },
             tiles.Take(10));
     }

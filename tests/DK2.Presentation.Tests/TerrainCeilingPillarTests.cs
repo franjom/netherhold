@@ -13,7 +13,7 @@ public sealed class TerrainCeilingPillarTests
     {
         TerrainDef Terrain(byte id)
         {
-            return new()
+            return new TerrainDef()
             {
                 Name = "Open",
                 TerrainId = id,
@@ -40,7 +40,7 @@ public sealed class TerrainCeilingPillarTests
             OrderInEditor = 0, NameStringId = 0, TooltipStringId = 0,
         };
         var variables = new GlobalVariables();
-        variables.Misc[VariableTypeId.DungeonHeartObjectHealth] = new(VariableTypeId.DungeonHeartObjectHealth, 1000, 0, 0);
+        variables.Misc[VariableTypeId.DungeonHeartObjectHealth] = new MiscVariable(VariableTypeId.DungeonHeartObjectHealth, 1000, 0, 0);
         var database = new GameDatabase([Terrain(1), Terrain(2)], [room], [], variables);
         MapTile[] tiles = [.. Enumerable.Repeat(new MapTile(1, 3, 0, 0), Size * Size)];
         for (int y = 4; y < 4 + height; y++)

@@ -17,7 +17,7 @@ public sealed class LightningTargetDrawTests
         var f = new Fixture();
         FpPosition3 target = f.Target(FightTargetKind.Creature);
         LightningControlPoint[] controls = [.. Enumerable.Range(0, 25).Select(i =>
-            new LightningControlPoint((uint)(i * 3), new(1 + i * .08f, 2 + i % 3 * .04f, .8f + i * .025f)))];
+            new LightningControlPoint((uint)(i * 3), new Vector3(1 + i * .08f, 2 + i % 3 * .04f, .8f + i * .025f)))];
         Matrix4x4 cameraA = Matrix4x4.CreateRotationX(.4f) * Matrix4x4.CreateTranslation(2, 3, -4);
         Matrix4x4 cameraB = Matrix4x4.CreateRotationY(.8f) * Matrix4x4.CreateTranslation(-3, 5, -2);
         Assert.True(Matrix4x4.Invert(cameraA, out Matrix4x4 viewA));
@@ -31,7 +31,7 @@ public sealed class LightningTargetDrawTests
         {
             Vector3 Render(Vector3 p)
             {
-                return new(p.X, p.Z, -p.Y);
+                return new Vector3(p.X, p.Z, -p.Y);
             }
 
             foreach (LightningPath path in originalBolts.Build(Transform(Render(start), view),
@@ -70,7 +70,7 @@ public sealed class LightningTargetDrawTests
         draws.DrawShots(f.World, f.Database, f.View, 1);
         Vector3 Tiles(FpPosition3 p)
         {
-            return new(p.X.Raw / 4096f, p.Y.Raw / 4096f, p.Z.Raw / 4096f);
+            return new Vector3(p.X.Raw / 4096f, p.Y.Raw / 4096f, p.Z.Raw / 4096f);
         }
 
         Append(Tiles(f.CasterStart), Tiles(target), LightningAmplitude.Shot, viewB, cameraB);
@@ -88,7 +88,7 @@ public sealed class LightningTargetDrawTests
 
     private static Vector3 Transform(Vector3 p, Matrix4x4 m)
     {
-        return new(
+        return new Vector3(
         m.M11 * p.X + m.M21 * p.Y + m.M31 * p.Z + m.M41,
         m.M12 * p.X + m.M22 * p.Y + m.M32 * p.Z + m.M42,
         m.M13 * p.X + m.M23 * p.Y + m.M33 * p.Z + m.M43);
@@ -121,8 +121,8 @@ public sealed class LightningTargetDrawTests
             draws.DrawShots(f.World, f.Database, f.View, fraction);
             float clamped = Math.Clamp(fraction, 0, 1);
             var start = new FpPosition3(
-                new((int)(f.Caster.LastPosX + (f.Caster.PosX - f.Caster.LastPosX) * clamped)),
-                new((int)(f.Caster.LastPosY + (f.Caster.PosY - f.Caster.LastPosY) * clamped)), f.Shot.ViewPosition.Z);
+                new Fp32((int)(f.Caster.LastPosX + (f.Caster.PosX - f.Caster.LastPosX) * clamped)),
+                new Fp32((int)(f.Caster.LastPosY + (f.Caster.PosY - f.Caster.LastPosY) * clamped)), f.Shot.ViewPosition.Z);
             EqualOriginal(draws, seed, start, end);
         }
         }
@@ -173,7 +173,7 @@ public sealed class LightningTargetDrawTests
         var f = new Fixture();
         FpPosition3 end = f.Target(FightTargetKind.Creature);
         f.Shot.CasterId = 0;
-        var previous = new FpPosition3(new(f.Shot.PosX), new(f.Shot.PosY), new(6789));
+        var previous = new FpPosition3(new Fp32(f.Shot.PosX), new Fp32(f.Shot.PosY), new Fp32(6789));
         var system = new LaunchForInterpolation(f.Shot, previous.Z);
         new GameSimulation(f.Database, f.World, 1, [system]).Tick();
         f.Shot.PosX += 2073;
@@ -185,8 +185,8 @@ public sealed class LightningTargetDrawTests
             draws.DrawShots(f.World, f.Database, f.View, fraction);
             float clamped = Math.Clamp(fraction, 0, 1);
             var start = new FpPosition3(
-                new((int)(previous.X.Raw + (f.Shot.PosX - previous.X.Raw) * clamped)),
-                new((int)(previous.Y.Raw + (f.Shot.PosY - previous.Y.Raw) * clamped)), previous.Z);
+                new Fp32((int)(previous.X.Raw + (f.Shot.PosX - previous.X.Raw) * clamped)),
+                new Fp32((int)(previous.Y.Raw + (f.Shot.PosY - previous.Y.Raw) * clamped)), previous.Z);
             EqualOriginal(draws, 12, start, end);
         }
     }
@@ -240,12 +240,12 @@ public sealed class LightningTargetDrawTests
     public void ProceduralKindsEndAtAbsoluteOneTileAndTripleBuildsThreeBolts(byte kind, int bolts)
     {
         var f = new Fixture();
-        var at = new FpPosition3(new(12345), new(23456), new(14567));
+        var at = new FpPosition3(new Fp32(12345), new Fp32(23456), new Fp32(14567));
         f.Effects.Request(new ViewEffectRequest(new EffectId(kind), PressFixture.Keeper, at));
         LightningDrawList draws = f.Draws(42);
         draws.BeginFrame(Matrix4x4.Identity, Matrix4x4.Identity);
         draws.DrawEffects();
-        EqualOriginal(draws, 42, at, at with { Z = new(Fp32.One) }, bolts);
+        EqualOriginal(draws, 42, at, at with { Z = new Fp32(Fp32.One) }, bolts);
     }
     [Theory]
     [InlineData(2, 3)]
@@ -259,7 +259,7 @@ public sealed class LightningTargetDrawTests
         draws.BeginFrame(Matrix4x4.Identity, Matrix4x4.Identity);
         draws.DrawShots(f.World, f.Database, f.View, 1);
         EqualOriginal(draws, 21, kind == 3 ? f.Shot.ViewPosition : f.CasterStart,
-            kind == 3 ? f.Shot.ViewPosition with { Z = new(Fp32.One) } : end, bolts);
+            kind == 3 ? f.Shot.ViewPosition with { Z = new Fp32(Fp32.One) } : end, bolts);
     }
     [Theory]
     [InlineData(4)]
@@ -318,7 +318,7 @@ public sealed class LightningTargetDrawTests
                 draws.BeginFrame(Matrix4x4.Identity, Matrix4x4.Identity);
                 draws.DrawShots(f.World, f.Database, f.View, 1);
                 bool valid = HeartPillarRules.TryResolve(f.World, f.Database, PressFixture.Keeper,
-                    new(id), out HeartPillarTarget pillar);
+                    new HeartPillarId(id), out HeartPillarTarget pillar);
                 if (!valid)
                 {
                     Assert.Empty(draws.Vertices);
@@ -364,8 +364,8 @@ public sealed class LightningTargetDrawTests
 
                 break;
         }
-        Assert.False(HeartPillarRules.TryResolve(f.World, f.Database, new(f.Shot.TargetPlayerId),
-            new(f.Shot.TargetId), out _));
+        Assert.False(HeartPillarRules.TryResolve(f.World, f.Database, new PlayerId(f.Shot.TargetPlayerId),
+            new HeartPillarId(f.Shot.TargetId), out _));
         LightningDrawList draws = f.Draws(7);
         draws.BeginFrame(Matrix4x4.Identity, Matrix4x4.Identity);
         draws.DrawShots(f.World, f.Database, f.View, 1);
@@ -407,7 +407,7 @@ public sealed class LightningTargetDrawTests
         var bolts = new LightningBolts(seed);
         Vector3 Render(FpPosition3 p)
         {
-            return new(p.X.Raw / 4096f, p.Z.Raw / 4096f, -p.Y.Raw / 4096f);
+            return new Vector3(p.X.Raw / 4096f, p.Z.Raw / 4096f, -p.Y.Raw / 4096f);
         }
 
         for (int b = 0; b < boltCount; b++)
@@ -448,7 +448,7 @@ public sealed class LightningTargetDrawTests
         {
             get
             {
-                return new(new(Caster.PosX), new(Caster.PosY), Shot.ViewPosition.Z);
+                return new FpPosition3(new Fp32(Caster.PosX), new Fp32(Caster.PosY), Shot.ViewPosition.Z);
             }
         }
 
@@ -456,8 +456,8 @@ public sealed class LightningTargetDrawTests
         {
             get
             {
-                return new(new(Victim.PosX), new(Victim.PosY),
-                        new(View.GroundHeightAt(World, new(new(Victim.PosX), new(Victim.PosY), default)).Raw + Victim.PosZ));
+                return new FpPosition3(new Fp32(Victim.PosX), new Fp32(Victim.PosY),
+                        new Fp32(View.GroundHeightAt(World, new FpPosition3(new Fp32(Victim.PosX), new Fp32(Victim.PosY), default)).Raw + Victim.PosZ));
             }
         }
 
@@ -478,10 +478,10 @@ public sealed class LightningTargetDrawTests
             KwdArtResource Art(int i)
             {
                 byte[] data = new byte[12]; data[0] = (byte)kinds[i];
-                return new("bolt", 0, data, (byte)(i == 3 ? 5 : 7), 0, 0, 0);
+                return new KwdArtResource("bolt", 0, data, (byte)(i == 3 ? 5 : 7), 0, 0, 0);
             }
             var light = new KwdLight(0, 0, 0, 0, 0, 0, 0, 0, 0);
-            Database = new([floor, floor with { TerrainId = 1, Flags = TerrainFlags.Room | TerrainFlags.Ownable }],
+            Database = new GameDatabase([floor, floor with { TerrainId = 1, Flags = TerrainFlags.Room | TerrainFlags.Ownable }],
                 [heart], basic.Creatures.Values, basic.Variables,
                 doors: [PressFixture.Door(1)], traps: [PressFixture.Trap(1, 0)],
                 shots: Enumerable.Range(0, 5).Select(i => new ShotDef([])
@@ -493,26 +493,26 @@ public sealed class LightningTargetDrawTests
             {
                 for (int x = 1; x <= 5; x++)
                 {
-                    tiles[y * 9 + x] = new(1, PressFixture.Keeper.Value, 0, 0);
+                    tiles[y * 9 + x] = new MapTile(1, PressFixture.Keeper.Value, 0, 0);
                 }
             }
 
-            World = WorldState.FromMap(Database, new(9, 9, tiles),
+            World = WorldState.FromMap(Database, new LevelMap(9, 9, tiles),
                 [PlayerIds.Good, PlayerIds.Neutral, PressFixture.Keeper.Value], fog);
-            View = new(Database, PressFixture.Keeper);
-            Caster = World.SpawnCreature(Database, 1, PressFixture.Keeper, new(7, 6));
-            Victim = World.SpawnCreature(Database, 1, PressFixture.Keeper, new(6, 6));
+            View = new WorldView(Database, PressFixture.Keeper);
+            Caster = World.SpawnCreature(Database, 1, PressFixture.Keeper, new TilePos(7, 6));
+            Victim = World.SpawnCreature(Database, 1, PressFixture.Keeper, new TilePos(6, 6));
             Victim.PosZ = 1536;
             Shot = World.SpawnShot(1, PressFixture.Keeper, 7201, 29781);
             Shot.CasterId = Caster.Id;
-            Effects = new(Database, 1, () => default, floorHeight: _ => default);
+            Effects = new RoomConstructionParticles(Database, 1, () => default, floorHeight: _ => default);
             ThingProjection.Place(World, Database,
             [new DoorThing(new byte[20]) { X = 6, Y = 2, DoorId = 1, PlayerId = PressFixture.Keeper.Value, Unknown_0011 = new byte[3] },
              new TrapThing(new byte[16]) { X = 7, Y = 2, TrapId = 1, PlayerId = PressFixture.Keeper.Value, NumberOfShots = 1 }]);
         }
         public LightningDrawList Draws(uint seed)
         {
-            return new(Effects, seed);
+            return new LightningDrawList(Effects, seed);
         }
 
         public FpPosition3 Target(FightTargetKind kind)
@@ -526,15 +526,15 @@ public sealed class LightningTargetDrawTests
                     return VictimEnd;
                 case FightTargetKind.Door:
                     Shot.TargetId = Assert.Single(World.Doors).Id;
-                    return Ground(new(new(CreatureState.CentreOf(6)), new(CreatureState.CentreOf(2)), default));
+                    return Ground(new FpPosition3(new Fp32(CreatureState.CentreOf(6)), new Fp32(CreatureState.CentreOf(2)), default));
                 case FightTargetKind.Trap:
                     Shot.TargetId = Assert.Single(World.Traps).Id;
-                    return Ground(new(new(CreatureState.CentreOf(7)), new(CreatureState.CentreOf(2)), default));
+                    return Ground(new FpPosition3(new Fp32(CreatureState.CentreOf(7)), new Fp32(CreatureState.CentreOf(2)), default));
                 case FightTargetKind.Heart:
                     HeartPillarTarget pillar = HeartPillarRules.In(World, Assert.Single(RoomIndex.Build(World, Database)))[1];
                     Shot.TargetId = HeartPillarId.For(World, pillar).Value;
                     Shot.TargetPlayerId = PressFixture.Keeper.Value;
-                    return Ground(new(pillar.X, pillar.Y, default));
+                    return Ground(new FpPosition3(pillar.X, pillar.Y, default));
                 case FightTargetKind.Shot:
                     ShotState other = World.SpawnShot(4, PressFixture.Keeper, 23123, 26345);
                     Shot.TargetId = other.Id;

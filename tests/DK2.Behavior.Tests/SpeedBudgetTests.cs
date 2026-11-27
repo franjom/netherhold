@@ -39,7 +39,7 @@ public class SpeedBudgetTests(ITestOutputHelper output)
     /// <summary>Levels 1-4 for as many turns as their packet recordings run.</summary>
     public static TheoryData<int, int> CampaignLevels()
     {
-        return new()
+        return new TheoryData<int, int>()
     {
         { 1, 2044 },
         { 2, 3657 },

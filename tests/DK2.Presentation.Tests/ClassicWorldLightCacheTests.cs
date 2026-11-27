@@ -9,7 +9,7 @@ namespace DK2.Presentation.Tests;
 
 public class ClassicWorldLightCacheTests
 {
-    private static readonly TilePos Tile = new(5, 5);
+    private static readonly TilePos Tile = new TilePos(5, 5);
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -114,7 +114,7 @@ public class ClassicWorldLightCacheTests
     {
         var cached = new ClassicWorldLightCache(32, 32);
         var full = new ClassicWorldLightCache(32, 32);
-        TilePos sentinel = new(31, 31);
+        var sentinel = new TilePos(31, 31);
         TilePos[][] views = [ [Tile, new TilePos(6, 5), new TilePos(7, 5)],
             [new TilePos(7, 5), Tile, new TilePos(6, 5)],
             [new TilePos(12, 12)], [new TilePos(-1, 0), new TilePos(0, 0)] ];
@@ -189,7 +189,7 @@ public class ClassicWorldLightCacheTests
         var cache = new ClassicWorldLightCache(12, 12);
         cache.SetTerrain(Tile, Source(1, Tile));
 #pragma warning disable IDE0300 // Preserve the original array construction.
-        TilePos[] visible = { Tile, new(6, 5) };
+        TilePos[] visible = { Tile, new TilePos(6, 5) };
 #pragma warning restore IDE0300
         cache.PrepareFrame(visible);
         Assert.False(cache.TablesUnchanged);
@@ -240,7 +240,7 @@ public class ClassicWorldLightCacheTests
     public void ReuseDoesNotBypassVisibleOrderDuplicateValidationOrClear()
     {
         var cache = new ClassicWorldLightCache(12, 12);
-        TilePos next = new(6, 5);
+        var next = new TilePos(6, 5);
 #pragma warning disable IDE0300 // Preserve the original array construction.
         TilePos[] visible = { Tile, next };
 #pragma warning restore IDE0300
@@ -340,7 +340,7 @@ public class ClassicWorldLightCacheTests
     public void ARolledTableSeesALightAddedWhileItsTileWasOutOfView_TouchedModelledAsPreparedOrVisible()
     {
         var cache = new ClassicWorldLightCache(16, 16);
-        TilePos left = new(4, 5), light = new(6, 5);
+        TilePos left = new TilePos(4, 5), light = new TilePos(6, 5);
 #pragma warning disable IDE0300 // Preserve the original array construction or overload.
         cache.PrepareFrame(new[] { left, Tile });
         cache.SetTerrain(light, Source(1, light));
@@ -433,7 +433,7 @@ public class ClassicWorldLightCacheTests
     {
         var cache = new ClassicWorldLightCache(12, 12);
         cache.SetTerrain(Tile, Source(1, Tile));
-        TilePos[] visible = [Tile, new(6, 5), new(7, 5)];
+        TilePos[] visible = [Tile, new TilePos(6, 5), new TilePos(7, 5)];
         for (int i = 0; i < 100; i++)
         {
             cache.PrepareFrame(visible);
@@ -454,7 +454,7 @@ public class ClassicWorldLightCacheTests
         var cache = new ClassicWorldLightCache(12, 12);
         var portals = new PortalCentreLights(new EffectTime(0));
         portals.Create(new TilePos(4, 4));
-        TilePos[] visible = [Tile, new(6, 5), new(7, 5)];
+        TilePos[] visible = [Tile, new TilePos(6, 5), new TilePos(7, 5)];
         for (int frame = 0; frame < 400; frame++)
         {
             long before = GC.GetAllocatedBytesForCurrentThread();
@@ -510,7 +510,7 @@ public class ClassicWorldLightCacheTests
         var cache = new ClassicWorldLightCache(12, 12);
         cache.SetTerrain(Tile, Source(1, Tile));
 #pragma warning disable IDE0300 // Preserve the original array construction.
-        TilePos[] visible = { Tile, new(6, 5), new(7, 5) };
+        TilePos[] visible = { Tile, new TilePos(6, 5), new TilePos(7, 5) };
 #pragma warning restore IDE0300
         for (int i = 0; i < 10; i++)
         {
@@ -530,7 +530,7 @@ public class ClassicWorldLightCacheTests
     [Fact]
     public void AFreedTableIsTakenAgainEmptyForItsNewTile()
     {
-        TilePos far = new(30, 30);
+        var far = new TilePos(30, 30);
         var cache = new ClassicWorldLightCache(40, 40);
         cache.SetTerrain(Tile, Source(7, Tile));
         cache.SetTerrain(far, Source(9, far));

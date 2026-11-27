@@ -267,7 +267,7 @@ public class TerrainPointLightViewTests
 
     private static TerrainDef Terrain(byte id, string name = "Path", byte red = 20)
     {
-        return new()
+        return new TerrainDef()
         {
             Name = name,
             TerrainId = id,
@@ -290,7 +290,7 @@ public class TerrainPointLightViewTests
 
     private static RoomDef Room(TileConstruction construction)
     {
-        return new()
+        return new RoomDef()
         {
             Name = "Room",
             RoomId = 3,
@@ -313,7 +313,7 @@ public class TerrainPointLightViewTests
 
     private static GameDatabase Database(TerrainDef[] terrain, RoomDef[]? rooms = null)
     {
-        return new(terrain, rooms ?? [], [], new GlobalVariables(), doors:
+        return new GameDatabase(terrain, rooms ?? [], [], new GlobalVariables(), doors:
             [new DoorDef { Name = "Door", DoorId = 1, Health = 100, GoldCost = 0, ManufactureRequired = 0, Flags = 0 }]);
     }
 

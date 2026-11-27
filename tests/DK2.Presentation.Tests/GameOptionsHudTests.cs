@@ -10,10 +10,10 @@ namespace DK2.Presentation.Tests;
 /// <summary>The engine-free in-game settings pages (ADR-0805).</summary>
 public sealed class GameOptionsHudTests
 {
-    private static readonly HudScreen FullHd = new(1920, 1080);
+    private static readonly HudScreen FullHd = new HudScreen(1920, 1080);
 
     /// <summary>One 2x2 glyph 'A' at full coverage, 3 wide with its spacing, in a 10-pixel line.</summary>
-    private static readonly BitmapFont Font = new(10, [new BitmapGlyph('A', 2, 2, 0, 0, 3, [15, 15, 15, 15])]);
+    private static readonly BitmapFont Font = new BitmapFont(10, [new BitmapGlyph('A', 2, 2, 0, 0, 3, [15, 15, 15, 15])]);
 
     private static (GameOptionsHud Hud, OptionsPagesController Settings) Open(BitmapFont? font = null)
     {
@@ -33,7 +33,7 @@ public sealed class GameOptionsHudTests
 
     private static HudRect Virtual(FrontEndRect r)
     {
-        return new(r.X * 2.5f, r.Y * 2.5f, r.Width * 2.5f, r.Height * 2.5f);
+        return new HudRect(r.X * 2.5f, r.Y * 2.5f, r.Width * 2.5f, r.Height * 2.5f);
     }
 
     private static InGameOptionsWidget Widget(InGameOptionsPage page, ushort setting)
@@ -173,7 +173,7 @@ public sealed class GameOptionsHudTests
 
     private static GameBindingInput Pressed(KeyModifiers modifiers, params int[] scans)
     {
-        return new(new GameSettings(), modifiers, _ => false, s => scans.Contains(s.Value));
+        return new GameBindingInput(new GameSettings(), modifiers, _ => false, s => scans.Contains(s.Value));
     }
 
     [Fact]

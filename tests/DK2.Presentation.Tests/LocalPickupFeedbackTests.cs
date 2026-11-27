@@ -12,7 +12,7 @@ using DK2.TestSupport;
 namespace DK2.Presentation.Tests;
 public sealed class LocalPickupFeedbackTests
 {
-    private static readonly PlayerId Keeper = new(3);
+    private static readonly PlayerId Keeper = new PlayerId(3);
     [InstallFact]
     public void PickupDustIsVisibleBeforeAnySimulationTickAndTheAuthoritativeEchoIsConsumedOnce()
     {
@@ -30,12 +30,12 @@ public sealed class LocalPickupFeedbackTests
         creature.PosX += 321;
         creature.Heading = 0x321;
 
-        Assert.True(pending.TryQueue(world, db, Keeper, new(creature.Id), 0));
+        Assert.True(pending.TryQueue(world, db, Keeper, new CreatureId(creature.Id), 0));
 
         ViewEffectRequest dust = Assert.Single(delivered);
         Assert.Equal(new CreatureId(creature.Id), dust.SourceCreatureId);
         Assert.Equal(Keeper, dust.Owner);
-        Assert.Equal(new FpPosition3(new(creature.PosX), new(creature.PosY), new(0x1000)), dust.Position);
+        Assert.Equal(new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(0x1000)), dust.Position);
         Assert.Equal(new Dk2Angle(0x321), dust.Heading);
         Assert.Equal(tick, world.CurrentTick);
         Assert.Equal(8, effects.Particles.Count);
@@ -64,11 +64,11 @@ public sealed class LocalPickupFeedbackTests
         var dust = new List<ViewEffectRequest>();
         pending.DustRequested += dust.Add;
         creature.Health = 0;
-        Assert.False(pending.TryQueue(world, db, Keeper, new(creature.Id), 0));
+        Assert.False(pending.TryQueue(world, db, Keeper, new CreatureId(creature.Id), 0));
         Assert.Empty(dust);
         creature.Health = 100;
-        Assert.True(pending.TryQueue(world, db, Keeper, new(creature.Id), 1));
-        Assert.False(pending.TryQueue(world, db, Keeper, new(creature.Id), 2));
+        Assert.True(pending.TryQueue(world, db, Keeper, new CreatureId(creature.Id), 1));
+        Assert.False(pending.TryQueue(world, db, Keeper, new CreatureId(creature.Id), 2));
         Assert.Single(dust);
     }
     [InstallTheory]
@@ -82,7 +82,7 @@ public sealed class LocalPickupFeedbackTests
         pending.DustRequested += request => dust = request;
         var events = new ListEventSink();
         var sink = new LocalPickupEffectSink(pending, events);
-        Assert.True(pending.TryQueue(world, db, Keeper, new(creature.Id), 0));
+        Assert.True(pending.TryQueue(world, db, Keeper, new CreatureId(creature.Id), 0));
         if (timeout)
         {
             pending.Advance(world, 2001);
@@ -104,17 +104,17 @@ public sealed class LocalPickupFeedbackTests
         pending.DustRequested += request => dust = request;
         var events = new ListEventSink();
         var sink = new LocalPickupEffectSink(pending, events);
-        Assert.True(pending.TryQueue(world, db, Keeper, new(creature.Id), 0));
+        Assert.True(pending.TryQueue(world, db, Keeper, new CreatureId(creature.Id), 0));
         void Emit(string system, ViewEffectRequest request)
         {
             sink.Emit(
             new SimEvent(world.CurrentTick, system, "effect_requested", "") { EffectRequest = request });
         }
 
-        Emit("Hand", dust with { SourceCreatureId = new(creature.Id + 1) });
+        Emit("Hand", dust with { SourceCreatureId = new CreatureId(creature.Id + 1) });
         Emit("Hand", dust with { Owner = PlayerIds.Neutral });
         Emit("movement dust", dust);
-        Emit("Hand", dust with { EffectId = new(100) });
+        Emit("Hand", dust with { EffectId = new EffectId(100) });
         Assert.Equal(4, events.Events.Count);
         Emit("Hand", dust);
         Assert.Equal(4, events.Events.Count);
@@ -128,7 +128,7 @@ public sealed class LocalPickupFeedbackTests
         pending.DustRequested += request => dust = request;
         var events = new ListEventSink();
         var sink = new LocalPickupEffectSink(pending, events);
-        Assert.True(pending.TryQueue(world, db, Keeper, new(creature.Id), 0));
+        Assert.True(pending.TryQueue(world, db, Keeper, new CreatureId(creature.Id), 0));
         creature.InHand = true;
         world.Player(Keeper).Hand.Add(HandItem.Of(creature));
         pending.Advance(world, 100);
@@ -144,7 +144,7 @@ public sealed class LocalPickupFeedbackTests
         var events = new ListEventSink();
         var simulation = new GameSimulation(db, world, 1, [new HandSystem()]);
         simulation.ObserveWith(new LocalPickupEffectSink(pending, events));
-        Assert.True(pending.TryQueue(world, db, Keeper, new(creature.Id), 0));
+        Assert.True(pending.TryQueue(world, db, Keeper, new CreatureId(creature.Id), 0));
         simulation.Tick(InputFrame.Of(new PickUpCreatureCommand(Keeper, creature.Id)));
         Assert.Single(events.Events, e => e.EffectRequest.HasValue);
     }

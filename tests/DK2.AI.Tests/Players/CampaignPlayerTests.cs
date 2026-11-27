@@ -15,9 +15,9 @@ namespace DK2.AI.Tests.Players;
 /// task 5). Every fixture here is an observation drawn as a map; no world or privileged view.</summary>
 public partial class CampaignPlayerTests
 {
-    private static readonly PlayerId Me = new(3), Heroes = new(PlayerIds.Good);
-    private static readonly PlayerRunId Run = new("campaign-player-test");
-    private static readonly CreatureTypeId Imp = new(1), Goblin = new(7);
+    private static readonly PlayerId Me = new PlayerId(3), Heroes = new PlayerId(PlayerIds.Good);
+    private static readonly PlayerRunId Run = new PlayerRunId("campaign-player-test");
+    private static readonly CreatureTypeId Imp = new CreatureTypeId(1), Goblin = new CreatureTypeId(7);
 
     /// <summary>'.' own floor, 'H' own heart, '#' diggable rock, '$' gold seam, 'R' impenetrable rock,
     /// '?' unseen, 't' an own dig mark on unseen ground, 'x' an own dig mark on rock, 'e' enemy floor, 'T' own Treasury, 'L' own Lair,
@@ -138,12 +138,12 @@ public partial class CampaignPlayerTests
 
     private static CampaignPlayer Player(Func<CampaignPlayerOptions, CampaignPlayerOptions>? tune = null)
     {
-        return new((tune ?? (o => o))(new CampaignPlayerOptions(Run, Me, [Imp])));
+        return new CampaignPlayer((tune ?? (o => o))(new CampaignPlayerOptions(Run, Me, [Imp])));
     }
 
     private static PlayerThingHandle Handle(int ordinal, long revision = 1)
     {
-        return new(new PlayerRevision(revision), ordinal);
+        return new PlayerThingHandle(new PlayerRevision(revision), ordinal);
     }
 
     [Fact]
@@ -183,7 +183,7 @@ public partial class CampaignPlayerTests
         Assert.DoesNotContain(player.Decide(Observe(2)).Actions, a => a is PlayerAction.BuildRoom);
 
         // Actions 1 and 2 were the press and the build; the build (id 2) was refused.
-        PlayerReceipt refused = new(new PlayerActionId(2), PlayerReceiptStatus.Refused, PlayerRefusalReason.NotOffered);
+        var refused = new PlayerReceipt(new PlayerActionId(2), PlayerReceiptStatus.Refused, PlayerRefusalReason.NotOffered);
         PlayerAction.BuildRoom retried = Assert.Single(player.Decide(Observe(3, receipts: [refused])).Actions.OfType<PlayerAction.BuildRoom>());
         Assert.NotEqual(first.From, retried.From);
     }
@@ -236,13 +236,13 @@ public partial class CampaignPlayerTests
     [Fact]
     public void ANearbyEnemyIsAnsweredWithAFighterNeverAWorker()
     {
-        PlayerVisibleThing hero = new(Handle(0), PlayerThingKind.Creature, new TilePos(9, 9), Heroes, PlayerThingActions.None, creatureType: new CreatureTypeId(20));
-        PlayerVisibleThing imp = new(Handle(1), PlayerThingKind.Creature, new TilePos(2, 2), Me, PlayerThingActions.PickUp | PlayerThingActions.Slap, creatureType: Imp);
-        PlayerVisibleThing goblin = new(Handle(2), PlayerThingKind.Creature, new TilePos(3, 2), Me, PlayerThingActions.PickUp | PlayerThingActions.Slap, creatureType: Goblin);
+        var hero = new PlayerVisibleThing(Handle(0), PlayerThingKind.Creature, new TilePos(9, 9), Heroes, PlayerThingActions.None, creatureType: new CreatureTypeId(20));
+        var imp = new PlayerVisibleThing(Handle(1), PlayerThingKind.Creature, new TilePos(2, 2), Me, PlayerThingActions.PickUp | PlayerThingActions.Slap, creatureType: Imp);
+        var goblin = new PlayerVisibleThing(Handle(2), PlayerThingKind.Creature, new TilePos(3, 2), Me, PlayerThingActions.PickUp | PlayerThingActions.Slap, creatureType: Goblin);
 
         Assert.Equal(new PlayerAction.PickUp(Handle(2)), Player().Decide(Observe(things: [hero, imp, goblin], gold: 0)).Actions[0]);
         Assert.DoesNotContain(Player().Decide(Observe(things: [hero, imp], gold: 0)).Actions, a => a is PlayerAction.PickUp);
-        PlayerVisibleThing engaged = new(Handle(2), PlayerThingKind.Creature, new TilePos(8, 8), Me, goblin.Actions, creatureType: Goblin);
+        var engaged = new PlayerVisibleThing(Handle(2), PlayerThingKind.Creature, new TilePos(8, 8), Me, goblin.Actions, creatureType: Goblin);
         Assert.DoesNotContain(Player().Decide(Observe(things: [hero, engaged], gold: 0)).Actions, a => a is PlayerAction.PickUp);
         // Holding it, drop it on the own floor nearest the enemy.
         Assert.Equal(new PlayerAction.DropAt(new TilePos(8, 8)), Player().Decide(Observe(things: [hero], hand: 1, gold: 0)).Actions[0]);
@@ -262,7 +262,7 @@ public partial class CampaignPlayerTests
     [Fact]
     public void AnOfferedSpecialIsActivatedAndAGoneOneIsNot()
     {
-        PlayerVisibleThing special = new(Handle(0), PlayerThingKind.Special, new TilePos(3, 3), Me, PlayerThingActions.Activate, objectType: new ObjectTypeId(88));
+        var special = new PlayerVisibleThing(Handle(0), PlayerThingKind.Special, new TilePos(3, 3), Me, PlayerThingActions.Activate, objectType: new ObjectTypeId(88));
         Assert.Contains(new PlayerAction.ActivateSpecial(Handle(0)), Player().Decide(Observe(things: [special], gold: 0)).Actions);
         Assert.DoesNotContain(Player().Decide(Observe(gold: 0)).Actions, a => a is PlayerAction.ActivateSpecial);
     }
@@ -308,8 +308,8 @@ public partial class CampaignPlayerTests
     [Fact]
     public void OneLiftAndOneDropPerSightingWithinTheCooldown()
     {
-        PlayerVisibleThing hero = new(Handle(0), PlayerThingKind.Creature, new TilePos(9, 9), Heroes, PlayerThingActions.None, creatureType: new CreatureTypeId(20));
-        PlayerVisibleThing goblin = new(Handle(1), PlayerThingKind.Creature, new TilePos(3, 3), Me, PlayerThingActions.PickUp, creatureType: Goblin);
+        var hero = new PlayerVisibleThing(Handle(0), PlayerThingKind.Creature, new TilePos(9, 9), Heroes, PlayerThingActions.None, creatureType: new CreatureTypeId(20));
+        var goblin = new PlayerVisibleThing(Handle(1), PlayerThingKind.Creature, new TilePos(3, 3), Me, PlayerThingActions.PickUp, creatureType: Goblin);
         CampaignPlayer player = Player(o => o with { DropCooldownTicks = 40 });
 
         Assert.Contains(new PlayerAction.PickUp(Handle(1)), player.Decide(Observe(1, things: [hero, goblin], gold: 0)).Actions);
@@ -325,11 +325,11 @@ public partial class CampaignPlayerTests
         // The hero stands 8 tiles beyond own floor (an attack: EnemyNearTiles is 8); the goblin already stands where a
         // drop would put it.
         string[] wide = [.. Dungeon.Select(r => r + "##########")];
-        PlayerVisibleThing hero = new(Handle(0), PlayerThingKind.Creature, new TilePos(16, 5), Heroes, PlayerThingActions.None, creatureType: new CreatureTypeId(20));
-        PlayerVisibleThing goblin = new(Handle(1), PlayerThingKind.Creature, new TilePos(8, 5), Me, PlayerThingActions.PickUp, creatureType: Goblin);
+        var hero = new PlayerVisibleThing(Handle(0), PlayerThingKind.Creature, new TilePos(16, 5), Heroes, PlayerThingActions.None, creatureType: new CreatureTypeId(20));
+        var goblin = new PlayerVisibleThing(Handle(1), PlayerThingKind.Creature, new TilePos(8, 5), Me, PlayerThingActions.PickUp, creatureType: Goblin);
         Assert.DoesNotContain(Player().Decide(Observe(map: wide, things: [hero, goblin], gold: 0)).Actions, a => a is PlayerAction.PickUp);
         // The same goblin back home is lifted.
-        PlayerVisibleThing home = new(Handle(1), PlayerThingKind.Creature, new TilePos(2, 2), Me, PlayerThingActions.PickUp, creatureType: Goblin);
+        var home = new PlayerVisibleThing(Handle(1), PlayerThingKind.Creature, new TilePos(2, 2), Me, PlayerThingActions.PickUp, creatureType: Goblin);
         Assert.Contains(new PlayerAction.PickUp(Handle(1)), Player().Decide(Observe(map: wide, things: [hero, home], gold: 0)).Actions);
     }
 
@@ -356,7 +356,7 @@ public partial class CampaignPlayerTests
 
         CampaignPlayer other = Player();
         var built = (PlayerAction.BuildRoom)other.Decide(Observe(1)).Actions[1];
-        PlayerReceipt stale = new(new PlayerActionId(2), PlayerReceiptStatus.Cancelled, PlayerRefusalReason.StaleObservation);
+        var stale = new PlayerReceipt(new PlayerActionId(2), PlayerReceiptStatus.Cancelled, PlayerRefusalReason.StaleObservation);
         Assert.Equal(built.From, Assert.Single(other.Decide(Observe(2, receipts: [stale])).Actions.OfType<PlayerAction.BuildRoom>()).From);
     }
 
@@ -389,7 +389,7 @@ public partial class CampaignPlayerTests
         var options = new CampaignPlayerOptions(Run, Me, [Imp]);
         Assert.False(options.WorkerTypes is HashSet<CreatureTypeId>);
 
-        PlayerVisibleThing special = new(Handle(0), PlayerThingKind.Special, new TilePos(3, 3), Me, PlayerThingActions.Activate, objectType: new ObjectTypeId(88));
+        var special = new PlayerVisibleThing(Handle(0), PlayerThingKind.Special, new TilePos(3, 3), Me, PlayerThingActions.Activate, objectType: new ObjectTypeId(88));
         Assert.DoesNotContain(Player(o => o with { SpecialTypes = [new ObjectTypeId(89)] }).Decide(Observe(things: [special], gold: 0)).Actions,
             a => a is PlayerAction.ActivateSpecial);
         Assert.Contains(new PlayerAction.ActivateSpecial(Handle(0)),
@@ -399,7 +399,7 @@ public partial class CampaignPlayerTests
     [Fact]
     public void NeutralAndUnownedCreaturesAreNotEnemiesAndUnseenGroundIsAFrontier()
     {
-        PlayerVisibleThing neutral = new(Handle(0), PlayerThingKind.Creature, new TilePos(9, 9), new PlayerId(PlayerIds.Neutral), PlayerThingActions.None, creatureType: Goblin);
+        var neutral = new PlayerVisibleThing(Handle(0), PlayerThingKind.Creature, new TilePos(9, 9), new PlayerId(PlayerIds.Neutral), PlayerThingActions.None, creatureType: Goblin);
         Assert.False(PlayerActionRoutines.IsEnemy(neutral, Me));
         Assert.False(PlayerActionRoutines.IsEnemy(new PlayerVisibleThing(Handle(0), PlayerThingKind.Creature, new TilePos(9, 9),
             new PlayerId(PlayerIds.Unowned), PlayerThingActions.None, creatureType: Goblin), Me));
@@ -448,9 +448,9 @@ public partial class CampaignPlayerTests
     [Fact]
     public void HoldHomeAnswersOnlyAnEnemyNearHomeAndOffAnswersNone()
     {
-        PlayerVisibleThing far = new(Handle(0), PlayerThingKind.Creature, new TilePos(9, 9), Heroes, PlayerThingActions.None, creatureType: new CreatureTypeId(20));
-        PlayerVisibleThing near = new(Handle(0), PlayerThingKind.Creature, new TilePos(6, 7), Heroes, PlayerThingActions.None, creatureType: new CreatureTypeId(20));
-        PlayerVisibleThing goblin = new(Handle(2), PlayerThingKind.Creature, new TilePos(3, 2), Me, PlayerThingActions.PickUp | PlayerThingActions.Slap, creatureType: Goblin);
+        var far = new PlayerVisibleThing(Handle(0), PlayerThingKind.Creature, new TilePos(9, 9), Heroes, PlayerThingActions.None, creatureType: new CreatureTypeId(20));
+        var near = new PlayerVisibleThing(Handle(0), PlayerThingKind.Creature, new TilePos(6, 7), Heroes, PlayerThingActions.None, creatureType: new CreatureTypeId(20));
+        var goblin = new PlayerVisibleThing(Handle(2), PlayerThingKind.Creature, new TilePos(3, 2), Me, PlayerThingActions.PickUp | PlayerThingActions.Slap, creatureType: Goblin);
 
         CampaignPlayer hold = Player();
         hold.Apply(hold.Strategy with { Fight = FightMode.HoldHome, HomeGuardTiles = 3 });
@@ -567,7 +567,7 @@ public partial class CampaignPlayerTests
     [Fact]
     public void SpecialsOffLeavesAnOfferedSpecialAndABadStrategyIsRefused()
     {
-        PlayerVisibleThing special = new(Handle(0), PlayerThingKind.Special, new TilePos(3, 3), Me, PlayerThingActions.Activate, objectType: new ObjectTypeId(88));
+        var special = new PlayerVisibleThing(Handle(0), PlayerThingKind.Special, new TilePos(3, 3), Me, PlayerThingActions.Activate, objectType: new ObjectTypeId(88));
         CampaignPlayer player = Player();
         player.Apply(player.Strategy with { UseSpecials = false });
         Assert.DoesNotContain(player.Decide(Observe(things: [special], gold: 0)).Actions, a => a is PlayerAction.ActivateSpecial);

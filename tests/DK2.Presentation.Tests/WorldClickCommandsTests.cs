@@ -15,14 +15,14 @@ namespace DK2.Presentation.Tests;
 public sealed class WorldClickCommandsTests
 {
     private static readonly PlayerId Keeper = PressFixture.Keeper;
-    private static readonly TilePos At = new(3, 4);
+    private static readonly TilePos At = new TilePos(3, 4);
 
     private sealed class Host : IWorldClickHost
     {
         public readonly List<string> Calls = [];
         public bool OverHud;
         public TilePos? Tile = At;
-        public WorldHoverHit Hit = new(WorldHoverKind.Tile, At);
+        public WorldHoverHit Hit = new WorldHoverHit(WorldHoverKind.Tile, At);
 
         public bool PointerOverHud() { Calls.Add("over hud"); return OverHud; }
         public TilePos? PointerTile() { Calls.Add("tile"); return Tile; }
@@ -36,11 +36,11 @@ public sealed class WorldClickCommandsTests
     private sealed class Rig
     {
         public readonly GameDatabase Database;
-        public readonly HudToolState Tools = new();
-        public readonly PlayerInputTranslator Input = new();
+        public readonly HudToolState Tools = new HudToolState();
+        public readonly PlayerInputTranslator Input = new PlayerInputTranslator();
         public readonly CreatureQueryView Query;
         public readonly BottomPanelView Panel;
-        public readonly Host Host = new();
+        public readonly Host Host = new Host();
         public readonly WorldClickCommands Commands;
         public readonly List<PlayerCommand> Output = [];
 

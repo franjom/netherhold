@@ -51,11 +51,11 @@ public sealed class HudActionRouterTests
 
     private sealed class Rig
     {
-        public readonly ClassicHudControls Controls = new();
-        public readonly HudToolState Tools = new();
-        public readonly PlayerInputTranslator Input = new();
-        public readonly Host Host = new();
-        public readonly BottomPanelView Panel = new(new GameDatabase([], [], [], new GlobalVariables()), Keeper, (_, name) => name);
+        public readonly ClassicHudControls Controls = new ClassicHudControls();
+        public readonly HudToolState Tools = new HudToolState();
+        public readonly PlayerInputTranslator Input = new PlayerInputTranslator();
+        public readonly Host Host = new Host();
+        public readonly BottomPanelView Panel = new BottomPanelView(new GameDatabase([], [], [], new GlobalVariables()), Keeper, (_, name) => name);
         public readonly HudActionRouter Router;
 
         public Rig()

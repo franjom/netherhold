@@ -59,7 +59,7 @@ public sealed class PossessionDigTests
 
     private static ActPossessedCreatureCommand Press(CreatureState me, ushort yaw = East)
     {
-        return new(Keeper, new(new(new(me.PosX), new(me.PosY), new(me.PosZ)), new(yaw), new(Level)), true, new(0));
+        return new ActPossessedCreatureCommand(Keeper, new PossessionAim(new FpPosition3(new Fp32(me.PosX), new Fp32(me.PosY), new Fp32(me.PosZ)), new Dk2Angle(yaw), new Dk2Angle(Level)), true, new PossessedSlot(0));
     }
 
     private static void Set(WorldState world, int x, int y, byte terrain, byte owner = PlayerIds.Neutral)

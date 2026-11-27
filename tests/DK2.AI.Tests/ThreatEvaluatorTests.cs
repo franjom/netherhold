@@ -46,10 +46,10 @@ public class ThreatEvaluatorTests
     {
         KeeperThreatSource[] sources =
         [
-            new(3, 0, 0, 10, 0), new(3, 0, 0, 20, 1), new(3, 0, 0, 40, 2),
-            new(3, 0, 0, 80, 3), new(4, 0, 0, 160, 0),
-            new(3, 0, 0, 320, 0, true, 3), new(3, 0, 0, 640, 0, true, 2),
-            new(3, 0, 0, 1280, 2, true, 3), new(3, 0, 0, 2560, 0, true, 1)
+            new KeeperThreatSource(3, 0, 0, 10, 0), new KeeperThreatSource(3, 0, 0, 20, 1), new KeeperThreatSource(3, 0, 0, 40, 2),
+            new KeeperThreatSource(3, 0, 0, 80, 3), new KeeperThreatSource(4, 0, 0, 160, 0),
+            new KeeperThreatSource(3, 0, 0, 320, 0, true, 3), new KeeperThreatSource(3, 0, 0, 640, 0, true, 2),
+            new KeeperThreatSource(3, 0, 0, 1280, 2, true, 3), new KeeperThreatSource(3, 0, 0, 2560, 0, true, 1)
         ];
         Assert.Equal(110, ThreatEvaluator.LocalStrength(sources, 3, 0, 0, 4096, false));
         Assert.Equal(2990, ThreatEvaluator.LocalStrength(sources, 3, 0, 0, 4096, true));
@@ -62,11 +62,11 @@ public class ThreatEvaluatorTests
         const int centre = 20 * 4096 + 2048;
         KeeperThreatSource[] sources =
         [
-            new(1, centre + 6 * 4096, centre, 10, 0),
-            new(2, centre, centre, 20, 0),
-            new(3, centre + 4 * 4096, centre, 30, 0),
-            new(4, centre, centre, 40, 0, true, 3),
-            new(5, centre, centre, 50, 0, true, 4)
+            new KeeperThreatSource(1, centre + 6 * 4096, centre, 10, 0),
+            new KeeperThreatSource(2, centre, centre, 20, 0),
+            new KeeperThreatSource(3, centre + 4 * 4096, centre, 30, 0),
+            new KeeperThreatSource(4, centre, centre, 40, 0, true, 3),
+            new KeeperThreatSource(5, centre, centre, 50, 0, true, 4)
         ];
         PlayerId[] order = [1, 2, 3, 4, 5];
         bool Allied(PlayerId player)
@@ -85,7 +85,7 @@ public class ThreatEvaluatorTests
     [Fact]
     public void AttackerIsLastNonzeroEnemyInSuppliedPlayerOrder()
     {
-        KeeperThreatSource[] sources = [new(1, 2048, 2048, 10, 0), new(2, 2048, 2048, 20, 0)];
+        KeeperThreatSource[] sources = [new KeeperThreatSource(1, 2048, 2048, 10, 0), new KeeperThreatSource(2, 2048, 2048, 20, 0)];
         Assert.Equal((byte)1, ThreatEvaluator.Assess(sources, new PlayerId[] { 2, 1, 4 },
             _ => false, new TilePos(0, 0), false, false).AttackingPlayer);
     }

@@ -36,7 +36,7 @@ public sealed class DeferredEventSinkTests
 
         Assert.Equal(events, received.Select(item => item.Event));
         Assert.All(received, item => Assert.Equal(frameThread, item.Thread));
-        SimEvent next = new(new GameTick(1000), "test", "next-batch", "");
+        var next = new SimEvent(new GameTick(1000), "test", "next-batch", "");
         sink.Emit(next);
         Assert.Equal(1000, received.Count);
         sink.Replay();

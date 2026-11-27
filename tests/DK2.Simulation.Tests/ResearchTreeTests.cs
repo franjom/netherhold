@@ -22,7 +22,7 @@ public sealed class ResearchTreeTests
     private const int WoodenDoor = 1;
 
     /// <summary>A 3×3 Library's only floor slot, its interior tile.</summary>
-    private static readonly TilePos Shelf = new(2, 2);
+    private static readonly TilePos Shelf = new TilePos(2, 2);
 
     private static int Second
     {

@@ -36,7 +36,7 @@ internal static class SoundFixture
     /// <summary>The same database with every door's impact byte set (4 and 5, the Steel and Magic doors', ask the boulder for 0x15A).</summary>
     public static GameDatabase WithDoorImpact(GameDatabase basis, byte impactKind)
     {
-        return new(basis.Terrain.Values, basis.Rooms.Values,
+        return new GameDatabase(basis.Terrain.Values, basis.Rooms.Values,
         basis.Creatures.Values, basis.Variables, basis.KeeperSpells.Values, basis.Objects.Values,
         basis.Doors.Values.Select(d => d with { ImpactKind = impactKind }), basis.Traps.Values, basis.CreatureSpells.Values,
         basis.Shots.Values, basis.Effects.Values, basis.EffectElements.Values, basis.Level, basis.CameraPathFrames);
@@ -45,7 +45,7 @@ internal static class SoundFixture
     /// <summary>The same database with its keeper spells' and shots' sound categories set by the given functions.</summary>
     public static GameDatabase WithSpellAndShotCategories(GameDatabase basis, Func<KeeperSpellDef, KeeperSpellDef> spells, Func<ShotDef, ShotDef> shots)
     {
-        return new(basis.Terrain.Values, basis.Rooms.Values, basis.Creatures.Values, basis.Variables, basis.KeeperSpells.Values.Select(spells),
+        return new GameDatabase(basis.Terrain.Values, basis.Rooms.Values, basis.Creatures.Values, basis.Variables, basis.KeeperSpells.Values.Select(spells),
             basis.Objects.Values, basis.Doors.Values, basis.Traps.Values, basis.CreatureSpells.Values, basis.Shots.Values.Select(shots),
             basis.Effects.Values, basis.EffectElements.Values, basis.Level, basis.CameraPathFrames);
     }
@@ -83,7 +83,7 @@ internal static class SoundFixture
 
     private static ObjectDef Plain(byte id, string category)
     {
-        return new()
+        return new ObjectDef()
         {
             Name = category,
             ObjectId = id,
@@ -110,7 +110,7 @@ internal static class SoundFixture
 
     public static FpPosition3 Centre(WorldState world, int tileIndex, int height = 0x1000)
     {
-        return new(new Fp32(CreatureState.CentreOf(tileIndex % world.Width)), new Fp32(CreatureState.CentreOf(tileIndex / world.Width)),
+        return new FpPosition3(new Fp32(CreatureState.CentreOf(tileIndex % world.Width)), new Fp32(CreatureState.CentreOf(tileIndex / world.Width)),
             new Fp32(height));
     }
 }

@@ -22,11 +22,11 @@ public class TriggerSchedulingTests
         {
             ActionPointId = 1, TriggerId = 1, StartX = 5, EndX = 5, StartY = 5, EndY = 5, Name = "fixture",
         }]);
-        TriggerRecord area = Condition(1, 42, 65535, new()
+        TriggerRecord area = Condition(1, 42, 65535, new Dictionary<string, long>()
         {
             ["Comparison"] = 5, ["PlayerId"] = 1, ["TerrainId"] = 0, ["Value"] = 1,
         }) with { RepeatCount = 255 };
-        TriggerRecord player = Condition(2, 1, 65533, new()
+        TriggerRecord player = Condition(2, 1, 65533, new Dictionary<string, long>()
         {
             ["Comparison"] = 3, ["FlagId"] = 8, ["Flag"] = 1, ["Value"] = 1,
         }) with { RepeatCount = 255 };
@@ -68,9 +68,9 @@ public class TriggerSchedulingTests
         }]);
         var tree = new TriggerTree(
         [
-            Condition(1, 34, 65535, new() { ["Comparison"] = 5, ["Value"] = 0 }) with { RepeatCount = 255 },
-            Condition(2, 42, 65534, new() { ["Comparison"] = 5, ["PlayerId"] = 1, ["TerrainId"] = 0, ["Value"] = 1 }),
-            Condition(3, 1, 65533, new() { ["Comparison"] = 3, ["FlagId"] = 9, ["Flag"] = 1, ["Value"] = 0 }),
+            Condition(1, 34, 65535, new Dictionary<string, long>() { ["Comparison"] = 5, ["Value"] = 0 }) with { RepeatCount = 255 },
+            Condition(2, 42, 65534, new Dictionary<string, long>() { ["Comparison"] = 5, ["PlayerId"] = 1, ["TerrainId"] = 0, ["Value"] = 1 }),
+            Condition(3, 1, 65533, new Dictionary<string, long>() { ["Comparison"] = 3, ["FlagId"] = 9, ["Flag"] = 1, ["Value"] = 0 }),
             SetFlag(65535, 1), SetFlag(65534, 2), SetFlag(65533, 3),
         ], 0, playerRoots: [new TriggerPlayerRoot(1, 3)]);
         var log = new List<string>();
@@ -144,7 +144,7 @@ public class TriggerSchedulingTests
         CreatureState older = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, 1, new TilePos(5, 5));
         CreatureState newer = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, 1, new TilePos(5, 5));
         newer.TriggerId = 1;
-        TriggerRecord condition = Condition(1, 36, 65535, new() { ["Comparison"] = 3, ["Value"] = 0 });
+        TriggerRecord condition = Condition(1, 36, 65535, new Dictionary<string, long>() { ["Comparison"] = 3, ["Value"] = 0 });
         var step = new HealthStep(newer.Id, older.Id);
         var tree = new TriggerTree([condition, Timer(65535, 3)], 0);
         var sim = new GameSimulation(db, world, 1, Scheduled(step), tree);
@@ -169,7 +169,7 @@ public class TriggerSchedulingTests
         WorldState world = TestWorld.World(db);
         CreatureState creature = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, 1, new TilePos(5, 5));
         creature.TriggerId = 1;
-        TriggerRecord condition = Condition(1, 34, 65535, new() { ["Comparison"] = 5, ["Value"] = 0 })
+        TriggerRecord condition = Condition(1, 34, 65535, new Dictionary<string, long>() { ["Comparison"] = 5, ["Value"] = 0 })
             with { RepeatCount = 255 };
         var increment = new ActionTriggerRecord(new byte[16])
         {

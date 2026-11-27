@@ -84,12 +84,12 @@ public sealed class SlabChainTests
     public void TheWaveRunsFromTheSecondCorner_ADiagonalAtATime_AlongEachFromItsXTowardTheFirst()
     {
         Assert.Equal(
-            [new(2, 1), new(2, 0), new(1, 1), new(1, 0), new(0, 1), new(0, 0)],
+            [new TilePos(2, 1), new TilePos(2, 0), new TilePos(1, 1), new TilePos(1, 0), new TilePos(0, 1), new TilePos(0, 0)],
             SlabChain.Wave(0, 0, 2, 1));
 
         (GameDatabase db, WorldState world, GameSimulation sim) = World();
         Run(sim, BuildRoomCommand.Rect(Keeper, Prison(db), 4, 2, 6, 3));
-        Assert.Equal([new(6, 3), new(6, 2), new(5, 3), new(5, 2), new(4, 3), new(4, 2)], Chain(db, world, new TilePos(4, 2)));
+        Assert.Equal([new TilePos(6, 3), new TilePos(6, 2), new TilePos(5, 3), new TilePos(5, 2), new TilePos(4, 3), new TilePos(4, 2)], Chain(db, world, new TilePos(4, 2)));
     }
 
     /// <summary>The owner's two builds (2026-09-26): the same 5×5 at (4..8, 2..6), north up. Dragged
@@ -137,7 +137,7 @@ public sealed class SlabChainTests
         Click(db, sim, new TilePos(5, 2), new TilePos(5, 3));   // the north room
         Click(db, sim, new TilePos(5, 4));
 
-        Assert.Equal([new(5, 2), new(5, 3), new(5, 4), new(5, 5), new(5, 6)], Chain(db, world, new TilePos(5, 4)));
+        Assert.Equal([new TilePos(5, 2), new TilePos(5, 3), new TilePos(5, 4), new TilePos(5, 5), new TilePos(5, 6)], Chain(db, world, new TilePos(5, 4)));
     }
 
     /// <summary>A sale takes the room's other tiles in their old order and inserts them again. Here the
@@ -147,10 +147,10 @@ public sealed class SlabChainTests
     {
         (GameDatabase db, WorldState world, GameSimulation sim) = World();
         Click(db, sim, new TilePos(6, 4), new TilePos(4, 4), new TilePos(5, 4), new TilePos(6, 5), new TilePos(4, 5), new TilePos(5, 5));
-        Assert.Equal([new(6, 4), new(5, 4), new(4, 4), new(6, 5), new(4, 5), new(5, 5)], Chain(db, world, new TilePos(5, 5)));
+        Assert.Equal([new TilePos(6, 4), new TilePos(5, 4), new TilePos(4, 4), new TilePos(6, 5), new TilePos(4, 5), new TilePos(5, 5)], Chain(db, world, new TilePos(5, 5)));
 
         Run(sim, SellRoomCommand.At(Keeper, new TilePos(5, 4)));
-        Assert.Equal([new(6, 4), new(6, 5), new(5, 5), new(4, 4), new(4, 5)], Chain(db, world, new TilePos(5, 5)));
+        Assert.Equal([new TilePos(6, 4), new TilePos(6, 5), new TilePos(5, 5), new TilePos(4, 4), new TilePos(4, 5)], Chain(db, world, new TilePos(5, 5)));
     }
 
     /// <summary>The owner (2026-09-26): a Prison dragged so its door is in the east column, saved and
@@ -252,7 +252,7 @@ public sealed class SlabChainTests
         {
             Flags = basis.TerrainById(Dk2TerrainFixture.ReinforcedWall).Flags | TerrainFlags.AllowRoomWalls,
         };
-        GameDatabase db = new(
+        var db = new GameDatabase(
             basis.Terrain.Values.Select(t => t.TerrainId == wall.TerrainId ? wall : t),
             basis.Rooms.Values, basis.Creatures.Values, basis.Variables,
             objects: basis.Objects.Values);

@@ -18,12 +18,12 @@ public class PlaybookTests
     {
         get
         {
-            return new()
+            return new Playbook()
             {
                 Level = "campaign:level2",
-                Start = [PlaybookItem.Room(RoomTypeId.Lair), PlaybookItem.Room(RoomTypeId.Hatchery), new(PlaybookItemKind.Spell, "Create Imp")],
-                Creatures = [new(PlaybookItemKind.Creature, "Goblin")],
-                MayChange = [new(PlaybookItem.Room(RoomTypeId.TrainingRoom), true, "trigger 12 MAKE"), new(PlaybookItem.Room(RoomTypeId.Treasury), false, "trigger 13 MAKE")],
+                Start = [PlaybookItem.Room(RoomTypeId.Lair), PlaybookItem.Room(RoomTypeId.Hatchery), new PlaybookItem(PlaybookItemKind.Spell, "Create Imp")],
+                Creatures = [new PlaybookItem(PlaybookItemKind.Creature, "Goblin")],
+                MayChange = [new PlaybookChange(PlaybookItem.Room(RoomTypeId.TrainingRoom), true, "trigger 12 MAKE"), new PlaybookChange(PlaybookItem.Room(RoomTypeId.Treasury), false, "trigger 13 MAKE")],
             };
         }
     }
@@ -48,7 +48,7 @@ public class PlaybookTests
         {
             Rooms = [RoomTypeId.Hatchery, RoomTypeId.Lair],
             ExtraRooms = [RoomTypeId.TrainingRoom],
-            Tunables = [new("strategy.room-side", 4, 3, 6, PlaybookProvenance.Researched, Source: "rooms.yaml")],
+            Tunables = [new PlaybookTunable("strategy.room-side", 4, 3, 6, PlaybookProvenance.Researched, Source: "rooms.yaml")],
         };
         Assert.Empty(playbook.Review(Hash).Problems);
 
@@ -76,7 +76,7 @@ public class PlaybookTests
     [Fact]
     public void ATunedValueNamesItsCommitAndGoesStaleWithTheHashVersion()
     {
-        PlaybookTunable tuned = new("strategy.lair-tiles-per-creature", 2, 1, 3, PlaybookProvenance.Tuned, ProvenOn: "5118067a", HashVersion: 519);
+        var tuned = new PlaybookTunable("strategy.lair-tiles-per-creature", 2, 1, 3, PlaybookProvenance.Tuned, ProvenOn: "5118067a", HashVersion: 519);
         PlaybookReview stale = (Level2 with { Tunables = [tuned] }).Review(Hash);
         Assert.Empty(stale.Problems);
         Assert.Equal(["tunable strategy.lair-tiles-per-creature is stale: proven on 5118067a at hash 519, the simulation is at 521"], stale.Warnings);
@@ -89,20 +89,20 @@ public class PlaybookTests
         Playbook bad = Level2 with
         {
             Level = "level2",
-            Start = [.. Level2.Start, PlaybookItem.Room(RoomTypeId.Lair), new(PlaybookItemKind.Creature, "Imp")],
-            MayChange = [new(PlaybookItem.Room(RoomTypeId.Library), true, " ")],
+            Start = [.. Level2.Start, PlaybookItem.Room(RoomTypeId.Lair), new PlaybookItem(PlaybookItemKind.Creature, "Imp")],
+            MayChange = [new PlaybookChange(PlaybookItem.Room(RoomTypeId.Library), true, " ")],
             Rooms = [RoomTypeId.Lair, RoomTypeId.Lair],
             Rules = ["R4", "R4", ""],
             Tunables =
             [
-                new("strategy.room-side", 7, 3, 6, PlaybookProvenance.Researched, Source: "x"),
-                new("strategy.treasury-full-percent", 80, 50, 120, PlaybookProvenance.Researched, Source: "x"),
-                new("strategy.lair-tiles-per-creature", 1, 1, 2, PlaybookProvenance.Researched),
-                new("strategy.home-guard-tiles", 8, 4, 9, PlaybookProvenance.Tuned),
-                new("strategy.colour", 1, 1, 1, PlaybookProvenance.Researched, Source: "x"),
+                new PlaybookTunable("strategy.room-side", 7, 3, 6, PlaybookProvenance.Researched, Source: "x"),
+                new PlaybookTunable("strategy.treasury-full-percent", 80, 50, 120, PlaybookProvenance.Researched, Source: "x"),
+                new PlaybookTunable("strategy.lair-tiles-per-creature", 1, 1, 2, PlaybookProvenance.Researched),
+                new PlaybookTunable("strategy.home-guard-tiles", 8, 4, 9, PlaybookProvenance.Tuned),
+                new PlaybookTunable("strategy.colour", 1, 1, 1, PlaybookProvenance.Researched, Source: "x"),
             ],
-            Notes = [new("gold", "a seam at (40, 12)", "")],
-            Events = [new("first-wave", "heroes at tick 6000", " ")],
+            Notes = [new PlaybookNote("gold", "a seam at (40, 12)", "")],
+            Events = [new PlaybookNote("first-wave", "heroes at tick 6000", " ")],
             Caps = new PlaybookCaps(MaxTicks: 0, WallSeconds: -1, OutputMiB: 1),
         };
         IReadOnlyList<string> problems = bad.Review(Hash).Problems;
@@ -147,7 +147,7 @@ public class PlaybookTests
                 "strategy.assault-party" => 3,
                 _ => 5,
             };
-            Playbook set = Level2 with { Tunables = [new(path, value, value, value, PlaybookProvenance.Researched, Source: "test")] };
+            Playbook set = Level2 with { Tunables = [new PlaybookTunable(path, value, value, value, PlaybookProvenance.Researched, Source: "test")] };
             Assert.Empty(set.Review(Hash).Problems);
             PlayerStrategy changed = set.Apply(new PlayerStrategy());
             Assert.Empty(changed.Validate());

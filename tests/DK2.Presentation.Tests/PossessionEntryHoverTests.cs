@@ -40,7 +40,7 @@ public sealed class PossessionEntryHoverTests
         Assert.True(qualified);
         Assert.Equal(pointer, PossessionHighlight.EntryPointerTarget(pointer, entering: true, qualified));
         var flowers = new StatusFlowers(database, viewer);
-        Assert.Equal(skeleton.Id, Assert.Single(flowers.Capture(world, world.CurrentTick, new(skeleton.Id))).CreatureId);
+        Assert.Equal(skeleton.Id, Assert.Single(flowers.Capture(world, world.CurrentTick, new CreatureQueryTarget(skeleton.Id))).CreatureId);
         Assert.Empty(flowers.Capture(world, world.CurrentTick, CreatureQueryTarget.None));
     }
 
@@ -51,7 +51,7 @@ public sealed class PossessionEntryHoverTests
     [InlineData(true, false, false, false)]
     public void OnlyTheVisibleEntryHudKeepsOrdinaryPointerFeedback(bool possessing, bool settled, bool guiVisible, bool expected)
     {
-        Assert.Equal(expected, PossessionHighlight.EntryPointerFeedback(possessing, settled, new(guiVisible, false)));
+        Assert.Equal(expected, PossessionHighlight.EntryPointerFeedback(possessing, settled, new HudVisibility(guiVisible, false)));
     }
 
     [Fact]
@@ -76,7 +76,7 @@ public sealed class PossessionEntryHoverTests
     [InlineData(WorldHoverKind.Widget)]
     public void NoPointedThingIncludingAnOverHudPickProducesNoEntryTint(WorldHoverKind kind)
     {
-        Assert.Null(PossessionHighlight.EntryPointerTarget(new(kind, new TilePos(3, 7)), entering: true, ordinaryTargetAllowed: true));
+        Assert.Null(PossessionHighlight.EntryPointerTarget(new WorldHoverHit(kind, new TilePos(3, 7)), entering: true, ordinaryTargetAllowed: true));
         Assert.Null(PossessionHighlight.EntryPointerTarget(null, entering: true, ordinaryTargetAllowed: true));
     }
 }

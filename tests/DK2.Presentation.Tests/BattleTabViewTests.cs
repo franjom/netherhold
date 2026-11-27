@@ -14,8 +14,8 @@ namespace DK2.Presentation.Tests;
 /// <summary>Menu 43, the Battle tab (docs/research/battle-tab.md).</summary>
 public sealed class BattleTabViewTests
 {
-    private static readonly PlayerId Me = new(PlayerIds.FirstKeeper);
-    private static readonly PlayerId Rival = new(PlayerIds.FirstKeeper + 1);
+    private static readonly PlayerId Me = new PlayerId(PlayerIds.FirstKeeper);
+    private static readonly PlayerId Rival = new PlayerId(PlayerIds.FirstKeeper + 1);
 
     [Fact]
     public void TheBladesAndTheAlarmCycleFourFramesAndTheCancelTwo()
@@ -79,11 +79,11 @@ public sealed class BattleTabViewTests
     public void TheBladesShowOnlyForALiveBattleHoldingTheViewersCreature()
     {
         // 0x004269D0 through 0x00505250 from index -1.
-        BattleViewSnapshot[] others = [new(new(0), new(5, 5), PlayerMask.None.With(Rival), 3)];
+        BattleViewSnapshot[] others = [new BattleViewSnapshot(new BattleViewSlot(0), new TilePos(5, 5), PlayerMask.None.With(Rival), 3)];
         Assert.False(BattleTabView.BattleShows(others, Me));
-        BattleViewSnapshot[] emptied = [new(new(1), new(5, 5), PlayerMask.None.With(Me), 0)];
+        BattleViewSnapshot[] emptied = [new BattleViewSnapshot(new BattleViewSlot(1), new TilePos(5, 5), PlayerMask.None.With(Me), 0)];
         Assert.False(BattleTabView.BattleShows(emptied, Me));
-        BattleViewSnapshot[] mixed = [others[0], new(new(4), new(9, 9), PlayerMask.None.With(Me).With(Rival), 2)];
+        BattleViewSnapshot[] mixed = [others[0], new BattleViewSnapshot(new BattleViewSlot(4), new TilePos(9, 9), PlayerMask.None.With(Me).With(Rival), 2)];
         Assert.True(BattleTabView.BattleShows(mixed, Me));
     }
 

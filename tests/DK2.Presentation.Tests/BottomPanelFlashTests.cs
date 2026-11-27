@@ -14,7 +14,7 @@ public sealed class BottomPanelFlashTests
 {
     private static HudFlashTarget Target(byte category, byte button)
     {
-        return new((ushort)(category | button << 8));
+        return new HudFlashTarget((ushort)(category | button << 8));
     }
 
     private static BottomPanelOpenSet Open(BottomPanelCategory category)

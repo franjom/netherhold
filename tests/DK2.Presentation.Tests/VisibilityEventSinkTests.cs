@@ -83,7 +83,7 @@ public sealed class VisibilityEventSinkTests
 
     private static SimEvent Sight(GameTick tick, TilePos tile, byte viewer)
     {
-        return new(tick, "test", "sight", "")
+        return new SimEvent(tick, "test", "sight", "")
         {
             SightRegion = new SightRegionRequest(new PlayerId(viewer), tile, 64, 5),
         };
@@ -91,7 +91,7 @@ public sealed class VisibilityEventSinkTests
 
     private static SimEvent Effect(GameTick tick)
     {
-        return new(tick, "test", "effect", "");
+        return new SimEvent(tick, "test", "effect", "");
     }
 
     private static (GameSimulation Simulation, WorldView View) Fixture()

@@ -10,8 +10,8 @@ namespace DK2.Simulation.Tests;
 
 public sealed class ReinforcementActionTests
 {
-    private static readonly TilePos Face = new(4, 3);
-    private static readonly TilePos Stance = new(3, 3);
+    private static readonly TilePos Face = new TilePos(4, 3);
+    private static readonly TilePos Stance = new TilePos(3, 3);
 
     // 00466390 begins action7; 004950C0 selects art12; 00489A68 polls before dispatch.
     [Fact]
@@ -75,7 +75,7 @@ public sealed class ReinforcementActionTests
     {
         GameSimulation sim = Begin(ActionAnimationFlags.Loop);
         CreatureState imp = sim.World.Creatures[0];
-        foreach (TilePos at in new[] { new TilePos(3, 3), new(5, 3), new(4, 2), new(4, 4) })
+        foreach (TilePos at in new[] { new TilePos(3, 3), new TilePos(5, 3), new TilePos(4, 2), new TilePos(4, 4) })
         {
             sim.World.Tile(at).OwnerPlayerId = PlayerIds.Neutral;
         }

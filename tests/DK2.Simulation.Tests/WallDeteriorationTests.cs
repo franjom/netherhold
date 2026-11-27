@@ -26,8 +26,8 @@ public class WallDeteriorationTests
         }
 
         variables.Misc[VariableTypeId.NumberOfRandomWallDeteriorationsPerSecond] =
-            new(VariableTypeId.NumberOfRandomWallDeteriorationsPerSecond, picks, 0, 0);
-        variables.Misc[VariableTypeId.WallDeteriorationDamage] = new(VariableTypeId.WallDeteriorationDamage, damage, 0, 0);
+            new MiscVariable(VariableTypeId.NumberOfRandomWallDeteriorationsPerSecond, picks, 0, 0);
+        variables.Misc[VariableTypeId.WallDeteriorationDamage] = new MiscVariable(VariableTypeId.WallDeteriorationDamage, damage, 0, 0);
         return new GameDatabase(basis.Terrain.Values, basis.Rooms.Values, basis.Creatures.Values, variables);
     }
 

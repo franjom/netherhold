@@ -15,7 +15,7 @@ public sealed class CreatureOverviewTests
         GameDatabase db=GameDatabaseLoader.Load(Dk2InstallGate.Path);
         var world=WorldState.FromMap(db,GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path,"Level1")!,[PlayerIds.FirstKeeper],fogOfWarEnabled:false);
         CreatureDef goblin=db.CreatureByName("Goblin")!;
-        CreatureState creature=world.SpawnCreature(db,goblin.CreatureId,PlayerIds.FirstKeeper,new(8,8));
+        CreatureState creature=world.SpawnCreature(db,goblin.CreatureId,PlayerIds.FirstKeeper,new Core.TilePos(8,8));
         creature.Mood=CreatureMood.Angry;creature.CombatPitFighter=true;
         creature.Dk2StateId=CreatureStateTable.InCategory(CreatureStateCategory.Idle).First();
         var panel=new CreatureOverview(db,PlayerIds.FirstKeeper,(_,fallback)=>fallback);
@@ -35,8 +35,8 @@ public sealed class CreatureOverviewTests
         var world=WorldState.FromMap(db,GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path,"Level1")!,[PlayerIds.FirstKeeper],fogOfWarEnabled:false);
         var panel=new CreatureOverview(db,PlayerIds.FirstKeeper,(_,fallback)=>fallback,_=>0);
         CreatureDef goblin=db.CreatureByName("Goblin")!;
-        CreatureState first=world.SpawnCreature(db,goblin.CreatureId,PlayerIds.FirstKeeper,new(8,8));
-        CreatureState second=world.SpawnCreature(db,goblin.CreatureId,PlayerIds.FirstKeeper,new(9,8));
+        CreatureState first=world.SpawnCreature(db,goblin.CreatureId,PlayerIds.FirstKeeper,new Core.TilePos(8,8));
+        CreatureState second=world.SpawnCreature(db,goblin.CreatureId,PlayerIds.FirstKeeper,new Core.TilePos(9,8));
         panel.Capture(world);
         Assert.True(db.CreatureById(panel.Entries[0].Type.Value).Flags.HasFlag(CreatureFlags.IsWorker));
         Assert.Equal(2,panel.Entries.Single(r=>r.Type.Value==goblin.CreatureId).Count);
@@ -53,8 +53,8 @@ public sealed class CreatureOverviewTests
         GameDatabase db=GameDatabaseLoader.Load(Dk2InstallGate.Path);
         var world=WorldState.FromMap(db,GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path,"Level1")!,[PlayerIds.FirstKeeper],fogOfWarEnabled:false);
         CreatureDef goblin=db.CreatureByName("Goblin")!;
-        CreatureState first=world.SpawnCreature(db,goblin.CreatureId,PlayerIds.FirstKeeper,new(8,8));
-        CreatureState second=world.SpawnCreature(db,goblin.CreatureId,PlayerIds.FirstKeeper,new(9,8));
+        CreatureState first=world.SpawnCreature(db,goblin.CreatureId,PlayerIds.FirstKeeper,new Core.TilePos(8,8));
+        CreatureState second=world.SpawnCreature(db,goblin.CreatureId,PlayerIds.FirstKeeper,new Core.TilePos(9,8));
         var panel=new CreatureOverview(db,PlayerIds.FirstKeeper,(_,fallback)=>fallback,_=>0);
         var type=new CreatureOverviewType(goblin.CreatureId);
         Assert.Equal(second.Id,panel.Select(world,type,CreatureOverviewSelection.PickupNext).Target.Value);
@@ -71,12 +71,12 @@ public sealed class CreatureOverviewTests
         GameDatabase db=GameDatabaseLoader.Load(Dk2InstallGate.Path);
         var world=WorldState.FromMap(db,GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path,"Level1")!,[PlayerIds.FirstKeeper],fogOfWarEnabled:false);
         CreatureDef worker=db.Creatures.Values.First(d=>(d.Flags&(CreatureFlags.IsEvil|CreatureFlags.IsWorker))==(CreatureFlags.IsEvil|CreatureFlags.IsWorker));
-        CreatureState idle=world.SpawnCreature(db,worker.CreatureId,PlayerIds.FirstKeeper,new(8,8));
+        CreatureState idle=world.SpawnCreature(db,worker.CreatureId,PlayerIds.FirstKeeper,new Core.TilePos(8,8));
         idle.WorkerIdle=true;
         var panel=new CreatureOverview(db,PlayerIds.FirstKeeper,(_,fallback)=>fallback,_=>0);
         panel.Capture(world);
         Assert.True(panel.WorkerCounts.Idle>0);
-        CreatureOverviewAction action=panel.Select(world,new(worker.CreatureId),CreatureOverviewSelection.FocusNext,CreatureOverviewFilter.Idle);
+        CreatureOverviewAction action=panel.Select(world,new CreatureOverviewType(worker.CreatureId),CreatureOverviewSelection.FocusNext,CreatureOverviewFilter.Idle);
         Assert.Equal(CreatureOverviewActionKind.Focus,action.Kind);
         Assert.Equal(idle.Id,action.Target.Value);
     }

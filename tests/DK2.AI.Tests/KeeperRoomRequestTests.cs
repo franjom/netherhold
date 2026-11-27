@@ -348,7 +348,7 @@ public class KeeperRoomRequestTests
         int firstX, int firstY, int originX, int originY, int width, int height)
     {
         WorldState world = KeeperWorld.World(Db);
-        TilePos first = new(firstX, firstY);
+        var first = new TilePos(firstX, firstY);
         foreach (TilePos tile in new[] { first, new TilePos(11, 15), first == new TilePos(11, 14) ? new TilePos(10, 15) : new TilePos(11, 14) })
         {
             KeeperWorld.Set(world, Db, tile, KeeperWorld.TreasuryFloor, Keeper);

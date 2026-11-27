@@ -114,7 +114,7 @@ public sealed class FrontEndHostTests
     {
         (CampaignMapController map, Func<IReadOnlyList<HiScoreEntry>?> saved, FrontEndSession session) = NameEntryWithSession();
         // A path in flight: CommitEntry refuses (EntryRow stays), and the text after Enter is still not typed.
-        Assert.True(session.TryTransition(new(FrontEndPath.BriefingToTable, FrontEndState.CampaignMapEnter)));
+        Assert.True(session.TryTransition(new FrontEndTransition(FrontEndPath.BriefingToTable, FrontEndState.CampaignMapEnter)));
         Assert.True(session.PathPlaying);
         using (map)
         {
@@ -142,7 +142,7 @@ public sealed class FrontEndHostTests
 
     private static ObjectView View(int id)
     {
-        return new(id, 1, new PlayerId(0), new TilePos(0, 0), default, 0, 0, 0, 0, 0, Fp32.One);
+        return new ObjectView(id, 1, new PlayerId(0), new TilePos(0, 0), default, 0, 0, 0, 0, 0, Fp32.One);
     }
 
     [Fact]

@@ -13,7 +13,7 @@ namespace DK2.Simulation.Tests;
 /// journal cut off at any byte still reads up to its last whole record.</summary>
 public class InputJournalTests
 {
-    private static readonly PlayerId P = new(3);
+    private static readonly PlayerId P = new PlayerId(3);
 
     [Fact]
     public void AJournal_ReadsBackItsHeaderFramesHashesAndEnd()

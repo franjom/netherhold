@@ -25,18 +25,18 @@ public partial class CampaignPlayerTests
     ];
 
     private static readonly PlayerVisibleThing HomeImp =
-        new(Handle(0), PlayerThingKind.Creature, new TilePos(3, 3), Me, PlayerThingActions.PickUp, creatureType: Imp);
+        new PlayerVisibleThing(Handle(0), PlayerThingKind.Creature, new TilePos(3, 3), Me, PlayerThingActions.PickUp, creatureType: Imp);
 
     /// <summary>Two more own Imps at work far from the edge: scouting takes one only while the keeper has three.</summary>
     private static readonly PlayerVisibleThing[] Crew =
     [
-        new(Handle(5), PlayerThingKind.Creature, new TilePos(1, 1), Me, PlayerThingActions.PickUp, creatureType: Imp),
-        new(Handle(6), PlayerThingKind.Creature, new TilePos(1, 4), Me, PlayerThingActions.PickUp, creatureType: Imp),
+        new PlayerVisibleThing(Handle(5), PlayerThingKind.Creature, new TilePos(1, 1), Me, PlayerThingActions.PickUp, creatureType: Imp),
+        new PlayerVisibleThing(Handle(6), PlayerThingKind.Creature, new TilePos(1, 4), Me, PlayerThingActions.PickUp, creatureType: Imp),
     ];
 
     private static PlayerVisibleThing ImpAt(TilePos at)
     {
-        return new(Handle(0), PlayerThingKind.Creature, at, Me, PlayerThingActions.PickUp, creatureType: Imp);
+        return new PlayerVisibleThing(Handle(0), PlayerThingKind.Creature, at, Me, PlayerThingActions.PickUp, creatureType: Imp);
     }
 
     private static PlayerObservation ScoutView(long revision, long tick, int hand = 0, PlayerVisibleThing[]? things = null,
@@ -76,9 +76,9 @@ public partial class CampaignPlayerTests
             player.Decide(ScoutView(1, 1000, things: [HomeImp, .. Crew]));
             player.Decide(ScoutView(2, 1004, hand: 1));
             PlayerVisibleThing scout = ImpAt(new TilePos(6, 2));
-            PlayerVisibleThing hero = new(Handle(1), PlayerThingKind.Creature, new TilePos(6, 4), Heroes, PlayerThingActions.None, creatureType: new CreatureTypeId(20));
+            var hero = new PlayerVisibleThing(Handle(1), PlayerThingKind.Creature, new TilePos(6, 4), Heroes, PlayerThingActions.None, creatureType: new CreatureTypeId(20));
             PlayerDecision lifted = player.Decide(hit
-                ? ScoutView(3, 1006, things: [scout], creatures: [new(Imp, scout.Tile, false, scout.Handle, 1, 5, PlayerCreatureMood.Happy)])
+                ? ScoutView(3, 1006, things: [scout], creatures: [new PlayerCreatureSummary(Imp, scout.Tile, false, scout.Handle, 1, 5, PlayerCreatureMood.Happy)])
                 : ScoutView(3, 1006, things: [scout, hero]));
             Assert.Contains(new PlayerAction.PickUp(scout.Handle), lifted.Actions);
             // Home, not on to the next edge tile, and never toward the enemy: the own floor nearest the hero is x 4.
@@ -90,7 +90,7 @@ public partial class CampaignPlayerTests
     [Fact]
     public void NoScoutGoesNearAnEnemyAndTheRoutineIsOffByDefault()
     {
-        PlayerVisibleThing hero = new(Handle(1), PlayerThingKind.Creature, new TilePos(9, 2), Heroes, PlayerThingActions.None, creatureType: new CreatureTypeId(20));
+        var hero = new PlayerVisibleThing(Handle(1), PlayerThingKind.Creature, new TilePos(9, 2), Heroes, PlayerThingActions.None, creatureType: new CreatureTypeId(20));
         Assert.Empty(Scouter().Decide(ScoutView(1, 1000, things: [HomeImp, .. Crew, hero])).Actions.OfType<PlayerAction.PickUp>());
         Assert.Equal(0, new PlayerStrategy().Scouts);
         Assert.Empty(Player().Decide(ScoutView(1, 1000, things: [HomeImp, .. Crew])).Actions.OfType<PlayerAction.PickUp>());
@@ -102,7 +102,7 @@ public partial class CampaignPlayerTests
     [Fact]
     public void AHurtImpIsNotSentToScout()
     {
-        PlayerCreatureSummary scratched = new(Imp, HomeImp.Tile, false, HomeImp.Handle, 1, 5, PlayerCreatureMood.Happy);
+        var scratched = new PlayerCreatureSummary(Imp, HomeImp.Tile, false, HomeImp.Handle, 1, 5, PlayerCreatureMood.Happy);
         PlayerDecision lift = Scouter().Decide(ScoutView(1, 1000, things: [HomeImp, .. Crew], creatures: [scratched]));
         PlayerAction.PickUp sent = Assert.Single(lift.Actions.OfType<PlayerAction.PickUp>());
         Assert.NotEqual(HomeImp.Handle, sent.Thing);
@@ -112,7 +112,7 @@ public partial class CampaignPlayerTests
     public void ScoutingKeepsAwayFromWhereAnEnemyWasSeenOnlyForAWhile()
     {
         CampaignPlayer player = Scouter();
-        PlayerVisibleThing hero = new(Handle(1), PlayerThingKind.Creature, new TilePos(9, 2), Heroes, PlayerThingActions.None, creatureType: new CreatureTypeId(20));
+        var hero = new PlayerVisibleThing(Handle(1), PlayerThingKind.Creature, new TilePos(9, 2), Heroes, PlayerThingActions.None, creatureType: new CreatureTypeId(20));
         Assert.Empty(player.Decide(ScoutView(1, 1000, things: [HomeImp, .. Crew, hero])).Actions.OfType<PlayerAction.PickUp>());
         // Gone from view, but every edge tile is within 8 of where it stood: remembered for 1200 ticks.
         Assert.Empty(player.Decide(ScoutView(2, 1300, things: [HomeImp, .. Crew])).Actions.OfType<PlayerAction.PickUp>());

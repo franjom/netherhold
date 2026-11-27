@@ -14,11 +14,11 @@ public sealed class PlacementCursorHudTests
 {
     private readonly record struct Shown(string Name, float X, float Y, float Width, float Height, HudColor Tint);
 
-    private static readonly Vector2 Pointer = new(700.5f, 410.25f);
+    private static readonly Vector2 Pointer = new Vector2(700.5f, 410.25f);
 
     public static TheoryData<int, int, PlacementIcon, int, bool, bool, byte, bool, HandCursorKind> Cases()
     {
-        return new()
+        return new TheoryData<int, int, PlacementIcon, int, bool, bool, byte, bool, HandCursorKind>()
     {
         { 1920, 1080, PlacementIcon.PlaceRoom, -250, false, true, 0, false, HandCursorKind.Point },
         { 1920, 1080, PlacementIcon.PlaceRoom, -250, true, false, 0, false, HandCursorKind.Point },
@@ -169,7 +169,7 @@ public sealed class PlacementCursorHudTests
         float scale = height / 1200f, size = 32 * scale;
         Shown Place(string name, float px, float py, float w, float h, HudColor tint)
         {
-            return new(name, px, py, w, h, tint);
+            return new Shown(name, px, py, w, h, tint);
         }
 
         if (feedback.Icon == PlacementIcon.Held && held != null && held.Icons.Count > 0)

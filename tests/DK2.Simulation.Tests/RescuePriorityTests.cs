@@ -20,10 +20,10 @@ public class RescuePriorityTests
             command.HashInto(ref hash);
             return hash.Value;
         }
-        ulong original = Hash(new(3, 12, true));
-        Assert.NotEqual(original, Hash(new(1, 12, true)));
-        Assert.NotEqual(original, Hash(new(3, 13, true)));
-        Assert.NotEqual(original, Hash(new(3, 12, false)));
+        ulong original = Hash(new SetRescuePriorityCommand(3, 12, true));
+        Assert.NotEqual(original, Hash(new SetRescuePriorityCommand(1, 12, true)));
+        Assert.NotEqual(original, Hash(new SetRescuePriorityCommand(3, 13, true)));
+        Assert.NotEqual(original, Hash(new SetRescuePriorityCommand(3, 12, false)));
     }
 
     [Fact]

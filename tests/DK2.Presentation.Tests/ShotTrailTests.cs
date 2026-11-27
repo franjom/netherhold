@@ -119,7 +119,7 @@ public class ShotTrailTests
 
     private static ViewEffectRequest Trail()
     {
-        return new(new EffectId(10), new PlayerId(3), At(1000), new Dk2Angle(256))
+        return new ViewEffectRequest(new EffectId(10), new PlayerId(3), At(1000), new Dk2Angle(256))
         {
             AttachedShotId = new ShotId(1),
             Visibility = EffectVisibility.Ungated,
@@ -128,7 +128,7 @@ public class ShotTrailTests
 
     private static FpPosition3 At(int x)
     {
-        return new(new Fp32(x), default, new Fp32(3000));
+        return new FpPosition3(new Fp32(x), default, new Fp32(3000));
     }
 
     private static GameDatabase Database(bool cameraBypass = false)
@@ -141,12 +141,12 @@ public class ShotTrailTests
         };
         var trail = new EffectDef([])
         {
-            Name = "trail", EffectId = 10, ArtResource = new("", 0, new byte[12], 0, 0, 0, 0),
-            Light = new(0, 0, 0, 100, 255, 0, 0, 0, 1), GenerateIds = [20], GenerationType = 4,
+            Name = "trail", EffectId = 10, ArtResource = new KwdArtResource("", 0, new byte[12], 0, 0, 0, 0),
+            Light = new KwdLight(0, 0, 0, 100, 255, 0, 0, 0, 1), GenerateIds = [20], GenerationType = 4,
             MinHp = 1, MaxHp = 1, ElementsPerTurn = 1, DeathEffectId = 11,
             Flags = cameraBypass ? 0x8000u : 0u,
         };
-        return new([], [], [], new GlobalVariables(), effects: [trail, trail with { EffectId = 11, DeathEffectId = 0,
-            Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0) }], effectElements: [element]);
+        return new GameDatabase([], [], [], new GlobalVariables(), effects: [trail, trail with { EffectId = 11, DeathEffectId = 0,
+            Light = new KwdLight(0, 0, 0, 0, 0, 0, 0, 0, 0) }], effectElements: [element]);
     }
 }

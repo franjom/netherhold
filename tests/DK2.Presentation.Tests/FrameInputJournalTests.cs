@@ -14,7 +14,7 @@ namespace DK2.Presentation.Tests;
 /// session cut short keeps every whole frame.</summary>
 public class FrameInputJournalTests
 {
-    private static readonly PlayerId Keeper = new(PlayerIds.FirstKeeper);
+    private static readonly PlayerId Keeper = new PlayerId(PlayerIds.FirstKeeper);
 
     [Fact]
     public void AFrame_ReadsBackAsWritten()
@@ -131,7 +131,7 @@ public class FrameInputJournalTests
 
     private static FrameInputRecord Busy(long frame)
     {
-        return new()
+        return new FrameInputRecord()
         {
             Frame = frame,
             UnscaledDeltaSeconds = 1 / 60d,

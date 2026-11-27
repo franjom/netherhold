@@ -161,7 +161,7 @@ public class CapturedSteeringTests(ITestOutputHelper log)
 
     private static MoverProfile Profile(CapturedMover m)
     {
-        return new(CanWalkOnWater: ((m.Def686 >> 4) & 1) != 0, CanWalkOnLava: ((m.Def686 >> 5) & 1) != 0, Owner: (byte)m.Number,
+        return new MoverProfile(CanWalkOnWater: ((m.Def686 >> 4) & 1) != 0, CanWalkOnLava: ((m.Def686 >> 5) & 1) != 0, Owner: (byte)m.Number,
             RespectDoors: ((m.Flags3E6 >> 19) & 1) != 0, PassOwnLockedDoors: ((m.Flags3E6 >> 17) & 1) != 0,
             EntersPortalHole: ((m.Flags3E6 >> 18) & 1) != 0);
     }

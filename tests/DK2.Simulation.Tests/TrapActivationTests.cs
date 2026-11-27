@@ -9,7 +9,7 @@ namespace DK2.Simulation.Tests;
 
 public class TrapActivationTests
 {
-    private static readonly TrapDef Definition = new()
+    private static readonly TrapDef Definition = new TrapDef()
     {
         Name = "activation fixture", TrapId = 3, Health = 1500, GoldCost = 1000,
         ManufactureRequired = 1500, ShotTypeId = 44, ManaUpkeepPerSecond = 0,

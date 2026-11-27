@@ -16,7 +16,7 @@ public class HandLiftTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte GoblinId = Dk2TerrainFixture.GoblinCreatureId;
-    private static readonly TilePos Floor = new(2, 2);
+    private static readonly TilePos Floor = new TilePos(2, 2);
 
     [Fact]
     public void APickUpPreparesTheCreatureAndTheHandTakesItAtTheStartOfTheSecondTickAfter()

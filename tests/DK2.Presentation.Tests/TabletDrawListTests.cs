@@ -13,12 +13,12 @@ public sealed class TabletDrawListTests
 {
     private static KmfVertex V(float x, float y, float u = 0, float v = 0)
     {
-        return new(new Vector3(x, y, 0), Vector3.UnitZ, new Vector2(u, v));
+        return new KmfVertex(new Vector3(x, y, 0), Vector3.UnitZ, new Vector2(u, v));
     }
 
     private static KmfMaterial Material(string name, params string[] textures)
     {
-        return new(name, textures, 0, 1, 0, "");
+        return new KmfMaterial(name, textures, 0, 1, 0, "");
     }
 
     /// <summary>A front with the item frames (one face toward the viewer, one away), a one-texture back, an untextured

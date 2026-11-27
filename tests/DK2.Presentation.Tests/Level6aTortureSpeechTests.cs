@@ -61,7 +61,7 @@ public sealed class Level6aTortureSpeechTests
         var messages = new MessageTabsView(Keeper, db);
         var events = new ListEventSink();
         var sink = new Level6aTortureSpeech(db, messages, events);
-        Award(db, world, sink, new(root), new(kind));
+        Award(db, world, sink, new KwdTriggerId(root), new CreatureTypeId(kind));
         messages.Capture(world, 0);
         Assert.Equal(new uint[] { 380, 379 }, messages.Speech.Pending.Select(r => r.Id.Value));
         Assert.Equal(2, messages.Tabs.Count);
@@ -74,8 +74,8 @@ public sealed class Level6aTortureSpeechTests
         var messages = new MessageTabsView(Keeper, db);
         var events = new ListEventSink();
         var sink = new Level6aTortureSpeech(db, messages, events);
-        Award(db, world, sink, KwdTriggerId.None, new(25));
-        Award(db, world, sink, new(24), new(25));
+        Award(db, world, sink, KwdTriggerId.None, new CreatureTypeId(25));
+        Award(db, world, sink, new KwdTriggerId(24), new CreatureTypeId(25));
         Assert.Equal(2, events.Events.Count);
         Assert.Equal(2, world.Messages.Entries.Count);
         messages.Capture(world, 0);
@@ -90,7 +90,7 @@ public sealed class Level6aTortureSpeechTests
         var sink = new Level6aTortureSpeech(db, messages, NullEventSink.Instance);
         TortureInformationRules.Award(world, db, new SimRandom(1), db.CreatureById(25), PlayerIds.Good, other,
             message => sink.Emit(new SimEvent(world.CurrentTick, "Torture", "death_message", "")
-            { TortureMessage = new(message, new CreatureId(50), new CreatureTypeId(25), new KwdTriggerId(24)) }));
+            { TortureMessage = new TortureDeathMessage(message, new CreatureId(50), new CreatureTypeId(25), new KwdTriggerId(24)) }));
         messages.Capture(world, 0);
         Assert.Equal(new uint[] { 380, 379 }, messages.Speech.Pending.Select(r => r.Id.Value));
     }
@@ -100,7 +100,7 @@ public sealed class Level6aTortureSpeechTests
         TortureInformationRules.Award(world, db, new SimRandom(1),
             db.CreatureById(type.Value), PlayerIds.Good, Keeper, message => sink.Emit(
                 new SimEvent(world.CurrentTick, "Torture", "death_message", "")
-                { TortureMessage = new(message, new CreatureId(50), type, root) }));
+                { TortureMessage = new TortureDeathMessage(message, new CreatureId(50), type, root) }));
     }
 
     private static (GameDatabase, WorldState) Fixture(string level)

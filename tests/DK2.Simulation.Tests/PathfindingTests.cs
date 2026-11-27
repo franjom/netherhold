@@ -52,7 +52,7 @@ public class PathfindingTests
         }
     }
 
-    private static readonly TextGrid Open = new(
+    private static readonly TextGrid Open = new TextGrid(
         ".....",
         ".....",
         ".....",
@@ -60,14 +60,14 @@ public class PathfindingTests
         ".....");
 
     /// <summary>A wall with a single gap, so there is exactly one way through.</summary>
-    private static readonly TextGrid OneDoor = new(
+    private static readonly TextGrid OneDoor = new TextGrid(
         ".....",
         ".....",
         "##.##",
         ".....",
         ".....");
 
-    private static readonly TextGrid Sealed = new(
+    private static readonly TextGrid Sealed = new TextGrid(
         ".....",
         ".....",
         "#####",
@@ -122,7 +122,7 @@ public class PathfindingTests
         var path = new List<TilePos>();
         Assert.True(new GridPathfinder().TryFindPath(OneDoor, new TilePos(0, 0), new TilePos(4, 4), path));
 
-        TilePos previous = new(0, 0);
+        var previous = new TilePos(0, 0);
         foreach (TilePos step in path)
         {
             Assert.True(OneDoor.IsWalkable(step.X, step.Y), $"{step} is a wall");
@@ -141,14 +141,14 @@ public class PathfindingTests
     // ---- eight-connected movement (Q28) and octile cost (Q48) --------------
 
     /// <summary>Two floors touching only at a corner, both orthogonal neighbours solid.</summary>
-    private static readonly TextGrid CornerOnly = new(
+    private static readonly TextGrid CornerOnly = new TextGrid(
         "..##",
         "..##",
         "##..",
         "##..");
 
     /// <summary>The same, with one of the two corner tiles opened.</summary>
-    private static readonly TextGrid OneSideOpen = new(
+    private static readonly TextGrid OneSideOpen = new TextGrid(
         "..##",
         "..##",
         "#...",
@@ -203,7 +203,7 @@ public class PathfindingTests
     public void TheNearestGoal_IsNearestByDistanceAndNotByStepCount()
     {
         var path = new List<TilePos>();
-        var goals = new HashSet<TilePos> { new(3, 3), new(4, 0) };
+        var goals = new HashSet<TilePos> { new TilePos(3, 3), new TilePos(4, 0) };
 
         Assert.True(new GridPathfinder().TryFindNearest(
             Open, new TilePos(0, 0), goals.Contains, path));
@@ -231,7 +231,7 @@ public class PathfindingTests
             Open, new TilePos(fromX, fromY), new TilePos(toX, toY), path));
 
         int cost = 0;
-        TilePos previous = new(fromX, fromY);
+        var previous = new TilePos(fromX, fromY);
         foreach (TilePos step in path)
         {
             cost += step.X != previous.X && step.Y != previous.Y
@@ -350,7 +350,7 @@ public class PathfindingTests
 
     /// <summary>A grid of walls and gaps with corner-only touches, so the flood meets every rule
     /// the search has: a sealed room, a one-tile door, a diagonal that is refused and one that is not.</summary>
-    private static readonly TextGrid Rooms = new(
+    private static readonly TextGrid Rooms = new TextGrid(
         "..#.....",
         "..#.##..",
         "....#...",
@@ -456,7 +456,7 @@ public class PathfindingTests
     public void AFloodFromOutsideTheGrid_ReachesNothing()
     {
         var flood = new ReachableTiles();
-        var path = new List<TilePos> { new(1, 1) };
+        var path = new List<TilePos> { new TilePos(1, 1) };
 
         flood.Flood(Open, new TilePos(-1, 0));
 

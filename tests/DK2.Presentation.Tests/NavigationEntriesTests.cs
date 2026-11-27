@@ -21,10 +21,10 @@ public sealed class NavigationEntriesTests
     {
         DoorState[] doors =
         [
-            new() { X = 1, Y = 2, DoorId = 2, PlayerId = Keeper.Value, Unknown_0011 = new byte[3] },
-            new() { X = 3, Y = 4, DoorId = 3, PlayerId = 4, Unknown_0011 = new byte[3] },
+            new DoorState() { X = 1, Y = 2, DoorId = 2, PlayerId = Keeper.Value, Unknown_0011 = new byte[3] },
+            new DoorState() { X = 3, Y = 4, DoorId = 3, PlayerId = 4, Unknown_0011 = new byte[3] },
         ];
-        var into = new List<ThingNavigationEntry> { new(9, Keeper, 9, new TilePos(9, 9)) };
+        var into = new List<ThingNavigationEntry> { new ThingNavigationEntry(9, Keeper, 9, new TilePos(9, 9)) };
 
         ThingNavigation.DoorEntries(doors, into);
 
@@ -33,8 +33,8 @@ public sealed class NavigationEntriesTests
 
         TrapState[] traps =
         [
-            new() { X = 5, Y = 6, TrapId = 7, PlayerId = Keeper.Value },
-            new() { X = 7, Y = 8, TrapId = 1, PlayerId = Keeper.Value },
+            new TrapState() { X = 5, Y = 6, TrapId = 7, PlayerId = Keeper.Value },
+            new TrapState() { X = 7, Y = 8, TrapId = 1, PlayerId = Keeper.Value },
         ];
         ThingNavigation.TrapEntries(traps, into);
 

@@ -14,7 +14,7 @@ namespace DK2.Presentation.Tests;
 /// to when it was queued relative to the frame's tick hand-off, as <c>DungeonRunner</c> drives it.</summary>
 public class FrameInputRecorderTests
 {
-    private static readonly PlayerId Keeper = new(PlayerIds.FirstKeeper);
+    private static readonly PlayerId Keeper = new PlayerId(PlayerIds.FirstKeeper);
 
     [Fact]
     public void Commands_AreTaggedByWhenTheyWereQueued_AndTheHandOffIsCounted()
@@ -80,7 +80,7 @@ public class FrameInputRecorderTests
 
     private static FrameInputRecord Raw(long frame)
     {
-        return new() { Frame = frame };
+        return new FrameInputRecord() { Frame = frame };
     }
 
     private static PlayerCommand Imp(int x)

@@ -19,7 +19,7 @@ public class AvoidWallsTests
 
     private static FakeSteeringWorld Room()
     {
-        return new("#######", "#.....#", "#.....#", "#.....#", "#######");
+        return new FakeSteeringWorld("#######", "#.....#", "#.....#", "#.....#", "#######");
     }
 
     private static Fixed16Vector Force(FakeSteeringWorld world, Fixed16Vector pos, Fixed16Vector vel, bool stuck = false)
@@ -79,7 +79,7 @@ public class AvoidWallsTests
     [Fact]
     public void TheRayCircleDistanceIsTheOriginalsNotTheTextbooks()
     {
-        Fixed16Vector origin = Fixed16Vector.Zero, along = new(Fixed16.One, 0);
+        Fixed16Vector origin = Fixed16Vector.Zero, along = new Fixed16Vector(Fixed16.One, 0);
 
         int headOn = RayCircle.Distance(origin, along, new Fixed16Vector(3 * Fixed16.One, 0), Fixed16.One);
         Assert.InRange(headOn, 2 * Fixed16.One + 0x8000, 3 * Fixed16.One);

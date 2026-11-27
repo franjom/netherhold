@@ -13,7 +13,7 @@ public class ImpCreationLandingTests
     private static GameSimulation Staffed(int gravity = 240)
     {
         GameDatabase db = Dk2TerrainFixture.Database();
-        db.Variables.Misc[VariableTypeId.GravityConstant] = new(VariableTypeId.GravityConstant, gravity, 0, 0);
+        db.Variables.Misc[VariableTypeId.GravityConstant] = new MiscVariable(VariableTypeId.GravityConstant, gravity, 0, 0);
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(),
             [PlayerIds.Neutral, PlayerIds.Good, PlayerIds.FirstKeeper]);
         ref TileState heart = ref world.Tile(2, 2);

@@ -224,7 +224,7 @@ public sealed class RoomCapacityTests
 
     private static StateHookContext Hooks(GameDatabase db, WorldState world)
     {
-        return new(world, db);
+        return new StateHookContext(world, db);
     }
 
     [Fact]

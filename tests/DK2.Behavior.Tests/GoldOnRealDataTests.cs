@@ -36,9 +36,9 @@ public class GoldOnRealDataTests
     /// being invented for it.
     /// </summary>
     private const byte Keeper = 3;
-    private static readonly TilePos Path = new(14, 25);
-    private static readonly TilePos Seam = new(14, 24);
-    private static readonly TilePos Heart = new(14, 26);
+    private static readonly TilePos Path = new TilePos(14, 25);
+    private static readonly TilePos Seam = new TilePos(14, 24);
+    private static readonly TilePos Heart = new TilePos(14, 26);
 
     private sealed record Level(GameSimulation Sim, GameDatabase Db, ListEventSink Events)
     {

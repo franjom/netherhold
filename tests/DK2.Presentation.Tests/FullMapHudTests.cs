@@ -11,12 +11,12 @@ namespace DK2.Presentation.Tests;
 /// <summary>The engine-free full map's backdrop, room icon and legend (ADR-0805).</summary>
 public sealed class FullMapHudTests
 {
-    private static readonly HudScreen FullHd = new(1920, 1080);
-    private static readonly BitmapFont Font = new(10, [new BitmapGlyph('A', 2, 2, 0, 0, 3, [15, 15, 15, 15])]);
+    private static readonly HudScreen FullHd = new HudScreen(1920, 1080);
+    private static readonly BitmapFont Font = new BitmapFont(10, [new BitmapGlyph('A', 2, 2, 0, 0, 3, [15, 15, 15, 15])]);
 
     private static MinimapPalette Palette()
     {
-        return new(Enumerable.Range(0, 37).Select(i => (uint)(i * 0x010203)).ToArray());
+        return new MinimapPalette(Enumerable.Range(0, 37).Select(i => (uint)(i * 0x010203)).ToArray());
     }
 
     /// <summary>An 8x8 rock map with a 3x3 treasury from <paramref name="first"/> (2..4 by default) owned by player 2;
@@ -25,7 +25,7 @@ public sealed class FullMapHudTests
     {
         TerrainDef Terrain(byte id, TerrainFlags flags)
         {
-            return new()
+            return new TerrainDef()
             {
                 Name = id == 27 ? "Fog Of War" : id == 38 ? "Claim Scan" : "test",
                 TerrainId = id,
@@ -52,7 +52,7 @@ public sealed class FullMapHudTests
             RecommendedSizeX = 3, RecommendedSizeY = 3, OrderInEditor = 0, NameStringId = 0, TooltipStringId = 0,
         };
         var variables = new GlobalVariables();
-        variables.Misc[VariableTypeId.DungeonHeartObjectHealth] = new(VariableTypeId.DungeonHeartObjectHealth, 100, 0, 0);
+        variables.Misc[VariableTypeId.DungeonHeartObjectHealth] = new MiscVariable(VariableTypeId.DungeonHeartObjectHealth, 100, 0, 0);
         var db = new GameDatabase([Terrain(2, TerrainFlags.Solid), Terrain(12, TerrainFlags.Room | TerrainFlags.Ownable | TerrainFlags.Attackable),
             Terrain(27, TerrainFlags.Solid), Terrain(38, TerrainFlags.Solid)], [room], [], variables);
         MapTile[] cells = [.. Enumerable.Repeat(new MapTile(2, 2, 0, 0), 64)];
@@ -69,14 +69,14 @@ public sealed class FullMapHudTests
 
     private static (HudDraw[] Back, HudDraw[] Front) Build(FullMapHud hud)
     {
-        HudFrame back = new(), front = new();
+        HudFrame back = new HudFrame(), front = new HudFrame();
         hud.Build(FullHd, back, front);
         return (back.Draws.ToArray(), front.Draws.ToArray());
     }
 
     private static HudRect Pixels(float x, float y, float w, float h)
     {
-        return new(FullHd.Virtual(x), FullHd.Virtual(y), FullHd.Virtual(w), FullHd.Virtual(h));
+        return new HudRect(FullHd.Virtual(x), FullHd.Virtual(y), FullHd.Virtual(w), FullHd.Virtual(h));
     }
 
     [Fact]
@@ -147,7 +147,7 @@ public sealed class FullMapHudTests
         hud.SetVisible(true);
         hud.Capture(world, db, new PlayerId(3), default);
         Build(hud); Build(hud);
-        HudFrame back = new(), front = new();
+        HudFrame back = new HudFrame(), front = new HudFrame();
         hud.Build(new HudScreen(1024, 768), back, front);
         Assert.Equal([1080, 768], asked);
         // 1024 * 474 / 640 and 768 * 274 / 480, in 768's virtual units.
@@ -159,8 +159,8 @@ public sealed class FullMapHudTests
     public void APixelResolvesToTheTileUnderItOnTheFittedMap()
     {
         var hud = new FullMapHud(Palette(), 8, 8);
-        Assert.Equal(new TilePos(0, 0), hud.ResolvePointer(1920, 1080, new(267, 74)));
-        Assert.Equal(new TilePos(7, 7), hud.ResolvePointer(1920, 1080, new(267 + 863, 74 + 863)));
+        Assert.Equal(new TilePos(0, 0), hud.ResolvePointer(1920, 1080, new System.Numerics.Vector2(267, 74)));
+        Assert.Equal(new TilePos(7, 7), hud.ResolvePointer(1920, 1080, new System.Numerics.Vector2(267 + 863, 74 + 863)));
     }
 
     [Fact]

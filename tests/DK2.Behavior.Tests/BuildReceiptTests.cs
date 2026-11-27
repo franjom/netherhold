@@ -152,7 +152,7 @@ public class BuildReceiptTests : IDisposable
 
     private static Scenario ShippedStart()
     {
-        return new()
+        return new Scenario()
         {
             Id = "start",
             Map = "campaign:level1",

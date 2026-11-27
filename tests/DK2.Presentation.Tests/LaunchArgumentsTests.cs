@@ -127,8 +127,8 @@ public sealed class LaunchArgumentsTests
     public void AScriptedPointerMovesInLinesAndChangesButtonsOnItsFrames()
     {
         PointerScript script = LaunchArguments.ParsePointerPath("10:100,100;20:200,50:L;22:200,50:l;30:0,0:R")!;
-        Assert.Equal(new PointerScriptSample(new(100, 100), PointerScriptButtons.None, false, false), script.At(0));
-        Assert.Equal(new PointerScriptSample(new(150, 75), PointerScriptButtons.None, false, false), script.At(15));
+        Assert.Equal(new PointerScriptSample(new Vector2(100, 100), PointerScriptButtons.None, false, false), script.At(0));
+        Assert.Equal(new PointerScriptSample(new Vector2(150, 75), PointerScriptButtons.None, false, false), script.At(15));
         PointerScriptSample press = script.At(20);
         Assert.True(press.PrimaryDown && press.PrimaryHeld && !press.PrimaryUp);
         Assert.Equal(new Vector2(200, 50), press.Position);

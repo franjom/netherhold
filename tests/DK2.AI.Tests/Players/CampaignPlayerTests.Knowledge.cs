@@ -13,12 +13,12 @@ namespace DK2.AI.Tests.Players;
 /// facts shaped like the generated ones (a Library's attraction 2/5/13 at 3/4/5, a Temple's 0 below 5x5).</summary>
 public partial class CampaignPlayerTests
 {
-    private static readonly KeeperKnowledge Facts = new(
+    private static readonly KeeperKnowledge Facts = new KeeperKnowledge(
     [
-        new RoomFacts(RoomTypeId.Library, 600, [new(3, 1, 2, 0), new(4, 4, 5, 0), new(5, 9, 13, 0)], capsCreatures: true),
-        new RoomFacts(RoomTypeId.Temple, 3000, [new(3, 1, 0, 0), new(4, 4, 0, 0), new(5, 9, 2, 0)], capsCreatures: true),
-        new RoomFacts(RoomTypeId.Hatchery, 300, [new(3, 1, 9, 0), new(4, 4, 16, 0)], capsCreatures: false),
-        new RoomFacts(RoomTypeId.Treasury, 200, [new(3, 1, 9, 27000), new(4, 4, 16, 48000)], capsCreatures: false),
+        new RoomFacts(RoomTypeId.Library, 600, [new RoomSizeFacts(3, 1, 2, 0), new RoomSizeFacts(4, 4, 5, 0), new RoomSizeFacts(5, 9, 13, 0)], capsCreatures: true),
+        new RoomFacts(RoomTypeId.Temple, 3000, [new RoomSizeFacts(3, 1, 0, 0), new RoomSizeFacts(4, 4, 0, 0), new RoomSizeFacts(5, 9, 2, 0)], capsCreatures: true),
+        new RoomFacts(RoomTypeId.Hatchery, 300, [new RoomSizeFacts(3, 1, 9, 0), new RoomSizeFacts(4, 4, 16, 0)], capsCreatures: false),
+        new RoomFacts(RoomTypeId.Treasury, 200, [new RoomSizeFacts(3, 1, 9, 27000), new RoomSizeFacts(4, 4, 16, 48000)], capsCreatures: false),
     ]);
 
     /// <summary>Open own floor x1..10, y1..10, the heart at (1,1).</summary>
@@ -40,7 +40,7 @@ public partial class CampaignPlayerTests
 
     private static PlayerRoomOffer Offer(RoomTypeId room)
     {
-        return new(room, new GoldAmount(50), true);
+        return new PlayerRoomOffer(room, new GoldAmount(50), true);
     }
 
     private static PlayerAction.BuildRoom? Built(PlayerDecision decision, RoomTypeId room)
@@ -65,7 +65,7 @@ public partial class CampaignPlayerTests
     public void ALibraryIsBuiltAtTheSideItsAttractionTargetNeeds()
     {
         PlayerObservation o = Observe(map: Open, rooms: [Offer(RoomTypeId.Library)], owned: CoreOwned(), gold: 20000);
-        Dictionary<RoomTypeId, int> five = new() { [RoomTypeId.Library] = 5 };
+        var five = new Dictionary<RoomTypeId, int>() { [RoomTypeId.Library] = 5 };
 
         PlayerAction.BuildRoom plain = Built(Player(p => p with { Knowledge = Facts }).Decide(o), RoomTypeId.Library)!;
         PlayerAction.BuildRoom sized = Built(Player(p => p with { Knowledge = Facts, AttractionTargets = five }).Decide(o), RoomTypeId.Library)!;
@@ -81,7 +81,7 @@ public partial class CampaignPlayerTests
     public void WithNoSquareForItsTargetALibraryDigsOneOutWaitsForItThenSettlesButATempleNeverGoesBelow5x5()
     {
         // The Dungeon's 7x7 floor has its heart in the middle, so no free square is larger than 3x3.
-        Dictionary<RoomTypeId, int> five = new() { [RoomTypeId.Library] = 5 };
+        var five = new Dictionary<RoomTypeId, int>() { [RoomTypeId.Library] = 5 };
         CampaignPlayer player = Player(p => p with { Knowledge = Facts, AttractionTargets = five });
         PlayerRoomOffer[] offers = [Offer(RoomTypeId.Library)];
 
@@ -127,7 +127,7 @@ public partial class CampaignPlayerTests
     [Fact]
     public void ASiteDugOutInTimeButWaitingForGoldIsClosedWithoutSettling()
     {
-        Dictionary<RoomTypeId, int> five = new() { [RoomTypeId.Library] = 5 };
+        var five = new Dictionary<RoomTypeId, int>() { [RoomTypeId.Library] = 5 };
         CampaignPlayer player = Player(p => p with { Knowledge = Facts, AttractionTargets = five });
         PlayerRoomOffer[] offers = [Offer(RoomTypeId.Library)];
         var site = new PlayerAction.TagArea(new TilePos(3, 1), new TilePos(6, 4));
@@ -186,7 +186,7 @@ public partial class CampaignPlayerTests
     {
         // The Corridor's own floor has no free 3x3, and rock below and beside it.
         string[] cramped = ["RRRRRRR", "R..#..R", "R.H#..R", "R..#..R", "R####RR", "R####RR", "RRRRRRR"];
-        PlayerObservation o = Observe(map: cramped, rooms: [Offer(RoomTypeId.Treasury)], owned: [new(RoomTypeId.DungeonHeart, 1)]);
+        PlayerObservation o = Observe(map: cramped, rooms: [Offer(RoomTypeId.Treasury)], owned: [new PlayerRoomSummary(RoomTypeId.DungeonHeart, 1)]);
         Assert.DoesNotContain(Player(p => p with { Knowledge = Facts }).Decide(o).Actions, a => a is PlayerAction.TagArea t && t.From != t.To);
         CampaignPlayer all = Player(p => p with { Knowledge = Facts });
         all.Apply(all.Strategy with { Sites = RoomSites.All });
@@ -196,7 +196,7 @@ public partial class CampaignPlayerTests
     [Fact]
     public void AListedRoomWaitingForGoldForItsTargetKeepsTheGoldFromExtras()
     {
-        Dictionary<RoomTypeId, int> five = new() { [RoomTypeId.Library] = 5 };
+        var five = new Dictionary<RoomTypeId, int>() { [RoomTypeId.Library] = 5 };
         CampaignPlayer player = Player(p => p with { Knowledge = Facts, AttractionTargets = five });
         player.Apply(player.Strategy with { Rooms = [RoomTypeId.Treasury, RoomTypeId.Lair, RoomTypeId.Hatchery, RoomTypeId.Library] });
         // 4x4 costs 800 and a free 4x4 stands; a 3x3 Training Room (450) would fit the 799.
@@ -210,9 +210,9 @@ public partial class CampaignPlayerTests
         var facts = new KeeperKnowledge(
         [
             Facts.Room(RoomTypeId.Library)!,
-            new RoomFacts(RoomTypeId.Workshop, 600, [new(3, 1, 2, 0), new(4, 2, 3, 0), new(5, 5, 9, 0)], capsCreatures: true),
+            new RoomFacts(RoomTypeId.Workshop, 600, [new RoomSizeFacts(3, 1, 2, 0), new RoomSizeFacts(4, 2, 3, 0), new RoomSizeFacts(5, 5, 9, 0)], capsCreatures: true),
         ]);
-        Dictionary<RoomTypeId, int> targets = new() { [RoomTypeId.Library] = 5, [RoomTypeId.Workshop] = 3 };
+        var targets = new Dictionary<RoomTypeId, int>() { [RoomTypeId.Library] = 5, [RoomTypeId.Workshop] = 3 };
         CampaignPlayer player = Player(p => p with { Knowledge = facts, AttractionTargets = targets });
         PlayerRoomOffer[] offers = [Offer(RoomTypeId.Library), Offer(RoomTypeId.Workshop)];
 
@@ -224,7 +224,7 @@ public partial class CampaignPlayerTests
     [Fact]
     public void WithoutSitesARoomSettlesAtOnce()
     {
-        Dictionary<RoomTypeId, int> five = new() { [RoomTypeId.Library] = 5 };
+        var five = new Dictionary<RoomTypeId, int>() { [RoomTypeId.Library] = 5 };
         CampaignPlayer player = Player(p => p with { Knowledge = Facts, AttractionTargets = five });
         player.Apply(player.Strategy with { Sites = RoomSites.None });
         PlayerAction.BuildRoom library = Built(player.Decide(Observe(rooms: [Offer(RoomTypeId.Library)], owned: CoreOwned())), RoomTypeId.Library)!;
@@ -234,7 +234,7 @@ public partial class CampaignPlayerTests
     [Fact]
     public void ATileTargetGrowsAListedRoomBesideItself()
     {
-        Dictionary<RoomTypeId, int> hatchery = new() { [RoomTypeId.Hatchery] = 25 };
+        var hatchery = new Dictionary<RoomTypeId, int>() { [RoomTypeId.Hatchery] = 25 };
         PlayerDecision grow = Player(p => p with { TileTargets = hatchery }).Decide(Observe(map: Developed, rooms: CoreOffers, owned: CoreOwned()));
         Assert.Equal((RoomTypeId.Hatchery, new TilePos(6, 5)), (Built(grow, RoomTypeId.Hatchery)!.Room, Built(grow, RoomTypeId.Hatchery)!.From));
         Assert.Null(Built(Player().Decide(Observe(map: Developed, rooms: CoreOffers, owned: CoreOwned())), RoomTypeId.Hatchery));

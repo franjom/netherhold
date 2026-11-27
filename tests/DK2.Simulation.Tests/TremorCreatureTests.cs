@@ -418,8 +418,8 @@ public sealed class TremorCreatureTests
             basis.Creatures.Values.Select(c => c.CreatureId == type
                 ? c with
                 {
-                    AngryJobs = angry == JobType.None ? [] : [new(angry, 0, 0, 100)],
-                    UnhappyJobs = unhappy == JobType.None ? [] : [new(unhappy, 0, 0, 100)]
+                    AngryJobs = angry == JobType.None ? [] : [new CreatureJobPreference(angry, 0, 0, 100)],
+                    UnhappyJobs = unhappy == JobType.None ? [] : [new CreatureJobPreference(unhappy, 0, 0, 100)]
                 } : c), basis.Variables, objects: basis.Objects.Values, shots: basis.Shots.Values);
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(20, 20),
             [PlayerIds.Good, PlayerIds.Neutral, Keeper]);

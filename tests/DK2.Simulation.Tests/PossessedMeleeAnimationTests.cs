@@ -252,7 +252,7 @@ public sealed class PossessedMeleeAnimationTests
         imp.TimeLastUsedMelee = -100;
 
         sim.Tick(InputFrame.Of(new ActPossessedCreatureCommand(PlayerIds.FirstKeeper,
-            new(new(new(imp.PosX), new(imp.PosY), new(imp.PosZ)), new(0x200), new(0x200)), true, new(0))));
+            new PossessionAim(new FpPosition3(new Fp32(imp.PosX), new Fp32(imp.PosY), new Fp32(imp.PosZ)), new Dk2Angle(0x200), new Dk2Angle(0x200)), true, new PossessedSlot(0))));
 
         Assert.NotEqual(-1, imp.ClaimActionTile);
         Assert.False(imp.PossessedMelee.Active);

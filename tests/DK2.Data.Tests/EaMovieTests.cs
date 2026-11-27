@@ -203,7 +203,7 @@ public class EaMovieTests
     /// <summary>Bits most significant first, packed into little-endian 32-bit words as DK2 reads them.</summary>
     private sealed class BitWriter
     {
-        private readonly StringBuilder _bits = new();
+        private readonly StringBuilder _bits = new StringBuilder();
         public int Count
         {
             get

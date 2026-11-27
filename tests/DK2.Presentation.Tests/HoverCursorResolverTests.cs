@@ -17,7 +17,7 @@ namespace DK2.Presentation.Tests;
 public sealed class HoverCursorResolverTests
 {
     private static readonly PlayerId Keeper = PressFixture.Keeper;
-    private static readonly BottomPanelChoiceKey Fireball = new(BottomPanelChoiceKind.Spell, 3);
+    private static readonly BottomPanelChoiceKey Fireball = new BottomPanelChoiceKey(BottomPanelChoiceKind.Spell, 3);
 
     private sealed class Floor(int width, int height) : INavByteGrid
     {
@@ -205,7 +205,7 @@ public sealed class HoverCursorResolverTests
 
     // The install's Goblin on a claimed 5 x 5 floor (PressFixture.Goblin), with (4, 4) turned to neutral water, where no
     // creature may be dropped, and (1, 3) to a dig-taggable terrain.
-    private static readonly TilePos Water = new(4, 4), Dig = new(1, 3), Floor22 = new(2, 2);
+    private static readonly TilePos Water = new TilePos(4, 4), Dig = new TilePos(1, 3), Floor22 = new TilePos(2, 2);
 
     private static (Rig Rig, CreatureState Goblin) Goblin()
     {
@@ -224,7 +224,7 @@ public sealed class HoverCursorResolverTests
 
     private static WorldHoverHit TileHit(TilePos tile)
     {
-        return new(WorldHoverKind.Tile, tile);
+        return new WorldHoverHit(WorldHoverKind.Tile, tile);
     }
 
     [InstallFact]

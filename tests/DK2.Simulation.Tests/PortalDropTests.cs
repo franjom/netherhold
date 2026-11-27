@@ -16,7 +16,7 @@ public sealed class PortalDropTests
     {
         (GameSimulation? sim, CreatureState? creature, ListEventSink? events) = Setup();
         creature.DroppedToDoJob = JobType.Train;
-        sim.World.Player(PlayerIds.FirstKeeper).EntranceInfo.Add(new(7, 0, 0));
+        sim.World.Player(PlayerIds.FirstKeeper).EntranceInfo.Add(new EntranceInfoState(7, 0, 0));
         creature.GoldHeld = 350;
         sim.Tick(InputFrame.Of(new TakeCreatureCommand(PlayerIds.FirstKeeper, creature.Id)));
         sim.Tick(InputFrame.Of(new DropCommand(PlayerIds.FirstKeeper, new TilePos(6, 6))));
@@ -167,7 +167,7 @@ public sealed class PortalDropTests
     private static (GameSimulation Sim, CreatureState Creature, ListEventSink Events) Setup(byte portalOwner = 3, bool worker = false, RoomTypeId portalType = RoomTypeId.Portal)
     {
         GameDatabase fixture = Dk2TerrainFixture.Database();
-        GameDatabase db = new(fixture.Terrain.Values,
+        var db = new GameDatabase(fixture.Terrain.Values,
             fixture.Rooms.Values.Select(r => r.TypeId == RoomTypeId.Portal ? r with { CreatedObjectEffectId = 96 } : r),
             fixture.Creatures.Values.Select(c => worker && c.CreatureId == 7 ? c with { Flags = c.Flags | CreatureFlags.IsWorker } : c), fixture.Variables);
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, (byte)3, (byte)4]);

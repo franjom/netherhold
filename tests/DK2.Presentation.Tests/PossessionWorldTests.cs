@@ -16,7 +16,7 @@ namespace DK2.Presentation.Tests;
 public sealed class PossessionWorldTests
 {
     private const int One = 65536;
-    private static readonly Fixed16Vector East = new(One, 0);
+    private static readonly Fixed16Vector East = new Fixed16Vector(One, 0);
 
     [Theory]
     [InlineData(2 * One, 0, One / 2, 3 * One / 2)]          // the near edge of a circle ahead

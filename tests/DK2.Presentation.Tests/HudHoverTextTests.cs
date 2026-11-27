@@ -16,9 +16,9 @@ public sealed class HudHoverTextTests
         public ClassicHudAction Corner;
         public KeeperResourceKind Kind;
         public int TypeTexts, Asked;
-        public readonly HoverTextSnapshot TabsText = new("tabs", "", default);
-        public readonly HoverTextSnapshot BattleText = new("battle status", "battle", default);
-        public readonly HoverTextSnapshot PanelText = new("panel", "", default);
+        public readonly HoverTextSnapshot TabsText = new HoverTextSnapshot("tabs", "", default);
+        public readonly HoverTextSnapshot BattleText = new HoverTextSnapshot("battle status", "battle", default);
+        public readonly HoverTextSnapshot PanelText = new HoverTextSnapshot("panel", "", default);
 
         public int OverviewTextId() { Asked++; return Widget; }
         public CreatureOverviewType? OverviewColumn() { Asked++; return Column; }
@@ -49,7 +49,7 @@ public sealed class HudHoverTextTests
         public KeeperResourceKind Resource() { Asked++; return Kind; }
     }
 
-    private static readonly KeeperResourceSnapshot Facts = new(new GoldAmount(100), new ManaAmount(50), default, default);
+    private static readonly KeeperResourceSnapshot Facts = new KeeperResourceSnapshot(new GoldAmount(100), new ManaAmount(50), default, default);
 
     private int _resolves;
     private string Resolve(uint id) { _resolves++; return "s" + id; }

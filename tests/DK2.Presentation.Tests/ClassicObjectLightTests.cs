@@ -11,10 +11,10 @@ namespace DK2.Presentation.Tests;
 
 public class ClassicObjectLightTests
 {
-    private static readonly KwdLight Arches = new(0, 0, 15360, 10240, 0x3800, 244, 244, 204, 0);
+    private static readonly KwdLight Arches = new KwdLight(0, 0, 15360, 10240, 0x3800, 244, 244, 204, 0);
     private static ObjectView Object(int id, int x = 5, KwdLight? descriptor = null)
     {
-        return new(
+        return new ObjectView(
         id, 86, new PlayerId(3), new TilePos(x, 5), default, 0,
         x * Fp32.One + 2048, 5 * Fp32.One + 2048, Fp32.One, 1024, Fp32.One,
         light: descriptor ?? Arches);
@@ -171,7 +171,7 @@ public class ClassicObjectLightTests
     {
         var cache = new ClassicWorldLightCache(16, 16);
         ObjectView[] objects = [Object(1), Object(2)];
-        TilePos[] visible = [new(5, 5), new(6, 5)];
+        TilePos[] visible = [new TilePos(5, 5), new TilePos(6, 5)];
         for (int i = 0; i < 100; i++) { cache.UpdateObjects(objects, .5f); cache.PrepareFrame(visible); }
         long before = GC.GetAllocatedBytesForCurrentThread();
         for (int i = 0; i < 100; i++) { cache.UpdateObjects(objects, .5f); cache.PrepareFrame(visible); }

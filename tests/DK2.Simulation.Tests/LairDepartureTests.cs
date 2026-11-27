@@ -51,7 +51,7 @@ public sealed class LairDepartureTests
         (GameSimulation? sim, CreatureState? creature, Attempt? attempt) = Setup(new TilePos(6, 1), 1);
         uint seed = ((Dk2Lcg)sim.Rng.Algorithm).Seed;
         creature.UtilityNewState = 123;
-        creature.Body.PathTargetPos = new(12345, 67890);
+        creature.Body.PathTargetPos = new Fixed16Vector(12345, 67890);
         creature.Body.PathFlags = 2;
         creature.ActionUntilTick = 100;
         sim.Tick();

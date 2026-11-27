@@ -253,7 +253,7 @@ public class HeroPartyTests
     /// party &gt;= atLeast</c>, setting flag 10.</summary>
     private static TriggerTree MemberTree(ushort asker, byte partyId, int atLeast)
     {
-        return new(
+        return new TriggerTree(
         [
             new GenericTriggerRecord(new byte[16])
             {
@@ -275,7 +275,7 @@ public class HeroPartyTests
     /// <summary>A world root asking <c>missing members of the party &gt;= atLeast</c>, setting flag 10.</summary>
     private static TriggerTree MissingTree(byte partyId, int atLeast)
     {
-        return new(
+        return new TriggerTree(
         [
             new GenericTriggerRecord(new byte[16])
             {
@@ -325,7 +325,7 @@ public class HeroPartyTests
         byte creature, byte level, ushort gold, int health, byte flags,
         byte objective = 0, int target = 0, byte player = 0, ushort trigger = 0, byte flags2 = 0, byte party = 0)
     {
-        return new(new byte[32])
+        return new GoodCreatureThing(new byte[32])
         {
             CreatureId = creature,
             Level = level,
@@ -348,7 +348,7 @@ public class HeroPartyTests
 
     private static TriggerTree Tree(byte partyId, byte partyType)
     {
-        return new(
+        return new TriggerTree(
         [
             new GenericTriggerRecord(new byte[16])
             {

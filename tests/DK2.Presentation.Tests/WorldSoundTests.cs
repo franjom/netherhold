@@ -61,7 +61,7 @@ public sealed class WorldSoundTests
     {
         var director = new WorldSoundDirector();
         var request = new ThingSoundRequest(SoundSourceId.Of(new CreatureId(5)), "CREATURE_IMP", (ThingSoundEvent)0xC3,
-            new(new Fp32(4096), new Fp32(8192), new Fp32(4096)), Voiced: false);
+            new FpPosition3(new Fp32(4096), new Fp32(8192), new Fp32(4096)), Voiced: false);
         director.Emit(new SimEvent(default, "test", "thing_sound", "") { ThingSound = request });
         Assert.True(director.TryTake(out SoundRequest sound));
         Assert.Equal(SoundVoiceId.None, sound.Voice);
@@ -74,8 +74,8 @@ public sealed class WorldSoundTests
         var director = new WorldSoundDirector();
         director.Emit(new SimEvent(default, "test", "thing_sound", "")
         {
-            ThingSound = new(new SoundSourceId(SoundSourceKind.Terrain, 91), "TERRAIN_ROCK", ThingSoundEvent.TileBroken,
-                new(new Fp32(0x1800), new Fp32(0x2800), new Fp32(0)), Voiced: false),
+            ThingSound = new ThingSoundRequest(new SoundSourceId(SoundSourceKind.Terrain, 91), "TERRAIN_ROCK", ThingSoundEvent.TileBroken,
+                new FpPosition3(new Fp32(0x1800), new Fp32(0x2800), new Fp32(0)), Voiced: false),
         });
         Assert.True(director.TryTake(out SoundRequest sound));
         Assert.Equal("terrain_rock", sound.Category.Name);
@@ -93,8 +93,8 @@ public sealed class WorldSoundTests
         var director = new WorldSoundDirector(null, viewer is int v ? new PlayerId((byte)v) : null);
         director.Emit(new SimEvent(default, "test", "thing_sound", "")
         {
-            ThingSound = new(new SoundSourceId(SoundSourceKind.Room, 7), "ROOM_DUNGEON_HEART", ThingSoundEvent.HeartOpened,
-                new(new Fp32(0x1800), new Fp32(0x1800), new Fp32(0x1000)), Voiced: false, ViewerOnlyFor: new PlayerId(owner)),
+            ThingSound = new ThingSoundRequest(new SoundSourceId(SoundSourceKind.Room, 7), "ROOM_DUNGEON_HEART", ThingSoundEvent.HeartOpened,
+                new FpPosition3(new Fp32(0x1800), new Fp32(0x1800), new Fp32(0x1000)), Voiced: false, ViewerOnlyFor: new PlayerId(owner)),
         });
         Assert.Equal(plays, director.TryTake(out _));
     }
@@ -116,9 +116,9 @@ public sealed class WorldSoundTests
         var chicken = new SoundSourceId(SoundSourceKind.Object, 5);
         SimEvent Step()
         {
-            return new(default, "test", "thing_sound", "")
+            return new SimEvent(default, "test", "thing_sound", "")
             {
-                ThingSound = new(chicken, "OBJECT_CHICKEN", ThingSoundEvent.ChickenStep, new(new Fp32(0), new Fp32(0), new Fp32(0)), Alternating: true),
+                ThingSound = new ThingSoundRequest(chicken, "OBJECT_CHICKEN", ThingSoundEvent.ChickenStep, new FpPosition3(new Fp32(0), new Fp32(0), new Fp32(0)), Alternating: true),
             };
         }
 
@@ -135,9 +135,9 @@ public sealed class WorldSoundTests
 
     private static SimEvent Sound(SoundSourceId source, string category, ThingSoundEvent sound)
     {
-        return new(default, "test", "thing_sound", "")
+        return new SimEvent(default, "test", "thing_sound", "")
         {
-            ThingSound = new(source, category, sound, new(new Fp32(8192), new Fp32(12288), new Fp32(4096))),
+            ThingSound = new ThingSoundRequest(source, category, sound, new FpPosition3(new Fp32(8192), new Fp32(12288), new Fp32(4096))),
         };
     }
 }

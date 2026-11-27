@@ -143,6 +143,6 @@ public class KmfMaterialTests(ITestOutputHelper output)
 
     private static KmfMaterial Material(uint flags, float brightness)
     {
-        return new("m", ["t"], flags, brightness, 0f, "");
+        return new KmfMaterial("m", ["t"], flags, brightness, 0f, "");
     }
 }

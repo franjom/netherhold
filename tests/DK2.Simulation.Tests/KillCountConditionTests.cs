@@ -27,7 +27,7 @@ public class KillCountConditionTests
         Die(world, hero, PlayerIds.Good, credited: Keeper);
         Die(world, goblin, Keeper, credited: Keeper);
         Die(world, goblin, Rival, credited: 0); // uncredited: only the owner's own count moves
-        CreatureState uncounted = new() { OwnerPlayerId = Rival, Health = 0, DeathUncounted = true };
+        var uncounted = new CreatureState() { OwnerPlayerId = Rival, Health = 0, DeathUncounted = true };
         LevelStatisticsRules.CreditDeath(world, goblin, uncounted, Keeper);
 
         ref PlayerLevelStatistics mine = ref world.Player(Keeper).Statistics;

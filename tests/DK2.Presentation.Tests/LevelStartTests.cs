@@ -30,7 +30,7 @@ public sealed class LevelStartTests
 
     private static BottomPanelView View()
     {
-        return new(new GameDatabase([], [], [], new GlobalVariables()), Keeper, (_, name) => name);
+        return new BottomPanelView(new GameDatabase([], [], [], new GlobalVariables()), Keeper, (_, name) => name);
     }
 
     [Fact]

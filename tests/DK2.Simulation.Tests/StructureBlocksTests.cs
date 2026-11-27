@@ -77,7 +77,7 @@ public sealed class StructureBlocksTests
 
     private static WorldPathGrid Grid(GameDatabase db, WorldState world)
     {
-        return new(db, world, db.CreatureById(GoblinId));
+        return new WorldPathGrid(db, world, db.CreatureById(GoblinId));
     }
 
     // ---- the hole ---------------------------------------------------------
@@ -576,7 +576,7 @@ public sealed class StructureBlocksTests
         Assert.True(Grid(Db, world).IsWalkable(6, 6));
         Assert.Empty(StructureBlocks.For(world, Db).HeartCentres);
         var obstacles = new List<DK2.Simulation.Steering.SteeringObstacle>();
-        steering.CollectObstacles(new((6 << 16) + 0x8000, (6 << 16) + 0x8000), 1 << 16, obstacles);
+        steering.CollectObstacles(new Fixed16Vector((6 << 16) + 0x8000, (6 << 16) + 0x8000), 1 << 16, obstacles);
         Assert.Empty(obstacles);
         Assert.True(steering.TryRoute(goblin, new TilePos(6, 6), Navigation.MoveOptions.Loose));
         (goblin.Dk2StateId, goblin.UtilityNewState) = (6, 1); // walking (6), resuming idle
@@ -646,7 +646,7 @@ public sealed class StructureBlocksTests
         var body = new DK2.Simulation.Steering.SteeringBody
         {
             Pos = HeartRelativePoint(snap ? -0.55 : -0.65, 0),
-            Vel = new((int)(0.4 * 65536), 0),
+            Vel = new Fixed16Vector((int)(0.4 * 65536), 0),
             PathFlags = snap ? (byte)4 : (byte)0,
             PathTotalCount = 1,
             EscapeStuckMode = !snap,
@@ -661,7 +661,7 @@ public sealed class StructureBlocksTests
 
     private static DK2.Simulation.Steering.Fixed16Vector HeartRelativePoint(double x, double y)
     {
-        return new((int)((6.5 + x) * 65536), (int)((6.5 + y) * 65536));
+        return new Fixed16Vector((int)((6.5 + x) * 65536), (int)((6.5 + y) * 65536));
     }
 
     private static int DistanceToHeartCentre(CreatureState goblin)

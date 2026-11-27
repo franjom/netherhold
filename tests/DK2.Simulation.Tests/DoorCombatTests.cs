@@ -19,9 +19,9 @@ public class DoorCombatTests
     private const byte Rival = PlayerIds.FirstKeeper + 1;
     private const byte WoodenDoor = 1;
     private const byte Barricade = 6;
-    private static readonly TilePos DoorTile = new(10, 10);
-    private static readonly TilePos West = new(6, 10);
-    private static readonly TilePos East = new(14, 10);
+    private static readonly TilePos DoorTile = new TilePos(10, 10);
+    private static readonly TilePos West = new TilePos(6, 10);
+    private static readonly TilePos East = new TilePos(14, 10);
 
     private static (GameDatabase db, WorldState world) Walled(byte doorOwner, byte flags = 0, byte doorId = WoodenDoor)
     {
@@ -45,7 +45,7 @@ public class DoorCombatTests
 
     private static WorldSteering Routes(GameDatabase db, WorldState world)
     {
-        return new(db, world);
+        return new WorldSteering(db, world);
     }
 
     private static GameSimulation Sim(GameDatabase db, WorldState world, ListEventSink sink)

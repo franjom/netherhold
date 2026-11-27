@@ -14,13 +14,13 @@ namespace DK2.AI.Tests.Players;
 /// thousands of drops and most of the army's deaths).</summary>
 public partial class CampaignPlayerTests
 {
-    private static readonly PlayerVisibleTrap Sentry = new(new TilePos(9, 9), 14, Heroes, ReachTiles: 3);
+    private static readonly PlayerVisibleTrap Sentry = new PlayerVisibleTrap(new TilePos(9, 9), 14, Heroes, ReachTiles: 3);
 
     [Fact]
     public void AnEnemyInATrapsReachIsNotAnswered()
     {
-        PlayerVisibleThing hero = new(Handle(0), PlayerThingKind.Creature, new TilePos(9, 9), Heroes, PlayerThingActions.None, creatureType: new CreatureTypeId(20));
-        PlayerVisibleThing goblin = new(Handle(1), PlayerThingKind.Creature, new TilePos(3, 2), Me, PlayerThingActions.PickUp | PlayerThingActions.Slap, creatureType: Goblin);
+        var hero = new PlayerVisibleThing(Handle(0), PlayerThingKind.Creature, new TilePos(9, 9), Heroes, PlayerThingActions.None, creatureType: new CreatureTypeId(20));
+        var goblin = new PlayerVisibleThing(Handle(1), PlayerThingKind.Creature, new TilePos(3, 2), Me, PlayerThingActions.PickUp | PlayerThingActions.Slap, creatureType: Goblin);
 
         Assert.Contains(new PlayerAction.PickUp(Handle(1)), Player().Decide(Observe(things: [hero, goblin], gold: 0)).Actions);
         PlayerDecision guarded = Player().Decide(Observe(things: [hero, goblin], gold: 0, enemyTraps: [Sentry]));

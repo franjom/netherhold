@@ -79,7 +79,7 @@ public class KwdMapEditingTests
     public void InconsistentSourceDimensionsAreRefused()
     {
         KwdLevelFileSet editor =Set(KwdLevelFileSetTests.Fixture(KwdRecordType.Map,new byte[8],0));
-        Assert.Throws<InvalidDataException>(()=>editor.ReadMap(new("map.kld",0)));
+        Assert.Throws<InvalidDataException>(()=>editor.ReadMap(new KwdChunkLocation("map.kld",0)));
     }
 
     [InstallFact]

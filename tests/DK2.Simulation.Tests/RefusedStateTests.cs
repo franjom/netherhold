@@ -100,7 +100,7 @@ public class RefusedStateTests
         GameDatabase source = Dk2TerrainFixture.Database();
         var art = new CreatureAnimationTiming[CreatureDef.ArtSlotCount];
         art[20] = art[31] = new CreatureAnimationTiming { ResourceType = 6, FrameCount = 100, FramesPerSecond = 20 };
-        GameDatabase db = new(source.Terrain.Values, source.Rooms.Values,
+        var db = new GameDatabase(source.Terrain.Values, source.Rooms.Values,
             source.Creatures.Values.Select(c => c.CreatureId is Goblin or Dk2TerrainFixture.BileDemonCreatureId
                 ? c with { ArtSlots = art } : c), source.Variables,
             keeperSpells: source.KeeperSpells.Values, objects: source.Objects.Values, doors: source.Doors.Values,

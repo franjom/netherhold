@@ -86,7 +86,7 @@ public sealed class RenderRotationTests
 
     private static Quaternion Multiply(Quaternion lhs, Quaternion rhs)
     {
-        return new(
+        return new Quaternion(
         lhs.W * rhs.X + lhs.X * rhs.W + lhs.Y * rhs.Z - lhs.Z * rhs.Y,
         lhs.W * rhs.Y + lhs.Y * rhs.W + lhs.Z * rhs.X - lhs.X * rhs.Z,
         lhs.W * rhs.Z + lhs.Z * rhs.W + lhs.X * rhs.Y - lhs.Y * rhs.X,

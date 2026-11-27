@@ -35,7 +35,7 @@ public class MpegAudioDecoderTests
     public void DecodeCreatesNoFilesInInstallOrTemporaryDirectory()
     {
         byte[] payload = Payload("FrontEndHD.sdt");
-        DirectoryInfo? root = new(AppContext.BaseDirectory);
+        var root = new DirectoryInfo(AppContext.BaseDirectory);
         while (root is not null && !File.Exists(Path.Combine(root.FullName, "DK2.slnx")))
         {
             root = root.Parent;

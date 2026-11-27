@@ -103,7 +103,7 @@ public class PeerCommandsTests
             ((SellRoomCommand)Decode(SellRoomCommand.Rect(P, 2, 2, MapSize - 1, 4), P)).Max);
     }
 
-    private static readonly PlayerId P = new(3);
+    private static readonly PlayerId P = new PlayerId(3);
 
     private static PlayerCommand Decode(PlayerCommand command, PlayerId sender)
     {

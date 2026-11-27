@@ -56,7 +56,7 @@ public class TerrainChunkSchedulerTests
         var sink = new SchedulerLog();
         TileView Tile(bool tagged = false, bool red = false, int tint = 0, int face = -1)
         {
-            return new(new TilePos(0, 0), default, default, default, tagged, false, 0, 1000,
+            return new TileView(new TilePos(0, 0), default, default, default, tagged, false, 0, 1000,
                 pieces: default(TerrainPieces).WithFloor(), pieceKeys: Rock, ambientTint: new TerrainLightColour(tint, 0, 0),
                 quarterAmbientTint: new TerrainLightColour(0, tint, 0), redHighlighted: red, faceTexture: face);
         }
@@ -80,7 +80,7 @@ public class TerrainChunkSchedulerTests
     // Three by three chunks, the last row and column partial.
     private const int Width = 40, Height = 36;
 
-    private static readonly TerrainPieceKeys Rock = new("Rock");
+    private static readonly TerrainPieceKeys Rock = new TerrainPieceKeys("Rock");
 
     [Theory]
     [InlineData(false, 0.0)]
@@ -660,13 +660,13 @@ public class TerrainChunkSchedulerTests
     /// <summary>Records packs and uploads, and checks each upload's tiles against the chunk's last pack.</summary>
     private sealed class PackLog : ITerrainChunkPacker, ITerrainChunkSink
     {
-        private readonly Dictionary<int, TerrainTileGeometry[]> _lastPack = new();
-        private readonly List<TerrainTileGeometry> _uploading = new();
+        private readonly Dictionary<int, TerrainTileGeometry[]> _lastPack = new Dictionary<int, TerrainTileGeometry[]>();
+        private readonly List<TerrainTileGeometry> _uploading = new List<TerrainTileGeometry>();
         private SchedulerLog.Upload? _open;
         private int _inside;
 
-        public List<(int Chunk, int Thread, TerrainTileGeometry[] Tiles)> Packs { get; } = new();
-        public List<SchedulerLog.Upload> Uploads { get; } = new();
+        public List<(int Chunk, int Thread, TerrainTileGeometry[] Tiles)> Packs { get; } = new List<(int Chunk, int Thread, TerrainTileGeometry[] Tiles)>();
+        public List<SchedulerLog.Upload> Uploads { get; } = new List<SchedulerLog.Upload>();
         public Action? Uploaded { get; set; }
         public int Overlaps;
 
@@ -746,7 +746,7 @@ public class TerrainChunkSchedulerTests
 
     private static TileView Floor(int x, int y, bool tagged = false, TerrainLightColour tint = default)
     {
-        return new(new TilePos(x, y), default, default, default, tagged, false, 0, 1000,
+        return new TileView(new TilePos(x, y), default, default, default, tagged, false, 0, 1000,
             pieces: default(TerrainPieces).WithFloor(), pieceKeys: Rock, ambientTint: tint);
     }
 
@@ -767,7 +767,7 @@ public class TerrainChunkSchedulerTests
     /// <summary>A lattice over a map of solid rock, which bends the walls and floors near every tile.</summary>
     private static TerrainLattice Lattice()
     {
-        TerrainDef rock = new()
+        var rock = new TerrainDef()
         {
             Name = "rock", TerrainId = 2, Flags = TerrainFlags.Solid, StartingHealth = 1, MaxHealth = 1, GoldValue = 0,
             ManaGain = 0, MaxManaGain = 0, Damage = 0, MaxHealthTypeTerrainId = 2, DestroyedTypeTerrainId = 2,

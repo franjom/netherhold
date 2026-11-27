@@ -234,8 +234,8 @@ public sealed class FrontEndClickCategoryTests
     {
         var session = new FrontEndSession(_ => new[] { new KcsFrame(0, 0, -3, new KcsRotation(1, 0, 0, 0, 1, 0, 0, 0, 1), 1, 20000) });
         session.Update(TimeSpan.Zero); session.Update(TimeSpan.FromSeconds(1));
-        using var menu = new FrontEndMenuController(session, _ => new(0, 0, 10, 10));
-        menu.Activate(new(1));
+        using var menu = new FrontEndMenuController(session, _ => new FrontEndRect(0, 0, 10, 10));
+        menu.Activate(new FrontEndWidgetId(1));
         SoundRequest main = Assert.Single(menu.Sounds.Pending);
         Assert.Equal((SoundCategory.FrontEnd, 0x30Au), (main.Category, main.Id.Value));
         menu.Sounds.Clear();
@@ -259,7 +259,7 @@ public sealed class CampaignMapSoundTests
 
     private static CampaignMapController AtTheMap(FrontEndSession session)
     {
-        var map = new CampaignMapController(session, new CampaignProfile(), false, slot => new(slot, "", "", "", Array.Empty<string>()));
+        var map = new CampaignMapController(session, new CampaignProfile(), false, slot => new CampaignBriefing(slot, "", "", "", Array.Empty<string>()));
         map.Continue(); session.Update(TimeSpan.FromSeconds(2));
         return map;
     }

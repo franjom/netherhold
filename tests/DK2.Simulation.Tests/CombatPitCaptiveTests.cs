@@ -13,8 +13,8 @@ public sealed class CombatPitCaptiveTests
 {
     private const byte Keeper = 4;
     private const byte Rival = 5;
-    private static readonly TilePos Floor = new(6, 4);
-    private static readonly TilePos Outside = new(10, 4);
+    private static readonly TilePos Floor = new TilePos(6, 4);
+    private static readonly TilePos Outside = new TilePos(10, 4);
 
     private static (GameDatabase Database, WorldState World) Setup()
     {

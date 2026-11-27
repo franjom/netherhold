@@ -178,18 +178,18 @@ public sealed class HudScriptRestorationTests
     {
         ScriptedViewDirector director = Director(new ClassicHudControls());
         Letterbox(director, true);
-        director.Update(0, 0, new(from));
-        director.Update(2000, 0, new(from));
-        director.Update(3000, 0, new(to));
+        director.Update(0, 0, new CameraModeId(from));
+        director.Update(2000, 0, new CameraModeId(from));
+        director.Update(3000, 0, new CameraModeId(to));
         // Expected interpolation from the binary timing rule, not a native gameplay capture.
         if (duration > 0)
         {
-            director.Update(3000 + duration / 2, 0, new(to));
+            director.Update(3000 + duration / 2, 0, new CameraModeId(to));
             Assert.Equal(0.0625f, director.LetterboxBar);
         }
-        director.Update(3000 + duration, 0, new(to));
+        director.Update(3000 + duration, 0, new CameraModeId(to));
         Assert.Equal(0, director.LetterboxBar);
-        director.Update(3001 + duration, 0, new(to));
+        director.Update(3001 + duration, 0, new CameraModeId(to));
         Assert.Equal(new CameraModeId(to).IsPossession ? 0 : 0.125f, director.LetterboxBar);
         Assert.Equal(1, director.LetterboxRequestCount);
     }
@@ -199,13 +199,13 @@ public sealed class HudScriptRestorationTests
     {
         ScriptedViewDirector director = Director(new ClassicHudControls());
         Letterbox(director, true);
-        director.Update(0, 0, new(3));
-        director.Update(2000, 0, new(3));
-        director.Update(3000, 0, new(10));
-        director.Update(4000, 0, new(3));
-        director.Update(5000, 0, new(3));
+        director.Update(0, 0, new CameraModeId(3));
+        director.Update(2000, 0, new CameraModeId(3));
+        director.Update(3000, 0, new CameraModeId(10));
+        director.Update(4000, 0, new CameraModeId(3));
+        director.Update(5000, 0, new CameraModeId(3));
         Assert.Equal(0, director.LetterboxBar);
-        director.Update(5001, 0, new(3));
+        director.Update(5001, 0, new CameraModeId(3));
         Assert.Equal(0.125f, director.LetterboxBar);
     }
 
@@ -221,26 +221,26 @@ public sealed class HudScriptRestorationTests
             StartPath(director);
         }
 
-        director.Update(0, 0, new(3));
-        director.Update(2000, 0, new(3));
+        director.Update(0, 0, new CameraModeId(3));
+        director.Update(2000, 0, new CameraModeId(3));
         director.Emit(new SimEvent(default, "test", "mode", "")
         {
             ScriptedView = new ScriptedViewRequest(ScriptedViewKind.CameraMode, PlayerIds.FirstKeeper, 3, default, false),
         });
-        director.Update(3000, 0, new(3));
+        director.Update(3000, 0, new CameraModeId(3));
         if (duringPath)
         {
-            director.Update(3500, 0, new(3));
+            director.Update(3500, 0, new CameraModeId(3));
             Assert.Equal(0.125f, director.LetterboxBar);
             Assert.True(director.Skip());
         }
         int started = duringPath ? 3500 : 3000;
         // Binary-derived expected interpolation, not an owner measurement.
-        director.Update(started + 250, 0, new(3));
+        director.Update(started + 250, 0, new CameraModeId(3));
         Assert.Equal(0.0625f, director.LetterboxBar);
-        director.Update(started + 500, 0, new(3));
+        director.Update(started + 500, 0, new CameraModeId(3));
         Assert.Equal(0, director.LetterboxBar);
-        director.Update(started + 501, 0, new(3));
+        director.Update(started + 501, 0, new CameraModeId(3));
         Assert.Equal(0.125f, director.LetterboxBar);
         Assert.Equal(1, director.LetterboxRequestCount);
     }
@@ -250,18 +250,18 @@ public sealed class HudScriptRestorationTests
     {
         ScriptedViewDirector director = Director(new ClassicHudControls());
         StartPath(director);
-        director.Update(0, 0, new(3));
+        director.Update(0, 0, new CameraModeId(3));
         director.Emit(new SimEvent(default, "test", "force_off", "")
         {
             ScriptedView = new ScriptedViewRequest(ScriptedViewKind.Letterbox, PlayerIds.FirstKeeper, 2, default, false),
         });
-        director.Update(100, 0, new(3));
+        director.Update(100, 0, new CameraModeId(3));
         Assert.Equal(0, director.LetterboxRequestCount);
         Assert.True(director.Skip());
         Assert.Equal(-1, director.LetterboxRequestCount);
         Assert.False(director.HudFor(ClassicCameraMode.Dungeon).ShowNormalHud);
         Letterbox(director, true);
-        director.Update(200, 0, new(3));
+        director.Update(200, 0, new CameraModeId(3));
         Assert.Equal(0, director.LetterboxRequestCount);
         Assert.True(director.HudFor(ClassicCameraMode.Dungeon).ShowNormalHud);
     }
@@ -300,8 +300,8 @@ public sealed class HudScriptRestorationTests
     {
         ScriptedViewDirector director = Director(new ClassicHudControls());
         Letterbox(director, false);
-        director.Update(0, 0, new(mode));
-        director.Update(1, 0, new(mode));
+        director.Update(0, 0, new CameraModeId(mode));
+        director.Update(1, 0, new CameraModeId(mode));
         Assert.Equal(-1, director.LetterboxRequestCount);
         Assert.Equal(expected, director.LetterboxBar);
     }
@@ -310,24 +310,24 @@ public sealed class HudScriptRestorationTests
     public void ScriptedModeSurvivesAnUnchangedSampledDungeonMode()
     {
         ScriptedViewDirector director = Director(new ClassicHudControls());
-        director.Update(0, 0, new(3));
+        director.Update(0, 0, new CameraModeId(3));
         director.Emit(new SimEvent(default, "test", "mode", "")
         {
-            ScriptedView = new(ScriptedViewKind.CameraMode, PlayerIds.FirstKeeper, 1, default, false),
+            ScriptedView = new ScriptedViewRequest(ScriptedViewKind.CameraMode, PlayerIds.FirstKeeper, 1, default, false),
         });
-        director.Update(100, 0, new(3));
+        director.Update(100, 0, new CameraModeId(3));
         director.Emit(new SimEvent(default, "test", "move", "")
         {
-            ScriptedView = new(ScriptedViewKind.CameraMove, PlayerIds.FirstKeeper, 0, new TilePos(3, 4), false),
+            ScriptedView = new ScriptedViewRequest(ScriptedViewKind.CameraMove, PlayerIds.FirstKeeper, 0, new TilePos(3, 4), false),
         });
-        director.Update(200, 0, new(3));
+        director.Update(200, 0, new CameraModeId(3));
         Assert.False(director.TryTakeCameraMove(out _));
     }
 
     private static ScriptedViewDirector Director(ClassicHudControls controls)
     {
         var rotation = new KcsRotation(1, 0, 0, 0, 1, 0, 0, 0, 1);
-        KcsFrame[] frames = [new(0, 0, -3, rotation, 1, 12000), new(0, 0, -3, rotation, 1, 12000)];
+        KcsFrame[] frames = [new KcsFrame(0, 0, -3, rotation, 1, 12000), new KcsFrame(0, 0, -3, rotation, 1, 12000)];
         var director = new ScriptedViewDirector(PlayerIds.FirstKeeper, _ => frames, _ => null);
         director.GuiVisibilityRequested += controls.SetGuiVisible;
         return director;

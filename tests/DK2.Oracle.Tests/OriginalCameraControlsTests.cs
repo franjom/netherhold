@@ -26,7 +26,7 @@ public class OriginalCameraControlsTests
             (uint, uint)[] writes = [.. values.Select((v, i) => (argument + (uint)(i * 4), BitConverter.SingleToUInt32Bits(v)))];
             OriginalCpu.Outcome result = OriginalCpu.Run(new OriginalCpu.Request[]
             {
-                new(0x0058A6F0, [argument], writes, [0x0077F4BC, 0x0077939C]),
+                new OriginalCpu.Request(0x0058A6F0, [argument], writes, [0x0077F4BC, 0x0077939C]),
             })[0];
             Assert.Null(result.Fault);
             var camera = new ClassicCamera(new CameraThing(new byte[84])
@@ -64,8 +64,8 @@ public class OriginalCameraControlsTests
             };
             IReadOnlyList<OriginalCpu.Outcome> results = OriginalCpu.Run(new OriginalCpu.Request[]
             {
-                new(0x00442140, [argument], [.. setup], Ecx: bridge),
-                new(0x00442140, [argument], [(argument, unchecked((uint)-first))], [focusX], Ecx: bridge),
+                new OriginalCpu.Request(0x00442140, [argument], [.. setup], Ecx: bridge),
+                new OriginalCpu.Request(0x00442140, [argument], [(argument, unchecked((uint)-first))], [focusX], Ecx: bridge),
             });
             foreach (OriginalCpu.Outcome result in results)
             {
@@ -147,10 +147,10 @@ public class OriginalCameraControlsTests
                                     (argument, unchecked((uint)x)), (argument + 4, unchecked((uint)y)),
                                     (argument + 8, fast ? 1u : 0u),
                                 };
-                                requests.Add(new(0x00442140, [argument], [.. writes], Ecx: bridge));
+                                requests.Add(new OriginalCpu.Request(0x00442140, [argument], [.. writes], Ecx: bridge));
                                 setup.Clear(); coastX += x * 2; coastY += y * 2;
                             }
-                            requests.Add(new(0x00441FB0, [argument],
+                            requests.Add(new OriginalCpu.Request(0x00441FB0, [argument],
                                 [(argument, unchecked((uint)(coastX * 64))),
                                  (argument + 4, unchecked((uint)(coastY * 64))), (argument + 8, 0)],
                                 [focusX, focusY, cameraAddress + 0xD70], Ecx: bridge));

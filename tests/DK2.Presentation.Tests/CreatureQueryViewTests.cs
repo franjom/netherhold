@@ -28,7 +28,7 @@ public sealed class CreatureQueryViewTests
         GameDatabase db = GameDatabaseLoader.Load(Dk2InstallGate.Path);
         var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
             [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
-        CreatureState imp = world.SpawnCreature(db, db.CreatureByName("Imp")!.CreatureId, PlayerIds.FirstKeeper, new(8, 8));
+        CreatureState imp = world.SpawnCreature(db, db.CreatureByName("Imp")!.CreatureId, PlayerIds.FirstKeeper, new Core.TilePos(8, 8));
         imp.NameIndex = 0; imp.BloodGroupIndex = 0; imp.GoldHeld = 17;
         var strings = Dk2StringTable.Open(Path.Combine(Dk2InstallGate.Path, "Data", "Text", "Default", "Text.str"));
         var view = new CreatureQueryView(db, strings.Resolve, PlayerIds.FirstKeeper, new InstallClassicCreatureNames(Dk2InstallGate.Path));

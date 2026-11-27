@@ -17,23 +17,23 @@ internal static class ArtTestData
         Dictionary<byte, IReadOnlyList<Dk2ArtResource>>? terrains = null,
         Dictionary<byte, IReadOnlyList<Dk2ArtResource>>? objects = null)
     {
-        return new()
+        return new Dk2ArtCatalogue()
         {
-            Terrains = terrains ?? new(),
+            Terrains = terrains ?? new Dictionary<byte, IReadOnlyList<Dk2ArtResource>>(),
             Rooms = new Dictionary<byte, IReadOnlyList<Dk2ArtResource>>(),
             Creatures = new Dictionary<byte, IReadOnlyList<Dk2ArtResource>>(),
-            Objects = objects ?? new(),
+            Objects = objects ?? new Dictionary<byte, IReadOnlyList<Dk2ArtResource>>(),
         };
     }
 
     internal static GameDatabase Database(TerrainDef[]? terrain = null, ObjectDef[]? objects = null)
     {
-        return new(terrain ?? [], [], [], new GlobalVariables(), objects: objects);
+        return new GameDatabase(terrain ?? [], [], [], new GlobalVariables(), objects: objects);
     }
 
     internal static ObjectDef Object(byte id, string name)
     {
-        return new()
+        return new ObjectDef()
         {
             Name = name,
             ObjectId = id,
@@ -54,7 +54,7 @@ internal static class ArtTestData
 
     internal static TerrainDef Terrain(byte id, string name, short damage = 0, bool solid = false)
     {
-        return new()
+        return new TerrainDef()
         {
             Name = name,
             TerrainId = id,

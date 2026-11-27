@@ -15,7 +15,7 @@ namespace DK2.Simulation.Tests;
 public sealed class ResearchTests
 {
     private const byte Keeper = 4;
-    private static readonly TilePos Room = new(3, 3);
+    private static readonly TilePos Room = new TilePos(3, 3);
 
     private static int Second
     {

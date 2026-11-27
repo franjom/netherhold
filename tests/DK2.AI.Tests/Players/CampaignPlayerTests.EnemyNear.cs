@@ -15,7 +15,7 @@ public partial class CampaignPlayerTests
 {
     private static PlayerVisibleThing HeroAt(TilePos at)
     {
-        return new(Handle(9), PlayerThingKind.Creature, at, Heroes, PlayerThingActions.None, creatureType: new CreatureTypeId(20));
+        return new PlayerVisibleThing(Handle(9), PlayerThingKind.Creature, at, Heroes, PlayerThingActions.None, creatureType: new CreatureTypeId(20));
     }
 
     [Fact]

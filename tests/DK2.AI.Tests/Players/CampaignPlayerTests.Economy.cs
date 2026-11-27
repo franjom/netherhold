@@ -49,7 +49,7 @@ public partial class CampaignPlayerTests
         "RRRRRRRRRRRR",
     ];
 
-    private static readonly PlayerRoomOffer[] BridgeOffer = [new(RoomTypeId.WoodenBridge, new GoldAmount(100), true)];
+    private static readonly PlayerRoomOffer[] BridgeOffer = [new PlayerRoomOffer(RoomTypeId.WoodenBridge, new GoldAmount(100), true)];
 
     [Fact]
     public void WithNothingLeftToDigTheShortestSpanToNewGroundIsBridged()
@@ -72,8 +72,8 @@ public partial class CampaignPlayerTests
         // 600 gold in the Treasury against a 1000 wage bill, 5000 in all: the pile beside the heart goes to the Treasury.
         PlayerRoomSummary[] owned = CoreOwned();
         owned[1] = new PlayerRoomSummary(RoomTypeId.Treasury, 9, Capacity: 9000, Used: 600);
-        PlayerVisibleThing pile = new(Handle(0), PlayerThingKind.StoreGold, new TilePos(6, 5), Me, PlayerThingActions.PickUp);
-        PlayerVisibleThing kept = new(Handle(1), PlayerThingKind.StoreGold, new TilePos(10, 2), Me, PlayerThingActions.PickUp);   // in the Treasury
+        var pile = new PlayerVisibleThing(Handle(0), PlayerThingKind.StoreGold, new TilePos(6, 5), Me, PlayerThingActions.PickUp);
+        var kept = new PlayerVisibleThing(Handle(1), PlayerThingKind.StoreGold, new TilePos(10, 2), Me, PlayerThingActions.PickUp);   // in the Treasury
         CampaignPlayer player = Player();
         PlayerDecision lift = player.Decide(Observe(map: Developed, rooms: CoreOffers, owned: owned, things: [kept, pile], gold: 5000, wageBill: 1000, tick: 100));
         Assert.Contains(new PlayerAction.PickUp(Handle(0)), lift.Actions);
@@ -138,7 +138,7 @@ public partial class CampaignPlayerTests
         Assert.Contains(new PlayerAction.PickUp(Handle(0)),
             Player().Decide(Observe(map: WithTraining, owned: owned, things: things, gold: 40000, tick: 100)).Actions);
         // At the room's cap it stays.
-        PlayerCreatureSummary capped = new(Goblin, new TilePos(7, 7), false, Handle(0), Level: 4, Petals: 6, Mood: PlayerCreatureMood.Happy);
+        var capped = new PlayerCreatureSummary(Goblin, new TilePos(7, 7), false, Handle(0), Level: 4, Petals: 6, Mood: PlayerCreatureMood.Happy);
         Assert.DoesNotContain(Player().Decide(Observe(map: WithTraining, owned: owned, things: things, creatures: [capped], gold: 40000, tick: 100)).Actions,
             a => a is PlayerAction.PickUp);
     }
@@ -147,7 +147,7 @@ public partial class CampaignPlayerTests
     public void ATrapCoveringOwnGroundGetsAPartyLiftedAndDroppedTogether()
     {
         // A Sentry at (5,9), in the seam, reaches the own floor at (5,8).
-        PlayerVisibleTrap trap = new(new TilePos(5, 9), 14, Heroes, ReachTiles: 3);
+        var trap = new PlayerVisibleTrap(new TilePos(5, 9), 14, Heroes, ReachTiles: 3);
         PlayerVisibleThing[] four = [Creature(0, 2, 2, Goblin), Creature(1, 3, 2, Goblin), Creature(2, 4, 2, Goblin), Creature(3, 6, 2, Goblin)];
         PlayerCreatureSummary[] fit = [.. four.Select(t => new PlayerCreatureSummary(Goblin, t.Tile, false, t.Handle, Level: 2, Petals: 6,
             Mood: PlayerCreatureMood.Happy))];
@@ -177,9 +177,9 @@ public partial class CampaignPlayerTests
     [Fact]
     public void NoPartyGoesWhileAnEnemyIsNearHome()
     {
-        PlayerVisibleTrap trap = new(new TilePos(5, 9), 14, Heroes, ReachTiles: 3);
+        var trap = new PlayerVisibleTrap(new TilePos(5, 9), 14, Heroes, ReachTiles: 3);
         // The enemy stands inside the trap's reach, so the hand does not answer it, yet it is near home.
-        PlayerVisibleThing hero = new(Handle(4), PlayerThingKind.Creature, new TilePos(5, 8), Heroes, PlayerThingActions.None, creatureType: new CreatureTypeId(20));
+        var hero = new PlayerVisibleThing(Handle(4), PlayerThingKind.Creature, new TilePos(5, 8), Heroes, PlayerThingActions.None, creatureType: new CreatureTypeId(20));
         PlayerVisibleThing[] four = [Creature(0, 2, 2, Goblin), Creature(1, 3, 2, Goblin), Creature(2, 4, 2, Goblin), Creature(3, 6, 2, Goblin), hero];
         PlayerCreatureSummary[] fit = [.. four[..4].Select(t => new PlayerCreatureSummary(Goblin, t.Tile, false, t.Handle, Level: 2, Petals: 6,
             Mood: PlayerCreatureMood.Happy))];

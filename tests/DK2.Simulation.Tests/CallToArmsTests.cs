@@ -16,7 +16,7 @@ namespace DK2.Simulation.Tests;
 public sealed class CallToArmsTests
 {
     private const byte Keeper = 3, Rival = 4;
-    private static readonly TilePos Flag = new(8, 8);
+    private static readonly TilePos Flag = new TilePos(8, 8);
 
     [Fact]
     public void AnimatedFlagWaitsForAppearanceAndFadeBeforeItsTransitions()
@@ -79,7 +79,7 @@ public sealed class CallToArmsTests
 
     private static CastSpellAtPlaceCommand Cast(TilePos at, byte player = Keeper)
     {
-        return new(player, CallToArmsRules.SpellId, CreatureState.CentreOf(at.X), CreatureState.CentreOf(at.Y));
+        return new CastSpellAtPlaceCommand(player, CallToArmsRules.SpellId, CreatureState.CentreOf(at.X), CreatureState.CentreOf(at.Y));
     }
 
     private static CreatureState Goblin(WorldState world, GameDatabase db, int x, int y, byte owner = Keeper)

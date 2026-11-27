@@ -79,7 +79,7 @@ public class FrontEndSceneryTests
         Assert.Equal(new CampaignSlot(6), markers[5].MarkerSlot);
         CampaignProfile p = CampaignProgression.CompleteMap(new CampaignProfile(), new CampaignSlot(6));
         var session = new FrontEndSession(_ => new[] { new KcsFrame(0, 0, -3, new KcsRotation(1,0,0,0,1,0,0,0,1), 1, 20000) });
-        using var map = new CampaignMapController(session, p, false, slot => new(slot, "", "", "", Array.Empty<string>()));
+        using var map = new CampaignMapController(session, p, false, slot => new CampaignBriefing(slot, "", "", "", Array.Empty<string>()));
         session.Update(TimeSpan.Zero); session.Update(TimeSpan.Zero); map.Continue(); session.Update(TimeSpan.FromSeconds(1));
 #pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         FrontEndProp[] original = FrontEndScenery.Create(world, database, p, new SimRandom(1)).Concat(markers).ToArray();

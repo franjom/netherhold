@@ -370,7 +370,7 @@ public sealed class StructureViewTests
     {
         TerrainDef Terrain(byte id, TerrainFlags flags)
         {
-            return new()
+            return new TerrainDef()
             {
                 Name = id == 1 ? "Floor" : "Wall",
                 TerrainId = id,

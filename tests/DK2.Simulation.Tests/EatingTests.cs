@@ -310,7 +310,7 @@ public class EatingTests
     public void AnEatenBirdStaysUntilItsOwnUpdateRemovesItWithoutADeathEffect()
     {
         // A chicken definition with a death effect, so that leaving it out can be seen.
-        GameDatabase db = new(Db.Terrain.Values, Db.Rooms.Values, Db.Creatures.Values, Db.Variables,
+        var db = new GameDatabase(Db.Terrain.Values, Db.Rooms.Values, Db.Creatures.Values, Db.Variables,
             objects: Db.Objects.Values.Select(o => o.ObjectId == HatcheryRules.ChickenObjectId ? o with { DeathEffectId = 99 } : o));
         WorldState world = World(db);
         Floor(world, 1, 1, 10, 10);
@@ -727,7 +727,7 @@ public class EatingTests
         {
             ObjectId = HatcheryRules.PillarObjectId, Flags = ObjectFlags.Obstacle | ObjectFlags.Pillar,
         };
-        GameDatabase db = new(basis.Terrain.Values, basis.Rooms.Values, basis.Creatures.Values, basis.Variables,
+        var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values, basis.Creatures.Values, basis.Variables,
             objects: basis.Objects.Values.Where(o => o.ObjectId != HatcheryRules.PillarObjectId).Append(pillar));
         WorldState world = World(db);
         Floor(world, 1, 1, 10, 10);

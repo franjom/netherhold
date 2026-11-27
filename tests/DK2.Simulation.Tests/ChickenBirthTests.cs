@@ -10,7 +10,7 @@ namespace DK2.Simulation.Tests;
 
 public class ChickenBirthTests
 {
-    private static readonly PlayerId Keeper = new(PlayerIds.FirstKeeper);
+    private static readonly PlayerId Keeper = new PlayerId(PlayerIds.FirstKeeper);
     private sealed class RecordingRandom : IRandomAlgorithm
     {
         public List<int> Bounds { get; } = [];
@@ -27,8 +27,8 @@ public class ChickenBirthTests
         if (animations)
         {
             var art = new CreatureAnimationTiming[9];
-            art[0] = new() { ResourceType = 6, FrameCount = 45, FramesPerSecond = 30 };
-            art[5] = new() { ResourceType = 6, FrameCount = 99, FramesPerSecond = 1 };
+            art[0] = new CreatureAnimationTiming() { ResourceType = 6, FrameCount = 45, FramesPerSecond = 30 };
+            art[5] = new CreatureAnimationTiming() { ResourceType = 6, FrameCount = 99, FramesPerSecond = 1 };
             db = new GameDatabase(db.Terrain.Values, db.Rooms.Values, db.Creatures.Values, db.Variables,
                 objects: db.Objects.Values.Select(o => o.ObjectId == HatcheryRules.EggObjectId ? o with { ArtSlots = art } : o),
                 keeperSpells: db.KeeperSpells.Values);

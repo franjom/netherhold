@@ -8,23 +8,23 @@ namespace DK2.Presentation.Tests;
 
 public sealed class PossessionHudTests
 {
-    private static readonly HudScreen Screen = new(1920, 1080);
+    private static readonly HudScreen Screen = new HudScreen(1920, 1080);
     private static PossessionHudSnapshot Snapshot
     {
         get
         {
-            return new("portrait", 50, new GoldAmount(1350),
-        [new("pick", 100, true), new("boot", 25, false)], ["follower"]);
+            return new PossessionHudSnapshot("portrait", 50, new GoldAmount(1350),
+        [new PossessionHudIcon("pick", 100, true), new PossessionHudIcon("boot", 25, false)], ["follower"]);
         }
     }
 
     [Fact]
     public void PossessionPanelWaitsForLandingAndRespectsTheGuiToggle()
     {
-        Assert.False(PossessionHud.ShowPanel(true, new(true, true), firstPersonCameraSettled: false));
-        Assert.True(PossessionHud.ShowPanel(true, new(true, true), firstPersonCameraSettled: true));
-        Assert.False(PossessionHud.ShowPanel(true, new(false, true), firstPersonCameraSettled: true));
-        Assert.False(PossessionHud.ShowPanel(false, new(true, true), firstPersonCameraSettled: true));
+        Assert.False(PossessionHud.ShowPanel(true, new HudVisibility(true, true), firstPersonCameraSettled: false));
+        Assert.True(PossessionHud.ShowPanel(true, new HudVisibility(true, true), firstPersonCameraSettled: true));
+        Assert.False(PossessionHud.ShowPanel(true, new HudVisibility(false, true), firstPersonCameraSettled: true));
+        Assert.False(PossessionHud.ShowPanel(false, new HudVisibility(true, true), firstPersonCameraSettled: true));
     }
 
     [Theory]
@@ -45,10 +45,10 @@ public sealed class PossessionHudTests
     [Fact]
     public void PossessionMinimapUsesTheGuiVisibilityWithoutOrdinaryInput()
     {
-        Assert.Equal(new HudVisibility(true, false), PossessionHud.MinimapVisibility(new(true, true), true));
-        Assert.Equal(new HudVisibility(false, false), PossessionHud.MinimapVisibility(new(false, true), true));
-        Assert.Equal(new HudVisibility(true, true), PossessionHud.MinimapVisibility(new(true, true), false));
-        Assert.Equal(new HudVisibility(false, false), PossessionHud.MinimapVisibility(new(true, true), false, possessionCameraHeld: true));
+        Assert.Equal(new HudVisibility(true, false), PossessionHud.MinimapVisibility(new HudVisibility(true, true), true));
+        Assert.Equal(new HudVisibility(false, false), PossessionHud.MinimapVisibility(new HudVisibility(false, true), true));
+        Assert.Equal(new HudVisibility(true, true), PossessionHud.MinimapVisibility(new HudVisibility(true, true), false));
+        Assert.Equal(new HudVisibility(false, false), PossessionHud.MinimapVisibility(new HudVisibility(true, true), false, possessionCameraHeld: true));
     }
 
     [Theory]
@@ -103,7 +103,7 @@ public sealed class PossessionHudTests
         var normal = new HudVisibility(true, true);
         Assert.Equal(new HudVisibility(false, false), PossessionHud.OrdinaryVisibility(normal, true));
         Assert.Equal(normal, PossessionHud.OrdinaryVisibility(normal, false));
-        Assert.Equal(new HudVisibility(false, false), PossessionHud.OrdinaryVisibility(new(false, false), false));
+        Assert.Equal(new HudVisibility(false, false), PossessionHud.OrdinaryVisibility(new HudVisibility(false, false), false));
     }
 
     [Fact]
@@ -122,7 +122,7 @@ public sealed class PossessionHudTests
     public void GroupSelectionUsesTheGroupBacking()
     {
         var frame = new HudFrame();
-        new PossessionHud().Build(Screen, Snapshot with { Actions = [new("GUI\\Icons\\1st-person\\group-mode", 100, true)] }, frame);
+        new PossessionHud().Build(Screen, Snapshot with { Actions = [new PossessionHudIcon("GUI\\Icons\\1st-person\\group-mode", 100, true)] }, frame);
         Assert.Contains(frame.Draws.ToArray(), d => d.Image.Path == "GUI\\icons\\selected_group");
         Assert.DoesNotContain(frame.Draws.ToArray(), d => d.Image.Path == "GUI\\icons\\selected-creature");
     }
@@ -175,7 +175,7 @@ public sealed class PossessionHudTests
         var top = new HudFrame();
         var lower = new HudFrame();
         var hud = new PossessionHud();
-        PossessionHudSnapshot facts = Snapshot with { Actions = [new("pick", 100, true), new("GUI\\Icons\\1st-person\\group-mode", 100, true)] };
+        PossessionHudSnapshot facts = Snapshot with { Actions = [new PossessionHudIcon("pick", 100, true), new PossessionHudIcon("GUI\\Icons\\1st-person\\group-mode", 100, true)] };
         hud.BuildCreaturePanel(layout, facts, top);
         hud.BuildChrome(layout, facts, lower);
         HudDraw portrait = Assert.Single(top.Draws.ToArray(), d => d.Image.Path == "portrait");
@@ -199,10 +199,10 @@ public sealed class PossessionHudTests
         var top = new HudFrame();
         var lower = new HudFrame();
         var layout = new HudScaleLayout(1600, 1200, 100);
-        PossessionHudSnapshot facts = Snapshot with { Actions = [new("staff", 100, false), new("fire", 100, false, true),
-            new("bat", 100, true) { Role = PossessionHudIconRole.PrimaryAbility },
-            new("hypnotise", 100, false) { Role = PossessionHudIconRole.SecondaryAbility },
-            new("group", 100, true) { Role = PossessionHudIconRole.Group }] };
+        PossessionHudSnapshot facts = Snapshot with { Actions = [new PossessionHudIcon("staff", 100, false), new PossessionHudIcon("fire", 100, false, true),
+            new PossessionHudIcon("bat", 100, true) { Role = PossessionHudIconRole.PrimaryAbility },
+            new PossessionHudIcon("hypnotise", 100, false) { Role = PossessionHudIconRole.SecondaryAbility },
+            new PossessionHudIcon("group", 100, true) { Role = PossessionHudIconRole.Group }] };
         hud.BuildCreaturePanel(layout, facts, top);
         hud.BuildChrome(layout, facts, lower);
         Assert.DoesNotContain(top.Draws.ToArray(), d => d.Image.Path is "bat" or "hypnotise" or "group");
@@ -254,7 +254,7 @@ public sealed class PossessionHudTests
     {
         var frame = new HudFrame();
         new PossessionHud().BuildCreaturePanel(new HudScaleLayout(1200, 1200, 100),
-            Snapshot with { Actions = [new("staff", 100, false)] }, frame);
+            Snapshot with { Actions = [new PossessionHudIcon("staff", 100, false)] }, frame);
         Assert.Equal(956 * 0.75f + 496 - 40,
             Assert.Single(frame.Draws.ToArray(), d => d.Image.Path == "staff").Rect.X);
     }
@@ -263,7 +263,7 @@ public sealed class PossessionHudTests
     public void SelectionArtOverlaysTheOpaqueIconAndRechargeSector()
     {
         var frame = new HudFrame();
-        new PossessionHud().Build(new HudScreen(1600, 1200), Snapshot with { Actions = [new("staff", 50, true)] }, frame);
+        new PossessionHud().Build(new HudScreen(1600, 1200), Snapshot with { Actions = [new PossessionHudIcon("staff", 50, true)] }, frame);
         HudDraw[] draws = frame.Draws.ToArray();
         int overlay = Array.FindIndex(draws, d => d.Image.Path == "GUI\\icons\\selected-creature");
         Assert.True(overlay > Array.FindLastIndex(draws, d => d.Image.Path == "staff"));
@@ -278,9 +278,9 @@ public sealed class PossessionHudTests
         var layout = new HudScaleLayout(width, height, percent);
         var frame = new HudFrame();
         new PossessionHud().Build(layout, Snapshot with { HealthPercent = 100,
-            Actions = [new("bat", 100, false) { Role = PossessionHudIconRole.PrimaryAbility },
-                new("hypnotise", 100, false) { Role = PossessionHudIconRole.SecondaryAbility },
-                new("group", 100, false) { Role = PossessionHudIconRole.Group }] }, frame);
+            Actions = [new PossessionHudIcon("bat", 100, false) { Role = PossessionHudIconRole.PrimaryAbility },
+                new PossessionHudIcon("hypnotise", 100, false) { Role = PossessionHudIconRole.SecondaryAbility },
+                new PossessionHudIcon("group", 100, false) { Role = PossessionHudIconRole.Group }] }, frame);
         HudDraw[] draws = frame.Draws.ToArray();
         HudRect border = Assert.Single(draws, d => d.Image.Path == "GUI\\Map\\m-hp_bg").Rect;
         HudRect fill = Assert.Single(draws, d => d.Image.Path == PossessionHud.HealthFill).Rect;

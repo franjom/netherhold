@@ -14,7 +14,7 @@ public sealed class InstallCreatureOverviewArtTests
 {
     private static CreatureOverviewType Type(byte id)
     {
-        return new(id);
+        return new CreatureOverviewType(id);
     }
 
     [InstallFact]

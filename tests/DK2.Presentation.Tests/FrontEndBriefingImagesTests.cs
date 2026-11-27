@@ -17,8 +17,8 @@ public sealed class FrontEndBriefingImagesTests
     public void TheBriefingPageFramesBothShotsWithItsObjectiveStrips()
     {
 #pragma warning disable IDE0300 // Preserve the original array construction or overload.
-        Assert.Equal(new FrontEndPlacedImage[] { new(FirstShot, 20, 110), new(Objective00, 184, 110), new(Objective01, 184, 147) }, For(0, 2));
-        Assert.Equal(new FrontEndPlacedImage[] { new(SecondShot, 20, 242), new(Objective00, 184, 242), new(Objective02, 184, 279) }, For(0, 3));
+        Assert.Equal(new FrontEndPlacedImage[] { new FrontEndPlacedImage(FirstShot, 20, 110), new FrontEndPlacedImage(Objective00, 184, 110), new FrontEndPlacedImage(Objective01, 184, 147) }, For(0, 2));
+        Assert.Equal(new FrontEndPlacedImage[] { new FrontEndPlacedImage(SecondShot, 20, 242), new FrontEndPlacedImage(Objective00, 184, 242), new FrontEndPlacedImage(Objective02, 184, 279) }, For(0, 3));
 #pragma warning restore IDE0300
     }
 
@@ -27,8 +27,8 @@ public sealed class FrontEndBriefingImagesTests
     public void TheStatisticsPagePutsTheListStripUnderTheSecondShot()
     {
 #pragma warning disable IDE0300 // Preserve the original array construction or overload.
-        Assert.Equal(new FrontEndPlacedImage[] { new(FirstShot, 20, 110), new(Objective00, 184, 110), new(Objective01, 184, 147) }, For(1, 2));
-        Assert.Equal(new FrontEndPlacedImage[] { new(SecondShot, 20, 242), new(Objective03, 184, 242) }, For(1, 3));
+        Assert.Equal(new FrontEndPlacedImage[] { new FrontEndPlacedImage(FirstShot, 20, 110), new FrontEndPlacedImage(Objective00, 184, 110), new FrontEndPlacedImage(Objective01, 184, 147) }, For(1, 2));
+        Assert.Equal(new FrontEndPlacedImage[] { new FrontEndPlacedImage(SecondShot, 20, 242), new FrontEndPlacedImage(Objective03, 184, 242) }, For(1, 3));
 #pragma warning restore IDE0300
     }
 
@@ -36,7 +36,7 @@ public sealed class FrontEndBriefingImagesTests
     public void ASecretLevelHasNoSecondShotAndOnlyPage26KeepsItsStrip()
     {
 #pragma warning disable IDE0300 // Preserve the original array construction or overload.
-        Assert.Equal(new FrontEndPlacedImage[] { new(Objective03, 184, 242) }, For(1, 3, secret: true));
+        Assert.Equal(new FrontEndPlacedImage[] { new FrontEndPlacedImage(Objective03, 184, 242) }, For(1, 3, secret: true));
 #pragma warning restore IDE0300
         Assert.Empty(For(0, 3, secret: true));
         Assert.Equal(3, For(0, 2, secret: true).Length);
@@ -46,15 +46,15 @@ public sealed class FrontEndBriefingImagesTests
     public void OtherModesUseTheirOwnStrips()
     {
 #pragma warning disable IDE0300 // Preserve the original array construction or overload.
-        Assert.Equal(new FrontEndPlacedImage[] { new(SecondShot, 20, 242), new(Objective04, 0, 242) }, For(2, 3));
-        Assert.Equal(new FrontEndPlacedImage[] { new(SecondShot, 20, 242), new(Objective04, 0, 242) }, For(4, 3));
+        Assert.Equal(new FrontEndPlacedImage[] { new FrontEndPlacedImage(SecondShot, 20, 242), new FrontEndPlacedImage(Objective04, 0, 242) }, For(2, 3));
+        Assert.Equal(new FrontEndPlacedImage[] { new FrontEndPlacedImage(SecondShot, 20, 242), new FrontEndPlacedImage(Objective04, 0, 242) }, For(4, 3));
 #pragma warning restore IDE0300
         FrontEndPlacedImage[] load = For(3, 2);
         Assert.Equal(new FrontEndPlacedImage(FirstShot, 20, 110), load[0]);
         Assert.Equal(new[] { 148, 178, 208, 238, 268, 298 }, load.Skip(1).Select(p => p.Y));
         Assert.All(load.Skip(1), p => Assert.Equal((Load01, 61), (p.Image, p.X)));
 #pragma warning disable IDE0300 // Preserve the original array construction or overload.
-        Assert.Equal(new FrontEndPlacedImage[] { new(SecondShot, 20, 242) }, For(3, 3));
+        Assert.Equal(new FrontEndPlacedImage[] { new FrontEndPlacedImage(SecondShot, 20, 242) }, For(3, 3));
 #pragma warning restore IDE0300
         Assert.Empty(For(1, 1));
     }

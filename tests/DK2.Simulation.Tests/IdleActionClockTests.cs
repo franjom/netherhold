@@ -17,7 +17,7 @@ public sealed class IdleActionClockTests
 
     private static CreatureAnimationTiming Clip(ushort frames, uint flags)
     {
-        return new()
+        return new CreatureAnimationTiming()
         {
             ResourceType = 6,
             Flags = (CreatureAnimationFlags)flags,

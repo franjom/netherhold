@@ -53,7 +53,7 @@ public partial class CampaignPlayerTests
 
     private static PlayerSpellOffer CreateImpOffer(bool upgraded = false, bool ready = true)
     {
-        return new(4, "Create Imp", new ManaAmount(1500), true, false, ready, upgraded);
+        return new PlayerSpellOffer(4, "Create Imp", new ManaAmount(1500), true, false, ready, upgraded);
     }
 
     /// <summary>A keeper with <paramref name="imps"/> Imps, 50000 mana, +300 income and 28 upkeep, Create Imp at 1500.</summary>
@@ -122,7 +122,7 @@ public partial class CampaignPlayerTests
     [Fact]
     public void WhileTheLibraryCanUpgradeCreateImpOnlyTheMinimumIsBoughtUnlessTheWorkIsPressing()
     {
-        PlayerCreatureSummary[] researcher = [new(Goblin, new TilePos(3, 3), false)];
+        PlayerCreatureSummary[] researcher = [new PlayerCreatureSummary(Goblin, new TilePos(3, 3), false)];
         Func<PlayerStrategy, PlayerStrategy> four = s => s with { MinImps = 4 };
         // 24 marks want 8 Imps; 6 are short of it, so without research one is bought...
         Assert.NotNull(Cast(ImpMaker(four), ImpView(imps: 6, marks: 24)));
@@ -138,8 +138,8 @@ public partial class CampaignPlayerTests
         // 33 marks want 11, short of twice the 6 there are: still waiting.
         Assert.Null(Cast(ImpMaker(four), ImpView(imps: 6, marks: 33, more: researcher)));
         // A worker in the Library, or a creature outside it, is no research.
-        Assert.NotNull(Cast(ImpMaker(four), ImpView(imps: 6, marks: 24, more: [new(Imp, new TilePos(3, 3), false)])));
-        Assert.NotNull(Cast(ImpMaker(four), ImpView(imps: 6, marks: 24, more: [new(Goblin, new TilePos(9, 3), false)])));
+        Assert.NotNull(Cast(ImpMaker(four), ImpView(imps: 6, marks: 24, more: [new PlayerCreatureSummary(Imp, new TilePos(3, 3), false)])));
+        Assert.NotNull(Cast(ImpMaker(four), ImpView(imps: 6, marks: 24, more: [new PlayerCreatureSummary(Goblin, new TilePos(9, 3), false)])));
 
         // The wait ends after 20 game minutes even while research goes on.
         CampaignPlayer patient = ImpMaker(four);
@@ -174,7 +174,7 @@ public partial class CampaignPlayerTests
         PlayerObservation With(int dx)
         {
             return Observe(250, map: Marked(0), rooms: [], tick: 1000, creatures: Imps(4),
-            things: [new(Handle(1), PlayerThingKind.Creature, new TilePos(birth.X + dx, birth.Y), Heroes, PlayerThingActions.None,
+            things: [new PlayerVisibleThing(Handle(1), PlayerThingKind.Creature, new TilePos(birth.X + dx, birth.Y), Heroes, PlayerThingActions.None,
                 creatureType: new CreatureTypeId(20))],
             spells: [CreateImpOffer()], mana: 50_000, income: 300, upkeep: 28, impCost: 1500);
         }
@@ -189,7 +189,7 @@ public partial class CampaignPlayerTests
     {
         CampaignPlayer player = ImpMaker();
         TilePos first = Assert.IsType<PlayerAction.CreateImpAt>(Cast(player, ImpView(imps: 4, tick: 1000))).Tile;
-        PlayerReceipt refused = new(new PlayerActionId(1), PlayerReceiptStatus.Refused, PlayerRefusalReason.NotOffered);
+        var refused = new PlayerReceipt(new PlayerActionId(1), PlayerReceiptStatus.Refused, PlayerRefusalReason.NotOffered);
         PlayerObservation next = Observe(252, map: Marked(0), rooms: [], tick: 1008, creatures: Imps(4), receipts: [refused],
             spells: [CreateImpOffer()], mana: 50_000, income: 300, upkeep: 28, impCost: 1500);
         Assert.NotEqual(first, Assert.IsType<PlayerAction.CreateImpAt>(Cast(player, next)).Tile);
@@ -202,7 +202,7 @@ public partial class CampaignPlayerTests
         Assert.Null(Cast(ImpMaker(), ImpView(imps: 3)));
         Assert.NotNull(Cast(ImpMaker(), ImpView(imps: 4)));
         // An Imp in the hand counts, as it does in the game's tally (Q148).
-        Assert.NotNull(Cast(ImpMaker(), ImpView(imps: 3, more: [new(Imp, null, true)])));
+        Assert.NotNull(Cast(ImpMaker(), ImpView(imps: 3, more: [new PlayerCreatureSummary(Imp, null, true)])));
         // Unknown (0, the default): never waits.
         Assert.Equal(0, new CampaignPlayerOptions(Run, Me, [Imp]).FreeImps);
         CampaignPlayer noFree = new CampaignPlayer(new CampaignPlayerOptions(Run, Me, [Imp]) { StallWindowTicks = 100_000 })

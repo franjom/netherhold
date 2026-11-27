@@ -19,7 +19,7 @@ public class RepairWallPoolTests
 {
     private const byte Keeper = 3;
     private const int North = 0, East = 1;
-    private static readonly TilePos Wall = new(3, 3);
+    private static readonly TilePos Wall = new TilePos(3, 3);
 
     private static GameSimulation Start(out ListEventSink sink, TilePos firstImp)
     {

@@ -77,7 +77,7 @@ public sealed class CombatPitRoomTests
     private static (GameSimulation Sim, CreatureState First, CreatureState Second) Setup(bool effects = false, bool convertible = false, ushort? tickRate = null)
     {
         GameDatabase basis = Dk2TerrainFixture.Database();
-        GameDatabase db = new(basis.Terrain.Values.Select(t => convertible && t.TerrainId == Dk2TerrainFixture.CombatPitTerrain
+        var db = new GameDatabase(basis.Terrain.Values.Select(t => convertible && t.TerrainId == Dk2TerrainFixture.CombatPitTerrain
                 ? t with { Flags = t.Flags | TerrainFlags.Room | TerrainFlags.Attackable } : t),
             basis.Rooms.Values.Select(r => r.TypeId == RoomTypeId.CombatPit
                 ? r with { RoomEffect421Id = effects ? (ushort)90 : (ushort)0, CreatedObjectEffectId = effects ? (ushort)52 : (ushort)0 } : r),
@@ -99,7 +99,7 @@ public sealed class CombatPitRoomTests
 
     private static LevelDef Level(ushort rate)
     {
-        return new([])
+        return new LevelDef([])
         {
             Name = "",
             Description = "",
@@ -206,7 +206,7 @@ public sealed class CombatPitRoomTests
         destruction.Tick();
         ViewEffectRequest effect = Assert.Single(events.Events, e => e.EffectRequest.HasValue).EffectRequest!.Value;
         Assert.Equal(new EffectId(52), effect.EffectId);
-        Assert.Equal(new FpPosition3(new(first.PosX), new(first.PosY), new(first.PosZ + FloorHeightRules.Ordinary)), effect.Position);
+        Assert.Equal(new FpPosition3(new Fp32(first.PosX), new Fp32(first.PosY), new Fp32(first.PosZ + FloorHeightRules.Ordinary)), effect.Position);
         Assert.Equal(new Dk2Angle(0x345), effect.Heading);
     }
 
@@ -337,7 +337,7 @@ public sealed class CombatPitRoomTests
         StatePlacement.Place(fighter, CombatPitRules.WaitingState);
         var sim = new GameSimulation(source.Database, source.World, 42, [new MutationProbe(context =>
         {
-            TilePos at = new(3, 4);
+            var at = new TilePos(3, 4);
             byte terrain = context.World.Tile(at).TerrainId;
             PlayerId owner = context.World.Tile(at).OwnerPlayerId;
             RoomRules.Place(context.Database, ref context.World.Tile(at), context.Database.Room(RoomTypeId.CombatPit), Keeper);
@@ -453,7 +453,7 @@ public sealed class CombatPitRoomTests
         (GameSimulation sim, _, _) = Setup(tickRate: 3);
         if (overrides)
         {
-            sim.Database.Variables.Misc[VariableTypeId.TicksPerSecond] = new(VariableTypeId.TicksPerSecond, 7, 0, 0);
+            sim.Database.Variables.Misc[VariableTypeId.TicksPerSecond] = new MiscVariable(VariableTypeId.TicksPerSecond, 7, 0, 0);
         }
 
         var oracle = SimRandom.Restore(sim.Rng.SaveState());

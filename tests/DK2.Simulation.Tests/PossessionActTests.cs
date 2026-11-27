@@ -55,7 +55,7 @@ public sealed class PossessionActTests
 
     private static ActPossessedCreatureCommand Act(CreatureState me, bool melee, int slot = 0, ushort yaw = East, ushort pitch = Level)
     {
-        return new(Keeper, new(new(new(me.PosX), new(me.PosY), new(Fp32.One + me.PosZ)), new(yaw), new(pitch)), melee, new(slot));
+        return new ActPossessedCreatureCommand(Keeper, new PossessionAim(new FpPosition3(new Fp32(me.PosX), new Fp32(me.PosY), new Fp32(Fp32.One + me.PosZ)), new Dk2Angle(yaw), new Dk2Angle(pitch)), melee, new PossessedSlot(slot));
     }
 
     private static void Place(CreatureState c, int x, int y)
@@ -295,7 +295,7 @@ public sealed class PossessionActTests
         shot.Health = 59;
         GameSimulation sim = Sim(db, world);
         sim.Tick(InputFrame.Of(new ActPossessedCreatureCommand(Keeper,
-            new(new(new(me.PosX), new(me.PosY), new(5768)), new(1191), new(462)), true, new(0))));
+            new PossessionAim(new FpPosition3(new Fp32(me.PosX), new Fp32(me.PosY), new Fp32(5768)), new Dk2Angle(1191), new Dk2Angle(462)), true, new PossessedSlot(0))));
         Assert.Equal(expected, me.SwingTargetKind);
     }
 

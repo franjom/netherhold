@@ -40,7 +40,7 @@ public class CreatureAnimationPlayerTests
     {
         var surface = new PoseSurface();
         var player = new CreatureAnimationPlayer<int>(surface);
-        RenderAnimation clip = new(KmfReader.Read(AnimatedKmfFixture.TwoFramesWithControls(
+        var clip = new RenderAnimation(KmfReader.Read(AnimatedKmfFixture.TwoFramesWithControls(
             (1u << 16, KmfControlPoint.Head), (2u << 16, 10), (0, 1999))));
         var expected = new Vector3[clip.Mesh.Positions.Count];
         var points = new List<AnimationPoint>();
@@ -93,9 +93,9 @@ public class CreatureAnimationPlayerTests
     [Fact]
     public void PoseSurfaceSelectsAndSamplesTheSameStartMainAndEndAsTheUploadSurface()
     {
-        RenderAnimation?[] clips = [new(KmfReader.Read(AnimatedKmfFixture.TwoFrames())),
-            new(KmfReader.Read(AnimatedKmfFixture.KeyedAtFramesZeroAndTwo())),
-            new(KmfReader.Read(AnimatedKmfFixture.TwoFramesWithControls((0, 7))))];
+        RenderAnimation?[] clips = [new RenderAnimation(KmfReader.Read(AnimatedKmfFixture.TwoFrames())),
+            new RenderAnimation(KmfReader.Read(AnimatedKmfFixture.KeyedAtFramesZeroAndTwo())),
+            new RenderAnimation(KmfReader.Read(AnimatedKmfFixture.TwoFramesWithControls((0, 7))))];
         CreatureAnimationTiming timing = Quarter with { Flags = CreatureAnimationFlags.StartSegment | CreatureAnimationFlags.EndSegment,
             StartSegmentFrames = 2, EndSegmentFrames = 2 };
         var cpuSurface = new Surface();
@@ -130,7 +130,7 @@ public class CreatureAnimationPlayerTests
     }
 
     // Eight frames at eight a second: a quarter of the clip (1024) a turn.
-    private static readonly CreatureAnimationTiming Quarter = new() { ResourceType = 6, FrameCount = 8, FramesPerSecond = 8 };
+    private static readonly CreatureAnimationTiming Quarter = new CreatureAnimationTiming() { ResourceType = 6, FrameCount = 8, FramesPerSecond = 8 };
 
     [Fact]
     public void TheStartTurnIsTheFloorOfTheStartAndItsOwnTurnIsAdvanced()
@@ -234,7 +234,7 @@ public class CreatureAnimationPlayerTests
     {
         var surface = new Surface();
         var player = new CreatureAnimationPlayer<int>(surface);
-        RenderAnimation clip = new(KmfReader.Read(AnimatedKmfFixture.TwoFramesWithControls(
+        var clip = new RenderAnimation(KmfReader.Read(AnimatedKmfFixture.TwoFramesWithControls(
             (1u << 16, KmfControlPoint.Head), (2u << 16, 10), (0, 2000), (0, 1999))));
         Assert.False(player.TryGetControlPoint(KmfControlPoint.Head, out _));
         player.Configure([null, clip, null], 1, Quarter, loop: true, start: .1);
@@ -323,7 +323,7 @@ public class CreatureAnimationPlayerTests
         var surface = new Surface();
         var player = new CreatureAnimationPlayer<int>(surface);
         player.Configure(Clips(), 1, Quarter, loop: true, start: 0);
-        RenderAnimation next = new(KmfReader.Read(AnimatedKmfFixture.KeyedAtFramesZeroAndTwo()));
+        var next = new RenderAnimation(KmfReader.Read(AnimatedKmfFixture.KeyedAtFramesZeroAndTwo()));
         player.Configure([null, next, null], 2, Quarter, loop: true, start: .25, replacement: AnimationReplacement.Deferred);
         player.Draw(.5);
         surface.Events.Clear();

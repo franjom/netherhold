@@ -17,10 +17,10 @@ public sealed class CombatPitTests
     private const byte GoblinId = Dk2TerrainFixture.GoblinCreatureId;
 
     // A 5x5 pit at (4..8, 2..6): its floor is the 3x3 at (5..7, 3..5).
-    private static readonly TilePos Floor = new(6, 4);
-    private static readonly TilePos OtherFloor = new(5, 3);
-    private static readonly TilePos Rim = new(4, 4);
-    private static readonly TilePos Outside = new(10, 4);
+    private static readonly TilePos Floor = new TilePos(6, 4);
+    private static readonly TilePos OtherFloor = new TilePos(5, 3);
+    private static readonly TilePos Rim = new TilePos(4, 4);
+    private static readonly TilePos Outside = new TilePos(10, 4);
 
     private const byte Rival = 5;
 

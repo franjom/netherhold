@@ -13,16 +13,16 @@ namespace DK2.AI.Tests.Players;
 /// player drops one on an enemy collapsed on own ground while a Prison is owned. A body is no threat.</summary>
 public partial class CampaignPlayerTests
 {
-    private static readonly PlayerRoomSummary OwnPrison = new(RoomTypeId.Prison, 9);
+    private static readonly PlayerRoomSummary OwnPrison = new PlayerRoomSummary(RoomTypeId.Prison, 9);
 
     private static PlayerVisibleThing Body(TilePos at, int petals = 1)
     {
-        return new(Handle(1), PlayerThingKind.Creature, at, Heroes, PlayerThingActions.None, Goblin) { Level = 2, Petals = petals };
+        return new PlayerVisibleThing(Handle(1), PlayerThingKind.Creature, at, Heroes, PlayerThingActions.None, Goblin) { Level = 2, Petals = petals };
     }
 
     private static PlayerVisibleThing OwnImp(TilePos at)
     {
-        return new(Handle(2), PlayerThingKind.Creature, at, Me, PlayerThingActions.PickUp, Imp);
+        return new PlayerVisibleThing(Handle(2), PlayerThingKind.Creature, at, Me, PlayerThingActions.PickUp, Imp);
     }
 
     [Fact]

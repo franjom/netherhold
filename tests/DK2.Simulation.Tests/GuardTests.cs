@@ -15,7 +15,7 @@ public sealed class GuardTests
     private const byte GoblinId = 7;
 
     // A 3x3 Guard Room at (5..7, 3..5): corners NW (5,3), NE (7,3), SE (7,5), SW (5,5).
-    private static readonly TilePos Centre = new(6, 4);
+    private static readonly TilePos Centre = new TilePos(6, 4);
 
     private static (GameDatabase, WorldState) World()
     {

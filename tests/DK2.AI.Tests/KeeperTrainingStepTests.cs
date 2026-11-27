@@ -21,8 +21,8 @@ public class KeeperTrainingStepTests
     private const int FightState = 199;
 
     /// <summary>A 3×3 Training Room and a 3×3 Pit, each with one interior tile: the only slot.</summary>
-    private static readonly TilePos TrainingSlot = new(13, 18);
-    private static readonly TilePos PitSlot = new(18, 13);
+    private static readonly TilePos TrainingSlot = new TilePos(13, 18);
+    private static readonly TilePos PitSlot = new TilePos(18, 13);
 
     /// <summary>Three quarters of the Fighter's level-1 <c>ExpForNextLevel</c> of 3000.</summary>
     private const int PitBar = 2250;
@@ -337,7 +337,7 @@ public class KeeperTrainingStepTests
             drops.UnionWith(Drops(Run(world, seed: seed).Commands));
         }
         // A 4x3 room's interior is (12,18) and (13,18); both are drawn and nothing else is.
-        Assert.Equal(new HashSet<TilePos> { new(12, 18), new(13, 18) }, drops);
+        Assert.Equal(new HashSet<TilePos> { new TilePos(12, 18), new TilePos(13, 18) }, drops);
     }
 
     [Fact]
@@ -482,7 +482,7 @@ public class KeeperTrainingStepTests
         Fighter(world, 10, x: 17);
 
         KeeperView view = KeeperViewSnapshot.FromBytes(KeeperViewSnapshot.ToBytes(new KeeperView(Db, world, Keeper)), Db);
-        KeeperView direct = new(Db, world, Keeper);
+        var direct = new KeeperView(Db, world, Keeper);
         Assert.Equal(direct.Creatures.Select(c => (c.Experience, c.DroppedToDoJob)), view.Creatures.Select(c => (c.Experience, c.DroppedToDoJob)));
         Assert.Equal(direct.OwnRooms.Select(r => r.FloorSlots.ToArray()), view.OwnRooms.Select(r => r.FloorSlots.ToArray()));
 

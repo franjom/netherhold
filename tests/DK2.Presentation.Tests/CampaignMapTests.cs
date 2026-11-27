@@ -74,22 +74,22 @@ public class CampaignMapTests
             CampaignProgression.CompleteMap(new CampaignProfile(), new CampaignSlot(1)), new CampaignSlot(5));
         using var map = new CampaignMapController(session, profile, false,
             slot => new CampaignBriefing(slot, "", "", "", Array.Empty<string>()));
-        using var menu = new FrontEndMenuController(session, _ => new(0, 0, 10, 10), map);
-        menu.Activate(new(1));
+        using var menu = new FrontEndMenuController(session, _ => new FrontEndRect(0, 0, 10, 10), map);
+        menu.Activate(new FrontEndWidgetId(1));
         Assert.Equal(FrontEndPage.SinglePlayer, session.Page);
         Assert.True(menu.IsEnabled(menu.Widgets.First(w => w.Id.Value == 567)));
-        menu.Activate(new(6));
+        menu.Activate(new FrontEndWidgetId(6));
         Assert.Equal(FrontEndPage.Dialog, session.Page);
         Assert.Equal(140u, menu.Dialog!.TitleTextId);
-        menu.Activate(new(668));
+        menu.Activate(new FrontEndWidgetId(668));
         Assert.Equal(FrontEndPage.SinglePlayer, session.Page);
         Assert.Equal(CampaignLevelStatus.Won, map.Profile.PlayerLevelStatus[4]);
-        menu.Activate(new(6)); menu.Activate(new(667));
+        menu.Activate(new FrontEndWidgetId(6)); menu.Activate(new FrontEndWidgetId(667));
         session.Update(TimeSpan.FromSeconds(2));
         Assert.Equal(FrontEndPage.CampaignMap, session.Page);
         Assert.Equal(CampaignLevelStatus.Open, map.Profile.PlayerLevelStatus[0]);
         Assert.Equal(CampaignLevelStatus.Locked, map.Profile.PlayerLevelStatus[4]);
-        Assert.True(menu.Activate(new(534)));
+        Assert.True(menu.Activate(new FrontEndWidgetId(534)));
     }
 
     [Fact]
@@ -98,7 +98,7 @@ public class CampaignMapTests
         FrontEndSession session = Session();
         var states = new CampaignLevelStatus[40]; states[0] = states[1] = CampaignLevelStatus.Open;
         using var map = new CampaignMapController(session, new CampaignProfile { PlayerLevelStatus = states }, false,
-            slot => new(slot, "", "", "", Array.Empty<string>()));
+            slot => new CampaignBriefing(slot, "", "", "", Array.Empty<string>()));
         map.Continue(); session.Update(TimeSpan.FromSeconds(2));
         session.Update(TimeSpan.FromSeconds(2.201)); session.Update(TimeSpan.FromSeconds(2.202));
         Assert.Equal(0xfff, map.MarkerVisual(new CampaignSlot(2)).TexturePhase.Raw);
@@ -116,7 +116,7 @@ public class CampaignMapTests
     {
         FrontEndSession session = Session();
         using var map = new CampaignMapController(session, new CampaignProfile(), false,
-            slot => new(slot, "", "", "", Array.Empty<string>()));
+            slot => new CampaignBriefing(slot, "", "", "", Array.Empty<string>()));
         map.Continue(); session.Update(TimeSpan.FromSeconds(2)); map.Hover(new CampaignSlot(1));
         for (int i = 1; i <= 20; i++)
         {
@@ -141,7 +141,7 @@ public class CampaignMapTests
     {
         FrontEndSession session = Session();
         using var map = new CampaignMapController(session, new CampaignProfile(), false,
-            slot => new(slot, "", "", "", Array.Empty<string>()));
+            slot => new CampaignBriefing(slot, "", "", "", Array.Empty<string>()));
         map.Continue(); session.Update(TimeSpan.FromSeconds(2)); map.Hover(new CampaignSlot(1));
         for (int i = 1; i <= 20; i++)
         {
@@ -172,16 +172,16 @@ public class CampaignMapTests
             CampaignProgression.CompleteMap(new CampaignProfile(), new CampaignSlot(5)).PlayerLevelStatus }, new CampaignSlot(6), won: true);
         using var map = new CampaignMapController(session, profile, false,
             slot => new CampaignBriefing(slot, "", "", "", Array.Empty<string>()));
-        using var menu = new FrontEndMenuController(session, _ => new(0, 0, 10, 10), map);
+        using var menu = new FrontEndMenuController(session, _ => new FrontEndRect(0, 0, 10, 10), map);
         session.Update(TimeSpan.Zero);
         Assert.Equal(FrontEndPage.CampaignResults, session.Page);
         session.Update(TimeSpan.FromMilliseconds(10));
         Assert.Equal(FrontEndPath.Spare, session.Path);
         Assert.Equal(FrontEndPage.CampaignResults, session.Page);
         Assert.Equal(new CampaignSlot(6), map.Briefing!.Slot);
-        Assert.False(menu.Activate(new(181)));
+        Assert.False(menu.Activate(new FrontEndWidgetId(181)));
         session.Update(TimeSpan.FromSeconds(2));
-        Assert.True(menu.Activate(new(181)));
+        Assert.True(menu.Activate(new FrontEndWidgetId(181)));
         Assert.Equal(FrontEndPath.BriefingToTable, session.Path);
         Assert.Equal(8, map.Profile.LevelNumber);
         Assert.Null(map.Briefing);

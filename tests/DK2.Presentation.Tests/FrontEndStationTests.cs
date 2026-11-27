@@ -38,7 +38,7 @@ public class FrontEndStationTests
         CampaignProfile profile = CampaignProgression.CompleteMap(new CampaignProfile(), new CampaignSlot(6));
         var station = FrontEndStation.Open(level, profile, false, PlayerIds.FirstKeeper, 1);
         var session = new FrontEndSession(_ => new[] { new KcsFrame(0, 0, -3, new KcsRotation(1, 0, 0, 0, 1, 0, 0, 0, 1), 1, 20000) });
-        using var map = new CampaignMapController(session, profile, false, slot => new(slot, "", "", "", Array.Empty<string>()));
+        using var map = new CampaignMapController(session, profile, false, slot => new CampaignBriefing(slot, "", "", "", Array.Empty<string>()));
 
         Assert.True(station.Refresh(map));
         IReadOnlyList<FrontEndProp> shown = station.View.FrontEndScenery;

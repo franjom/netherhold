@@ -102,7 +102,7 @@ public class CombatNonFighterTests
         PlaceRoom(world, Keeper, Dk2TerrainFixture.GuardRoomTerrain, 10, 10);
         CreatureState imp = Spawn(db, world, Dk2TerrainFixture.ImpCreatureId, Keeper, impX, 12);
         CreatureState attacker = Spawn(db, world, Dk2TerrainFixture.KnightCreatureId, PlayerIds.Good, attackerX, 12);
-        world.Player(Keeper).CallToArms = new(callToArms, 0, 0, 0, 0);
+        world.Player(Keeper).CallToArms = new CallToArmsState(callToArms, 0, 0, 0, 0);
         if (alliedThreat == 120)
         {
             Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, impX, 13);
@@ -359,7 +359,7 @@ public class CombatNonFighterTests
         CreatureState knight = Spawn(db, world, Dk2TerrainFixture.KnightCreatureId, PlayerIds.Good, 12, 12);
         knight.PosX = imp.PosX + 3700;
         knight.PosY = imp.PosY;
-        GameSimulation sim = new(db, world, 1, [new CombatSystem(), new CreatureMovementSystem()]);
+        var sim = new GameSimulation(db, world, 1, [new CombatSystem(), new CreatureMovementSystem()]);
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
 
@@ -406,7 +406,7 @@ public class CombatNonFighterTests
         knight.PosX = imp.PosX + 3700;
         knight.PosY = imp.PosY;
         DelayAcquisition(world, knight);
-        GameSimulation sim = new(db, world, 1, [new CombatSystem(), new CreatureMovementSystem()]);
+        var sim = new GameSimulation(db, world, 1, [new CombatSystem(), new CreatureMovementSystem()]);
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
 
@@ -450,7 +450,7 @@ public class CombatNonFighterTests
         CreatureState knight = Spawn(db, world, Dk2TerrainFixture.KnightCreatureId, PlayerIds.Good, 12, 12);
         knight.PosX = imp.PosX + 3700;
         knight.PosY = imp.PosY;
-        GameSimulation sim = new(db, world, 1, [new CombatSystem(), new CreatureMovementSystem()]);
+        var sim = new GameSimulation(db, world, 1, [new CombatSystem(), new CreatureMovementSystem()]);
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
 
@@ -528,7 +528,7 @@ public class CombatNonFighterTests
         knight.PosX = imp.PosX + 3700;
         knight.PosY = imp.PosY;
         var start = new FpPosition3(new Fp32(imp.PosX), new Fp32(imp.PosY), new Fp32(imp.PosZ));
-        GameSimulation sim = new(db, world, 1, [new CombatSystem(), new CreatureMovementSystem()]);
+        var sim = new GameSimulation(db, world, 1, [new CombatSystem(), new CreatureMovementSystem()]);
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
 
@@ -610,7 +610,7 @@ public class CombatNonFighterTests
 
     private static GameSimulation Combat(GameDatabase db, WorldState world)
     {
-        return new(db, world, 1, [new CombatSystem()]);
+        return new GameSimulation(db, world, 1, [new CombatSystem()]);
     }
 
     // Keep the candidate unregistered while testing the ordinary NonFighter arm.

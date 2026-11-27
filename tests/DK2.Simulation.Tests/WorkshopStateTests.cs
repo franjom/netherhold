@@ -66,7 +66,7 @@ public class WorkshopStateTests
 
     private static GameSimulation Simulation(GameDatabase db, WorldState world)
     {
-        return new(db, world, seed: 42, [new CreatureMovementSystem(), new CreatureJobSystem()]);
+        return new GameSimulation(db, world, seed: 42, [new CreatureMovementSystem(), new CreatureJobSystem()]);
     }
 
     [Fact]

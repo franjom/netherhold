@@ -216,7 +216,7 @@ public sealed class SavedSessionFileTests : IDisposable
 
     private static SavedSession Sample()
     {
-        return new(new SavedSessionHeader("Level1", 1, 26,
+        return new SavedSession(new SavedSessionHeader("Level1", 1, 26,
         new DateTime(2026, 10, 29, 12, 0, 0, DateTimeKind.Utc), "First save"),
         [1, 2, 3], new CampaignProfile { LevelNumber = 2 });
     }

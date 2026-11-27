@@ -14,7 +14,7 @@ namespace DK2.Simulation.Tests;
 public class RouteRequestVelocityTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
-    private static readonly Fixed16Vector Moving = new(2134, -7286);
+    private static readonly Fixed16Vector Moving = new Fixed16Vector(2134, -7286);
 
     [Fact]
     public void AFoundRouteStartsFromZeroVelocityAtTheEntityPosition()

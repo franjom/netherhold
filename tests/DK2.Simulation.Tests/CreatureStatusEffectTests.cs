@@ -574,6 +574,6 @@ public class CreatureStatusEffectTests
 
     private static GameSimulation Sim(GameDatabase db, WorldState world)
     {
-        return new(db, world, 1, [new CreatureStatusSystem(), new CombatSystem(), new CreatureMovementSystem(), new ShotSystem()]);
+        return new GameSimulation(db, world, 1, [new CreatureStatusSystem(), new CombatSystem(), new CreatureMovementSystem(), new ShotSystem()]);
     }
 }

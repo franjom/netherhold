@@ -95,8 +95,8 @@ public sealed class TortureRevealTests
     private const byte Rival = 5;
 
     // Two of the rival's rooms, A made before B: DK2's list holds B first.
-    private static readonly TilePos[] RoomA = [new(2, 2), new(3, 2), new(2, 3), new(3, 3)];
-    private static readonly TilePos[] RoomB = [new(8, 2), new(9, 2), new(8, 3), new(9, 3)];
+    private static readonly TilePos[] RoomA = [new TilePos(2, 2), new TilePos(3, 2), new TilePos(2, 3), new TilePos(3, 3)];
+    private static readonly TilePos[] RoomB = [new TilePos(8, 2), new TilePos(9, 2), new TilePos(8, 3), new TilePos(9, 3)];
 
     private static (GameDatabase Db, WorldState World) Setup(bool fog = true)
     {

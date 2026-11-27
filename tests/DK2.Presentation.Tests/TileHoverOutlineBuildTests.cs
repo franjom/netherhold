@@ -174,11 +174,11 @@ public sealed class TileHoverOutlineBuildTests
         private readonly Vector3[] _grid = new Vector3[27];
         private readonly Vector3[] _points = new Vector3[27];
         private readonly int[] _endpoints = new int[48];
-        private readonly TileHoverPulse _pulse = new();
+        private readonly TileHoverPulse _pulse = new TileHoverPulse();
         private long _lastMilliseconds;
-        public readonly List<Vector3> Vertices = new();
-        public readonly List<Vector2> Uvs = new();
-        public readonly List<int> Triangles = new();
+        public readonly List<Vector3> Vertices = new List<Vector3>();
+        public readonly List<Vector2> Uvs = new List<Vector2>();
+        public readonly List<int> Triangles = new List<int>();
         public Vector3 Colour;
 
         public void Update(TileRectangle rect, bool blue, Vector3 eye, long milliseconds)

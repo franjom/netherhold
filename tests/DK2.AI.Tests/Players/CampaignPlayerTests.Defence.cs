@@ -26,12 +26,12 @@ public partial class CampaignPlayerTests
 
     private static PlayerVisibleThing Raider(int ordinal, TilePos at)
     {
-        return new(Handle(ordinal), PlayerThingKind.Creature, at, Heroes, PlayerThingActions.None, creatureType: new CreatureTypeId(20));
+        return new PlayerVisibleThing(Handle(ordinal), PlayerThingKind.Creature, at, Heroes, PlayerThingActions.None, creatureType: new CreatureTypeId(20));
     }
 
     private static PlayerVisibleThing Defender(int ordinal, TilePos at)
     {
-        return new(Handle(ordinal), PlayerThingKind.Creature, at, Me, PlayerThingActions.PickUp, creatureType: Goblin);
+        return new PlayerVisibleThing(Handle(ordinal), PlayerThingKind.Creature, at, Me, PlayerThingActions.PickUp, creatureType: Goblin);
     }
 
     private static PlayerObservation DefenceView(long revision, int hand = 0, params PlayerVisibleThing[] things)
@@ -73,7 +73,7 @@ public partial class CampaignPlayerTests
         // The Hatchery at x 17-19 is 5 tiles from the raider at (12,4): it is not sent back to the front.
         string[] map = [.. DefenceMap.Select(r => r.Replace("TTT", "AAA"))];
         PlayerVisibleThing raider = Raider(0, new TilePos(12, 4)), tired = Own(1, new TilePos(11, 4), Goblin);
-        PlayerRoomSummary[] owned = [new(RoomTypeId.Hatchery, 9)];
+        PlayerRoomSummary[] owned = [new PlayerRoomSummary(RoomTypeId.Hatchery, 9)];
         CampaignPlayer player = Styled();
         Assert.Contains(new PlayerAction.PickUp(tired.Handle), player.Decide(Observe(1, map: map, rooms: [], owned: owned, gold: 0,
             things: [raider, tired], creatures: [Flower(tired, 2)])).Actions);
@@ -108,7 +108,7 @@ public partial class CampaignPlayerTests
         Assert.True(Math.Abs(drop.X - 8) <= 2, $"dropped at {drop}, not at the attack nearest the Heart");
     }
 
-    private static readonly CreatureTypeId Flier = new(8), Healer = new(9);
+    private static readonly CreatureTypeId Flier = new CreatureTypeId(8), Healer = new CreatureTypeId(9);
 
     private static CampaignPlayer Styled()
     {
@@ -121,18 +121,18 @@ public partial class CampaignPlayerTests
 
     private static PlayerVisibleThing Own(int ordinal, TilePos at, CreatureTypeId type)
     {
-        return new(Handle(ordinal), PlayerThingKind.Creature, at, Me, PlayerThingActions.PickUp, creatureType: type);
+        return new PlayerVisibleThing(Handle(ordinal), PlayerThingKind.Creature, at, Me, PlayerThingActions.PickUp, creatureType: type);
     }
 
     private static PlayerCreatureSummary Flower(PlayerVisibleThing own, int petals)
     {
-        return new(own.CreatureType!.Value, own.Tile, false, own.Handle, 3, petals, PlayerCreatureMood.Happy);
+        return new PlayerCreatureSummary(own.CreatureType!.Value, own.Tile, false, own.Handle, 3, petals, PlayerCreatureMood.Happy);
     }
 
     [Fact]
     public void TheFormationPutsBlockersInFrontSupportFurtherBackAndFlankersBehind()
     {
-        TilePos enemy = new(10, 2), home = new(2, 2);
+        TilePos enemy = new TilePos(10, 2), home = new TilePos(2, 2);
         Assert.Equal(new TilePos(9, 2), PlayerActionRoutines.FormationPoint(enemy, home, FightStyle.Blocker));   // 1.5 in front, halves away from zero
         Assert.Equal(new TilePos(7, 2), PlayerActionRoutines.FormationPoint(enemy, home, FightStyle.Support));   // 3.5 in front: 2 behind the Blockers
         Assert.Equal(new TilePos(12, 2), PlayerActionRoutines.FormationPoint(enemy, home, FightStyle.Flanker));  // 1.5 behind

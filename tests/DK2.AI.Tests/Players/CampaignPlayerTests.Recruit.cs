@@ -13,10 +13,10 @@ namespace DK2.AI.Tests.Players;
 /// built or grown, the room that caps creatures with the fewest tiles first.</summary>
 public partial class CampaignPlayerTests
 {
-    private static readonly KeeperKnowledge GuardFacts = new(
+    private static readonly KeeperKnowledge GuardFacts = new KeeperKnowledge(
     [
-        new RoomFacts(RoomTypeId.GuardRoom, 600, [new(3, 1, 9, 0), new(4, 2, 16, 0)], capsCreatures: true),
-        new RoomFacts(RoomTypeId.Hatchery, 300, [new(3, 1, 9, 0)], capsCreatures: false),
+        new RoomFacts(RoomTypeId.GuardRoom, 600, [new RoomSizeFacts(3, 1, 9, 0), new RoomSizeFacts(4, 2, 16, 0)], capsCreatures: true),
+        new RoomFacts(RoomTypeId.Hatchery, 300, [new RoomSizeFacts(3, 1, 9, 0)], capsCreatures: false),
     ]);
 
     private static PlayerObservation RecruitView(long tick, int gold = 50_000, bool portal = true, IReadOnlyList<PlayerCreatureSummary>? creatures = null)
@@ -68,15 +68,15 @@ public partial class CampaignPlayerTests
     {
         var facts = new KeeperKnowledge(
         [
-            new RoomFacts(RoomTypeId.GuardRoom, 600, [new(3, 1, 9, 0)], capsCreatures: true),
-            new RoomFacts(RoomTypeId.Temple, 3000, [new(3, 1, 9, 0)], capsCreatures: true),
+            new RoomFacts(RoomTypeId.GuardRoom, 600, [new RoomSizeFacts(3, 1, 9, 0)], capsCreatures: true),
+            new RoomFacts(RoomTypeId.Temple, 3000, [new RoomSizeFacts(3, 1, 9, 0)], capsCreatures: true),
         ]);
         CampaignPlayer Make()
         {
             return Player(o => o with { Knowledge = facts }).Also(p => p.Apply(p.Strategy with { CreateImps = 0, ExtraRooms = [] }));
         }
 
-        PlayerRoomOffer guard = new(RoomTypeId.GuardRoom, new GoldAmount(600), true), temple = new(RoomTypeId.Temple, new GoldAmount(3000), true);
+        PlayerRoomOffer guard = new PlayerRoomOffer(RoomTypeId.GuardRoom, new GoldAmount(600), true), temple = new PlayerRoomOffer(RoomTypeId.Temple, new GoldAmount(3000), true);
         PlayerObservation View(int guardTiles)
         {
             return Observe(map: Open, rooms: [temple, guard], gold: 90_000, tick: 1300, revision: 1300,
@@ -95,7 +95,7 @@ public partial class CampaignPlayerTests
     {
         // No screen shows the arrivals held (owner, 2026-11-17): the player counts its non-workers beyond the two the
         // level placed, seen at its first look.
-        PlayerCreatureSummary goblin = new(Goblin, new TilePos(5, 5), false);
+        var goblin = new PlayerCreatureSummary(Goblin, new TilePos(5, 5), false);
         PlayerObservation View(long tick, int fighters)
         {
             return Observe(map: Open, rooms: [Offer(RoomTypeId.GuardRoom)], gold: 50_000, tick: tick,
@@ -125,7 +125,7 @@ public partial class CampaignPlayerTests
     public void ANewCreatureRestartsTheQuietSpell()
     {
         CampaignPlayer player = Recruiter();
-        PlayerCreatureSummary goblin = new(Goblin, new TilePos(5, 5), false);
+        var goblin = new PlayerCreatureSummary(Goblin, new TilePos(5, 5), false);
         player.Decide(RecruitView(tick: 1000, creatures: [goblin]));
         Assert.Null(Built(player.Decide(RecruitView(tick: 2100, creatures: [goblin])), RoomTypeId.GuardRoom));
         Assert.NotNull(Built(player.Decide(RecruitView(tick: 2200, creatures: [goblin])), RoomTypeId.GuardRoom));

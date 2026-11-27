@@ -20,10 +20,10 @@ public class TorturerTests
     private const byte MistressId = Dk2TerrainFixture.MistressCreatureId;
     private const int Walk = 6;
 
-    private static readonly TilePos Cell = new(3, 3);
-    private static readonly TilePos Wheel = new(8, 3);
-    private static readonly TilePos Chair = new(9, 4);
-    private static readonly TilePos Outside = new(11, 7);
+    private static readonly TilePos Cell = new TilePos(3, 3);
+    private static readonly TilePos Wheel = new TilePos(8, 3);
+    private static readonly TilePos Chair = new TilePos(9, 4);
+    private static readonly TilePos Outside = new TilePos(11, 7);
 
     private static GameDatabase Db
     {

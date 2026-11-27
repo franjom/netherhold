@@ -19,11 +19,11 @@ public class KeeperBridgeTests
     private const byte Keeper = KeeperWorld.Keeper;
 
     /// <summary>The north edge of the keeper's claimed patch; the corridor leaves it northward.</summary>
-    private static readonly TilePos Shore = new(15, 13);
+    private static readonly TilePos Shore = new TilePos(15, 13);
 
     private static TilePos North(int n)
     {
-        return new(Shore.X, Shore.Y - n);
+        return new TilePos(Shore.X, Shore.Y - n);
     }
 
     /// <summary>Hazard tiles from (15,12) north for <paramref name="length"/> tiles, rock beyond.</summary>
@@ -52,7 +52,7 @@ public class KeeperBridgeTests
 
     private static GameSimulation Sim(WorldState world)
     {
-        return new(Db, world, 1, [new TileTagSystem(), new RoomBuildSystem()]);
+        return new GameSimulation(Db, world, 1, [new TileTagSystem(), new RoomBuildSystem()]);
     }
 
     [Theory]

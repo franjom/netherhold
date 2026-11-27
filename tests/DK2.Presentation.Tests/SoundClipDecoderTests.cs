@@ -10,14 +10,14 @@ namespace DK2.Presentation.Tests;
 /// and a clip that fails to decode becomes silence and one reported failure, not an exception on the frame's thread.</summary>
 public sealed class SoundClipDecoderTests
 {
-    private static readonly ResolvedSound Reference = new("Global/Test", new SoundEntryId(3));
+    private static readonly ResolvedSound Reference = new ResolvedSound("Global/Test", new SoundEntryId(3));
 
     private sealed class Assets(Func<ResolvedSound, PcmClip?> clip) : IClassicSoundAssets
     {
         public int Calls;
         public SoundMaps Maps(SoundCategory category)
         {
-            return new(BankMap.Empty, SfxMap.Empty);
+            return new SoundMaps(BankMap.Empty, SfxMap.Empty);
         }
 
         public PcmClip? Clip(ResolvedSound reference)

@@ -17,8 +17,8 @@ public class DroppedToDoJobTests
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte MakerId = 61;
     private const int Second = SimulationTiming.TicksPerSecond;
-    private static readonly TilePos Bench = new(2, 2);
-    private static readonly TilePos Aside = new(6, 2);
+    private static readonly TilePos Bench = new TilePos(2, 2);
+    private static readonly TilePos Aside = new TilePos(6, 2);
 
     /// <summary>A manufacturer whose content table is Train alone, so only the dropped job can
     /// send it back to the Workshop.</summary>
@@ -30,7 +30,7 @@ public class DroppedToDoJobTests
             CreatureId = MakerId,
             Name = "Maker",
             ManufacturePerSecond = 40,
-            HappyJobs = [new(JobType.Train, 0, 0, 100)],
+            HappyJobs = [new CreatureJobPreference(JobType.Train, 0, 0, 100)],
             HateJobs = hates,
         });
     }
@@ -110,7 +110,7 @@ public class DroppedToDoJobTests
         GameDatabase db = Dk2TerrainFixture.Database(Dk2TerrainFixture.Goblin() with
         {
             CreatureId = MakerId, Name = "Idler", ManufacturePerSecond = 0, ResearchPerSecond = 0,
-            HappyJobs = [new(JobType.Train, 0, 0, 100)], HateJobs = [],
+            HappyJobs = [new CreatureJobPreference(JobType.Train, 0, 0, 100)], HateJobs = [],
         });
         WorldState world = World(db);
         CreatureState idler = world.SpawnCreature(db, MakerId, Keeper, Aside);
@@ -148,7 +148,7 @@ public class DroppedToDoJobTests
         GameDatabase db = Dk2TerrainFixture.Database(Dk2TerrainFixture.Goblin() with
         {
             CreatureId = MakerId, Name = "Idler", ManufacturePerSecond = 0, ResearchPerSecond = 0,
-            HappyJobs = [new(JobType.Train, 0, 0, 100)], HateJobs = [],
+            HappyJobs = [new CreatureJobPreference(JobType.Train, 0, 0, 100)], HateJobs = [],
         }).ForLevel(level);
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, (byte)1, PlayerIds.Neutral, Keeper]);
         for (int y = 1; y <= 3; y++)

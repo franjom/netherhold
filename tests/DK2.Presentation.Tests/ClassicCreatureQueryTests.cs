@@ -17,7 +17,7 @@ public sealed class ClassicCreatureQueryTests
     [InlineData(2047, 63)]
     public void QueryRetainsOnlyNativeYawRemainder(ushort yaw, ushort expected)
     {
-        Assert.Equal(expected, ClassicCreatureQueryRules.FollowHeading(new(yaw)).Value);
+        Assert.Equal(expected, ClassicCreatureQueryRules.FollowHeading(new Core.Dk2Angle(yaw)).Value);
     }
 
     [InstallFact]
@@ -25,7 +25,7 @@ public sealed class ClassicCreatureQueryTests
     {
         GameDatabase db=GameDatabaseLoader.Load(Dk2InstallGate.Path);
         var world=WorldState.FromMap(db,GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path,"Level1")!,[PlayerIds.FirstKeeper],fogOfWarEnabled:false);
-        CreatureState creature=world.SpawnCreature(db,db.CreatureByName("Imp")!.CreatureId,PlayerIds.FirstKeeper,new(8,8));
+        CreatureState creature=world.SpawnCreature(db,db.CreatureByName("Imp")!.CreatureId,PlayerIds.FirstKeeper,new Core.TilePos(8,8));
         creature.GoldHeld=17;
         var strings=Dk2StringTable.Open(Path.Combine(Dk2InstallGate.Path,"Data","Text","Default","Text.str"));
         var query=new ClassicCreatureQuery(db,strings.Resolve,PlayerIds.FirstKeeper);

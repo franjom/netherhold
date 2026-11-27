@@ -19,7 +19,7 @@ public class PlayerObservationTrapTests
 
     private static TrapDef Trap(byte id, uint flags, byte selector, int range)
     {
-        return new()
+        return new TrapDef()
         {
             Name = $"trap {id}",
             TrapId = id,

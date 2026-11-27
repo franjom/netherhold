@@ -20,7 +20,7 @@ public sealed class PossessionHudIndicatorsTests
             return "";
         }
     }
-    private static readonly BitmapFont Font = new(10, [new BitmapGlyph('A', 2, 2, 0, 0, 3, [15, 15, 15, 15])]);
+    private static readonly BitmapFont Font = new BitmapFont(10, [new BitmapGlyph('A', 2, 2, 0, 0, 3, [15, 15, 15, 15])]);
 
     [Fact]
     public void AllEnabledIndicatorsStackUpwardWithNativeArtAndValues()

@@ -23,10 +23,10 @@ namespace DK2.Behavior.Tests;
 public class CampaignPlayerLevel1Tests(ITestOutputHelper output)
 {
     private const string ScenarioFile = "campaign-player/level1.yaml";
-    private static readonly PlayerId Keeper = new(3);
+    private static readonly PlayerId Keeper = new PlayerId(3);
 
     /// <summary>One seed-1 attempt shared by every test here: a full win takes seconds, not milliseconds.</summary>
-    private static readonly Lazy<Attempt> Seed1 = new(() => Attempt.Play(ScenarioCorpus.Load(ScenarioFile)));
+    private static readonly Lazy<Attempt> Seed1 = new Lazy<Attempt>(() => Attempt.Play(ScenarioCorpus.Load(ScenarioFile)));
 
     private sealed record Attempt(
         ScenarioResult Result, PlayerRunCoordinator Player, InputJournal Journal,

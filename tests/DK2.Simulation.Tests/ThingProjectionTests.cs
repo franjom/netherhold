@@ -31,7 +31,7 @@ public class ThingProjectionTests
         int x, int y, byte creatureId, byte playerId, byte level = 1, int health = 100,
         ushort triggerId = 0)
     {
-        return new(new byte[28])
+        return new KeeperCreatureThing(new byte[28])
         {
             X = x,
             Y = y,
@@ -271,7 +271,7 @@ public class ThingProjectionTests
 
     private static RoomThing HeartRecord()
     {
-        return new(new byte[20])
+        return new RoomThing(new byte[20])
         { X = 10, Y = 5, RoomType = Dk2TerrainFixture.DungeonHeartTerrain, PlayerId = 3, InitialHealth = 100 };
     }
 
@@ -679,7 +679,7 @@ public class ThingProjectionTests
         public byte[] Unknown = new byte[2];
         public HeroPartyMemberState Build()
         {
-            return new()
+            return new HeroPartyMemberState()
             {
                 X = X,
                 Y = Y,

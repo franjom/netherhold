@@ -16,7 +16,7 @@ internal static class PressFixture
 {
     public static readonly PlayerId Keeper = PlayerIds.FirstKeeper;
 
-    private static readonly TerrainDef Floor = new()
+    private static readonly TerrainDef Floor = new TerrainDef()
     {
         Name = "Floor", TerrainId = 0, Flags = 0,
         StartingHealth = 1, MaxHealth = 1, GoldValue = 0, ManaGain = 0, MaxManaGain = 0,
@@ -26,7 +26,7 @@ internal static class PressFixture
 
     public static KeeperSpellDef Spell(byte id, byte targetSelector)
     {
-        return new()
+        return new KeeperSpellDef()
         {
             Name = "Test spell " + id,
             KeeperSpellId = id,
@@ -41,7 +41,7 @@ internal static class PressFixture
     }
 
     /// <summary>A synthetic worker, the one creature <see cref="CreatureOverview"/> needs to open; not a claim about DK2's.</summary>
-    private static readonly CreatureDef Worker = new()
+    private static readonly CreatureDef Worker = new CreatureDef()
     {
         Name = "fixture", CreatureId = 1, Flags = CreatureFlags.IsEvil | CreatureFlags.IsWorker,
         Speed = default, RunSpeed = default, ShuffleSpeed = default,
@@ -78,14 +78,14 @@ internal static class PressFixture
     public static GameDatabase Database(KeeperSpellDef[] spells, DoorDef[] doors, TrapDef[] traps)
     {
         var variables = new GlobalVariables();
-        variables.Misc[VariableTypeId.DungeonHeartObjectHealth] = new(VariableTypeId.DungeonHeartObjectHealth, 100, 0, 0);
+        variables.Misc[VariableTypeId.DungeonHeartObjectHealth] = new MiscVariable(VariableTypeId.DungeonHeartObjectHealth, 100, 0, 0);
         return new GameDatabase([Floor], [], [Worker], variables, spells, doors: doors, traps: traps);
     }
 
     /// <summary>A synthetic door; not a claim about DK2's.</summary>
     public static DoorDef Door(byte id)
     {
-        return new()
+        return new DoorDef()
         {
             Name = "Door",
             DoorId = id,
@@ -99,7 +99,7 @@ internal static class PressFixture
     /// <summary>A synthetic trap firing <paramref name="shot"/> (13 is the alarm's); not a claim about DK2's.</summary>
     public static TrapDef Trap(byte id, byte shot)
     {
-        return new()
+        return new TrapDef()
         {
             Name = "Trap",
             TrapId = id,
@@ -122,12 +122,12 @@ internal static class PressFixture
 
     public static BottomPanelView Panel(GameDatabase database)
     {
-        return new(database, Keeper, (_, name) => name);
+        return new BottomPanelView(database, Keeper, (_, name) => name);
     }
 
     public static CreatureQueryView Query(GameDatabase database)
     {
-        return new(database, _ => "", Keeper, new NoNames());
+        return new CreatureQueryView(database, _ => "", Keeper, new NoNames());
     }
 
     /// <summary>The install's database and a Goblin of the keeper's on a claimed floor (LocalPickupFeedbackTests' fixture).</summary>

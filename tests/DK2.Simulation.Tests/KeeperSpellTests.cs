@@ -340,7 +340,7 @@ public sealed class KeeperSpellTests
 
     private static KeeperSpellDef Spell()
     {
-        return new()
+        return new KeeperSpellDef()
         {
             Name = "Thunderbolt",
             KeeperSpellId = 6,
@@ -357,12 +357,12 @@ public sealed class KeeperSpellTests
 
     private static ShotDef Shot(byte id)
     {
-        return new(new byte[239])
+        return new ShotDef(new byte[239])
         {
             Name = "Thunderbolt",
             ShotId = id,
-            MeshResource = new("", 0, default, 0, 0, 0, 0),
-            Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0),
+            MeshResource = new KwdArtResource("", 0, default, 0, 0, 0, 0),
+            Light = new KwdLight(0, 0, 0, 0, 0, 0, 0, 0, 0),
             SoundCategory = "",
             Speed = 2048,
             Radius = 819,

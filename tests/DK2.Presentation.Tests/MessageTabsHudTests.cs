@@ -13,12 +13,12 @@ namespace DK2.Presentation.Tests;
 /// tiling and set text.</summary>
 public sealed class MessageTabsHudTests
 {
-    private static readonly HudScreen FullHd = new(1920, 1080);
-    private static readonly HudVisibility Shown = new(ShowNormalHud: true, AllowOrdinaryInput: true);
-    private static readonly HudRect Objective = new(1112, 1460, 88, 128);
+    private static readonly HudScreen FullHd = new HudScreen(1920, 1080);
+    private static readonly HudVisibility Shown = new HudVisibility(ShowNormalHud: true, AllowOrdinaryInput: true);
+    private static readonly HudRect Objective = new HudRect(1112, 1460, 88, 128);
 
     /// <summary>One 2x2 glyph 'A' at full coverage, 3 wide with its spacing, in a 10-pixel line.</summary>
-    private static readonly BitmapFont Font = new(10, [new BitmapGlyph('A', 2, 2, 0, 0, 3, [15, 15, 15, 15])]);
+    private static readonly BitmapFont Font = new BitmapFont(10, [new BitmapGlyph('A', 2, 2, 0, 0, 3, [15, 15, 15, 15])]);
 
     private sealed class Art : IBottomPanelArt
     {
@@ -35,7 +35,7 @@ public sealed class MessageTabsHudTests
 
     private static MessageTabsHud Hud(MessageTabsView? view = null)
     {
-        return new(new Art(), view ?? new MessageTabsView(PlayerIds.FirstKeeper), _ => Font, r => "message " + r, line => "AA");
+        return new MessageTabsHud(new Art(), view ?? new MessageTabsView(PlayerIds.FirstKeeper), _ => Font, r => "message " + r, line => "AA");
     }
 
     private static HudDraw[] Build(MessageTabsHud hud, (float, float, bool) pointer = default, HudVisibility? visibility = null)

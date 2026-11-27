@@ -40,7 +40,7 @@ public sealed class HudFlashTests
 
     private static SimEvent Flash(HudFlashTarget target, uint durationSeconds, bool enabled = true)
     {
-        return new(default, "script", "flash", "")
+        return new SimEvent(default, "script", "flash", "")
         {
             ScriptedView = new ScriptedViewRequest(ScriptedViewKind.FlashButton, PlayerIds.Unowned,
                     0, default, false, FlashButton: new HudFlashRequest(target, durationSeconds, enabled)),

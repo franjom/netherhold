@@ -13,11 +13,11 @@ namespace DK2.Simulation.Tests;
 public sealed class CreatureCurrentActionTests
 {
     private static readonly CreatureDef Def = Dk2TerrainFixture.Goblin();
-    private static readonly GameTick Now = new(500);
+    private static readonly GameTick Now = new GameTick(500);
 
     private static CreatureState Creature()
     {
-        return new() { Id = 1, CreatureTypeId = Def.CreatureId };
+        return new CreatureState() { Id = 1, CreatureTypeId = Def.CreatureId };
     }
 
     [Fact]

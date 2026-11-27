@@ -22,7 +22,7 @@ public sealed class KeeperSpellUpgradeTests
     private const AvailabilityKind SpellKind = AvailabilityKind.Spell;
     private const int Available = 3;
     private const byte SightOfEvil = 1, CreateGold = 13;
-    private static readonly TilePos GoldAt = new(10, 10);
+    private static readonly TilePos GoldAt = new TilePos(10, 10);
 
     private static int Second
     {
@@ -35,44 +35,44 @@ public sealed class KeeperSpellUpgradeTests
     private static KeeperSpellDef[] TaskSpells()
     {
         return [
-        new()
+        new KeeperSpellDef()
         {
             Name = "Create Gold", KeeperSpellId = CreateGold, ManaCost = 15000, ManaUpkeepPerSecond = 0,
             LocationSelector = 1, TargetSelector = 4,
             ShotTypeId = 5, ShotData1 = 1, ShotData2 = 1000,
             BonusShotTypeId = 5, BonusShotData1 = 1, BonusShotData2 = 2000,
         },
-        new()
+        new KeeperSpellDef()
         {
             Name = "Tremor", KeeperSpellId = TremorRules.SpellId, ManaCost = 30000, ManaUpkeepPerSecond = 0,
             LocationSelector = 5, TargetSelector = 4,
             ShotTypeId = 24, ShotData1 = 5, ShotData2 = 3,
             BonusShotTypeId = 24, BonusShotData1 = 7, BonusShotData2 = 3,
         },
-        new()
+        new KeeperSpellDef()
         {
             Name = "Turncoat", KeeperSpellId = TurncoatRules.SpellId, ManaCost = 20000, ManaUpkeepPerSecond = 0,
             LocationSelector = 1, TargetSelector = 2,
             ShotTypeId = 31, ShotData1 = 25, BonusShotTypeId = 31, BonusShotData1 = 40,
         },
-        new()
+        new KeeperSpellDef()
         {
             Name = "Possession", KeeperSpellId = PossessionRules.SpellId, ManaCost = 500,
             ManaUpkeepPerSecond = 25, LocationSelector = 5, TargetSelector = 6,
             ShotTypeId = 32, BonusShotTypeId = 32,
         },
-        new()
+        new KeeperSpellDef()
         {
             Name = "Sight Of Evil", KeeperSpellId = SightOfEvil, ManaCost = 5000, ManaUpkeepPerSecond = 0,
             LocationSelector = 5, TargetSelector = 4,
             ShotTypeId = 33, ShotData1 = 5, BonusShotTypeId = 33, BonusShotData1 = 7,
         },
-        new()
+        new KeeperSpellDef()
         {
             Name = "Summon Horny", KeeperSpellId = ReaperRules.SpellId, ManaCost = 100000,
             ManaUpkeepPerSecond = 2000, LocationSelector = 1, TargetSelector = 4, ShotTypeId = 46,
         },
-        new()
+        new KeeperSpellDef()
         {
             Name = "OneShotReaper", KeeperSpellId = ReaperRules.OneShotSpellId, ManaCost = 0,
             ManaUpkeepPerSecond = 125, LocationSelector = 1, TargetSelector = 4,

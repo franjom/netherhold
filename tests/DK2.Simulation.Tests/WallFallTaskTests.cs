@@ -17,13 +17,13 @@ namespace DK2.Simulation.Tests;
 public sealed class WallFallTaskTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
-    private static readonly TilePos Face = new(4, 2);
+    private static readonly TilePos Face = new TilePos(4, 2);
 
     private static (GameSimulation Sim, ListEventSink Events, CreatureState Imp) Start(int state, TilePos? at = null)
     {
         GameDatabase db = IdleActionClockTests.WithImpIdleArt(Dk2TerrainFixture.Database());
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
-        foreach (TilePos own in new TilePos[] { new(3, 2), new(2, 2), new(3, 3), new(3, 1) })
+        foreach (TilePos own in new TilePos[] { new TilePos(3, 2), new TilePos(2, 2), new TilePos(3, 3), new TilePos(3, 1) })
         {
             world.Tile(own).TerrainId = Dk2TerrainFixture.ClaimedPath;
             world.Tile(own).OwnerPlayerId = Keeper;

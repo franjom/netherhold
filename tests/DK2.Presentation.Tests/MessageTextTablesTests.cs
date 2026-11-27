@@ -138,7 +138,7 @@ public sealed class MessageTextTablesTests
 
     private static PlayerDef Player(byte id, string name)
     {
-        return new()
+        return new PlayerDef()
         {
             PlayerId = id,
             Name = name,

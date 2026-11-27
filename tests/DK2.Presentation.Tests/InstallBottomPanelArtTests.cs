@@ -16,7 +16,7 @@ public sealed class InstallBottomPanelArtTests
 
     private static BottomPanelChoiceKey Spell(byte id)
     {
-        return new(BottomPanelChoiceKind.Spell, id);
+        return new BottomPanelChoiceKey(BottomPanelChoiceKind.Spell, id);
     }
 
     [InstallFact]

@@ -267,9 +267,9 @@ public class CombatCategoryHooksTests
 
     // The Combat leave delegate, wrapped once for the process with a counter for watched creatures;
     // the wrapper calls the original, so other tests running at the same time see no difference.
-    private static readonly ConcurrentDictionary<CreatureState, int> Watched = new();
+    private static readonly ConcurrentDictionary<CreatureState, int> Watched = new ConcurrentDictionary<CreatureState, int>();
     private static Delegate? s_original;
-    private static readonly object InstallGate = new();
+    private static readonly object InstallGate = new object();
 
     private static int LeaveRuns(CreatureState creature, Action act)
     {

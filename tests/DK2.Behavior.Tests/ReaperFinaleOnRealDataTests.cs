@@ -21,7 +21,7 @@ public class ReaperFinaleOnRealDataTests(ITestOutputHelper output)
     private const long WinTick = 2814;
     /// <summary>The journal's finale window (its <c>player.limits</c> <c>finale_ticks</c>).</summary>
     private const long FinaleWindowTicks = 400;
-    private static readonly PlayerId Winner = new(3);
+    private static readonly PlayerId Winner = new PlayerId(3);
 
     [InstallFact]
     public void TheReaperTakesTheGemTheLordDroppedWithinTheFinaleWindow()

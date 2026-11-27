@@ -28,7 +28,7 @@ internal static class TestWorld
 
     public static GameDatabase Database()
     {
-        return new(
+        return new GameDatabase(
         [
             Terrain(Impenetrable, "Impenetrable Rock", TerrainFlags.Solid | TerrainFlags.Impenetrable, 0),
             Terrain(Rock, "Rock", TerrainFlags.Solid | TerrainFlags.Taggable, 165,
@@ -64,7 +64,7 @@ internal static class TestWorld
     private static KeeperSpellDef[] KeeperSpells()
     {
         return [
-        new() { Name = KeeperSpellName.CreateImp, ManaCost = 1500, ManaUpkeepPerSecond = 7 },
+        new KeeperSpellDef() { Name = KeeperSpellName.CreateImp, ManaCost = 1500, ManaUpkeepPerSecond = 7 },
     ];
     }
 
@@ -117,7 +117,7 @@ internal static class TestWorld
         byte id, string name, TerrainFlags flags, ushort health,
         byte maxHealthType = 0, byte destroyedType = 0)
     {
-        return new()
+        return new TerrainDef()
         {
             Name = name,
             TerrainId = id,

@@ -7,8 +7,8 @@ namespace DK2.Presentation.Tests;
 /// <summary>Menu 43 as a draw list (<see cref="BattleTabHud"/>), as Unity's <c>ClassicBattleTab</c> shows it.</summary>
 public sealed class BattleTabHudTests
 {
-    private static readonly HudVisibility Shown = new(true, true);
-    private static readonly HudScreen FourThree = new(1024, 768);
+    private static readonly HudVisibility Shown = new HudVisibility(true, true);
+    private static readonly HudScreen FourThree = new HudScreen(1024, 768);
 
     [Fact]
     public void OnlyTheShownButtonsDrawAndAHiddenOneLeavesItsGap()

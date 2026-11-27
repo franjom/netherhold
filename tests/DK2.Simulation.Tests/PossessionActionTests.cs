@@ -28,7 +28,7 @@ public sealed class PossessionActionTests
 
     private static MovePossessedCreatureCommand Move(int x, int y, int z, ushort heading)
     {
-        return new(Keeper, new(new(new(x), new(y), new(z)), new(heading)));
+        return new MovePossessedCreatureCommand(Keeper, new PossessionPose(new FpPosition3(new Fp32(x), new Fp32(y), new Fp32(z)), new Dk2Angle(heading)));
     }
 
     [Fact]

@@ -110,7 +110,7 @@ public class MeleeHoldEndTests
     {
         (GameDatabase db, WorldState world, CreatureState fighter, CreatureDef def) = Fight();
         // A creature in the slapper's own land that is no fighter reacts in 77 (slap-states.md).
-        TilePos at = new(2, 2);
+        var at = new TilePos(2, 2);
         ref TileState tile = ref world.Tile(at.X, at.Y);
         tile.TerrainId = Dk2TerrainFixture.ClaimedPath;
         tile.OwnerPlayerId = Keeper;

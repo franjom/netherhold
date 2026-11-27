@@ -14,11 +14,11 @@ public sealed class MinimapDiscImageTests
     /// raster unit, so at heading 0 pixel (x, y) shows raster point (x + .5, y + .5).</summary>
     private const int Side = 90, Diameter = 128;
     private static readonly byte[] Rock = [10, 20, 30];
-    private static readonly MinimapClassGrid Empty = new(Side, Side);
+    private static readonly MinimapClassGrid Empty = new MinimapClassGrid(Side, Side);
 
     private static MinimapPalette Palette()
     {
-        return new(Enumerable.Range(0, 37).Select(i => 0x00400000u + (uint)i * 0x000101).ToArray());
+        return new MinimapPalette(Enumerable.Range(0, 37).Select(i => 0x00400000u + (uint)i * 0x000101).ToArray());
     }
 
     private static MinimapDiscImage Disc()
@@ -40,7 +40,7 @@ public sealed class MinimapDiscImageTests
 
     private static FpPosition3 At(float x, float y)
     {
-        return new(new Fp32((int)(x * 4096)), new Fp32((int)(y * 4096)), new Fp32(0));
+        return new FpPosition3(new Fp32((int)(x * 4096)), new Fp32((int)(y * 4096)), new Fp32(0));
     }
 
     private static void Render(MinimapDiscImage disc, MinimapClassGrid grid, IReadOnlyList<MinimapMarker>? markers = null,

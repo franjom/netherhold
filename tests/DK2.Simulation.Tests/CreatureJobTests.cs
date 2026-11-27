@@ -18,7 +18,7 @@ public sealed class CreatureJobTests
     private const byte Keeper = 4;
     private const byte GoblinId = 7;
     private const byte VampireId = Dk2TerrainFixture.VampireCreatureId;
-    private static readonly TilePos Floor = new(2, 2);
+    private static readonly TilePos Floor = new TilePos(2, 2);
 
     private static int Second
     {
@@ -308,9 +308,9 @@ public sealed class CreatureJobTests
         GameDatabase db = Dk2TerrainFixture.Database(Dk2TerrainFixture.Goblin() with
         {
             CreatureId = sulkerId, Name = "Sulker",
-            AngryJobs = [new(JobType.Sulk, 0, 0, 100)],
-            UnhappyJobs = [new(JobType.Train, 0, 0, 100)],
-            HappyJobs = [new(JobType.Train, 0, 0, 100)],
+            AngryJobs = [new CreatureJobPreference(JobType.Sulk, 0, 0, 100)],
+            UnhappyJobs = [new CreatureJobPreference(JobType.Train, 0, 0, 100)],
+            HappyJobs = [new CreatureJobPreference(JobType.Train, 0, 0, 100)],
         });
         WorldState world = World(db);
         Paint(db, world, RoomTypeId.TrainingRoom, new TilePos(3, 3));

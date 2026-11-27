@@ -23,7 +23,7 @@ public class KwdTriggerEditingTests
         Array.Fill(source.HeaderBlock,(byte)0x5A,8,24);
         KwdLevelFileSet editor =Set(source); byte[] before=editor.ToBytes("triggers.kld");
         byte[] bytes=KwdThingEditingTests.Trigger(tag,15); TriggerRecord row=Read(bytes);
-        editor.InsertTrigger(new("triggers.kld",0,1),row,new KwdRecordImage(KwdRecordType.Triggers,bytes,tag));
+        editor.InsertTrigger(new KwdRecordLocation("triggers.kld",0,1),row,new KwdRecordImage(KwdRecordType.Triggers,bytes,tag));
         KwdChunk result=KwdThingEditingTests.Reload(editor.ToBytes("triggers.kld"));
         Assert.Equal(3,result.ItemCount); Assert.Equal(72,result.Content.Length);
         Assert.Equal(tag==213?2:1,BinaryPrimitives.ReadInt32LittleEndian(result.HeaderBlock));
@@ -32,7 +32,7 @@ public class KwdTriggerEditingTests
         Assert.Equal(source.ContainerHeader!.ChunkEndOffset+24,result.ContainerHeader!.ChunkEndOffset);
         Assert.Equal(source.ContainerHeader.DeclaredContentSize+24,result.ContainerHeader.DeclaredContentSize);
         Assert.Equal(new ushort[]{13,15,14},KwdTriggers.Parse([result]).Select(r=>r.TriggerId));
-        editor.RemoveTrigger(new("triggers.kld",0,1)); Assert.Equal(before,editor.ToBytes("triggers.kld"));
+        editor.RemoveTrigger(new KwdRecordLocation("triggers.kld",0,1)); Assert.Equal(before,editor.ToBytes("triggers.kld"));
     }
 
     [Theory]
@@ -76,7 +76,7 @@ public class KwdTriggerEditingTests
             ["things.kld"]=[KwdLevelFileSetTests.Fixture(KwdRecordType.Things,KwdThingsWriterTests.Image(reference=="member"?201:194,thing).ToBytes(),1)],
             ["players.kld"]=[player] });
         byte[] original=editor.ToBytes("triggers.kld");
-        Assert.Throws<InvalidDataException>(()=>editor.RemoveTrigger(new("triggers.kld",0,0)));
+        Assert.Throws<InvalidDataException>(()=>editor.RemoveTrigger(new KwdRecordLocation("triggers.kld",0,0)));
         Assert.Equal(original,editor.ToBytes("triggers.kld"));
     }
 
@@ -88,18 +88,18 @@ public class KwdTriggerEditingTests
         foreach(byte[] bytes in new[]{KwdThingEditingTests.Trigger(213,13),KwdThingEditingTests.Trigger(213,0),
             KwdThingEditingTests.Trigger(213,14),KwdThingEditingTests.Trigger(214,15,next:13),KwdThingEditingTests.Trigger(213,15,child:13)})
         {
-            Assert.Throws<InvalidDataException>(()=>editor.InsertTrigger(new("triggers.kld",0,1),Read(bytes),
+            Assert.Throws<InvalidDataException>(()=>editor.InsertTrigger(new KwdRecordLocation("triggers.kld",0,1),Read(bytes),
                 new KwdRecordImage(KwdRecordType.Triggers,bytes,BinaryPrimitives.ReadInt32LittleEndian(bytes))));
         }
 
-        Assert.Throws<InvalidDataException>(()=>editor.EditRecord<TriggerRecord>(new("triggers.kld",0,0),r=>r with { NextTriggerId=15 }));
+        Assert.Throws<InvalidDataException>(()=>editor.EditRecord<TriggerRecord>(new KwdRecordLocation("triggers.kld",0,0),r=>r with { NextTriggerId=15 }));
         Assert.Equal(original,editor.ToBytes("triggers.kld"));
         var incomplete=KwdLevelFileSet.Create(new Dictionary<string,IReadOnlyList<KwdChunk>> { ["triggers.kld"]=[TriggerChunk(KwdThingEditingTests.Trigger(213,13))] });
-        Assert.Throws<InvalidDataException>(()=>incomplete.RemoveTrigger(new("triggers.kld",0,0)));
+        Assert.Throws<InvalidDataException>(()=>incomplete.RemoveTrigger(new KwdRecordLocation("triggers.kld",0,0)));
 #pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         KwdLevelFileSet duplicate =Set(TriggerChunk(KwdThingEditingTests.Trigger(213,13).Concat(KwdThingEditingTests.Trigger(214,13)).ToArray()));
 #pragma warning restore IDE0305
-        Assert.Throws<InvalidDataException>(()=>duplicate.RemoveTrigger(new("triggers.kld",0,0)));
+        Assert.Throws<InvalidDataException>(()=>duplicate.RemoveTrigger(new KwdRecordLocation("triggers.kld",0,0)));
     }
 
     [Fact]
@@ -112,14 +112,14 @@ public class KwdTriggerEditingTests
         byte[] original=editor.ToBytes("triggers.kld");
         foreach((ushort next,ushort child) in new (ushort,ushort)[]{(99,0),(0,99),(13,0),(14,14)})
         {
-            Assert.Throws<InvalidDataException>(()=>editor.LinkTrigger(new("triggers.kld",0,0),next,child));
+            Assert.Throws<InvalidDataException>(()=>editor.LinkTrigger(new KwdRecordLocation("triggers.kld",0,0),next,child));
         }
 
         Assert.Equal(original,editor.ToBytes("triggers.kld"));
 
-        editor.LinkTrigger(new("triggers.kld",0,0),0,14);
-        editor.LinkTrigger(new("triggers.kld",0,1),15,0);
-        Assert.Throws<InvalidDataException>(()=>editor.LinkTrigger(new("triggers.kld",0,2),0,14));
+        editor.LinkTrigger(new KwdRecordLocation("triggers.kld",0,0),0,14);
+        editor.LinkTrigger(new KwdRecordLocation("triggers.kld",0,1),15,0);
+        Assert.Throws<InvalidDataException>(()=>editor.LinkTrigger(new KwdRecordLocation("triggers.kld",0,2),0,14));
         List<TriggerRecord> rows =KwdTriggers.Parse([KwdThingEditingTests.Reload(editor.ToBytes("triggers.kld"))]);
 #pragma warning disable IDE0305 // Preserve the original collection construction or overload.
         Assert.Equal([(0,14),(15,0),(0,0)],rows.Select(r=>((int)r.NextTriggerId,(int)r.ChildTriggerId)).ToArray());
@@ -144,9 +144,9 @@ public class KwdTriggerEditingTests
                 .SelectMany(c=>KwdTypedRecords.Read(c)).SelectMany(ReferenceIds).ToHashSet();
             ushort fresh=Enumerable.Range(1,ushort.MaxValue).Select(i=>(ushort)i).First(id=>!used.Contains(id));
             TriggerRecord row=prototype with { TriggerId=fresh,NextTriggerId=0,ChildTriggerId=0 };
-            editor.InsertTrigger(new(file,0,rows.Count),row,image);
+            editor.InsertTrigger(new KwdRecordLocation(file,0,rows.Count),row,image);
             Assert.Equal(rows.Count+1,KwdThingEditingTests.Reload(editor.ToBytes(file)).ItemCount);
-            editor.RemoveTrigger(new(file,0,rows.Count)); Assert.Equal(original,editor.ToBytes(file));
+            editor.RemoveTrigger(new KwdRecordLocation(file,0,rows.Count)); Assert.Equal(original,editor.ToBytes(file));
         }
     }
 

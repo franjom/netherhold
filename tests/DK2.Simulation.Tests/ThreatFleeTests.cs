@@ -16,7 +16,7 @@ namespace DK2.Simulation.Tests;
 public sealed class ThreatFleeTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
-    private static readonly TilePos Me = new(8, 6);
+    private static readonly TilePos Me = new TilePos(8, 6);
     [Theory]
     [InlineData(255, false)]
     [InlineData(256, true)]
@@ -133,7 +133,7 @@ public sealed class ThreatFleeTests
     {
         (GameDatabase db, WorldState world, CreatureState me) = Open();
         CreatureStateMachine.TrySetState(new StateHookContext(world, db), me, ThreatFleeRules.FledState);
-        GameSimulation sim = new(db, world, new SimRandom(new Dk2Lcg(42)),
+        var sim = new GameSimulation(db, world, new SimRandom(new Dk2Lcg(42)),
             [new Probe(ctx => ThreatFleeRules.Dispatch(ctx, "test", me))]);
         sim.Tick();
         Assert.Equal(CreatureStateMachine.Idle, me.Dk2StateId);

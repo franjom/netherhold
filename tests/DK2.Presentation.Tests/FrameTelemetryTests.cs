@@ -87,7 +87,7 @@ public sealed class FrameTelemetryTests
         telemetry.BeginFrame(0, 0);
         telemetry.EndFrame(1_000, new FrameTelemetryEnd(0, 0, 0, Vector3.Zero, false, 0, 0));
         var text = new StringWriter();
-        telemetry.WriteMetadata(text, [new("Godot", "4.8"), new("Resolution", "1920x1080")], "Level8", 1);
+        telemetry.WriteMetadata(text, [new KeyValuePair<string, string>("Godot", "4.8"), new KeyValuePair<string, string>("Resolution", "1920x1080")], "Level8", 1);
         Assert.Equal("Godot=4.8\nResolution=1920x1080\nLevel=Level8\nSeed=1\nSamples=1\nDropped=0\nPlaySeconds=0.0\n", text.ToString());
     }
 

@@ -22,7 +22,7 @@ internal static class SoundMapBytes
 
     public static SoundMaps Maps(string archive, params Group[] groups)
     {
-        return new(Bank(archive), Sfx(groups));
+        return new SoundMaps(Bank(archive), Sfx(groups));
     }
 
     public static SfxMap Sfx(params Group[] groups)

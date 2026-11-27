@@ -175,7 +175,7 @@ public class ArchitectureTests
     }
 
     /// <summary>Static fields allowed to hold shared mutable state, with the reason each is safe.</summary>
-    private static readonly Dictionary<string, string> SharedStaticAllowList = new(StringComparer.Ordinal)
+    private static readonly Dictionary<string, string> SharedStaticAllowList = new Dictionary<string, string>(StringComparer.Ordinal)
     {
         ["DK2.Simulation.StateEntryLog.FirstCaller"] = "diagnostics only, outside the state hash; a ConcurrentDictionary",
         ["DK2.Simulation.SimulationMarker.ById"] = "profiling registry, outside the state hash; written under its lock",

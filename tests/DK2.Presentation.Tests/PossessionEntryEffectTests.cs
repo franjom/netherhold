@@ -20,7 +20,7 @@ public sealed class PossessionEntryEffectTests
         ViewEffectRequest request = PossessionEntryEffect.ForCreature(database, target, new PlayerId(3))!.Value;
         Assert.Equal(new EffectId(102), request.EffectId);
         long milliseconds = 0;
-        var draw = new EffectDrawList(database, 7, () => new(milliseconds), floorHeight: _ => default);
+        var draw = new EffectDrawList(database, 7, () => new EffectTime(milliseconds), floorHeight: _ => default);
         draw.Model.Request(request);
         draw.Advance();
         Assert.Empty(draw.Model.Particles);
@@ -56,7 +56,7 @@ public sealed class PossessionEntryEffectTests
         ViewEffectRequest effect = requested.Value;
         Assert.Equal(new EffectId(901), effect.EffectId);
         Assert.Equal(new PlayerId(3), effect.Owner);
-        Assert.Equal(new FpPosition3(new(10000), new(12000), new(Fp32.One + 3000)), effect.Position);
+        Assert.Equal(new FpPosition3(new Fp32(10000), new Fp32(12000), new Fp32(Fp32.One + 3000)), effect.Position);
         Assert.Equal(effect.Position, effect.SecondPoint);
         Assert.Equal(EffectHeightSpace.Absolute, effect.HeightSpace);
         Assert.Equal(EffectVisibility.Gated, effect.Visibility);
@@ -85,9 +85,9 @@ public sealed class PossessionEntryEffectTests
         var shot = new ShotDef([])
         {
             Name = "authored shot", ShotId = shotId, CreationEffectId = effectId,
-            MeshResource = new("", 0, new byte[12], 0, 0, 0, 0),
-            Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0), SoundCategory = "",
+            MeshResource = new KwdArtResource("", 0, new byte[12], 0, 0, 0, 0),
+            Light = new KwdLight(0, 0, 0, 0, 0, 0, 0, 0, 0), SoundCategory = "",
         };
-        return new([], [], [], new GlobalVariables(), keeperSpells: [spell], shots: [shot]);
+        return new GameDatabase([], [], [], new GlobalVariables(), keeperSpells: [spell], shots: [shot]);
     }
 }

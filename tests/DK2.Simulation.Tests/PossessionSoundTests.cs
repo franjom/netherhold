@@ -47,7 +47,7 @@ public sealed class PossessionSoundTests
         var events = new ListEventSink();
         sim.ObserveWith(events);
         sim.Tick(InputFrame.Of(new ActPossessedCreatureCommand(Keeper,
-            new(new(new(me.PosX), new(me.PosY), new(me.PosZ)), new(East), new(Level)), true, new(0))));
+            new PossessionAim(new FpPosition3(new Fp32(me.PosX), new Fp32(me.PosY), new Fp32(me.PosZ)), new Dk2Angle(East), new Dk2Angle(Level)), true, new PossessedSlot(0))));
         return (db, world, me, chicken, sim, events);
     }
 
@@ -110,7 +110,7 @@ public sealed class PossessionSoundTests
         sim.ObserveWith(events);
 
         sim.Tick(InputFrame.Of(new ActPossessedCreatureCommand(Keeper,
-            new(new(new(me.PosX), new(me.PosY), new(me.PosZ)), new(East), new(Level)), true, new(0))));
+            new PossessionAim(new FpPosition3(new Fp32(me.PosX), new Fp32(me.PosY), new Fp32(me.PosZ)), new Dk2Angle(East), new Dk2Angle(Level)), true, new PossessedSlot(0))));
 
         ThingSoundRequest impact = Assert.Single(Sounds(events), s => s.Category.StartsWith("WEAPON_"));
         Assert.Equal((ushort)0x113, (ushort)impact.Event);
@@ -147,7 +147,7 @@ public sealed class PossessionSoundTests
         sim.ObserveWith(events);
 
         sim.Tick(InputFrame.Of(new ActPossessedCreatureCommand(Keeper,
-            new(new(new(imp.PosX), new(imp.PosY), new(imp.PosZ)), new(East), new(Level)), true, new(0))));
+            new PossessionAim(new FpPosition3(new Fp32(imp.PosX), new Fp32(imp.PosY), new Fp32(imp.PosZ)), new Dk2Angle(East), new Dk2Angle(Level)), true, new PossessedSlot(0))));
 
         Assert.Contains(events.Events, e => e.Kind == "possessed_rock");
         ThingSoundRequest rock = Assert.Single(Sounds(events), s => (ushort)s.Event == 0x335);

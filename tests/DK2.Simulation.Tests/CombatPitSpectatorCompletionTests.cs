@@ -73,7 +73,7 @@ public sealed class CombatPitSpectatorCompletionTests
         }
 
         RoomInstance room = RoomIndex.RoomAt(world, db, (4 * world.Width) + 4)!;
-        TilePos at = new(4, irregular ? 3 : 4);
+        var at = new TilePos(4, irregular ? 3 : 4);
         CreatureState c = world.SpawnCreature(db, watcher.CreatureId, PlayerIds.FirstKeeper, at);
         StatePlacement.Place(c, CombatPitSpectatorRules.FacingState);
         c.HeldPlace = new RoomPlace((at.Y * world.Width) + at.X, 1);
@@ -181,8 +181,8 @@ public sealed class CombatPitSpectatorCompletionTests
             }
         }
 
-        TilePos[] order = [new(4, 6), new(5, 6), new(6, 6), new(4, 5), new(5, 5), new(6, 5),
-            new(4, 4), new(5, 4), new(6, 4), new(4, 3), new(4, 2)];
+        TilePos[] order = [new TilePos(4, 6), new TilePos(5, 6), new TilePos(6, 6), new TilePos(4, 5), new TilePos(5, 5), new TilePos(6, 5),
+            new TilePos(4, 4), new TilePos(5, 4), new TilePos(6, 4), new TilePos(4, 3), new TilePos(4, 2)];
         foreach (TilePos tile in order)
         {
             byte terrain = world.Tile(tile).TerrainId;

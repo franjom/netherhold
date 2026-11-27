@@ -22,9 +22,9 @@ public class PrisonImprisonedEventTests
     private const int TravelToPoint = 6;
 
     // A 5x5 prison at (3..7, 2..6): the interior (4..6, 3..5) is the cells, the ring the rim.
-    private static readonly TilePos Cell = new(5, 4);
-    private static readonly TilePos Rim = new(3, 4);
-    private static readonly TilePos Floor = new(2, 3);
+    private static readonly TilePos Cell = new TilePos(5, 4);
+    private static readonly TilePos Rim = new TilePos(3, 4);
+    private static readonly TilePos Floor = new TilePos(2, 3);
 
     [Fact]
     public void AnImpsCaptiveFiresImprisonedOnce_AndItsWalksBetweenPrisonStatesFireNoMore()
@@ -192,7 +192,7 @@ public class PrisonImprisonedEventTests
 
     private static GameSimulation Simulation(GameDatabase db, WorldState world)
     {
-        return new(db, world, seed: 42,
+        return new GameSimulation(db, world, seed: 42,
         [
             new HandSystem(),
             new CreatureMovementSystem(),
@@ -214,7 +214,7 @@ public class PrisonImprisonedEventTests
     /// <summary>Root 5: an event-7 record whose child adds 1 to flag 1.</summary>
     private static TriggerTree Tree()
     {
-        return new(
+        return new TriggerTree(
     [
         new GenericTriggerRecord(new byte[16])
         {

@@ -18,9 +18,9 @@ public class CasinoTests
     private const byte Keeper = 4;
     private const byte Rival = 5;
     private const byte GoblinId = 7;
-    private static readonly TilePos Gambling = new(2, 2);
-    private static readonly TilePos LeverAt = new(2, 2);
-    private static readonly TilePos Vault = new(5, 3);
+    private static readonly TilePos Gambling = new TilePos(2, 2);
+    private static readonly TilePos LeverAt = new TilePos(2, 2);
+    private static readonly TilePos Vault = new TilePos(5, 3);
 
     private static int Second
     {

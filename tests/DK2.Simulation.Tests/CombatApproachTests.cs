@@ -366,7 +366,7 @@ public class CombatApproachTests
         CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 5, 5);
         CreatureState goblin = Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, demon);
         goblin.DieInstantly = true; // only an outright death gives the victory (Q511)
-        GameSimulation sim = new(db, world, 1, [new CombatSystem(), new CreatureHealthSystem()]);
+        var sim = new GameSimulation(db, world, 1, [new CombatSystem(), new CreatureHealthSystem()]);
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
 
@@ -416,7 +416,7 @@ public class CombatApproachTests
         CreatureState goblin = Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, demon);
         goblin.DieInstantly = true;
         CreatureState next = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 5, 8);
-        GameSimulation sim = new(db, world, 1, [new CombatSystem(), new CreatureHealthSystem()]);
+        var sim = new GameSimulation(db, world, 1, [new CombatSystem(), new CreatureHealthSystem()]);
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
 
@@ -454,7 +454,7 @@ public class CombatApproachTests
         CreatureState corpse = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 6, 5);
         StatePlacement.As(corpse, CreatureActivity.Dead);
         corpse.Health = 0;
-        GameSimulation sim = new(db, world, 1, [new CombatSystem(), new CreatureMovementSystem(), new CreatureHealthSystem()]);
+        var sim = new GameSimulation(db, world, 1, [new CombatSystem(), new CreatureMovementSystem(), new CreatureHealthSystem()]);
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
 
@@ -504,7 +504,7 @@ public class CombatApproachTests
         CreatureState corpse = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 6, 5);
         StatePlacement.As(corpse, CreatureActivity.Dead);
         corpse.Health = 0;
-        GameSimulation sim = new(db, world, 1, [new CombatSystem(), new CreatureMovementSystem(), new CreatureHealthSystem()]);
+        var sim = new GameSimulation(db, world, 1, [new CombatSystem(), new CreatureMovementSystem(), new CreatureHealthSystem()]);
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
 
@@ -534,7 +534,7 @@ public class CombatApproachTests
         CreatureState far = Spawn(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, 7, 5);
         StatePlacement.As(far, CreatureActivity.Dead);
         far.Health = 0;
-        GameSimulation sim = new(db, world, 1, [new CombatSystem(), new CreatureHealthSystem()]);
+        var sim = new GameSimulation(db, world, 1, [new CombatSystem(), new CreatureHealthSystem()]);
 
         for (int i = 0; i < 40 && !CreatureDeathRules.IsDown(victim); i++)
         {
@@ -703,6 +703,6 @@ public class CombatApproachTests
 
     private static GameSimulation Sim(GameDatabase db, WorldState world)
     {
-        return new(db, world, 1, [new CreatureStatusSystem(), new CombatSystem(), new CreatureMovementSystem(), new ShotSystem()]);
+        return new GameSimulation(db, world, 1, [new CreatureStatusSystem(), new CombatSystem(), new CreatureMovementSystem(), new ShotSystem()]);
     }
 }

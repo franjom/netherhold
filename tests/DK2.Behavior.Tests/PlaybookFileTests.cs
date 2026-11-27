@@ -16,7 +16,7 @@ namespace DK2.Behavior.Tests;
 /// plays exactly as the player does without one.</summary>
 public class PlaybookFileTests
 {
-    private static readonly PlayerId Keeper = new(3);
+    private static readonly PlayerId Keeper = new PlayerId(3);
     private const ulong Hash = 521;
 
     private static string PlaybookDirectory
@@ -33,7 +33,7 @@ public class PlaybookFileTests
             Dk2InstallGate.Path, ScenarioCorpus.Load(scenario), Keeper);
     }
 
-    private static readonly Lazy<PlaybookAvailableCommand.Available> Level2 = new(() => Generate("campaign-player/level2/level2-seed1.yaml"));
+    private static readonly Lazy<PlaybookAvailableCommand.Available> Level2 = new Lazy<PlaybookAvailableCommand.Available>(() => Generate("campaign-player/level2/level2-seed1.yaml"));
 
     private static string Temp(string text)
     {

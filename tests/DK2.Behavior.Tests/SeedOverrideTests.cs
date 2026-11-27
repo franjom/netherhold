@@ -15,7 +15,7 @@ namespace DK2.Behavior.Tests;
 /// replay refuses a journal whose seed is not the one it would run.</summary>
 public sealed class SeedOverrideTests : IDisposable
 {
-    private static readonly PlayerRunId Run = new("seed-override-test");
+    private static readonly PlayerRunId Run = new PlayerRunId("seed-override-test");
     private readonly string _root = Path.Combine(Path.GetTempPath(), $"dk2-seed-{Guid.NewGuid():N}");
     private readonly string _scenarioPath;
 

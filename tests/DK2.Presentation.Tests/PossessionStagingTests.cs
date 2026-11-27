@@ -55,7 +55,7 @@ public sealed class PossessionStagingTests
         Assert.False(prepared);
     }
 
-    private static readonly PlayerId Viewer = new(PlayerIds.FirstKeeper);
+    private static readonly PlayerId Viewer = new PlayerId(PlayerIds.FirstKeeper);
 
     private static (GameDatabase Database, WorldState World) Level1()
     {

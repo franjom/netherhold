@@ -13,7 +13,7 @@ public class ClassicMaterialRecipeTests
 {
     private static KmfMaterial Material(uint flags, float brightness, string environment, params string[] textures)
     {
-        return new("m", textures, flags, brightness, 0.5f, environment);
+        return new KmfMaterial("m", textures, flags, brightness, 0.5f, environment);
     }
 
     [Fact]
@@ -56,8 +56,8 @@ public class ClassicMaterialRecipeTests
         Assert.True(opaque.TakesAddedLight && alpha.TakesAddedLight && !additive.TakesAddedLight);
     }
 
-    private static readonly ClassicMaterialRecipe Opaque = new("A", KmfBlend.Opaque, 0f);
-    private static readonly ClassicMaterialRecipe Additive = new("B", KmfBlend.Additive, 1f);
+    private static readonly ClassicMaterialRecipe Opaque = new ClassicMaterialRecipe("A", KmfBlend.Opaque, 0f);
+    private static readonly ClassicMaterialRecipe Additive = new ClassicMaterialRecipe("B", KmfBlend.Additive, 1f);
 
     /// <summary>The fog's faded twin first, then red, then the tag, then the tint, as the old adapter chose.</summary>
     [Fact]
@@ -76,9 +76,9 @@ public class ClassicMaterialRecipeTests
     [Fact]
     public void ATintIsCutToAPiecesBytes()
     {
-        Assert.Equal(new TerrainLightColour(44, 1, 0), TerrainMaterialKey.For(Opaque, false, false, new(300, 257, 0), null).Tint);
+        Assert.Equal(new TerrainLightColour(44, 1, 0), TerrainMaterialKey.For(Opaque, false, false, new TerrainLightColour(300, 257, 0), null).Tint);
         Assert.Equal(new TerrainMaterialKey(Opaque, TerrainMaterialVariant.Plain),
-            TerrainMaterialKey.For(Opaque, false, false, new(256, 512, 768), null));
+            TerrainMaterialKey.For(Opaque, false, false, new TerrainLightColour(256, 512, 768), null));
     }
 
     /// <summary>Added light leaves an additive material as it is, but its fog twin is still faded.</summary>
@@ -88,7 +88,7 @@ public class ClassicMaterialRecipeTests
         var plain = new TerrainMaterialKey(Additive, TerrainMaterialVariant.Plain);
         Assert.Equal(plain, TerrainMaterialKey.For(Additive, true, false, default, null));
         Assert.Equal(plain, TerrainMaterialKey.For(Additive, false, true, default, null));
-        Assert.Equal(plain, TerrainMaterialKey.For(Additive, false, false, new(10, 10, 10), null));
+        Assert.Equal(plain, TerrainMaterialKey.For(Additive, false, false, new TerrainLightColour(10, 10, 10), null));
         Assert.Equal(TerrainMaterialVariant.Fog, TerrainMaterialKey.For(Additive, false, false, default, 5).Variant);
     }
 

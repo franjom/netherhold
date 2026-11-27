@@ -14,7 +14,7 @@ public class CasinoStateTests
 {
     private const byte Keeper = 4;
     private const byte GoblinId = 7;
-    private static readonly TilePos Vault = new(8, 3);
+    private static readonly TilePos Vault = new TilePos(8, 3);
 
     /// <summary>The fixture with a Goblin that has art in the slots the Casino's actions play: a clip
     /// of 20 frames at 20 a second, one game second a play.</summary>
@@ -52,7 +52,7 @@ public class CasinoStateTests
 
     private static GameSimulation Simulation(GameDatabase db, WorldState world, params ISimulationSystem[] extra)
     {
-        return new(db, world, seed: 42,
+        return new GameSimulation(db, world, seed: 42,
         [
             new AutoFurnitureSystem(), new CasinoSystem(), new CreatureMovementSystem(), new CasinoJackpotSystem(),
             new CreatureJobSystem(), .. extra,

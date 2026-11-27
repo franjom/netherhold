@@ -23,7 +23,7 @@ public sealed class PossessionTests
             ManaUpkeepPerSecond = 25, ShotTypeId = 32, BonusShotTypeId = 32,
             CooldownRaw = 0, LocationSelector = 5, TargetSelector = 6,
         };
-        ShotDef shot = new(new byte[239])
+        var shot = new ShotDef(new byte[239])
         {
             Name = "Possess Creature", MeshResource = basis.Shots[4].MeshResource,
             Light = basis.Shots[4].Light, SoundCategory = "", ShotId = 32,
@@ -279,7 +279,7 @@ public sealed class PossessionTests
     {
         (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
         target = world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, Keeper, target.Tile);
-        db.Variables.CreatureStats.Add(new((int)CreatureStatId.Speed, 200, 1, true));
+        db.Variables.CreatureStats.Add(new CreatureStatEntry((int)CreatureStatId.Speed, 200, 1, true));
         target.Possessed = possessed;
         target.InfluencedByPossessed = influenced;
         var sim = new GameSimulation(db, world, 1, [new CreatureMovementSystem()]);
@@ -297,7 +297,7 @@ public sealed class PossessionTests
         int stat, bool influenced, int expectedEntitySpeed)
     {
         (GameDatabase? basis, WorldState? world, CreatureState? target) = Setup();
-        basis.Variables.CreatureStats.Add(new((int)CreatureStatId.Speed, stat, 0, true));
+        basis.Variables.CreatureStats.Add(new CreatureStatEntry((int)CreatureStatId.Speed, stat, 0, true));
         var db = new GameDatabase(basis.Terrain.Values, basis.Rooms.Values,
             basis.Creatures.Values.Select(d => d.CreatureId == target.CreatureTypeId
                 ? d with { Speed = new Fp32(404) } : d), basis.Variables);
@@ -312,7 +312,7 @@ public sealed class PossessionTests
     public void PossessionScalesTheAlreadyClampedPrecedingSpeedEffect()
     {
         (GameDatabase? db, WorldState? world, CreatureState? target) = Setup();
-        db.Variables.CreatureStats.Add(new((int)CreatureStatId.Speed, -50, 0, true));
+        db.Variables.CreatureStats.Add(new CreatureStatEntry((int)CreatureStatId.Speed, -50, 0, true));
         target.Possessed = true;
         target.SpeedEffectTicks = 5;
         target.SpeedPercent = 600;
@@ -394,7 +394,7 @@ public sealed class PossessionTests
             target.Tile.Y * world.Width + target.Tile.X);
         flag.ProcessState = CallToArmsRules.Recalling;
         flag.ProcessDeadline = -1;
-        world.Player(Keeper).CallToArms = new(true, flag.Id, (ushort)target.Tile.X,
+        world.Player(Keeper).CallToArms = new CallToArmsState(true, flag.Id, (ushort)target.Tile.X,
             (ushort)target.Tile.Y, 100);
         var sim = new GameSimulation(db, world, 1, [new CallToArmsSystem()]);
         sim.Tick(InputFrame.Empty);

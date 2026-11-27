@@ -26,7 +26,7 @@ public sealed class CreatureStateSoundTests
 
     private static FpPosition3 At(CreatureState creature)
     {
-        return new(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ));
+        return new FpPosition3(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ));
     }
 
     // ---- state 193 ------------------------------------------------------------------------------

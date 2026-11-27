@@ -118,4 +118,38 @@ public sealed class CSharpStyleTests
             }
         }
     }
+
+    [Fact]
+    public void ObjectCreationsSpellOutTheirTypes()
+    {
+        AssertNoCSharpSyntax<ImplicitObjectCreationExpressionSyntax>(static _ => true);
+    }
+
+    private static void AssertNoCSharpSyntax<T>(Func<T, bool> matches) where T : SyntaxNode
+    {
+        string root = Repo.FindRepoRoot() ?? throw new InvalidOperationException("no repository above the test");
+        HashSet<string> violations = [];
+        foreach (string path in ReadSourcePaths(root))
+        {
+            string relativePath = Path.GetRelativePath(root, path);
+            string source = File.ReadAllText(path);
+            CheckSource(CSharpParseOptions.Default);
+            if (source.Contains("DEBUG", StringComparison.Ordinal))
+            {
+                CheckSource(CSharpParseOptions.Default.WithPreprocessorSymbols("DEBUG"));
+            }
+
+            void CheckSource(CSharpParseOptions options)
+            {
+                SyntaxNode file = CSharpSyntaxTree.ParseText(source, options, path: relativePath).GetRoot();
+                foreach (T node in file.DescendantNodes().OfType<T>().Where(matches))
+                {
+                    FileLinePositionSpan location = node.GetLocation().GetLineSpan();
+                    violations.Add($"[{location.Path}:{location.StartLinePosition.Line + 1}] {node}");
+                }
+            }
+        }
+
+        Assert.Empty(violations);
+    }
 }

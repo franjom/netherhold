@@ -23,11 +23,11 @@ public class ShotEffectEngineTests
         Assert.Equal(0, effect.DeathEffectId);
         Assert.Equal(0, element.NextEffectId);
         Assert.Equal(-819, element.Mass);
-        var model = new RoomConstructionParticles(database, 7, () => default, floorHeight: _ => new(Fp32.One));
-        model.Request(Request() with { EffectId = new(102), Position = Point(10000, 12000, Fp32.One) });
+        var model = new RoomConstructionParticles(database, 7, () => default, floorHeight: _ => new Fp32(Fp32.One));
+        model.Request(Request() with { EffectId = new EffectId(102), Position = Point(10000, 12000, Fp32.One) });
         for (int step = 1; step <= 20; step++)
         {
-            model.AdvanceTo(new(step * 50 + 1));
+            model.AdvanceTo(new EffectTime(step * 50 + 1));
         }
 
         Assert.All(model.Particles, star => Assert.Equal((ushort)243, star.Definition.EffectElementId));
@@ -35,7 +35,7 @@ public class ShotEffectEngineTests
         Assert.Contains(model.Particles, star => star.HeightRaw == Fp32.One);
         for (int step = 21; step <= 54; step++)
         {
-            model.AdvanceTo(new(step * 50 + 1));
+            model.AdvanceTo(new EffectTime(step * 50 + 1));
         }
 
         Assert.Empty(model.Particles);
@@ -52,10 +52,10 @@ public class ShotEffectEngineTests
         EffectElementDef moving = Element() with { Flags = flags, MinSpeedXy = 7372, MaxSpeedXy = 7372,
             MinSpeedYz = 160, MaxSpeedYz = 160 };
         var model = new RoomConstructionParticles(new GameDatabase([], [], [], new GlobalVariables(),
-            effects: [source], effectElements: [moving]), 7, () => default, floorHeight: _ => new(Fp32.One));
+            effects: [source], effectElements: [moving]), 7, () => default, floorHeight: _ => new Fp32(Fp32.One));
         model.Request(Request() with { Position = Point(10000, 12000, Fp32.One) });
 
-        model.AdvanceTo(new(51));
+        model.AdvanceTo(new EffectTime(51));
 
         ConstructionParticle particle = Assert.Single(model.Particles);
         Assert.Equal(Fp32.One, particle.HeightRaw);
@@ -68,14 +68,14 @@ public class ShotEffectEngineTests
     public void ChosenCreatureStarsStartAtTheFloorAndExpandInsteadOfLosingTheirHorizontalLaunch()
     {
         GameDatabase database = DK2.Data.GameDatabaseLoader.Load(Dk2InstallGate.Path);
-        var model = new RoomConstructionParticles(database, 7, () => default, floorHeight: _ => new(Fp32.One));
-        model.Request(Request() with { EffectId = new(102), Position = Point(10000, 12000, Fp32.One) });
-        model.AdvanceTo(new(51));
+        var model = new RoomConstructionParticles(database, 7, () => default, floorHeight: _ => new Fp32(Fp32.One));
+        model.Request(Request() with { EffectId = new EffectId(102), Position = Point(10000, 12000, Fp32.One) });
+        model.AdvanceTo(new EffectTime(51));
         ConstructionParticle[] first = [.. model.Particles];
         Assert.Equal(16, first.Length);
         Assert.All(first, star => Assert.Equal(Fp32.One, star.HeightRaw));
 
-        model.AdvanceTo(new(101));
+        model.AdvanceTo(new EffectTime(101));
 
         Assert.All(first, star =>
         {
@@ -84,7 +84,7 @@ public class ShotEffectEngineTests
         });
         for (int step = 3; step <= 54; step++)
         {
-            model.AdvanceTo(new(step * 50 + 1));
+            model.AdvanceTo(new EffectTime(step * 50 + 1));
         }
 
         Assert.Empty(model.Particles);
@@ -102,11 +102,11 @@ public class ShotEffectEngineTests
         RoomConstructionParticles model = Model([chosen], [rising]);
         model.Request(Request() with { Position = Point(10000, 12000, Fp32.One) });
 
-        model.AdvanceTo(new(51));
+        model.AdvanceTo(new EffectTime(51));
 
         ConstructionParticle star = Assert.Single(model.Particles);
         Assert.Equal(Fp32.One - 2400, star.HeightRaw);
-        model.AdvanceTo(new(101));
+        model.AdvanceTo(new EffectTime(101));
         Assert.True(star.HeightRaw > Fp32.One - 2400);
         Assert.True(star.VelocityZ > 0);
     }
@@ -119,12 +119,12 @@ public class ShotEffectEngineTests
         FpPosition3 observed = default;
         var model = new RoomConstructionParticles(new GameDatabase([], [], [], new GlobalVariables(),
             effects: [Effect()], effectElements: [Element()]), 7, () => default,
-            floorHeight: point => new(point.X.Raw < 10000 ? 4096 : 0), effectVisible: request => { observed = request.Position; return true; },
+            floorHeight: point => new Fp32(point.X.Raw < 10000 ? 4096 : 0), effectVisible: request => { observed = request.Position; return true; },
             creatureGroundHeight: id => id.Value == 3 ? new Fp32(7000) : null);
         model.Request(Request() with { Position = Point(10000, 12000, 500), HeightSpace = EffectHeightSpace.AboveGround,
-            GroundAnchor = Point(9999, 12000, 0), GroundCreatureId = new(hasCreature ? 3 : 0) });
+            GroundAnchor = Point(9999, 12000, 0), GroundCreatureId = new CreatureId(hasCreature ? 3 : 0) });
         Assert.Equal(expected, observed.Z.Raw);
-        model.AdvanceTo(new(51));
+        model.AdvanceTo(new EffectTime(51));
         Assert.Equal(expected, Assert.Single(model.Particles).HeightRaw);
     }
 
@@ -134,13 +134,13 @@ public class ShotEffectEngineTests
         EffectElementDef moving = Element() with { MinSpeedXy = 4096, MaxSpeedXy = 4096 };
         RoomConstructionParticles uniform = Model([Effect()], [moving]);
         uniform.Request(Request());
-        uniform.AdvanceTo(new(51));
+        uniform.AdvanceTo(new EffectTime(51));
         // Seed7 ->3D20BDBA(origin angle261) ->E9DAB1D1(velocity angle1749).
         ConstructionParticle particle = Assert.Single(uniform.Particles);
         Assert.Equal((-3252, -2490), (particle.VelocityX, particle.VelocityY));
         RoomConstructionParticles jet = Model([Effect() with { DirectionalSpread = 1 }], [moving]);
         jet.Request(Request());
-        jet.AdvanceTo(new(51));
+        jet.AdvanceTo(new EffectTime(51));
         // The third step9CCC40FC supplies2 of8: heading512+2-4=510.
         particle = Assert.Single(jet.Particles);
         Assert.Equal((4095, -25), (particle.VelocityX, particle.VelocityY));
@@ -152,12 +152,12 @@ public class ShotEffectEngineTests
         EffectDef source = Effect() with { Flags = 0x100, MinSpeedYz = 160, MaxSpeedYz = 160 };
         RoomConstructionParticles inherited = Model([source]);
         inherited.Request(Request() with { CarriedVelocity = Point(32, 48, 64) });
-        inherited.AdvanceTo(new(51));
+        inherited.AdvanceTo(new EffectTime(51));
         ConstructionParticle child = Assert.Single(inherited.Particles);
         Assert.Equal((32, 48, 224), (child.VelocityX, child.VelocityY, child.VelocityZ));
         RoomConstructionParticles plain = Model([source with { Flags = 0 }]);
         plain.Request(Request() with { CarriedVelocity = Point(32, 48, 64) });
-        plain.AdvanceTo(new(51));
+        plain.AdvanceTo(new EffectTime(51));
         Assert.Equal(0, Assert.Single(plain.Particles).VelocityZ);
     }
 
@@ -168,7 +168,7 @@ public class ShotEffectEngineTests
     {
         RoomConstructionParticles model = Model([Effect() with { Flags = flags }]);
         model.Request(Request());
-        model.AdvanceTo(new(51));
+        model.AdvanceTo(new EffectTime(51));
         Assert.Equal(heading, Assert.Single(model.Particles).HeadingRaw);
     }
 
@@ -178,7 +178,7 @@ public class ShotEffectEngineTests
         EffectElementDef element = Element() with { Flags = 0x40, MinSpeedXy = 16384, MaxSpeedXy = 16384 };
         RoomConstructionParticles model = Model([Effect() with { DirectionalSpread = 1, ElementsPerTurn = 20 }], [element]);
         model.Request(Request());
-        model.AdvanceTo(new(51));
+        model.AdvanceTo(new EffectTime(51));
         Assert.Equal(20, model.Particles.Count);
         Assert.All(model.Particles, p =>
         {
@@ -195,8 +195,8 @@ public class ShotEffectEngineTests
     {
         RoomConstructionParticles model = Model([Effect() with { Flags = flags, GenerateIds = [11] }, Effect() with { EffectId = 11 }]);
         model.Request(Request());
-        model.AdvanceTo(new(51));
-        model.AdvanceTo(new(101));
+        model.AdvanceTo(new EffectTime(51));
+        model.AdvanceTo(new EffectTime(101));
         Assert.Equal(heading, Assert.Single(model.Particles).HeadingRaw);
     }
 
@@ -207,8 +207,8 @@ public class ShotEffectEngineTests
             GenerateIds = [11, 11, 11, 11, 11], OuterOriginRange = 100 };
         RoomConstructionParticles model = Model([burst, Effect() with { EffectId = 11 }]);
         model.Request(Request());
-        model.AdvanceTo(new(51));
-        model.AdvanceTo(new(101));
+        model.AdvanceTo(new EffectTime(51));
+        model.AdvanceTo(new EffectTime(101));
         Assert.Equal(8, model.Particles.Count);
         Assert.All(model.Particles, p => Assert.Equal((10000, 12000, 14000), (p.XRaw, p.YRaw, p.HeightRaw)));
     }
@@ -219,7 +219,7 @@ public class ShotEffectEngineTests
         RoomConstructionParticles model = Model([Effect() with { GenerationType = 6, GenerateIds = [20, 22], ElementsPerTurn = 100 }],
             [Element(), Element() with { EffectElementId = 21 }, Element() with { EffectElementId = 22 }]);
         model.Request(Request());
-        model.AdvanceTo(new(51));
+        model.AdvanceTo(new EffectTime(51));
         Assert.Equal(new ushort[] { 20, 21, 22 }, model.Particles.Select(p => p.Definition.EffectElementId).Distinct().Order());
         Assert.All(model.Particles, p => Assert.Equal((10000, 12000, 14000), (p.XRaw, p.YRaw, p.HeightRaw)));
     }
@@ -230,7 +230,7 @@ public class ShotEffectEngineTests
         RoomConstructionParticles model = Model([Effect() with { GenerationType = 3, ElementsPerTurn = 10,
             MinSpeedYz = 160, MaxSpeedYz = 160 }]);
         model.Request(Request());
-        model.AdvanceTo(new(51));
+        model.AdvanceTo(new EffectTime(51));
         Assert.Equal(10, model.Particles.Count);
         Assert.All(model.Particles, p =>
         {
@@ -249,7 +249,7 @@ public class ShotEffectEngineTests
         model.Request(Request());
         for (int step = 1; step <= 4; step++)
         {
-            model.AdvanceTo(new(step * 50 + 1));
+            model.AdvanceTo(new EffectTime(step * 50 + 1));
         }
 
         Assert.Equal(2, model.Particles.Count(p => p.Definition.EffectElementId == 21));
@@ -269,8 +269,8 @@ public class ShotEffectEngineTests
             [Element() with { EffectElementId = 21 }, Element() with { EffectElementId = 22 }, Element() with { EffectElementId = 23 }],
             terrain: _ => terrain);
         model.Request(Request() with { Position = Point(10000, 12000, 500) });
-        model.AdvanceTo(new(51));
-        model.AdvanceTo(new(101));
+        model.AdvanceTo(new EffectTime(51));
+        model.AdvanceTo(new EffectTime(101));
         Assert.Equal(expected, Assert.Single(model.Particles).Definition.EffectElementId);
     }
 
@@ -283,13 +283,13 @@ public class ShotEffectEngineTests
             MinSpeedXy = 65536, MaxSpeedXy = 65536, HitSolidEffectId = 11 };
         RoomConstructionParticles model = Model([source, Effect() with { EffectId = 11 }], solid: tile => tile.X >= 3);
         model.Request(Request());
-        model.AdvanceTo(new(51));
-        model.AdvanceTo(new(101));
+        model.AdvanceTo(new EffectTime(51));
+        model.AdvanceTo(new EffectTime(101));
         Assert.Single(model.Particles);
         var lights = new List<EffectLightView>();
         model.CollectLights(lights);
         // A wall response never kills the emitter; with flag1 it stops at the previous point.
-        model.AdvanceTo(new(151));
+        model.AdvanceTo(new EffectTime(151));
         Assert.Single(model.Particles);
     }
 
@@ -301,8 +301,8 @@ public class ShotEffectEngineTests
         RoomConstructionParticles model = Model([Effect()], [falling, Element() with { EffectElementId = 21 },
             Element() with { EffectElementId = 22 }, Element() with { EffectElementId = 23 }]);
         model.Request(Request() with { Position = Point(10000, 12000, 500) });
-        model.AdvanceTo(new(51));
-        model.AdvanceTo(new(101));
+        model.AdvanceTo(new EffectTime(51));
+        model.AdvanceTo(new EffectTime(101));
         Assert.Equal(21, Assert.Single(model.Particles).Definition.EffectElementId);
     }
 
@@ -314,15 +314,15 @@ public class ShotEffectEngineTests
         model.Request(Request());
         for (int step = 1; step <= 3; step++)
         {
-            model.AdvanceTo(new(step * 50 + 1));
+            model.AdvanceTo(new EffectTime(step * 50 + 1));
         }
 
         Assert.Empty(model.Particles);
-        model.AdvanceTo(new(201));
+        model.AdvanceTo(new EffectTime(201));
         Assert.Single(model.Particles);
         for (int step = 5; step <= 7; step++)
         {
-            model.AdvanceTo(new(step * 50 + 1));
+            model.AdvanceTo(new EffectTime(step * 50 + 1));
         }
 
         Assert.Equal(2, model.Particles.Count);
@@ -344,7 +344,7 @@ public class ShotEffectEngineTests
         visible = false;
         for (int step = 1; step <= 4; step++)
         {
-            model.AdvanceTo(new(step * 50 + 1));
+            model.AdvanceTo(new EffectTime(step * 50 + 1));
         }
 
         Assert.NotEmpty(model.Particles);
@@ -356,7 +356,7 @@ public class ShotEffectEngineTests
         RoomConstructionParticles model = Model([Effect() with { Flags = 0x140, GenerateIds = [11] },
             Effect() with { EffectId = 11, GenerationType = 14 }]);
         model.Request(Request());
-        model.AdvanceTo(new(51));
+        model.AdvanceTo(new EffectTime(51));
         Assert.Empty(model.Particles);
     }
 
@@ -367,9 +367,9 @@ public class ShotEffectEngineTests
             GenerateIds = [], MinHp = 10, MaxHp = 10 };
         RoomConstructionParticles model = Model([Effect() with { Flags = 0x140, GenerateIds = [11] }, sprite]);
         model.Request(Request() with { CarriedVelocity = Point(160, 0, 0) });
-        model.AdvanceTo(new(51));
+        model.AdvanceTo(new EffectTime(51));
         Assert.Equal(10000, Assert.Single(model.Particles).XRaw);
-        model.AdvanceTo(new(101));
+        model.AdvanceTo(new EffectTime(101));
         Assert.Equal(10010, Assert.Single(model.Particles).XRaw);
     }
 
@@ -381,8 +381,8 @@ public class ShotEffectEngineTests
         RoomConstructionParticles model = Model([Effect() with { DirectionalSpread = 1 }],
             [moving, Element() with { EffectElementId = 21 }], solid: tile => tile.X >= 3);
         model.Request(Request());
-        model.AdvanceTo(new(51));
-        model.AdvanceTo(new(101));
+        model.AdvanceTo(new EffectTime(51));
+        model.AdvanceTo(new EffectTime(101));
         ConstructionParticle child = Assert.Single(model.Particles);
         Assert.Equal(21, child.Definition.EffectElementId);
         Assert.Equal(10000, child.XRaw);
@@ -395,8 +395,8 @@ public class ShotEffectEngineTests
             HitWaterElementId = 21 };
         RoomConstructionParticles model = Model([Effect() with { Flags = 0x100 }], [falling, Element() with { EffectElementId = 21 }]);
         model.Request(Request() with { Position = Point(10000, 12000, 500), CarriedVelocity = Point(160, 0, 0) });
-        model.AdvanceTo(new(51));
-        model.AdvanceTo(new(101));
+        model.AdvanceTo(new EffectTime(51));
+        model.AdvanceTo(new EffectTime(101));
         ConstructionParticle child = Assert.Single(model.Particles);
         Assert.Equal((0, 0, 0), (child.VelocityX, child.VelocityY, child.VelocityZ));
         Assert.Equal(512, child.HeadingRaw);
@@ -414,12 +414,12 @@ public class ShotEffectEngineTests
         var isolated = new GameDatabase([], [], [], new GlobalVariables(),
             effects: [carpet with { NextEffectId = 0, DeathEffectId = 0 }], effectElements: database.EffectElements.Values);
         var model = new RoomConstructionParticles(isolated, 7, () => default, floorHeight: _ => default);
-        model.Request(Request() with { EffectId = new(106) });
+        model.Request(Request() with { EffectId = new EffectId(106) });
         int waves = 0;
         var ids = carpet.GenerateIds.ToHashSet();
         for (int step = 1; step <= 112; step++)
         {
-            model.AdvanceTo(new(step * 50 + 1));
+            model.AdvanceTo(new EffectTime(step * 50 + 1));
             if (model.Particles.Any(p => p.VisualUpdates == 0 && ids.Contains(p.Definition.EffectElementId)))
             {
                 waves++;
@@ -475,23 +475,23 @@ public class ShotEffectEngineTests
 
     private static ViewEffectRequest Request()
     {
-        return new(new(10), PlayerIds.FirstKeeper, Point(10000, 12000, 14000), new(512));
+        return new ViewEffectRequest(new EffectId(10), PlayerIds.FirstKeeper, Point(10000, 12000, 14000), new Dk2Angle(512));
     }
 
     private static FpPosition3 Point(int x, int y, int z)
     {
-        return new(new(x), new(y), new(z));
+        return new FpPosition3(new Fp32(x), new Fp32(y), new Fp32(z));
     }
 
-    private static readonly KwdArtResource EmptyArt = new("", 0, new byte[12], 0, 0, 0, 0);
+    private static readonly KwdArtResource EmptyArt = new KwdArtResource("", 0, new byte[12], 0, 0, 0, 0);
     private static EffectDef Effect()
     {
-        return new([])
+        return new EffectDef([])
         {
             Name = "effect",
             EffectId = 10,
             ArtResource = EmptyArt,
-            Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0),
+            Light = new KwdLight(0, 0, 0, 0, 0, 0, 0, 0, 0),
             GenerateIds = [20],
             GenerationType = 4,
             ElementsPerTurn = 1,
@@ -502,11 +502,11 @@ public class ShotEffectEngineTests
 
     private static EffectElementDef Element()
     {
-        return new([])
+        return new EffectElementDef([])
         {
             Name = "element",
             EffectElementId = 20,
-            ArtResource = new("spark", 0, new byte[12], 2, 0, 0, 0),
+            ArtResource = new KwdArtResource("spark", 0, new byte[12], 2, 0, 0, 0),
             MinHp = 20,
             MaxHp = 20,
             MinScale = 4096,
@@ -517,7 +517,7 @@ public class ShotEffectEngineTests
     private static RoomConstructionParticles Model(EffectDef[] effects, EffectElementDef[]? elements = null,
             Func<TilePos, TerrainFlags>? terrain = null, Func<TilePos, bool>? solid = null)
     {
-        return new(new GameDatabase([], [], [], new GlobalVariables(), effects: effects, effectElements: elements ?? [Element()]),
+        return new RoomConstructionParticles(new GameDatabase([], [], [], new GlobalVariables(), effects: effects, effectElements: elements ?? [Element()]),
                 7, () => default, floorHeight: _ => default, terrainFlags: terrain, solidTile: solid);
     }
 }

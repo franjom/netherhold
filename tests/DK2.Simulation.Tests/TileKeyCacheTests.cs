@@ -311,6 +311,6 @@ public sealed class TileKeyCacheTests
 
     private static Fixed16Vector At(int x, int y)
     {
-        return new(CreatureState.CentreOf(x) << 4, CreatureState.CentreOf(y) << 4);
+        return new Fixed16Vector(CreatureState.CentreOf(x) << 4, CreatureState.CentreOf(y) << 4);
     }
 }

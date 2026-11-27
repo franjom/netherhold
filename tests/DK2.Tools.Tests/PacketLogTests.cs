@@ -41,7 +41,7 @@ public sealed class PacketLogTests
                 (fear.Target, fear.Source, fear.Amount));
             Assert.Equal((5, 6), (Assert.IsType<ToggleSneakCommand>(commands[4]).TileX,
                 Assert.IsType<ToggleSneakCommand>(commands[4]).TileY));
-            Assert.Equal(new PossessionAim(new(new(0x5800), new(0x6800), new(0x1000)), new(0x200), new(0x200)),
+            Assert.Equal(new PossessionAim(new FpPosition3(new Fp32(0x5800), new Fp32(0x6800), new Fp32(0x1000)), new Dk2Angle(0x200), new Dk2Angle(0x200)),
                 Assert.IsType<HypnotiseCommand>(commands[5]).Aim);
             Assert.IsType<DismissFollowersCommand>(commands[6]);
             Assert.False(Assert.IsType<SetSniperModeCommand>(commands[7]).On);
@@ -375,7 +375,7 @@ public sealed class PacketLogTests
 
             IReadOnlyList<PlayerCommand> first = packet.At(1, map).All;
             Assert.Equal(new MovePossessedCreatureCommand(3, new PossessionPose(
-                new FpPosition3(new(51187), new(41704), new(0xA3D)), new Dk2Angle(0x400))), first[0]);
+                new FpPosition3(new Fp32(51187), new Fp32(41704), new Fp32(0xA3D)), new Dk2Angle(0x400))), first[0]);
             ActPossessedCreatureCommand act = Assert.IsType<ActPossessedCreatureCommand>(first[1]);
             Assert.Equal((0xDDC3, 0xB974, 0x1A3D), act.Aim.PacketOrigin);
             Assert.Equal((0x216, 0x1C4), (act.Aim.Yaw.Value, act.Aim.Pitch.Value));

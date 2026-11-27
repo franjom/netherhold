@@ -10,12 +10,12 @@ namespace DK2.Presentation.Tests;
 /// expectations are pixels: at 1080 lines, V(c) = floor(c * 1080 / 1920).</summary>
 public sealed class KeeperResourceHudTests
 {
-    private static readonly HudScreen FullHd = new(1920, 1080);
+    private static readonly HudScreen FullHd = new HudScreen(1920, 1080);
 
     private static KeeperResourceSnapshot Snapshot(int gold = 0, int mana = 0, int income = 0, int upkeep = 0,
         HudGaugeFraction heart = default)
     {
-        return new(new GoldAmount(gold), new ManaAmount(mana), new ManaPerSecond(income), new ManaPerSecond(upkeep), heart);
+        return new KeeperResourceSnapshot(new GoldAmount(gold), new ManaAmount(mana), new ManaPerSecond(income), new ManaPerSecond(upkeep), heart);
     }
 
     private static HudDraw[] Build(KeeperResourceHud hud, KeeperResourceSnapshot snapshot, HudScreen? screen = null)

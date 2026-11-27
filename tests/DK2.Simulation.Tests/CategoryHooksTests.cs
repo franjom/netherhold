@@ -285,6 +285,6 @@ public class CategoryHooksTests
 
     private static CreatureState Idle()
     {
-        return new() { Id = 1 };
+        return new CreatureState() { Id = 1 };
     }
 }

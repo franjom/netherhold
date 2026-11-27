@@ -30,9 +30,9 @@ public class WorldViewTests
         byte guard = database.Rooms.Values.First(r => r.TypeId == RoomTypeId.GuardRoom).TerrainId;
         byte floor = database.Terrain.Values.First(t => !t.IsSolid && !t.IsWater && !t.IsLava).TerrainId;
         MapTile[] tiles = [.. Enumerable.Repeat(new MapTile(floor, PlayerIds.FirstKeeper, 0, 0), 64)];
-        tiles[3 + 3 * 8] = new(guard, PlayerIds.FirstKeeper, 0, 0);
-        tiles[4 + 3 * 8] = new(guard, PlayerIds.FirstKeeper, 0, 0);
-        tiles[5 + 5 * 8] = new(guard, PlayerIds.Good, 0, 0);
+        tiles[3 + 3 * 8] = new MapTile(guard, PlayerIds.FirstKeeper, 0, 0);
+        tiles[4 + 3 * 8] = new MapTile(guard, PlayerIds.FirstKeeper, 0, 0);
+        tiles[5 + 5 * 8] = new MapTile(guard, PlayerIds.Good, 0, 0);
         var world = WorldState.FromMap(database, new LevelMap(8, 8, tiles),
             [PlayerIds.FirstKeeper, PlayerIds.Good], fogOfWarEnabled: true);
         var view = new WorldView(database, PlayerIds.FirstKeeper);
@@ -49,23 +49,23 @@ public class WorldViewTests
         view.CaptureMinimapMarkers(world, palette, markers);
         MinimapMarker outline = Assert.Single(markers, m => m.Kind == MinimapMarkerKind.Rectangle);
         Assert.True(database[VariableTypeId.GuardRoomReportingDistanceTiles] >= 4);
-        Assert.Equal(new FpPosition3(new(0x1800), new(0x1800), new(0)), outline.Position);
-        Assert.Equal(new FpPosition3(new(0x7800), new(0x7800), new(0)), outline.EndPosition);
+        Assert.Equal(new FpPosition3(new Fp32(0x1800), new Fp32(0x1800), new Fp32(0)), outline.Position);
+        Assert.Equal(new FpPosition3(new Fp32(0x7800), new Fp32(0x7800), new Fp32(0)), outline.EndPosition);
         Assert.Equal(0xFF9696FFu, outline.ColourArgb);
 
         int distance = unchecked((byte)database[VariableTypeId.GuardRoomReportingDistanceTiles]);
         int size = 2 * distance + 12;
         int roomX = distance + 3;
         MapTile[] unclampedTiles = [.. Enumerable.Repeat(new MapTile(floor, PlayerIds.FirstKeeper, 0, 0), size * size)];
-        unclampedTiles[roomX + roomX * size] = new(guard, PlayerIds.FirstKeeper, 0, 0);
-        unclampedTiles[roomX + 1 + roomX * size] = new(guard, PlayerIds.FirstKeeper, 0, 0);
+        unclampedTiles[roomX + roomX * size] = new MapTile(guard, PlayerIds.FirstKeeper, 0, 0);
+        unclampedTiles[roomX + 1 + roomX * size] = new MapTile(guard, PlayerIds.FirstKeeper, 0, 0);
         var unclampedWorld = WorldState.FromMap(database, new LevelMap(size, size, unclampedTiles),
             [PlayerIds.FirstKeeper], fogOfWarEnabled: true);
         view.CaptureMinimapMarkers(unclampedWorld, palette, markers);
         outline = Assert.Single(markers, m => m.Kind == MinimapMarkerKind.Rectangle);
-        Assert.Equal(new FpPosition3(new(0x3800), new(0x3800), new(0)), outline.Position);
-        Assert.Equal(new FpPosition3(new(((roomX + 1 + distance) << 12) + 0x800),
-            new(((roomX + distance) << 12) + 0x800), new(0)), outline.EndPosition);
+        Assert.Equal(new FpPosition3(new Fp32(0x3800), new Fp32(0x3800), new Fp32(0)), outline.Position);
+        Assert.Equal(new FpPosition3(new Fp32(((roomX + 1 + distance) << 12) + 0x800),
+            new Fp32(((roomX + distance) << 12) + 0x800), new Fp32(0)), outline.EndPosition);
     }
 
     [InstallFact]
@@ -135,7 +135,7 @@ public class WorldViewTests
         {
             for (int x = 3; x <= 4; x++)
             {
-                tiles[x + y * 8] = new(heart, PlayerIds.FirstKeeper, 0, 0);
+                tiles[x + y * 8] = new MapTile(heart, PlayerIds.FirstKeeper, 0, 0);
             }
         }
 
@@ -153,7 +153,7 @@ public class WorldViewTests
 
         view.CaptureMinimapMarkers(world, palette, markers);
         MinimapMarker ring = Assert.Single(markers);
-        Assert.Equal(new FpPosition3(new(0x3800), new(0x3800), new(0)), ring.Position);
+        Assert.Equal(new FpPosition3(new Fp32(0x3800), new Fp32(0x3800), new Fp32(0)), ring.Position);
         Assert.Equal(0xFF9696FFu, ring.ColourArgb);
         Assert.Equal(new TilePos(3, 3), view.MinimapHeartTile);
         for (int y = 3; y <= 4; y++)
@@ -188,7 +188,7 @@ public class WorldViewTests
         var markers = new List<MinimapMarker>();
         world.Tile(at).ClearExploredBy(PlayerIds.FirstKeeper);
         view.CaptureMinimapMarkers(world, palette, markers);
-        var location = new FpPosition3(new(own.PosX), new(own.PosY), new(own.PosZ));
+        var location = new FpPosition3(new Fp32(own.PosX), new Fp32(own.PosY), new Fp32(own.PosZ));
         int CountAtLocation()
         {
             return markers.Count(m => m.Kind == MinimapMarkerKind.Creature && m.Position == location);
@@ -205,10 +205,10 @@ public class WorldViewTests
         view.CaptureMinimapMarkers(world, palette, markers);
         Assert.Equal(1, CountAtLocation());
         Assert.DoesNotContain(markers, m => m.Kind == MinimapMarkerKind.Ring && m.Position == location);
-        view.QueueMinimapPickupPreview(new(PlayerIds.FirstKeeper, enemy.Id), world.CurrentTick.Next);
+        view.QueueMinimapPickupPreview(new Simulation.Commands.PickUpCreatureCommand(PlayerIds.FirstKeeper, enemy.Id), world.CurrentTick.Next);
         view.CaptureMinimapMarkers(world, palette, markers);
         Assert.Equal(0, CountAtLocation());
-        view.QueueMinimapPickupPreview(new(PlayerIds.FirstKeeper, enemy.Id), world.CurrentTick);
+        view.QueueMinimapPickupPreview(new Simulation.Commands.PickUpCreatureCommand(PlayerIds.FirstKeeper, enemy.Id), world.CurrentTick);
         view.CaptureMinimapMarkers(world, palette, markers);
         Assert.Equal(1, CountAtLocation());
         long allocated = GC.GetAllocatedBytesForCurrentThread();

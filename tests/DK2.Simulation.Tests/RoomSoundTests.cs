@@ -40,7 +40,7 @@ public sealed class RoomSoundTests
 
     private static FpPosition3 At(int x, int y, int height)
     {
-        return new(new Fp32(CreatureState.CentreOf(x)), new Fp32(CreatureState.CentreOf(y)), new Fp32(height));
+        return new FpPosition3(new Fp32(CreatureState.CentreOf(x)), new Fp32(CreatureState.CentreOf(y)), new Fp32(height));
     }
 
     [Fact]

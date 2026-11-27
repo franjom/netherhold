@@ -77,7 +77,7 @@ public sealed class PossessionFollowerTests
 
     private static ActPossessedCreatureCommand Recruit(CreatureState me, ushort yaw = East)
     {
-        return new(Keeper, new(new(new(me.PosX), new(me.PosY), new(me.PosZ)), new(yaw), new(Level)), false, new(PossessedSlot.FollowerArm));
+        return new ActPossessedCreatureCommand(Keeper, new PossessionAim(new FpPosition3(new Fp32(me.PosX), new Fp32(me.PosY), new Fp32(me.PosZ)), new Dk2Angle(yaw), new Dk2Angle(Level)), false, new PossessedSlot(PossessedSlot.FollowerArm));
     }
 
     [Fact]
@@ -234,7 +234,7 @@ public sealed class PossessionFollowerTests
         long now = sim.CurrentTick.Value;
 
         sim.Tick(InputFrame.Of(new ActPossessedCreatureCommand(Keeper,
-            new(new(new(me.PosX), new(me.PosY), new(me.PosZ)), new(East), new(Level)), true, new(0))));
+            new PossessionAim(new FpPosition3(new Fp32(me.PosX), new Fp32(me.PosY), new Fp32(me.PosZ)), new Dk2Angle(East), new Dk2Angle(Level)), true, new PossessedSlot(0))));
 
         Assert.Equal(FightTargetKind.Creature, me.PossessedTargetKind);
         Assert.Equal(enemy.Id, me.PossessedTargetId);
@@ -359,7 +359,7 @@ public sealed class PossessionFollowerTests
         follower.FollowLeaderId = me.Id;
         me.PossessedTargetKind = FightTargetKind.Creature;
         me.PossessedTargetId = struck.Id;
-        GameSimulation sim = new(db, world, 1, [new CombatSystem()]);
+        var sim = new GameSimulation(db, world, 1, [new CombatSystem()]);
         me.PossessedTargetTick = sim.CurrentTick.Value;
 
         sim.Tick();

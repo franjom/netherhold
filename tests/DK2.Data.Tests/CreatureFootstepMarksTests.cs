@@ -16,7 +16,7 @@ public sealed class CreatureFootstepMarksTests
 
     private static KwdChunk Chunk(byte[] record)
     {
-        return new() { Type = KwdRecordType.Creatures, ItemCount = 1, Content = record, HeaderBlock = [] };
+        return new KwdChunk() { Type = KwdRecordType.Creatures, ItemCount = 1, Content = record, HeaderBlock = [] };
     }
 
     private static byte[] Record(Action<byte[]>? edit = null)

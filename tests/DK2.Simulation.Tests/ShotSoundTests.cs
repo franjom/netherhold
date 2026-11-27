@@ -80,7 +80,7 @@ public sealed class ShotSoundTests
 
     private static FpPosition3 At(int x, int y, int z)
     {
-        return new(new Fp32(x), new Fp32(y), new Fp32(z));
+        return new FpPosition3(new Fp32(x), new Fp32(y), new Fp32(z));
     }
 
     [Fact]

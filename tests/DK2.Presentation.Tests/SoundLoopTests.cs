@@ -100,7 +100,7 @@ public sealed class SoundLoopTests
         string root = Path.Combine(Dk2InstallGate.Path, "Data", "Sound", "Sfx", "Global");
         SoundResolver Of(string name)
         {
-            return new(BankMap.Read(File.ReadAllBytes(Path.Combine(root, name + "BANK.map"))),
+            return new SoundResolver(BankMap.Read(File.ReadAllBytes(Path.Combine(root, name + "BANK.map"))),
             SfxMap.Read(File.ReadAllBytes(Path.Combine(root, name + "SFX.map"))));
         }
 

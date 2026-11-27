@@ -16,7 +16,7 @@ namespace DK2.Presentation.Tests;
 /// <c>0x0042C0D0</c>, stepped by <c>0x0042EE80</c>, finished in <c>0x0042C390</c>.</summary>
 public sealed class BattleFlyInTests
 {
-    private static readonly Vector3[] Ring = [new(0.05f, 0, 0), new(-0.05f, 0, 0)];
+    private static readonly Vector3[] Ring = [new Vector3(0.05f, 0, 0), new Vector3(-0.05f, 0, 0)];
 
     [Fact]
     public void TheStartPlaysItsSoundAndLatches_ASecondStartIsRefused()

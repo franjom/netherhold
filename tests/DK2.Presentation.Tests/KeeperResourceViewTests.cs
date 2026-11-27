@@ -17,16 +17,16 @@ public sealed class KeeperResourceViewTests
     public void PaydayWarningUsesRealTimePhasesAndKeepsItsLatchForTenGameSeconds()
     {
         var animation = new KeeperResourceAnimation();
-        var snapshot = new KeeperResourceSnapshot(new(50), new(20), new(2), new(1),
-            WageBill: new(100), Tick: new(100), LastPaydayTick: new(0), NextPaydayTick: new(110),
+        var snapshot = new KeeperResourceSnapshot(new GoldAmount(50), new ManaAmount(20), new ManaPerSecond(2), new ManaPerSecond(1),
+            WageBill: new GoldAmount(100), Tick: new GameTick(100), LastPaydayTick: new GameTick(0), NextPaydayTick: new GameTick(110),
             PaydayCutoffTicks: 20);
         Assert.Equal(50, animation.Evaluate(snapshot, 499).GoldNumber.Value);
         KeeperResourceFrame bill = animation.Evaluate(snapshot, 500);
         Assert.Equal(-100, bill.GoldNumber.Value);
         Assert.Equal(KeeperGoldColour.UnaffordableBill, bill.GoldColour);
-        snapshot = snapshot with { Tick = new(111), LastPaydayTick = new(110), NextPaydayTick = new(10000) };
+        snapshot = snapshot with { Tick = new GameTick(111), LastPaydayTick = new GameTick(110), NextPaydayTick = new GameTick(10000) };
         Assert.Equal(-100, animation.Evaluate(snapshot, 500).GoldNumber.Value);
-        snapshot = snapshot with { Tick = new(110 + 10 * SimulationTiming.TicksPerSecond) };
+        snapshot = snapshot with { Tick = new GameTick(110 + 10 * SimulationTiming.TicksPerSecond) };
         Assert.Equal(50, animation.Evaluate(snapshot, 500).GoldNumber.Value);
     }
 
@@ -34,10 +34,10 @@ public sealed class KeeperResourceViewTests
     public void GoldFlashBlankPhaseDoesNotLatchAnUndisplayedPaydayWarning()
     {
         var animation = new KeeperResourceAnimation();
-        var snapshot = new KeeperResourceSnapshot(new(50), default, default, default,
-            WageBill: new(100), Tick: new(100), NextPaydayTick: new(110), PaydayCutoffTicks: 20);
+        var snapshot = new KeeperResourceSnapshot(new GoldAmount(50), default, default, default,
+            WageBill: new GoldAmount(100), Tick: new GameTick(100), NextPaydayTick: new GameTick(110), PaydayCutoffTicks: 20);
         Assert.False(animation.Evaluate(snapshot, 250, KeeperResourceFlash.Gold).ShowGoldNumber);
-        snapshot = snapshot with { Tick = new(111), LastPaydayTick = new(110), NextPaydayTick = new(10000) };
+        snapshot = snapshot with { Tick = new GameTick(111), LastPaydayTick = new GameTick(110), NextPaydayTick = new GameTick(10000) };
         Assert.Equal(50, animation.Evaluate(snapshot, 500).GoldNumber.Value);
     }
 
@@ -45,7 +45,7 @@ public sealed class KeeperResourceViewTests
     public void MessageFlashesSuppressOnlyTheirNumbersOnOddQuarterSecondPhases()
     {
         var animation = new KeeperResourceAnimation();
-        var snapshot = new KeeperResourceSnapshot(new(50), new(20), new(2), new(1));
+        var snapshot = new KeeperResourceSnapshot(new GoldAmount(50), new ManaAmount(20), new ManaPerSecond(2), new ManaPerSecond(1));
         Assert.True(animation.Evaluate(snapshot, 249, KeeperResourceFlash.Gold).ShowGoldNumber);
         Assert.False(animation.Evaluate(snapshot, 250, KeeperResourceFlash.Gold).ShowGoldNumber);
         Assert.True(animation.Evaluate(snapshot, 250, KeeperResourceFlash.Gold).ShowManaNumbers);
@@ -67,16 +67,16 @@ public sealed class KeeperResourceViewTests
     [Fact]
     public void ResourceHitRegionsKeepNativePrecedenceAndScaleWithHeight()
     {
-        Assert.Equal(KeeperResourceKind.Heart, KeeperResourceInteraction.HitTest(new(30, 30), 768));
-        Assert.Equal(KeeperResourceKind.Mana, KeeperResourceInteraction.HitTest(new(100, 15), 768));
-        Assert.Equal(KeeperResourceKind.Payday, KeeperResourceInteraction.HitTest(new(230, 25), 768));
-        Assert.Equal(KeeperResourceKind.Gold, KeeperResourceInteraction.HitTest(new(300, 15), 768));
-        Assert.Equal(KeeperResourceKind.Gold, KeeperResourceInteraction.HitTest(new(600, 30), 1536));
-        Assert.Equal(KeeperResourceKind.None, KeeperResourceInteraction.HitTest(new(450, 15), 768));
-        Assert.Equal(KeeperResourceKind.None, KeeperResourceInteraction.HitTest(new(12, 12), 768));
-        Assert.Equal(KeeperResourceKind.Heart, KeeperResourceInteraction.HitTest(new(12, 20), 768));
-        Assert.Equal(KeeperResourceKind.None, KeeperResourceInteraction.HitTest(new(220, 12), 768));
-        Assert.Equal(KeeperResourceKind.Payday, KeeperResourceInteraction.HitTest(new(220, 20), 768));
+        Assert.Equal(KeeperResourceKind.Heart, KeeperResourceInteraction.HitTest(new Vector2(30, 30), 768));
+        Assert.Equal(KeeperResourceKind.Mana, KeeperResourceInteraction.HitTest(new Vector2(100, 15), 768));
+        Assert.Equal(KeeperResourceKind.Payday, KeeperResourceInteraction.HitTest(new Vector2(230, 25), 768));
+        Assert.Equal(KeeperResourceKind.Gold, KeeperResourceInteraction.HitTest(new Vector2(300, 15), 768));
+        Assert.Equal(KeeperResourceKind.Gold, KeeperResourceInteraction.HitTest(new Vector2(600, 30), 1536));
+        Assert.Equal(KeeperResourceKind.None, KeeperResourceInteraction.HitTest(new Vector2(450, 15), 768));
+        Assert.Equal(KeeperResourceKind.None, KeeperResourceInteraction.HitTest(new Vector2(12, 12), 768));
+        Assert.Equal(KeeperResourceKind.Heart, KeeperResourceInteraction.HitTest(new Vector2(12, 20), 768));
+        Assert.Equal(KeeperResourceKind.None, KeeperResourceInteraction.HitTest(new Vector2(220, 12), 768));
+        Assert.Equal(KeeperResourceKind.Payday, KeeperResourceInteraction.HitTest(new Vector2(220, 20), 768));
     }
 
     [Fact]
@@ -95,7 +95,7 @@ public sealed class KeeperResourceViewTests
         }
 
         var snapshot = new KeeperResourceSnapshot(default, default, default, default,
-            HeartHealth: new(2, 3), WageBill: new(547), HeartTile: new(1, 1));
+            HeartHealth: new HudGaugeFraction(2, 3), WageBill: new GoldAmount(547), HeartTile: new TilePos(1, 1));
         HoverTextSnapshot heart = KeeperResourceInteraction.ResourceHover(snapshot, KeeperResourceKind.Heart, Resolve);
         Assert.Equal("66% health", heart.TopStatus);
         Assert.Equal("heart", heart.TooltipName);
@@ -122,9 +122,9 @@ public sealed class KeeperResourceViewTests
     {
         var animation = new KeeperResourceAnimation();
         var snapshot = new KeeperResourceSnapshot(default, default, default, default,
-            Tick: new(1), HeartAlarmUntil: new(1 + 3 * SimulationTiming.TicksPerSecond));
+            Tick: new GameTick(1), HeartAlarmUntil: new GameTick(1 + 3 * SimulationTiming.TicksPerSecond));
         Assert.True(animation.Evaluate(snapshot, 0).ShowHeartAlarm);
-        Assert.False(animation.Evaluate(snapshot with { Tick = new(2) }, 0).ShowHeartAlarm);
+        Assert.False(animation.Evaluate(snapshot with { Tick = new GameTick(2) }, 0).ShowHeartAlarm);
         Assert.False(animation.Evaluate(snapshot with { Tick = snapshot.HeartAlarmUntil }, 0).ShowHeartAlarm);
     }
 
@@ -136,8 +136,8 @@ public sealed class KeeperResourceViewTests
         var world = WorldState.FromMap(database, map, [PlayerIds.FirstKeeper], fogOfWarEnabled: false);
         var simulation = new GameSimulation(database, world, seed: 7, []);
         simulation.Run(20);
-        world.Player(PlayerIds.FirstKeeper).LastPaydayTick = new(20);
-        world.Player(PlayerIds.FirstKeeper).NextPaydayTick = new(220);
+        world.Player(PlayerIds.FirstKeeper).LastPaydayTick = new GameTick(20);
+        world.Player(PlayerIds.FirstKeeper).NextPaydayTick = new GameTick(220);
         simulation.Run(50);
         var view = new KeeperResourceView(database, PlayerIds.FirstKeeper);
         KeeperResourceSnapshot first = view.Capture(world);

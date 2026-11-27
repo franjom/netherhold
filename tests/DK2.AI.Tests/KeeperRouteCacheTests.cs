@@ -44,7 +44,7 @@ public class KeeperRouteCacheTests
 
     private static Grid Walled()
     {
-        return new([
+        return new Grid([
         "..........",
         "..........",
         "....#.....",
@@ -103,8 +103,8 @@ public class KeeperRouteCacheTests
                 {
                     var cached = new List<NavPoint>();
                     var fresh = new List<NavPoint>();
-                    NavPoint a = new((from.X * U) + (U / 2), (from.Y * U) + (U / 2));
-                    NavPoint b = new((to.X * U) + (U / 2), (to.Y * U) + (U / 2));
+                    var a = new NavPoint((from.X * U) + (U / 2), (from.Y * U) + (U / 2));
+                    var b = new NavPoint((to.X * U) + (U / 2), (to.Y * U) + (U / 2));
                     bool cachedRoutes = cache.RouterFor(grid).TryRoute(a, b, mover, cached);
                     bool freshRoutes = new MeshRouter(NavMesh.Build(grid)).TryRoute(a, b, mover, fresh);
                     Assert.Equal(freshRoutes, cachedRoutes);

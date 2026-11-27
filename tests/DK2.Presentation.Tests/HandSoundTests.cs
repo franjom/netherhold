@@ -14,7 +14,7 @@ public sealed class HandSoundTests
 {
     private static FpPosition2 At(double x, double y)
     {
-        return new(new Fp32((int)(x * 4096)), new Fp32((int)(y * 4096)));
+        return new FpPosition2(new Fp32((int)(x * 4096)), new Fp32((int)(y * 4096)));
     }
 
     private static SoundRequest Only(HandCursorFeedback feedback)

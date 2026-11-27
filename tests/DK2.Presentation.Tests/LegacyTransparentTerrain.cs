@@ -44,15 +44,15 @@ internal sealed class LegacyTransparentTerrain
     public sealed record Upload(bool GeometryChanged, IReadOnlyList<(TestMaterial Material, int SortingOrder, RenderTriangle[] Triangles)> Runs,
         Vector3[] Positions);
 
-    private readonly List<EffectMesh> _effects = new();
+    private readonly List<EffectMesh> _effects = new List<EffectMesh>();
     private int _effectCount;
-    private readonly SortedDictionary<int, Source> _sources = new();
-    private readonly List<Vector3> _positions = new();
-    private readonly List<TestMaterial> _materials = new();
-    private readonly List<RenderTriangle> _triangles = new();
-    private readonly List<RenderTriangle> _visibleTriangles = new();
-    private readonly List<Vector3> _worldPositions = new();
-    private readonly TriangleDepthOrderBuffer _sort = new();
+    private readonly SortedDictionary<int, Source> _sources = new SortedDictionary<int, Source>();
+    private readonly List<Vector3> _positions = new List<Vector3>();
+    private readonly List<TestMaterial> _materials = new List<TestMaterial>();
+    private readonly List<RenderTriangle> _triangles = new List<RenderTriangle>();
+    private readonly List<RenderTriangle> _visibleTriangles = new List<RenderTriangle>();
+    private readonly List<Vector3> _worldPositions = new List<Vector3>();
+    private readonly TriangleDepthOrderBuffer _sort = new TriangleDepthOrderBuffer();
     private bool _dirty = true;
     private Vector3 _lastForward;
     private Matrix4x4 _lastMatrix;
@@ -318,7 +318,7 @@ internal sealed class LegacyTransparentTerrain
 
     public static Vector3 MultiplyPoint3x4(in Matrix4x4 m, Vector3 p)
     {
-        return new(m.M11 * p.X + m.M12 * p.Y + m.M13 * p.Z + m.M14,
+        return new Vector3(m.M11 * p.X + m.M12 * p.Y + m.M13 * p.Z + m.M14,
         m.M21 * p.X + m.M22 * p.Y + m.M23 * p.Z + m.M24, m.M31 * p.X + m.M32 * p.Y + m.M33 * p.Z + m.M34);
     }
 

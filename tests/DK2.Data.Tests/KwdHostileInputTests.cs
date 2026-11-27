@@ -177,7 +177,7 @@ public class KwdHostileInputTests
 
     private static KwdChunk Chunk(KwdRecordType type, byte[] header, byte[] content)
     {
-        return new()
+        return new KwdChunk()
         {
             Type = type,
             ItemCount = 0,

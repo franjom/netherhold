@@ -253,7 +253,7 @@ public class KwdAdditionalRecordTests
 
     private static KwdChunk Chunk(KwdRecordType type, byte[] content)
     {
-        return new()
+        return new KwdChunk()
         {
             Type = type,
             ItemCount = 1,

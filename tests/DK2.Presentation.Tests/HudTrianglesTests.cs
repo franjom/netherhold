@@ -10,8 +10,8 @@ public sealed class HudTrianglesTests
 {
     private static readonly HudVertex[] Square =
     [
-        new(-10, -10, 0, 0), new(10, -10, 1, 0), new(10, 10, 1, 1),
-        new(-10, -10, 0, 0), new(10, 10, 1, 1), new(-10, 10, 0, 1),
+        new HudVertex(-10, -10, 0, 0), new HudVertex(10, -10, 1, 0), new HudVertex(10, 10, 1, 1),
+        new HudVertex(-10, -10, 0, 0), new HudVertex(10, 10, 1, 1), new HudVertex(-10, 10, 0, 1),
     ];
 
     private static float Area(ReadOnlySpan<HudVertex> triangles)
@@ -154,7 +154,7 @@ public sealed class HudTrianglesTests
     [Fact]
     public void ATriangleWithOnlyItsThirdCornerOutsideIsCut()
     {
-        HudVertex[] triangle = [new(0, 0, 0, 0), new(4, 0, 1, 0), new(0, 9, 0, 1)];
+        HudVertex[] triangle = [new HudVertex(0, 0, 0, 0), new HudVertex(4, 0, 1, 0), new HudVertex(0, 9, 0, 1)];
         HudVertex[] cut = Clip(triangle, 0, 0, 5);
         Assert.NotEqual(triangle, cut);
         foreach (HudVertex v in cut)

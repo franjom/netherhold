@@ -22,7 +22,7 @@ public class SimMatrixTests
     }
 
     // One analysis of the repository for the tests that read it (about five seconds).
-    static readonly Lazy<SimMatrixResult> Repository = new(() => SimMatrixAnalysis.Run(Root));
+    static readonly Lazy<SimMatrixResult> Repository = new Lazy<SimMatrixResult>(() => SimMatrixAnalysis.Run(Root));
 
     [Fact]
     public void RowsAreTheSystemsAndStepsDefaultRuns()
@@ -127,7 +127,7 @@ public class SimMatrixTests
 
     static SourceIndex Compile()
     {
-        return new(SimCompilation.FromText(Sample));
+        return new SourceIndex(SimCompilation.FromText(Sample));
     }
 
     static MethodSummary Summary(SourceIndex index, string type, string method)

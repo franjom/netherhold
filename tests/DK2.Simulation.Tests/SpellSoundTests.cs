@@ -18,16 +18,16 @@ public sealed class SpellSoundTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte Rival = PlayerIds.FirstKeeper + 1;
-    private static readonly TilePos At = new(10, 10);
+    private static readonly TilePos At = new TilePos(10, 10);
 
     private static ShotDef Shot(byte id, byte process, string category, uint processFlags, int health = 8)
     {
-        return new(new byte[239])
+        return new ShotDef(new byte[239])
         {
             Name = "Shot",
             ShotId = id,
-            MeshResource = new("", 0, default, 0, 0, 0, 0),
-            Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0),
+            MeshResource = new KwdArtResource("", 0, default, 0, 0, 0, 0),
+            Light = new KwdLight(0, 0, 0, 0, 0, 0, 0, 0, 0),
             SoundCategory = category,
             Speed = 2048,
             Radius = 819,
@@ -86,7 +86,7 @@ public sealed class SpellSoundTests
 
     private static CastSpellAtPlaceCommand CastTremor()
     {
-        return new(Keeper, 8, CreatureState.CentreOf(At.X), CreatureState.CentreOf(At.Y));
+        return new CastSpellAtPlaceCommand(Keeper, 8, CreatureState.CentreOf(At.X), CreatureState.CentreOf(At.Y));
     }
 
     [Fact]

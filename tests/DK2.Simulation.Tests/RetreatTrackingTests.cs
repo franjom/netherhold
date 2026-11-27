@@ -41,7 +41,7 @@ public class RetreatTrackingTests
         }
 
         world.RefreshAttackability();   // as after each creature's last update
-        GameSimulation sim = new(db, world, 1, [new CombatSystem()]);
+        var sim = new GameSimulation(db, world, 1, [new CombatSystem()]);
 
         sim.Tick();
 
@@ -59,7 +59,7 @@ public class RetreatTrackingTests
         goblin.PosY = imp.PosY;
         goblin.RetreatingCreature = 999;
         world.RefreshAttackability();
-        GameSimulation sim = new(db, world, 1, [new CombatSystem()]);
+        var sim = new GameSimulation(db, world, 1, [new CombatSystem()]);
 
         sim.Tick();
 
@@ -73,7 +73,7 @@ public class RetreatTrackingTests
         CreatureState knight = world.SpawnCreature(db, Dk2TerrainFixture.KnightCreatureId, PlayerIds.Good, new TilePos(10, 10));
         knight.RetreatingCreature = 999;
         knight.ChaseTicks = 3;
-        GameSimulation sim = new(db, world, 1, [new CombatSystem()]);
+        var sim = new GameSimulation(db, world, 1, [new CombatSystem()]);
 
         sim.Run(CombatSystem.RetreatTrackingTicks - 1);
         Assert.Equal((999, 3, CombatSystem.RetreatTrackingTicks - 1), (knight.RetreatingCreature, knight.ChaseTicks, knight.AvoidRetreatersCounter));

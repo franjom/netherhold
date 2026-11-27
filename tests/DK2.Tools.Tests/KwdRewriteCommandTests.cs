@@ -20,8 +20,8 @@ public class KwdRewriteCommandTests
             Directory.CreateDirectory(root); string input=Path.Combine(root,"map.kld"),output=Path.Combine(root,"out");
             byte[] header=new byte[8]; BinaryPrimitives.WriteInt32LittleEndian(header,1);
             BinaryPrimitives.WriteInt32LittleEndian(header.AsSpan(4),1);
-            KwdChunk chunk=new() { Type=KwdRecordType.Map,ItemCount=0,HeaderBlock=header,Content=[1,2,3,4],
-                ContainerHeader=new(40,(uint)KwdRecordType.Map+2,4,4) };
+            var chunk=new KwdChunk() { Type=KwdRecordType.Map,ItemCount=0,HeaderBlock=header,Content=[1,2,3,4],
+                ContainerHeader=new KwdContainerHeader(40,(uint)KwdRecordType.Map+2,4,4) };
             byte[] source=KwdWriter.ToBytes([chunk]); File.WriteAllBytes(input,source);
             using var stdout=new StringWriter(); using var stderr=new StringWriter();
             Assert.Equal(0,KwdRewriteCommand.Run([input,output],stdout,stderr));
@@ -47,10 +47,10 @@ public class KwdRewriteCommandTests
     public void DifferenceReportIncludesFileByteChunkRecordFieldAndBothValues()
     {
         var file=new KwdRewriteAudit.FileResult("doors.kwd",1,2,
-            new(123,0,KwdRecordType.Doors,1,"Health",13,14));
+            new KwdRewriteAudit.Difference(123,0,KwdRecordType.Doors,1,"Health",13,14));
         string line=KwdRewriteCommand.Format(file);
         Assert.Contains("doors.kwd",line); Assert.Contains("123",line); Assert.Contains("chunk 0 (Doors)",line);
         Assert.Contains("record 1",line); Assert.Contains("Health",line); Assert.Contains("0D -> 0E",line);
-        Assert.Contains("EOF",KwdRewriteCommand.Format(file with { Difference=new(123,null,null,null,"fileLength",13,null) }));
+        Assert.Contains("EOF",KwdRewriteCommand.Format(file with { Difference=new KwdRewriteAudit.Difference(123,null,null,null,"fileLength",13,null) }));
     }
 }

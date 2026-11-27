@@ -61,7 +61,7 @@ public sealed class PossessedExcavationTests
     {
         return InputFrame.Of(
         new ActPossessedCreatureCommand(PlayerIds.FirstKeeper,
-            new(new(new(imp.PosX), new(imp.PosY), new(imp.PosZ)), new(yaw), new(0x200)), true, new(0)));
+            new PossessionAim(new FpPosition3(new Fp32(imp.PosX), new Fp32(imp.PosY), new Fp32(imp.PosZ)), new Dk2Angle(yaw), new Dk2Angle(0x200)), true, new PossessedSlot(0)));
     }
 
     [Theory]

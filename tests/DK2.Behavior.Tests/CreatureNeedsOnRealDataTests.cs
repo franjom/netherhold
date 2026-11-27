@@ -1383,10 +1383,10 @@ public class CreatureNeedsOnRealDataTests
         Assert.Equal((2000, (short)0, (short)0, 280 * 4096),
             (mistress.Hp, mistress.TortureHpChange, mistress.TortureMoodChange, mistress.TortureTimeToConvert.Raw));
         Assert.Equal(
-            new CreatureJobPreference[] { new(JobType.Train, 10, 0, 50), new(JobType.Torture, 0, 0, 50) },
+            new CreatureJobPreference[] { new CreatureJobPreference(JobType.Train, 10, 0, 50), new CreatureJobPreference(JobType.Torture, 0, 0, 50) },
             mistress.HappyJobs);
         Assert.Equal(
-            new CreatureJobPreference[] { new(JobType.Sulk, 0, 0, 10), new(JobType.Drink, 0, 0, 90) },
+            new CreatureJobPreference[] { new CreatureJobPreference(JobType.Sulk, 0, 0, 10), new CreatureJobPreference(JobType.Drink, 0, 0, 90) },
             mistress.UnhappyJobs);
         Assert.True(mistress.Flags.HasFlag(CreatureFlags.CanBeElectrocuted));
         Assert.False(db.CreatureByName("Firefly")!.Flags.HasFlag(CreatureFlags.CanBeElectrocuted));

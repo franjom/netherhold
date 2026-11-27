@@ -17,12 +17,12 @@ namespace DK2.Presentation.Tests;
 /// footsteps and the party pop, without allocating once the level runs.</summary>
 public sealed class LevelSoundDriverTests
 {
-    private static readonly PlayerId Viewer = new(PlayerIds.FirstKeeper);
+    private static readonly PlayerId Viewer = new PlayerId(PlayerIds.FirstKeeper);
     private const uint Bed = 0x2EA, Step = CreatureFootsteps.Walk, Thing = 0x120;
 
     private static async Task<(LevelSoundDriver Driver, FakeOutput Output, WorldState World)> Driver()
     {
-        TerrainDef water = new()
+        var water = new TerrainDef()
         {
             Name = "water", TerrainId = 2, Flags = 0, StartingHealth = 1, MaxHealth = 1, GoldValue = 0, ManaGain = 0, MaxManaGain = 0,
             Damage = 0, MaxHealthTypeTerrainId = 2, DestroyedTypeTerrainId = 2, Depth = new Fp32(0), NameStringId = 0, TooltipStringId = 0,

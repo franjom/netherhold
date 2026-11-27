@@ -18,9 +18,9 @@ public class TortureTests
     private const byte Rival = 1;
     private const byte GoblinId = 7;
 
-    private static readonly TilePos Cell = new(3, 3);
-    private static readonly TilePos Wheel = new(8, 3);
-    private static readonly TilePos ChamberFloor = new(7, 2);
+    private static readonly TilePos Cell = new TilePos(3, 3);
+    private static readonly TilePos Wheel = new TilePos(8, 3);
+    private static readonly TilePos ChamberFloor = new TilePos(7, 2);
 
     private static GameDatabase Db
     {
@@ -176,8 +176,8 @@ public class TortureTests
             _ => 0,
         };
         CreatureAnger before = mistress.Anger;
-        world.Player(Keeper).Availabilities.Add(new(AvailabilityKind.Room, (int)RoomTypeId.Hatchery, RoomNeedRules.Available));
-        world.Player(Keeper).Availabilities.Add(new(AvailabilityKind.Room, (int)RoomTypeId.Lair, RoomNeedRules.Available));
+        world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Room, (int)RoomTypeId.Hatchery, RoomNeedRules.Available));
+        world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Room, (int)RoomTypeId.Lair, RoomNeedRules.Available));
         var sink = new ListEventSink();
         var sim = new GameSimulation(db, world, 42,
             [new CreatureAngerSystem(), new CreatureJobSystem(), new TortureSystem()]);
@@ -329,7 +329,7 @@ public class TortureTests
 
     // A wheel over a coals trough on the chamber's rim: (7, 3) is not a floor slot, so a wall wheel.
     // x + y = 10 is even, so the victim turns back 6 a turn.
-    private static readonly TilePos RimWheel = new(7, 3);
+    private static readonly TilePos RimWheel = new TilePos(7, 3);
 
     private static ViewEffectRequest[] TroughEffects(ListEventSink sink)
     {

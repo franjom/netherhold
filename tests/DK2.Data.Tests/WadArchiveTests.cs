@@ -24,7 +24,7 @@ public class WadArchiveTests
     {
         get
         {
-            return new()
+            return new TheoryData<string>()
     {
         "EngineTextures.WAD", "FrontEnd.WAD", "Meshes.WAD", "Paths.WAD", "Sprite.WAD",
     };

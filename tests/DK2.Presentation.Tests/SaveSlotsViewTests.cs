@@ -24,7 +24,7 @@ public sealed class SaveSlotsViewTests : IDisposable
     public void SavedFileShowsItsNameAndTimeAndSelectionSeedsTheNameEditor()
     {
         var time = new DateTime(2026, 10, 29, 12, 0, 0, DateTimeKind.Utc);
-        var saved = new SavedSession(new("Level1", 1, 26, time, "First save"), [1], new CampaignProfile());
+        var saved = new SavedSession(new SavedSessionHeader("Level1", 1, 26, time, "First save"), [1], new CampaignProfile());
         SavedSessionFile.Save(SavedSessionFile.PathForName(_directory, "First save"), saved);
         var view = new SaveSlotsView(_directory);
         Assert.True(view.Select(0));

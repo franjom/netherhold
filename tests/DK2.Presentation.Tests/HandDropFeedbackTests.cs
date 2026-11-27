@@ -14,8 +14,8 @@ namespace DK2.Presentation.Tests;
 
 public sealed class HandDropFeedbackTests
 {
-    private static readonly PlayerId Keeper = new(3);
-    private static readonly TilePos Start = new(1, 1), Floor = new(2, 2), Wall = new(4, 4);
+    private static readonly PlayerId Keeper = new PlayerId(3);
+    private static readonly TilePos Start = new TilePos(1, 1), Floor = new TilePos(2, 2), Wall = new TilePos(4, 4);
 
     [InstallTheory]
     [InlineData(false, false)]

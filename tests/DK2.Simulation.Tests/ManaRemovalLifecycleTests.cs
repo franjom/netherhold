@@ -18,7 +18,7 @@ public class ManaRemovalLifecycleTests
 
     /// <summary>The removal-enabled state a keeper reaches after its fourth warning, with a scan
     /// due at once: what the fourth-warning payment leaves behind, minus the wait.</summary>
-    private static readonly ManaPressureState Ready = new(
+    private static readonly ManaPressureState Ready = new ManaPressureState(
         WarningStage: 5, WarningsSuppressed: true, RemovalEnabled: true, ScanDeadline: 0);
 
     /// <summary>The fixture map: nine claimed tiles worth 9 mana a second, no heart, so five

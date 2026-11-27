@@ -345,7 +345,7 @@ public class KeeperBattleStepTests
 
     private static KeeperAI SpellCaster(byte attackingVsDefensive, byte preference, byte useKeeperSpells = 0, ulong seed = 7)
     {
-        return new(Keeper, KeeperWorld.Parameters() with
+        return new KeeperAI(Keeper, KeeperWorld.Parameters() with
         {
             UseKeeperSpells = useKeeperSpells,
             AttackingVsDefensiveSpellPreference = attackingVsDefensive,

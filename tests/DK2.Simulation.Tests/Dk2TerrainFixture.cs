@@ -93,7 +93,7 @@ internal static class Dk2TerrainFixture
     public static TrapDef[] Traps()
     {
         return [
-        new() { Name = "Alarm", TrapId = 7, Health = 100, GoldCost = 250, ManufactureRequired = 1000, CrateObjectId = AlarmCrateObjectId, ShotTypeId = 0, ManaUpkeepPerSecond = 0 },
+        new TrapDef() { Name = "Alarm", TrapId = 7, Health = 100, GoldCost = 250, ManufactureRequired = 1000, CrateObjectId = AlarmCrateObjectId, ShotTypeId = 0, ManaUpkeepPerSecond = 0 },
         FiringTrap("Sentry Trap", SentryTrapId, 1, 24, 5, 250, 0x31598, CannonBallShotId, 250, 0, -2048, 74, 45, 6, 3000, upkeep: 5),
         FiringTrap("Fireburst Trap", FireburstTrapId, 1, 48, 1, 250, 0x3053A, FireburstShotId, 2000, 1, -1761, 185, 45, 16, 8000, upkeep: 10),
         FiringTrap("Lightning Trap", LightningTrapId, 1, 48, 4, 375, 0x31518, LightningTrapShotId, 400, 0, -2048, 74, 45, 12, 6000, upkeep: 25),
@@ -118,7 +118,7 @@ internal static class Dk2TerrainFixture
     private static TrapDef FiringTrap(string name, byte id, byte selector, int rechargeTicks, int range, int mana, uint flags,
         byte shot, int data1, int data2, int offsetY, ushort threat, int threatSeconds, short gain, ushort health, ushort upkeep = 0)
     {
-        return new()
+        return new TrapDef()
         {
             Name = name,
             TrapId = id,
@@ -147,14 +147,14 @@ internal static class Dk2TerrainFixture
     public static DoorDef[] Doors()
     {
         return [
-        new() { Name = "Wooden Door", DoorId = 1, Health = 400, HealthGain = 2, GoldCost = 500, ManufactureRequired = 1000, CrateObjectId = WoodenDoorCrateObjectId },
-        new() { Name = "Barricade", DoorId = 6, Health = 800, HealthGain = 1, GoldCost = 750, ManufactureRequired = 1000, Flags = DoorFlags.Barricade },
+        new DoorDef() { Name = "Wooden Door", DoorId = 1, Health = 400, HealthGain = 2, GoldCost = 500, ManufactureRequired = 1000, CrateObjectId = WoodenDoorCrateObjectId },
+        new DoorDef() { Name = "Barricade", DoorId = 6, Health = 800, HealthGain = 1, GoldCost = 750, ManufactureRequired = 1000, Flags = DoorFlags.Barricade },
     ];
     }
 
     public static GameDatabase Database(params CreatureDef[] extraCreatures)
     {
-        return new(
+        return new GameDatabase(
         [
             T(ImpenetrableRock, "Impenetrable Rock",
               TerrainFlags.Solid | TerrainFlags.Impenetrable, 1, 1, 1, 1),
@@ -397,7 +397,7 @@ internal static class Dk2TerrainFixture
     /// </remarks>
     private static ObjectDef Carried(byte id, string name, ObjectFlags flags)
     {
-        return new()
+        return new ObjectDef()
         {
             Name = name,
             ObjectId = id,
@@ -721,7 +721,7 @@ internal static class Dk2TerrainFixture
     private static ObjectDef GoldObject(
         byte id, string name, uint flags, byte roomCapacity, int width, int height, ushort idleEffect = 0)
     {
-        return new()
+        return new ObjectDef()
         {
             Name = name,
             IdleEffectId = idleEffect, // Gold Pile 1's 34, Gold Sparkle (gold-hover-and-sparkle.md §3)
@@ -745,7 +745,7 @@ internal static class Dk2TerrainFixture
     /// transcribed, the rest being 0 in every one (<c>RoomFurnitureOnRealDataTests</c>).</summary>
     private static ObjectDef Furniture(byte id, string name, uint flags, int hp, int width)
     {
-        return new()
+        return new ObjectDef()
         {
             Name = name,
             ObjectId = id,
@@ -802,7 +802,7 @@ internal static class Dk2TerrainFixture
 
     private static ObjectDef Bed(byte id, string name)
     {
-        return new()
+        return new ObjectDef()
         {
             Name = name,
             ObjectId = id,
@@ -846,7 +846,7 @@ internal static class Dk2TerrainFixture
         // ResearchTreeOnRealDataTests: shot 2 makes an Imp (1) at level 1, and the bonus shot
         // an upgraded cast fires, 60, makes one at level 4. Location selector 1 and target
         // selector 4 are the shipped record's bytes 0xEF and 0xDA (ADR-0312).
-        new()
+        new KeeperSpellDef()
         {
             Name = KeeperSpellName.CreateImp, ManaCost = 1500, ManaUpkeepPerSecond = 7,
             KeeperSpellId = CreateImpSpellId, LocationSelector = 1, TargetSelector = 4,
@@ -856,7 +856,7 @@ internal static class Dk2TerrainFixture
         // Call to Arms as shipped: 10000 to cast, 90 a second to keep, no cooldown, location
         // selector 4 and target selector 4, the Create Object shot (5) putting object 10 down
         // whether or not upgraded (call-to-arms.md).
-        new()
+        new KeeperSpellDef()
         {
             Name = KeeperSpellName.CallToArms, ManaCost = 10000, ManaUpkeepPerSecond = 90,
             KeeperSpellId = CallToArmsRules.SpellId, LocationSelector = 4, TargetSelector = 4,
@@ -887,7 +887,7 @@ internal static class Dk2TerrainFixture
     /// </summary>
     public static CreatureDef Imp()
     {
-        return new()
+        return new CreatureDef()
         {
             Name = "Imp",
             SoundCategory = "CREATURE_IMP",
@@ -1093,9 +1093,9 @@ internal static class Dk2TerrainFixture
             // A content Goblin trains, an unhappy one drinks, and an angry one is a
             // coin toss between walking out and rebelling — only the first of which
             // is implemented (ADR-0053).
-            HappyJobs = [new(JobType.Train, 0, 0, 100)],
-            UnhappyJobs = [new(JobType.Drink, 0, 0, 100)],
-            AngryJobs = [new(JobType.Leave, 0, 0, 50), new(JobType.Rebel, 0, 0, 50)],
+            HappyJobs = [new CreatureJobPreference(JobType.Train, 0, 0, 100)],
+            UnhappyJobs = [new CreatureJobPreference(JobType.Drink, 0, 0, 100)],
+            AngryJobs = [new CreatureJobPreference(JobType.Leave, 0, 0, 50), new CreatureJobPreference(JobType.Rebel, 0, 0, 50)],
 
             // Its purse, as shipped: a wage's half and the Casino's winnings stop at 5000
             // (ADR-0187). InitialGoldHeld ships as 500 and nothing reads it, so it is 0 here.
@@ -1122,7 +1122,7 @@ internal static class Dk2TerrainFixture
         {
             Name = "Deserter",
             CreatureId = DeserterCreatureId,
-            AngryJobs = [new(JobType.Leave, 0, 0, 100)],
+            AngryJobs = [new CreatureJobPreference(JobType.Leave, 0, 0, 100)],
         };
     }
 
@@ -1139,8 +1139,8 @@ internal static class Dk2TerrainFixture
             Name = "Mistress",
             CreatureId = MistressCreatureId,
             Hp = 2000,
-            HappyJobs = [new(JobType.Train, 10, 0, 50), new(JobType.Torture, 0, 0, 50)],
-            UnhappyJobs = [new(JobType.Sulk, 0, 0, 10), new(JobType.Drink, 0, 0, 90)],
+            HappyJobs = [new CreatureJobPreference(JobType.Train, 10, 0, 50), new CreatureJobPreference(JobType.Torture, 0, 0, 50)],
+            UnhappyJobs = [new CreatureJobPreference(JobType.Sulk, 0, 0, 10), new CreatureJobPreference(JobType.Drink, 0, 0, 90)],
             TortureHpChange = 0,
             TortureMoodChange = 0,
             TortureTimeToConvert = Fp32.FromDouble(280),
@@ -1215,9 +1215,9 @@ internal static class Dk2TerrainFixture
 
             // A vampire never walks out. Where a Goblin's angry table is a coin
             // toss between Leave and Rebel, this one is Rebel outright.
-            HappyJobs = [new(JobType.Research, 0, 0, 80), new(JobType.Praying, 0, 0, 20)],
-            UnhappyJobs = [new(JobType.Sulk, 0, 0, 10), new(JobType.Drink, 0, 0, 90)],
-            AngryJobs = [new(JobType.Rebel, 0, 0, 100)],
+            HappyJobs = [new CreatureJobPreference(JobType.Research, 0, 0, 80), new CreatureJobPreference(JobType.Praying, 0, 0, 20)],
+            UnhappyJobs = [new CreatureJobPreference(JobType.Sulk, 0, 0, 10), new CreatureJobPreference(JobType.Drink, 0, 0, 90)],
+            AngryJobs = [new CreatureJobPreference(JobType.Rebel, 0, 0, 100)],
 
             DecomposeValue = 0,
             MaxGoldHeld = 7500,
@@ -1297,9 +1297,9 @@ internal static class Dk2TerrainFixture
             AngerNoPay = 0,
             AngerNoWork = 0,
 
-            HappyJobs = [new(JobType.Train, 0, 0, 100)],
-            UnhappyJobs = [new(JobType.Guard, 0, 0, 100)],
-            AngryJobs = [new(JobType.Rebel, 0, 0, 100)],
+            HappyJobs = [new CreatureJobPreference(JobType.Train, 0, 0, 100)],
+            UnhappyJobs = [new CreatureJobPreference(JobType.Guard, 0, 0, 100)],
+            AngryJobs = [new CreatureJobPreference(JobType.Rebel, 0, 0, 100)],
         };
     }
 
@@ -1452,21 +1452,21 @@ internal static class Dk2TerrainFixture
     public const byte RaiseDeadShotId = 40;
     public const byte CycloneShotId = 41;
 
-    private static readonly KwdArtResource NoArt = new("", 0, default, 0, 0, 0, 0);
-    private static readonly KwdLight NoLight = new(0, 0, 0, 0, 0, 0, 0, 0, 0);
+    private static readonly KwdArtResource NoArt = new KwdArtResource("", 0, default, 0, 0, 0, 0);
+    private static readonly KwdLight NoLight = new KwdLight(0, 0, 0, 0, 0, 0, 0, 0, 0);
 
     /// <summary>The Warlock's two attack spells at their shipped values (combat-spells.md §1–§2):
     /// attack flag, four-tile range, 5 s and 7.5 s recharges, 300 and 600 damage.</summary>
     public static CreatureSpellDef[] CreatureSpells()
     {
         return [
-        new(new byte[266])
+        new CreatureSpellDef(new byte[266])
         {
             Name = "Warlock Fireball", EditorIcon = NoArt, GuiIcon = NoArt, CreatureSpellId = FireballSpellId,
             Flags = 0x101, Range = 16384, RechargeTime = 20480, ShotTypeId = FireballShotId, ShotData1 = 300, ShotData2 = 0,
             Unknown_00EF = default,
         },
-        new(new byte[266])
+        new CreatureSpellDef(new byte[266])
         {
             Name = "Warlock Firebomb", EditorIcon = NoArt, GuiIcon = NoArt, CreatureSpellId = FirebombSpellId,
             Flags = 0x101, Range = 16384, RechargeTime = 30720, ShotTypeId = FirebombShotId, ShotData1 = 600, ShotData2 = 0,
@@ -1477,7 +1477,7 @@ internal static class Dk2TerrainFixture
         Friendly("Invisible", InvisibleSpellId, 0x84, SpellRules.InvisibleBuff, InvisibleShotId, 15, 0),
         Friendly("Heal", HealSpellId, 0x104, SpellRules.HealBuff, HealInstantShotId, 3000, 0),
         // Raise Dead as shipped (combat-spells.md §12): flags 0x102, three tiles, 17 s, makes a Skeleton from shot 40.
-        new(new byte[266])
+        new CreatureSpellDef(new byte[266])
         {
             Name = "Raise Dead", EditorIcon = NoArt, GuiIcon = NoArt, CreatureSpellId = RaiseDeadSpellId,
             Flags = 0x102, Range = 12288, RechargeTime = 69632, ShotTypeId = RaiseDeadShotId, ShotData1 = SkeletonCreatureId, ShotData2 = 0,
@@ -1485,17 +1485,17 @@ internal static class Dk2TerrainFixture
         },
         // Flag carriers for the possessed spell arm's branches (keeper-spell-possession.md); not
         // shipped records: teleport (bit 5), speed (bit 6) and an attack firing shot type 30.
-        new(new byte[266])
+        new CreatureSpellDef(new byte[266])
         {
             Name = "Test Teleport", EditorIcon = NoArt, GuiIcon = NoArt, CreatureSpellId = TeleportTestSpellId,
             Flags = 0x20, Range = 0, RechargeTime = 20480, ShotTypeId = 0, Unknown_00EF = default,
         },
-        new(new byte[266])
+        new CreatureSpellDef(new byte[266])
         {
             Name = "Test Speed", EditorIcon = NoArt, GuiIcon = NoArt, CreatureSpellId = SpeedTestSpellId,
             Flags = 0x40, Range = 0, RechargeTime = 20480, ShotTypeId = 0, ShotData1 = 150, ShotData2 = 15, Unknown_00EF = default,
         },
-        new(new byte[266])
+        new CreatureSpellDef(new byte[266])
         {
             Name = "Test Homing", EditorIcon = NoArt, GuiIcon = NoArt, CreatureSpellId = HomingTestSpellId,
             Flags = 0x101, Range = 16384, RechargeTime = 20480, ShotTypeId = LightningShotId, Unknown_00EF = default,
@@ -1529,7 +1529,7 @@ internal static class Dk2TerrainFixture
     /// <summary>A friendly spell (bit 2) with a four-tile range and a five-second recharge.</summary>
     private static CreatureSpellDef Friendly(string name, byte id, uint flags, byte alternativeShot, byte shot, uint data1, uint data2)
     {
-        return new(new byte[266])
+        return new CreatureSpellDef(new byte[266])
         {
             Name = name,
             EditorIcon = NoArt,
@@ -1554,32 +1554,32 @@ internal static class Dk2TerrainFixture
         return [
         Status("Create Object", CreateObjectShotId, 2048, 1, 4, 0x80, 0, ShotRules.CreateObjectProcess, attackCategory: 12),
         // Create Imp's two shots as shipped: 2 runs creation process 1, the upgraded 60 process 36.
-        new(new byte[239])
+        new ShotDef(new byte[239])
         {
             Name = "Create Creature", MeshResource = NoArt, Light = NoLight, SoundCategory = "", ShotId = 2,
             // Shipped values: dies on its first update, the next turn, and runs the process on death.
             Speed = 2048, Health = 1, TimedDelay = 251, Flags = 0x4, ShotProcessFlags = 0x80, ProcessType = 1,
         },
-        new(new byte[239])
+        new ShotDef(new byte[239])
         {
             Name = "Create Single Creature", MeshResource = NoArt, Light = NoLight, SoundCategory = "", ShotId = 60,
             // Shipped values: dies on its first update, the next turn, and runs the process on death.
             Speed = 2048, Health = 1, Flags = 0x4, ShotProcessFlags = 0x80, ProcessType = 36,
         },
-        new(new byte[239])
+        new ShotDef(new byte[239])
         {
             Name = "Fireball", MeshResource = NoArt, Light = NoLight, SoundCategory = "", ShotId = FireballShotId,
             Speed = 3686, Radius = 819, Health = 60, Flags = 0x127, ShotProcessFlags = 0x1, CollideType = 2, DamageType = 7,
             AttackCategory = 4, Unknown_0098 = 50,
         },
-        new(new byte[239])
+        new ShotDef(new byte[239])
         {
             Name = "Firebomb", MeshResource = NoArt, Light = NoLight, SoundCategory = "", ShotId = FirebombShotId,
             Speed = 2048, Radius = 819, Health = 128, Flags = 0x123, ShotProcessFlags = 0xC, CollideType = 2, DamageType = 7,
             HitSolidShotId = FirebombExplosionShotId, HitThingShotId = FirebombExplosionShotId, AttackCategory = 4,
             Unknown_0098 = 250, Unknown_009C = 3,
         },
-        new(new byte[239])
+        new ShotDef(new byte[239])
         {
             Name = "Fire Bomb Explosion", MeshResource = NoArt, Light = NoLight, SoundCategory = "", ShotId = FirebombExplosionShotId,
             Speed = 0, Radius = 819, Health = 3, Flags = 0x105, ShotProcessFlags = 0x1, CollideType = 2, DamageType = 2,
@@ -1621,7 +1621,7 @@ internal static class Dk2TerrainFixture
         Status("Boulder", BoulderShotId, 2048, 1, 0x24, 0x40, 3, ShotRules.BoulderProcess),
         // The Jack In The Box's shot, an area shot running process 39, and the Jack's explosion (jack-in-the-box.md).
         Status("Jack In The Box", JackInTheBoxShotId, 2048, 1, 0x24, 0x40, 2, ShotRules.JackInTheBoxProcess, damageType: 2, attackCategory: 13),
-        new(new byte[239])
+        new ShotDef(new byte[239])
         {
             Name = "Jack In The Box - Explode", MeshResource = NoArt, Light = NoLight, SoundCategory = "", ShotId = JackExplosionShotId,
             Speed = 2048, Radius = 819, Health = 5, Flags = 0x104, ShotProcessFlags = 0x1, CollideType = 2, ProcessType = 0,
@@ -1636,7 +1636,7 @@ internal static class Dk2TerrainFixture
 
     private static ShotDef Status(string name, byte id, int speed, ushort health, uint flags, uint processFlags, byte collide, byte process, byte damageType = 0, byte attackCategory = 0, byte deathShot = 0)
     {
-        return new(new byte[239])
+        return new ShotDef(new byte[239])
         {
             Name = name,
             MeshResource = NoArt,
@@ -1927,7 +1927,7 @@ internal static class Dk2TerrainFixture
 
     /// <summary>TERRAIN file bytes 0x1DF of the shipped terrains this fixture carries (a room's tiles use
     /// the room terrain's); <c>TerrainSoundCategoriesAreTheShippedNames</c> reads the real file.</summary>
-    private static readonly Dictionary<byte, string> ShippedSoundCategory = new()
+    private static readonly Dictionary<byte, string> ShippedSoundCategory = new Dictionary<byte, string>()
     {
         [1] = "TERRAIN_SOLID_ROCK", [2] = "TERRAIN_ROCK", [3] = "TERRAIN_DIRT_PATH", [4] = "TERRAIN_WATER",
         [5] = "TERRAIN_LAVA", [6] = "TERRAIN_GOLD", [7] = "TERRAIN_GEMS", [8] = "TERRAIN_CLAIMED_PATH",
@@ -1947,7 +1947,7 @@ internal static class Dk2TerrainFixture
         ushort goldValue = 0, ushort manaGain = 0, ushort maxManaGain = 0,
         short damage = 0)
     {
-        return new()
+        return new TerrainDef()
         {
             Name = name,
             TerrainId = id,
@@ -1979,7 +1979,7 @@ internal static class Dk2TerrainFixture
         byte[]? objectIds = null,
         ushort roomEffect = 0)
     {
-        return new()
+        return new RoomDef()
         {
             Name = name,
             RoomId = (byte)id,
@@ -2048,7 +2048,7 @@ internal static class Dk2TerrainFixture
     }
 
     /// <summary>The Heart's tile in <see cref="HeartRoom"/>.</summary>
-    public static readonly TilePos HeartTile = new(3, 3);
+    public static readonly TilePos HeartTile = new TilePos(3, 3);
 
     /// <summary>Widens the starting room to the claimed 5 by 5 at (1..5, 1..5) for <paramref name="owner"/>,
     /// with a one-tile Dungeon Heart at <see cref="HeartTile"/> unless <paramref name="heart"/> is false.

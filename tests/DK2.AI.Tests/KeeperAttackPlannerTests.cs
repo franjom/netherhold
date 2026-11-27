@@ -19,11 +19,11 @@ public class KeeperAttackPlannerTests
     private static readonly GameDatabase Db = KeeperWorld.Database();
     private const byte Keeper = KeeperWorld.Keeper;
     private const byte Enemy = 4, Other = 5;
-    private static readonly TilePos EnemyHeart = new(15, 5);
-    private static readonly TilePos OtherHeart = new(26, 15);
+    private static readonly TilePos EnemyHeart = new TilePos(15, 5);
+    private static readonly TilePos OtherHeart = new TilePos(26, 15);
 
     /// <summary>DK2's room CentrePos for a five-by-five heart: its first slab plus three.</summary>
-    private static readonly TilePos EnemyHeartPosition = new(16, 6), OwnHeartPosition = new(16, 16);
+    private static readonly TilePos EnemyHeartPosition = new TilePos(16, 6), OwnHeartPosition = new TilePos(16, 16);
 
     /// <summary>The fixture with five-by-five hearts on claimed patches: the keeper's at (15,15),
     /// the enemy's ten tiles north with one tile of rock between the patches; a third keeper's to

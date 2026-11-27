@@ -24,7 +24,7 @@ public sealed class TurncoatTests
             ShotTypeId = 31, ShotData1 = 25, BonusShotTypeId = 31, BonusShotData1 = 40,
             CooldownRaw = 245760, LocationSelector = 1, TargetSelector = 2,
         };
-        ShotDef shot = new(new byte[239])
+        var shot = new ShotDef(new byte[239])
         {
             Name = "Turncoat", MeshResource = basis.Shots[4].MeshResource,
             Light = basis.Shots[4].Light, SoundCategory = "", ShotId = 31,

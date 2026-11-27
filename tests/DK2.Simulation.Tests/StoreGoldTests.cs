@@ -18,7 +18,7 @@ public sealed class StoreGoldTests
     /// <summary>Hands out the queued draws, then 99, and records every bound asked for.</summary>
     private sealed class Scripted(params int[] draws) : IRandomAlgorithm
     {
-        private readonly Queue<int> _draws = new(draws);
+        private readonly Queue<int> _draws = new Queue<int>(draws);
         public readonly List<int> Bounds = [];
         public int NextInt(int exclusiveMax)
         {

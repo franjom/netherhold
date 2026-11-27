@@ -11,26 +11,26 @@ namespace DK2.Presentation.Tests;
 /// the rendered stage, the resolver's refusal and the 3×3 sweep (Hand_ResolveScreenTarget 0x005992B0, 0x0044DEC0).</summary>
 public sealed class WorldHoverPickerTests
 {
-    private static readonly TilePos Pointer = new(10, 10);
+    private static readonly TilePos Pointer = new TilePos(10, 10);
     // Straight down onto the centre of the pointer's tile, from 9 above the floor (TileHeights.Open).
-    private static readonly HoverPickRay Down = new(new(10.5f, 10, -10.5f), -Vector3.UnitY, -Vector3.UnitY);
-    private static readonly Vector3 Ground = new(10.5f, TileHeights.Open, -10.5f);
+    private static readonly HoverPickRay Down = new HoverPickRay(new Vector3(10.5f, 10, -10.5f), -Vector3.UnitY, -Vector3.UnitY);
+    private static readonly Vector3 Ground = new Vector3(10.5f, TileHeights.Open, -10.5f);
 
     private static WorldHoverHit Creature(int id, TilePos? tile = null)
     {
-        return new(WorldHoverKind.Creature, tile ?? Pointer, id);
+        return new WorldHoverHit(WorldHoverKind.Creature, tile ?? Pointer, id);
     }
 
     private static WorldHoverHit Thing(int id, TilePos? tile = null)
     {
-        return new(WorldHoverKind.Object, tile ?? Pointer, id);
+        return new WorldHoverHit(WorldHoverKind.Object, tile ?? Pointer, id);
     }
 
     private static WorldHoverHit TileHit
     {
         get
         {
-            return new(WorldHoverKind.Tile, Pointer);
+            return new WorldHoverHit(WorldHoverKind.Tile, Pointer);
         }
     }
 
@@ -278,7 +278,7 @@ public sealed class WorldHoverPickerTests
     {
         var picker = new WorldHoverPicker();
         // Neither vector is a unit one: the picker scales nothing, as Unity's Vector3 sums did not.
-        picker.Begin(new HoverPickRay(new(1, 2, 3), new(1, 1, 1), new(1, 2, 3)), 100, Pointer, Ground);
+        picker.Begin(new HoverPickRay(new Vector3(1, 2, 3), new Vector3(1, 1, 1), new Vector3(1, 2, 3)), 100, Pointer, Ground);
         var centre = new Vector3(5, 7, 9);
         // (5, 7, 9) - (1, 2, 3) = (4, 5, 6), and (4, 5, 6) . (1, 2, 3) = 32; along = 6; the point 32/6 along is 16/3 on each axis from the origin.
         Assert.True(picker.Holds(centre, 100, out HoverPickProbe probe));
@@ -309,7 +309,7 @@ public sealed class WorldHoverPickerTests
         }
         var picker = new WorldHoverPicker();
         // The view axis is straight down and the ray leans east, so it reaches 0.75 of a unit down per unit.
-        picker.Begin(new HoverPickRay(Vector3.Zero, new(1, -along, 0), -Vector3.UnitY), 100, Pointer, Ground);
+        picker.Begin(new HoverPickRay(Vector3.Zero, new Vector3(1, -along, 0), -Vector3.UnitY), 100, Pointer, Ground);
         // Radius 2 reaches behind the eye, so both circles hold the pointer.
         Assert.True(picker.Holds(new Vector3(0, -far, 0), 2, out HoverPickProbe farProbe));
         Assert.True(picker.Holds(new Vector3(0, -near, 0), 2, out HoverPickProbe nearProbe));
@@ -324,15 +324,15 @@ public sealed class WorldHoverPickerTests
     [Fact]
     public void AnObliqueRayMeetsATriangleWhereItsPlaneIsCrossed()
     {
-        Vector3 a = new(0, 0, 0), b = new(2, 0, 0), c = new(0, 3, 0);
+        Vector3 a = new Vector3(0, 0, 0), b = new Vector3(2, 0, 0), c = new Vector3(0, 3, 0);
         var origin = new Vector3(.5f, .5f, 5);
         // Meets z = 0 at (1, 1): inside, x/2 + y/3 < 1.
-        Assert.True(WorldHoverPicker.TryHitTriangle(origin, new(.1f, .1f, -1), a, b, c, out float t));
+        Assert.True(WorldHoverPicker.TryHitTriangle(origin, new Vector3(.1f, .1f, -1), a, b, c, out float t));
         Assert.Equal(5f, t, 5);
         // Meets z = 0 at (1.5, 2.5): beyond the hypotenuse.
-        Assert.False(WorldHoverPicker.TryHitTriangle(origin, new(.2f, .4f, -1), a, b, c, out _));
+        Assert.False(WorldHoverPicker.TryHitTriangle(origin, new Vector3(.2f, .4f, -1), a, b, c, out _));
         // Meets z = 0 at (-0.5, 1): beyond the y axis edge.
-        Assert.False(WorldHoverPicker.TryHitTriangle(origin, new(-.2f, .1f, -1), a, b, c, out _));
+        Assert.False(WorldHoverPicker.TryHitTriangle(origin, new Vector3(-.2f, .1f, -1), a, b, c, out _));
     }
 
     [Fact]
@@ -350,7 +350,7 @@ public sealed class WorldHoverPickerTests
     [Fact]
     public void TheTriangleTestTakesEitherWindingAheadOfTheOrigin()
     {
-        Vector3 a = new(0, 0, 0), b = new(1, 0, 0), c = new(0, 0, 1);
+        Vector3 a = new Vector3(0, 0, 0), b = new Vector3(1, 0, 0), c = new Vector3(0, 0, 1);
         var origin = new Vector3(.25f, 2, .25f);
         Assert.True(WorldHoverPicker.TryHitTriangle(origin, -Vector3.UnitY, a, b, c, out float t));
         Assert.Equal(2f, t);

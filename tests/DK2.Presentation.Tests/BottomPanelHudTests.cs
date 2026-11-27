@@ -29,7 +29,7 @@ public sealed class BottomPanelHudTests
 
     private static BottomPanelHud Panel()
     {
-        return new(new Art(), new BottomPanelView(new GameDatabase([], [], [], new GlobalVariables()), PlayerIds.FirstKeeper, (_, name) => name));
+        return new BottomPanelHud(new Art(), new BottomPanelView(new GameDatabase([], [], [], new GlobalVariables()), PlayerIds.FirstKeeper, (_, name) => name));
     }
 
     private static HudFrame Build(BottomPanelHud hud, long now = 0)
@@ -178,7 +178,7 @@ public sealed class BottomPanelHudTests
     public void AnUnchangedPanelBuildsTheSameFrame()
     {
         BottomPanelHud hud = Panel();
-        HudFrame first = Build(hud), copy = new();
+        HudFrame first = Build(hud), copy = new HudFrame();
         copy.CopyFrom(first);
         Assert.True(Build(hud).SameAs(copy));
         hud.PointerMove(RoomsTab.X + 1, RoomsTab.Y + 1);

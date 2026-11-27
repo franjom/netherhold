@@ -10,9 +10,9 @@ namespace DK2.Presentation.Tests;
 
 public sealed class CampaignProfileStoreTests : IDisposable
 {
-    private static readonly DateTime OldStamp = new(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+    private static readonly DateTime OldStamp = new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
     private readonly string _root = Directory.CreateTempSubdirectory("dk2-profile-").FullName;
-    private DateTime _clock = new(2026, 11, 16, 12, 0, 0);
+    private DateTime _clock = new DateTime(2026, 11, 16, 12, 0, 0);
 
     private string ProfilePath
     {
@@ -24,7 +24,7 @@ public sealed class CampaignProfileStoreTests : IDisposable
 
     private CampaignProfileStore Store(Func<CampaignProfile?>? import = null)
     {
-        return new(import, () => _clock);
+        return new CampaignProfileStore(import, () => _clock);
     }
 
     private static byte[] Bytes(CampaignProfile profile)

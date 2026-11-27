@@ -62,7 +62,7 @@ public class LightningTests
     public void AShotLinkUsesTargetBaseAndCasterXyButKeepsTheShotHeight()
     {
         var link = new LightningLink(ProceduralArtKind.TripleLightning);
-        LightningEndpoints? endpoints = link.Resolve(Point(1, 2, 9), new(true, false, Point(4, 5, 1)), new(true, Point(6, 7, 3)));
+        LightningEndpoints? endpoints = link.Resolve(Point(1, 2, 9), new LightningTarget(true, false, Point(4, 5, 1)), new LightningCaster(true, Point(6, 7, 3)));
         Assert.Equal(new LightningEndpoints(Point(6, 7, 9), Point(4, 5, 1), 3), endpoints);
     }
 
@@ -72,8 +72,8 @@ public class LightningTests
     public void ADeadOrRoomTargetPermanentlyClearsTheRenderLink(bool exists, bool room)
     {
         var link = new LightningLink(ProceduralArtKind.Lightning);
-        Assert.Null(link.Resolve(Point(0, 0, 9), new(exists, room, Point(4, 5, 1))));
-        Assert.Null(link.Resolve(Point(0, 0, 9), new(true, false, Point(4, 5, 1))));
+        Assert.Null(link.Resolve(Point(0, 0, 9), new LightningTarget(exists, room, Point(4, 5, 1))));
+        Assert.Null(link.Resolve(Point(0, 0, 9), new LightningTarget(true, false, Point(4, 5, 1))));
     }
 
     [Fact]
@@ -81,9 +81,9 @@ public class LightningTests
     {
         var link = new LightningLink(ProceduralArtKind.Lightning);
         var target = new LightningTarget(true, false, Point(4, 5, 1));
-        link.Resolve(Point(1, 2, 9), target, new(true, Point(6, 7, 3)));
-        Assert.Equal(Point(1, 2, 9), link.Resolve(Point(1, 2, 9), target, new(true, null))!.Value.Start);
-        Assert.Equal(Point(1, 2, 9), link.Resolve(Point(1, 2, 9), target, new(true, Point(6, 7, 3)))!.Value.Start);
+        link.Resolve(Point(1, 2, 9), target, new LightningCaster(true, Point(6, 7, 3)));
+        Assert.Equal(Point(1, 2, 9), link.Resolve(Point(1, 2, 9), target, new LightningCaster(true, null))!.Value.Start);
+        Assert.Equal(Point(1, 2, 9), link.Resolve(Point(1, 2, 9), target, new LightningCaster(true, Point(6, 7, 3)))!.Value.Start);
     }
 
     [Fact]
@@ -110,12 +110,12 @@ public class LightningTests
     public void ANewLightningHitDoesNotCarryThePreviousTicksCrackleBitIntoTheNextChooser()
     {
         var crackle = new CreatureLightningVisual();
-        crackle.Ignite(new(10));
-        Assert.True(crackle.Choose(new(11), animationInstalled: true));
-        crackle.Ignite(new(12));
-        Assert.False(crackle.Choose(new(12), animationInstalled: false));
-        Assert.True(crackle.Choose(new(31), animationInstalled: true));
-        Assert.False(crackle.Choose(new(32), animationInstalled: true));
+        crackle.Ignite(new GameTick(10));
+        Assert.True(crackle.Choose(new GameTick(11), animationInstalled: true));
+        crackle.Ignite(new GameTick(12));
+        Assert.False(crackle.Choose(new GameTick(12), animationInstalled: false));
+        Assert.True(crackle.Choose(new GameTick(31), animationInstalled: true));
+        Assert.False(crackle.Choose(new GameTick(32), animationInstalled: true));
     }
 
     [Fact]
@@ -123,8 +123,8 @@ public class LightningTests
     {
         var random = new PairDraws();
         var pairs = new LightningCracklePairs(random);
-        LightningControlPoint[] points = [new(1000, Vector3.Zero), new(1001, Vector3.UnitX),
-            new(1010, Vector3.UnitY), new(1011, Vector3.UnitZ)];
+        LightningControlPoint[] points = [new LightningControlPoint(1000, Vector3.Zero), new LightningControlPoint(1001, Vector3.UnitX),
+            new LightningControlPoint(1010, Vector3.UnitY), new LightningControlPoint(1011, Vector3.UnitZ)];
         LightningSegment[] links = [.. pairs.Choose(points)];
         Assert.Equal(new[] { 24, 24, 16, 16 }, random.Bounds);
         Assert.Equal(4, links.Length);
@@ -156,7 +156,7 @@ public class LightningTests
     [Fact]
     public void RibbonOffsetsStayInViewXyWithDepthKeptAtEveryNode()
     {
-        Vector3[] nodes = [new(0, 0, 1), new(1, 0, 2), new(2, 1, 4)];
+        Vector3[] nodes = [new Vector3(0, 0, 1), new Vector3(1, 0, 2), new Vector3(2, 1, 4)];
         var ribbon = LightningRibbon.Build(nodes);
         Assert.Equal(2f, ribbon.Vertices[2].Z);
         Assert.Equal(2f, ribbon.Vertices[3].Z);
@@ -165,7 +165,7 @@ public class LightningTests
     [Fact]
     public void AnAlmostReversedRibbonUsesThePreviousNormalInsteadOfCollapsing()
     {
-        Vector3[] nodes = [new(0, 0, 1), new(1, 0, 1), new(0, 0, 1)];
+        Vector3[] nodes = [new Vector3(0, 0, 1), new Vector3(1, 0, 1), new Vector3(0, 0, 1)];
         var ribbon = LightningRibbon.Build(nodes);
         Assert.InRange(Vector3.Distance(ribbon.Vertices[2], ribbon.Vertices[3]), .05999f, .06001f);
     }
@@ -197,19 +197,19 @@ public class LightningTests
         byte[] data = new byte[12]; data[0] = 8;
         var effect = new EffectDef([])
         {
-            Name = "bolt", EffectId = 4, ArtResource = new("bolt", 0, data, 7, 0, 0, 0),
-            Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0), GenerateIds = [], MinHp = 2, MaxHp = 2,
+            Name = "bolt", EffectId = 4, ArtResource = new KwdArtResource("bolt", 0, data, 7, 0, 0, 0),
+            Light = new KwdLight(0, 0, 0, 0, 0, 0, 0, 0, 0), GenerateIds = [], MinHp = 2, MaxHp = 2,
         };
         var model = new RoomConstructionParticles(new GameDatabase([], [], [], new GlobalVariables(), effects: [effect]),
             1, () => default, floorHeight: _ => default);
-        model.Request(new(new(4), PlayerIds.FirstKeeper, Point(2, 3, 5)));
+        model.Request(new ViewEffectRequest(new EffectId(4), PlayerIds.FirstKeeper, Point(2, 3, 5)));
         var drawn = new List<ProceduralEffectView>();
         model.CollectProceduralEffects(drawn);
         Assert.Equal(ProceduralArtKind.FixedLightning, Assert.Single(drawn).Kind);
-        model.AdvanceTo(new(51));
+        model.AdvanceTo(new EffectTime(51));
         model.CollectProceduralEffects(drawn);
         Assert.Single(drawn);
-        model.AdvanceTo(new(101));
+        model.AdvanceTo(new EffectTime(101));
         model.CollectProceduralEffects(drawn);
         Assert.Empty(drawn);
     }
@@ -218,14 +218,14 @@ public class LightningTests
     public void LightningEventMetadataArmsOnlyTheRequestedCreaturesViewTimer()
     {
         var model = new RoomConstructionParticles(new GameDatabase([], [], [], new GlobalVariables()), 1, () => default);
-        model.Emit(new SimEvent(new(10), "status", "lightning", "") { ElectrifiedCreature = new(5) });
-        Assert.True(model.ChooseCreatureCrackle(new(5), new(11), animationInstalled: true));
-        Assert.False(model.ChooseCreatureCrackle(new(6), new(11), animationInstalled: true));
-        Assert.False(model.ChooseCreatureCrackle(new(5), new(12), animationInstalled: false));
+        model.Emit(new SimEvent(new GameTick(10), "status", "lightning", "") { ElectrifiedCreature = new CreatureId(5) });
+        Assert.True(model.ChooseCreatureCrackle(new CreatureId(5), new GameTick(11), animationInstalled: true));
+        Assert.False(model.ChooseCreatureCrackle(new CreatureId(6), new GameTick(11), animationInstalled: true));
+        Assert.False(model.ChooseCreatureCrackle(new CreatureId(5), new GameTick(12), animationInstalled: false));
     }
 
     private static FpPosition3 Point(int x, int y, int height)
     {
-        return new(new(x * Fp32.One), new(y * Fp32.One), new(height * Fp32.One));
+        return new FpPosition3(new Fp32(x * Fp32.One), new Fp32(y * Fp32.One), new Fp32(height * Fp32.One));
     }
 }

@@ -13,8 +13,8 @@ public class FrontEndLabelTests
     {
         var font = new BitmapFont(12, new[] { new BitmapGlyph('A', 1, 1, 1, 3, 10, [15]) });
         var label = FrontEndLabelGeometry.Measure(font, "A");
-        Assert.Equal(new FrontEndRect(6, 7, 1, 1), label.PlaceInk(new(0, 0, 20, 20), FrontEndTextAlignment.Centre));
-        Assert.Equal(new FrontEndRect(6, 3, 1, 1), label.PlaceInk(new(0, 0, 20, 20), FrontEndTextAlignment.Centre, FrontEndVerticalAlignment.Top));
+        Assert.Equal(new FrontEndRect(6, 7, 1, 1), label.PlaceInk(new FrontEndRect(0, 0, 20, 20), FrontEndTextAlignment.Centre));
+        Assert.Equal(new FrontEndRect(6, 3, 1, 1), label.PlaceInk(new FrontEndRect(0, 0, 20, 20), FrontEndTextAlignment.Centre, FrontEndVerticalAlignment.Top));
     }
 
     [Fact]
@@ -41,8 +41,8 @@ public class FrontEndLabelTests
         Assert.Equal(new FrontEndRect(1, 2, 8, 4), label.InkBounds);
         Assert.Equal(new FrontEndRect(1, 2, 3, 3), label.Glyphs[0].InkBounds);
         Assert.Equal(new FrontEndRect(7, 2, 2, 4), label.Glyphs[1].InkBounds);
-        Assert.Equal(new FrontEndRect(46, 19, 8, 4), label.PlaceInk(new(0, 0, 100, 40), FrontEndTextAlignment.Centre));
-        Assert.Equal(new FrontEndRect(45, 17, 10, 6), label.PlaceCanvas(new(0, 0, 100, 40), FrontEndTextAlignment.Centre));
+        Assert.Equal(new FrontEndRect(46, 19, 8, 4), label.PlaceInk(new FrontEndRect(0, 0, 100, 40), FrontEndTextAlignment.Centre));
+        Assert.Equal(new FrontEndRect(45, 17, 10, 6), label.PlaceCanvas(new FrontEndRect(0, 0, 100, 40), FrontEndTextAlignment.Centre));
         Assert.Equal(10, label.Advance);
     }
 
@@ -62,7 +62,7 @@ public class FrontEndLabelTests
         var text = FrontEndLabelGeometry.Measure(font, "AA AA", 10);
         Assert.Equal(4, text.Glyphs.Count);
         Assert.Equal(new FrontEndRect(0, 7, 1, 1), text.Glyphs[2].InkBounds);
-        Assert.Equal(new FrontEndRect(0, 0, 10, 12), text.PlaceCanvas(new(0, 0, 10, 20), FrontEndTextAlignment.Left, FrontEndVerticalAlignment.Top));
+        Assert.Equal(new FrontEndRect(0, 0, 10, 12), text.PlaceCanvas(new FrontEndRect(0, 0, 10, 20), FrontEndTextAlignment.Left, FrontEndVerticalAlignment.Top));
         var paragraphs = FrontEndLabelGeometry.Measure(font, "A\nA", 10);
         Assert.Equal(2, paragraphs.Glyphs.Count);
         Assert.Equal(12, paragraphs.CanvasHeight);

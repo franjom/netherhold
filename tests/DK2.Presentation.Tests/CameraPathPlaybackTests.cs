@@ -19,7 +19,7 @@ namespace DK2.Presentation.Tests;
 /// ADR-0496).</summary>
 public class CameraPathPlaybackTests
 {
-    private static readonly KcsRotation Identity = new(1, 0, 0, 0, 1, 0, 0, 0, 1);
+    private static readonly KcsRotation Identity = new KcsRotation(1, 0, 0, 0, 1, 0, 0, 0, 1);
 
     private static KcsFrame[] Frames(int count, float z = -3f)
     {
@@ -69,7 +69,7 @@ public class CameraPathPlaybackTests
         var director = new ScriptedViewDirector(viewer, _ => Frames(399), _ => null);
         SimEvent Letterbox(bool raised)
         {
-            return new(default, "t", "scripted_view", "")
+            return new SimEvent(default, "t", "scripted_view", "")
             {
                 ScriptedView = new ScriptedViewRequest(ScriptedViewKind.Letterbox, viewer, 0, default, raised),
             };
@@ -252,7 +252,7 @@ public class CameraPathPlaybackTests
 
     private static SimEvent PathStart(PlayerId player, int path, long tick)
     {
-        return new(default, "t", "scripted_view", "")
+        return new SimEvent(default, "t", "scripted_view", "")
         {
             ScriptedView = new ScriptedViewRequest(ScriptedViewKind.CameraPath, player, path, default, false, tick),
         };
@@ -402,7 +402,7 @@ public class CameraPathPlaybackTests
 
     private static SimEvent View(ScriptedViewKind kind, PlayerId player, int value)
     {
-        return new(default, "t", "scripted_view", "") { ScriptedView = new ScriptedViewRequest(kind, player, value, default, false) };
+        return new SimEvent(default, "t", "scripted_view", "") { ScriptedView = new ScriptedViewRequest(kind, player, value, default, false) };
     }
 
     [Fact]

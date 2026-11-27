@@ -49,7 +49,7 @@ public sealed class RoomTickOrderTests
 
     private static GameSimulation Sim(GameDatabase db, WorldState world, params IRoomTickStep[] steps)
     {
-        return new(db, world, new SimRandom(new Dk2Lcg(1)), [new RoomTickSystem(steps)]);
+        return new GameSimulation(db, world, new SimRandom(new Dk2Lcg(1)), [new RoomTickSystem(steps)]);
     }
 
     private static uint SeedOf(GameSimulation sim)
@@ -118,7 +118,7 @@ public sealed class RoomTickOrderTests
     {
         GameDatabase db = Dk2TerrainFixture.Database();
         WorldState world = World(db);
-        TilePos oldWorkshop = new(8, 8), treasury = new(12, 8), newWorkshop = new(16, 8), lair = new(20, 8);
+        TilePos oldWorkshop = new TilePos(8, 8), treasury = new TilePos(12, 8), newWorkshop = new TilePos(16, 8), lair = new TilePos(20, 8);
         GameSimulation sim = Sim(db, world, new StoreSweepSystem(), new HatedCompanySystem(), new WorkshopTimerSystem(),
             new RoomBorderFlameSystem(), new RoomHealthSystem());
         Build(db, world, RoomTypeId.Workshop, oldWorkshop);
@@ -254,7 +254,7 @@ public sealed class RoomTickOrderTests
     {
         GameDatabase db = Dk2TerrainFixture.Database();
         WorldState world = World(db);
-        TilePos heart = new(8, 8), workshop = new(16, 8);
+        TilePos heart = new TilePos(8, 8), workshop = new TilePos(16, 8);
         GameSimulation sim = Sim(db, world, new StoreSweepSystem(), new HeartDefenceSystem(), new HeartFrameStep(), new WorkshopTimerSystem());
         Build(db, world, RoomTypeId.DungeonHeart, heart);
         Build(db, world, RoomTypeId.Workshop, workshop);
@@ -279,7 +279,7 @@ public sealed class RoomTickOrderTests
     {
         GameDatabase db = Dk2TerrainFixture.Database();
         WorldState world = World(db);
-        TilePos casino = new(8, 8), workshop = new(16, 8);
+        TilePos casino = new TilePos(8, 8), workshop = new TilePos(16, 8);
         GameSimulation sim = Sim(db, world, new CasinoSystem(), new WorkshopTimerSystem());
         Build(db, world, RoomTypeId.Casino, casino);
         Build(db, world, RoomTypeId.Workshop, workshop);

@@ -17,9 +17,9 @@ namespace DK2.Presentation.Tests;
 public sealed class CampaignResultFlowTests : IDisposable
 {
     private const byte Keeper = 3, Rival = 4;
-    private static readonly PlayerId Viewer = new(Keeper);
+    private static readonly PlayerId Viewer = new PlayerId(Keeper);
     private readonly string _root = Directory.CreateTempSubdirectory("dk2-result-").FullName;
-    private readonly List<PlayerCommand> _pending = new();
+    private readonly List<PlayerCommand> _pending = new List<PlayerCommand>();
     private int _profileLoads;
 
     private string ProfilePath
@@ -37,7 +37,7 @@ public sealed class CampaignResultFlowTests : IDisposable
 
     private static GameSimulation Simulation()
     {
-        TerrainDef terrain = new()
+        var terrain = new TerrainDef()
         {
             Name = "test", TerrainId = 2, Flags = TerrainFlags.Solid, StartingHealth = 1, MaxHealth = 1, GoldValue = 0,
             ManaGain = 0, MaxManaGain = 0, Damage = 0, MaxHealthTypeTerrainId = 2, DestroyedTypeTerrainId = 2,

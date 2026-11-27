@@ -117,7 +117,7 @@ public sealed class HeartPlatformMovementTests
 
     private static Fixed16Vector Point(double x, double y)
     {
-        return new((int)((6.5 + x) * Fixed16.One), (int)((6.5 + y) * Fixed16.One));
+        return new Fixed16Vector((int)((6.5 + x) * Fixed16.One), (int)((6.5 + y) * Fixed16.One));
     }
 
     [Fact]

@@ -16,10 +16,10 @@ public sealed class BattleNavigationTests
         var navigation = new BattleNavigation(new PlayerId(3));
         BattleViewSnapshot[] battles =
         [
-            new(new(6), new(60, 6), PlayerMask.None.With(new PlayerId(3)), 2),
-            new(new(1), new(10, 1), PlayerMask.None.With(new PlayerId(3)), 0),
-            new(new(2), new(20, 2), PlayerMask.None.With(new PlayerId(4)), 2),
-            new(new(3), new(30, 3), PlayerMask.None.With(new PlayerId(3)), 1),
+            new BattleViewSnapshot(new BattleViewSlot(6), new TilePos(60, 6), PlayerMask.None.With(new PlayerId(3)), 2),
+            new BattleViewSnapshot(new BattleViewSlot(1), new TilePos(10, 1), PlayerMask.None.With(new PlayerId(3)), 0),
+            new BattleViewSnapshot(new BattleViewSlot(2), new TilePos(20, 2), PlayerMask.None.With(new PlayerId(4)), 2),
+            new BattleViewSnapshot(new BattleViewSlot(3), new TilePos(30, 3), PlayerMask.None.With(new PlayerId(3)), 1),
         ];
         Assert.Equal(new TilePos(30, 3), navigation.Next(battles));
         Assert.Equal(new TilePos(60, 6), navigation.Next(battles));

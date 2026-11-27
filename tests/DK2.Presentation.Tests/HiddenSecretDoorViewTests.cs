@@ -17,8 +17,8 @@ namespace DK2.Presentation.Tests;
 /// at <c>0x0043E8FC</c>).</summary>
 public sealed class HiddenSecretDoorViewTests
 {
-    private static readonly PlayerId DoorOwner = new(4);
-    private static readonly PlayerId Stranger = new(3);
+    private static readonly PlayerId DoorOwner = new PlayerId(4);
+    private static readonly PlayerId Stranger = new PlayerId(3);
 
     /// <summary>Level 8 with the first of its doors made a Secret Door of <see cref="DoorOwner"/>'s.</summary>
     private static (GameDatabase Database, WorldState World, DoorState Door) Level8WithASecretDoor()

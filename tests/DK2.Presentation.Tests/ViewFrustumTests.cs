@@ -11,7 +11,7 @@ public sealed class ViewFrustumTests
 {
     private static ClassicCameraPose Pose(float shift)
     {
-        return new(new Vector3(20f, 9f, -30f),
+        return new ClassicCameraPose(new Vector3(20f, 9f, -30f),
         Vector3.Normalize(new Vector3(.3f, -.8f, .5f)), Vector3.UnitY, 50f, 40f, 55f, 31f, shift);
     }
 

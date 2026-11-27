@@ -13,19 +13,19 @@ public class FrontEndMenuTests
     {
         FrontEndSession session = ReadySession();
         using var menu = new FrontEndMenuController(session, HitBounds);
-        var entry = new DK2.Data.Save.SavedSessionEntry("first.dk2g", new("Level1", 1, 26,
+        var entry = new DK2.Data.Save.SavedSessionEntry("first.dk2g", new Data.Save.SavedSessionHeader("Level1", 1, 26,
             new DateTime(2026, 10, 29, 12, 0, 0, DateTimeKind.Utc), "First save"));
         var view = new SaveSlotsView("unused", () => new[] { entry });
         menu.SetSaveBrowser(view);
-        menu.Activate(new(1));
-        Assert.True(menu.Activate(new(7)));
+        menu.Activate(new FrontEndWidgetId(1));
+        Assert.True(menu.Activate(new FrontEndWidgetId(7)));
         session.Update(TimeSpan.FromSeconds(3));
         Assert.Equal(FrontEndPage.Load, session.Page);
         string? requested = null;
         menu.LoadRequested += path => requested = path;
-        Assert.False(menu.Activate(new(73)));
+        Assert.False(menu.Activate(new FrontEndWidgetId(73)));
         view.Select(0);
-        Assert.True(menu.Activate(new(73)));
+        Assert.True(menu.Activate(new FrontEndWidgetId(73)));
         Assert.Equal("first.dk2g", requested);
     }
 
@@ -47,11 +47,11 @@ public class FrontEndMenuTests
     {
         FrontEndSession session = ReadySession();
         using var menu = new FrontEndMenuController(session, HitBounds);
-        menu.UpdatePointer(new(1, 1, true));
+        menu.UpdatePointer(new FrontEndPointer(1, 1, true));
         Assert.Equal(FrontEndPage.SinglePlayer, session.Page);
-        menu.UpdatePointer(new(1, 1, true));
+        menu.UpdatePointer(new FrontEndPointer(1, 1, true));
         Assert.Equal(FrontEndPage.SinglePlayer, session.Page);
-        menu.UpdatePointer(new(1, 1, false));
+        menu.UpdatePointer(new FrontEndPointer(1, 1, false));
         Assert.False(menu.IsEnabled(FrontEndPages.Get(FrontEndPage.SinglePlayer).Widgets.Single(w => w.Id.Value == 6)));
     }
 
@@ -62,14 +62,14 @@ public class FrontEndMenuTests
         using var menu = new FrontEndMenuController(session, HitBounds);
         int exits = 0;
         menu.QuitRequested += () => exits++;
-        menu.Activate(new(5));
+        menu.Activate(new FrontEndWidgetId(5));
         Assert.Equal(FrontEndPage.Dialog, session.Page);
         Assert.Equal(28u, menu.Dialog!.TitleTextId);
         Assert.Equal(15u, menu.Dialog.BodyTextId);
         Assert.Equal(0, exits);
-        menu.Activate(new(668));
+        menu.Activate(new FrontEndWidgetId(668));
         Assert.Equal(FrontEndPage.Main, session.Page);
-        menu.Activate(new(5)); menu.Activate(new(667));
+        menu.Activate(new FrontEndWidgetId(5)); menu.Activate(new FrontEndWidgetId(667));
         Assert.Equal(1, exits);
     }
 
@@ -79,16 +79,16 @@ public class FrontEndMenuTests
         using var menu = new FrontEndMenuController(ReadySession(), HitBounds);
         var sounds = new List<int>();
         menu.SoundRequested += sound => sounds.Add(sound.Id);
-        menu.UpdatePointer(new(1, 1, false)); menu.AdvanceFrame();
-        menu.UpdatePointer(new(1, 1, false)); menu.AdvanceFrame();
+        menu.UpdatePointer(new FrontEndPointer(1, 1, false)); menu.AdvanceFrame();
+        menu.UpdatePointer(new FrontEndPointer(1, 1, false)); menu.AdvanceFrame();
         Assert.Equal(new[] { 0x30f }, sounds);
-        menu.UpdatePointer(new(-1, -1, false));
+        menu.UpdatePointer(new FrontEndPointer(-1, -1, false));
         for (int i = 0; i < 9; i++)
         {
             menu.AdvanceFrame();
         }
 
-        menu.UpdatePointer(new(1, 1, false));
+        menu.UpdatePointer(new FrontEndPointer(1, 1, false));
         Assert.Equal(new[] { 0x30f, 0x30f }, sounds);
     }
 
@@ -97,17 +97,17 @@ public class FrontEndMenuTests
     {
         FrontEndSession session = ReadySession();
         using var menu = new FrontEndMenuController(session, HitBounds);
-        menu.Activate(new(3));
+        menu.Activate(new FrontEndWidgetId(3));
         Assert.Equal(FrontEndPath.EntryToOptions, session.Path);
         Assert.Equal(FrontEndPage.None, session.Page);
         Assert.Empty(menu.Widgets);
         session.Update(TimeSpan.FromSeconds(3));
         Assert.Equal(FrontEndPage.Options, session.Page);
-        menu.Activate(new(110));
+        menu.Activate(new FrontEndWidgetId(110));
         Assert.Equal(FrontEndPage.Graphics, session.Page);
-        menu.Activate(new(130));
+        menu.Activate(new FrontEndWidgetId(130));
         Assert.Equal(FrontEndPage.Options, session.Page);
-        menu.Activate(new(113));
+        menu.Activate(new FrontEndWidgetId(113));
         Assert.Equal(FrontEndPath.OptionsToEntry, session.Path);
     }
 
@@ -118,18 +118,18 @@ public class FrontEndMenuTests
     {
         FrontEndSession session = ReadySession();
         using var menu = new FrontEndMenuController(session, HitBounds);
-        menu.Activate(new(4));
+        menu.Activate(new FrontEndWidgetId(4));
         session.Update(TimeSpan.FromSeconds(3));
         Assert.Equal(FrontEndPage.Extras, session.Page);
-        Assert.True(menu.Activate(new(19)));
+        Assert.True(menu.Activate(new FrontEndWidgetId(19)));
         Assert.Equal(FrontEndPage.HighScores, session.Page);
-        Assert.True(menu.Activate(new(47)));
+        Assert.True(menu.Activate(new FrontEndWidgetId(47)));
         Assert.Equal(FrontEndPage.Extras, session.Page);
     }
 
     private static FrontEndRect HitBounds(FrontEndWidget widget)
     {
-        return new(0, 0, 10, 10);
+        return new FrontEndRect(0, 0, 10, 10);
     }
 
     private static FrontEndSession ReadySession()

@@ -187,7 +187,7 @@ public class CampaignResultsTests
         session.Update(TimeSpan.Zero); session.Update(TimeSpan.FromMilliseconds(10)); session.Update(TimeSpan.FromSeconds(2));
         Assert.True(map.AcceptResults());
         Assert.True(map.EntryRow >= 0);
-        Assert.True(menu.Activate(new(47)));
+        Assert.True(menu.Activate(new FrontEndWidgetId(47)));
         Assert.Equal(-1, map.EntryRow);
         Assert.Equal(FrontEndPath.BriefingToTable, session.Path);
         Assert.NotEqual(FrontEndPage.Extras, session.Page);

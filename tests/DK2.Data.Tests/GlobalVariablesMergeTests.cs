@@ -193,7 +193,7 @@ public class GlobalVariablesMergeTests
 
     private static ObjectDef Bed(byte id)
     {
-        return new()
+        return new ObjectDef()
         {
             Name = $"bed {id}",
             ObjectId = id,

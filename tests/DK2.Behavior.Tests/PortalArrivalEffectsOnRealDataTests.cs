@@ -78,7 +78,7 @@ public class PortalArrivalEffectsOnRealDataTests
 
     private static ActionTriggerRecord Arrival(ushort id, ushort next, byte creatureId)
     {
-        return new(new byte[16])
+        return new ActionTriggerRecord(new byte[16])
         {
             Body = new byte[8],
             TriggerId = id,

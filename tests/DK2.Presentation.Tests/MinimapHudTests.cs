@@ -11,13 +11,13 @@ namespace DK2.Presentation.Tests;
 /// <summary>The engine-free minimap frame, corners, north sprite and hit areas (ADR-0805).</summary>
 public sealed class MinimapHudTests
 {
-    private static readonly HudScreen FullHd = new(1920, 1080);
+    private static readonly HudScreen FullHd = new HudScreen(1920, 1080);
     /// <summary>The frame's clip: 179.2 x 176 at (8, 584) in 1024x768 units.</summary>
-    private static readonly HudRect Clip = new(20, 1460, 448, 440);
+    private static readonly HudRect Clip = new HudRect(20, 1460, 448, 440);
 
     private static MinimapHud Hud()
     {
-        return new(new MinimapPalette(new uint[37]), 64, 64);
+        return new MinimapHud(new MinimapPalette(new uint[37]), 64, 64);
     }
 
     private static HudDraw[] Build(MinimapHud hud, (float, float) pointer = default, ushort heading = 0)
@@ -197,7 +197,7 @@ public sealed class MinimapHudTests
         Assert.Equal(expected, MinimapHud.DiscPixels(height, factor));
     }
 
-    private static readonly CameraViewport Viewport = new(1920, 1920, 1080);
+    private static readonly CameraViewport Viewport = new CameraViewport(1920, 1920, 1080);
 
     private static MinimapCameraView CameraAt(Vector3 focus, ushort yaw)
     {

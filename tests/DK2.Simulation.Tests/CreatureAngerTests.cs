@@ -578,7 +578,7 @@ public class CreatureAngerTests
         {
             Name = "Longshot",
             CreatureId = 45,
-            AngryJobs = [new(JobType.Leave, 0, 0, 1)],
+            AngryJobs = [new CreatureJobPreference(JobType.Leave, 0, 0, 1)],
         };
 
         GameDatabase db = Dk2TerrainFixture.Database(longshot);
@@ -766,8 +766,8 @@ public class CreatureAngerTests
     {
         GameDatabase db = Db;
         WorldState world = World(db);
-        world.Player(Keeper).Availabilities.Add(new(AvailabilityKind.Room, (int)RoomTypeId.Hatchery, RoomNeedRules.Available));
-        world.Player(Keeper).Availabilities.Add(new(AvailabilityKind.Room, (int)RoomTypeId.Lair, RoomNeedRules.Available));
+        world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Room, (int)RoomTypeId.Hatchery, RoomNeedRules.Available));
+        world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Room, (int)RoomTypeId.Lair, RoomNeedRules.Available));
         CreatureState goblin = HungryGoblin(db, world);
         goblin.WageOwed = 100;
         CreatureDef definition = db.CreatureById(GoblinId);

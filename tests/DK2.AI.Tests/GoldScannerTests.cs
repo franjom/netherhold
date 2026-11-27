@@ -15,7 +15,7 @@ public class GoldScannerTests
     {
         GameDatabase db = KeeperWorld.Database();
         WorldState world = KeeperWorld.World(db);
-        TilePos[] seams = [new(13, 13), new(15, 13), new(17, 13), new(2, 16), new(12, 17), new(19, 19)];
+        TilePos[] seams = [new TilePos(13, 13), new TilePos(15, 13), new TilePos(17, 13), new TilePos(2, 16), new TilePos(12, 17), new TilePos(19, 19)];
         foreach (TilePos seam in seams)
         {
             KeeperWorld.Set(world, db, seam, KeeperWorld.Gold);
@@ -33,7 +33,7 @@ public class GoldScannerTests
     {
         GameDatabase db = KeeperWorld.Database();
         WorldState world = KeeperWorld.World(db);
-        TilePos[] seams = [new(13, 13), new(15, 13), new(17, 13), new(2, 16), new(28, 16)];
+        TilePos[] seams = [new TilePos(13, 13), new TilePos(15, 13), new TilePos(17, 13), new TilePos(2, 16), new TilePos(28, 16)];
         foreach (TilePos seam in seams)
         {
             KeeperWorld.Set(world, db, seam, KeeperWorld.Gold);

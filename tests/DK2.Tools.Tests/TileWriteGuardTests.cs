@@ -35,7 +35,7 @@ public class TileWriteGuardTests
 
     private static readonly Allowed[] AllowList =
     [
-        new("src/DK2.Presentation/ScenePresenter.cs", "SnapshotTiles",
+        new Allowed("src/DK2.Presentation/ScenePresenter.cs", "SnapshotTiles",
             "copies the world's tiles into the presenter's own array to see which changed; that array is not a world's"),
     ];
 

@@ -49,7 +49,7 @@ public class KwdRecordLayoutTests
     /// </summary>
     public static TheoryData<string, KwdRecordType, int, int> FixedStrides()
     {
-        return new()
+        return new TheoryData<string, KwdRecordType, int, int>()
     {
         // file, type, item count, record size
         { "Terrain.kwd",        KwdRecordType.Terrain,         41,  552 },  // parsed

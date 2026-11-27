@@ -98,7 +98,7 @@ public class BitmapTextTests
     public void InferredPlacementCentresTheBlockAndEachLine()
     {
         // Line height 18, scale 2: two lines are 72 high in a 100 high box, so the block starts 14 down.
-        BitmapTextLine[] lines = [new("aa", 20), new("b", 10)];
+        BitmapTextLine[] lines = [new BitmapTextLine("aa", 20), new BitmapTextLine("b", 10)];
 
         PlacedBitmapGlyph[] placed = Placed(Font(), new HudRect(10, 20, 100, 100), lines, 2f, centred: true);
 
@@ -111,7 +111,7 @@ public class BitmapTextTests
     [Fact]
     public void UncentredPlacementStartsEachLineAtTheBoxEdge()
     {
-        PlacedBitmapGlyph[] placed = Placed(Font(), new HudRect(10, 20, 100, 100), [new("ab", 20)], 1f, centred: false);
+        PlacedBitmapGlyph[] placed = Placed(Font(), new HudRect(10, 20, 100, 100), [new BitmapTextLine("ab", 20)], 1f, centred: false);
 
         Assert.Equal([10f, 20f], placed.Select(p => p.Rect.X));
     }
@@ -126,7 +126,7 @@ public class BitmapTextTests
         ]);
 
         // '?' is not in the font: no space taken. ' ' has no width: its advance, but not placed.
-        PlacedBitmapGlyph[] placed = Placed(font, new HudRect(0.3f, 0, 100, 20), [new("j? j", 13)], 1.5f, centred: false);
+        PlacedBitmapGlyph[] placed = Placed(font, new HudRect(0.3f, 0, 100, 20), [new BitmapTextLine("j? j", 13)], 1.5f, centred: false);
 
         // Block: 15 high in a 20 high box, so y starts at 2.5. First j: x 0.3 - 1.5 = -1.2 -> -1, y 2.5 + 4.5 = 7.
         // Second j: pen 0.3 + 7.5 + 4.5 = 12.3, x 10.8 -> 11.
@@ -276,7 +276,7 @@ public class BitmapTextTests
 
     private static BitmapFont Font()
     {
-        return new(18,
+        return new BitmapFont(18,
     [
         new BitmapGlyph('a', 8, 8, 0, 0, 10, new byte[64]),
         new BitmapGlyph('b', 8, 8, 0, 0, 10, new byte[64]),

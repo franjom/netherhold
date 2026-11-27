@@ -17,7 +17,7 @@ public class KeeperSpecialStepTests
 {
     private static readonly GameDatabase Db = KeeperWorld.Database();
     private const byte Keeper = KeeperWorld.Keeper;
-    private static readonly TilePos Own = new(14, 15), OwnToo = new(16, 15), Unclaimed = new(5, 5);
+    private static readonly TilePos Own = new TilePos(14, 15), OwnToo = new TilePos(16, 15), Unclaimed = new TilePos(5, 5);
 
     private static ObjectState Box(WorldState world, byte type, TilePos at, byte owner = Keeper)
     {

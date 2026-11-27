@@ -18,7 +18,7 @@ namespace DK2.Presentation.Tests;
 /// DungeonRunner (Saves, LevelEnd) for both adapters.</summary>
 public sealed class SessionSaveLoadTests : IDisposable
 {
-    private static readonly DateTime SavedAt = new(2026, 11, 16, 9, 30, 0, DateTimeKind.Utc);
+    private static readonly DateTime SavedAt = new DateTime(2026, 11, 16, 9, 30, 0, DateTimeKind.Utc);
     private readonly string _root = Directory.CreateTempSubdirectory("dk2-session-").FullName;
     private int _profileLoads;
 
@@ -50,7 +50,7 @@ public sealed class SessionSaveLoadTests : IDisposable
 
     private static CampaignLevelData Level(string name = "Level5")
     {
-        TerrainDef terrain = new()
+        var terrain = new TerrainDef()
         {
             Name = "test", TerrainId = 2, Flags = TerrainFlags.Solid, StartingHealth = 1, MaxHealth = 1, GoldValue = 0,
             ManaGain = 0, MaxManaGain = 0, Damage = 0, MaxHealthTypeTerrainId = 2, DestroyedTypeTerrainId = 2,
@@ -69,7 +69,7 @@ public sealed class SessionSaveLoadTests : IDisposable
 
     private CampaignProfileStore Store()
     {
-        return new(import: null, () => new DateTime(2026, 11, 16));
+        return new CampaignProfileStore(import: null, () => new DateTime(2026, 11, 16));
     }
 
     private Action LoadInto(CampaignProfileStore store)
@@ -83,12 +83,12 @@ public sealed class SessionSaveLoadTests : IDisposable
 
     private SessionSaver Saver(CampaignProfileStore store)
     {
-        return new(store, LoadInto(store), () => SavedAt);
+        return new SessionSaver(store, LoadInto(store), () => SavedAt);
     }
 
     private SessionLoader Loader(CampaignProfileStore store, CampaignLevelData level, bool terrainImportsSupported = false)
     {
-        return new(store, LoadInto(store), _ => level) { TerrainImportsSupported = terrainImportsSupported };
+        return new SessionLoader(store, LoadInto(store), _ => level) { TerrainImportsSupported = terrainImportsSupported };
     }
 
     private SaveSlotsView Saves(string name)
@@ -449,7 +449,7 @@ public sealed class SessionSaveLoadTests : IDisposable
 
     private SessionLoader InstallLoader(CampaignProfileStore store, string install)
     {
-        return new(store, LoadInto(store), name => CampaignLevelData.Load(install, name));
+        return new SessionLoader(store, LoadInto(store), name => CampaignLevelData.Load(install, name));
     }
 
     /// <summary>The owner's DK2 observation (ADR-0241, room-slab-chain.md section 6): a Prison dragged with its door in

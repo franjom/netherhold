@@ -32,7 +32,7 @@ public sealed class MinimapTileClassifierTests
 
     private static TerrainDef Terrain(TerrainFlags flags = 0, ushort gold = 0)
     {
-        return new()
+        return new TerrainDef()
         {
             Name = "Test",
             TerrainId = 1,

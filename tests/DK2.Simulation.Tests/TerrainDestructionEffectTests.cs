@@ -25,7 +25,7 @@ public class TerrainDestructionEffectTests
         var db = new GameDatabase(original.Terrain.Values.Select(t => t.TerrainId == rock.TerrainId ? rock : t),
             original.Rooms.Values, original.Creatures.Values, original.Variables);
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, PlayerIds.FirstKeeper]);
-        TilePos at = new(2, 2);
+        var at = new TilePos(2, 2);
         world.Tile(at).TerrainId = rock.TerrainId;
         world.Tile(at).OwnerPlayerId = PlayerIds.Neutral;
         world.Tile(at).Health = rock.StartingHealth;

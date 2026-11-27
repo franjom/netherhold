@@ -32,9 +32,9 @@ public sealed class FrameDriverTests
         public readonly WorldState World;
         public readonly WorldView View;
         public readonly ScriptedViewDirector Script;
-        public readonly TickPacer Pacer = new();
+        public readonly TickPacer Pacer = new TickPacer();
         public readonly List<PlayerCommand> Pending = [];
-        public readonly FrameInputRecorder Recorder = new();
+        public readonly FrameInputRecorder Recorder = new FrameInputRecorder();
         public readonly FrameDriver Driver;
         public FrameJournalSession? Journal;
 
@@ -349,10 +349,10 @@ public sealed class FrameDriverTests
         return rig;
     }
 
-    private static readonly KcsRotation Identity = new(1, 0, 0, 0, 1, 0, 0, 0, 1);
+    private static readonly KcsRotation Identity = new KcsRotation(1, 0, 0, 0, 1, 0, 0, 0, 1);
 
     private static SimEvent View(ScriptedViewKind kind, int value, TilePos tile)
     {
-        return new(default, "t", "scripted_view", "") { ScriptedView = new ScriptedViewRequest(kind, Keeper, value, tile, false) };
+        return new SimEvent(default, "t", "scripted_view", "") { ScriptedView = new ScriptedViewRequest(kind, Keeper, value, tile, false) };
     }
 }

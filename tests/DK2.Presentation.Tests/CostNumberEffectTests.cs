@@ -21,7 +21,7 @@ public class CostNumberEffectTests
     {
         RoomConstructionParticles model = Model();
         model.Request(Amount(4800));
-        model.AdvanceTo(new(51));
+        model.AdvanceTo(new EffectTime(51));
         ConstructionParticle[] digits = [.. model.Particles];
         Assert.Equal([27, 27, 35, 31], digits.Select(d => (int)d.Definition.EffectElementId));
         Assert.Equal([2 * DigitWidth, DigitWidth, 0, -DigitWidth], digits.Select(d => d.ScreenOffsetXRaw));
@@ -35,7 +35,7 @@ public class CostNumberEffectTests
     {
         RoomConstructionParticles model = Model();
         model.Request(Amount(42));
-        model.AdvanceTo(new(51));
+        model.AdvanceTo(new EffectTime(51));
         Assert.All(model.Particles, d =>
         {
             Assert.Equal((0, 0, 0), (d.Red, d.Green, d.Blue));
@@ -67,18 +67,18 @@ public class CostNumberEffectTests
     {
         var wave = new EffectDef([])
         {
-            Name = "wave", EffectId = 10, ArtResource = EmptyArt, Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0),
+            Name = "wave", EffectId = 10, ArtResource = EmptyArt, Light = new KwdLight(0, 0, 0, 0, 0, 0, 0, 0, 0),
             GenerateIds = [20], GenerationType = 4, ElementsPerTurn = 1, MinHp = 1, MaxHp = 1,
         };
         var spark = new EffectElementDef([])
         {
-            Name = "spark", EffectElementId = 20, ArtResource = new("spark", 0, new byte[12], artType, 0, 0, 0),
+            Name = "spark", EffectElementId = 20, ArtResource = new KwdArtResource("spark", 0, new byte[12], artType, 0, 0, 0),
             MinHp = 20, MaxHp = 20, MinScale = 4096, MaxScale = 4096, Red = 40, Green = 50, Blue = 60,
         };
         var model = new RoomConstructionParticles(new GameDatabase([], [], [], new GlobalVariables(),
             effects: [wave], effectElements: [spark]), 7, () => default, floorHeight: _ => default);
-        model.Request(new ViewEffectRequest(new(10), Viewer, new FpPosition3(new(10000), new(12000), new(0))));
-        model.AdvanceTo(new(51));
+        model.Request(new ViewEffectRequest(new EffectId(10), Viewer, new FpPosition3(new Fp32(10000), new Fp32(12000), new Fp32(0))));
+        model.AdvanceTo(new EffectTime(51));
         ConstructionParticle particle = Assert.Single(model.Particles);
         Assert.Equal((lit, red), (particle.TakesLight, particle.Red));
     }
@@ -88,7 +88,7 @@ public class CostNumberEffectTests
     {
         RoomConstructionParticles model = Model(cameraVisible: _ => false);
         model.Request(Amount(300));
-        model.AdvanceTo(new(51));
+        model.AdvanceTo(new EffectTime(51));
         Assert.Empty(model.Particles);
     }
 
@@ -97,7 +97,7 @@ public class CostNumberEffectTests
     {
         RoomConstructionParticles model = Model(viewer: null);
         model.Request(Amount(300) with { Owner = new PlayerId(4) });
-        model.AdvanceTo(new(51));
+        model.AdvanceTo(new EffectTime(51));
         Assert.Equal(3, model.Particles.Count);
     }
 
@@ -110,7 +110,7 @@ public class CostNumberEffectTests
     {
         RoomConstructionParticles model = Model();
         model.Request(Amount(amount));
-        model.AdvanceTo(new(51));
+        model.AdvanceTo(new EffectTime(51));
         Assert.Equal(count, model.Particles.Count);
         Assert.Equal(unitsOffset, model.Particles[0].ScreenOffsetXRaw);
     }
@@ -120,7 +120,7 @@ public class CostNumberEffectTests
     {
         RoomConstructionParticles model = Model();
         model.Request(Amount(300) with { Owner = new PlayerId(4) });
-        model.AdvanceTo(new(51));
+        model.AdvanceTo(new EffectTime(51));
         Assert.Empty(model.Particles);
     }
 
@@ -129,29 +129,29 @@ public class CostNumberEffectTests
     {
         RoomConstructionParticles model = Model();
         model.Request(Amount(5));
-        model.AdvanceTo(new(51));
+        model.AdvanceTo(new EffectTime(51));
         ConstructionParticle digit = Assert.Single(model.Particles);
         int born = digit.HeightRaw;
         // One 50 ms update at a time: an update moves once whatever quanta it covers (0x00436430).
         for (int update = 1; update <= 47; update++)
         {
-            model.AdvanceTo(new(51 + update * 50));
+            model.AdvanceTo(new EffectTime(51 + update * 50));
         }
 
         Assert.Same(digit, Assert.Single(model.Particles));
         Assert.InRange(digit.HeightRaw - born, (int)(1.3 * 4096), (int)(1.45 * 4096));
-        model.AdvanceTo(new(51 + 48 * 50));
+        model.AdvanceTo(new EffectTime(51 + 48 * 50));
         Assert.Empty(model.Particles);
     }
 
     private static ViewEffectRequest Amount(int amount)
     {
-        return new(new(CostNumberRules.GoldEffectId), Viewer,
-        new FpPosition3(new(10000), new(12000), new(0)))
+        return new ViewEffectRequest(new EffectId(CostNumberRules.GoldEffectId), Viewer,
+        new FpPosition3(new Fp32(10000), new Fp32(12000), new Fp32(0)))
         { Amount = amount };
     }
 
-    private static readonly KwdArtResource EmptyArt = new("", 0, new byte[12], 0, 0, 0, 0);
+    private static readonly KwdArtResource EmptyArt = new KwdArtResource("", 0, new byte[12], 0, 0, 0, 0);
 
     private static RoomConstructionParticles Model(Func<ViewEffectRequest, bool>? cameraVisible = null)
     {
@@ -163,17 +163,17 @@ public class CostNumberEffectTests
         var effect = new EffectDef([])
         {
             Name = "Gold Cost", EffectId = CostNumberRules.GoldEffectId, ArtResource = EmptyArt,
-            Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0), GenerateIds = [27], GenerationType = 14, Flags = 0x480,
+            Light = new KwdLight(0, 0, 0, 0, 0, 0, 0, 0, 0), GenerateIds = [27], GenerationType = 14, Flags = 0x480,
             MinHp = 1, MaxHp = 1,
         };
         EffectElementDef[] digits = [.. Enumerable.Range(0, 10).Select(d => new EffectElementDef([])
         {
             Name = $"InGameDigit{d}", EffectElementId = (ushort)(27 + d),
-            ArtResource = new($"InGameDigit{d}", 0, new byte[12], 2, 0, 0, 0),
+            ArtResource = new KwdArtResource($"InGameDigit{d}", 0, new byte[12], 2, 0, 0, 0),
             MinHp = 48, MaxHp = 48, MinScale = DigitWidth, MaxScale = DigitWidth,
             MinSpeedYz = 8192, MaxSpeedYz = 8192, AirFriction = 327,
         })];
-        return new(new GameDatabase([], [], [], new GlobalVariables(), effects: [effect], effectElements: digits),
+        return new RoomConstructionParticles(new GameDatabase([], [], [], new GlobalVariables(), effects: [effect], effectElements: digits),
             7, () => default, floorHeight: _ => default, cameraVisible: cameraVisible, viewer: viewer);
     }
 }

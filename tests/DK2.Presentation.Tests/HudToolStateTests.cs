@@ -15,21 +15,21 @@ namespace DK2.Presentation.Tests;
 public sealed class HudToolStateTests
 {
     private static readonly PlayerId Keeper = PlayerIds.FirstKeeper;
-    private static readonly BottomPanelChoiceKey Lair = new(BottomPanelChoiceKind.Room, (byte)RoomTypeId.Lair);
-    private static readonly BottomPanelChoiceKey Door = new(BottomPanelChoiceKind.Door, 2);
-    private static readonly CreatureQueryTarget Queried = new(42);
+    private static readonly BottomPanelChoiceKey Lair = new BottomPanelChoiceKey(BottomPanelChoiceKind.Room, (byte)RoomTypeId.Lair);
+    private static readonly BottomPanelChoiceKey Door = new BottomPanelChoiceKey(BottomPanelChoiceKind.Door, 2);
+    private static readonly CreatureQueryTarget Queried = new CreatureQueryTarget(42);
 
     private readonly record struct Fields(DungeonToolMode Tool, RoomTypeId Room, BottomPanelChoiceKey? Choice, bool Query,
         ClassicHudAction Corner);
 
     private static Fields Of(HudToolState state)
     {
-        return new(state.Tool, state.SelectedRoomId, state.PanelChoice, state.QueryTool, state.SelectedCorner);
+        return new Fields(state.Tool, state.SelectedRoomId, state.PanelChoice, state.QueryTool, state.SelectedCorner);
     }
 
     private static BottomPanelView Panel()
     {
-        return new(new GameDatabase([], [], [], new GlobalVariables()), Keeper, (_, name) => name);
+        return new BottomPanelView(new GameDatabase([], [], [], new GlobalVariables()), Keeper, (_, name) => name);
     }
 
     private static CreatureQueryView Query()

@@ -64,8 +64,8 @@ public class KwdLevelFileSetTests
             var editor=KwdLevelFileSet.Load(Path.Combine(root,"level.kwd"),root);
             Assert.Equal(3,editor.Files.Count);
             Assert.Equal(doors,editor.ToBytes("defs.kwd")); Assert.Equal(things,editor.ToBytes("things.kld"));
-            editor.EditRecord<DoorDef>(new("defs.kwd",0,0),row=>row with { Health=13 });
-            Assert.Equal(13,editor.ReadRecord<DoorDef>(new("defs.kwd",0,0)).Health);
+            editor.EditRecord<DoorDef>(new KwdRecordLocation("defs.kwd",0,0),row=>row with { Health=13 });
+            Assert.Equal(13,editor.ReadRecord<DoorDef>(new KwdRecordLocation("defs.kwd",0,0)).Health);
         }
         finally { if(Directory.Exists(root))
             {
@@ -80,9 +80,9 @@ public class KwdLevelFileSetTests
         var editor=KwdLevelFileSet.Create(new Dictionary<string,IReadOnlyList<KwdChunk>> {
             ["things.kld"]=[Fixture(KwdRecordType.Things,KwdThingsWriterTests.Image(194,new byte[24]).ToBytes(),1)] });
         byte[] original=editor.ToBytes("things.kld");
-        Assert.Throws<InvalidDataException>(()=>editor.EditRecord<ObjectThing>(new("things.kld",0,0),row=>row with { TriggerId=13 }));
-        Assert.Throws<InvalidDataException>(()=>editor.ReadRecord<DoorDef>(new("things.kld",0,0)));
-        Assert.Throws<ArgumentOutOfRangeException>(()=>editor.ReadRecord<ObjectThing>(new("things.kld",0,1)));
+        Assert.Throws<InvalidDataException>(()=>editor.EditRecord<ObjectThing>(new KwdRecordLocation("things.kld",0,0),row=>row with { TriggerId=13 }));
+        Assert.Throws<InvalidDataException>(()=>editor.ReadRecord<DoorDef>(new KwdRecordLocation("things.kld",0,0)));
+        Assert.Throws<ArgumentOutOfRangeException>(()=>editor.ReadRecord<ObjectThing>(new KwdRecordLocation("things.kld",0,1)));
         Assert.Throws<InvalidDataException>(()=>KwdLevelFileSet.Create(new Dictionary<string,IReadOnlyList<KwdChunk>> { ["../escape.kwd"]=[] }));
         Assert.Equal(original,editor.ToBytes("things.kld"));
     }

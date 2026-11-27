@@ -186,7 +186,7 @@ public sealed class MessageTabsViewTests
         var view = new MessageTabsView(keeper, db);
         PlayerMessage Message(PlayerMessageKind kind, int data1, int data2)
         {
-            return new(1, keeper, kind, data1, data2, 0, 0, true, false);
+            return new PlayerMessage(1, keeper, kind, data1, data2, 0, 0, true, false);
         }
 
         Assert.Equal((5.5f, 6.5f), view.Location(world, Message(PlayerMessageKind.HeartAttacked, 5, 6)));

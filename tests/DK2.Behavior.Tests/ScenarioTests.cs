@@ -475,7 +475,7 @@ public class ScenarioTests
     /// </summary>
     internal static GameDatabase SyntheticDatabase()
     {
-        return new(
+        return new GameDatabase(
         [
             Terrain(1, "Impenetrable Rock", TerrainFlags.Solid | TerrainFlags.Impenetrable, 0),
             Terrain(2, "Rock", TerrainFlags.Solid | TerrainFlags.Taggable, 165),
@@ -503,7 +503,7 @@ public class ScenarioTests
     private static KeeperSpellDef[] KeeperSpells()
     {
         return [
-        new() { Name = KeeperSpellName.CreateImp, ManaCost = 1500, ManaUpkeepPerSecond = 7 },
+        new KeeperSpellDef() { Name = KeeperSpellName.CreateImp, ManaCost = 1500, ManaUpkeepPerSecond = 7 },
     ];
     }
 
@@ -514,7 +514,7 @@ public class ScenarioTests
     /// </summary>
     private static RoomDef SyntheticTreasury()
     {
-        return new()
+        return new RoomDef()
         {
             Name = "Treasury",
             RoomId = (byte)RoomTypeId.Treasury,
@@ -609,7 +609,7 @@ public class ScenarioTests
     /// </summary>
     private static CreatureDef Worker(string name, byte id)
     {
-        return new()
+        return new CreatureDef()
         {
             Name = name,
             CreatureId = id,
@@ -685,7 +685,7 @@ public class ScenarioTests
 
     private static TerrainDef Terrain(byte id, string name, TerrainFlags flags, ushort health)
     {
-        return new()
+        return new TerrainDef()
         {
             Name = name,
             TerrainId = id,

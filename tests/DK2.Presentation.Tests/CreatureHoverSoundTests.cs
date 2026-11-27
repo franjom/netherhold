@@ -18,7 +18,7 @@ namespace DK2.Presentation.Tests;
 /// sound-effects-continuous.md section 2.</summary>
 public sealed class CreatureHoverSoundTests
 {
-    private static readonly PlayerId Viewer = new(PlayerIds.FirstKeeper);
+    private static readonly PlayerId Viewer = new PlayerId(PlayerIds.FirstKeeper);
 
     private static (GameDatabase Database, WorldState World, CreatureState Goblin) Setup(long tick = 12, byte owner = PlayerIds.FirstKeeper)
     {
@@ -32,7 +32,7 @@ public sealed class CreatureHoverSoundTests
 
     private static WorldHoverHit Hit(CreatureState c)
     {
-        return new(WorldHoverKind.Creature, c.Tile, c.Id);
+        return new WorldHoverHit(WorldHoverKind.Creature, c.Tile, c.Id);
     }
 
     [InstallFact]

@@ -33,7 +33,7 @@ public sealed class SummonHornyTests
             ManaUpkeepPerSecond = 2000, ShotTypeId = 46, ShotData1 = 0,
             LocationSelector = 1, TargetSelector = 4,
         };
-        ShotDef shot = new(new byte[239])
+        var shot = new ShotDef(new byte[239])
         {
             Name = "Create Reaper Shot", ShotId = 46,
             MeshResource = basis.Shots[4].MeshResource, Light = basis.Shots[4].Light,

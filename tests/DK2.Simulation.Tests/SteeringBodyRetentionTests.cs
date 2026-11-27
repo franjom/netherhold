@@ -20,8 +20,8 @@ public class SteeringBodyRetentionTests
     public void ACommittedStepLeavesTheBodysLowBits()
     {
         (GameSimulation sim, CreatureState walker, _) = Fixture();
-        Prepare(walker, position: new(19770 << 4, 19770 << 4), velocity: new(21421, 21421),
-            waypoint: new(393216, 393216), heading: 768);
+        Prepare(walker, position: new Fixed16Vector(19770 << 4, 19770 << 4), velocity: new Fixed16Vector(21421, 21421),
+            waypoint: new Fixed16Vector(393216, 393216), heading: 768);
 
         sim.Tick();
 
@@ -78,11 +78,11 @@ public class SteeringBodyRetentionTests
     [InlineData(1037056, 774032, -30209, 417)]
     public void CapturedNeighbourLowBitsDecideTheStep(int neighbourX, int neighbourY, int expectedVx, int expectedVy)
     {
-        var mover = new SteeringBody { Pos = new(1044544, 774000), Vel = new(-29280, 7968), Radius = 4576, MaxForce = 98304, MaxSpeed = 30144 };
-        var neighbour = new SteeringBody { Pos = new(neighbourX, neighbourY), Vel = new(-28635, 10303), Radius = 4576, MaxForce = 98304, MaxSpeed = 30144 };
+        var mover = new SteeringBody { Pos = new Fixed16Vector(1044544, 774000), Vel = new Fixed16Vector(-29280, 7968), Radius = 4576, MaxForce = 98304, MaxSpeed = 30144 };
+        var neighbour = new SteeringBody { Pos = new Fixed16Vector(neighbourX, neighbourY), Vel = new Fixed16Vector(-28635, 10303), Radius = 4576, MaxForce = 98304, MaxSpeed = 30144 };
 
         Fixed16Vector separation = SeparationBehaviour.Push(mover, 1, neighbour, 1);
-        Fixed16Vector total = SteeringIntegrator.Combine(mover, Fixed16Vector.Zero, Fixed16Vector.Zero, new(-19150, 12984), separation);
+        Fixed16Vector total = SteeringIntegrator.Combine(mover, Fixed16Vector.Zero, Fixed16Vector.Zero, new Fixed16Vector(-19150, 12984), separation);
         Fixed16Vector velocity = Fixed16.Truncate(mover.Vel + Fixed16.Truncate(total, mover.MaxForce), mover.MaxSpeed);
 
         Assert.Equal(new Fixed16Vector(expectedVx, expectedVy), velocity);

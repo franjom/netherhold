@@ -51,7 +51,7 @@ public class PortalTests
 
     private static GameSimulation Simulation(GameDatabase database, WorldState world)
     {
-        return new(database, world, seed: 99, [new PortalSystem()]);
+        return new GameSimulation(database, world, seed: 99, [new PortalSystem()]);
     }
 
     /// <summary>

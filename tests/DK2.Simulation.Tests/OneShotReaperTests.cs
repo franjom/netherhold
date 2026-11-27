@@ -57,7 +57,7 @@ public sealed class OneShotReaperTests
 
     private static CastSpellAtPlaceCommand Cast(TilePos at, byte spell = SpellId)
     {
-        return new(Keeper, spell, CreatureState.CentreOf(at.X), CreatureState.CentreOf(at.Y));
+        return new CastSpellAtPlaceCommand(Keeper, spell, CreatureState.CentreOf(at.X), CreatureState.CentreOf(at.Y));
     }
 
     [Theory]

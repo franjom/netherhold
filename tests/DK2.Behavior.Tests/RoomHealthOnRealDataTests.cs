@@ -27,7 +27,7 @@ public class RoomHealthOnRealDataTests
         Assert.NotNull(map);
         var world = WorldState.FromMap(db, map,
             [PlayerIds.Unowned, PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
-        TilePos at = new(35, 38);
+        var at = new TilePos(35, 38);
         RoomInstance room = RoomIndex.RoomAt(world, db, world.TileIndex(at))!;
         Assert.NotNull(room);
         Assert.Equal(RoomTypeId.StoneBridge, room.Definition.TypeId);

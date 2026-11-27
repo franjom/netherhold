@@ -17,7 +17,7 @@ public sealed class HandSoundTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte ImpId = Dk2TerrainFixture.ImpCreatureId;
-    private static readonly TilePos Floor = new(2, 2), Elsewhere = new(1, 3);
+    private static readonly TilePos Floor = new TilePos(2, 2), Elsewhere = new TilePos(1, 3);
 
     private static (GameDatabase Db, WorldState World, GameSimulation Sim, ListEventSink Events) Setup()
     {
@@ -40,7 +40,7 @@ public sealed class HandSoundTests
 
     private static FpPosition3 Centre(TilePos tile, int height = 0x1000)
     {
-        return new(new Fp32(CreatureState.CentreOf(tile.X)), new Fp32(CreatureState.CentreOf(tile.Y)), new Fp32(height));
+        return new FpPosition3(new Fp32(CreatureState.CentreOf(tile.X)), new Fp32(CreatureState.CentreOf(tile.Y)), new Fp32(height));
     }
 
     [Fact]

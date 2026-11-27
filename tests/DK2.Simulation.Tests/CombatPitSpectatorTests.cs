@@ -20,15 +20,15 @@ public sealed class CombatPitSpectatorTests
     private const int Engaging = 199;   // the fight state, category 22
 
     // A 5x5 pit at (4..8, 2..6): its floor is the 3x3 at (5..7, 3..5).
-    private static readonly TilePos Rim = new(4, 4);
-    private static readonly TilePos Outside = new(10, 4);
+    private static readonly TilePos Rim = new TilePos(4, 4);
+    private static readonly TilePos Outside = new TilePos(10, 4);
 
     private static (GameDatabase, WorldState) World()
     {
         var art = new CreatureAnimationTiming[CreatureDef.ArtSlotCount];
         art[8] = art[20] = new CreatureAnimationTiming { ResourceType = 6, FrameCount = 20, FramesPerSecond = 20 };
         CreatureDef watcher = Dk2TerrainFixture.Goblin() with
-        { CreatureId = Watcher, Name = "Watching Goblin", HappyJobs = [new(JobType.CombatPitSpectate, 0, 0, 100)], ArtSlots = art };
+        { CreatureId = Watcher, Name = "Watching Goblin", HappyJobs = [new CreatureJobPreference(JobType.CombatPitSpectate, 0, 0, 100)], ArtSlots = art };
         GameDatabase db = Dk2TerrainFixture.Database(watcher,
             watcher with { CreatureId = SlowTurner, Name = "Slow Goblin", TurnRate = 256 });
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
@@ -117,7 +117,7 @@ public sealed class CombatPitSpectatorTests
     [Fact]
     public void ThePitFinderMeasuresToEachPitsFirstSlab_NotItsLowestTile()
     {
-        CreatureDef watcherDef = Dk2TerrainFixture.Goblin() with { CreatureId = Watcher, Name = "Watching Goblin", HappyJobs = [new(JobType.CombatPitSpectate, 0, 0, 100)] };
+        CreatureDef watcherDef = Dk2TerrainFixture.Goblin() with { CreatureId = Watcher, Name = "Watching Goblin", HappyJobs = [new CreatureJobPreference(JobType.CombatPitSpectate, 0, 0, 100)] };
         GameDatabase db = Dk2TerrainFixture.Database(watcherDef);
         var world = WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
         for (int y = 1; y <= 10; y++)

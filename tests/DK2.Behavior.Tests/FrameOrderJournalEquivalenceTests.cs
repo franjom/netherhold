@@ -189,7 +189,7 @@ public class FrameOrderJournalEquivalenceTests
         }
     }
 
-    private static readonly PlayerId Viewer = new(3);
+    private static readonly PlayerId Viewer = new PlayerId(3);
 
     /// <summary>Queues the schedule frame by frame through <see cref="FrameDriver"/>'s order, journalled by a
     /// <see cref="FrameJournalSession"/> into a temporary folder, and hands each frame's ticks their input. Nothing is

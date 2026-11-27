@@ -43,7 +43,7 @@ public class CreatureNeedsTests
 
     private static GameSimulation Simulation(GameDatabase db, WorldState world)
     {
-        return new(db, world, seed: 42, [new CreatureUpdateSystem(new CreatureStatusSystem(), new CreatureEatSystem()), new CreatureHealthSystem()]);
+        return new GameSimulation(db, world, seed: 42, [new CreatureUpdateSystem(new CreatureStatusSystem(), new CreatureEatSystem()), new CreatureHealthSystem()]);
     }
 
     private static void Paint(
@@ -458,7 +458,7 @@ public class CreatureNeedsTests
             fixture.Terrain.Values.Select(t => t.TerrainId == Dk2TerrainFixture.Water ? t with { Damage = -67 } : t),
             fixture.Rooms.Values, fixture.Creatures.Values, fixture.Variables, objects: fixture.Objects.Values);
         WorldState world = World(db);
-        TilePos pond = new(3, 6), otherPond = new(4, 6);
+        TilePos pond = new TilePos(3, 6), otherPond = new TilePos(4, 6);
         const byte tileOwner = 5;
         foreach (TilePos at in new[] { pond, otherPond })
         {

@@ -25,7 +25,7 @@ public class KeeperRetreatStepTests
     private const int MaxHealth = 1500;
 
     /// <summary>The 2x2 Lair's bounding-box middle, where a retreat lands.</summary>
-    private static readonly TilePos LairCentre = new(13, 13);
+    private static readonly TilePos LairCentre = new TilePos(13, 13);
 
     private static KeeperAI NewKeeper(Func<KeeperAIParameters, KeeperAIParameters>? tune = null, byte speed = 1, ulong seed = 7)
     {
@@ -115,7 +115,7 @@ public class KeeperRetreatStepTests
             picks.Add(Assert.Single(NewKeeper(seed: seed).Think(Db, world).OfType<DropCommand>()).Tile);
         }
         // Both Lairs are drawn over twelve seeds, and nothing else is.
-        Assert.Equal(new HashSet<TilePos> { LairCentre, new(16, 13) }, picks);
+        Assert.Equal(new HashSet<TilePos> { LairCentre, new TilePos(16, 13) }, picks);
     }
 
     [Theory]

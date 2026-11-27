@@ -17,7 +17,7 @@ namespace DK2.Presentation.Tests;
 /// whose map has that group, at a point it derives from the cells. Docs: sound-effects-continuous.md section 4.</summary>
 public sealed class AmbienceGridTests
 {
-    private static readonly PlayerId Viewer = new(PlayerIds.FirstKeeper);
+    private static readonly PlayerId Viewer = new PlayerId(PlayerIds.FirstKeeper);
 
     [InstallFact]
     public void TheGridIsElevenBySquareOfTheExploredTilesCategoriesAroundTheListener()
@@ -120,7 +120,7 @@ public sealed class AmbienceGridTests
         }
 
         Func<string, bool> any = _ => true;
-        var into = new List<AmbienceGrid.Emitter> { new("STALE", Vector3.Zero) };
+        var into = new List<AmbienceGrid.Emitter> { new AmbienceGrid.Emitter("STALE", Vector3.Zero) };
         AmbienceGrid.Emitters(cells, new TilePos(20, 20), any, into);
 
         long before = GC.GetAllocatedBytesForCurrentThread();

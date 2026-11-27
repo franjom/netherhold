@@ -18,7 +18,7 @@ public class LeavingRouteTests
         GameDatabase database = Dk2TerrainFixture.Database();
         var world = WorldState.FromMap(database, Dk2TerrainFixture.Map(),
             [PlayerIds.Unowned, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
-        TilePos portal = new(3, 3);
+        var portal = new TilePos(3, 3);
         if (hasPortal)
         {
             RoomRules.Place(database, ref world.Tile(portal), database.Room(RoomTypeId.Portal), PlayerIds.Neutral);

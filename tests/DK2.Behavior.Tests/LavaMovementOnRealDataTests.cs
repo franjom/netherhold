@@ -91,7 +91,7 @@ public class LavaMovementOnRealDataTests
             .First(p => navigation.NavByte(p.X, p.Y) == DK2.Pathfinding.NavBytes.Floor
                 && navigation.NavByte(p.X + 1, p.Y) == DK2.Pathfinding.NavBytes.Lava
                 && navigation.NavByte(p.X + 2, p.Y) == DK2.Pathfinding.NavBytes.Lava);
-        TilePos destination = new(start.X + 2, start.Y);
+        var destination = new TilePos(start.X + 2, start.Y);
         CreatureDef definition = db.CreatureByName(name)!;
         Assert.True(definition.Flags.HasFlag(CreatureFlags.CanWalkOnLava));
         CreatureState creature = world.SpawnCreature(db, definition.CreatureId, new PlayerId(3), start);

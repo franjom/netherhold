@@ -10,9 +10,9 @@ namespace DK2.Presentation.Tests;
 
 public sealed class BlendedRunSlotsTests
 {
-    private static readonly TestMaterial Water = new("water"), Glass = new("glass"), Dig = new("dig", tagOverlay: true);
+    private static readonly TestMaterial Water = new TestMaterial("water"), Glass = new TestMaterial("glass"), Dig = new TestMaterial("dig", tagOverlay: true);
 
-    private static readonly Vector3 FrontEye = new(.5f, .5f, -2f), BackEye = new(.5f, .5f, 14f);
+    private static readonly Vector3 FrontEye = new Vector3(.5f, .5f, -2f), BackEye = new Vector3(.5f, .5f, 14f);
 
     /// <summary>One chunk of unit quads facing the view along z, each two triangles of its material.</summary>
     private static BlendedTerrainStream<TestMaterial> Stream(params (float X, float Z, TestMaterial Material)[] quads)
@@ -23,7 +23,7 @@ public sealed class BlendedRunSlotsTests
         foreach ((float x, float z, TestMaterial material) in quads)
         {
             int at = vertices.Count;
-            foreach (Vector3 corner in new Vector3[] { new(x, 0, z), new(x + 1, 0, z), new(x + 1, 1, z), new(x, 1, z) })
+            foreach (Vector3 corner in new Vector3[] { new Vector3(x, 0, z), new Vector3(x + 1, 0, z), new Vector3(x + 1, 1, z), new Vector3(x, 1, z) })
             {
                 vertices.Add(new BlendedVertex(corner, Vector3.UnitY, default, default, VertexColour.White));
             }
@@ -219,7 +219,7 @@ public sealed class BlendedRunSlotsTests
         var stream = new BlendedTerrainStream<TestMaterial>(material => material.TagOverlay);
         BlendedVertex V(float x, float y, float z)
         {
-            return new(new Vector3(x, y, z), Vector3.UnitY, default, default, VertexColour.White);
+            return new BlendedVertex(new Vector3(x, y, z), Vector3.UnitY, default, default, VertexColour.White);
         }
 
         stream.BeginChunk(0, [V(0, 0, 4), V(1, 0, 4), V(1, 1, 8), V(0, 1, 8)]);
@@ -245,7 +245,7 @@ public sealed class BlendedRunSlotsTests
         // indices only when they changed, and must then draw each run's triangles exactly, through collections, hidden
         // and shown slots, restarts and slots taken by other runs.
         var random = new Random(seed);
-        TestMaterial[] palette = [Water, Glass, new("fog")];
+        TestMaterial[] palette = [Water, Glass, new TestMaterial("fog")];
         var stream = new BlendedTerrainStream<TestMaterial>(material => material.TagOverlay);
         void Build(int chunk, float shift)
         {
@@ -255,7 +255,7 @@ public sealed class BlendedRunSlotsTests
             {
                 float x = (chunk * 10) + random.Next(10) + shift, z = random.Next(4, 30);
                 int at = vertices.Count;
-                foreach (Vector3 corner in new Vector3[] { new(x, 0, z), new(x + 1, 0, z), new(x + 1, 1, z + .5f), new(x, 1, z + .5f) })
+                foreach (Vector3 corner in new Vector3[] { new Vector3(x, 0, z), new Vector3(x + 1, 0, z), new Vector3(x + 1, 1, z + .5f), new Vector3(x, 1, z + .5f) })
                 {
                     vertices.Add(new BlendedVertex(corner, Vector3.UnitY, new Vector2(q, chunk), default, VertexColour.White));
                 }
@@ -286,7 +286,7 @@ public sealed class BlendedRunSlotsTests
                 collections++;
             }
             float yaw = (float)(random.NextDouble() * 360), distance = 4f + (float)(random.NextDouble() * 20);
-            Vector3 focus = new(random.Next(20), 0, random.Next(4, 30));
+            var focus = new Vector3(random.Next(20), 0, random.Next(4, 30));
             float r = yaw * MathF.PI / 180f;
             var forward = Vector3.Normalize(new Vector3(MathF.Sin(r) * .7f, -.7f, MathF.Cos(r) * .7f));
             var pose = new ClassicCameraPose(focus - forward * distance, forward, Vector3.UnitY, 60f, 20f + (float)(random.NextDouble() * 40),
@@ -391,9 +391,9 @@ public sealed class BlendedRunSlotsTests
         var slots = new BlendedRunSlots<TestMaterial>();
         Vector3 eye = Refresh(stream);
         slots.Update(stream, eye);
-        stream.BeginChunk(0, [new(new(0, 0, 9), Vector3.UnitY, default, default, VertexColour.White),
-            new(new(1, 0, 9), Vector3.UnitY, default, default, VertexColour.White),
-            new(new(1, 1, 9), Vector3.UnitY, default, default, VertexColour.White)]);
+        stream.BeginChunk(0, [new BlendedVertex(new Vector3(0, 0, 9), Vector3.UnitY, default, default, VertexColour.White),
+            new BlendedVertex(new Vector3(1, 0, 9), Vector3.UnitY, default, default, VertexColour.White),
+            new BlendedVertex(new Vector3(1, 1, 9), Vector3.UnitY, default, default, VertexColour.White)]);
         stream.AddChunkTriangles(Water, [0, 1, 2]);
         stream.EndChunk();
         Refresh(stream);

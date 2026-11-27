@@ -17,7 +17,7 @@ public sealed class ObjectMaterialLookTests
     private static KmfMaterial Material(uint flags, float brightness, float shininess, string environment,
         params string[] textures)
     {
-        return new("m", textures, flags, brightness, shininess, environment);
+        return new KmfMaterial("m", textures, flags, brightness, shininess, environment);
     }
 
     private static readonly ObjectMaterialLook Opaque = ObjectMaterialLook.Own(new ClassicMaterialRecipe("A", KmfBlend.Opaque, 0.25f));
@@ -179,7 +179,7 @@ public sealed class ObjectMaterialLookTests
             Material(0, 0.2f, 0, "", "B"),
             Material(KmfMaterial.EnvironmentMapFlag, 0.3f, 0.8f, "EnvC", "C"),
         ];
-        var passes = new List<ObjectPass> { new(9, Opaque) };
+        var passes = new List<ObjectPass> { new ObjectPass(9, Opaque) };
         ObjectModelPasses.Build(materials, 4, null, passes);
         Assert.Equal(
         [

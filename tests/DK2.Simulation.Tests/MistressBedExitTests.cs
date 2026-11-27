@@ -10,8 +10,8 @@ namespace DK2.Simulation.Tests;
 
 public sealed class MistressBedExitTests
 {
-    private static readonly PlayerId Keeper = new(3);
-    private static readonly TilePos Tile = new(2, 2);
+    private static readonly PlayerId Keeper = new PlayerId(3);
+    private static readonly TilePos Tile = new TilePos(2, 2);
 
     [Theory]
     [InlineData(0, 16)]

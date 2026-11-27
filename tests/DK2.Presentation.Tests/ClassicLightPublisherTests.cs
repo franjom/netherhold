@@ -12,8 +12,8 @@ namespace DK2.Presentation.Tests;
 public sealed class ClassicLightPublisherTests
 {
     private const int Size = 64;
-    private static readonly CameraViewport Viewport = new(640, 640, 640);
-    private static readonly ClassicCameraPose TopDown = new(new(20, 15, -30), -Vector3.UnitY, Vector3.UnitZ, 90, 40, 90, 0);
+    private static readonly CameraViewport Viewport = new CameraViewport(640, 640, 640);
+    private static readonly ClassicCameraPose TopDown = new ClassicCameraPose(new Vector3(20, 15, -30), -Vector3.UnitY, Vector3.UnitZ, 90, 40, 90, 0);
 
     private sealed class RecordingSink : ITileLightSink
     {
@@ -61,8 +61,8 @@ public sealed class ClassicLightPublisherTests
     }
 
     // Looking down and north at 45 degrees from 5 above the floor, so its view distance moves its far edge.
-    private static readonly ClassicCameraPose Tilted = new(new(40, 5, -20), Vector3.Normalize(new(0, -1, 1)),
-        Vector3.Normalize(new(0, 1, 1)), 60, 40, 45, 0);
+    private static readonly ClassicCameraPose Tilted = new ClassicCameraPose(new Vector3(40, 5, -20), Vector3.Normalize(new Vector3(0, -1, 1)),
+        Vector3.Normalize(new Vector3(0, 1, 1)), 60, 40, 45, 0);
 
     [Fact]
     public void TheFirstFrameSetsEveryVisibleOnMapTableThenFlushes()

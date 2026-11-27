@@ -94,7 +94,7 @@ public class CombatTests
         CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 5, 5);
         Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, demon).DieInstantly = true;
         // With the systems that hand back a state id their creature has left beside it.
-        GameSimulation sim = new(db, world, 1,
+        var sim = new GameSimulation(db, world, 1,
             [new CreatureJobSystem(), new CreatureSleepSystem(), new CombatSystem(), new CreatureHealthSystem()]);
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
@@ -111,7 +111,7 @@ public class CombatTests
         CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 5, 5);
         CreatureState goblin = Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, demon);
         goblin.DieInstantly = true; // only an outright death gives the victory (Q511)
-        GameSimulation sim = new(db, world, 1, [new CombatSystem(), new CreatureHealthSystem()]);
+        var sim = new GameSimulation(db, world, 1, [new CombatSystem(), new CreatureHealthSystem()]);
 
         for (int i = 0; i < 60 && !CreatureDeathRules.IsDown(goblin); i++)
         {
@@ -138,7 +138,7 @@ public class CombatTests
         (GameDatabase db, WorldState world) = OpenWorld();
         CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 5, 5);
         CreatureState goblin = Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, demon);
-        GameSimulation sim = new(db, world, 1, [new CombatSystem(), new CreatureHealthSystem()]);
+        var sim = new GameSimulation(db, world, 1, [new CombatSystem(), new CreatureHealthSystem()]);
         var sink = new ListEventSink();
         sim.ObserveWith(sink);
 
@@ -165,7 +165,7 @@ public class CombatTests
         CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 5, 5);
         CreatureState goblin = Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, demon);
         // The victim lies stunned (the Wizard was getting up): out of Combat, so its collapse releases nobody.
-        GameSimulation sim = new(db, world, 1, [new CombatSystem()]);
+        var sim = new GameSimulation(db, world, 1, [new CombatSystem()]);
         new GameSimulation(db, world, sim.Rng, [new Lambda(context =>
             CreatureStateMachine.TrySetState(context.Hooks, goblin, DropLandingRules.StunnedState, context.Tick.Value))]).Tick();
         for (int i = 0; i < 20 && demon.FightTargetId != goblin.Id; i++)
@@ -200,7 +200,7 @@ public class CombatTests
         (GameDatabase db, WorldState world) = OpenWorld();
         CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 5, 5);
         CreatureState goblin = Touching(db, world, Dk2TerrainFixture.GoblinCreatureId, Rival, demon);
-        GameSimulation sim = new(db, world, 1, [new CombatSystem()]);
+        var sim = new GameSimulation(db, world, 1, [new CombatSystem()]);
         // Both enemies lie stunned: out of Combat, so neither starts a fight nor releases its attacker.
         new GameSimulation(db, world, sim.Rng, [new Lambda(context =>
             CreatureStateMachine.TrySetState(context.Hooks, goblin, DropLandingRules.StunnedState, context.Tick.Value))]).Tick();
@@ -254,7 +254,7 @@ public class CombatTests
         (GameDatabase db, WorldState world) = OpenWorld();
         CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 5, 5);
         CreatureState knight = Spawn(db, world, Dk2TerrainFixture.KnightCreatureId, Rival, 8, 5);
-        GameSimulation sim = new(db, world, 1, [new CombatSystem(), new CreatureMovementSystem()]);
+        var sim = new GameSimulation(db, world, 1, [new CombatSystem(), new CreatureMovementSystem()]);
 
         sim.Run(2);
         Assert.Equal(CreatureActivity.Fighting, demon.Activity);
@@ -371,7 +371,7 @@ public class CombatTests
 
         CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 9, 5);
         int before = world.Player(Rival).HeartHealth;
-        GameSimulation sim = new(db, world, 1, [new CombatSystem(), new CreatureMovementSystem()]);
+        var sim = new GameSimulation(db, world, 1, [new CombatSystem(), new CreatureMovementSystem()]);
 
         sim.Run(1);
         Assert.Equal(FightTargetKind.Heart, demon.FightTargetKind);
@@ -509,7 +509,7 @@ public class CombatTests
         CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 10, 4);
         demon.PosX = (12 << 12) + 0x800 - 300;
         demon.PosY = (4 << 12) + 0x4CD;
-        GameSimulation sim = new(db, world, 1, [new CombatSystem(), new DungeonHeartSystem()]);
+        var sim = new GameSimulation(db, world, 1, [new CombatSystem(), new DungeonHeartSystem()]);
 
         sim.Run(14 + 5 + 2);
 
@@ -538,7 +538,7 @@ public class CombatTests
         CreatureState demon = Spawn(db, world, Dk2TerrainFixture.BileDemonCreatureId, Keeper, 10, 4);
         demon.PosX = (12 << 12) + 0x800 - 300;
         demon.PosY = (4 << 12) + 0x4CD;
-        GameSimulation sim = new(db, world, 1, [new CombatSystem(), new DungeonHeartSystem()]);
+        var sim = new GameSimulation(db, world, 1, [new CombatSystem(), new DungeonHeartSystem()]);
         var events = new ListEventSink();
         sim.ObserveWith(events);
 
@@ -618,6 +618,6 @@ public class CombatTests
 
     private static GameSimulation Combat(GameDatabase db, WorldState world)
     {
-        return new(db, world, 1, [new CombatSystem()]);
+        return new GameSimulation(db, world, 1, [new CombatSystem()]);
     }
 }

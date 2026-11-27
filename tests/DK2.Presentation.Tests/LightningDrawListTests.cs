@@ -14,8 +14,8 @@ public class LightningDrawListTests
     [Fact]
     public void CrackleMatchesTheOldUnityCameraSpaceAlgorithmAcrossSeedsAndFrames()
     {
-        LightningControlPoint[] controls = [new(1, new(1, 2, 3)), new(8, new(3, 1, 2)),
-            new(12, new(-1, 2, 1)), new(2001, new(9, 9, 9)), new(17, new(2, 3, 4))];
+        LightningControlPoint[] controls = [new LightningControlPoint(1, new Vector3(1, 2, 3)), new LightningControlPoint(8, new Vector3(3, 1, 2)),
+            new LightningControlPoint(12, new Vector3(-1, 2, 1)), new LightningControlPoint(2001, new Vector3(9, 9, 9)), new LightningControlPoint(17, new Vector3(2, 3, 4))];
         for (uint seed = 1; seed <= 64; seed++)
         {
             var draws = new LightningDrawList(Effects(), seed);
@@ -67,27 +67,27 @@ public class LightningDrawListTests
         RoomConstructionParticles effects = Effects();
         var draws = new LightningDrawList(effects, 1);
         draws.BeginFrame(Matrix4x4.Identity, Matrix4x4.Identity);
-        Assert.False(draws.NeedsCreatureCrackle(new(5), new(10), 2));
-        effects.Emit(new SimEvent(new(10), "status", "lightning", "") { ElectrifiedCreature = new(5) });
-        Assert.False(draws.NeedsCreatureCrackle(new(5), new(11), 2));
-        Assert.True(draws.NeedsCreatureCrackle(new(5), new(11), 3));
-        Assert.True(draws.NeedsCreatureCrackle(new(5), new(11), 3));
-        Assert.False(draws.NeedsCreatureCrackle(new(5), new(12), 3));
+        Assert.False(draws.NeedsCreatureCrackle(new CreatureId(5), new GameTick(10), 2));
+        effects.Emit(new SimEvent(new GameTick(10), "status", "lightning", "") { ElectrifiedCreature = new CreatureId(5) });
+        Assert.False(draws.NeedsCreatureCrackle(new CreatureId(5), new GameTick(11), 2));
+        Assert.True(draws.NeedsCreatureCrackle(new CreatureId(5), new GameTick(11), 3));
+        Assert.True(draws.NeedsCreatureCrackle(new CreatureId(5), new GameTick(11), 3));
+        Assert.False(draws.NeedsCreatureCrackle(new CreatureId(5), new GameTick(12), 3));
     }
 
     private static RoomConstructionParticles Effects()
     {
-        return new(new GameDatabase([], [], [], new GlobalVariables()), 1, () => default);
+        return new RoomConstructionParticles(new GameDatabase([], [], [], new GlobalVariables()), 1, () => default);
     }
 
     private static Vector3 Render(Vector3 p)
     {
-        return new(p.X, p.Z, -p.Y);
+        return new Vector3(p.X, p.Z, -p.Y);
     }
 
     private static Vector3 Transform(Vector3 p, Matrix4x4 m)
     {
-        return new(
+        return new Vector3(
             m.M11 * p.X + m.M21 * p.Y + m.M31 * p.Z + m.M41,
             m.M12 * p.X + m.M22 * p.Y + m.M32 * p.Z + m.M42,
             m.M13 * p.X + m.M23 * p.Y + m.M33 * p.Z + m.M43);

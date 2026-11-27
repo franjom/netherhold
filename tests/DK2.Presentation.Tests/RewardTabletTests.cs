@@ -58,7 +58,7 @@ public class RewardTabletTests
         var tablet = new RewardTablet();
         tablet.Restart();
         var random = new Random(7);
-        Vector3[] points = [new(0.05f, 0.05f, 0), new(-0.05f, 0.05f, 0), new(0, 0, 0.0097f)];
+        Vector3[] points = [new Vector3(0.05f, 0.05f, 0), new Vector3(-0.05f, 0.05f, 0), new Vector3(0, 0, 0.0097f)];
         tablet.DrawFrame(0, points, random);
         Assert.Equal(6, tablet.Sparkles.Length);                    // born then aged once
         foreach (RewardTablet.Sparkle s in tablet.Sparkles)

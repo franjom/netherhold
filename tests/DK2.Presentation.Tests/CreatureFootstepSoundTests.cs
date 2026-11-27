@@ -12,7 +12,7 @@ namespace DK2.Presentation.Tests;
 /// <c>0x0048FF10</c>). Handle, category and position are the creature's own. Docs: sound-effects-continuous.md section 1.</summary>
 public sealed class CreatureFootstepSoundTests
 {
-    private static readonly Vector3 Place = new(3.5f, 1f, -4.5f);
+    private static readonly Vector3 Place = new Vector3(3.5f, 1f, -4.5f);
 
     [Theory]
     [InlineData(1, false, 0x314u)]

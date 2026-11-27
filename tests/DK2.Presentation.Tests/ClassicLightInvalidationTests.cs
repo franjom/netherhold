@@ -9,7 +9,7 @@ namespace DK2.Presentation.Tests;
 
 public class ClassicLightInvalidationTests
 {
-    private static readonly TilePos First = new(10, 10), Next = new(11, 10);
+    private static readonly TilePos First = new TilePos(10, 10), Next = new TilePos(11, 10);
 
     [Fact]
     public void FreshWindowRefreshesOnlyForStrictlyNewerSourceStamp()
@@ -37,13 +37,13 @@ public class ClassicLightInvalidationTests
         ClassicLightTable table = Seed(First, frame: 4);
         var cache = new Cache();
         var window = new ClassicLightWindow();
-        cache.Cells[First] = new(new[] { Source(1, First) }, new[] { Source(2, First) }, new(4));
+        cache.Cells[First] = new ClassicLightCacheCell(new[] { Source(1, First) }, new[] { Source(2, First) }, new ClassicLightFrame(4));
         window.Gather(table, cache, new ClassicLightFrame(9));
 #pragma warning disable IDE0300 // Preserve the original array construction or overload.
         Assert.Equal(new[] { 9, 2 }, Ids(table));
 #pragma warning restore IDE0300
         Assert.Equal(new ClassicLightFrame(4), table.StaticFrame);
-        cache.Cells[First] = new(default, default, new(5));
+        cache.Cells[First] = new ClassicLightCacheCell(default, default, new ClassicLightFrame(5));
         window.Gather(table, cache, new ClassicLightFrame(10));
         Assert.Empty(Ids(table));
         Assert.Equal(new ClassicLightFrame(10), table.StaticFrame);
@@ -98,7 +98,7 @@ public class ClassicLightInvalidationTests
     public void RollingRetainsListHeadsAndOnlyReadsEnteringCellsUntilReset()
     {
         var cache = new Cache();
-        TilePos retained = new(8, 7);
+        var retained = new TilePos(8, 7);
         cache.Cells[retained] = Cell(1, First, stamp: 1);
         var window = new ClassicLightWindow();
         window.Gather(new ClassicLightTable(First), cache, new ClassicLightFrame(2));
@@ -162,7 +162,7 @@ public class ClassicLightInvalidationTests
 
     private static ClassicLightCacheCell Cell(int id, TilePos source, uint stamp)
     {
-        return new(new[] { Source(id, source) }, default, new(stamp));
+        return new ClassicLightCacheCell(new[] { Source(id, source) }, default, new ClassicLightFrame(stamp));
     }
 
     private static ClassicPointLight Source(int id, TilePos tile)
@@ -177,8 +177,8 @@ public class ClassicLightInvalidationTests
 
     private sealed class Cache : IClassicLightCache
     {
-        public readonly Dictionary<TilePos, ClassicLightCacheCell> Cells = new();
-        public readonly List<TilePos> Reads = new();
+        public readonly Dictionary<TilePos, ClassicLightCacheCell> Cells = new Dictionary<TilePos, ClassicLightCacheCell>();
+        public readonly List<TilePos> Reads = new List<TilePos>();
         public ClassicLightCacheCell GetCell(TilePos tile)
         {
             Reads.Add(tile);

@@ -13,7 +13,7 @@ namespace DK2.Presentation.Tests;
 public class PlayerInputTests
 {
     private const byte Keeper = 3;
-    private readonly PlayerInputTranslator _translator = new();
+    private readonly PlayerInputTranslator _translator = new PlayerInputTranslator();
 
     [Theory]
     [InlineData(PlayerToolMode.TagTiles, true)]
@@ -80,7 +80,7 @@ public class PlayerInputTests
     [Fact]
     public void HandPressOnAHoveredDoorTogglesItsLock()
     {
-        TilePos tile = new(6, 2);
+        var tile = new TilePos(6, 2);
         PlayerInputSnapshot snapshot = new PlayerInputSnapshot(false, []).ForHover(new WorldHoverHit(WorldHoverKind.Door, tile, 12));
         LockDoorCommand command = Assert.IsType<LockDoorCommand>(Assert.Single(
             Translate(PlayerToolMode.Hand, tile, PointerButtonTransition.Pressed, snapshot).All));
@@ -91,7 +91,7 @@ public class PlayerInputTests
     [Fact]
     public void HandClickPrefersCreatureToObjectOnTheSameTile()
     {
-        TilePos tile = new(4, 5);
+        var tile = new TilePos(4, 5);
         var snapshot = new PlayerInputSnapshot(false,
         [
             new PlayerInputTarget(PlayerInputTargetKind.Object, 70, tile),
@@ -107,7 +107,7 @@ public class PlayerInputTests
     [Fact]
     public void HandClickPicksUpAnObjectWhenNoCreatureIsThere()
     {
-        TilePos tile = new(4, 5);
+        var tile = new TilePos(4, 5);
         var snapshot = new PlayerInputSnapshot(false,
         [
             new PlayerInputTarget(PlayerInputTargetKind.Object, 70, tile),
@@ -122,7 +122,7 @@ public class PlayerInputTests
     [Fact]
     public void LeftHandClickWhileHoldingStillPicksUpAnotherCreature()
     {
-        TilePos tile = new(4, 5);
+        var tile = new TilePos(4, 5);
         var snapshot = new PlayerInputSnapshot(true,
         [new PlayerInputTarget(PlayerInputTargetKind.Creature, 40, tile)]);
         PickUpCreatureCommand command = Assert.IsType<PickUpCreatureCommand>(Assert.Single(
@@ -133,7 +133,7 @@ public class PlayerInputTests
     [Fact]
     public void RightHandClickDropsBeforeConsideringTargetsWhenHoldingSomething()
     {
-        TilePos tile = new(4, 5);
+        var tile = new TilePos(4, 5);
         var snapshot = new PlayerInputSnapshot(true,
         [
             new PlayerInputTarget(PlayerInputTargetKind.Creature, 40, tile),
@@ -150,7 +150,7 @@ public class PlayerInputTests
     [Fact]
     public void RightHandClickRetainsThePointerPointForAnOffCentreGoldDrop()
     {
-        TilePos tile = new(4, 5);
+        var tile = new TilePos(4, 5);
         var point = new FpPosition2(new Fp32(tile.X * Fp32.One + 3412),
             new Fp32(tile.Y * Fp32.One + 682));
         var intent = new PlayerIntent(Keeper, PlayerToolMode.Hand, tile, PointerButtonTransition.None,
@@ -163,7 +163,7 @@ public class PlayerInputTests
     [Fact]
     public void SlapClickTargetsTheFirstCreatureOnTheTile()
     {
-        TilePos tile = new(4, 5);
+        var tile = new TilePos(4, 5);
         var snapshot = new PlayerInputSnapshot(false,
         [
             new PlayerInputTarget(PlayerInputTargetKind.Creature, 40, tile),

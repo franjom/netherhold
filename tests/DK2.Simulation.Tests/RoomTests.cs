@@ -170,7 +170,7 @@ public class RoomTests
         GameDatabase database = Dk2TerrainFixture.Database();
         Run run = Start();
         GiveHeart(run, Keeper, new TilePos(1, 1), 500);
-        TilePos[] drag = [new(2, 2), new(3, 2), new(2, 3), new(3, 3)];
+        TilePos[] drag = [new TilePos(2, 2), new TilePos(3, 2), new TilePos(2, 3), new TilePos(3, 3)];
         foreach (TilePos p in drag)
         {
             ref TileState tile = ref run.World.Tile(p);
@@ -193,7 +193,7 @@ public class RoomTests
         // affords, so both are laid and the third is refused on its own account.
         Run run = Start();
         GiveHeart(run, Keeper, new TilePos(1, 1), 400);
-        foreach (TilePos p in new TilePos[] { new(2, 2), new(3, 2) })
+        foreach (TilePos p in new TilePos[] { new TilePos(2, 2), new TilePos(3, 2) })
         {
             ref TileState tile = ref run.World.Tile(p);
             tile.TerrainId = Dk2TerrainFixture.ClaimedPath;

@@ -23,7 +23,7 @@ public class NavigationBytesOnRealDataTests
     {
         get
         {
-            return new(LevelNames);
+            return new TheoryData<string>(LevelNames);
         }
     }
 

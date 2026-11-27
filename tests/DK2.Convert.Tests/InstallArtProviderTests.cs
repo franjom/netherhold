@@ -224,7 +224,7 @@ public sealed class InstallArtProviderTests
     public void AKeyResolvesToItsKmfInTheInstallAndOnlyWhenTheKmfIsThere()
     {
         var meshes = new FakeMeshes(("Gold Mesh.kmf", AnimatedKmfFixture.TwoFrames()));
-        Dk2ArtCatalogue art = Catalogue(objects: new() { [1] = [new("Gold Mesh", 0)], [2] = [new("Lantern", 0)] });
+        Dk2ArtCatalogue art = Catalogue(objects: new Dictionary<byte, IReadOnlyList<Dk2ArtResource>>() { [1] = [new Dk2ArtResource("Gold Mesh", 0)], [2] = [new Dk2ArtResource("Lantern", 0)] });
         GameDatabase database = Database(objects: [Object(1, "Gold Pile"), Object(2, "Lantern"), Object(3, "Barrel")]);
 
         var provider = new InstallArtProvider(ArtSourceMap.ForDatabase(database, art), meshes, new FakeTextures());
@@ -244,7 +244,7 @@ public sealed class InstallArtProviderTests
     {
         var meshes = new FakeMeshes(("Gold Mesh.kmf", AnimatedKmfFixture.TwoFrames()));
         var textures = new FakeTextures("creature0");
-        Dk2ArtCatalogue art = Catalogue(objects: new() { [1] = [new("Gold Mesh", 0)] });
+        Dk2ArtCatalogue art = Catalogue(objects: new Dictionary<byte, IReadOnlyList<Dk2ArtResource>>() { [1] = [new Dk2ArtResource("Gold Mesh", 0)] });
         var provider = new InstallArtProvider(
             ArtSourceMap.ForDatabase(Database(objects: [Object(1, "Gold Pile")]), art), meshes, textures);
         Assert.True(provider.TryResolve(AssetRef.ForObject("Gold Pile", AssetKind.Mesh), out ResolvedAsset gold));
@@ -264,7 +264,7 @@ public sealed class InstallArtProviderTests
     {
         var meshes = new FakeMeshes(
             ("Floor2.kmf", AnimatedKmfFixture.TwoFrames()), ("Floor1.kmf", AnimatedKmfFixture.TwoFrames()));
-        Dk2ArtCatalogue art = Catalogue(terrains: new() { [1] = [new("Floor", 0)] });
+        Dk2ArtCatalogue art = Catalogue(terrains: new Dictionary<byte, IReadOnlyList<Dk2ArtResource>>() { [1] = [new Dk2ArtResource("Floor", 0)] });
         var provider = new InstallArtProvider(
             ArtSourceMap.ForDatabase(Database(terrain: [Terrain(1, "Lava")]), art), meshes,
             new FakeTextures("creature0"));
@@ -279,7 +279,7 @@ public sealed class InstallArtProviderTests
     public void TheStandardChainAsksTheInstallBeforeThePlaceholder()
     {
         var meshes = new FakeMeshes(("Gold Mesh.kmf", AnimatedKmfFixture.TwoFrames()));
-        Dk2ArtCatalogue art = Catalogue(objects: new() { [1] = [new("Gold Mesh", 0)] });
+        Dk2ArtCatalogue art = Catalogue(objects: new Dictionary<byte, IReadOnlyList<Dk2ArtResource>>() { [1] = [new Dk2ArtResource("Gold Mesh", 0)] });
         var provider = new InstallArtProvider(
             ArtSourceMap.ForDatabase(Database(objects: [Object(1, "Gold Pile"), Object(3, "Barrel")]), art),
             meshes, new FakeTextures());

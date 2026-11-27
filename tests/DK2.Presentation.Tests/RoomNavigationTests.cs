@@ -14,7 +14,7 @@ public sealed class RoomNavigationTests
     {
         RoomNavigationEntry Room(RoomTypeId type, int x)
         {
-            return new(new(x, 2), PlayerIds.FirstKeeper, type, new(x, 2));
+            return new RoomNavigationEntry(new TilePos(x, 2), PlayerIds.FirstKeeper, type, new TilePos(x, 2));
         }
 
         RoomNavigationEntry a = Room(RoomTypeId.Lair, 1), b = Room(RoomTypeId.Lair, 3), c = Room(RoomTypeId.Treasury, 5);

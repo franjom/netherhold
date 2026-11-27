@@ -17,7 +17,7 @@ public class DoorNavigationTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte Rival = PlayerIds.FirstKeeper + 1;
-    private static readonly TilePos Beyond = new(7, 2);
+    private static readonly TilePos Beyond = new TilePos(7, 2);
 
     private static (WorldState world, GameDatabase db, DoorState door) Build(byte doorOwner, byte flags, byte doorId = 1, bool vertical = false)
     {

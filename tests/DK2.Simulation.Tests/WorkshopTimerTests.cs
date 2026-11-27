@@ -73,7 +73,7 @@ public sealed class WorkshopTimerTests
 
     private static GameSimulation Sim(GameDatabase db, WorldState world, params ISimulationSystem[] systems)
     {
-        return new(db, world, new SimRandom(new Dk2Lcg(1)), systems);
+        return new GameSimulation(db, world, new SimRandom(new Dk2Lcg(1)), systems);
     }
 
     private static GameSimulation TimerSim(GameDatabase db, WorldState world, out ListEventSink sink)

@@ -13,7 +13,7 @@ using DK2.TestSupport;
 namespace DK2.Presentation.Tests;
 public sealed class LightningStagingTests
 {
-    private static readonly PlayerId Viewer = new(PlayerIds.FirstKeeper);
+    private static readonly PlayerId Viewer = new PlayerId(PlayerIds.FirstKeeper);
     [Fact]
     public void LaunchFlagIsExactAndOffByDefault()
     {

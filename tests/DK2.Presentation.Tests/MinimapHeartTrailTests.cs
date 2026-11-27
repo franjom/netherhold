@@ -8,7 +8,7 @@ namespace DK2.Presentation.Tests;
 
 public sealed class MinimapHeartTrailTests
 {
-    private static readonly FpPosition3 Focus = new(new(20 << 12), new(20 << 12), new(0));
+    private static readonly FpPosition3 Focus = new FpPosition3(new Fp32(20 << 12), new Fp32(20 << 12), new Fp32(0));
 
     [Theory]
     [InlineData(0, 84)]
@@ -19,10 +19,10 @@ public sealed class MinimapHeartTrailTests
     public void DotsStartAtHeartWithTurnPhaseAndStopBeforeCentre(int tick, int firstX)
     {
         var points = new MinimapRasterPoint[MinimapHeartTrail.MaximumDots];
-        int count = MinimapHeartTrail.Build(new(40, 20), Focus, new(0), new(tick), points);
+        int count = MinimapHeartTrail.Build(new TilePos(40, 20), Focus, new MinimapZoom(0), new GameTick(tick), points);
         Assert.Equal(3, count);
-        Assert.Equal(new(firstX, 64), points[0]);
-        Assert.Equal(new(firstX - 8, 64), points[2]);
+        Assert.Equal(new MinimapRasterPoint(firstX, 64), points[0]);
+        Assert.Equal(new MinimapRasterPoint(firstX - 8, 64), points[2]);
     }
 
     [Theory]
@@ -32,18 +32,18 @@ public sealed class MinimapHeartTrailTests
     public void WholeMapAndNearbyHeartHaveNoTrail(int zoom, int expected)
     {
         var points = new MinimapRasterPoint[MinimapHeartTrail.MaximumDots];
-        Assert.Equal(expected, MinimapHeartTrail.Build(new(28, 20), Focus, new(zoom), new(0), points));
+        Assert.Equal(expected, MinimapHeartTrail.Build(new TilePos(28, 20), Focus, new MinimapZoom(zoom), new GameTick(0), points));
     }
 
     [Fact]
     public void FractionalFocusIsSubtractedBeforeDirectionNormalization()
     {
         var points = new MinimapRasterPoint[MinimapHeartTrail.MaximumDots];
-        FpPosition3 focus = new(new((20 << 12) + 0xC00), new(20 << 12), new(0));
-        int count = MinimapHeartTrail.Build(new(30, 20), focus, new(2), new(0), points);
+        var focus = new FpPosition3(new Fp32((20 << 12) + 0xC00), new Fp32(20 << 12), new Fp32(0));
+        int count = MinimapHeartTrail.Build(new TilePos(30, 20), focus, new MinimapZoom(2), new GameTick(0), points);
         Assert.Equal(8, count);
-        Assert.Equal(new(101, 64), points[0]);
-        Assert.Equal(new(73, 64), points[count - 1]);
+        Assert.Equal(new MinimapRasterPoint(101, 64), points[0]);
+        Assert.Equal(new MinimapRasterPoint(73, 64), points[count - 1]);
     }
 
     [Theory]
@@ -53,16 +53,16 @@ public sealed class MinimapHeartTrailTests
     public void NegativeFractionalFocusUsesSignedRemainderAndArithmeticShift(int rawX, int zoom, int firstX, int count)
     {
         var points = new MinimapRasterPoint[MinimapHeartTrail.MaximumDots];
-        Assert.Equal(count, MinimapHeartTrail.Build(new(10, 0), new(new(rawX), new(0), new(0)),
-            new(zoom), new(0), points));
-        Assert.Equal(new(firstX, 64), points[0]);
+        Assert.Equal(count, MinimapHeartTrail.Build(new TilePos(10, 0), new FpPosition3(new Fp32(rawX), new Fp32(0), new Fp32(0)),
+            new MinimapZoom(zoom), new GameTick(0), points));
+        Assert.Equal(new MinimapRasterPoint(firstX, 64), points[0]);
     }
 
     [Fact]
     public void FarHeartKeepsOnlyStrictlyInteriorDotsWithoutAllocating()
     {
         var points = new MinimapRasterPoint[MinimapHeartTrail.MaximumDots];
-        int count = MinimapHeartTrail.Build(new(1000, 20), Focus, new(4), new(3), points);
+        int count = MinimapHeartTrail.Build(new TilePos(1000, 20), Focus, new MinimapZoom(4), new GameTick(3), points);
         Assert.InRange(count, 1, MinimapHeartTrail.MaximumDots);
         foreach (MinimapRasterPoint point in points.AsSpan(0, count))
         {
@@ -72,7 +72,7 @@ public sealed class MinimapHeartTrailTests
         long before = GC.GetAllocatedBytesForCurrentThread();
         for (int i = 0; i < 100; i++)
         {
-            MinimapHeartTrail.Build(new(1000, 20), Focus, new(4), new(i), points);
+            MinimapHeartTrail.Build(new TilePos(1000, 20), Focus, new MinimapZoom(4), new GameTick(i), points);
         }
 
         Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
@@ -100,12 +100,12 @@ public sealed class MinimapHeartTrailTests
                     int px = 64 + ax / 256, py = 64 + ay / 256;
                     if (px is > 0 and < 128 && py is > 0 and < 128)
                     {
-                        expected.Add(new(px, py));
+                        expected.Add(new MinimapRasterPoint(px, py));
                     }
 
                     ax = unchecked(ax - nx * 4); ay = unchecked(ay - ny * 4);
                 }
-                int count = MinimapHeartTrail.Build(new(x, y), default, new(zoom), new(phase), points);
+                int count = MinimapHeartTrail.Build(new TilePos(x, y), default, new MinimapZoom(zoom), new GameTick(phase), points);
                 Assert.Equal(expected, points.Take(count));
             }
         }

@@ -17,7 +17,7 @@ namespace DK2.Behavior.Tests;
 /// </summary>
 public class JournalReplayTests
 {
-    private static readonly PlayerId Keeper = new(3);
+    private static readonly PlayerId Keeper = new PlayerId(3);
     private const string Scripted = "  - { at_tick: 2, player: 3, tag: [[6, 5]] }";
 
     [Fact]
@@ -115,7 +115,7 @@ public class JournalReplayTests
 
     private static ScenarioRunner Runner()
     {
-        return new(ScenarioTests.SyntheticDatabase(), null);
+        return new ScenarioRunner(ScenarioTests.SyntheticDatabase(), null);
     }
 
     private static InputJournal Read(MemoryStream stream)

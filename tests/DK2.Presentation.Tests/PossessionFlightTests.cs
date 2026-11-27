@@ -12,8 +12,8 @@ namespace DK2.Presentation.Tests;
 /// (possession-client.md §6).</summary>
 public sealed class PossessionFlightTests
 {
-    private static readonly CameraFlightState From = new(0x10000, 0x20000, 0x1000, 40960, 8192, 61440, 0x7F0, 220, 0);
-    private static readonly CameraFlightState To = new(0x12000, 0x1F000, 0x1600, 0, 4096, 49152, 0x010, 0x200, 0);
+    private static readonly CameraFlightState From = new CameraFlightState(0x10000, 0x20000, 0x1000, 40960, 8192, 61440, 0x7F0, 220, 0);
+    private static readonly CameraFlightState To = new CameraFlightState(0x12000, 0x1F000, 0x1600, 0, 4096, 49152, 0x010, 0x200, 0);
 
     [Fact]
     public void EachFrameClosesItsShareOfTheRemainingGap_StronglyInferredFromBinary()
@@ -76,7 +76,7 @@ public sealed class PossessionFlightTests
 
     private static ClassicCamera Ordinary()
     {
-        return new(
+        return new ClassicCamera(
         new CameraThing(new byte[84]) { Zoom = 40960, MinZoom = 16384, MaxZoom = 53248, Lens = 8192, ViewDistance = 61440, AnglePitch = 220 },
         new Dk2Angle(0x7F3))
         { ReferenceScreenWidth = 1600 };

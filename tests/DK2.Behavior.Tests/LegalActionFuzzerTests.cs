@@ -16,7 +16,7 @@ namespace DK2.Behavior.Tests;
 /// </summary>
 public class LegalActionFuzzerTests
 {
-    private static readonly PlayerId Keeper = new(PlayerIds.FirstKeeper);
+    private static readonly PlayerId Keeper = new PlayerId(PlayerIds.FirstKeeper);
 
     [InstallFact]
     public void TheFuzzer_IssuesOnlyHumanCommandsForItsPlayer()
@@ -90,7 +90,7 @@ public class LegalActionFuzzerTests
 
     private static RunOptions Fuzzed(ulong seed)
     {
-        return new()
+        return new RunOptions()
         {
             Controllers = [LegalActionFuzzer.Create(Keeper, seed, intervalTicks: 2)],
         };

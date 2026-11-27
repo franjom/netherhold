@@ -23,7 +23,7 @@ public sealed class CounterGoldTests
         world.Tile(2, 2).GoldHeld = 350;
         int before = GoldStore.Total(world, PlayerIds.FirstKeeper);
         var simulation = new GameSimulation(database, world, seed: 1, [new HandSystem()]);
-        simulation.Tick(InputFrame.Of(new WithdrawCounterGoldCommand(PlayerIds.FirstKeeper, new(requested))));
+        simulation.Tick(InputFrame.Of(new WithdrawCounterGoldCommand(PlayerIds.FirstKeeper, new GoldAmount(requested))));
         HandItem held = Assert.Single(world.Player(PlayerIds.FirstKeeper).Hand);
         ObjectState pile = world.ObjectById(held.Id)!;
         Assert.Equal(FloorGold.TreasuryPileObjectId, pile.ObjectTypeId);
@@ -49,7 +49,7 @@ public sealed class CounterGoldTests
 
         int before = GoldStore.Total(world, PlayerIds.FirstKeeper), objects = world.Objects.Count;
         var simulation = new GameSimulation(database, world, seed: 1, [new HandSystem()]);
-        simulation.Tick(InputFrame.Of(new WithdrawCounterGoldCommand(PlayerIds.FirstKeeper, new(100))));
+        simulation.Tick(InputFrame.Of(new WithdrawCounterGoldCommand(PlayerIds.FirstKeeper, new GoldAmount(100))));
         Assert.Equal(before, GoldStore.Total(world, PlayerIds.FirstKeeper));
         Assert.Equal(objects, world.Objects.Count);
     }

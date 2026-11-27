@@ -13,16 +13,16 @@ public sealed class PossessionDrawVisibilityTests
     {
         byte[] mask = [255, 0, 0, 255];
         var visibility = new PossessionDrawVisibility(mask, 2, true, new CreatureId(4));
-        Assert.True(visibility.Tile(new(0, 0)));
-        Assert.False(visibility.Tile(new(1, 0)));
-        Assert.False(visibility.Tile(new(-1, 0)));
-        Assert.False(visibility.Tile(new(2, 0)));
-        Assert.False(visibility.Creature(new(4), new(0, 0)));
-        Assert.True(visibility.Creature(new(5), new(0, 0)));
-        Assert.False(visibility.Creature(new(5), new(1, 0)));
-        Assert.True(visibility.Object(new(0, 0), 255));
-        Assert.False(visibility.Object(new(0, 0), 0));
-        Assert.False(visibility.Object(new(1, 0), 255));
+        Assert.True(visibility.Tile(new TilePos(0, 0)));
+        Assert.False(visibility.Tile(new TilePos(1, 0)));
+        Assert.False(visibility.Tile(new TilePos(-1, 0)));
+        Assert.False(visibility.Tile(new TilePos(2, 0)));
+        Assert.False(visibility.Creature(new CreatureId(4), new TilePos(0, 0)));
+        Assert.True(visibility.Creature(new CreatureId(5), new TilePos(0, 0)));
+        Assert.False(visibility.Creature(new CreatureId(5), new TilePos(1, 0)));
+        Assert.True(visibility.Object(new TilePos(0, 0), 255));
+        Assert.False(visibility.Object(new TilePos(0, 0), 0));
+        Assert.False(visibility.Object(new TilePos(1, 0), 255));
         Assert.False(visibility.Floor(-1));
         Assert.False(visibility.Floor(4));
     }
@@ -31,12 +31,12 @@ public sealed class PossessionDrawVisibilityTests
     public void FlightAndOrdinaryViewDoNotApplyTheTileMaskButRetainBodyAndAlphaRules()
     {
         var visibility = new PossessionDrawVisibility(new byte[4], 2, false, new CreatureId(4));
-        Assert.True(visibility.Tile(new(1, 0)));
+        Assert.True(visibility.Tile(new TilePos(1, 0)));
         Assert.True(visibility.Floor(-1));
-        Assert.False(visibility.Creature(new(4), new(1, 0)));
-        Assert.True(visibility.Creature(new(5), new(1, 0)));
-        Assert.False(visibility.Object(new(1, 0), 0));
-        Assert.True(visibility.Object(new(1, 0), 255));
+        Assert.False(visibility.Creature(new CreatureId(4), new TilePos(1, 0)));
+        Assert.True(visibility.Creature(new CreatureId(5), new TilePos(1, 0)));
+        Assert.False(visibility.Object(new TilePos(1, 0), 0));
+        Assert.True(visibility.Object(new TilePos(1, 0), 255));
     }
 
     [Theory]

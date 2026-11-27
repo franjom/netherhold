@@ -18,7 +18,7 @@ namespace DK2.Behavior.Tests;
 /// to the command the click sends.</summary>
 public class PlayerWorkshopTests
 {
-    private static readonly PlayerId Keeper = new(3);
+    private static readonly PlayerId Keeper = new PlayerId(3);
 
     private sealed record Setup(GameDatabase Database, WorldState World, TilePos Floor, byte Door, byte Trap);
 

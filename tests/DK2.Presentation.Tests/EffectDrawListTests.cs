@@ -15,7 +15,7 @@ namespace DK2.Presentation.Tests;
 /// light order, the sprite colour, the frame picks and the quads.</summary>
 public sealed class EffectDrawListTests
 {
-    private static readonly GameDatabase Empty = new([], [], [], new GlobalVariables());
+    private static readonly GameDatabase Empty = new GameDatabase([], [], [], new GlobalVariables());
 
     [Fact]
     public void TheModelIsBuiltWithTheAdaptersStylesAndTheShotsTakeTheSeedsLow32Bits()
@@ -32,25 +32,25 @@ public sealed class EffectDrawListTests
     {
         var wave = new EffectDef([])
         {
-            Name = "wave", EffectId = 10, ArtResource = new("", 0, new byte[12], 0, 0, 0, 0),
-            Light = new(0, 0, 0, 4096, 1, 9, 9, 9, 255), GenerateIds = [20], GenerationType = 4, ElementsPerTurn = 1,
+            Name = "wave", EffectId = 10, ArtResource = new KwdArtResource("", 0, new byte[12], 0, 0, 0, 0),
+            Light = new KwdLight(0, 0, 0, 4096, 1, 9, 9, 9, 255), GenerateIds = [20], GenerationType = 4, ElementsPerTurn = 1,
             MinHp = 10, MaxHp = 10,
         };
         var spark = new EffectElementDef([])
         {
-            Name = "spark", EffectElementId = 20, ArtResource = new("spark", 0, new byte[12], 1, 0, 0, 0),
+            Name = "spark", EffectElementId = 20, ArtResource = new KwdArtResource("spark", 0, new byte[12], 1, 0, 0, 0),
             MinHp = 20, MaxHp = 20, MinScale = 4096, MaxScale = 4096,
         };
         var arrow = new ShotDef([])
         {
-            Name = "arrow", ShotId = 1, MeshResource = new("arrow", 0, new byte[12], 5, 0, 0, 0),
-            Light = new(0, 0, 0, 4096, 1, 1, 2, 3, 255), SoundCategory = "",
+            Name = "arrow", ShotId = 1, MeshResource = new KwdArtResource("arrow", 0, new byte[12], 5, 0, 0, 0),
+            Light = new KwdLight(0, 0, 0, 4096, 1, 1, 2, 3, 255), SoundCategory = "",
         };
         var database = new GameDatabase([], [], [], new GlobalVariables(), effects: [wave], effectElements: [spark],
             shots: [arrow]);
         long now = 0;
         var list = new EffectDrawList(database, 7, clock: () => new EffectTime(now), floorHeight: _ => default);
-        list.Model.Request(new ViewEffectRequest(new(10), PlayerIds.FirstKeeper, new FpPosition3(new(10000), new(12000), new(0))));
+        list.Model.Request(new ViewEffectRequest(new EffectId(10), PlayerIds.FirstKeeper, new FpPosition3(new Fp32(10000), new Fp32(12000), new Fp32(0))));
         list.CaptureShots([new ShotState { Id = 1, ShotTypeId = 1, Health = 2, PosX = 1234, PosY = 5678 }], 1);
         now = 51;
 
@@ -224,8 +224,8 @@ public sealed class EffectDrawListTests
 
         EffectDrawList.AddBillboardQuad(quads, source, billboard, Vector3.UnitX, Vector3.UnitY, 4);
 
-        Assert.Equal([new(0f, 0f, 3f), new(2f, 0f, 3f), new(2f, 4f, 3f), new(0f, 4f, 3f)], quads.Vertices.ToArray());
-        Assert.Equal([new(.5f, 1f), new(.75f, 1f), new(.75f, 0f), new(.5f, 0f)], quads.Uvs.ToArray());
+        Assert.Equal([new Vector3(0f, 0f, 3f), new Vector3(2f, 0f, 3f), new Vector3(2f, 4f, 3f), new Vector3(0f, 4f, 3f)], quads.Vertices.ToArray());
+        Assert.Equal([new Vector2(.5f, 1f), new Vector2(.75f, 1f), new Vector2(.75f, 0f), new Vector2(.5f, 0f)], quads.Uvs.ToArray());
         Assert.All(quads.Colours.ToArray(), colour => Assert.Equal(new EffectColour(1, 2, 3), colour));
         Assert.Equal([0, 1, 2, 0, 2, 3], quads.Indices.ToArray());
     }
@@ -242,7 +242,7 @@ public sealed class EffectDrawListTests
 
         EffectDrawList.AddBillboardQuad(quads, source, billboard, Vector3.UnitX, Vector3.UnitY, 1);
 
-        Vector3[] expected = [new(-2f, 1f, 0f), new(-2f, -1f, 0f), new(2f, -1f, 0f), new(2f, 1f, 0f)];
+        Vector3[] expected = [new Vector3(-2f, 1f, 0f), new Vector3(-2f, -1f, 0f), new Vector3(2f, -1f, 0f), new Vector3(2f, 1f, 0f)];
         for (int corner = 0; corner < 4; corner++)
         {
             Assert.True(Vector3.Distance(expected[corner], quads.Vertices[corner]) < 0.00001f);
@@ -260,9 +260,9 @@ public sealed class EffectDrawListTests
         source.HeightRaw = source.PreviousHeightRaw = 4096;
 
         list.AddFlatQuad(quads, source, 1f, 1);
-        Assert.Equal([new(2.75f, 1f, -4.75f), new(3.25f, 1f, -4.75f), new(3.25f, 1f, -5.25f), new(2.75f, 1f, -5.25f)],
+        Assert.Equal([new Vector3(2.75f, 1f, -4.75f), new Vector3(3.25f, 1f, -4.75f), new Vector3(3.25f, 1f, -5.25f), new Vector3(2.75f, 1f, -5.25f)],
             quads.Vertices.ToArray());
-        Assert.Equal([new(0f, 0f), new(1f, 0f), new(1f, 1f), new(0f, 1f)], quads.Uvs.ToArray());
+        Assert.Equal([new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(1f, 1f), new Vector2(0f, 1f)], quads.Uvs.ToArray());
         Assert.Equal([0, 1, 2, 0, 2, 3], quads.Indices.ToArray());
 
         quads.Clear();
@@ -345,17 +345,17 @@ public sealed class EffectDrawListTests
 
     private static EffectElementDef Element(byte type, uint flags = 0, ReadOnlyMemory<byte> unknown = default)
     {
-        return new([])
+        return new EffectElementDef([])
         {
             Name = "spark",
-            ArtResource = new("spark", flags, unknown.IsEmpty ? new byte[12] : unknown, type, 0, 0, 0),
+            ArtResource = new KwdArtResource("spark", flags, unknown.IsEmpty ? new byte[12] : unknown, type, 0, 0, 0),
         };
     }
 
     private static ConstructionParticle Particle(bool takesLight, byte red = 40, byte green = 50, byte blue = 60,
         int scale = 4096)
     {
-        return new()
+        return new ConstructionParticle()
         {
             Definition = Element(1),
             TakesLight = takesLight,

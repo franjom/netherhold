@@ -12,7 +12,7 @@ public class RightHandedFrameTests
 {
     private const float Tolerance = 1e-5f;
 
-    private static readonly ClassicCameraPose Pose = new(
+    private static readonly ClassicCameraPose Pose = new ClassicCameraPose(
         new Vector3(20.5f, 9f, -31f), Vector3.Normalize(new Vector3(0.35f, -0.8f, 0.45f)),
         Vector3.Normalize(new Vector3(0.2f, 0.55f, 0.3f)), 40f, 30f, 55f, 45f, 0.16f);
 
@@ -83,7 +83,7 @@ public class RightHandedFrameTests
     public void TheTriangleOrderKeepsItsFrontFace()
     {
         RightHandedCamera camera = RightHandedFrame.Camera(Pose);
-        Vector3 a = new(21, 0, -35), b = new(21, 1, -35), c = new(22, 0, -35.5f);
+        Vector3 a = new Vector3(21, 0, -35), b = new Vector3(21, 1, -35), c = new Vector3(22, 0, -35.5f);
         float leftArea = SignedArea(LeftScreen(a), LeftScreen(b), LeftScreen(c));
         float rightArea = SignedArea(RightScreen(camera, a), RightScreen(camera, b), RightScreen(camera, c));
         Assert.NotEqual(0f, leftArea);

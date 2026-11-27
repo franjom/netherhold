@@ -303,7 +303,7 @@ public sealed class FunctionKbTests
             Confidence = "DISPUTED",
             History = [.. before.History, new HistoryEntry("2026-10-24", "codex", "disputed")],
         };
-        DateOnly written = new(2026, 10, 24), pushed = new(2026, 10, 28);
+        DateOnly written = new DateOnly(2026, 10, 24), pushed = new DateOnly(2026, 10, 28);
         Assert.Single(FunctionKb.HistoryRequired(now, before, pushed));
         Assert.Empty(FunctionKb.HistoryRequired(now, before, [pushed, written]));
         string missing = Assert.Single(FunctionKb.HistoryRequired(now, before, [pushed, new DateOnly(2026, 10, 25)]));

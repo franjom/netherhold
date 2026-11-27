@@ -16,8 +16,8 @@ public class ImpHasteTests
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte HastyImpId = 50;
 
-    private static readonly CreatureSpellSlot Speed = new(Dk2TerrainFixture.SpeedTestSpellId, 4, new Fp32(4096), 1);
-    private static readonly CreatureSpellSlot Teleport = new(Dk2TerrainFixture.TeleportTestSpellId, 8, new Fp32(4096), 1);
+    private static readonly CreatureSpellSlot Speed = new CreatureSpellSlot(Dk2TerrainFixture.SpeedTestSpellId, 4, new Fp32(4096), 1);
+    private static readonly CreatureSpellSlot Teleport = new CreatureSpellSlot(Dk2TerrainFixture.TeleportTestSpellId, 8, new Fp32(4096), 1);
 
     [Fact]
     public void ALevelFourImpCastsHasteAsItSetsOffOnATask()

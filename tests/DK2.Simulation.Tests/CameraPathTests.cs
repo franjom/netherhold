@@ -182,7 +182,7 @@ public class CameraPathTests
     private static (GameSimulation, ListEventSink) Simulation(TriggerRecord root)
     {
         GameDatabase fixture = Dk2TerrainFixture.Database();
-        GameDatabase db = new(fixture.Terrain.Values, fixture.Rooms.Values, fixture.Creatures.Values,
+        var db = new GameDatabase(fixture.Terrain.Values, fixture.Rooms.Values, fixture.Creatures.Values,
             fixture.Variables, fixture.KeeperSpells.Values, fixture.Objects.Values, fixture.Doors.Values,
             fixture.Traps.Values, fixture.CreatureSpells.Values, fixture.Shots.Values, fixture.Effects.Values,
             fixture.EffectElements.Values, fixture.Level, new Dictionary<int, int> { [201] = 500 });

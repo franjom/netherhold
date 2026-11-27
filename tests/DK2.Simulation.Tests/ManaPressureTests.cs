@@ -45,7 +45,7 @@ public class ManaPressureTests
     [Fact]
     public void LateWarningsAdvanceOldDeadlineOnlyOnce()
     {
-        ManaPressureResult result = Step(new(40, 1), 200);
+        ManaPressureResult result = Step(new ManaPressureState(40, 1), 200);
         Assert.Equal(1, result.Warning);
         Assert.Equal(80u, result.State.WarningDeadline);
         Assert.False(result.ScanForRemoval);
@@ -63,7 +63,7 @@ public class ManaPressureTests
     [Fact]
     public void RecoveryKeepsStageAndScanDeadlineButResetsWarningCycle()
     {
-        ManaPressureResult result = Step(new(164, 5, true, true, 204), 180, mana: 100);
+        ManaPressureResult result = Step(new ManaPressureState(164, 5, true, true, 204), 180, mana: 100);
         Assert.False(result.State.RemovalEnabled);
         Assert.False(result.State.WarningsSuppressed);
         Assert.Equal(5, result.State.WarningStage);
@@ -76,7 +76,7 @@ public class ManaPressureTests
     [Fact]
     public void PositiveNetDoesNotStopAnAlreadyEnabledScanBelowThreshold()
     {
-        ManaPressureResult result = Step(new(44, 5, true, true, 100), 104, mana: 7, net: 1);
+        ManaPressureResult result = Step(new ManaPressureState(44, 5, true, true, 100), 104, mana: 7, net: 1);
         Assert.True(result.ScanForRemoval);
         Assert.Equal(0, result.Warning);
         Assert.Equal(144u, result.State.ScanDeadline);
@@ -85,13 +85,13 @@ public class ManaPressureTests
     private static ManaRemovalCandidate Imp(int id, byte level = 1, bool held = false,
         bool idle = false, int x = 2048, int y = 2048)
     {
-        return new(id, 1, level, true, held, idle, x, y);
+        return new ManaRemovalCandidate(id, 1, level, true, held, idle, x, y);
     }
 
     [Fact]
     public void UniqueLowestLevelCanSelectANonImp()
     {
-        ManaRemovalCandidate[] creatures = [Imp(1, 2), Imp(2, 3), new(3, 5, 1, false, false, false, 0, 0)];
+        ManaRemovalCandidate[] creatures = [Imp(1, 2), Imp(2, 3), new ManaRemovalCandidate(3, 5, 1, false, false, false, 0, 0)];
         Assert.Equal(3, ManaPressureRules.SelectForRemoval(creatures, 1, 0, 0));
         Assert.Equal(ManaRemovalAction.None, ManaPressureRules.Countdown(5, false, 4, 100, 0, 7, 4));
     }

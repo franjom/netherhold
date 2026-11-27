@@ -26,7 +26,7 @@ public class PaydayTests
     private const byte GoblinId = 7;
 
     /// <summary>The claimed 3x3 room the fixture map puts in the corner.</summary>
-    private static readonly TilePos Floor = new(2, 2);
+    private static readonly TilePos Floor = new TilePos(2, 2);
 
     private static GameDatabase Db
     {
@@ -361,7 +361,7 @@ public class PaydayTests
         // Drink there (King Reginald and Lord of the Land at 100%); this is a Goblin with one.
         CreatureDef drinker = Dk2TerrainFixture.Goblin() with
         {
-            CreatureId = 40, Name = "Drinker", HappyJobs = [new(JobType.Drink, 0, 0, 100)],
+            CreatureId = 40, Name = "Drinker", HappyJobs = [new CreatureJobPreference(JobType.Drink, 0, 0, 100)],
         };
         GameDatabase db = Dk2TerrainFixture.Database(drinker);
         WorldState world = World(db);

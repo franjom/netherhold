@@ -11,8 +11,8 @@ namespace DK2.Simulation.Tests;
 
 public sealed class LairDropTests
 {
-    private static readonly TilePos OldTile = new(1, 1);
-    private static readonly TilePos NewTile = new(3, 3);
+    private static readonly TilePos OldTile = new TilePos(1, 1);
+    private static readonly TilePos NewTile = new TilePos(3, 3);
 
     [Fact]
     public void DefaultSimulationRelocatesDroppedCreaturesBed()
@@ -123,7 +123,7 @@ public sealed class LairDropTests
     public void DropIntoSameLairUsesExistingBedWithoutMovingIt()
     {
         (GameSimulation? sim, CreatureState? creature, ObjectState? oldBed) = Start();
-        TilePos adjacent = new(1, 2);
+        var adjacent = new TilePos(1, 2);
         RoomRules.Place(sim.Database, ref sim.World.Tile(adjacent),
             sim.Database.Room(RoomTypeId.Lair), PlayerIds.FirstKeeper);
         Drop(sim, creature, adjacent);
@@ -139,7 +139,7 @@ public sealed class LairDropTests
     public void OccupiedDropTileUsesAnotherFreeTileInTheDestinationLair()
     {
         (GameSimulation? sim, CreatureState? creature, ObjectState? oldBed) = Start();
-        TilePos adjacent = new(3, 2);
+        var adjacent = new TilePos(3, 2);
         RoomRules.Place(sim.Database, ref sim.World.Tile(adjacent),
             sim.Database.Room(RoomTypeId.Lair), PlayerIds.FirstKeeper);
         CreatureState other = sim.World.SpawnCreature(sim.Database,

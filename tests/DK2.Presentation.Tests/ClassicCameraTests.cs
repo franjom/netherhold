@@ -16,7 +16,7 @@ public class ClassicCameraTests
 {
     private static CameraThing Profile()
     {
-        return new(new byte[84])
+        return new CameraThing(new byte[84])
         {
             CameraId = 3,
             Z = 4096,
@@ -124,7 +124,7 @@ public class ClassicCameraTests
 
     private static PlayerDef Player(byte id, ushort cameraX, ushort cameraY)
     {
-        return new()
+        return new PlayerDef()
         {
             PlayerId = id,
             Name = "test",

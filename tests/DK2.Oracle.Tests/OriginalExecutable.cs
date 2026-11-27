@@ -20,7 +20,7 @@ internal sealed class OriginalExecutable
 {
     public const string ExpectedMd5 = "2f3bbc21eae8c3aa468136baa303036d";
 
-    private static readonly Lazy<OriginalExecutable> Shared = new(() => new OriginalExecutable(
+    private static readonly Lazy<OriginalExecutable> Shared = new Lazy<OriginalExecutable>(() => new OriginalExecutable(
         System.IO.Path.Combine(Dk2InstallGate.Path, "DKII.EXE")));
 
     private readonly byte[] _file;

@@ -147,12 +147,12 @@ public class ViewEffectParticleTests
 
     private static Fp32 ChildFloor(FpPosition3 point)
     {
-        return new(point.X.Raw == 10240 && point.Y.Raw == 14336 ? 4096 : 8192);
+        return new Fp32(point.X.Raw == 10240 && point.Y.Raw == 14336 ? 4096 : 8192);
     }
 
     private static SimEvent Request()
     {
-        return new(new GameTick(0), "view", "effect", "")
+        return new SimEvent(new GameTick(0), "view", "effect", "")
         {
             EffectRequest = new ViewEffectRequest(new EffectId(17), PlayerIds.FirstKeeper,
             new FpPosition3(new Fp32(10240), new Fp32(14336), new Fp32(0)))
@@ -166,7 +166,7 @@ public class ViewEffectParticleTests
         (byte Red, byte Green, byte Blue) colour = authoredColour ?? (70, 80, 130);
         EffectElementDef Element(ushort id, uint artFlags)
         {
-            return new([])
+            return new EffectElementDef([])
             {
                 Name = "element",
                 EffectElementId = id,

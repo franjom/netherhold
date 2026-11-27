@@ -15,7 +15,7 @@ namespace DK2.Tools.Tests;
 /// has not claimed yet waits for the claim.</summary>
 public sealed class BlueprintRetryTests
 {
-    private static readonly PlayerId Keeper = new(3);
+    private static readonly PlayerId Keeper = new PlayerId(3);
 
     [Fact]
     public void APlacementOnATileOursDoesNotOwnWaitsForTheClaim_TheRestOfItsTurnGoesOn()

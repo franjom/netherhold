@@ -11,7 +11,7 @@ namespace DK2.Simulation.Tests;
 
 public sealed class ClaimActionClockTests
 {
-    private static readonly TilePos Target = new(4, 3);
+    private static readonly TilePos Target = new TilePos(4, 3);
 
     // Original-function controls in imp-claim-action-clock.md; tick 0 begins the action.
     [Theory]

@@ -19,7 +19,7 @@ public sealed class MinimapNorthTests
     [InlineData(2560, 38, 666)]
     public void NorthOrbitsAgainstCameraHeading(int heading, float x, float y)
     {
-        Vector2 actual = MinimapNorth.SpriteOriginPixels(new((ushort)heading), 768);
+        Vector2 actual = MinimapNorth.SpriteOriginPixels(new Dk2Angle((ushort)heading), 768);
         Assert.Equal(x, actual.X, precision: 3);
         Assert.Equal(y, actual.Y, precision: 3);
     }
@@ -27,9 +27,9 @@ public sealed class MinimapNorthTests
     [Fact]
     public void NativeOffsetsAndTruncationAreAppliedAfterScreenTransform()
     {
-        Vector2 actual = MinimapNorth.SpriteOriginPixels(new(256), 1440);
+        Vector2 actual = MinimapNorth.SpriteOriginPixels(new Dk2Angle(256), 1440);
         Assert.Equal(new Vector2(106, 1180), actual);
-        Assert.Equal(new Vector2(74, 819), MinimapNorth.SpriteOriginPixels(new(256), 1000));
-        Assert.Throws<ArgumentOutOfRangeException>(() => MinimapNorth.SpriteOriginPixels(new(0), 0));
+        Assert.Equal(new Vector2(74, 819), MinimapNorth.SpriteOriginPixels(new Dk2Angle(256), 1000));
+        Assert.Throws<ArgumentOutOfRangeException>(() => MinimapNorth.SpriteOriginPixels(new Dk2Angle(0), 0));
     }
 }

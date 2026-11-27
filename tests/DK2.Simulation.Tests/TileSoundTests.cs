@@ -17,7 +17,7 @@ public sealed class TileSoundTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte ImpId = Dk2TerrainFixture.ImpCreatureId;
-    private static readonly TilePos At = new(5, 5);
+    private static readonly TilePos At = new TilePos(5, 5);
 
     private static (GameDatabase Db, WorldState World, GameSimulation Sim, ListEventSink Events) Setup(byte terrain,
         int health, byte owner = PlayerIds.Neutral)
@@ -41,7 +41,7 @@ public sealed class TileSoundTests
 
     private static FpPosition3 Centre(TilePos tile)
     {
-        return new(new Fp32(CreatureState.CentreOf(tile.X)), new Fp32(CreatureState.CentreOf(tile.Y)), new Fp32(0));
+        return new FpPosition3(new Fp32(CreatureState.CentreOf(tile.X)), new Fp32(CreatureState.CentreOf(tile.Y)), new Fp32(0));
     }
 
     private static void Work(WorldState world, TileWorkKind kind, int worker = -1)

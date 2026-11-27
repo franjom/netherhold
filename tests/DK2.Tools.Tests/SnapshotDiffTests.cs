@@ -98,7 +98,7 @@ public class SnapshotDiffTests
     }
     private static EffectGeneratorState Generator(byte id, uint dueTurn, ushort[]? effects = null, byte[]? unknown = null)
     {
-        return new()
+        return new EffectGeneratorState()
         {
             GeneratorId = id,
             NextDueTurn = dueTurn,
@@ -365,7 +365,7 @@ public class SnapshotDiffTests
             Directory.CreateDirectory(_directory);
             // Synthetic decoding fixture, not a claim about DK2 balance or gameplay.
             var variables = new GlobalVariables();
-            variables.Misc[VariableTypeId.DungeonHeartObjectHealth] = new(VariableTypeId.DungeonHeartObjectHealth, 100, 0, 0);
+            variables.Misc[VariableTypeId.DungeonHeartObjectHealth] = new MiscVariable(VariableTypeId.DungeonHeartObjectHealth, 100, 0, 0);
             Database = new GameDatabase(
                 [new TerrainDef { TerrainId = 1, Name = "fixture", Flags = TerrainFlags.Ownable, StartingHealth = 100, MaxHealth = 100, GoldValue = 0, ManaGain = 0, MaxManaGain = 0, Damage = 0, MaxHealthTypeTerrainId = 1, DestroyedTypeTerrainId = 1, Depth = default, NameStringId = 0, TooltipStringId = 0 }], [],
                 [new CreatureDef
@@ -423,8 +423,8 @@ public class SnapshotDiffTests
                 File.WriteAllBytes(AfterPath, after);
                 return;
             }
-            SavedSessionFile.Save(BeforePath, new(new("fixture", 1, 0, DateTime.UnixEpoch, "before"), before, new CampaignProfile()));
-            SavedSessionFile.Save(AfterPath, new(new("fixture", 1, 0, DateTime.UnixEpoch.AddDays(1), "after"), after, new CampaignProfile()));
+            SavedSessionFile.Save(BeforePath, new SavedSession(new SavedSessionHeader("fixture", 1, 0, DateTime.UnixEpoch, "before"), before, new CampaignProfile()));
+            SavedSessionFile.Save(AfterPath, new SavedSession(new SavedSessionHeader("fixture", 1, 0, DateTime.UnixEpoch.AddDays(1), "after"), after, new CampaignProfile()));
         }
 
         public int Run(string? level = "fixture", string? output = null)

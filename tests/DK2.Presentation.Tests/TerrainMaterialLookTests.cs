@@ -13,9 +13,9 @@ namespace DK2.Presentation.Tests;
 /// variant's look.</summary>
 public class TerrainMaterialLookTests
 {
-    private static readonly ClassicMaterialRecipe Opaque = new("Brick", KmfBlend.Opaque, 0.25f);
-    private static readonly ClassicMaterialRecipe Alpha = new("Glass", KmfBlend.AlphaBlend, 0f);
-    private static readonly ClassicMaterialRecipe Additive = new("Glow", KmfBlend.Additive, 1f);
+    private static readonly ClassicMaterialRecipe Opaque = new ClassicMaterialRecipe("Brick", KmfBlend.Opaque, 0.25f);
+    private static readonly ClassicMaterialRecipe Alpha = new ClassicMaterialRecipe("Glass", KmfBlend.AlphaBlend, 0f);
+    private static readonly ClassicMaterialRecipe Additive = new ClassicMaterialRecipe("Glow", KmfBlend.Additive, 1f);
 
     [Fact]
     public void TheColoursAreDk2sBytes()

@@ -20,7 +20,7 @@ public sealed class FootprintEffectTests
         EffectDef effect = Definition(id, art, flags);
         var db = new GameDatabase([], [], [], new GlobalVariables(), effects: [effect]);
         var model = new RoomConstructionParticles(db, 1, () => new EffectTime(0));
-        var point = new FpPosition3(new(8192), new(12288), new(0));
+        var point = new FpPosition3(new Fp32(8192), new Fp32(12288), new Fp32(0));
         model.Request(new ViewEffectRequest(new EffectId(id), PlayerIds.FirstKeeper, point, new Dk2Angle(256)));
         ConstructionParticle sprite = Assert.Single(model.Particles);
         Assert.Equal(art, sprite.Definition.ArtResource.Name);
@@ -57,13 +57,13 @@ public sealed class FootprintEffectTests
         Assert.Equal(819, effect.MaxScale);
         var model = new RoomConstructionParticles(db, 1, () => new EffectTime(0));
         model.Request(new ViewEffectRequest(new EffectId(id), PlayerIds.FirstKeeper,
-            new FpPosition3(new(8192), new(8192), new(0))));
+            new FpPosition3(new Fp32(8192), new Fp32(8192), new Fp32(0))));
         Assert.Single(model.Particles);
     }
 
     private static EffectDef Definition(ushort id, string art, uint flags)
     {
-        return new([])
+        return new EffectDef([])
         {
             EffectId = id,
             Name = art,

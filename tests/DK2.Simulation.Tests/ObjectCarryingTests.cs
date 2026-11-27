@@ -29,10 +29,10 @@ public class ObjectCarryingTests
     private const int Second = SimulationTiming.TicksPerSecond;
 
     // The fixture map's walkable ground is a 3x3 claimed room at (1..3, 1..3).
-    private static readonly TilePos Shelf = new(3, 3);
-    private static readonly TilePos Shelf2 = new(3, 2);
-    private static readonly TilePos Loose = new(1, 1);
-    private static readonly TilePos Middle = new(2, 2);
+    private static readonly TilePos Shelf = new TilePos(3, 3);
+    private static readonly TilePos Shelf2 = new TilePos(3, 2);
+    private static readonly TilePos Loose = new TilePos(1, 1);
+    private static readonly TilePos Middle = new TilePos(2, 2);
 
     private static GameDatabase Db
     {

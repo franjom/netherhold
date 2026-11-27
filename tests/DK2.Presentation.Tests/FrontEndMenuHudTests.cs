@@ -15,13 +15,13 @@ namespace DK2.Presentation.Tests;
 public sealed class FrontEndMenuHudTests
 {
     /// <summary>Every printable ASCII glyph as a 2x2 block of full coverage, 3 wide with its spacing, in a 10-pixel line.</summary>
-    private static readonly BitmapFont Font = new(10, Enumerable.Range(33, 94)
+    private static readonly BitmapFont Font = new BitmapFont(10, Enumerable.Range(33, 94)
         .Select(c => new BitmapGlyph((char)c, 2, 2, 0, 0, 3, [15, 15, 15, 15]))
         .Append(new BitmapGlyph(' ', 1, 1, 0, 0, 3, [0])).ToArray());
 
     private sealed class Sources : IFrontEndMenuSources
     {
-        public readonly HashSet<string> Missing = new();
+        public readonly HashSet<string> Missing = new HashSet<string>();
         public string Text(uint id)
         {
             return "T" + id;
@@ -51,7 +51,7 @@ public sealed class FrontEndMenuHudTests
     private static FrontEndMenuHud Menu(FrontEndSession? session = null, Sources? sources = null,
         CampaignMapController? campaign = null, OptionsPagesController? options = null)
     {
-        return new(session ?? Session(), sources ?? new Sources(), percent => percent, scan => "K" + scan.Value, campaign, options);
+        return new FrontEndMenuHud(session ?? Session(), sources ?? new Sources(), percent => percent, scan => "K" + scan.Value, campaign, options);
     }
 
     private static HudDraw[] Draws(FrontEndMenuHud hud)
@@ -63,17 +63,17 @@ public sealed class FrontEndMenuHudTests
 
     private static HudRect Virtual(FrontEndRect r)
     {
-        return new(r.X * 4, r.Y * 4, r.Width * 4, r.Height * 4);
+        return new HudRect(r.X * 4, r.Y * 4, r.Width * 4, r.Height * 4);
     }
 
     private static FrontEndPointer Centre(FrontEndRect r, bool held = false)
     {
-        return new(r.X + r.Width / 2, r.Y + r.Height / 2, held);
+        return new FrontEndPointer(r.X + r.Width / 2, r.Y + r.Height / 2, held);
     }
 
     private static HudDraw LabelDraw(HudDraw[] draws, FrontEndMenuHud hud, ushort widget)
     {
-        return draws.Single(d => d.Image.Label is not null && d.Image.Variant == HudImageVariant.None && ReferenceEquals(d.Image.Label, hud.LabelOf(new(widget))));
+        return draws.Single(d => d.Image.Label is not null && d.Image.Variant == HudImageVariant.None && ReferenceEquals(d.Image.Label, hud.LabelOf(new FrontEndWidgetId(widget))));
     }
 
     [Fact]
@@ -84,11 +84,11 @@ public sealed class FrontEndMenuHudTests
         Assert.Equal(FrontEndPage.Main, hud.ShownPage);
         HudDraw[] draws = Draws(hud);
 
-        HudLabel single = hud.LabelOf(new(1))!;
+        HudLabel single = hud.LabelOf(new FrontEndWidgetId(1))!;
         Assert.Same(Font, single.Font);
         Assert.Equal(FrontEndLabelGeometry.Measure(Font, "T71").Glyphs.Count, single.Geometry.Glyphs.Count);
         HudDraw label = LabelDraw(draws, hud, 1);
-        Assert.Equal(Virtual(hud.LabelInkBounds(new(1))), label.Rect);   // the ink box, 4 virtual units per 640 x 480 unit
+        Assert.Equal(Virtual(hud.LabelInkBounds(new FrontEndWidgetId(1))), label.Rect);   // the ink box, 4 virtual units per 640 x 480 unit
         Assert.Equal(new HudColor(191, 191, 191, 255), label.Tint);       // a label not under the pointer
         Assert.Null(label.Clip);
 
@@ -102,12 +102,12 @@ public sealed class FrontEndMenuHudTests
     {
         using FrontEndMenuHud hud = Menu();
         hud.Sync();
-        FrontEndRect ink = hud.LabelInkBounds(new(1));
+        FrontEndRect ink = hud.LabelInkBounds(new FrontEndWidgetId(1));
         hud.Advance(Centre(ink), 0, 0);
         HudDraw[] draws = Draws(hud);
         Assert.Equal(new HudColor(255, 255, 255, 255), LabelDraw(draws, hud, 1).Tint);
         HudDraw glow = Assert.Single(draws, d => d.Image.Variant == HudImageVariant.Glow);
-        Assert.Same(hud.LabelOf(new(1)), glow.Image.Label);
+        Assert.Same(hud.LabelOf(new FrontEndWidgetId(1)), glow.Image.Label);
         Assert.Equal(4, glow.Image.Pieces);
         Assert.Equal(Virtual(ink.Inflate(HudLabel.GlowPadding)), glow.Rect);   // under the label, grown by the glow's padding
         Assert.True(Array.IndexOf(draws, glow) < Array.IndexOf(draws, LabelDraw(draws, hud, 1)));
@@ -137,13 +137,13 @@ public sealed class FrontEndMenuHudTests
     {
         using FrontEndMenuHud hud = Menu();
         hud.Sync();
-        hud.Advance(Centre(hud.LabelInkBounds(new(1)), true), 0, 0);
+        hud.Advance(Centre(hud.LabelInkBounds(new FrontEndWidgetId(1)), true), 0, 0);
         Assert.Equal(FrontEndPage.SinglePlayer, hud.Model.Page);
         Assert.Equal(FrontEndPage.Main, hud.ShownPage);   // not yet: the page's labels are laid out by the next Sync
         HudDraw[] draws = Draws(hud);                    // Build syncs
         Assert.Equal(FrontEndPage.SinglePlayer, hud.ShownPage);
         Assert.Contains(draws, d => d.Image.Label is not null);
-        Assert.Null(hud.LabelOf(new(1)));                // Main's widget 1 is gone
+        Assert.Null(hud.LabelOf(new FrontEndWidgetId(1)));                // Main's widget 1 is gone
     }
 
     [Fact]
@@ -151,10 +151,10 @@ public sealed class FrontEndMenuHudTests
     {
         using FrontEndMenuHud hud = Menu();
         hud.Sync();
-        hud.Model.Activate(new(5));   // Quit
+        hud.Model.Activate(new FrontEndWidgetId(5));   // Quit
         HudDraw[] draws = Draws(hud);
         Assert.Equal(FrontEndPage.Dialog, hud.ShownPage);
-        Assert.NotNull(hud.LabelOf(new(684))); Assert.NotNull(hud.LabelOf(new(686)));
+        Assert.NotNull(hud.LabelOf(new FrontEndWidgetId(684))); Assert.NotNull(hud.LabelOf(new FrontEndWidgetId(686)));
         Assert.Equal(2, draws.Count(d => d.Image.Label is not null));
         FrontEndWidget accept = hud.Model.Widgets.Single(w => w.Id.Value == 667);
         FrontEndRect box = accept.ReferenceRect(FrontEndPages.Get(FrontEndPage.Dialog).DrawRect);
@@ -201,7 +201,7 @@ public sealed class FrontEndMenuHudTests
         }
         Assert.Contains(full.Pixels.Where((_, i) => i % 4 == 3), a => a > 0);
 
-        RgbaImage art = new(2, 3, new byte[2 * 3 * 4]);
+        var art = new RgbaImage(2, 3, new byte[2 * 3 * 4]);
         RgbaImage artPadded = HudLabelPixels.Pad(art, 6);
         Assert.Equal((14, 15), (artPadded.Width, artPadded.Height));
     }
@@ -223,7 +223,7 @@ public sealed class FrontEndMenuHudTests
         var first = new HudFrame(); var second = new HudFrame();
         hud.Build(first); hud.Build(second);
         Assert.True(first.SameAs(second));
-        hud.Advance(Centre(hud.LabelInkBounds(new(1))), 0, 0);
+        hud.Advance(Centre(hud.LabelInkBounds(new FrontEndWidgetId(1))), 0, 0);
         hud.Build(second);
         Assert.False(first.SameAs(second));
     }
@@ -234,7 +234,7 @@ public sealed class FrontEndMenuHudTests
         using FrontEndMenuHud hud = Menu();
         var frame = new HudFrame();
         hud.Sync();
-        hud.Advance(Centre(hud.LabelInkBounds(new(1))), 0, 0);
+        hud.Advance(Centre(hud.LabelInkBounds(new FrontEndWidgetId(1))), 0, 0);
         for (int i = 0; i < 4; i++) { frame.Clear(); hud.Build(frame); }
         long before = GC.GetAllocatedBytesForCurrentThread();
         for (int i = 0; i < 50; i++) { frame.Clear(); hud.Build(frame); }
@@ -250,15 +250,15 @@ public sealed class FrontEndMenuHudTests
         Assert.True(session.TryShowPage(FrontEndPage.Movies));
         hud.Advance(new FrontEndPointer(-100, -100, false), 0, 0);   // the bar is armed by the page's first update
         HudDraw[] draws = Draws(hud);
-        FrontEndScrollBar bar = new(FrontEndPages.Get(FrontEndPage.Movies).Widgets.First(w => w.Id.Value == 52).DrawRect);
+        var bar = new FrontEndScrollBar(FrontEndPages.Get(FrontEndPage.Movies).Widgets.First(w => w.Id.Value == 52).DrawRect);
         bar.Bar.Arm(17);
         // Up arrow, track and down arrow at the bar's origin plus the glow padding, the thumb cut from art row 8.
         const int pad = FrontEndScrollBar.GlowPadding;
         FrontEndPoint origin = bar.ArtOrigin(0);
-        Assert.Contains(draws, d => d.Image.Path == FrontEndScrollBar.UpArrowArt && d.Rect == Virtual(new(origin.X + pad, origin.Y + pad, 14, 14)));
+        Assert.Contains(draws, d => d.Image.Path == FrontEndScrollBar.UpArrowArt && d.Rect == Virtual(new FrontEndRect(origin.X + pad, origin.Y + pad, 14, 14)));
         HudDraw thumb = Assert.Single(draws, d => d.Image.Path == FrontEndScrollBar.ThumbArt);
         FrontEndRect box = bar.ThumbRect();
-        Assert.Equal(Virtual(new(box.X, box.Y, Math.Min(box.Width, 12), Math.Min(box.Height, 20 - FrontEndScrollBar.ThumbArtTop))), thumb.Rect);
+        Assert.Equal(Virtual(new FrontEndRect(box.X, box.Y, Math.Min(box.Width, 12), Math.Min(box.Height, 20 - FrontEndScrollBar.ThumbArtTop))), thumb.Rect);
         Assert.Equal(new HudRect(0, 8 / 20f, Math.Min(box.Width, 12) / 12f, Math.Min(box.Height, 12f) / 20f), thumb.Uv);
         Assert.DoesNotContain(draws, d => d.Image.Variant == HudImageVariant.Glow);
         Assert.Equal("X77", Text(hud, 59));   // the first row's title
@@ -282,7 +282,7 @@ public sealed class FrontEndMenuHudTests
             hud.Sync();
         }
 
-        HudLabel? label = hud.LabelOf(new(widget));
+        HudLabel? label = hud.LabelOf(new FrontEndWidgetId(widget));
         return label is null ? "" : string.Concat(label.Geometry.Glyphs.Select(g => g.Character));
     }
 
@@ -293,9 +293,9 @@ public sealed class FrontEndMenuHudTests
         using FrontEndMenuHud hud = Menu(session);
         Assert.True(session.TryShowPage(FrontEndPage.Movies));
         hud.Sync();
-        Assert.Null(hud.LabelOf(new(59)));   // no gallery yet
+        Assert.Null(hud.LabelOf(new FrontEndWidgetId(59)));   // no gallery yet
         hud.Model.SetMovieGallery(new FrontEndMovieGallery(new CampaignProfile(), _ => true, id => "S" + id, id => "X" + id));
-        Assert.Null(hud.LabelOf(new(59)));   // not until the next update
+        Assert.Null(hud.LabelOf(new FrontEndWidgetId(59)));   // not until the next update
         hud.Sync();
         Assert.Equal("X77", Text(hud, 59));
         hud.Model.Movies!.ScrollTo(3);
@@ -321,7 +321,7 @@ public sealed class FrontEndMenuHudTests
         HudDraw[] draws = Draws(hud);
         string first = FrontEndBriefingImages.ShotArtName(new CampaignSlot(1), CampaignObjectiveShot.First);
         string second = FrontEndBriefingImages.ShotArtName(new CampaignSlot(1), CampaignObjectiveShot.Second);
-        Assert.Equal(new HudDraw(HudDrawKind.Quad, first, Virtual(new(20, 110, 14, 14)), HudColor.White), draws.First());   // pictures first
+        Assert.Equal(new HudDraw(HudDrawKind.Quad, first, Virtual(new FrontEndRect(20, 110, 14, 14)), HudColor.White), draws.First());   // pictures first
         Assert.DoesNotContain(draws, d => d.Image.Path == second);
         Assert.Contains(draws, d => d.Image.Path == "BG_Tiles/BG-Objective-00");
         Assert.True(Array.FindIndex(draws, d => d.Image.Label is not null) > Array.FindIndex(draws, d => d.Image.Path == first));
@@ -383,7 +383,7 @@ public sealed class FrontEndMenuHudTests
     {
         private readonly string _text = Path.Combine(Dk2InstallGate.Path, "Data", "Text", "Default");
         private readonly Dk2StringTable _strings;
-        private readonly Dictionary<string, BitmapFont> _fonts = new();
+        private readonly Dictionary<string, BitmapFont> _fonts = new Dictionary<string, BitmapFont>();
         public InstallSources()
         {
             _strings = Dk2StringTable.Open(Path.Combine(_text, "Text.str"));
@@ -410,7 +410,7 @@ public sealed class FrontEndMenuHudTests
     [InstallFact]
     public void EveryLabelOfTheInstallsMainPageRastersToItsInkBoxAndGlowsBeyondIt()
     {
-        using FrontEndMenuHud real = new(Session(), new InstallSources(), percent => percent, scan => "K" + scan.Value);
+        using var real = new FrontEndMenuHud(Session(), new InstallSources(), percent => percent, scan => "K" + scan.Value);
         real.Sync();
         HudDraw[] draws = Draws(real);
         HudDraw[] labels = [.. draws.Where(d => d.Image.Label is not null && d.Image.Variant == HudImageVariant.None)];

@@ -10,24 +10,24 @@ namespace DK2.Presentation.Tests;
 /// <summary>The engine-free hover HUD (ADR-0805): status bar, scrolling status line and delayed tooltip.</summary>
 public sealed class HoverHudTests
 {
-    private static readonly HudScreen FullHd = new(1920, 1080);
-    private static readonly HudVisibility Shown = new(ShowNormalHud: true, AllowOrdinaryInput: true);
+    private static readonly HudScreen FullHd = new HudScreen(1920, 1080);
+    private static readonly HudVisibility Shown = new HudVisibility(ShowNormalHud: true, AllowOrdinaryInput: true);
     private const float Scale = 1080 / 1920f;
 
     /// <summary>One 2x2 glyph 'A' at full coverage, 3 wide with its spacing, in a 10-pixel line.</summary>
-    private static readonly BitmapFont Font = new(10, [new BitmapGlyph('A', 2, 2, 0, 0, 3, [15, 15, 15, 15])]);
+    private static readonly BitmapFont Font = new BitmapFont(10, [new BitmapGlyph('A', 2, 2, 0, 0, 3, [15, 15, 15, 15])]);
 
-    private static readonly WorldHoverHit Tile = new(WorldHoverKind.Tile, new TilePos(3, 4));
+    private static readonly WorldHoverHit Tile = new WorldHoverHit(WorldHoverKind.Tile, new TilePos(3, 4));
 
     private static HoverHud Hud()
     {
-        return new(_ => Font, (64, 32));
+        return new HoverHud(_ => Font, (64, 32));
     }
 
     private static (HudDraw[] Bar, HudDraw[] Top) Build(HoverHud hud, HoverTextSnapshot snapshot, long ms,
         (float, float) pointer = default)
     {
-        HudFrame bar = new(), top = new();
+        HudFrame bar = new HudFrame(), top = new HudFrame();
         hud.Build(FullHd, 1920, snapshot, pointer, 80, ms, bar, top);
         return (bar.Draws.ToArray(), top.Draws.ToArray());
     }
@@ -104,7 +104,7 @@ public sealed class HoverHudTests
         Build(hud, snapshot, 0);
         float height = 10 + 2 * (1080 * 1.3f / 120);
         // At 150% the panel's bottom is 1280 units: 720 px.
-        HudFrame bar = new(), top = new();
+        HudFrame bar = new HudFrame(), top = new HudFrame();
         hud.Build(FullHd, 1280, snapshot, (1000, 1270), 80, 2000, bar, top);
         Assert.Equal((720 - height - 10) / Scale, top.Draws[0].Rect.Y, 2);
         top.Clear();

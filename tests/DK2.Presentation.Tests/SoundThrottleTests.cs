@@ -10,9 +10,9 @@ namespace DK2.Presentation.Tests;
 /// request gates <c>0x00567810</c>/<c>0x005678F0</c> (sound-effects.md §4).</summary>
 public sealed class SoundThrottleTests
 {
-    private static readonly SoundId BattleCall = new(0xD6);
-    private static readonly SoundId Hover = new(0x30F);   // a listed interface event; which widget plays it is inferred
-    private static readonly SoundId Unlisted = new(0xDF);
+    private static readonly SoundId BattleCall = new SoundId(0xD6);
+    private static readonly SoundId Hover = new SoundId(0x30F);   // a listed interface event; which widget plays it is inferred
+    private static readonly SoundId Unlisted = new SoundId(0xDF);
 
     [Theory]
     [InlineData(0u, SoundFrameLoad.Normal)]

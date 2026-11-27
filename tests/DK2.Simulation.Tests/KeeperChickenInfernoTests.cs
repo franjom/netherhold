@@ -265,7 +265,7 @@ public class KeeperChickenInfernoTests
     /// thirty runs stay countable below a Goblin's health.</summary>
     private static KeeperSpellDef Inferno()
     {
-        return new()
+        return new KeeperSpellDef()
         {
             Name = "Inferno",
             KeeperSpellId = KeeperSpellRules.Inferno,
@@ -286,7 +286,7 @@ public class KeeperChickenInfernoTests
 
     private static KeeperSpellDef Chicken()
     {
-        return new()
+        return new KeeperSpellDef()
         {
             Name = "Chicken",
             KeeperSpellId = KeeperSpellRules.Chicken,
@@ -306,12 +306,12 @@ public class KeeperChickenInfernoTests
     /// <summary>Shots.kwd records 10 and 15 as shipped (shots.md §2 offsets).</summary>
     private static ShotDef Shot(byte id, byte process, uint flags, int health, uint processFlags = 0, byte collide = 0)
     {
-        return new(new byte[239])
+        return new ShotDef(new byte[239])
         {
             Name = $"shot {id}",
             ShotId = id,
-            MeshResource = new("", 0, default, 0, 0, 0, 0),
-            Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0),
+            MeshResource = new KwdArtResource("", 0, default, 0, 0, 0, 0),
+            Light = new KwdLight(0, 0, 0, 0, 0, 0, 0, 0, 0),
             SoundCategory = "",
             Speed = 2048,
             Radius = 819,
