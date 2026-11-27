@@ -12,7 +12,10 @@ public sealed class PointerGesturesTests
     private sealed class Holder : IPointerGestureHolder
     {
         public int Cancels { get; private set; }
-        public void CancelPointerGesture() => Cancels++;
+        public void CancelPointerGesture()
+        {
+            Cancels++;
+        }
     }
 
     [Fact]
@@ -36,6 +39,8 @@ public sealed class PointerGesturesTests
     }
 
     [Fact]
-    public void AnAdapterWithoutThePanelOrTheCursorPassesNull() =>
+    public void AnAdapterWithoutThePanelOrTheCursorPassesNull()
+    {
         PointerGestures.CancelAll(null, new PlayerInputTranslator(), null);
+    }
 }

@@ -19,11 +19,20 @@ public class CameraRulesTests
     private const float RawUnit = 1f / Fp32.One;
     private static readonly CameraViewport Viewport = new(1600, 1600, 1200);
 
-    private static CameraThing Profile() => new(new byte[84])
+    private static CameraThing Profile()
     {
-        CameraId = 3, Z = 4096, Zoom = 40960, MinZoom = 16384, MaxZoom = 53248,
-        Lens = 8192, AnglePitch = 220, Flags = 0x26,
-    };
+        return new(new byte[84])
+        {
+            CameraId = 3,
+            Z = 4096,
+            Zoom = 40960,
+            MinZoom = 16384,
+            MaxZoom = 53248,
+            Lens = 8192,
+            AnglePitch = 220,
+            Flags = 0x26,
+        };
+    }
 
     // --- CameraFocus and CameraGlide (action 26, 0x00442650) ---
 
@@ -62,8 +71,10 @@ public class CameraRulesTests
     [InlineData(-1f, 0f, 1f, 0f)]
     [InlineData(2f, 0f, 1f, 1f)]
     [InlineData(0.5f, 0f, 1f, 0.5f)]
-    public void TheClampTestsTheMinimumFirstAsUnitysMathfClampDoes(float value, float minimum, float maximum, float expected) =>
+    public void TheClampTestsTheMinimumFirstAsUnitysMathfClampDoes(float value, float minimum, float maximum, float expected)
+    {
         Assert.Equal(expected, CameraFocus.Clamp(value, minimum, maximum));
+    }
 
     [Fact]
     public void AGlideLastsTheDirectorsTimeAndMovesInAStraightLine()
@@ -113,8 +124,10 @@ public class CameraRulesTests
 
     // --- ClassicCameraInput ---
 
-    private static CameraPointerSample Pointer(float x, float y, bool focused = true, bool overHud = false, float wheel = 0) =>
-        new(new Vector2(x, y), 1600, 1200, focused, overHud, wheel);
+    private static CameraPointerSample Pointer(float x, float y, bool focused = true, bool overHud = false, float wheel = 0)
+    {
+        return new(new Vector2(x, y), 1600, 1200, focused, overHud, wheel);
+    }
 
     [Theory]
     [InlineData(4, 600, ClassicCameraKeys.Left)]
@@ -127,20 +140,26 @@ public class CameraRulesTests
     [InlineData(800, 5, ClassicCameraKeys.None)]
     [InlineData(0, 0, ClassicCameraKeys.Left | ClassicCameraKeys.Down)]
     [InlineData(1599, 1199, ClassicCameraKeys.Right | ClassicCameraKeys.Up)]
-    public void TheEdgeScrollBandIsFivePixelsStrict(float x, float y, ClassicCameraKeys expected) =>
+    public void TheEdgeScrollBandIsFivePixelsStrict(float x, float y, ClassicCameraKeys expected)
+    {
         Assert.Equal(expected, ClassicCameraInput.EdgeScroll(Pointer(x, y)));
+    }
 
     [Theory]
     [InlineData(-1, 600)]
     [InlineData(1600, 600)]
     [InlineData(800, 1200)]
     [InlineData(800, -1)]
-    public void APointerOffTheScreenDoesNotScroll(float x, float y) =>
+    public void APointerOffTheScreenDoesNotScroll(float x, float y)
+    {
         Assert.Equal(ClassicCameraKeys.None, ClassicCameraInput.EdgeScroll(Pointer(x, y)));
+    }
 
     [Fact]
-    public void AnUnfocusedWindowDoesNotScroll() =>
+    public void AnUnfocusedWindowDoesNotScroll()
+    {
         Assert.Equal(ClassicCameraKeys.None, ClassicCameraInput.EdgeScroll(Pointer(0, 600, focused: false)));
+    }
 
     [Fact]
     public void TheFrameTimeRoundsToTheNearestTimeSpanTick()
@@ -267,8 +286,10 @@ public class CameraRulesTests
     [InlineData(53248, 3f, 106496)]
     [InlineData(5, 1.5f, 8)]
     [InlineData(7, 1.5f, 10)]
-    public void TheZoomOutLimitIsScaledWithinOneToTwoAndRoundedHalfToEven(int maxZoom, float scale, int expected) =>
+    public void TheZoomOutLimitIsScaledWithinOneToTwoAndRoundedHalfToEven(int maxZoom, float scale, int expected)
+    {
         Assert.Equal(expected, ClassicCameraSetup.ZoomOutLimit(maxZoom, scale));
+    }
 
     [Fact]
     public void TheDefaultZoomOutLimitScaleIsUnitysSerialisedValue()
@@ -297,15 +318,26 @@ public class CameraRulesTests
     }
 
     [Fact]
-    public void ALevelWithoutPlayerRecordsStartsAtTheMapCentre() =>
+    public void ALevelWithoutPlayerRecordsStartsAtTheMapCentre()
+    {
         Assert.Equal(new Vector3(15, 1, -19),
             ClassicCameraSetup.Create(Profile(), 1, 4, 10, null, new PlayerId(3), 30, 38).StartFocus);
+    }
 
-    private static PlayerDef Player(byte id, ushort cameraX, ushort cameraY) => new()
+    private static PlayerDef Player(byte id, ushort cameraX, ushort cameraY)
     {
-        PlayerId = id, Name = "test", StartingGold = 0, HasAiFlag = false, TriggerId = 0, CameraX = cameraX, CameraY = cameraY,
-        Ai = null!,
-    };
+        return new()
+        {
+            PlayerId = id,
+            Name = "test",
+            StartingGold = 0,
+            HasAiFlag = false,
+            TriggerId = 0,
+            CameraX = cameraX,
+            CameraY = cameraY,
+            Ai = null!,
+        };
+    }
 
     // --- The query follow and turn ---
 
@@ -316,8 +348,10 @@ public class CameraRulesTests
     [InlineData(true, 7, true, false, false)]
     [InlineData(true, 7, false, true, false)]
     public void TheCameraFollowsTheQueriedCreatureOnlyWithTheToolATargetNoPathAndNoModal(bool queryTool, int target,
-        bool pathPlaying, bool modal, bool expected) =>
+        bool pathPlaying, bool modal, bool expected)
+    {
         Assert.Equal(expected, ClassicCreatureQueryRules.Follows(queryTool, new CreatureQueryTarget(target), pathPlaying, modal));
+    }
 
     [Fact]
     public void TheQueryTurnMatchesTheRunnersRoundTripThroughDegreesForEveryYaw()
@@ -402,18 +436,24 @@ public class CameraRulesTests
     }
 
     [Fact]
-    public void TheHandLightFallsBackToTheTileCentre() =>
+    public void TheHandLightFallsBackToTheTileCentre()
+    {
         Assert.Equal(new Vector2(3.5f, 6.5f),
             TileTopPlane.HandLightPoint(new Vector3(0, 4, 0), new Vector3(1, 0, 0), new TilePos(3, 6), solid: false));
+    }
 
     // --- GameSessionStarter ---
 
-    private static LevelMap Map(params byte[] owners) =>
-        new(owners.Length, 1, [.. owners.Select(owner => new MapTile(2, owner, 0, 0))]);
+    private static LevelMap Map(params byte[] owners)
+    {
+        return new(owners.Length, 1, [.. owners.Select(owner => new MapTile(2, owner, 0, 0))]);
+    }
 
     [Fact]
-    public void ASavesPlayersAreTheMapsOwnersAscendingAndDistinct() =>
+    public void ASavesPlayersAreTheMapsOwnersAscendingAndDistinct()
+    {
         Assert.Equal(new byte[] { 0, 1, 3 }, GameSessionStarter.PlayersOf(Map(3, 1, 3, 0, 1)));
+    }
 
     [Fact]
     public void TheCameraScrollsAtTheLevelsTicksPerSecondElseTheOriginalGames()

@@ -20,7 +20,10 @@ public class DoorPushTests
     private const byte Barricade = 6;
     private static readonly TilePos DoorTile = new(10, 10);
 
-    private static int Centre(int tile) => (tile * Fp32.One) + 0x800;
+    private static int Centre(int tile)
+    {
+        return (tile * Fp32.One) + 0x800;
+    }
 
     private static (GameDatabase db, WorldState world, DoorState door) Walled(byte doorId, byte flags = 0, bool built = true)
     {
@@ -114,8 +117,10 @@ public class DoorPushTests
         Assert.Equal(DoorTile.X + 1, imp.Tile.X);
     }
 
-    private static (int X, int Y) PushVector(int heading) =>
-        ((int)(((long)0x80 * TrapRules.Sine(heading)) >> 16), -(int)(((long)0x80 * TrapRules.Cosine(heading)) >> 16));
+    private static (int X, int Y) PushVector(int heading)
+    {
+        return ((int)(((long)0x80 * TrapRules.Sine(heading)) >> 16), -(int)(((long)0x80 * TrapRules.Cosine(heading)) >> 16));
+    }
 
     /// <summary>The push's first turn is the door update's: it adds <c>0x80</c> along the passage and
     /// the creature has not moved; the pass spends it the next turn and the air friction takes 327 of 4096.</summary>

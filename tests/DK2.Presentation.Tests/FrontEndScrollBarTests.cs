@@ -34,8 +34,10 @@ public sealed class FrontEndScrollBarTests
     [InlineData(590, 300, ScrollBarPart.Track)]
     [InlineData(580, 300, ScrollBarPart.None)]
     [InlineData(590, 356, ScrollBarPart.None)]
-    public void TheHoverTestSplitsTheBarIntoArrowSquaresThumbAndTrack(float x, float y, ScrollBarPart part) =>
+    public void TheHoverTestSplitsTheBarIntoArrowSquaresThumbAndTrack(float x, float y, ScrollBarPart part)
+    {
         Assert.Equal(part, Armed().HitTest(new FrontEndPoint(x, y)));
+    }
 
     /// <summary>One step on the press, then one per <see cref="FrontEndScrollBar.HeldStepSeconds"/> held
     /// (the remake's rate; DK2's front-end update rate is unread). A track press steps once.</summary>

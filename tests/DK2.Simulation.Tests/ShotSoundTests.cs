@@ -54,7 +54,14 @@ public sealed class ShotSoundTests
     /// <summary>What every caller of <c>Shot_Create</c> does once, as the spell casts and traps do through <see cref="ShotRules.RequestTrail"/>.</summary>
     private sealed class Construct(ShotState shot) : ISimulationSystem
     {
-        public string Name => "test_construct";
+        public string Name
+        {
+            get
+            {
+                return "test_construct";
+            }
+        }
+
         public void Execute(SimulationContext context)
         {
             context.Navigation.Refresh();
@@ -66,10 +73,15 @@ public sealed class ShotSoundTests
     }
 
     /// <summary>By event and by the shot's two handles: 0xF4, 0xDB and 0x1BC are the terrain's, the creature's and the weapons' too.</summary>
-    private static ThingSoundRequest[] Heard(ListEventSink events, ThingSoundEvent sound) =>
-        [.. Sounds(events).Where(s => s.Event == sound && s.Source.Kind is SoundSourceKind.Shot or SoundSourceKind.ShotSecond)];
+    private static ThingSoundRequest[] Heard(ListEventSink events, ThingSoundEvent sound)
+    {
+        return [.. Sounds(events).Where(s => s.Event == sound && s.Source.Kind is SoundSourceKind.Shot or SoundSourceKind.ShotSecond)];
+    }
 
-    private static FpPosition3 At(int x, int y, int z) => new(new Fp32(x), new Fp32(y), new Fp32(z));
+    private static FpPosition3 At(int x, int y, int z)
+    {
+        return new(new Fp32(x), new Fp32(y), new Fp32(z));
+    }
 
     [Fact]
     public void AShotsConstructionAsksEfWithItsFirstHandleAndF2WithItsSecondInItsCategoryAtItsPosition()

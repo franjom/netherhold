@@ -96,27 +96,45 @@ public class TerrainTileBuilderTests
     /// <summary>A wall: two faces at its decay stage's texture, a top with inverted normals, top quarters, tagged
     /// and tinted, so each group draws its tagged twin and the additive overlay.</summary>
     [Fact]
-    public void AWallMatchesTheOldBuild() => AssertSameAsLegacy(Grid(), 1, 0);
+    public void AWallMatchesTheOldBuild()
+    {
+        AssertSameAsLegacy(Grid(), 1, 0);
+    }
 
     /// <summary>A room tile: floor quarters and whole piece with their own tints, the extra piece, whole walls 7 and 8
     /// taking the neighbour's tint, a custom whole gate piece under 7 (no tint), and halves facing a tagged neighbour.</summary>
     [Fact]
-    public void ARoomTileMatchesTheOldBuild() => AssertSameAsLegacy(Grid(), 1, 1);
+    public void ARoomTileMatchesTheOldBuild()
+    {
+        AssertSameAsLegacy(Grid(), 1, 1);
+    }
 
     /// <summary>A hero wall: a whole face and halves 4 and 5 swapped (0x0043E860).</summary>
     [Fact]
-    public void AHeroFaceMatchesTheOldBuild() => AssertSameAsLegacy(Grid(), 2, 1);
+    public void AHeroFaceMatchesTheOldBuild()
+    {
+        AssertSameAsLegacy(Grid(), 2, 1);
+    }
 
     [Fact]
-    public void ALiquidBedMatchesTheOldBuild() => AssertSameAsLegacy(Grid(), 0, 2);
+    public void ALiquidBedMatchesTheOldBuild()
+    {
+        AssertSameAsLegacy(Grid(), 0, 2);
+    }
 
     /// <summary>A bridge: the bed under it, then the room pieces.</summary>
     [Fact]
-    public void ABridgeMatchesTheOldBuild() => AssertSameAsLegacy(Grid(), 1, 2);
+    public void ABridgeMatchesTheOldBuild()
+    {
+        AssertSameAsLegacy(Grid(), 1, 2);
+    }
 
     /// <summary>The sight fog's faded piece on a red tile: the faded twin, and still the red overlay.</summary>
     [Fact]
-    public void TheSightFogOnARedTileMatchesTheOldBuild() => AssertSameAsLegacy(Grid(), 2, 2);
+    public void TheSightFogOnARedTileMatchesTheOldBuild()
+    {
+        AssertSameAsLegacy(Grid(), 2, 2);
+    }
 
     [Fact]
     public void EveryTileOfTheGridMatchesTheOldBuild()
@@ -153,9 +171,11 @@ public class TerrainTileBuilderTests
     {
         var keys = new TerrainPieceKeys("Rock");
         TileView Tile(TerrainPieces pieces = default, TerrainPieceKeys? pieceKeys = null, RoomPieceKeys? roomKeys = null,
-            TerrainPieceKeys? bedKeys = null, AssetRef fog = default) =>
-            new(new TilePos(0, 0), default, default, default, false, false, 0, 1000, pieces: pieces, pieceKeys: pieceKeys,
+            TerrainPieceKeys? bedKeys = null, AssetRef fog = default)
+        {
+            return new(new TilePos(0, 0), default, default, default, false, false, 0, 1000, pieces: pieces, pieceKeys: pieceKeys,
                 roomKeys: roomKeys, bedKeys: bedKeys, sightFogOverlay: fog);
+        }
 
         Assert.False(TerrainTileBuilder.Draws(Tile()));
         Assert.True(TerrainTileBuilder.Draws(Tile(default(TerrainPieces).WithFloor(), keys)));
@@ -232,8 +252,10 @@ public class TerrainTileBuilderTests
     [InlineData(1, 3f, 2f, -1f)]
     [InlineData(2, -1f, 2f, -3f)]
     [InlineData(3, -3f, 2f, 1f)]
-    public void TheTurnsAreExactQuarters(int rotation, float x, float y, float z) =>
+    public void TheTurnsAreExactQuarters(int rotation, float x, float y, float z)
+    {
         Assert.Equal(new Vector3(x, y, z), TerrainTileBuilder.Turn(new Vector3(1, 2, 3), rotation));
+    }
 
     /// <summary>A rebuild of a tile whose buffers have grown allocates nothing (ADR-0695).</summary>
     [Fact]
@@ -326,9 +348,11 @@ public class TerrainTileBuilderTests
         return actual.VertexCount;
     }
 
-    private static void AssertNear(Vector3 expected, Vector3 actual, string what) =>
+    private static void AssertNear(Vector3 expected, Vector3 actual, string what)
+    {
         Assert.True(Vector3.Distance(expected, actual) <= Tolerance * (1f + expected.Length()),
             $"{what}: expected {expected}, got {actual}");
+    }
 
     private static Vector3 Quadrant(int x, int y, int quadrant)
     {
@@ -336,13 +360,28 @@ public class TerrainTileBuilderTests
         return RenderWorld.Ground(x + .5f, y + .5f) + new Vector3(centres[quadrant].X, 0, centres[quadrant].Y);
     }
 
-    private static RoomDef Room() => new()
+    private static RoomDef Room()
     {
-        Name = "Lair", RoomId = (byte)RoomTypeId.Lair, TerrainId = 12, Flags = RoomFlags.PlaceableOnLand,
-        Construction = TileConstruction.Normal, Cost = 0, ReturnPercentage = 0,
-        CreatedCreatureId = 0, ObjectIds = [], HealthGain = 0, CeilingHeight = new Fp32(0),
-        RecommendedSizeX = 3, RecommendedSizeY = 3, OrderInEditor = 0, NameStringId = 0, TooltipStringId = 0,
-    };
+        return new()
+        {
+            Name = "Lair",
+            RoomId = (byte)RoomTypeId.Lair,
+            TerrainId = 12,
+            Flags = RoomFlags.PlaceableOnLand,
+            Construction = TileConstruction.Normal,
+            Cost = 0,
+            ReturnPercentage = 0,
+            CreatedCreatureId = 0,
+            ObjectIds = [],
+            HealthGain = 0,
+            CeilingHeight = new Fp32(0),
+            RecommendedSizeX = 3,
+            RecommendedSizeY = 3,
+            OrderInEditor = 0,
+            NameStringId = 0,
+            TooltipStringId = 0,
+        };
+    }
 
     /// <summary>Four by three tiles: row 0 a tagged plain floor, a wall and a tinted neighbour; row 1 a tagged
     /// neighbour, a room tile, a hero wall; row 2 a water bed, a bridge over lava and a fogged red tile.</summary>
@@ -358,11 +397,13 @@ public class TerrainTileBuilderTests
             RoomWalls walls = default, PieceSet roomFloor = default, RoomPieceKeys? roomKeys = null, PieceSet bed = default,
             TerrainPieceKeys? bedKeys = null, TerrainLightColour ambientTint = default, TerrainLightColour quarterAmbientTint = default,
             AssetRef sightFogOverlay = default, byte sightFogOpacity = 0, int faceTexture = -1, bool red = false,
-            AssetRef extraRoomPiece = default) =>
-            new(new TilePos(x, y), default, default, default, tagged, false, 0, 1000, walls, pieces, pieceKeys,
+            AssetRef extraRoomPiece = default)
+        {
+            return new(new TilePos(x, y), default, default, default, tagged, false, 0, 1000, walls, pieces, pieceKeys,
                 roomFloor: roomFloor, roomKeys: roomKeys, bed: bed, bedKeys: bedKeys, ambientTint: ambientTint,
                 quarterAmbientTint: quarterAmbientTint, sightFogOverlay: sightFogOverlay, sightFogOpacity: sightFogOpacity,
                 faceTexture: faceTexture, redHighlighted: red, extraRoomPiece: extraRoomPiece);
+        }
 
         tiles[0] = At(0, 0, tagged: true, pieces: default(TerrainPieces).WithFloor(), pieceKeys: rock);
         tiles[1] = At(1, 0, tagged: true, ambientTint: WallTint, faceTexture: 2, pieceKeys: claimed,
@@ -396,10 +437,13 @@ public class TerrainTileBuilderTests
         var rock = new TerrainPieceKeys("Rock");
         var room = new RoomPieceKeys(Room());
         var tiles = new TileView[Width * Height];
-        TileView At(int x, int y, RoomWalls walls = default, TerrainPieces pieces = default, bool tagged = true) =>
-            new(new TilePos(x, y), default, default, default, tagged, false, 0, 1000, walls, pieces,
+        TileView At(int x, int y, RoomWalls walls = default, TerrainPieces pieces = default, bool tagged = true)
+        {
+            return new(new TilePos(x, y), default, default, default, tagged, false, 0, 1000, walls, pieces,
                 walls.IsEmpty ? rock : null, roomKeys: walls.IsEmpty ? null : room,
                 roomFloor: walls.IsEmpty ? default : default(PieceSet).WithWhole(1, 0), ambientTint: NeighbourTint);
+        }
+
         for (int y = 0; y < Height; y++)
         {
             for (int x = 0; x < Width; x++)
@@ -424,7 +468,13 @@ public class TerrainTileBuilderTests
         private readonly Dictionary<(AssetRef, int), TerrainPiece> _made = new();
         private readonly Dictionary<AssetRef, TerrainPiece> _fixed = new();
 
-        public TerrainPiece this[AssetRef key] { set => _fixed[key] = value; }
+        public TerrainPiece this[AssetRef key]
+        {
+            set
+            {
+                _fixed[key] = value;
+            }
+        }
 
         public TerrainPiece? Piece(AssetRef key, int textureIndex = -1)
         {
@@ -462,7 +512,11 @@ public class TerrainTileBuilderTests
             }
 
             h ^= (uint)textureIndex * 2654435761;
-            float F(int shift) => ((h >> shift) & 0xFF) / 255f - 0.5f;
+            float F(int shift)
+            {
+                return ((h >> shift) & 0xFF) / 255f - 0.5f;
+            }
+
             Vector3[] positions =
             [
                 new(F(0), 1f + F(8), F(16)), new(F(4) + 0.3f, 1.2f, F(12)), new(-0.37f, 2f + F(20), 0.41f),

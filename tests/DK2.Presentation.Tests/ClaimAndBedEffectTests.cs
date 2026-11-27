@@ -34,8 +34,11 @@ public class ClaimAndBedEffectTests
         }
 
         var view = new WorldView(db);
-        FpPosition3 At(int x, int y) => new(new(x * Fp32.One + Fp32.One / 2),
+        FpPosition3 At(int x, int y)
+        {
+            return new(new(x * Fp32.One + Fp32.One / 2),
             new(y * Fp32.One + Fp32.One / 2), new(0));
+        }
 
         Assert.Equal(0, view.GroundHeightAt(world, At(3, 3)).Raw);
         Assert.Equal(Fp32.One, view.GroundHeightAt(world, At(3, 2)).Raw);
@@ -57,8 +60,12 @@ public class ClaimAndBedEffectTests
         }
 
         var view = new WorldView(db);
-        FpPosition3 At(int x, int y) => new(new Fp32(x * Fp32.One + Fp32.One / 2),
+        FpPosition3 At(int x, int y)
+        {
+            return new(new Fp32(x * Fp32.One + Fp32.One / 2),
             new Fp32(y * Fp32.One + Fp32.One / 2), new Fp32(0));
+        }
+
         Assert.Equal(interiorHeight, view.GroundHeightAt(world, At(3, 3)).Raw);
         Assert.Equal(interiorHeight, view.GroundHeightAt(world, At(4, 4)).Raw);
         Assert.Equal(Fp32.One, view.GroundHeightAt(world, At(2, 3)).Raw);
@@ -363,8 +370,12 @@ public class ClaimAndBedEffectTests
             }
         }
 
-        ViewEffectRequest Request(TilePos tile) => ViewEffectRequest.AtTileCentre(
+        ViewEffectRequest Request(TilePos tile)
+        {
+            return ViewEffectRequest.AtTileCentre(
             new EffectId(CaptureEffectLayout.RoomEffectId), PlayerIds.FirstKeeper, tile, new Fp32(0));
+        }
+
         Assert.Equal(CaptureEdges.None, CaptureEffectLayout.Boundary(world, db, Request(new(3, 3))));
         Assert.Equal(CaptureEdges.West | CaptureEdges.North,
             CaptureEffectLayout.Boundary(world, db, Request(new(2, 2))));
@@ -545,8 +556,18 @@ public class ClaimAndBedEffectTests
 
     private sealed class RescueBed(CreatureState creature) : ISimulationSystem
     {
-        public string Name => "RescueBed";
-        public void Execute(SimulationContext context) => Assert.True(CreatureDeathRules.RescueIntoLair(context, creature));
+        public string Name
+        {
+            get
+            {
+                return "RescueBed";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            Assert.True(CreatureDeathRules.RescueIntoLair(context, creature));
+        }
     }
 
     private static ConstructionParticle[] CollectBirths(RoomConstructionParticles model)

@@ -14,13 +14,24 @@ public sealed class CreateGoldTests
     private const byte Keeper = 3, Rival = 4, SpellId = 13;
     private static readonly TilePos At = new(10, 10);
 
-    private static KeeperSpellDef Spell() => new()
+    private static KeeperSpellDef Spell()
     {
-        Name = "Create Gold", KeeperSpellId = SpellId, ManaCost = 15000,
-        ManaUpkeepPerSecond = 0, ShotTypeId = 5, ShotData1 = 1, ShotData2 = 1000,
-        BonusShotTypeId = 5, BonusShotData1 = 1, BonusShotData2 = 2000,
-        LocationSelector = 1, TargetSelector = 4,
-    };
+        return new()
+        {
+            Name = "Create Gold",
+            KeeperSpellId = SpellId,
+            ManaCost = 15000,
+            ManaUpkeepPerSecond = 0,
+            ShotTypeId = 5,
+            ShotData1 = 1,
+            ShotData2 = 1000,
+            BonusShotTypeId = 5,
+            BonusShotData1 = 1,
+            BonusShotData2 = 2000,
+            LocationSelector = 1,
+            TargetSelector = 4,
+        };
+    }
 
     private static (GameDatabase Db, WorldState World) Setup(KeeperSpellDef? spell = null)
     {
@@ -36,13 +47,20 @@ public sealed class CreateGoldTests
         return (db, world);
     }
 
-    private static CastSpellAtPlaceCommand Cast() =>
-        new(Keeper, SpellId, CreatureState.CentreOf(At.X), CreatureState.CentreOf(At.Y));
+    private static CastSpellAtPlaceCommand Cast()
+    {
+        return new(Keeper, SpellId, CreatureState.CentreOf(At.X), CreatureState.CentreOf(At.Y));
+    }
 
-    private static CastSpellAtPlaceCommand CastAtOffsets(Fp32 x, Fp32 y) =>
-        Cast() with { X = At.X * Fp32.One + x.Raw, Y = At.Y * Fp32.One + y.Raw };
+    private static CastSpellAtPlaceCommand CastAtOffsets(Fp32 x, Fp32 y)
+    {
+        return Cast() with { X = At.X * Fp32.One + x.Raw, Y = At.Y * Fp32.One + y.Raw };
+    }
 
-    private static ISimulationSystem[] Systems() => [new KeeperSpellSystem(), new ShotSystem()];
+    private static ISimulationSystem[] Systems()
+    {
+        return [new KeeperSpellSystem(), new ShotSystem()];
+    }
 
     [Theory]
     [InlineData(false, 1000)]

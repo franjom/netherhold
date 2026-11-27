@@ -12,9 +12,12 @@ public sealed class CombatPitTransportTests
     private const byte Keeper = PlayerIds.FirstKeeper;
     private static readonly TilePos Floor = new(6, 6);
 
-    private static ISimulationSystem[] Steps(bool movement) => movement
+    private static ISimulationSystem[] Steps(bool movement)
+    {
+        return movement
         ? [new PreviousPositionStep(), new CreatureStatusSystem(), new CreatureMovementSystem(), new CreatureHealthSystem()]
         : [new PreviousPositionStep(), new CreatureStatusSystem(), new CreatureHealthSystem()];
+    }
 
     private static (GameSimulation Sim, CreatureState Loser) Setup(bool movement = true)
     {

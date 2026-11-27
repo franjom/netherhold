@@ -21,8 +21,10 @@ public class CameraPathPlaybackTests
 {
     private static readonly KcsRotation Identity = new(1, 0, 0, 0, 1, 0, 0, 0, 1);
 
-    private static KcsFrame[] Frames(int count, float z = -3f) =>
-        [.. Enumerable.Range(0, count).Select(i => new KcsFrame(0, 0, z, Identity, 1f, 12000f))];
+    private static KcsFrame[] Frames(int count, float z = -3f)
+    {
+        return [.. Enumerable.Range(0, count).Select(i => new KcsFrame(0, 0, z, Identity, 1f, 12000f))];
+    }
 
     [Fact]
     public void PathSuppressesRenderJitterWithoutLeavingAnOffsetAfterItEnds()
@@ -65,10 +67,14 @@ public class CameraPathPlaybackTests
     {
         var viewer = new PlayerId(3);
         var director = new ScriptedViewDirector(viewer, _ => Frames(399), _ => null);
-        SimEvent Letterbox(bool raised) => new(default, "t", "scripted_view", "")
+        SimEvent Letterbox(bool raised)
         {
-            ScriptedView = new ScriptedViewRequest(ScriptedViewKind.Letterbox, viewer, 0, default, raised),
-        };
+            return new(default, "t", "scripted_view", "")
+            {
+                ScriptedView = new ScriptedViewRequest(ScriptedViewKind.Letterbox, viewer, 0, default, raised),
+            };
+        }
+
         director.Emit(Letterbox(true));
         director.Update(0, 0);
         Assert.False(director.PathPlaying);
@@ -206,9 +212,13 @@ public class CameraPathPlaybackTests
         var simulation = new GameSimulation(database, world, seed: 7, triggers: tree);
 
         using var wad = WadArchive.Open(Path.Combine(install, "Data", "Paths.WAD"));
-        IReadOnlyList<KcsFrame>? Load(int id) => wad.Entries
+        IReadOnlyList<KcsFrame>? Load(int id)
+        {
+            return wad.Entries
             .Where(e => e.Name.Equals($"EnginePath{id}.kcs", StringComparison.OrdinalIgnoreCase))
             .Select(e => KcsCameraPath.Read(wad.Extract(e), e.Name).Frames).FirstOrDefault();
+        }
+
         var director = new ScriptedViewDirector(new PlayerId(3), Load, _ => null);
         simulation.ObserveWith(director);
 
@@ -240,11 +250,13 @@ public class CameraPathPlaybackTests
         Assert.Equal(start.Position, firstPose!.Value.Position);
     }
 
-    private static SimEvent PathStart(PlayerId player, int path, long tick) =>
-        new(default, "t", "scripted_view", "")
+    private static SimEvent PathStart(PlayerId player, int path, long tick)
+    {
+        return new(default, "t", "scripted_view", "")
         {
             ScriptedView = new ScriptedViewRequest(ScriptedViewKind.CameraPath, player, path, default, false, tick),
         };
+    }
 
     [Fact]
     public void ACreatureIntroStartsAtFrameSeven()
@@ -328,8 +340,10 @@ public class CameraPathPlaybackTests
     [InlineData(1f, 0f, 25.6)]
     [InlineData(3f, 2f, 332.8)]
     [InlineData(10f, 0f, 500)]
-    public void AGlideLastsTwentyFiveAndAHalfMillisecondsASquareTileAndAtMostHalfASecond(float x, float y, double ms) =>
+    public void AGlideLastsTwentyFiveAndAHalfMillisecondsASquareTileAndAtMostHalfASecond(float x, float y, double ms)
+    {
         Assert.Equal(ms, ScriptedViewDirector.GlideMilliseconds(x, y), 3);
+    }
 
     /// <summary>A creature tree's glide (creature action 43) is addressed to no keeper and reaches
     /// every viewer; one addressed to another keeper does not (ADR-0768).</summary>
@@ -386,8 +400,10 @@ public class CameraPathPlaybackTests
         Assert.False(director.TryTakeCameraMove(out _));
     }
 
-    private static SimEvent View(ScriptedViewKind kind, PlayerId player, int value) =>
-        new(default, "t", "scripted_view", "") { ScriptedView = new ScriptedViewRequest(kind, player, value, default, false) };
+    private static SimEvent View(ScriptedViewKind kind, PlayerId player, int value)
+    {
+        return new(default, "t", "scripted_view", "") { ScriptedView = new ScriptedViewRequest(kind, player, value, default, false) };
+    }
 
     [Fact]
     public void ACreatureIntroductionReplacesEarlierTutorialSubtitles()

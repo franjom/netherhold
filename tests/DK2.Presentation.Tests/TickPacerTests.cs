@@ -7,9 +7,14 @@ namespace DK2.Presentation.Tests;
 public sealed class TickPacerTests
 {
     [Fact]
-    public void TheFrameClampIsOneThirdOfASecond() =>
+    public void TheFrameClampIsOneThirdOfASecond()
+    {
         Assert.Equal(0.33333334f, (float)TickPacer.MaximumFrameSeconds);
+    }
 
     [Fact]
-    public void AFrameRunsAtMostTwoTicks() => Assert.Equal(2, TickPacer.DefaultMaxTicksPerFrame);
+    public void AFrameRunsAtMostTwoTicks()
+    {
+        Assert.Equal(2, TickPacer.DefaultMaxTicksPerFrame);
+    }
 }

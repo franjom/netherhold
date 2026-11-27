@@ -30,14 +30,27 @@ public sealed class CreatureActionTableTests
     [InlineData(26, 0xCD)]
     [InlineData(58, 0x12D)]
     [InlineData(80, 0xD7)]
-    public void TheWordsTheCombatWorkAndTrainingActionsAskAreThoseOfTheirRecords(int action, int word) =>
+    public void TheWordsTheCombatWorkAndTrainingActionsAskAreThoseOfTheirRecords(int action, int word)
+    {
         Assert.Equal((ushort)word, CreatureActionTable.SoundWord(action));
+    }
 
     [Theory]
-    [InlineData(0)] [InlineData(3)] [InlineData(7)] [InlineData(22)]
-    public void ARecordWithoutAWordAsksNothing(int action) => Assert.Equal((ushort)0, CreatureActionTable.SoundWord(action));
+    [InlineData(0)]
+    [InlineData(3)]
+    [InlineData(7)]
+    [InlineData(22)]
+    public void ARecordWithoutAWordAsksNothing(int action)
+    {
+        Assert.Equal((ushort)0, CreatureActionTable.SoundWord(action));
+    }
 
     [Theory]
-    [InlineData(-1)] [InlineData(81)] [InlineData(1000)]
-    public void AnIndexOutsideTheTableAsksNothing(int action) => Assert.Equal((ushort)0, CreatureActionTable.SoundWord(action));
+    [InlineData(-1)]
+    [InlineData(81)]
+    [InlineData(1000)]
+    public void AnIndexOutsideTheTableAsksNothing(int action)
+    {
+        Assert.Equal((ushort)0, CreatureActionTable.SoundWord(action));
+    }
 }

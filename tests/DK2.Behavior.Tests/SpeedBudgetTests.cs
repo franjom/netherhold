@@ -37,13 +37,16 @@ public class SpeedBudgetTests(ITestOutputHelper output)
     public static readonly TimeSpan TickBudget = TimeSpan.FromMilliseconds(100);
 
     /// <summary>Levels 1-4 for as many turns as their packet recordings run.</summary>
-    public static TheoryData<int, int> CampaignLevels() => new()
+    public static TheoryData<int, int> CampaignLevels()
+    {
+        return new()
     {
         { 1, 2044 },
         { 2, 3657 },
         { 3, 3704 },
         { 4, 6804 },
     };
+    }
 
     [SpeedBudgetTheory]
     [MemberData(nameof(CampaignLevels))]

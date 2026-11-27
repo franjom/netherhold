@@ -58,10 +58,15 @@ public class HatcheryCoopRebuildTests
         SlabChain.Changed(world, db, (y * world.Width) + x, before, owner);
     }
 
-    private static GameSimulation Simulation(GameDatabase db, WorldState world, uint seed) =>
-        new(db, world, new SimRandom(new Dk2Lcg(seed)), []);
+    private static GameSimulation Simulation(GameDatabase db, WorldState world, uint seed)
+    {
+        return new(db, world, new SimRandom(new Dk2Lcg(seed)), []);
+    }
 
-    private static uint Seed(GameSimulation sim) => ((Dk2Lcg)sim.Rng.Algorithm).Seed;
+    private static uint Seed(GameSimulation sim)
+    {
+        return ((Dk2Lcg)sim.Rng.Algorithm).Seed;
+    }
 
     private static uint After(uint seed, int draws)
     {
@@ -74,8 +79,10 @@ public class HatcheryCoopRebuildTests
         return lcg.Seed;
     }
 
-    private static List<ObjectState> Coops(WorldState world) =>
-        [.. world.Objects.Where(o => o.ObjectTypeId == HatcheryRules.CoopObjectId)];
+    private static List<ObjectState> Coops(WorldState world)
+    {
+        return [.. world.Objects.Where(o => o.ObjectTypeId == HatcheryRules.CoopObjectId)];
+    }
 
     [Fact]
     public void TheLevelStartPlacesTheCoopsAndDrawsOnceForEach()

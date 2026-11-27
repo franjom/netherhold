@@ -102,5 +102,8 @@ public class KwdMapEditingTests
         }
     }
 
-    private static KwdLevelFileSet Set(KwdChunk map)=>KwdLevelFileSet.Create(new Dictionary<string,IReadOnlyList<KwdChunk>> { ["map.kld"]=[map] });
+    private static KwdLevelFileSet Set(KwdChunk map)
+    {
+        return KwdLevelFileSet.Create(new Dictionary<string, IReadOnlyList<KwdChunk>> { ["map.kld"] = [map] });
+    }
 }

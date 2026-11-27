@@ -62,8 +62,10 @@ public class KeeperSpellsOnRealDataTests
         return KwdKeeperSpells.Parse(chunks);
     }
 
-    private static GameDatabase Database() =>
-        GameDatabaseLoader.Load(Dk2InstallGate.Path);
+    private static GameDatabase Database()
+    {
+        return GameDatabaseLoader.Load(Dk2InstallGate.Path);
+    }
 
     // ---- the cast cost ----------------------------------------------------
 

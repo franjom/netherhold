@@ -32,8 +32,10 @@ public class BearingTests
     [InlineData(1, -1, 0x100)]
     [InlineData(-1, 1, 0x500)]
     [InlineData(2, 1, 0x200 + 151)]
-    public void TheBearingIsByOctantWithPlusXAtAQuarterTurn(int dx, int dy, int expected) =>
+    public void TheBearingIsByOctantWithPlusXAtAQuarterTurn(int dx, int dy, int expected)
+    {
         Assert.Equal(expected, Bearing.Of(dx, dy));
+    }
 
     [Fact]
     public void TheDistanceIsTheShorterWayRound()

@@ -22,12 +22,18 @@ public class DroppedToDoJobTests
 
     /// <summary>A manufacturer whose content table is Train alone, so only the dropped job can
     /// send it back to the Workshop.</summary>
-    private static GameDatabase Db(params JobType[] hates) => Dk2TerrainFixture.Database(
+    private static GameDatabase Db(params JobType[] hates)
+    {
+        return Dk2TerrainFixture.Database(
         Dk2TerrainFixture.Goblin() with
         {
-            CreatureId = MakerId, Name = "Maker", ManufacturePerSecond = 40,
-            HappyJobs = [new(JobType.Train, 0, 0, 100)], HateJobs = hates,
+            CreatureId = MakerId,
+            Name = "Maker",
+            ManufacturePerSecond = 40,
+            HappyJobs = [new(JobType.Train, 0, 0, 100)],
+            HateJobs = hates,
         });
+    }
 
     private static WorldState World(GameDatabase db)
     {

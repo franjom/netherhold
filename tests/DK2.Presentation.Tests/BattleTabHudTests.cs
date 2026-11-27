@@ -133,6 +133,8 @@ public sealed class BattleTabHudTests
     }
 
     [Fact]
-    public void ItPreloadsEveryArtTheMenuDraws() =>
+    public void ItPreloadsEveryArtTheMenuDraws()
+    {
         Assert.Equal(BattleTabView.AllArt, BattleTabHud.Images().Select(image => image.Path));
+    }
 }

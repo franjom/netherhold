@@ -54,9 +54,19 @@ public sealed class BedHeadingDrawTests
 
     private sealed class CaptureContext : ISimulationSystem
     {
-        public string Name => "BedHeadingTest";
+        public string Name
+        {
+            get
+            {
+                return "BedHeadingTest";
+            }
+        }
+
         public SimulationContext? Context { get; private set; }
-        public void Execute(SimulationContext context) => Context = context;
+        public void Execute(SimulationContext context)
+        {
+            Context = context;
+        }
     }
 
     private static (SimulationContext, CreatureState, Dk2Lcg) Setup(byte creatureType, CreatureDef? extra = null)

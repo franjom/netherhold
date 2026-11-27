@@ -40,8 +40,10 @@ public sealed class CreatureSpellSoundTests
         return (db, world);
     }
 
-    private static ThingSoundRequest[] Heard(ListEventSink events) =>
-        [.. Sounds(events).Where(s => (ushort)s.Event == Word)];
+    private static ThingSoundRequest[] Heard(ListEventSink events)
+    {
+        return [.. Sounds(events).Where(s => (ushort)s.Event == Word)];
+    }
 
     [Fact]
     public void ACastersShotLeavingAsksTheSpellsSoundWordInTheShotsCategoryWithTheCastersHandleAtItsPosition()
@@ -107,7 +109,17 @@ public sealed class CreatureSpellSoundTests
 
     private sealed class Once(Action<SimulationContext> rule) : ISimulationSystem
     {
-        public string Name => nameof(Once);
-        public void Execute(SimulationContext context) => rule(context);
+        public string Name
+        {
+            get
+            {
+                return nameof(Once);
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            rule(context);
+        }
     }
 }

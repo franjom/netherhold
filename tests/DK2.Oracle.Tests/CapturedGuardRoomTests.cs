@@ -60,12 +60,14 @@ public class CapturedGuardRoomTests(ITestOutputHelper log)
         int g = unchecked((byte)database.Variables[VariableTypeId.GuardRoomReportingDistanceTiles]);
         // The globals it reads outside the world object, which no capture stores: the neutral
         // and hero players' tags (words, 0x00513C09 and 0x00513C1C) and variable 190 (a byte).
-        static (uint, uint)[] Globals(CapturedState state, int g) =>
-        [
+        static (uint, uint)[] Globals(CapturedState state, int g)
+        {
+            return [
             (0x006F2548, (uint)state.Players.Single(p => p.Id == PlayerIds.Neutral).Tag),
             (0x006F254C, (uint)state.Players.Single(p => p.Id == PlayerIds.Good).Tag),
             (0x006F2974, (uint)g),
         ];
+        }
 
         var mismatches = new List<string>();
         var reached = new Dictionary<string, int> { ["inside"] = 0, ["outside"] = 0 };
@@ -119,6 +121,8 @@ public class CapturedGuardRoomTests(ITestOutputHelper log)
         Assert.True(reached.Values.All(n => n > 0), "an answer no captured creature reaches");
     }
 
-    private static void Count(Dictionary<string, int> counts, string key) =>
+    private static void Count(Dictionary<string, int> counts, string key)
+    {
         counts[key] = counts.TryGetValue(key, out int n) ? n + 1 : 1;
+    }
 }

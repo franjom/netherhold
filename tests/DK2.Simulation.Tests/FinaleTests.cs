@@ -65,11 +65,15 @@ public sealed class FinaleTests
         return (sim, gem, events);
     }
 
-    private static CreatureState Reaper(GameSimulation sim) =>
-        sim.World.Creatures.Single(c => sim.Database.CreatureById(c.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsHorny));
+    private static CreatureState Reaper(GameSimulation sim)
+    {
+        return sim.World.Creatures.Single(c => sim.Database.CreatureById(c.CreatureTypeId).Flags.HasFlag(CreatureFlags.IsHorny));
+    }
 
-    private static void Win(GameSimulation sim) =>
+    private static void Win(GameSimulation sim)
+    {
         Assert.True(sim.World.EndGame(sim.Database, new PlayerId(Keeper), PlayerStatus.Won));
+    }
 
     [Fact]
     public void ACampaignWinMakesAHiddenReaperAtALandingFiveTilesFromTheGem()

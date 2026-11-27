@@ -685,8 +685,10 @@ public class HeroWalkTests
         }
     }
 
-    private static GameSimulation Simulation(GameDatabase db, WorldState world) =>
-        new(db, world, 7, [new HeroSystem(), new CreatureMovementSystem()]);
+    private static GameSimulation Simulation(GameDatabase db, WorldState world)
+    {
+        return new(db, world, 7, [new HeroSystem(), new CreatureMovementSystem()]);
+    }
 
     private static (GameDatabase, WorldState) OpenWorld(params CreatureDef[] extra)
     {

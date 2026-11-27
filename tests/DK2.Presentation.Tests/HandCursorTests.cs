@@ -61,8 +61,10 @@ public sealed class HandCursorTests
     [InlineData(false, true, false, HandCursorKind.Point)]
     [InlineData(false, false, true, HandCursorKind.Pickup)]
     [InlineData(true, false, false, HandCursorKind.Point)]
-    public void ContextUsesTheTileDigFlagAndPickupPermission(bool tile, bool dig, bool pickup, HandCursorKind expected) =>
+    public void ContextUsesTheTileDigFlagAndPickupPermission(bool tile, bool dig, bool pickup, HandCursorKind expected)
+    {
         Assert.Equal(expected, HandCursor.ForHover(tile, dig, pickup));
+    }
 
     [Fact]
     public void DigSpriteUsesNativeSheetDimensionsAndHotspot()
@@ -125,8 +127,10 @@ public sealed class HandCursorTests
     [InlineData(HandCursorKind.Tagging, 7f, 30f)]
     [InlineData(HandCursorKind.HoldThing, 8f, 42f)]
     [InlineData(HandCursorKind.HoldGold, -18f, 7f)]
-    public void SingleFrameStatesUseTheirTipOrKeepDk2sHotspot(HandCursorKind kind, float x, float y) =>
+    public void SingleFrameStatesUseTheirTipOrKeepDk2sHotspot(HandCursorKind kind, float x, float y)
+    {
         Assert.Equal(new Vector2(x, y), HandCursor.Anchor(kind, 0));
+    }
 
     // A keeper spell's cursor, state 12, has the same 0x0068F638 record as state 3: Idle.png's finger.
     [Fact]
@@ -179,8 +183,10 @@ public sealed class HandCursorTests
     [InlineData(HandCursorKind.SmallPoint, 42f)]
     [InlineData(HandCursorKind.Pickup, 83f)]
     [InlineData(HandCursorKind.Dig, 80f)]
-    public void ReachIsTheFrameWidthRightOfTheLeastAnchor(HandCursorKind kind, float reach) =>
+    public void ReachIsTheFrameWidthRightOfTheLeastAnchor(HandCursorKind kind, float reach)
+    {
         Assert.Equal(reach, HandCursor.Reach(kind));
+    }
 
     [Fact]
     public void CompletingAnAnimationDiscardsOvershootAndChangingStateRestarts()
@@ -246,10 +252,24 @@ public sealed class HandCursorTests
         Assert.True(HandCursor.ShowsDig(world, database, new TilePos(4, 0), viewer));
     }
 
-    private static TerrainDef Terrain(byte id, string name, TerrainFlags flags) => new()
+    private static TerrainDef Terrain(byte id, string name, TerrainFlags flags)
     {
-        Name = name, TerrainId = id, Flags = flags, StartingHealth = 1, MaxHealth = 1,
-        GoldValue = 0, ManaGain = 0, MaxManaGain = 0, Damage = 0, NameStringId = 0, TooltipStringId = 0,
-        MaxHealthTypeTerrainId = id, DestroyedTypeTerrainId = id, Depth = new Fp32(0),
-    };
+        return new()
+        {
+            Name = name,
+            TerrainId = id,
+            Flags = flags,
+            StartingHealth = 1,
+            MaxHealth = 1,
+            GoldValue = 0,
+            ManaGain = 0,
+            MaxManaGain = 0,
+            Damage = 0,
+            NameStringId = 0,
+            TooltipStringId = 0,
+            MaxHealthTypeTerrainId = id,
+            DestroyedTypeTerrainId = id,
+            Depth = new Fp32(0),
+        };
+    }
 }

@@ -14,7 +14,10 @@ namespace DK2.Behavior.Tests;
 /// Gated with [InstallFact], so it reports SKIPPED without an installation.</summary>
 public class RoomHealthOnRealDataTests
 {
-    private static GameDatabase RealDatabase() => GameDatabaseLoader.Load(Dk2InstallGate.Path);
+    private static GameDatabase RealDatabase()
+    {
+        return GameDatabaseLoader.Load(Dk2InstallGate.Path);
+    }
 
     [InstallFact]
     public void Level8NeutralStoneBridgeBesideTheHeartTakesTwoApplications()

@@ -34,14 +34,20 @@ public sealed class TileSoundTests
         return (db, world, sim, events);
     }
 
-    private static ThingSoundRequest[] Sounds(ListEventSink events) =>
-        [.. events.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value)];
+    private static ThingSoundRequest[] Sounds(ListEventSink events)
+    {
+        return [.. events.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value)];
+    }
 
-    private static FpPosition3 Centre(TilePos tile) =>
-        new(new Fp32(CreatureState.CentreOf(tile.X)), new Fp32(CreatureState.CentreOf(tile.Y)), new Fp32(0));
+    private static FpPosition3 Centre(TilePos tile)
+    {
+        return new(new Fp32(CreatureState.CentreOf(tile.X)), new Fp32(CreatureState.CentreOf(tile.Y)), new Fp32(0));
+    }
 
-    private static void Work(WorldState world, TileWorkKind kind, int worker = -1) =>
+    private static void Work(WorldState world, TileWorkKind kind, int worker = -1)
+    {
         world.QueueWork(new TileWorkOrder((At.Y * world.Width) + At.X, kind, Keeper, worker));
+    }
 
     private static void AssertTileSound(ThingSoundRequest sound, WorldState world, string category, ThingSoundEvent expected)
     {
@@ -177,8 +183,18 @@ public sealed class TileSoundTests
 
     private sealed class FillSystem : ISimulationSystem
     {
-        public string Name => "Corner test";
-        public void Execute(SimulationContext context) => ReinforcementRules.FillCorners(context, new TilePos(5, 5), 3);
+        public string Name
+        {
+            get
+            {
+                return "Corner test";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            ReinforcementRules.FillCorners(context, new TilePos(5, 5), 3);
+        }
     }
 
     /// <summary>A sink that hears a sound does not change what the simulation does: the run with a sink and

@@ -27,12 +27,34 @@ public class ImpFetchesGoldTests
 
     private sealed record Run(GameSimulation Sim, ListEventSink Events)
     {
-        public WorldState World => Sim.World;
-        public GameDatabase Db => Sim.Database;
-        public CreatureState Imp => Sim.World.Creatures[0];
+        public WorldState World
+        {
+            get
+            {
+                return Sim.World;
+            }
+        }
 
-        public void Tick(params PlayerCommand[] commands) =>
+        public GameDatabase Db
+        {
+            get
+            {
+                return Sim.Database;
+            }
+        }
+
+        public CreatureState Imp
+        {
+            get
+            {
+                return Sim.World.Creatures[0];
+            }
+        }
+
+        public void Tick(params PlayerCommand[] commands)
+        {
             Sim.Tick(commands.Length == 0 ? InputFrame.Empty : InputFrame.Of(commands));
+        }
 
         public void Ticks(int count)
         {
@@ -42,7 +64,10 @@ public class ImpFetchesGoldTests
             }
         }
 
-        public IEnumerable<SimEvent> Of(string kind) => Events.Events.Where(e => e.Kind == kind);
+        public IEnumerable<SimEvent> Of(string kind)
+        {
+            return Events.Events.Where(e => e.Kind == kind);
+        }
     }
 
     private static Run Start(TilePos impAt, int imps = 1, ulong seed = 99)
@@ -68,7 +93,10 @@ public class ImpFetchesGoldTests
         RoomRules.Place(run.Db, ref tile, run.Db.Room(RoomTypeId.Treasury), Keeper);
     }
 
-    private static int Index(WorldState world, TilePos at) => (at.Y * world.Width) + at.X;
+    private static int Index(WorldState world, TilePos at)
+    {
+        return (at.Y * world.Width) + at.X;
+    }
 
     /// <summary>
     /// Turns every rock tile orthogonally beside the keeper's floor into a

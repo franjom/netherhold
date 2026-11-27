@@ -43,7 +43,10 @@ public class DoorCombatTests
         return (db, world);
     }
 
-    private static WorldSteering Routes(GameDatabase db, WorldState world) => new(db, world);
+    private static WorldSteering Routes(GameDatabase db, WorldState world)
+    {
+        return new(db, world);
+    }
 
     private static GameSimulation Sim(GameDatabase db, WorldState world, ListEventSink sink)
     {

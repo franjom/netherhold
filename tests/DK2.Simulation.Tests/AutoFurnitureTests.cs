@@ -12,10 +12,16 @@ public class AutoFurnitureTests
 {
     private const byte Keeper = 2;
 
-    private static GameDatabase Database() => Dk2TerrainFixture.Database();
+    private static GameDatabase Database()
+    {
+        return Dk2TerrainFixture.Database();
+    }
 
-    private static WorldState World(GameDatabase database) => WorldState.FromMap(
+    private static WorldState World(GameDatabase database)
+    {
+        return WorldState.FromMap(
         database, Dk2TerrainFixture.Map(), [(byte)0, (byte)1, Keeper]);
+    }
 
     private static void PaintRectangle(
         GameDatabase database, WorldState world, RoomTypeId type,
@@ -234,5 +240,8 @@ public class AutoFurnitureTests
             objects: basis.Objects.Values);
     }
 
-    private static int Index(WorldState world, int x, int y) => (y * world.Width) + x;
+    private static int Index(WorldState world, int x, int y)
+    {
+        return (y * world.Width) + x;
+    }
 }

@@ -12,12 +12,34 @@ public sealed class HiScoreStoreTests : IDisposable
 {
     private readonly string _root = Directory.CreateTempSubdirectory("dk2-hiscores-").FullName;
 
-    private string Own => Path.Combine(_root, "user", "HiScores.dat");
-    private string Install => Path.Combine(_root, "install");
-    private string Original => Path.Combine(Install, "Data", "Settings", "HiScores.dat");
+    private string Own
+    {
+        get
+        {
+            return Path.Combine(_root, "user", "HiScores.dat");
+        }
+    }
 
-    private static HiScoreEntry[] Rows(string name) =>
-        [.. Enumerable.Range(0, 10).Select(i => new HiScoreEntry((uint)(1000 - i * 100), name + i, "1"))];
+    private string Install
+    {
+        get
+        {
+            return Path.Combine(_root, "install");
+        }
+    }
+
+    private string Original
+    {
+        get
+        {
+            return Path.Combine(Install, "Data", "Settings", "HiScores.dat");
+        }
+    }
+
+    private static HiScoreEntry[] Rows(string name)
+    {
+        return [.. Enumerable.Range(0, 10).Select(i => new HiScoreEntry((uint)(1000 - i * 100), name + i, "1"))];
+    }
 
     private static void Write(string path, IReadOnlyList<HiScoreEntry> rows)
     {

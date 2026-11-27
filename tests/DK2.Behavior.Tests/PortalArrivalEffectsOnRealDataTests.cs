@@ -76,11 +76,17 @@ public class PortalArrivalEffectsOnRealDataTests
         Assert.All(requests.Skip(1), request => Assert.Equal(new EffectId(339), request.EffectId));
     }
 
-    private static ActionTriggerRecord Arrival(ushort id, ushort next, byte creatureId) => new(new byte[16])
+    private static ActionTriggerRecord Arrival(ushort id, ushort next, byte creatureId)
     {
-        Body = new byte[8], TriggerId = id, NextTriggerId = next, Type = 28,
-        Parameters = new Dictionary<string, long> { ["CreatureId"] = creatureId, ["Level"] = 1 },
-    };
+        return new(new byte[16])
+        {
+            Body = new byte[8],
+            TriggerId = id,
+            NextTriggerId = next,
+            Type = 28,
+            Parameters = new Dictionary<string, long> { ["CreatureId"] = creatureId, ["Level"] = 1 },
+        };
+    }
 
     private static (WorldState World, ViewEffectRequest[] Requests) Run(
         GameDatabase db, string level, TriggerRecord[] actions)

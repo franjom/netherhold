@@ -154,11 +154,20 @@ public class Dk2StringTableTests
         return data;
     }
 
-    private static byte[] Entry(params byte[][] chunks) =>
-        [.. chunks.Append(Chunk(0, [])).SelectMany(chunk => chunk)];
+    private static byte[] Entry(params byte[][] chunks)
+    {
+        return [.. chunks.Append(Chunk(0, [])).SelectMany(chunk => chunk)];
+    }
 
-    private static byte[] StringChunk(params byte[] bytes) => Chunk(1, bytes);
-    private static byte[] ParameterChunk(int zeroBasedParameter) => Chunk(2, [], zeroBasedParameter);
+    private static byte[] StringChunk(params byte[] bytes)
+    {
+        return Chunk(1, bytes);
+    }
+
+    private static byte[] ParameterChunk(int zeroBasedParameter)
+    {
+        return Chunk(2, [], zeroBasedParameter);
+    }
 
     private static byte[] Chunk(int type, byte[] payload, int? encodedLength = null)
     {

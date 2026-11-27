@@ -14,12 +14,29 @@ public sealed class CombatPitRoomTests
     private const byte Keeper = PlayerIds.FirstKeeper;
     private sealed class DestructionProbe(CreatureState creature) : ISimulationSystem
     {
-        public string Name => "pit destruction probe";
-        public void Execute(SimulationContext context) => CombatPitRoomStep.CreatureDestroyed(context, creature);
+        public string Name
+        {
+            get
+            {
+                return "pit destruction probe";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            CombatPitRoomStep.CreatureDestroyed(context, creature);
+        }
     }
     private sealed class NeighbourProbe(CreatureState creature) : ISimulationSystem
     {
-        public string Name => "pit neighbour probe";
+        public string Name
+        {
+            get
+            {
+                return "pit neighbour probe";
+            }
+        }
+
         public int Chosen { get; private set; } = -2;
         public void Execute(SimulationContext context)
         {
@@ -29,13 +46,33 @@ public sealed class CombatPitRoomTests
     }
     private sealed class ResetProbe(RoomInstance pit) : ISimulationSystem
     {
-        public string Name => "pit reset probe";
-        public void Execute(SimulationContext context) => CombatPitSystem.Reset(context, pit);
+        public string Name
+        {
+            get
+            {
+                return "pit reset probe";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            CombatPitSystem.Reset(context, pit);
+        }
     }
     private sealed class MutationProbe(Action<SimulationContext> mutate) : ISimulationSystem
     {
-        public string Name => "pit mutation probe";
-        public void Execute(SimulationContext context) => mutate(context);
+        public string Name
+        {
+            get
+            {
+                return "pit mutation probe";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            mutate(context);
+        }
     }
     private static (GameSimulation Sim, CreatureState First, CreatureState Second) Setup(bool effects = false, bool convertible = false, ushort? tickRate = null)
     {
@@ -60,14 +97,29 @@ public sealed class CombatPitRoomTests
         return (new GameSimulation(db, world, 42, [new CombatPitRoomStep()]), first, second);
     }
 
-    private static LevelDef Level(ushort rate) => new([])
+    private static LevelDef Level(ushort rate)
     {
-        Name = "", Description = "", Author = "", Email = "", Information = "",
-        Unknown_1184 = default, Messages = [], SoundCategory = "", TicksPerSecond = rate,
-        PreviousRewards = default, NextRewards = default, IntroductionOverrideObjects = default,
-        IntroductionOverrideTextIds = [], TerrainPath = "", Unknown_6403 = default,
-        Paths = [], UnknownPathTail = [],
-    };
+        return new([])
+        {
+            Name = "",
+            Description = "",
+            Author = "",
+            Email = "",
+            Information = "",
+            Unknown_1184 = default,
+            Messages = [],
+            SoundCategory = "",
+            TicksPerSecond = rate,
+            PreviousRewards = default,
+            NextRewards = default,
+            IntroductionOverrideObjects = default,
+            IntroductionOverrideTextIds = [],
+            TerrainPath = "",
+            Unknown_6403 = default,
+            Paths = [],
+            UnknownPathTail = [],
+        };
+    }
 
     [Fact]
     public void OnlyTheTransitionFromSeveralStandingToOneWithADownCreaturePostsMessageNine()
@@ -182,9 +234,11 @@ public sealed class CombatPitRoomTests
         tile.PitFightSeenTick = stamp;
     }
 
-    private static void AssertRuntime(TileState tile, byte shortTicks, byte longTicks, byte previous, long stamp) =>
+    private static void AssertRuntime(TileState tile, byte shortTicks, byte longTicks, byte previous, long stamp)
+    {
         Assert.Equal((shortTicks, longTicks, previous, stamp),
             (tile.PitAmbientShortTicks, tile.PitAmbientLongTicks, tile.PitPreviousStandingCount, tile.PitFightSeenTick));
+    }
 
     [Fact]
     public void AJoinedRoomKeepsItsRuntimeWhenItsLowestTileMovesAndAnotherPitIsAbsorbed()

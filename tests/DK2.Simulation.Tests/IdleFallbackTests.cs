@@ -47,8 +47,10 @@ public sealed class IdleFallbackTests
         return world;
     }
 
-    private static void Allow(WorldState world, RoomTypeId type) =>
+    private static void Allow(WorldState world, RoomTypeId type)
+    {
         world.Player(Keeper).Availabilities.Add(new AvailabilityState(RoomKind, (int)type, Available));
+    }
 
     private static (GameSimulation, ListEventSink) Simulation(GameDatabase db, WorldState world)
     {

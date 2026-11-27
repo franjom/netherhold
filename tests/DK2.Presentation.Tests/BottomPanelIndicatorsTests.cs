@@ -180,8 +180,10 @@ public sealed class BottomPanelIndicatorsTests
         return (db, world, PlayerIds.FirstKeeper);
     }
 
-    private static BottomPanelChoice Door(BottomPanelView panel, DoorDef door) =>
-        panel.Choice(new BottomPanelChoiceKey(BottomPanelChoiceKind.Door, door.DoorId))!;
+    private static BottomPanelChoice Door(BottomPanelView panel, DoorDef door)
+    {
+        return panel.Choice(new BottomPanelChoiceKey(BottomPanelChoiceKind.Door, door.DoorId))!;
+    }
 
     private static void SetRow(WorldState world, PlayerId keeper, AvailabilityKind kind, int id, int value, long lastCast = 0)
     {

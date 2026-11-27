@@ -41,8 +41,10 @@ public class ImpsOnRealDataTests
         Assert.Equal(44u, result.State.WarningDeadline);
     }
 
-    private static GameDatabase RealDatabase() =>
-        GameDatabaseLoader.Load(Dk2InstallGate.Path);
+    private static GameDatabase RealDatabase()
+    {
+        return GameDatabaseLoader.Load(Dk2InstallGate.Path);
+    }
 
     [InstallFact]
     public void EveryShippedCreatureHasSixTilePerceptionRange()

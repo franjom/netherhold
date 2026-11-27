@@ -15,13 +15,36 @@ public class KeeperRouteCacheTests
     private sealed class Grid(string[] rows) : INavByteGrid
     {
         private readonly char[][] _rows = [.. rows.Select(r => r.ToCharArray())];
-        public int Width => _rows[0].Length;
-        public int Height => _rows.Length;
-        public byte NavByte(int x, int y) => _rows[y][x] == '#' ? NavBytes.Solid : NavBytes.Floor;
-        public void Set(int x, int y, char c) => _rows[y][x] = c;
+        public int Width
+        {
+            get
+            {
+                return _rows[0].Length;
+            }
+        }
+
+        public int Height
+        {
+            get
+            {
+                return _rows.Length;
+            }
+        }
+
+        public byte NavByte(int x, int y)
+        {
+            return _rows[y][x] == '#' ? NavBytes.Solid : NavBytes.Floor;
+        }
+
+        public void Set(int x, int y, char c)
+        {
+            _rows[y][x] = c;
+        }
     }
 
-    private static Grid Walled() => new([
+    private static Grid Walled()
+    {
+        return new([
         "..........",
         "..........",
         "....#.....",
@@ -29,6 +52,7 @@ public class KeeperRouteCacheTests
         "....#.....",
         "..........",
     ]);
+    }
 
     [Fact]
     public void TheSameBytesReuseTheRouterAndBuildOnce()

@@ -91,6 +91,9 @@ public sealed class CreatureIdentityTests
     {
         public List<int> Bounds { get; } = [];
         public int NextInt(int exclusiveMax) { Bounds.Add(exclusiveMax); return 0; }
-        public void HashInto(ref Hash64 hash) => hash.Add(Bounds.Count);
+        public void HashInto(ref Hash64 hash)
+        {
+            hash.Add(Bounds.Count);
+        }
     }
 }

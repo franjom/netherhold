@@ -12,7 +12,13 @@ public class CommandRoutingTests
 {
     private sealed class Recorder : ISimulationSystem
     {
-        public string Name => "recorder";
+        public string Name
+        {
+            get
+            {
+                return "recorder";
+            }
+        }
 
         public List<string> Seen { get; } = [];
 

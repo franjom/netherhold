@@ -14,7 +14,10 @@ public sealed class InstallBottomPanelArtTests
 {
     private const string Fallback = "\u0001fallback";
 
-    private static BottomPanelChoiceKey Spell(byte id) => new(BottomPanelChoiceKind.Spell, id);
+    private static BottomPanelChoiceKey Spell(byte id)
+    {
+        return new(BottomPanelChoiceKind.Spell, id);
+    }
 
     [InstallFact]
     public void SpellsDoorsAndTrapsReadTheirNamesOrdersAndIconsFromTheRecords()

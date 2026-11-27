@@ -28,7 +28,10 @@ public class TerrainPiecesTests
             tile.OwnerPlayerId = owner;
         }
 
-        public TerrainPieces At(int x, int y) => View.TileAt(World, x, y).Pieces;
+        public TerrainPieces At(int x, int y)
+        {
+            return View.TileAt(World, x, y).Pieces;
+        }
     }
 
     /// <summary>A 7×7 block of <paramref name="fill"/> with its top-left at (X0, Y0).</summary>

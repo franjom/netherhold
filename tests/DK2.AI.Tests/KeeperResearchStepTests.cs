@@ -61,11 +61,15 @@ public class KeeperResearchStepTests
         }
     }
 
-    private static CreatureState Spawn(WorldState world, byte type, int x = 14, int y = 15) =>
-        world.SpawnCreature(Db, type, Keeper, new TilePos(x, y));
+    private static CreatureState Spawn(WorldState world, byte type, int x = 14, int y = 15)
+    {
+        return world.SpawnCreature(Db, type, Keeper, new TilePos(x, y));
+    }
 
-    private static KeeperAIParameters Parameters(byte probability = 0) =>
-        KeeperWorld.Parameters() with { ProbabilityOfMovingCreatureForResearch = probability };
+    private static KeeperAIParameters Parameters(byte probability = 0)
+    {
+        return KeeperWorld.Parameters() with { ProbabilityOfMovingCreatureForResearch = probability };
+    }
 
     /// <summary>The researcher move alone on a fresh capture.</summary>
     private static List<PlayerCommand> Move(WorldState world, GameDatabase? db = null)
@@ -117,14 +121,20 @@ public class KeeperResearchStepTests
         return rng.NextInt(1 << 30);
     }
 
-    private static int[] Lifted(IEnumerable<PlayerCommand> commands) =>
-        [.. commands.OfType<TakeCreatureCommand>().Select(c => c.CreatureId)];
+    private static int[] Lifted(IEnumerable<PlayerCommand> commands)
+    {
+        return [.. commands.OfType<TakeCreatureCommand>().Select(c => c.CreatureId)];
+    }
 
-    private static TilePos[] Drops(IEnumerable<PlayerCommand> commands) =>
-        [.. commands.OfType<DropCommand>().Select(c => c.Tile)];
+    private static TilePos[] Drops(IEnumerable<PlayerCommand> commands)
+    {
+        return [.. commands.OfType<DropCommand>().Select(c => c.Tile)];
+    }
 
-    private static void Hold(WorldState world, CreatureState creature) =>
+    private static void Hold(WorldState world, CreatureState creature)
+    {
         new GameSimulation(Db, world, 1, [new HandSystem()]).Tick(InputFrame.Of(new TakeCreatureCommand(Keeper, creature.Id)));
+    }
 
     // ----------------------------------------------------------------- 0x004FA8D0
 
@@ -377,8 +387,10 @@ public class KeeperResearchStepTests
         Assert.Empty(Step(world, seed: seed).Commands);
     }
 
-    private static ulong ScanSeed() =>
-        SeedWhere(r => { r.NextInt(3); return r.NextInt(100) < KeeperResearchStep.PickUpPercent; });
+    private static ulong ScanSeed()
+    {
+        return SeedWhere(r => { r.NextInt(3); return r.NextInt(100) < KeeperResearchStep.PickUpPercent; });
+    }
 
     /// <summary>The scan's group-7 test has no state of its own to refuse: no needs-group state
     /// carries activity code 5, so the activity test, asked first, always refuses them.</summary>
@@ -446,7 +458,13 @@ public class KeeperResearchStepTests
         Assert.Empty(Drops(Step(world).Commands));
     }
 
-    public static TheoryData<string> MoveGuards => ["stunned", "unpermitted", "dropped"];
+    public static TheoryData<string> MoveGuards
+    {
+        get
+        {
+            return ["stunned", "unpermitted", "dropped"];
+        }
+    }
 
     [Theory]
     [MemberData(nameof(MoveGuards))]

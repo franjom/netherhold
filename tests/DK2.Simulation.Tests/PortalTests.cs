@@ -44,11 +44,15 @@ public class PortalTests
         return Dk2TerrainFixture.Database().ForLevel(level);
     }
 
-    private static WorldState World(GameDatabase database) =>
-        WorldState.FromMap(database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
+    private static WorldState World(GameDatabase database)
+    {
+        return WorldState.FromMap(database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
+    }
 
-    private static GameSimulation Simulation(GameDatabase database, WorldState world) =>
-        new(database, world, seed: 99, [new PortalSystem()]);
+    private static GameSimulation Simulation(GameDatabase database, WorldState world)
+    {
+        return new(database, world, seed: 99, [new PortalSystem()]);
+    }
 
     /// <summary>
     /// Paints a room the way a keeper who owns it would have it. Portals are not
@@ -70,11 +74,15 @@ public class PortalTests
         }
     }
 
-    private static void Portal(GameDatabase db, WorldState w, int x0, int y0, byte owner = Keeper) =>
+    private static void Portal(GameDatabase db, WorldState w, int x0, int y0, byte owner = Keeper)
+    {
         Paint(db, w, RoomTypeId.Portal, x0, y0, 3, 3, owner);
+    }
 
-    private static int Goblins(WorldState world, byte owner = Keeper) =>
-        world.Creatures.Count(c => c.OwnerPlayerId == owner && c.CreatureTypeId == GoblinId);
+    private static int Goblins(WorldState world, byte owner = Keeper)
+    {
+        return world.Creatures.Count(c => c.OwnerPlayerId == owner && c.CreatureTypeId == GoblinId);
+    }
 
     /// <summary>Long enough for several intervals at the fixture's 25 seconds.</summary>
     private const int LongEnough = 25 * SimulationTiming.TicksPerSecond * 4;
@@ -349,16 +357,20 @@ public class PortalTests
     /// rooms, variables, spells — is the fixture's own, so a test built on this
     /// differs from the rest of the suite in exactly one creature flag word.
     /// </summary>
-    private static GameDatabase DatabaseWithGoblinFlags(CreatureFlags flags) =>
-        DatabaseWithGoblin(goblin => goblin with { Flags = flags });
+    private static GameDatabase DatabaseWithGoblinFlags(CreatureFlags flags)
+    {
+        return DatabaseWithGoblin(goblin => goblin with { Flags = flags });
+    }
 
     /// <summary>The fixture Goblin wanting a Lair of at least one tile: a size the shipped
     /// Goblin does not ask, so its portal waits for the Lair (0x004DC86B).</summary>
-    private static GameDatabase DatabaseWithSizedLair() =>
-        DatabaseWithGoblin(goblin => goblin with
+    private static GameDatabase DatabaseWithSizedLair()
+    {
+        return DatabaseWithGoblin(goblin => goblin with
         {
             Attractions = [new CreatureAttraction(1, (byte)RoomTypeId.Lair, 1), new CreatureAttraction(0, 0, 0)],
         });
+    }
 
     private static GameDatabase DatabaseWithGoblin(Func<CreatureDef, CreatureDef> change)
     {

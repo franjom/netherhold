@@ -23,7 +23,13 @@ public class NeedInterruptTests
 
     private static readonly TilePos InTraining = new(9, 3);
 
-    private static GameDatabase Db => Dk2TerrainFixture.Database();
+    private static GameDatabase Db
+    {
+        get
+        {
+            return Dk2TerrainFixture.Database();
+        }
+    }
 
     /// <summary>Paved ground, a Training Room at (8..10, 2..4), a Hatchery with a bird at
     /// (2..4, 5..7), a Lair at (2..4, 1..3) and a treasury tile at (6, 7).</summary>

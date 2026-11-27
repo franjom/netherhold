@@ -38,10 +38,15 @@ public partial class CampaignPlayerTests
         "RRRRRRRRRRRR",
     ];
 
-    private static PlayerRoomOffer Offer(RoomTypeId room) => new(room, new GoldAmount(50), true);
+    private static PlayerRoomOffer Offer(RoomTypeId room)
+    {
+        return new(room, new GoldAmount(50), true);
+    }
 
-    private static PlayerAction.BuildRoom? Built(PlayerDecision decision, RoomTypeId room) =>
-        decision.Actions.OfType<PlayerAction.BuildRoom>().FirstOrDefault(b => b.Room == room);
+    private static PlayerAction.BuildRoom? Built(PlayerDecision decision, RoomTypeId room)
+    {
+        return decision.Actions.OfType<PlayerAction.BuildRoom>().FirstOrDefault(b => b.Room == room);
+    }
 
     [Fact]
     public void FactsNameTheSmallestUsefulSideAndTheSideAnAttractionNeeds()

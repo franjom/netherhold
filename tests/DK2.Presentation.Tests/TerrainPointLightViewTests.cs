@@ -68,11 +68,14 @@ public class TerrainPointLightViewTests
         Assert.Empty(layout.Update(world));
     }
 
-    private static GameDatabase TorchDatabase() => Database([
+    private static GameDatabase TorchDatabase()
+    {
+        return Database([
         Terrain(1) with { Flags = TerrainFlags.RevealThroughFogOfWar },
         Terrain(2, "Wall") with { Flags = TerrainFlags.Solid | TerrainFlags.Torch },
         Terrain(27, "Fog Of War") with { Flags = TerrainFlags.Solid },
         Terrain(38, "Claim Scan") with { Flags = TerrainFlags.Solid }]);
+    }
 
     private static (WorldState, WorldView, TorchLayout, Target, ScenePresenter) TorchRig()
     {
@@ -262,26 +265,57 @@ public class TerrainPointLightViewTests
         Assert.Equal(1, target.Updates);
     }
 
-    private static TerrainDef Terrain(byte id, string name = "Path", byte red = 20) => new()
+    private static TerrainDef Terrain(byte id, string name = "Path", byte red = 20)
     {
-        Name = name, TerrainId = id, Flags = TerrainFlags.TerrainLight, StartingHealth = 1,
-        MaxHealth = 1, GoldValue = 0, ManaGain = 0, MaxManaGain = 0, Damage = 0,
-        MaxHealthTypeTerrainId = id, DestroyedTypeTerrainId = id, Depth = default,
-        NameStringId = 0, TooltipStringId = 0, TerrainLightHeight = new Fp32(8192),
-        Lighting = new TerrainLighting(red, 30, 40, 0, 0, 0),
-    };
+        return new()
+        {
+            Name = name,
+            TerrainId = id,
+            Flags = TerrainFlags.TerrainLight,
+            StartingHealth = 1,
+            MaxHealth = 1,
+            GoldValue = 0,
+            ManaGain = 0,
+            MaxManaGain = 0,
+            Damage = 0,
+            MaxHealthTypeTerrainId = id,
+            DestroyedTypeTerrainId = id,
+            Depth = default,
+            NameStringId = 0,
+            TooltipStringId = 0,
+            TerrainLightHeight = new Fp32(8192),
+            Lighting = new TerrainLighting(red, 30, 40, 0, 0, 0),
+        };
+    }
 
-    private static RoomDef Room(TileConstruction construction) => new()
+    private static RoomDef Room(TileConstruction construction)
     {
-        Name = "Room", RoomId = 3, TerrainId = 1, Flags = 0, Cost = 0, ReturnPercentage = 0,
-        Construction = construction, CreatedCreatureId = 0, ObjectIds = [], HealthGain = 0,
-        CeilingHeight = default, RecommendedSizeX = 0, RecommendedSizeY = 0, OrderInEditor = 0,
-        NameStringId = 0, TooltipStringId = 0,
-    };
+        return new()
+        {
+            Name = "Room",
+            RoomId = 3,
+            TerrainId = 1,
+            Flags = 0,
+            Cost = 0,
+            ReturnPercentage = 0,
+            Construction = construction,
+            CreatedCreatureId = 0,
+            ObjectIds = [],
+            HealthGain = 0,
+            CeilingHeight = default,
+            RecommendedSizeX = 0,
+            RecommendedSizeY = 0,
+            OrderInEditor = 0,
+            NameStringId = 0,
+            TooltipStringId = 0,
+        };
+    }
 
-    private static GameDatabase Database(TerrainDef[] terrain, RoomDef[]? rooms = null) =>
-        new(terrain, rooms ?? [], [], new GlobalVariables(), doors:
+    private static GameDatabase Database(TerrainDef[] terrain, RoomDef[]? rooms = null)
+    {
+        return new(terrain, rooms ?? [], [], new GlobalVariables(), doors:
             [new DoorDef { Name = "Door", DoorId = 1, Health = 100, GoldCost = 0, ManufactureRequired = 0, Flags = 0 }]);
+    }
 
     private static WorldState World(GameDatabase database, bool fog = false)
     {

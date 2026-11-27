@@ -181,13 +181,16 @@ public sealed class ClassicHudControlsTests
         Assert.False(controls.OptionsVisible);
     }
     [Theory]
-    [InlineData(8,584,ClassicHudAction.SelectQuery)]
-    [InlineData(155.2f,584,ClassicHudAction.SelectSell)]
-    [InlineData(8,728,ClassicHudAction.ToggleOptions)]
-    [InlineData(153.6f,729.6f,ClassicHudAction.ZoomIn)]
-    [InlineData(40,600,ClassicHudAction.None)]
-    public void CornerRegionsUseNativeHalfOpenBounds(float x,float y,ClassicHudAction expected)
-        => Assert.Equal(expected, ClassicHudControlLayout.ActionAt(new Vector2(x,y), false));
+    [InlineData(8, 584, ClassicHudAction.SelectQuery)]
+    [InlineData(155.2f, 584, ClassicHudAction.SelectSell)]
+    [InlineData(8, 728, ClassicHudAction.ToggleOptions)]
+    [InlineData(153.6f, 729.6f, ClassicHudAction.ZoomIn)]
+    [InlineData(40, 600, ClassicHudAction.None)]
+    public void CornerRegionsUseNativeHalfOpenBounds(float x, float y, ClassicHudAction expected)
+    {
+        Assert.Equal(expected, ClassicHudControlLayout.ActionAt(new Vector2(x, y), false));
+    }
+
     [Fact]
     public void OnlyMagnifierAcceptsSecondaryChannel()
     {

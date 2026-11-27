@@ -78,9 +78,11 @@ public class WatchdogTests : IDisposable
         Assert.True(File.Exists(Path.Combine(first.Root, "001", "watch-probe", "stdout.log")));
     }
 
-    private WatchSummary Watch(WatchLimits limits, params string[] files) =>
-        new Watchdog(Path.Combine(_root, "out"), limits, (_, _) => new ProcessStartInfo("dotnet", "--version"))
+    private WatchSummary Watch(WatchLimits limits, params string[] files)
+    {
+        return new Watchdog(Path.Combine(_root, "out"), limits, (_, _) => new ProcessStartInfo("dotnet", "--version"))
             .Watch(files, TextWriter.Null);
+    }
 
     /// <summary>Overlap is read from the children's own markers, not from elapsed time, so a loaded
     /// machine cannot fail it: with two jobs each child sees the other start before it ends; with one,
@@ -113,7 +115,11 @@ public class WatchdogTests : IDisposable
         var start = new ProcessStartInfo(OperatingSystem.IsWindows() ? "powershell" : "sh") { CreateNoWindow = true };
         if (OperatingSystem.IsWindows())
         {
-            string Q(string name) => "'" + Path.Combine(dir, name).Replace("'", "''") + "'";
+            string Q(string name)
+            {
+                return "'" + Path.Combine(dir, name).Replace("'", "''") + "'";
+            }
+
             foreach (string arg in new[] { "-NoProfile", "-NonInteractive", "-Command",
                 $"Set-Content {Q(me + ".started")} ''; if (Test-Path {Q(other + ".done")}) {{ Set-Content {Q(me + ".after-other")} '' }}; " +
                 $"$t=[DateTime]::UtcNow.AddSeconds({waitSeconds}); while (-not (Test-Path {Q(other + ".started")}) -and [DateTime]::UtcNow -lt $t) {{ Start-Sleep -Milliseconds 50 }}; " +
@@ -278,5 +284,8 @@ public class WatchdogTests : IDisposable
         Assert.Equal(1, HarnessCommandLine.Int(["watch", _good], flag, 1));
     }
 
-    public void Dispose() => Directory.Delete(_root, recursive: true);
+    public void Dispose()
+    {
+        Directory.Delete(_root, recursive: true);
+    }
 }

@@ -28,9 +28,15 @@ internal sealed class FakeSteeringWorld : ISteeringWorld, INavByteGrid
 
     public List<SteeringObstacle> Obstacles { get; } = new();
 
-    public bool CanMove(Fixed16Vector from, Fixed16Vector to) => true;
+    public bool CanMove(Fixed16Vector from, Fixed16Vector to)
+    {
+        return true;
+    }
 
-    public Fixed16Vector ConstrainTarget(Fixed16Vector from, Fixed16Vector target) => target;
+    public Fixed16Vector ConstrainTarget(Fixed16Vector from, Fixed16Vector target)
+    {
+        return target;
+    }
 
     public int CrowdWeightValue { get; set; }
 
@@ -38,7 +44,10 @@ internal sealed class FakeSteeringWorld : ISteeringWorld, INavByteGrid
 
     public List<Fixed16Vector>? FixedRoute { get; set; }
 
-    public static Fixed16Vector Tiles(double x, double y) => new((int)(x * 65536), (int)(y * 65536));
+    public static Fixed16Vector Tiles(double x, double y)
+    {
+        return new((int)(x * 65536), (int)(y * 65536));
+    }
 
     public byte NavByte(int x, int y)
     {
@@ -67,7 +76,10 @@ internal sealed class FakeSteeringWorld : ISteeringWorld, INavByteGrid
         }
     }
 
-    public int CrowdWeight(Fixed16Vector point, int span) => CrowdWeightValue;
+    public int CrowdWeight(Fixed16Vector point, int span)
+    {
+        return CrowdWeightValue;
+    }
 
     public List<SteeringNeighbour> Neighbours { get; } = new();
 

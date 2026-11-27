@@ -126,7 +126,13 @@ public sealed class BlendedTerrainStreamTests
 
     private sealed record Camera(Vector3 Forward, ViewFrustum Frustum, Vector3 Position)
     {
-        public Plane[] Planes => [.. Enumerable.Range(0, 6).Select(i => Frustum[i])];
+        public Plane[] Planes
+        {
+            get
+            {
+                return [.. Enumerable.Range(0, 6).Select(i => Frustum[i])];
+            }
+        }
 
         public static Camera At(Vector3 focus, float yawDegrees, float pitchDegrees = 50f, float distance = 9f, float shift = .2f)
         {

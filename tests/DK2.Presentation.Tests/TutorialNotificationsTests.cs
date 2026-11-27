@@ -144,11 +144,15 @@ public sealed class TutorialNotificationsTests
         return (db, WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!, [0, 1, 2, 3]));
     }
 
-    private static TriggerRecord Action(byte type, Dictionary<string, long> parameters) =>
-        new ActionTriggerRecord(new byte[16]) { Body = new byte[8], TriggerId = 0xFFFF, Type = type, Parameters = parameters };
+    private static TriggerRecord Action(byte type, Dictionary<string, long> parameters)
+    {
+        return new ActionTriggerRecord(new byte[16]) { Body = new byte[8], TriggerId = 0xFFFF, Type = type, Parameters = parameters };
+    }
 
-    private static TriggerTree PlayerTree(TriggerRecord action) =>
-        new([action], 0, playerRoots: [new TriggerPlayerRoot(PlayerIds.FirstKeeper, action.TriggerId)]);
+    private static TriggerTree PlayerTree(TriggerRecord action)
+    {
+        return new([action], 0, playerRoots: [new TriggerPlayerRoot(PlayerIds.FirstKeeper, action.TriggerId)]);
+    }
 
     private static string Text(int reference)
     {

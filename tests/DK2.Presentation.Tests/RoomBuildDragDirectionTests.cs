@@ -52,7 +52,10 @@ public sealed class RoomBuildDragDirectionTests
             new TilePos(pressX, releaseY), press }, Effects().Select(e => e.Tile));
         Assert.All(Effects(), e => Assert.Equal(database.Room(RoomTypeId.Lair).TerrainId, world.Tile(e.Tile).TerrainId));
 
-        RoomConstructionEffect[] Effects() => [.. events.Events
+        RoomConstructionEffect[] Effects()
+        {
+            return [.. events.Events
             .Where(e => e.ConstructionEffect.HasValue).Select(e => e.ConstructionEffect!.Value)];
+        }
     }
 }

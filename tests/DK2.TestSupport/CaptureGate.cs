@@ -15,12 +15,27 @@ public static class Dk2CaptureGate
     public const string Level20IdleRelativePath = "reverse-engineering/dk2runs/dk2run7.csv";
     public const string Level20LongIdleRelativePath = "reverse-engineering/dk2runs/dk2run8.csv";
 
-    public static string Path => PathFor(Level1IdleRelativePath);
+    public static string Path
+    {
+        get
+        {
+            return PathFor(Level1IdleRelativePath);
+        }
+    }
 
-    public static string? SkipReason => SkipReasonFor(Level1IdleRelativePath);
+    public static string? SkipReason
+    {
+        get
+        {
+            return SkipReasonFor(Level1IdleRelativePath);
+        }
+    }
 
-    public static string PathFor(string relativePath) => System.IO.Path.Combine(
+    public static string PathFor(string relativePath)
+    {
+        return System.IO.Path.Combine(
         RepositoryRoot(), relativePath.Replace('/', System.IO.Path.DirectorySeparatorChar));
+    }
 
     public static string? SkipReasonFor(string relativePath)
     {
@@ -53,5 +68,7 @@ public sealed class CaptureFactAttribute : FactAttribute
 {
     public CaptureFactAttribute(
         string relativePath = Dk2CaptureGate.Level1IdleRelativePath)
-        => Skip = Dk2CaptureGate.SkipReasonFor(relativePath);
+    {
+        Skip = Dk2CaptureGate.SkipReasonFor(relativePath);
+    }
 }

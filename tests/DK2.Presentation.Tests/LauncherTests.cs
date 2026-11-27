@@ -96,8 +96,10 @@ public sealed class LauncherTests
     [InlineData(192f, 1920, 1032, 1.25f)]
     [InlineData(192f, 3840, 2112, 2f)]
     [InlineData(72f, 1920, 1032, 1f)]
-    public void TheLauncherScalesWithTheScreensDpiAndStaysOnIt(float dpi, int width, int height, float scale) =>
+    public void TheLauncherScalesWithTheScreensDpiAndStaysOnIt(float dpi, int width, int height, float scale)
+    {
         Assert.Equal(scale, LauncherWindowSizes.LauncherScale(dpi, width, height));
+    }
 
     [Fact]
     public void ScriptedRunsStartAsBeforeUnlessTheLauncherIsAskedFor()

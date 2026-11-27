@@ -17,19 +17,45 @@ public sealed class SightOfEvilCastTests
     private const byte Keeper = 3, Rival = 4;
     private static readonly TilePos At = new(10, 10);
 
-    private static KeeperSpellDef Spell() => new()
+    private static KeeperSpellDef Spell()
     {
-        Name = "Sight Of Evil", KeeperSpellId = KeeperSpellRules.SightOfEvil, ManaCost = 5000,
-        ManaUpkeepPerSecond = 0, ShotTypeId = 33, ShotData1 = 5, BonusShotTypeId = 33, BonusShotData1 = 7,
-        LocationSelector = 5, TargetSelector = 4, Flags = KeeperSpellFlags.ExcludedFromBattle,
-    };
+        return new()
+        {
+            Name = "Sight Of Evil",
+            KeeperSpellId = KeeperSpellRules.SightOfEvil,
+            ManaCost = 5000,
+            ManaUpkeepPerSecond = 0,
+            ShotTypeId = 33,
+            ShotData1 = 5,
+            BonusShotTypeId = 33,
+            BonusShotData1 = 7,
+            LocationSelector = 5,
+            TargetSelector = 4,
+            Flags = KeeperSpellFlags.ExcludedFromBattle,
+        };
+    }
 
-    private static ShotDef SightShot() => new(new byte[239])
+    private static ShotDef SightShot()
     {
-        Name = "Sight Of Evil", MeshResource = new KwdArtResource("", 0, default, 0, 0, 0, 0), Light = new KwdLight(0, 0, 0, 0, 0, 0, 0, 0, 0),
-        SoundCategory = "", ShotId = 33, Speed = 2048, Radius = 819, Health = 64, Flags = 0x4,
-        ShotProcessFlags = 0x42, CollideType = 0, ProcessType = 25, DamageType = 0, AttackCategory = 0, DeathShotId = 0,
-    };
+        return new(new byte[239])
+        {
+            Name = "Sight Of Evil",
+            MeshResource = new KwdArtResource("", 0, default, 0, 0, 0, 0),
+            Light = new KwdLight(0, 0, 0, 0, 0, 0, 0, 0, 0),
+            SoundCategory = "",
+            ShotId = 33,
+            Speed = 2048,
+            Radius = 819,
+            Health = 64,
+            Flags = 0x4,
+            ShotProcessFlags = 0x42,
+            CollideType = 0,
+            ProcessType = 25,
+            DamageType = 0,
+            AttackCategory = 0,
+            DeathShotId = 0,
+        };
+    }
 
     private static (GameDatabase Db, WorldState World) Setup(bool withShot = true)
     {
@@ -44,10 +70,15 @@ public sealed class SightOfEvilCastTests
         return (db, world);
     }
 
-    private static CastSpellAtPlaceCommand Cast() =>
-        new(Keeper, KeeperSpellRules.SightOfEvil, CreatureState.CentreOf(At.X), CreatureState.CentreOf(At.Y));
+    private static CastSpellAtPlaceCommand Cast()
+    {
+        return new(Keeper, KeeperSpellRules.SightOfEvil, CreatureState.CentreOf(At.X), CreatureState.CentreOf(At.Y));
+    }
 
-    private static ISimulationSystem[] Systems() => [new KeeperSpellSystem(), new ShotSystem()];
+    private static ISimulationSystem[] Systems()
+    {
+        return [new KeeperSpellSystem(), new ShotSystem()];
+    }
 
     [Fact]
     public void ACastOnRockPaysOnceAndRegistersSightOnTheShotsFirstUpdate()
@@ -124,7 +155,17 @@ public sealed class SightOfEvilCastTests
 
     private sealed class CallbackSystem(Action<SimulationContext> execute) : ISimulationSystem
     {
-        public string Name => "sight-test";
-        public void Execute(SimulationContext context) => execute(context);
+        public string Name
+        {
+            get
+            {
+                return "sight-test";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            execute(context);
+        }
     }
 }

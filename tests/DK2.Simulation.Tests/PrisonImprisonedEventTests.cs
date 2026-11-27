@@ -190,8 +190,9 @@ public class PrisonImprisonedEventTests
         return captive;
     }
 
-    private static GameSimulation Simulation(GameDatabase db, WorldState world) =>
-        new(db, world, seed: 42,
+    private static GameSimulation Simulation(GameDatabase db, WorldState world)
+    {
+        return new(db, world, seed: 42,
         [
             new HandSystem(),
             new CreatureMovementSystem(),
@@ -201,6 +202,7 @@ public class PrisonImprisonedEventTests
             new PrisonerEatSystem(),
             new PrisonerWanderSystem(),
         ], Tree());
+    }
 
     private static void PickUpAndDrop(GameSimulation sim, CreatureState creature, TilePos onto)
     {
@@ -210,7 +212,9 @@ public class PrisonImprisonedEventTests
     }
 
     /// <summary>Root 5: an event-7 record whose child adds 1 to flag 1.</summary>
-    private static TriggerTree Tree() => new(
+    private static TriggerTree Tree()
+    {
+        return new(
     [
         new GenericTriggerRecord(new byte[16])
         {
@@ -223,10 +227,21 @@ public class PrisonImprisonedEventTests
             Parameters = new Dictionary<string, long> { ["FlagId"] = 1, ["Flag"] = 0x12, ["Value"] = 1 },
         },
     ], 0);
+    }
 
     private sealed class Act(Action<SimulationContext> body) : ISimulationSystem
     {
-        public string Name => "imprisoned event test";
-        public void Execute(SimulationContext context) => body(context);
+        public string Name
+        {
+            get
+            {
+                return "imprisoned event test";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            body(context);
+        }
     }
 }

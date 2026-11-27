@@ -109,8 +109,10 @@ public sealed class MessageTextTablesTests
     }
 
     [Fact]
-    public void TablesNeedTheHudSources() =>
+    public void TablesNeedTheHudSources()
+    {
         Assert.Throws<ArgumentNullException>(() => new MessageTextTables(null!, 1));
+    }
 
     [Fact]
     public void ANamelessPlayerIsGoodNeutralOrKeeperByItsId()
@@ -134,9 +136,18 @@ public sealed class MessageTextTablesTests
         Assert.Equal("Keeper 4", names(4));
     }
 
-    private static PlayerDef Player(byte id, string name) => new()
+    private static PlayerDef Player(byte id, string name)
     {
-        PlayerId = id, Name = name, StartingGold = 0, HasAiFlag = false, TriggerId = 0, CameraX = 0, CameraY = 0,
-        Ai = default!,
-    };
+        return new()
+        {
+            PlayerId = id,
+            Name = name,
+            StartingGold = 0,
+            HasAiFlag = false,
+            TriggerId = 0,
+            CameraX = 0,
+            CameraY = 0,
+            Ai = default!,
+        };
+    }
 }

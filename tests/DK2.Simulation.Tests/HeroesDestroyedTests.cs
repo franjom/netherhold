@@ -173,6 +173,8 @@ public class HeroesDestroyedTests
         return (db, world);
     }
 
-    private static CreatureState Spawn(GameDatabase db, WorldState world, byte type, byte owner) =>
-        world.SpawnCreature(db, type, owner, new TilePos(5, 5));
+    private static CreatureState Spawn(GameDatabase db, WorldState world, byte type, byte owner)
+    {
+        return world.SpawnCreature(db, type, owner, new TilePos(5, 5));
+    }
 }

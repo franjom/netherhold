@@ -25,7 +25,13 @@ public class TorturerTests
     private static readonly TilePos Chair = new(9, 4);
     private static readonly TilePos Outside = new(11, 7);
 
-    private static GameDatabase Db => Dk2TerrainFixture.Database();
+    private static GameDatabase Db
+    {
+        get
+        {
+            return Dk2TerrainFixture.Database();
+        }
+    }
 
     /// <summary>A 3x3 prison at (2..4, 2..4) and a 3x3 Torture Chamber at (7..9, 2..4) with a
     /// wheel in its middle, on paved ground the keeper owns.</summary>
@@ -92,7 +98,10 @@ public class TorturerTests
         return sim;
     }
 
-    private static int Index(WorldState world, TilePos at) => (at.Y * world.Width) + at.X;
+    private static int Index(WorldState world, TilePos at)
+    {
+        return (at.Y * world.Width) + at.X;
+    }
 
     private static CreatureState Victim(GameDatabase db, WorldState world)
     {

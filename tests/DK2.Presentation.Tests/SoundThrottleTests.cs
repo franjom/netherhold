@@ -79,7 +79,10 @@ public sealed class SoundThrottleTests
     {
         var throttle = new SoundThrottle(0);
         uint now = 0;
-        void SlowFrame() => throttle.BeginFrame(now += 400);
+        void SlowFrame()
+        {
+            throttle.BeginFrame(now += 400);
+        }
 
         SlowFrame();
         Assert.True(throttle.Admit(BattleCall));   // counter 1 + table[1] = 2

@@ -442,16 +442,20 @@ public class CreatureStatusEffectTests
     [InlineData(Dk2TerrainFixture.GoblinCreatureId, 8, 10)]
     [InlineData(Dk2TerrainFixture.GoblinCreatureId, 18, 20)]
     [InlineData(Dk2TerrainFixture.ImpCreatureId, 8, 8)]
-    public void AHitOnAStunnedCreatureLengthensItsStunOnlyWithANonImpAttacker(byte attackerType, int left, int after) =>
+    public void AHitOnAStunnedCreatureLengthensItsStunOnlyWithANonImpAttacker(byte attackerType, int left, int after)
+    {
         HitWhileStunned(attackerType, 255, left, after);
+    }
 
     /// <summary>256 runs 255's handler (<c>0x004810D0</c> jumps to <c>0x004810E0</c>), so it lengthens
     /// too; 257's handler never reads the start turn, so its counter is untouched.</summary>
     [Theory]
     [InlineData(256, 8, 10)]
     [InlineData(257, 8, 8)]
-    public void TheBoulderStunLengthensAndGettingUpDoesNot(int state, int left, int after) =>
+    public void TheBoulderStunLengthensAndGettingUpDoesNot(int state, int left, int after)
+    {
         HitWhileStunned(Dk2TerrainFixture.GoblinCreatureId, state, left, after);
+    }
 
     private static void HitWhileStunned(byte attackerType, int state, int left, int after)
     {
@@ -556,14 +560,20 @@ public class CreatureStatusEffectTests
         return world;
     }
 
-    private static CreatureState Spawn(GameDatabase db, WorldState world, byte type, byte owner, int x, int y) =>
-        world.SpawnArrived(db, type, owner, new TilePos(x, y));
+    private static CreatureState Spawn(GameDatabase db, WorldState world, byte type, byte owner, int x, int y)
+    {
+        return world.SpawnArrived(db, type, owner, new TilePos(x, y));
+    }
 
     /// <summary>A shot standing on its target with the given data words: it strikes on the next tick.</summary>
-    private static ShotState Fire(GameDatabase db, WorldState world, byte shotId, byte owner, CreatureState target, int data1, int data2) =>
-        ShotRules.Spawn(world, db.Shots[shotId], owner, target.PosX, target.PosY, data1, data2, 0,
+    private static ShotState Fire(GameDatabase db, WorldState world, byte shotId, byte owner, CreatureState target, int data1, int data2)
+    {
+        return ShotRules.Spawn(world, db.Shots[shotId], owner, target.PosX, target.PosY, data1, data2, 0,
             FightTargetKind.Creature, target.Id, 0, -1, target.PosX, target.PosY);
+    }
 
-    private static GameSimulation Sim(GameDatabase db, WorldState world) =>
-        new(db, world, 1, [new CreatureStatusSystem(), new CombatSystem(), new CreatureMovementSystem(), new ShotSystem()]);
+    private static GameSimulation Sim(GameDatabase db, WorldState world)
+    {
+        return new(db, world, 1, [new CreatureStatusSystem(), new CombatSystem(), new CreatureMovementSystem(), new ShotSystem()]);
+    }
 }

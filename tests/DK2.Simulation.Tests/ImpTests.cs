@@ -26,12 +26,26 @@ public class ImpTests
 
     private sealed record Run(GameSimulation Sim, ListEventSink Events)
     {
-        public WorldState World => Sim.World;
+        public WorldState World
+        {
+            get
+            {
+                return Sim.World;
+            }
+        }
 
-        public CreatureState Imp => Sim.World.Creatures[0];
+        public CreatureState Imp
+        {
+            get
+            {
+                return Sim.World.Creatures[0];
+            }
+        }
 
-        public void Tick(params PlayerCommand[] commands) =>
+        public void Tick(params PlayerCommand[] commands)
+        {
             Sim.Tick(commands.Length == 0 ? InputFrame.Empty : InputFrame.Of(commands));
+        }
 
         public void Ticks(int count)
         {
@@ -41,7 +55,10 @@ public class ImpTests
             }
         }
 
-        public IEnumerable<SimEvent> Of(string kind) => Events.Events.Where(e => e.Kind == kind);
+        public IEnumerable<SimEvent> Of(string kind)
+        {
+            return Events.Events.Where(e => e.Kind == kind);
+        }
     }
 
     private static Run Start(TilePos impAt, ulong seed = 99, int imps = 1)
@@ -102,8 +119,10 @@ public class ImpTests
     [InlineData(TileWorkKind.Reinforce, 1)]
     [InlineData(TileWorkKind.RepairWall, 1)]
     [InlineData(TileWorkKind.Dig, 3)]
-    public void WallRepairSharesTheReinforcementFaceLimit(TileWorkKind kind, int limit) =>
+    public void WallRepairSharesTheReinforcementFaceLimit(TileWorkKind kind, int limit)
+    {
         Assert.Equal(limit, ImpCrowding.MaxWorkers(false, kind));
+    }
 
     [Fact]
     public void AnImpWithNothingToDo_StaysWhereItIs()

@@ -15,24 +15,47 @@ internal static class LegacyClassicVertexLit
     public struct Float3(float x, float y, float z)
     {
         public float X = x, Y = y, Z = z;
-        public static Float3 operator +(Float3 a, Float3 b) => new(a.X + b.X, a.Y + b.Y, a.Z + b.Z);
-        public static Float3 operator -(Float3 a, Float3 b) => new(a.X - b.X, a.Y - b.Y, a.Z - b.Z);
-        public static Float3 operator *(Float3 a, float s) => new(a.X * s, a.Y * s, a.Z * s);
+        public static Float3 operator +(Float3 a, Float3 b)
+        {
+            return new(a.X + b.X, a.Y + b.Y, a.Z + b.Z);
+        }
+
+        public static Float3 operator -(Float3 a, Float3 b)
+        {
+            return new(a.X - b.X, a.Y - b.Y, a.Z - b.Z);
+        }
+
+        public static Float3 operator *(Float3 a, float s)
+        {
+            return new(a.X * s, a.Y * s, a.Z * s);
+        }
     }
 
     public struct Float4(float x, float y, float z, float w)
     {
         public float X = x, Y = y, Z = z, W = w;
-        public Float3 Xyz => new(X, Y, Z);
+        public Float3 Xyz
+        {
+            get
+            {
+                return new(X, Y, Z);
+            }
+        }
     }
 
     /// <summary>A float3x3 by rows: <c>mul(m, v)</c> dots each row with v.</summary>
     public struct Float3x3(Float3 row0, Float3 row1, Float3 row2)
     {
         public Float3 R0 = row0, R1 = row1, R2 = row2;
-        public readonly Float3 Mul(Float3 v) => new(Dot(R0, v), Dot(R1, v), Dot(R2, v));
-        public readonly Float3x3 Transpose() =>
-            new(new Float3(R0.X, R1.X, R2.X), new Float3(R0.Y, R1.Y, R2.Y), new Float3(R0.Z, R1.Z, R2.Z));
+        public readonly Float3 Mul(Float3 v)
+        {
+            return new(Dot(R0, v), Dot(R1, v), Dot(R2, v));
+        }
+
+        public readonly Float3x3 Transpose()
+        {
+            return new(new Float3(R0.X, R1.X, R2.X), new Float3(R0.Y, R1.Y, R2.Y), new Float3(R0.Z, R1.Z, R2.Z));
+        }
     }
 
     public struct TileSource
@@ -53,15 +76,30 @@ internal static class LegacyClassicVertexLit
         public Float3 Origin;
     }
 
-    public static float Dot(Float3 a, Float3 b) => a.X * b.X + a.Y * b.Y + a.Z * b.Z;
+    public static float Dot(Float3 a, Float3 b)
+    {
+        return a.X * b.X + a.Y * b.Y + a.Z * b.Z;
+    }
 
-    private static int Round(float x) => (int)Math.Round((double)x, MidpointRounding.ToEven);
+    private static int Round(float x)
+    {
+        return (int)Math.Round((double)x, MidpointRounding.ToEven);
+    }
 
-    private static float Min(float a, float b) => float.IsNaN(a) ? b : float.IsNaN(b) ? a : Math.Min(a, b);
+    private static float Min(float a, float b)
+    {
+        return float.IsNaN(a) ? b : float.IsNaN(b) ? a : Math.Min(a, b);
+    }
 
-    private static float Max(float a, float b) => float.IsNaN(a) ? b : float.IsNaN(b) ? a : Math.Max(a, b);
+    private static float Max(float a, float b)
+    {
+        return float.IsNaN(a) ? b : float.IsNaN(b) ? a : Math.Max(a, b);
+    }
 
-    private static uint AsUint(float f) => unchecked((uint)BitConverter.SingleToInt32Bits(f));
+    private static uint AsUint(float f)
+    {
+        return unchecked((uint)BitConverter.SingleToInt32Bits(f));
+    }
 
     public static bool DK2PointContribution(Float3 vertex, Float3 normal, Float4 positionRadiusSquared,
         Float4 colourIntensity, out Float3 contribution)
@@ -103,9 +141,15 @@ internal static class LegacyClassicVertexLit
         return true;
     }
 
-    public static Float3 DK2PackedDiffuse(Float3 sum) => new(Pack(sum.X), Pack(sum.Y), Pack(sum.Z));
+    public static Float3 DK2PackedDiffuse(Float3 sum)
+    {
+        return new(Pack(sum.X), Pack(sum.Y), Pack(sum.Z));
+    }
 
-    private static float Pack(float c) => Min((float)Math.Floor(Max(c, 0.0f) * 255.0f + 0.00001f), 255.0f) / 255.0f;
+    private static float Pack(float c)
+    {
+        return Min((float)Math.Floor(Max(c, 0.0f) * 255.0f + 0.00001f), 255.0f) / 255.0f;
+    }
 
     public static bool DK2InstancePointContribution(Float3 sampleWS, Float3 centre, Float3 vertexOS, Float3 normalOS,
         Float3x3 basis, Float4 positionRadiusSquared, Float4 colourIntensity, out Float3 contribution)
@@ -259,10 +303,13 @@ internal static class LegacyClassicVertexLit
     }
 
     /// <summary><c>ClassicTileLightBuffer.Set</c>'s packing of one source at 4f398b59.</summary>
-    public static TileSource Entry(in ClassicPointLight light) => new()
+    public static TileSource Entry(in ClassicPointLight light)
     {
-        PositionRadiusSquared = new Float4(light.Position.X, light.Position.Y, light.Position.Z, light.Radius * light.Radius),
-        Colour = new Float3(light.Colour.X, light.Colour.Y, light.Colour.Z),
-        IntensityFlags = (uint)Math.Round(light.Intensity * 128f) | ((uint)light.Flags << 8),
-    };
+        return new()
+        {
+            PositionRadiusSquared = new Float4(light.Position.X, light.Position.Y, light.Position.Z, light.Radius * light.Radius),
+            Colour = new Float3(light.Colour.X, light.Colour.Y, light.Colour.Z),
+            IntensityFlags = (uint)Math.Round(light.Intensity * 128f) | ((uint)light.Flags << 8),
+        };
+    }
 }

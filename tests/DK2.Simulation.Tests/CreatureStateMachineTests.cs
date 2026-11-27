@@ -27,12 +27,17 @@ public class CreatureStateMachineTests
     private const int Approaching = 8;           // group 9, Movement - combat's own walk
     private const int Engaging = 199;            // its resume
 
-    private static CreatureState Fresh() => new() { Id = 1 };
+    private static CreatureState Fresh()
+    {
+        return new() { Id = 1 };
+    }
 
     /// <summary>The one refusal that is not the rule's: a claiming category's enter hook finds no
     /// room under (0, 0), where <see cref="Fresh"/> stands, and leaves the creature in 1 (ADR-0309).</summary>
-    private static bool RefusedByTheClaim(CreatureState creature, int target) =>
-        RoomCapacityRules.Claims(CreatureStateTable.Get(target).Category) && creature.Dk2StateId == Idle;
+    private static bool RefusedByTheClaim(CreatureState creature, int target)
+    {
+        return RoomCapacityRules.Claims(CreatureStateTable.Get(target).Category) && creature.Dk2StateId == Idle;
+    }
 
     /// <summary>A context whose (0, 0) is a one-place room of <paramref name="type"/>, so a claim
     /// made there succeeds.</summary>

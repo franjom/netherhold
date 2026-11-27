@@ -22,7 +22,14 @@ public sealed class LibraryCapacityTests
 
     private sealed class Probe(Draws draws, Action<SimulationContext> run) : ISimulationSystem
     {
-        public string Name => "Probe";
+        public string Name
+        {
+            get
+            {
+                return "Probe";
+            }
+        }
+
         public void Execute(SimulationContext context) { draws.Bounds.Clear(); run(context); }
     }
 

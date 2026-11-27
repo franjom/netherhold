@@ -319,7 +319,14 @@ public sealed class KeeperSpellTests
 
     private sealed class Boundary : ISimulationSystem
     {
-        public string Name => "boundary_probe";
+        public string Name
+        {
+            get
+            {
+                return "boundary_probe";
+            }
+        }
+
         public int Result = -1;
         public KeeperSpellRefusal Refusal;
         public void Execute(SimulationContext context)
@@ -331,19 +338,41 @@ public sealed class KeeperSpellTests
         }
     }
 
-    private static KeeperSpellDef Spell() => new()
+    private static KeeperSpellDef Spell()
     {
-        Name = "Thunderbolt", KeeperSpellId = 6, ManaCost = 6000, ManaUpkeepPerSecond = 0,
-        ShotTypeId = 21, ShotData1 = 150, BonusShotTypeId = 21, BonusShotData1 = 200,
-        LocationSelector = 1, TargetSelector = 2
-    };
+        return new()
+        {
+            Name = "Thunderbolt",
+            KeeperSpellId = 6,
+            ManaCost = 6000,
+            ManaUpkeepPerSecond = 0,
+            ShotTypeId = 21,
+            ShotData1 = 150,
+            BonusShotTypeId = 21,
+            BonusShotData1 = 200,
+            LocationSelector = 1,
+            TargetSelector = 2
+        };
+    }
 
-    private static ShotDef Shot(byte id) => new(new byte[239])
+    private static ShotDef Shot(byte id)
     {
-        Name = "Thunderbolt", ShotId = id, MeshResource = new("", 0, default, 0, 0, 0, 0),
-        Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0), SoundCategory = "", Speed = 2048,
-        Radius = 819, Health = 8, Flags = 4, ShotProcessFlags = 0x40, ProcessType = 9, AttackCategory = 6
-    };
+        return new(new byte[239])
+        {
+            Name = "Thunderbolt",
+            ShotId = id,
+            MeshResource = new("", 0, default, 0, 0, 0, 0),
+            Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0),
+            SoundCategory = "",
+            Speed = 2048,
+            Radius = 819,
+            Health = 8,
+            Flags = 4,
+            ShotProcessFlags = 0x40,
+            ProcessType = 9,
+            AttackCategory = 6
+        };
+    }
 
     private static (GameDatabase, WorldState, CreatureState) Setup(KeeperSpellDef? spell = null)
     {

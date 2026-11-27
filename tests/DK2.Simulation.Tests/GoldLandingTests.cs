@@ -92,8 +92,18 @@ public class GoldLandingTests
 
     private sealed class LandPile(ObjectState pile) : ISimulationSystem
     {
-        public string Name => "gold landing probe";
-        public void Execute(SimulationContext context) => FloorGoldLandingRules.Land(context, pile);
+        public string Name
+        {
+            get
+            {
+                return "gold landing probe";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            FloorGoldLandingRules.Land(context, pile);
+        }
     }
 
     [Fact]

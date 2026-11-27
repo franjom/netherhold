@@ -31,7 +31,10 @@ public class LooseChickenTests
         return (sim, chicken, sink);
     }
 
-    private static uint SeedOf(GameSimulation sim) => ((Dk2Lcg)sim.Rng.Algorithm).Seed;
+    private static uint SeedOf(GameSimulation sim)
+    {
+        return ((Dk2Lcg)sim.Rng.Algorithm).Seed;
+    }
 
     private static void Rock(GameDatabase db, WorldState world, TilePos at)
     {

@@ -11,12 +11,20 @@ namespace DK2.Simulation.Tests.Steering;
 /// (docs/research/navigation-and-steering.md §3.3–§3.4; steering-behaviours.md §4).</summary>
 public class SteeringIntegratorTests
 {
-    private static Fixed16Vector T(double x, double y) => FakeSteeringWorld.Tiles(x, y);
+    private static Fixed16Vector T(double x, double y)
+    {
+        return FakeSteeringWorld.Tiles(x, y);
+    }
 
-    private static FakeSteeringWorld Room() => new("#######", "#.....#", "#.....#", "#.....#", "#######");
+    private static FakeSteeringWorld Room()
+    {
+        return new("#######", "#.....#", "#.....#", "#.....#", "#######");
+    }
 
-    private static void Step(SteeringBody body, Fixed16Vector total, FakeSteeringWorld? world = null) =>
+    private static void Step(SteeringBody body, Fixed16Vector total, FakeSteeringWorld? world = null)
+    {
         SteeringIntegrator.Step(body, total, MoverProfile.Walker, world ?? Room());
+    }
 
     [Fact]
     public void EachForceIsClampedToMaxForceBeforeItIsWeighted()

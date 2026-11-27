@@ -78,10 +78,18 @@ public class FrameInputRecorderTests
         Assert.Empty(recorder.EndFrame(pending, 0)!.Intents);
     }
 
-    private static FrameInputRecord Raw(long frame) => new() { Frame = frame };
+    private static FrameInputRecord Raw(long frame)
+    {
+        return new() { Frame = frame };
+    }
 
-    private static PlayerCommand Imp(int x) => new CreateImpCommand(Keeper, new TilePos(x, 1));
+    private static PlayerCommand Imp(int x)
+    {
+        return new CreateImpCommand(Keeper, new TilePos(x, 1));
+    }
 
-    private static (CommandQueuedWhen, PlayerCommand)[] Queued(FrameInputRecord frame) =>
-        [.. frame.Commands.Select(c => (c.When, c.Command))];
+    private static (CommandQueuedWhen, PlayerCommand)[] Queued(FrameInputRecord frame)
+    {
+        return [.. frame.Commands.Select(c => (c.When, c.Command))];
+    }
 }

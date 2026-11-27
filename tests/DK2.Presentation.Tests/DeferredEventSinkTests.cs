@@ -45,6 +45,9 @@ public sealed class DeferredEventSinkTests
 
     private sealed class RecordingSink(List<(SimEvent Event, int Thread)> received) : ISimulationEventSink
     {
-        public void Emit(in SimEvent simEvent) => received.Add((simEvent, Environment.CurrentManagedThreadId));
+        public void Emit(in SimEvent simEvent)
+        {
+            received.Add((simEvent, Environment.CurrentManagedThreadId));
+        }
     }
 }

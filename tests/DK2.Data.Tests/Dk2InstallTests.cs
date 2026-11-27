@@ -11,9 +11,15 @@ public sealed class Dk2InstallTests : IDisposable
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), "dk2-install-tests-" + Guid.NewGuid().ToString("N"));
 
-    public Dk2InstallTests() => Directory.CreateDirectory(_root);
+    public Dk2InstallTests()
+    {
+        Directory.CreateDirectory(_root);
+    }
 
-    public void Dispose() => Directory.Delete(_root, recursive: true);
+    public void Dispose()
+    {
+        Directory.Delete(_root, recursive: true);
+    }
 
     private string Folder(string name, bool exe, bool data)
     {

@@ -31,13 +31,17 @@ public sealed class HandSoundTests
 
     /// <summary>The hand's requests; an object's own creation and deletion sounds (<c>0xF1</c>, <c>0xF2</c>, <c>0xF4</c>,
     /// ObjectSoundTests) are not what these tests are about.</summary>
-    private static ThingSoundRequest[] Sounds(ListEventSink events) =>
-        [.. events.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value)
+    private static ThingSoundRequest[] Sounds(ListEventSink events)
+    {
+        return [.. events.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value)
             .Where(s => !(s.Source.Kind == SoundSourceKind.Object
                 && s.Event is ThingSoundEvent.ObjectMade or ThingSoundEvent.ObjectMadeSecond or ThingSoundEvent.ObjectRemoved))];
+    }
 
-    private static FpPosition3 Centre(TilePos tile, int height = 0x1000) =>
-        new(new Fp32(CreatureState.CentreOf(tile.X)), new Fp32(CreatureState.CentreOf(tile.Y)), new Fp32(height));
+    private static FpPosition3 Centre(TilePos tile, int height = 0x1000)
+    {
+        return new(new Fp32(CreatureState.CentreOf(tile.X)), new Fp32(CreatureState.CentreOf(tile.Y)), new Fp32(height));
+    }
 
     [Fact]
     public void LiftingACreatureRequestsC3InItsCategoryAtItsPositionWithoutAVoice()

@@ -129,41 +129,44 @@ public class FrameInputJournalTests
         }
     }
 
-    private static FrameInputRecord Busy(long frame) => new()
+    private static FrameInputRecord Busy(long frame)
     {
-        Frame = frame,
-        UnscaledDeltaSeconds = 1 / 60d,
-        Mode = FrameInputMode.Game,
-        TickAtStart = new GameTick(120),
-        TicksRun = 2,
-        CommandsHandedToTick = 1,
-        TickDebtAfter = 0.25,
-        PointerX = 400.5f,
-        PointerY = 300,
-        ButtonsHeld = FrameMouseButtons.Primary,
-        ButtonsDown = FrameMouseButtons.Primary,
-        WheelY = -1,
-        PanHorizontal = 1,
-        TypedText = "ab",
-        KeysDown = [new HostKey(97)],
-        KeysHeld = [new HostKey(97), new HostKey(304)],
-        KeysUp = [new HostKey(98)],
-        Hud = FrameHudFlags.OrdinaryInput | FrameHudFlags.CameraPath,
-        ActiveTool = PlayerToolMode.Hand,
-        Intents =
+        return new()
+        {
+            Frame = frame,
+            UnscaledDeltaSeconds = 1 / 60d,
+            Mode = FrameInputMode.Game,
+            TickAtStart = new GameTick(120),
+            TicksRun = 2,
+            CommandsHandedToTick = 1,
+            TickDebtAfter = 0.25,
+            PointerX = 400.5f,
+            PointerY = 300,
+            ButtonsHeld = FrameMouseButtons.Primary,
+            ButtonsDown = FrameMouseButtons.Primary,
+            WheelY = -1,
+            PanHorizontal = 1,
+            TypedText = "ab",
+            KeysDown = [new HostKey(97)],
+            KeysHeld = [new HostKey(97), new HostKey(304)],
+            KeysUp = [new HostKey(98)],
+            Hud = FrameHudFlags.OrdinaryInput | FrameHudFlags.CameraPath,
+            ActiveTool = PlayerToolMode.Hand,
+            Intents =
         [
             new PlayerIntent(Keeper, PlayerToolMode.Hand, new TilePos(4, 5), PointerButtonTransition.Pressed,
                 RoomTypeId.Treasury, PointerOverHud: false, PointerPosition: new FpPosition2(new Fp32(4096 * 4 + 7), new Fp32(4096 * 5))),
             new PlayerIntent(Keeper, PlayerToolMode.TagTiles, null, PointerButtonTransition.Released,
                 SecondaryButton: PointerButtonTransition.Pressed | PointerButtonTransition.Released, PointerOverHud: true),
         ],
-        Commands =
+            Commands =
         [
             new QueuedCommand(CommandQueuedWhen.BeforeUpdate, new CreateImpCommand(Keeper, new TilePos(4, 5))),
             new QueuedCommand(CommandQueuedWhen.DuringFrame, TagTilesCommand.Tag(Keeper, new TilePos(4, 5))),
             new QueuedCommand(CommandQueuedWhen.AfterHandOff, new SlapCreatureCommand(Keeper, 12)),
         ],
-    };
+        };
+    }
 
     private static byte[] Encoded(PlayerCommand command)
     {

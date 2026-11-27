@@ -123,14 +123,31 @@ public sealed class TargetedCastHoldTests
 
     private sealed class RunRule(Action<SimulationContext> rule) : ISimulationSystem
     {
-        public string Name => nameof(RunRule);
-        public void Execute(SimulationContext context) => rule(context);
+        public string Name
+        {
+            get
+            {
+                return nameof(RunRule);
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            rule(context);
+        }
     }
 
     private sealed class StartOnce(CreatureState caster) : ISimulationSystem
     {
         private bool _started;
-        public string Name => nameof(StartOnce);
+        public string Name
+        {
+            get
+            {
+                return nameof(StartOnce);
+            }
+        }
+
         public void Execute(SimulationContext context)
         {
             if (_started)

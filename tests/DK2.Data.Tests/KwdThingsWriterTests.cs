@@ -11,7 +11,11 @@ namespace DK2.Data.Tests;
 
 public class KwdThingsWriterTests
 {
-    public static TheoryData<int, int, string> Layouts => new()
+    public static TheoryData<int, int, string> Layouts
+    {
+        get
+        {
+            return new()
     {
         {194,24,"X:0:4 Y:4:4 Unknown_0008:8:4 KeeperSpellId:C:4 MoneyAmount:10:4 TriggerId:14:2 ObjectId:16:1 PlayerId:17:1"},
         {195,16,"X:0:4 Y:4:4 Unknown_0008:8:4 NumberOfShots:C:1 TrapId:D:1 PlayerId:E:1 Unknown_000F:F:1"},
@@ -25,14 +29,20 @@ public class KwdThingsWriterTests
         {204,20,"X:0:4 Y:4:4 Unknown_0008:8:4 Unknown_000C:C:2 Direction:E:1 Unknown_000F:F:1 InitialHealth:10:2 RoomType:12:1 PlayerId:13:1"},
         {205,84,"X:0:4 Y:4:4 Z:8:4 MinClipX:C:4 MinClipY:10:4 MinClipZ:14:4 MaxClipX:18:4 MaxClipY:1C:4 MaxClipZ:20:4 ViewDistance:24:4 MinViewDistance:28:4 MaxViewDistance:2C:4 Zoom:30:4 MinZoom:34:4 MaxZoom:38:4 Lens:3C:4 MinLens:40:4 MaxLens:44:4 Flags:48:4 AngleYaw:4C:2 AngleRoll:4E:2 AnglePitch:50:2 CameraId:52:2"},
     };
+        }
+    }
 
     [Theory, MemberData(nameof(Layouts))]
-    public void EveryDecodedFieldRoundTripsWithoutChangingOtherBytes(int tag, int size, string fields) =>
+    public void EveryDecodedFieldRoundTripsWithoutChangingOtherBytes(int tag, int size, string fields)
+    {
         Check(tag, size, fields, tag == 201 ? ["Members"] : null);
+    }
 
     [Fact]
-    public void HypothesizedDeadBodyLayoutRoundTripsSyntheticFields() =>
-        Check(202,16,"X:0:4 Y:4:4 Z:8:4 GoldHeld:C:2 CreatureId:E:1 PlayerId:F:1");
+    public void HypothesizedDeadBodyLayoutRoundTripsSyntheticFields()
+    {
+        Check(202, 16, "X:0:4 Y:4:4 Z:8:4 GoldHeld:C:2 CreatureId:E:1 PlayerId:F:1");
+    }
 
     [Fact]
     public void EveryHeroPartyMemberFieldUsesItsOwnSlot()
@@ -97,9 +107,11 @@ public class KwdThingsWriterTests
         Assert.Equal(6318,count);
     }
 
-    private static void Check(int tag,int size,string fields,string[]? excluded=null) =>
-        KwdScalarOverlayChecks.Check(KwdRecordType.Things,size,bytes=>KwdThings.Parse(tag,bytes),
-            (row,image)=>KwdThings.WriteRecord(row,Image(tag,image.ToBytes()))[8..],fields,excluded);
+    private static void Check(int tag, int size, string fields, string[]? excluded = null)
+    {
+        KwdScalarOverlayChecks.Check(KwdRecordType.Things, size, bytes => KwdThings.Parse(tag, bytes),
+            (row, image) => KwdThings.WriteRecord(row, Image(tag, image.ToBytes()))[8..], fields, excluded);
+    }
 
     internal static KwdRecordImage Image(int tag,byte[] payload)
     {

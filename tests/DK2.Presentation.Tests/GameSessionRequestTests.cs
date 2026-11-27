@@ -34,7 +34,9 @@ public sealed class GameSessionRequestTests
 
     [Fact]
     public void RestartRejectsAFrontEndRequest()
-        => Assert.Throws<ArgumentException>(() => GameSessionRequest.Restart(GameSessionRequest.FrontEnd()));
+    {
+        Assert.Throws<ArgumentException>(() => GameSessionRequest.Restart(GameSessionRequest.FrontEnd()));
+    }
 
     [Theory]
     [InlineData(FrontEndPage.CampaignResults)]
@@ -58,6 +60,8 @@ public sealed class GameSessionRequestTests
     [Theory]
     [InlineData(ClassicSessionAction.Quit)]
     [InlineData(ClassicSessionAction.None)]
-    public void QuitAndNoneAskForNoSession(ClassicSessionAction action) =>
+    public void QuitAndNoneAskForNoSession(ClassicSessionAction action)
+    {
         Assert.Null(GameSessionRequest.ForSessionAction(action, new SessionContext("Level1", GameSessionMode.Campaign, FrontEndPage.None)));
+    }
 }

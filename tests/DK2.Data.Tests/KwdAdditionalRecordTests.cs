@@ -251,13 +251,21 @@ public class KwdAdditionalRecordTests
         Assert.Contains("239", error.Message);
     }
 
-    private static KwdChunk Chunk(KwdRecordType type, byte[] content) => new()
+    private static KwdChunk Chunk(KwdRecordType type, byte[] content)
     {
-        Type = type, ItemCount = 1, HeaderBlock = new byte[28], Content = content,
-    };
+        return new()
+        {
+            Type = type,
+            ItemCount = 1,
+            HeaderBlock = new byte[28],
+            Content = content,
+        };
+    }
 
-    private static byte[] Pattern(int size) =>
-        [.. Enumerable.Range(0, size).Select(i => (byte)(i * 37 + 11))];
+    private static byte[] Pattern(int size)
+    {
+        return [.. Enumerable.Range(0, size).Select(i => (byte)(i * 37 + 11))];
+    }
 
     private static TriggerRecord Trigger(int tag, byte type, byte[] body)
     {
@@ -269,7 +277,9 @@ public class KwdAdditionalRecordTests
         return KwdTriggers.Parse([Chunk(KwdRecordType.Triggers, tagged)]).Single();
     }
 
-    private static Dictionary<byte, int> ParseCounts(string specification) =>
-        specification.Split(',').Select(pair => pair.Split(':')).ToDictionary(
+    private static Dictionary<byte, int> ParseCounts(string specification)
+    {
+        return specification.Split(',').Select(pair => pair.Split(':')).ToDictionary(
             pair => byte.Parse(pair[0]), pair => int.Parse(pair[1]));
+    }
 }

@@ -252,8 +252,12 @@ public class DropCombatTests
         DoorState door = world.Doors[0];
         CreatureState creature = GettingUp(db, world);
         creature.ActionUntilTick = 3;
-        static ISimulationSystem[] Systems() => [new CreatureStatusSystem(), new CombatSystem(),
+        static ISimulationSystem[] Systems()
+        {
+            return [new CreatureStatusSystem(), new CombatSystem(),
             new CreatureMovementSystem(), new DoorRemovalSystem()];
+        }
+
         var sim = new GameSimulation(db, world, 7, Systems());
         sim.Tick();
         GameSimulation loaded = WorldSnapshot.FromBytes(WorldSnapshot.ToBytes(sim), db, Systems());

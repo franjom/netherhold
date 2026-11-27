@@ -209,13 +209,19 @@ public sealed class ThingTileLinkTests
         Assert.True(relinks > 20, $"only {relinks} ticks moved anything");
     }
 
-    private static int MaxOrder(WorldState world) =>
-        world.Creatures.Select(c => c.TileLink.Order).Concat(world.Objects.Select(o => o.TileLink.Order))
+    private static int MaxOrder(WorldState world)
+    {
+        return world.Creatures.Select(c => c.TileLink.Order).Concat(world.Objects.Select(o => o.TileLink.Order))
             .Concat(world.Shots.Select(s => s.TileLink.Order)).DefaultIfEmpty(0).Max();
+    }
 
     private static void AssertCurrent(WorldState world)
     {
-        int Tile(int x, int y) => world.Contains(x >> 12, y >> 12) ? ((y >> 12) * world.Width) + (x >> 12) : -1;
+        int Tile(int x, int y)
+        {
+            return world.Contains(x >> 12, y >> 12) ? ((y >> 12) * world.Width) + (x >> 12) : -1;
+        }
+
         foreach (CreatureState c in world.Creatures)
         {
             Assert.Equal(c.InHand || c.CarriedByCreatureId >= 0 ? -1 : Tile(c.PosX, c.PosY), c.TileLink.TileIndex);

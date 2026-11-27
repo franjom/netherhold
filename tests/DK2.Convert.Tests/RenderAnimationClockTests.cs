@@ -26,10 +26,15 @@ public class RenderAnimationClockTests
         Assert.Equal(1, clock.CompletedLoops);
     }
 
-    private static CreatureAnimationTiming Timing(ushort frames = 8, ushort fps = 8) => new()
+    private static CreatureAnimationTiming Timing(ushort frames = 8, ushort fps = 8)
     {
-        ResourceType = 6, FrameCount = frames, FramesPerSecond = fps,
-    };
+        return new()
+        {
+            ResourceType = 6,
+            FrameCount = frames,
+            FramesPerSecond = fps,
+        };
+    }
 
     [Fact]
     public void ALoopBlendsTheQuantizedPhaseAcrossItsWrap()

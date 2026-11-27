@@ -31,10 +31,15 @@ public sealed class GameOptionsHudTests
         return frame.Draws.ToArray();
     }
 
-    private static HudRect Virtual(FrontEndRect r) => new(r.X * 2.5f, r.Y * 2.5f, r.Width * 2.5f, r.Height * 2.5f);
+    private static HudRect Virtual(FrontEndRect r)
+    {
+        return new(r.X * 2.5f, r.Y * 2.5f, r.Width * 2.5f, r.Height * 2.5f);
+    }
 
-    private static InGameOptionsWidget Widget(InGameOptionsPage page, ushort setting) =>
-        ClassicGameOptionsLayout.ForPage(page).Single(w => w.Setting.Value == setting);
+    private static InGameOptionsWidget Widget(InGameOptionsPage page, ushort setting)
+    {
+        return ClassicGameOptionsLayout.ForPage(page).Single(w => w.Setting.Value == setting);
+    }
 
     [Fact]
     public void TheRootPageTintsItsTitleItsLinksAndTheUnavailableCamerasAndAPressNavigates()
@@ -166,8 +171,10 @@ public sealed class GameOptionsHudTests
         Assert.False(hud.PointerDown(title.X + 1, title.Y + 1, 0));
     }
 
-    private static GameBindingInput Pressed(KeyModifiers modifiers, params int[] scans) =>
-        new(new GameSettings(), modifiers, _ => false, s => scans.Contains(s.Value));
+    private static GameBindingInput Pressed(KeyModifiers modifiers, params int[] scans)
+    {
+        return new(new GameSettings(), modifiers, _ => false, s => scans.Contains(s.Value));
+    }
 
     [Fact]
     public void ACapturingRowTakesThePressedKeyItAcceptsWithTheHeldModifiers()

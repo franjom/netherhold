@@ -65,6 +65,13 @@ public class TerrainTileStateTests
         Assert.NotEqual(Packed(new Vector3(.4f) + addition), Packed(new Vector3(.7f)) + new Vector3(128f / 255f));
     }
 
-    private static Vector3 Packed(Vector3 value) => new(Pack(value.X), Pack(value.Y), Pack(value.Z));
-    private static float Pack(float value) => Math.Min(MathF.Floor(Math.Max(value, 0) * 255f + .00001f), 255f) / 255f;
+    private static Vector3 Packed(Vector3 value)
+    {
+        return new(Pack(value.X), Pack(value.Y), Pack(value.Z));
+    }
+
+    private static float Pack(float value)
+    {
+        return Math.Min(MathF.Floor(Math.Max(value, 0) * 255f + .00001f), 255f) / 255f;
+    }
 }

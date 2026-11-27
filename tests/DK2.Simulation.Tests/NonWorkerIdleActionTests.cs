@@ -275,13 +275,45 @@ public class NonWorkerIdleActionTests
         private readonly Dictionary<string, long> _values = new()
         { ["FlagId"] = 0, ["Flag"] = 10, ["Value"] = 1 };
         public long this[string key] { get { observe(); return _values[key]; } }
-        public int Count => _values.Count;
-        public IEnumerable<string> Keys => _values.Keys;
-        public IEnumerable<long> Values => _values.Values;
-        public bool ContainsKey(string key) => _values.ContainsKey(key);
+        public int Count
+        {
+            get
+            {
+                return _values.Count;
+            }
+        }
+
+        public IEnumerable<string> Keys
+        {
+            get
+            {
+                return _values.Keys;
+            }
+        }
+
+        public IEnumerable<long> Values
+        {
+            get
+            {
+                return _values.Values;
+            }
+        }
+
+        public bool ContainsKey(string key)
+        {
+            return _values.ContainsKey(key);
+        }
+
         public bool TryGetValue(string key, out long value) { observe(); return _values.TryGetValue(key, out value); }
-        public IEnumerator<KeyValuePair<string, long>> GetEnumerator() => _values.GetEnumerator();
-        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+        public IEnumerator<KeyValuePair<string, long>> GetEnumerator()
+        {
+            return _values.GetEnumerator();
+        }
+
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
     }
 
     [Fact]
@@ -308,10 +340,21 @@ public class NonWorkerIdleActionTests
 
     private sealed class ActionObserver : ICreatureUpdateStep
     {
-        public string Name => "IdleActionObserver";
+        public string Name
+        {
+            get
+            {
+                return "IdleActionObserver";
+            }
+        }
+
         public bool? Busy { get; set; }
         public Action<SimulationContext, CreatureState>? BeforeObserve { get; init; }
-        public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+        public void Execute(SimulationContext context)
+        {
+            CreatureUpdateSystem.RunAlone(context, this);
+        }
+
         public void Update(SimulationContext context, CreatureState creature)
         {
             BeforeObserve?.Invoke(context, creature);

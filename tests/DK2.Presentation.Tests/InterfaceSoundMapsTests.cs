@@ -11,7 +11,13 @@ namespace DK2.Presentation.Tests;
 /// <summary>What the interface requests of W8 find in the shipped maps (docs/research/sound-effects-interface.md): each request has samples in its category, and the rows marked silent have none.</summary>
 public sealed class InterfaceSoundMapsTests
 {
-    private static string Root => Path.Combine(Dk2InstallGate.Path, "Data", "Sound", "SFX", "Global");
+    private static string Root
+    {
+        get
+        {
+            return Path.Combine(Dk2InstallGate.Path, "Data", "Sound", "SFX", "Global");
+        }
+    }
 
     private static int Samples(string category, uint id)
     {

@@ -617,8 +617,18 @@ public class CombatApproachTests
 
     private sealed class Probe(Action<SimulationContext> run) : ISimulationSystem
     {
-        public string Name => "probe";
-        public void Execute(SimulationContext context) => run(context);
+        public string Name
+        {
+            get
+            {
+                return "probe";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            run(context);
+        }
     }
 
     [Fact]
@@ -669,8 +679,10 @@ public class CombatApproachTests
         return world;
     }
 
-    private static CreatureState Spawn(GameDatabase db, WorldState world, byte type, byte owner, int x, int y) =>
-        world.SpawnArrived(db, type, owner, new TilePos(x, y));
+    private static CreatureState Spawn(GameDatabase db, WorldState world, byte type, byte owner, int x, int y)
+    {
+        return world.SpawnArrived(db, type, owner, new TilePos(x, y));
+    }
 
     /// <summary>A creature placed within melee reach of another, a third of a tile to its east.</summary>
     private static CreatureState Touching(GameDatabase db, WorldState world, byte type, byte owner, CreatureState other, int dy = 0)
@@ -689,6 +701,8 @@ public class CombatApproachTests
         return c;
     }
 
-    private static GameSimulation Sim(GameDatabase db, WorldState world) =>
-        new(db, world, 1, [new CreatureStatusSystem(), new CombatSystem(), new CreatureMovementSystem(), new ShotSystem()]);
+    private static GameSimulation Sim(GameDatabase db, WorldState world)
+    {
+        return new(db, world, 1, [new CreatureStatusSystem(), new CombatSystem(), new CreatureMovementSystem(), new ShotSystem()]);
+    }
 }

@@ -120,10 +120,15 @@ public class CommandCodecHostileInputTests
             $"decoding {Convert.ToHexString(input)} allocated {allocated} bytes");
     }
 
-    private static PlayerCommand Decode(byte[] input) =>
-        CommandCodec.Read(new BinaryReader(new MemoryStream(input)));
+    private static PlayerCommand Decode(byte[] input)
+    {
+        return CommandCodec.Read(new BinaryReader(new MemoryStream(input)));
+    }
 
-    private static byte[] Encode(PlayerCommand command) => Bytes(w => CommandCodec.Write(w, command));
+    private static byte[] Encode(PlayerCommand command)
+    {
+        return Bytes(w => CommandCodec.Write(w, command));
+    }
 
     private static void Head(BinaryWriter w, ushort tag)
     {

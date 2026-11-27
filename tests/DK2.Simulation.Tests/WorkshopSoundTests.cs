@@ -58,14 +58,21 @@ public sealed class WorkshopSoundTests
         return (sim, world, room, events);
     }
 
-    private static ViewEffectRequest[] Effects(ListEventSink events, ushort id) =>
-        [.. events.Events.Where(e => e.EffectRequest?.EffectId == new EffectId(id)).Select(e => e.EffectRequest!.Value)];
+    private static ViewEffectRequest[] Effects(ListEventSink events, ushort id)
+    {
+        return [.. events.Events.Where(e => e.EffectRequest?.EffectId == new EffectId(id)).Select(e => e.EffectRequest!.Value)];
+    }
 
     /// <summary>The lava-spill timer plays the idle effect of whichever furniture its pick walks to: the Steel Bucket's or the Anvil's.</summary>
-    private static ViewEffectRequest[] Spills(ListEventSink events) => [.. Effects(events, BucketSpill), .. Effects(events, AnvilSparks)];
+    private static ViewEffectRequest[] Spills(ListEventSink events)
+    {
+        return [.. Effects(events, BucketSpill), .. Effects(events, AnvilSparks)];
+    }
 
-    private static ThingSoundRequest[] Heard(ListEventSink events, int word) =>
-        [.. Sounds(events).Where(s => (int)s.Event == word && s.Source.Kind == SoundSourceKind.Room)];
+    private static ThingSoundRequest[] Heard(ListEventSink events, int word)
+    {
+        return [.. Sounds(events).Where(s => (int)s.Event == word && s.Source.Kind == SoundSourceKind.Room)];
+    }
 
     [Fact]
     public void TheSteamEffectIsFollowedBy2e9WithTheRoomsHandleInTheTerrainsCategoryAtTheEffectsPosition()

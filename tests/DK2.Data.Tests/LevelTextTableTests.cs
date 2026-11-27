@@ -20,8 +20,10 @@ public class LevelTextTableTests
     [InlineData(35, "MYPETDUNGEON.str")]
     [InlineData(40, "MYPETDUNGEON.str")]
     [InlineData(41, null)]
-    public void TheIdNamesTheFileOfTheBinarysTable(int id, string? file) =>
+    public void TheIdNamesTheFileOfTheBinarysTable(int id, string? file)
+    {
         Assert.Equal(file, LevelTextTable.FileName(id));
+    }
 
     [InstallTheory]
     [InlineData("level1")]

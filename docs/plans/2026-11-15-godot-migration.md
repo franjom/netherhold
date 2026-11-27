@@ -1215,6 +1215,7 @@ Behaviour stays the same: the turn-400 hash, the replays and the frame captures 
       every control body, removal of optional `this.` qualification (IDE0003), preferred default literals (IDE0034), and
       the collection expression preference `when_types_exactly_match`. Naming rules cover private fields, PascalCase
       for constant and static readonly fields, and camelCase for locals and local constants.
+      The block-body rule covers members and local functions. Lambda style is decided separately.
       The `CSharpStyleTests` guard enforces System-first import order, and `dotnet format` organizes imports.
       Land further approved rules by area using the survey's Release assembly comparison and verification steps.
       `EnforceCodeStyleInBuild` and `TreatWarningsAsErrors` make each rule a build error, so each area lands with

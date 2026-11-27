@@ -23,7 +23,10 @@ public sealed class KeyScriptTests
     [InlineData("30:H;20:P")]
     [InlineData("30:Key-H")]
     [InlineData("x:H")]
-    public void AMalformedScriptIsNone(string? text) => Assert.Null(KeyScript.Parse(text));
+    public void AMalformedScriptIsNone(string? text)
+    {
+        Assert.Null(KeyScript.Parse(text));
+    }
 
     [Fact]
     public void TheFirstTapAtOrAfterAFrameWalksForwardFromTheLastAnswer()

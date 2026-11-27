@@ -28,11 +28,23 @@ public sealed class HudHoverTextTests
             return new HoverTextSnapshot("type " + column.Value, "", default);
         }
         public bool OverMessageTabs() { Asked++; return Tabs; }
-        public HoverTextSnapshot MessageTabsText() => TabsText;
+        public HoverTextSnapshot MessageTabsText()
+        {
+            return TabsText;
+        }
+
         public bool OverBattleTab() { Asked++; return Battle; }
-        public HoverTextSnapshot BattleTabText() => BattleText;
+        public HoverTextSnapshot BattleTabText()
+        {
+            return BattleText;
+        }
+
         public bool OverBottomPanel() { Asked++; return Panel; }
-        public HoverTextSnapshot BottomPanelText() => PanelText;
+        public HoverTextSnapshot BottomPanelText()
+        {
+            return PanelText;
+        }
+
         public ClassicHudAction MinimapControl() { Asked++; return Corner; }
         public KeeperResourceKind Resource() { Asked++; return Kind; }
     }

@@ -57,8 +57,10 @@ public sealed class PossessionDigTests
         return sim;
     }
 
-    private static ActPossessedCreatureCommand Press(CreatureState me, ushort yaw = East) =>
-        new(Keeper, new(new(new(me.PosX), new(me.PosY), new(me.PosZ)), new(yaw), new(Level)), true, new(0));
+    private static ActPossessedCreatureCommand Press(CreatureState me, ushort yaw = East)
+    {
+        return new(Keeper, new(new(new(me.PosX), new(me.PosY), new(me.PosZ)), new(yaw), new(Level)), true, new(0));
+    }
 
     private static void Set(WorldState world, int x, int y, byte terrain, byte owner = PlayerIds.Neutral)
     {
@@ -67,14 +69,20 @@ public sealed class PossessionDigTests
         tile.OwnerPlayerId = owner;
     }
 
-    private static void SetHealth(GameDatabase db, WorldState world, int x, int y) =>
+    private static void SetHealth(GameDatabase db, WorldState world, int x, int y)
+    {
         world.Tile(x, y).Health = db.TerrainById(world.Tile(x, y).TerrainId).MaxHealth;
+    }
 
-    private static int Recharge(GameDatabase db, CreatureState me) =>
-        CombatRules.RechargeTicks(db, me, CombatRules.TicksOf(db.CreatureById(me.CreatureTypeId).MeleeRecharge));
+    private static int Recharge(GameDatabase db, CreatureState me)
+    {
+        return CombatRules.RechargeTicks(db, me, CombatRules.TicksOf(db.CreatureById(me.CreatureTypeId).MeleeRecharge));
+    }
 
-    private static int Rate(GameDatabase db, CreatureState me) =>
-        EfficiencyRules.Modifier(me, db.CreatureById(me.CreatureTypeId));
+    private static int Rate(GameDatabase db, CreatureState me)
+    {
+        return EfficiencyRules.Modifier(me, db.CreatureById(me.CreatureTypeId));
+    }
 
     // ------------------------------------------------------------------ the facing tile
 
@@ -156,7 +164,10 @@ public sealed class PossessionDigTests
     // ------------------------------------------------------------------ the pose tile
 
     /// <summary>The pose tile (10,10) beside the keeper's own claimed floor at (9,10).</summary>
-    private static void OwnFloorWest(WorldState world) => Set(world, 9, 10, Dk2TerrainFixture.ClaimedPath, Keeper);
+    private static void OwnFloorWest(WorldState world)
+    {
+        Set(world, 9, 10, Dk2TerrainFixture.ClaimedPath, Keeper);
+    }
 
     [Fact]
     public void AClaimStrikesEveryTickUntilTheTileTurns_StronglyInferredFromBinary()

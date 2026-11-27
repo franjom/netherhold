@@ -117,12 +117,19 @@ public class ShotTrailTests
         Assert.Empty(model.Particles);
     }
 
-    private static ViewEffectRequest Trail() => new(new EffectId(10), new PlayerId(3), At(1000), new Dk2Angle(256))
+    private static ViewEffectRequest Trail()
     {
-        AttachedShotId = new ShotId(1), Visibility = EffectVisibility.Ungated,
-    };
+        return new(new EffectId(10), new PlayerId(3), At(1000), new Dk2Angle(256))
+        {
+            AttachedShotId = new ShotId(1),
+            Visibility = EffectVisibility.Ungated,
+        };
+    }
 
-    private static FpPosition3 At(int x) => new(new Fp32(x), default, new Fp32(3000));
+    private static FpPosition3 At(int x)
+    {
+        return new(new Fp32(x), default, new Fp32(3000));
+    }
 
     private static GameDatabase Database(bool cameraBypass = false)
     {

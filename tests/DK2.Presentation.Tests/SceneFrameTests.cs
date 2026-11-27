@@ -24,10 +24,20 @@ public class SceneFrameTests
         public bool TakesGemSparkles { get; set; } = true;
         public long Clock;
 
-        private void Log(string call) => Calls.Add(call);
+        private void Log(string call)
+        {
+            Calls.Add(call);
+        }
 
-        public void BeginFrame() => Log("begin");
-        public void AdvanceHeartHealth() => Log("hearts");
+        public void BeginFrame()
+        {
+            Log("begin");
+        }
+
+        public void AdvanceHeartHealth()
+        {
+            Log("hearts");
+        }
 
         public bool PlaceCreature(CreatureId creature, in CreatureView pose, DrawPoint drawn)
         {
@@ -35,9 +45,15 @@ public class SceneFrameTests
             return !WithoutModel.Contains(creature.Value);
         }
 
-        public void DrawCreatureClip(CreatureId creature, in CreatureView pose, double seconds) =>
+        public void DrawCreatureClip(CreatureId creature, in CreatureView pose, double seconds)
+        {
             Log(string.Create(CultureInfo.InvariantCulture, $"clip {creature.Value} {seconds}"));
-        public void HideCreatureModel(CreatureId creature) => Log($"hide {creature.Value}");
+        }
+
+        public void HideCreatureModel(CreatureId creature)
+        {
+            Log($"hide {creature.Value}");
+        }
 
         public int FootstepCrossing(CreatureId creature)
         {
@@ -45,9 +61,20 @@ public class SceneFrameTests
             return Crossings.TryGetValue(creature.Value, out int crossing) ? crossing : 0;
         }
 
-        public void RequestFootstep(CreatureId creature, in CreatureView pose, int crossing) => Log($"footstep {creature.Value} {crossing}");
-        public void DrawBurningRed(CreatureId creature, in CreatureView pose) => Log($"red {creature.Value}");
-        public void DrawCrackle(CreatureId creature, GameTick tick) => Log($"crackle {creature.Value} {tick.Value}");
+        public void RequestFootstep(CreatureId creature, in CreatureView pose, int crossing)
+        {
+            Log($"footstep {creature.Value} {crossing}");
+        }
+
+        public void DrawBurningRed(CreatureId creature, in CreatureView pose)
+        {
+            Log($"red {creature.Value}");
+        }
+
+        public void DrawCrackle(CreatureId creature, GameTick tick)
+        {
+            Log($"crackle {creature.Value} {tick.Value}");
+        }
 
         public bool TryGetControlPoint(CreatureId creature, uint point, out Vector3 render)
         {
@@ -61,10 +88,20 @@ public class SceneFrameTests
             return new EffectTime(Clock);
         }
 
-        public void RequestGemSparkle(FpPosition3 point) => Log($"sparkle {point.X.Raw} {point.Y.Raw} {point.Z.Raw}");
-        public void DrawObjects(GameTick tick, float fraction) =>
+        public void RequestGemSparkle(FpPosition3 point)
+        {
+            Log($"sparkle {point.X.Raw} {point.Y.Raw} {point.Z.Raw}");
+        }
+
+        public void DrawObjects(GameTick tick, float fraction)
+        {
             Log(string.Create(CultureInfo.InvariantCulture, $"objects {tick.Value} {fraction}"));
-        public void RefreshTorches() => Log("torches");
+        }
+
+        public void RefreshTorches()
+        {
+            Log("torches");
+        }
     }
 
     /// <summary>Unity's <c>DungeonScene.DrawCreatureFrame</c> as it stood at f49bcbba, over the same host: the hover overlay's
@@ -125,9 +162,11 @@ public class SceneFrameTests
         }
     }
 
-    private static CreatureView Creature(int id, int x = 3, bool burning = false, bool gem = false) =>
-        new(id, new PlayerId(1), posX: x * Fp32.One, posY: 5 * Fp32.One, default, default, 0, height: Fp32.One / 2,
+    private static CreatureView Creature(int id, int x = 3, bool burning = false, bool gem = false)
+    {
+        return new(id, new PlayerId(1), posX: x * Fp32.One, posY: 5 * Fp32.One, default, default, 0, height: Fp32.One / 2,
             previousPosX: (x - 1) * Fp32.One, previousPosY: 5 * Fp32.One, gemCarrier: gem, burningRed: burning);
+    }
 
     /// <summary>Five creatures covering every branch: no model, a hidden one, footsteps before and after the wrap, burning,
     /// gem carriers with and without the sparkle point, heads present and absent.</summary>
@@ -229,7 +268,11 @@ public class SceneFrameTests
         RecordingHost host = Staged();
         var frame = new SceneFrame(host);
         frame.Add(new CreatureId(4), Creature(4, gem: true));
-        int Sparkles() => host.Calls.Count(call => call.StartsWith("sparkle", StringComparison.Ordinal));
+        int Sparkles()
+        {
+            return host.Calls.Count(call => call.StartsWith("sparkle", StringComparison.Ordinal));
+        }
+
         frame.Draw(new GameTick(1), 0f);
         host.Clock = GemSparkleGate.QuantumMilliseconds - 1;
         frame.Draw(new GameTick(1), 0f);
@@ -284,10 +327,18 @@ public class SceneFrameTests
     {
         public void BeginFrame() { }
         public void AdvanceHeartHealth() { }
-        public bool PlaceCreature(CreatureId creature, in CreatureView pose, DrawPoint drawn) => true;
+        public bool PlaceCreature(CreatureId creature, in CreatureView pose, DrawPoint drawn)
+        {
+            return true;
+        }
+
         public void DrawCreatureClip(CreatureId creature, in CreatureView pose, double seconds) { }
         public void HideCreatureModel(CreatureId creature) { }
-        public int FootstepCrossing(CreatureId creature) => 1;
+        public int FootstepCrossing(CreatureId creature)
+        {
+            return 1;
+        }
+
         public void RequestFootstep(CreatureId creature, in CreatureView pose, int crossing) { }
         public void DrawBurningRed(CreatureId creature, in CreatureView pose) { }
         public void DrawCrackle(CreatureId creature, GameTick tick) { }
@@ -298,8 +349,19 @@ public class SceneFrameTests
             return true;
         }
 
-        public bool TakesGemSparkles => true;
-        public EffectTime EffectClock() => new(0);
+        public bool TakesGemSparkles
+        {
+            get
+            {
+                return true;
+            }
+        }
+
+        public EffectTime EffectClock()
+        {
+            return new(0);
+        }
+
         public void RequestGemSparkle(FpPosition3 point) { }
         public void DrawObjects(GameTick tick, float fraction) { }
         public void RefreshTorches() { }

@@ -100,9 +100,14 @@ public class RewardTabletTests
     [InlineData(42, 41)]    // Training
     [InlineData(43, 42)]    // Treasury
     [InlineData(51, 50)]    // reaper_talisman-01d
-    public void TheFrontsFiftyOneFramesShowItemNAtFrameNMinusOne(byte item, int frame) =>
+    public void TheFrontsFiftyOneFramesShowItemNAtFrameNMinusOne(byte item, int frame)
+    {
         Assert.Equal(frame, RewardTablet.TextureFrame(51, item));
+    }
 
     [Fact]
-    public void AOneTextureMaterialAlwaysShowsItsOnlyFrame() => Assert.Equal(0, RewardTablet.TextureFrame(1, 43));
+    public void AOneTextureMaterialAlwaysShowsItsOnlyFrame()
+    {
+        Assert.Equal(0, RewardTablet.TextureFrame(1, 43));
+    }
 }

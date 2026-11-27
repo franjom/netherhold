@@ -185,7 +185,11 @@ public class SeparationTests
         Assert.Equal(SeparationRules.ShippedMaxForce, below);
         Assert.True(above > SeparationRules.ShippedMaxForce);
 
-        static int Truncate(int magnitude, int limit) => magnitude > limit ? limit : magnitude;
+        static int Truncate(int magnitude, int limit)
+        {
+            return magnitude > limit ? limit : magnitude;
+        }
+
         Assert.Equal(Truncate(below, SeparationRules.ShippedMaxForce),
                      Truncate(above, SeparationRules.ShippedMaxForce));
     }

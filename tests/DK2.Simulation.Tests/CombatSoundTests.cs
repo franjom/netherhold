@@ -40,11 +40,16 @@ public sealed class CombatSoundTests
     }
 
     /// <summary>By event and by the kind of thing: 0xDA and 0xF4 are also the heart's and the terrain's, and 0xDB the shot's.</summary>
-    private static ThingSoundRequest[] Heard(ListEventSink events, ThingSoundEvent sound) =>
-        [.. Sounds(events).Where(s => s.Event == sound
+    private static ThingSoundRequest[] Heard(ListEventSink events, ThingSoundEvent sound)
+    {
+        return [.. Sounds(events).Where(s => s.Event == sound
             && s.Source.Kind == (sound == ThingSoundEvent.CorpseDestroyed ? SoundSourceKind.Corpse : SoundSourceKind.Creature))];
+    }
 
-    private static FpPosition3 Where(CreatureState c) => new(new Fp32(c.PosX), new Fp32(c.PosY), new Fp32(c.PosZ));
+    private static FpPosition3 Where(CreatureState c)
+    {
+        return new(new Fp32(c.PosX), new Fp32(c.PosY), new Fp32(c.PosZ));
+    }
 
     private static GameSimulation Run(GameDatabase db, WorldState world, Action<SimulationContext> rule, out ListEventSink events)
     {
@@ -57,7 +62,14 @@ public sealed class CombatSoundTests
     private sealed class Once(Action<SimulationContext> rule) : ISimulationSystem
     {
         private bool _done;
-        public string Name => nameof(Once);
+        public string Name
+        {
+            get
+            {
+                return nameof(Once);
+            }
+        }
+
         public void Execute(SimulationContext context)
         {
             if (_done)
@@ -141,8 +153,10 @@ public sealed class CombatSoundTests
     }
 
 
-    private static ThingSoundRequest[] Weapon(ListEventSink events) =>
-        [.. Sounds(events).Where(s => s.Category.StartsWith("WEAPON_", StringComparison.Ordinal))];
+    private static ThingSoundRequest[] Weapon(ListEventSink events)
+    {
+        return [.. Sounds(events).Where(s => s.Category.StartsWith("WEAPON_", StringComparison.Ordinal))];
+    }
 
     [Theory]
     [InlineData(AttackType.MeleeBlade, 1, "WEAPON_METAL", 0x114)]

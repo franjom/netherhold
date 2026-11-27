@@ -91,10 +91,15 @@ public sealed class TriggerEventProducerTests
         Assert.Equal(1, sim.World.Triggers.Read(PlayerFlag));
     }
 
-    private static CreatureState Goblin(SimulationContext context) => context.World.Creatures[0];
+    private static CreatureState Goblin(SimulationContext context)
+    {
+        return context.World.Creatures[0];
+    }
 
-    private static CreatureDef Definition(SimulationContext context) =>
-        context.Database.CreatureById(Goblin(context).CreatureTypeId);
+    private static CreatureDef Definition(SimulationContext context)
+    {
+        return context.Database.CreatureById(Goblin(context).CreatureTypeId);
+    }
 
     private static (GameSimulation Sim, CreatureState Goblin) Simulation(
         byte creatureEvent, byte? playerEvent, Action<SimulationContext> rule)
@@ -121,25 +126,45 @@ public sealed class TriggerEventProducerTests
         return (new GameSimulation(db, world, seed: 7, [new Once(rule)], tree), goblin);
     }
 
-    private static TriggerRecord Condition(ushort id, byte type, ushort child) =>
-        new GenericTriggerRecord(new byte[16])
+    private static TriggerRecord Condition(ushort id, byte type, ushort child)
+    {
+        return new GenericTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = id, Type = type, RepeatCount = 255,
-            ChildTriggerId = child, NextTriggerId = 0, Parameters = new Dictionary<string, long>(),
+            Body = new byte[8],
+            TriggerId = id,
+            Type = type,
+            RepeatCount = 255,
+            ChildTriggerId = child,
+            NextTriggerId = 0,
+            Parameters = new Dictionary<string, long>(),
         };
+    }
 
     /// <summary>Action 7, flag += 1 (mode 0x12: an immediate operand, added).</summary>
-    private static TriggerRecord Count(ushort id, byte flag) =>
-        new ActionTriggerRecord(new byte[16])
+    private static TriggerRecord Count(ushort id, byte flag)
+    {
+        return new ActionTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = id, Type = 7, RepeatCount = 0, ChildTriggerId = 0, NextTriggerId = 0,
+            Body = new byte[8],
+            TriggerId = id,
+            Type = 7,
+            RepeatCount = 0,
+            ChildTriggerId = 0,
+            NextTriggerId = 0,
             Parameters = new Dictionary<string, long> { ["FlagId"] = flag, ["Flag"] = 0x12, ["Value"] = 1 },
         };
+    }
 
     private sealed class Once(Action<SimulationContext> rule) : ISimulationSystem
     {
         private bool _done;
-        public string Name => "Probe";
+        public string Name
+        {
+            get
+            {
+                return "Probe";
+            }
+        }
 
         public void Execute(SimulationContext context)
         {

@@ -199,7 +199,10 @@ public class GlbWriterTests
             return result;
         }
 
-        public void Dispose() => Json.Dispose();
+        public void Dispose()
+        {
+            Json.Dispose();
+        }
 
         private void ValidateAccessors()
         {
@@ -228,10 +231,19 @@ public class GlbWriterTests
             return (accessor, view.GetProperty("byteOffset").GetInt32());
         }
 
-        private static uint U32(byte[] bytes, int offset) =>
-            BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(offset, 4));
-        private static float F32(byte[] bytes, int offset) =>
-            BitConverter.Int32BitsToSingle(BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(offset, 4)));
-        private static int Align4(int value) => (value + 3) & ~3;
+        private static uint U32(byte[] bytes, int offset)
+        {
+            return BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(offset, 4));
+        }
+
+        private static float F32(byte[] bytes, int offset)
+        {
+            return BitConverter.Int32BitsToSingle(BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(offset, 4)));
+        }
+
+        private static int Align4(int value)
+        {
+            return (value + 3) & ~3;
+        }
     }
 }

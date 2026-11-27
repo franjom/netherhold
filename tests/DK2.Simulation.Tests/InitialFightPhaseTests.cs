@@ -9,8 +9,10 @@ namespace DK2.Simulation.Tests;
 
 public sealed class InitialFightPhaseTests
 {
-    private static CreatureState Spawn(GameDatabase db, WorldState world) =>
-        world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, PlayerIds.Good, new TilePos(5, 5));
+    private static CreatureState Spawn(GameDatabase db, WorldState world)
+    {
+        return world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, PlayerIds.Good, new TilePos(5, 5));
+    }
 
     // 00513A4B/00513A5C construct seven players then448 pool records;
     // 004B5A10 prepends tags8..455; 0048755D initializes tag modulo10.

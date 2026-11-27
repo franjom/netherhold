@@ -16,8 +16,10 @@ namespace DK2.Data.Tests;
 /// </summary>
 public class GameDatabaseTests
 {
-    private static GameDatabase Database() =>
-        GameDatabaseLoader.Load(Dk2InstallGate.Path);
+    private static GameDatabase Database()
+    {
+        return GameDatabaseLoader.Load(Dk2InstallGate.Path);
+    }
 
     [InstallFact]
     public void Load_ReadsEveryDefinitionTable()

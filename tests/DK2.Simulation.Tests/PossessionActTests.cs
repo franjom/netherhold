@@ -53,8 +53,10 @@ public sealed class PossessionActTests
         return sim;
     }
 
-    private static ActPossessedCreatureCommand Act(CreatureState me, bool melee, int slot = 0, ushort yaw = East, ushort pitch = Level) =>
-        new(Keeper, new(new(new(me.PosX), new(me.PosY), new(Fp32.One + me.PosZ)), new(yaw), new(pitch)), melee, new(slot));
+    private static ActPossessedCreatureCommand Act(CreatureState me, bool melee, int slot = 0, ushort yaw = East, ushort pitch = Level)
+    {
+        return new(Keeper, new(new(new(me.PosX), new(me.PosY), new(Fp32.One + me.PosZ)), new(yaw), new(pitch)), melee, new(slot));
+    }
 
     private static void Place(CreatureState c, int x, int y)
     {

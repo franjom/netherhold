@@ -21,10 +21,19 @@ public sealed class RuinedHeartTests
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte Rival = 4;
 
-    private static GameDatabase Db => Dk2TerrainFixture.Database();
+    private static GameDatabase Db
+    {
+        get
+        {
+            return Dk2TerrainFixture.Database();
+        }
+    }
 
-    private static WorldState World(GameDatabase db) => WorldState.FromMap(
+    private static WorldState World(GameDatabase db)
+    {
+        return WorldState.FromMap(
         db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
+    }
 
     private static void Give(
         GameDatabase db, WorldState world, RoomTypeId type, byte owner, TilePos at)

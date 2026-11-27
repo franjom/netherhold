@@ -58,10 +58,12 @@ public sealed class ThunderboltStunTests
         Assert.Equal(effects, sink.Events.Count(e => e.EffectRequest?.EffectId.Value == 101));
     }
 
-    private static void Fire(GameSimulation sim, CreatureState target) =>
+    private static void Fire(GameSimulation sim, CreatureState target)
+    {
         ShotRules.Spawn(sim.World, sim.Database.Shots[Dk2TerrainFixture.LightningShotId], Keeper,
             target.PosX, target.PosY, 300, 0, 0, FightTargetKind.Creature, target.Id,
             0, -1, target.PosX, target.PosY);
+    }
 
     private static (GameSimulation Sim, CreatureState Target, ListEventSink Sink) Start(CreatureDef definition)
     {

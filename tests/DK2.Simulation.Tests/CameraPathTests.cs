@@ -21,8 +21,10 @@ public class CameraPathTests
     [InlineData(201, 500, 67)]   // Level 1's entrance
     [InlineData(56, 150, 19)]    // a creature intro starts at frame 7
     [InlineData(274, 1, 0)]      // a one-frame front-end pose ends at once
-    public void APathLastsItsFramesAtThirtyASecondInNominal250MsTicks(int pathId, int frames, int ticks) =>
+    public void APathLastsItsFramesAtThirtyASecondInNominal250MsTicks(int pathId, int frames, int ticks)
+    {
         Assert.Equal(ticks, CameraPathRules.DurationTicks(pathId, frames));
+    }
 
     [Fact]
     public void ConditionSeventyTwoIsFalseWhileAPathPlaysAndAnAssumptionAfterwards()
@@ -197,34 +199,59 @@ public class CameraPathTests
         return (sim, events);
     }
 
-    private static WorldState World(GameDatabase database) =>
-        WorldState.FromMap(database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
-
-    private static ScriptedViewRequest[] Requests(ListEventSink events) =>
-        [.. events.Events.Where(e => e.ScriptedView is not null).Select(e => e.ScriptedView!.Value)];
-
-    private static TriggerRecord PathAction(int pathId, byte available) => Action(31, new Dictionary<string, long>
+    private static WorldState World(GameDatabase database)
     {
-        ["PathId"] = pathId, ["ActionPointId"] = PointId, ["Available"] = available,
-    });
+        return WorldState.FromMap(database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+    }
 
-    private static TriggerRecord Action(byte type, Dictionary<string, long> parameters) =>
-        new ActionTriggerRecord(new byte[16])
+    private static ScriptedViewRequest[] Requests(ListEventSink events)
+    {
+        return [.. events.Events.Where(e => e.ScriptedView is not null).Select(e => e.ScriptedView!.Value)];
+    }
+
+    private static TriggerRecord PathAction(int pathId, byte available)
+    {
+        return Action(31, new Dictionary<string, long>
         {
-            Body = new byte[8], TriggerId = 0xFFFF, Type = type, Parameters = parameters,
+            ["PathId"] = pathId,
+            ["ActionPointId"] = PointId,
+            ["Available"] = available,
+        });
+    }
+
+    private static TriggerRecord Action(byte type, Dictionary<string, long> parameters)
+    {
+        return new ActionTriggerRecord(new byte[16])
+        {
+            Body = new byte[8],
+            TriggerId = 0xFFFF,
+            Type = type,
+            Parameters = parameters,
         };
+    }
 
-    private static TriggerRecord Type72(ushort id, ushort child) =>
-        new GenericTriggerRecord(new byte[16])
+    private static TriggerRecord Type72(ushort id, ushort child)
+    {
+        return new GenericTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = id, Type = 72, RepeatCount = 1,
-            ChildTriggerId = child, NextTriggerId = 0, Parameters = new Dictionary<string, long>(),
+            Body = new byte[8],
+            TriggerId = id,
+            Type = 72,
+            RepeatCount = 1,
+            ChildTriggerId = child,
+            NextTriggerId = 0,
+            Parameters = new Dictionary<string, long>(),
         };
+    }
 
-    private static TriggerRecord SetFlag(ushort id, byte flagId) =>
-        new ActionTriggerRecord(new byte[16])
+    private static TriggerRecord SetFlag(ushort id, byte flagId)
+    {
+        return new ActionTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = unchecked((ushort)-(short)id), Type = 7,
+            Body = new byte[8],
+            TriggerId = unchecked((ushort)-(short)id),
+            Type = 7,
             Parameters = new Dictionary<string, long> { ["FlagId"] = flagId, ["Flag"] = 10, ["Value"] = 1 },
         };
+    }
 }

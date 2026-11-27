@@ -196,5 +196,8 @@ public class KwdRewriteAuditTests
         process.WaitForExit(); Assert.True(process.ExitCode==0,error);
     }
 
-    private static KwdChunk DoorChunk()=>KwdLevelFileSetTests.Fixture(KwdRecordType.Doors,new byte[616*2],2);
+    private static KwdChunk DoorChunk()
+    {
+        return KwdLevelFileSetTests.Fixture(KwdRecordType.Doors, new byte[616 * 2], 2);
+    }
 }

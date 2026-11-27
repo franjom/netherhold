@@ -453,19 +453,29 @@ public class ScenarioTests
         }
     }
 
-    private static Scenario LoadFlatScenario() =>
-        Scenario.Load(Path.Combine(RepositoryRoot(), "scenarios", "smoke", "determinism_flat_map.yaml"));
+    private static Scenario LoadFlatScenario()
+    {
+        return Scenario.Load(Path.Combine(RepositoryRoot(), "scenarios", "smoke", "determinism_flat_map.yaml"));
+    }
 
-    private static List<string> ScenarioFiles() => [.. ScenarioCorpus.Files().Select(ScenarioCorpus.PathOf)];
+    private static List<string> ScenarioFiles()
+    {
+        return [.. ScenarioCorpus.Files().Select(ScenarioCorpus.PathOf)];
+    }
 
-    private static string RepositoryRoot() => ScenarioCorpus.RepositoryRoot();
+    private static string RepositoryRoot()
+    {
+        return ScenarioCorpus.RepositoryRoot();
+    }
 
     /// <summary>
     /// A minimal stand-in database so harness tests run without the original
     /// game. The numbers are invented and are not claims about DK2; only the
     /// two terrain roles the flat-map builder looks for matter here.
     /// </summary>
-    internal static GameDatabase SyntheticDatabase() => new(
+    internal static GameDatabase SyntheticDatabase()
+    {
+        return new(
         [
             Terrain(1, "Impenetrable Rock", TerrainFlags.Solid | TerrainFlags.Impenetrable, 0),
             Terrain(2, "Rock", TerrainFlags.Solid | TerrainFlags.Taggable, 165),
@@ -477,6 +487,7 @@ public class ScenarioTests
         creatures: [Worker("Imp", 1)],
         variables: Variables(),
         keeperSpells: KeeperSpells());
+    }
 
     /// <summary>
     /// The keeper spells a registered system reads. Only Create Imp, because
@@ -489,35 +500,40 @@ public class ScenarioTests
     /// made-up figure inside a determinism hash. `KeeperSpellsOnRealDataTests`
     /// reads both back out of the shipped file so these cannot drift from it.</para>
     /// </summary>
-    private static KeeperSpellDef[] KeeperSpells() =>
-    [
+    private static KeeperSpellDef[] KeeperSpells()
+    {
+        return [
         new() { Name = KeeperSpellName.CreateImp, ManaCost = 1500, ManaUpkeepPerSecond = 7 },
     ];
+    }
 
     /// <summary>
     /// A stand-in treasury. It carries the real room id, because
     /// <see cref="DK2.Simulation.GoldStore"/> keys gold capacity on the room
     /// type; everything else about it is invented like the terrain above.
     /// </summary>
-    private static RoomDef SyntheticTreasury() => new()
+    private static RoomDef SyntheticTreasury()
     {
-        Name = "Treasury",
-        RoomId = (byte)RoomTypeId.Treasury,
-        Flags = RoomFlags.PlaceableOnLand | RoomFlags.Buildable,
-        Cost = 200,
-        ReturnPercentage = 100,
-        TerrainId = 4,
-        Construction = TileConstruction.Normal,
-        CreatedCreatureId = 0,
-        ObjectIds = [],
-        HealthGain = 0,
-        CeilingHeight = new Fp32(0),
-        RecommendedSizeX = 1,
-        RecommendedSizeY = 1,
-        OrderInEditor = 0,
-        NameStringId = 0,
-        TooltipStringId = 0,
-    };
+        return new()
+        {
+            Name = "Treasury",
+            RoomId = (byte)RoomTypeId.Treasury,
+            Flags = RoomFlags.PlaceableOnLand | RoomFlags.Buildable,
+            Cost = 200,
+            ReturnPercentage = 100,
+            TerrainId = 4,
+            Construction = TileConstruction.Normal,
+            CreatedCreatureId = 0,
+            ObjectIds = [],
+            HealthGain = 0,
+            CeilingHeight = new Fp32(0),
+            RecommendedSizeX = 1,
+            RecommendedSizeY = 1,
+            OrderInEditor = 0,
+            NameStringId = 0,
+            TooltipStringId = 0,
+        };
+    }
 
     private static GlobalVariables Variables()
     {
@@ -591,94 +607,100 @@ public class ScenarioTests
     /// about DK2. Real creature numbers live in
     /// <see cref="ImpsOnRealDataTests"/>.
     /// </summary>
-    private static CreatureDef Worker(string name, byte id) => new()
+    private static CreatureDef Worker(string name, byte id)
     {
-        Name = name,
-        CreatureId = id,
-        Flags = CreatureFlags.IsWorker,
-        Speed = new Fp32(4096),
-        RunSpeed = new Fp32(4096),
-        ShuffleSpeed = new Fp32(4096),
-        Height = new Fp32(0),
-        EyeHeight = new Fp32(0),
-        DistanceCanSee = new Fp32(0),
-        DistanceCanHear = new Fp32(0),
-        PerceptionRange = new Fp32(0),
-        FootprintRadius = new Fp32(573),
-        SizeClass = 1,
-        TurnRate = 4096,
-        Hp = 1,
-        HpFromChicken = 0,
-        HungerRate = new Fp32(0),
-        HungerFill = 0,
-        TimeAwake = 0,
-        TimeSleep = 0,
-        OwnLandHealthIncreasePerSecond = 0,
-        DecomposeValue = 0,
-        Fear = 0,
-        Threat = 0,
-        MeleeDamage = 0,
-        SlapDamage = 0,
-        MeleeRange = new Fp32(0),
-        MeleeRecharge = new Fp32(0),
-        MeleeHitDelay = new Fp32(0),
-        MeleeAttackType = AttackType.None,
-        StunDuration = new Fp32(0),
-        FightStyle = FightStyle.NonFighter,
-        Resistances = [],
-        Spells = [],
-        Pay = 0,
-        MaxGoldHeld = 0,
-        InitialGoldHeld = 0,
-        ExpForNextLevel = 0,
-        ExpPerSecond = 0,
-        ExpPerSecondTraining = 0,
-        ResearchPerSecond = 0,
-        ManufacturePerSecond = 0,
-        ManaGeneratedByPrayerPerSecond = 0,
-        JobClass = JobClass.Scout,
-        UnhappyThreshold = 0,
-        AngerNoLair = 0,
-        AngerNoFood = 0,
-        AngerNoPay = 0,
-        AngerNoWork = 0,
-        AngerSlap = 0,
-        AngerInHand = 0,
-        TortureHpChange = 0,
-        TortureMoodChange = 0,
-        TortureTimeToConvert = new Fp32(0),
-        HappyJobs = [],
-        UnhappyJobs = [],
-        AngryJobs = [],
-        HateJobs = [],
-        AlternativeJobs = [],
-        Attractions = [],
-        GuardDuration = new Fp32(0),
-        IdleDuration = new Fp32(0),
-        SlapFearlessDuration = new Fp32(0),
-        PossessionManaCost = 0,
-        LairObjectId = 0,
-        CloneCreatureId = 0,
-        NameStringId = 0,
-        TooltipStringId = 0,
-        IntroductionStringId = 0,
-    };
+        return new()
+        {
+            Name = name,
+            CreatureId = id,
+            Flags = CreatureFlags.IsWorker,
+            Speed = new Fp32(4096),
+            RunSpeed = new Fp32(4096),
+            ShuffleSpeed = new Fp32(4096),
+            Height = new Fp32(0),
+            EyeHeight = new Fp32(0),
+            DistanceCanSee = new Fp32(0),
+            DistanceCanHear = new Fp32(0),
+            PerceptionRange = new Fp32(0),
+            FootprintRadius = new Fp32(573),
+            SizeClass = 1,
+            TurnRate = 4096,
+            Hp = 1,
+            HpFromChicken = 0,
+            HungerRate = new Fp32(0),
+            HungerFill = 0,
+            TimeAwake = 0,
+            TimeSleep = 0,
+            OwnLandHealthIncreasePerSecond = 0,
+            DecomposeValue = 0,
+            Fear = 0,
+            Threat = 0,
+            MeleeDamage = 0,
+            SlapDamage = 0,
+            MeleeRange = new Fp32(0),
+            MeleeRecharge = new Fp32(0),
+            MeleeHitDelay = new Fp32(0),
+            MeleeAttackType = AttackType.None,
+            StunDuration = new Fp32(0),
+            FightStyle = FightStyle.NonFighter,
+            Resistances = [],
+            Spells = [],
+            Pay = 0,
+            MaxGoldHeld = 0,
+            InitialGoldHeld = 0,
+            ExpForNextLevel = 0,
+            ExpPerSecond = 0,
+            ExpPerSecondTraining = 0,
+            ResearchPerSecond = 0,
+            ManufacturePerSecond = 0,
+            ManaGeneratedByPrayerPerSecond = 0,
+            JobClass = JobClass.Scout,
+            UnhappyThreshold = 0,
+            AngerNoLair = 0,
+            AngerNoFood = 0,
+            AngerNoPay = 0,
+            AngerNoWork = 0,
+            AngerSlap = 0,
+            AngerInHand = 0,
+            TortureHpChange = 0,
+            TortureMoodChange = 0,
+            TortureTimeToConvert = new Fp32(0),
+            HappyJobs = [],
+            UnhappyJobs = [],
+            AngryJobs = [],
+            HateJobs = [],
+            AlternativeJobs = [],
+            Attractions = [],
+            GuardDuration = new Fp32(0),
+            IdleDuration = new Fp32(0),
+            SlapFearlessDuration = new Fp32(0),
+            PossessionManaCost = 0,
+            LairObjectId = 0,
+            CloneCreatureId = 0,
+            NameStringId = 0,
+            TooltipStringId = 0,
+            IntroductionStringId = 0,
+        };
+    }
 
-    private static TerrainDef Terrain(byte id, string name, TerrainFlags flags, ushort health) => new()
+    private static TerrainDef Terrain(byte id, string name, TerrainFlags flags, ushort health)
     {
-        Name = name,
-        TerrainId = id,
-        Flags = flags,
-        StartingHealth = health,
-        MaxHealth = health,
-        GoldValue = 0,
-        ManaGain = 0,
-        MaxManaGain = 0,
-        Damage = 0,
-        MaxHealthTypeTerrainId = 0,
-        DestroyedTypeTerrainId = 0,
-        Depth = new Fp32(0),
-        NameStringId = 0,
-        TooltipStringId = 0,
-    };
+        return new()
+        {
+            Name = name,
+            TerrainId = id,
+            Flags = flags,
+            StartingHealth = health,
+            MaxHealth = health,
+            GoldValue = 0,
+            ManaGain = 0,
+            MaxManaGain = 0,
+            Damage = 0,
+            MaxHealthTypeTerrainId = 0,
+            DestroyedTypeTerrainId = 0,
+            Depth = new Fp32(0),
+            NameStringId = 0,
+            TooltipStringId = 0,
+        };
+    }
 }

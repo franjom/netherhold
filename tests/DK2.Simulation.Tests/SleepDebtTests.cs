@@ -198,13 +198,29 @@ public sealed class SleepDebtTests
     /// <summary>The hunger clock alone: the eat step would also move a creature out of state 93.</summary>
     private sealed class HungerClockStep : ICreatureUpdateStep
     {
-        public string Name => "HungerClock";
-        public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
-        public void Update(SimulationContext context, CreatureState creature) =>
+        public string Name
+        {
+            get
+            {
+                return "HungerClock";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            CreatureUpdateSystem.RunAlone(context, this);
+        }
+
+        public void Update(SimulationContext context, CreatureState creature)
+        {
             CreatureEatSystem.Clock(context, context.Database.CreatureById(creature.CreatureTypeId), creature);
+        }
     }
 
-    private static void MakeOverdue(CreatureState creature) => creature.LastSleptTick = new GameTick(-8);
+    private static void MakeOverdue(CreatureState creature)
+    {
+        creature.LastSleptTick = new GameTick(-8);
+    }
 
     private static (GameSimulation Sim, CreatureState Creature) Start(bool healthOnly = false)
     {

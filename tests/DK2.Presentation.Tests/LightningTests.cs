@@ -224,6 +224,8 @@ public class LightningTests
         Assert.False(model.ChooseCreatureCrackle(new(5), new(12), animationInstalled: false));
     }
 
-    private static FpPosition3 Point(int x, int y, int height) =>
-        new(new(x * Fp32.One), new(y * Fp32.One), new(height * Fp32.One));
+    private static FpPosition3 Point(int x, int y, int height)
+    {
+        return new(new(x * Fp32.One), new(y * Fp32.One), new(height * Fp32.One));
+    }
 }

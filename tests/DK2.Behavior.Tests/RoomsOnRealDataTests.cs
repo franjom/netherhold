@@ -24,8 +24,10 @@ namespace DK2.Behavior.Tests;
 /// </summary>
 public class RoomsOnRealDataTests
 {
-    private static GameDatabase RealDatabase() =>
-        GameDatabaseLoader.Load(Dk2InstallGate.Path);
+    private static GameDatabase RealDatabase()
+    {
+        return GameDatabaseLoader.Load(Dk2InstallGate.Path);
+    }
 
     /// <summary>
     /// <b>`RecommendedSizeX/Y` is the size below which a room does nothing</b>,

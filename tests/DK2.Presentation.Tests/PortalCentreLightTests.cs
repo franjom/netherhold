@@ -188,12 +188,27 @@ public class PortalCentreLightTests
 
     private static (GameDatabase, WorldState) Map(byte roomId, bool extraTile = false)
     {
-        TerrainDef Terrain(byte id, TerrainFlags flags) => new()
+        TerrainDef Terrain(byte id, TerrainFlags flags)
         {
-            Name = id == 27 ? "Fog Of War" : id == 38 ? "Claim Scan" : "test", TerrainId = id, Flags = flags,
-            StartingHealth = 1, MaxHealth = 1, GoldValue = 0, ManaGain = 0, MaxManaGain = 0, Damage = 0,
-            MaxHealthTypeTerrainId = id, DestroyedTypeTerrainId = id, Depth = new Fp32(0), NameStringId = 0, TooltipStringId = 0,
-        };
+            return new()
+            {
+                Name = id == 27 ? "Fog Of War" : id == 38 ? "Claim Scan" : "test",
+                TerrainId = id,
+                Flags = flags,
+                StartingHealth = 1,
+                MaxHealth = 1,
+                GoldValue = 0,
+                ManaGain = 0,
+                MaxManaGain = 0,
+                Damage = 0,
+                MaxHealthTypeTerrainId = id,
+                DestroyedTypeTerrainId = id,
+                Depth = new Fp32(0),
+                NameStringId = 0,
+                TooltipStringId = 0,
+            };
+        }
+
         var room = new RoomDef
         {
             Name = "test", RoomId = roomId, TerrainId = 12, Flags = RoomFlags.PlaceableOnLand,

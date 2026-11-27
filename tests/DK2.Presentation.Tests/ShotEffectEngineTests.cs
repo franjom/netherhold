@@ -473,21 +473,51 @@ public class ShotEffectEngineTests
         Assert.Empty(sources);
     }
 
-    private static ViewEffectRequest Request() => new(new(10), PlayerIds.FirstKeeper, Point(10000, 12000, 14000), new(512));
-    private static FpPosition3 Point(int x, int y, int z) => new(new(x), new(y), new(z));
+    private static ViewEffectRequest Request()
+    {
+        return new(new(10), PlayerIds.FirstKeeper, Point(10000, 12000, 14000), new(512));
+    }
+
+    private static FpPosition3 Point(int x, int y, int z)
+    {
+        return new(new(x), new(y), new(z));
+    }
+
     private static readonly KwdArtResource EmptyArt = new("", 0, new byte[12], 0, 0, 0, 0);
-    private static EffectDef Effect() => new([])
+    private static EffectDef Effect()
     {
-        Name = "effect", EffectId = 10, ArtResource = EmptyArt, Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0),
-        GenerateIds = [20], GenerationType = 4, ElementsPerTurn = 1, MinHp = 1, MaxHp = 1,
-    };
-    private static EffectElementDef Element() => new([])
+        return new([])
+        {
+            Name = "effect",
+            EffectId = 10,
+            ArtResource = EmptyArt,
+            Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0),
+            GenerateIds = [20],
+            GenerationType = 4,
+            ElementsPerTurn = 1,
+            MinHp = 1,
+            MaxHp = 1,
+        };
+    }
+
+    private static EffectElementDef Element()
     {
-        Name = "element", EffectElementId = 20, ArtResource = new("spark", 0, new byte[12], 2, 0, 0, 0),
-        MinHp = 20, MaxHp = 20, MinScale = 4096, MaxScale = 4096,
-    };
+        return new([])
+        {
+            Name = "element",
+            EffectElementId = 20,
+            ArtResource = new("spark", 0, new byte[12], 2, 0, 0, 0),
+            MinHp = 20,
+            MaxHp = 20,
+            MinScale = 4096,
+            MaxScale = 4096,
+        };
+    }
+
     private static RoomConstructionParticles Model(EffectDef[] effects, EffectElementDef[]? elements = null,
-        Func<TilePos, TerrainFlags>? terrain = null, Func<TilePos, bool>? solid = null) =>
-        new(new GameDatabase([], [], [], new GlobalVariables(), effects: effects, effectElements: elements ?? [Element()]),
-            7, () => default, floorHeight: _ => default, terrainFlags: terrain, solidTile: solid);
+            Func<TilePos, TerrainFlags>? terrain = null, Func<TilePos, bool>? solid = null)
+    {
+        return new(new GameDatabase([], [], [], new GlobalVariables(), effects: effects, effectElements: elements ?? [Element()]),
+                7, () => default, floorHeight: _ => default, terrainFlags: terrain, solidTile: solid);
+    }
 }

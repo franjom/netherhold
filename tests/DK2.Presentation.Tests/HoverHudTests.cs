@@ -19,7 +19,10 @@ public sealed class HoverHudTests
 
     private static readonly WorldHoverHit Tile = new(WorldHoverKind.Tile, new TilePos(3, 4));
 
-    private static HoverHud Hud() => new(_ => Font, (64, 32));
+    private static HoverHud Hud()
+    {
+        return new(_ => Font, (64, 32));
+    }
 
     private static (HudDraw[] Bar, HudDraw[] Top) Build(HoverHud hud, HoverTextSnapshot snapshot, long ms,
         (float, float) pointer = default)

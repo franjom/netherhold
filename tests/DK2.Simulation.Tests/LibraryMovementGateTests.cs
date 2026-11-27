@@ -66,10 +66,23 @@ public sealed class LibraryMovementGateTests
 
     private sealed class ResearchTurn : ICreatureUpdateStep
     {
-        public string Name => "ResearchReturn";
-        public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
-        public void Update(SimulationContext context, CreatureState creature) =>
+        public string Name
+        {
+            get
+            {
+                return "ResearchReturn";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            CreatureUpdateSystem.RunAlone(context, this);
+        }
+
+        public void Update(SimulationContext context, CreatureState creature)
+        {
             ResearchStep.Turn(context, Name, creature);
+        }
     }
 
     private static (GameDatabase Db, WorldState World, CreatureState Reader) Reader()

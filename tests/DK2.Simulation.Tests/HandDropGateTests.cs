@@ -18,10 +18,19 @@ public class HandDropGateTests
     private const byte Rival = 4;
     private const byte GoblinId = 7;
 
-    private static GameDatabase Db => Dk2TerrainFixture.Database();
+    private static GameDatabase Db
+    {
+        get
+        {
+            return Dk2TerrainFixture.Database();
+        }
+    }
 
-    private static WorldState World(GameDatabase db) => WorldState.FromMap(
+    private static WorldState World(GameDatabase db)
+    {
+        return WorldState.FromMap(
         db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
+    }
 
     private static void Set(WorldState world, int x0, int y0, int x1, int y1, byte terrain, byte owner)
     {
@@ -47,11 +56,15 @@ public class HandDropGateTests
         }
     }
 
-    private static bool CanDrop(WorldState world, GameDatabase db, CreatureState creature, int x, int y) =>
-        HandRules.CanDrop(world, db, Keeper, HandItem.Of(creature), new TilePos(x, y));
+    private static bool CanDrop(WorldState world, GameDatabase db, CreatureState creature, int x, int y)
+    {
+        return HandRules.CanDrop(world, db, Keeper, HandItem.Of(creature), new TilePos(x, y));
+    }
 
-    private static bool CanDrop(WorldState world, GameDatabase db, ObjectState thing, int x, int y) =>
-        HandRules.CanDrop(world, db, Keeper, HandItem.Of(thing), new TilePos(x, y));
+    private static bool CanDrop(WorldState world, GameDatabase db, ObjectState thing, int x, int y)
+    {
+        return HandRules.CanDrop(world, db, Keeper, HandItem.Of(thing), new TilePos(x, y));
+    }
 
     [Fact]
     public void AnAllysGroundTakesACreature_ARivalsDoesNot()

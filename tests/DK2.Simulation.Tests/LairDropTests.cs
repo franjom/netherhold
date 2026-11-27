@@ -209,8 +209,10 @@ public sealed class LairDropTests
         Assert.Equal(first.World.TileIndex(NewTile), LairRules.BedTileIndex(first.World, first.Database, a));
     }
 
-    private static RoomInstance LairAt(GameSimulation sim, TilePos at) =>
-        Assert.IsType<RoomInstance>(RoomIndex.RoomAt(sim.World, sim.Database, sim.World.TileIndex(at)));
+    private static RoomInstance LairAt(GameSimulation sim, TilePos at)
+    {
+        return Assert.IsType<RoomInstance>(RoomIndex.RoomAt(sim.World, sim.Database, sim.World.TileIndex(at)));
+    }
 
     private static void Drop(GameSimulation sim, CreatureState creature, TilePos at)
     {

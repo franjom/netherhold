@@ -33,10 +33,15 @@ public class NeutralAmbientEffectTests
         return (sim, sink);
     }
 
-    private static uint SeedOf(GameSimulation sim) => ((Dk2Lcg)sim.Rng.Algorithm).Seed;
+    private static uint SeedOf(GameSimulation sim)
+    {
+        return ((Dk2Lcg)sim.Rng.Algorithm).Seed;
+    }
 
-    private static List<ViewEffectRequest> Requests(ListEventSink sink) =>
-        [.. sink.Events.Where(e => e.EffectRequest.HasValue).Select(e => e.EffectRequest!.Value)];
+    private static List<ViewEffectRequest> Requests(ListEventSink sink)
+    {
+        return [.. sink.Events.Where(e => e.EffectRequest.HasValue).Select(e => e.EffectRequest!.Value)];
+    }
 
     [Fact]
     public void AnActiveNeutralDrawsAnInteriorTileEveryTurn()

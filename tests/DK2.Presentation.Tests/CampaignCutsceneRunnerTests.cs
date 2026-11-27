@@ -16,7 +16,11 @@ public sealed class CampaignCutsceneRunnerTests
         public readonly List<string> Calls = new();
         public bool SpeechBusy { get; set; }
         public bool MoviePlaying { get; set; }
-        public void QueueSpeech(SoundId speech) => Calls.Add("speech " + speech.Value);
+        public void QueueSpeech(SoundId speech)
+        {
+            Calls.Add("speech " + speech.Value);
+        }
+
         public void PlayMovie(string relativePath, string install)
         {
             Calls.Add("movie " + relativePath + " from " + install);

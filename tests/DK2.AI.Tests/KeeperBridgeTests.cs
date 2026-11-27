@@ -21,7 +21,10 @@ public class KeeperBridgeTests
     /// <summary>The north edge of the keeper's claimed patch; the corridor leaves it northward.</summary>
     private static readonly TilePos Shore = new(15, 13);
 
-    private static TilePos North(int n) => new(Shore.X, Shore.Y - n);
+    private static TilePos North(int n)
+    {
+        return new(Shore.X, Shore.Y - n);
+    }
 
     /// <summary>Hazard tiles from (15,12) north for <paramref name="length"/> tiles, rock beyond.</summary>
     private static WorldState Corridor(byte hazard, int length, int wood = 3, int stone = 3)
@@ -47,8 +50,10 @@ public class KeeperBridgeTests
         return keeper;
     }
 
-    private static GameSimulation Sim(WorldState world) =>
-        new(Db, world, 1, [new TileTagSystem(), new RoomBuildSystem()]);
+    private static GameSimulation Sim(WorldState world)
+    {
+        return new(Db, world, 1, [new TileTagSystem(), new RoomBuildSystem()]);
+    }
 
     [Theory]
     [InlineData(KeeperWorld.Water, 3, 3, RoomTypeId.WoodenBridge)]

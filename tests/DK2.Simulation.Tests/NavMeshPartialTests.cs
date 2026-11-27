@@ -42,10 +42,15 @@ public class NavMeshPartialTests
         public int Width { get; }
         public int Height { get; }
 
-        public byte NavByte(int x, int y) =>
-            x < 0 || y < 0 || x >= Width || y >= Height ? NavBytes.Solid : _bytes[(y * Width) + x];
+        public byte NavByte(int x, int y)
+        {
+            return x < 0 || y < 0 || x >= Width || y >= Height ? NavBytes.Solid : _bytes[(y * Width) + x];
+        }
 
-        public void Set(int x, int y, byte nav) => _bytes[(y * Width) + x] = nav;
+        public void Set(int x, int y, byte nav)
+        {
+            _bytes[(y * Width) + x] = nav;
+        }
     }
 
     private static readonly string[] Room =

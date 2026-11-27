@@ -290,18 +290,27 @@ public class ClassicVertexLightTests
         return sum;
     }
 
-    private static ClassicLitVertex Terrain(Vector3 at, Vector3 normal) =>
-        new(at, normal, new Vector2(1 * Width + 1, 1), Vector4.Zero, Vector2.Zero, Matrix4x4.Identity, at, normal);
+    private static ClassicLitVertex Terrain(Vector3 at, Vector3 normal)
+    {
+        return new(at, normal, new Vector2(1 * Width + 1, 1), Vector4.Zero, Vector2.Zero, Matrix4x4.Identity, at, normal);
+    }
 
-    private static ClassicLitVertex Instance(Vector3 local, Vector3 normal, Matrix4x4 m, Vector4 bounds, int boundsKind) =>
-        new(local, normal, Vector2.Zero, bounds, new Vector2(1, boundsKind), m, Vector3.Transform(local, m),
+    private static ClassicLitVertex Instance(Vector3 local, Vector3 normal, Matrix4x4 m, Vector4 bounds, int boundsKind)
+    {
+        return new(local, normal, Vector2.Zero, bounds, new Vector2(1, boundsKind), m, Vector3.Transform(local, m),
             Vector3.Normalize(Vector3.TransformNormal(normal, m)));
+    }
 
-    private static ClassicPointLight Light(Vector3 at, ClassicLightFlags flags, float radius = 2f, int intensity = 128) =>
-        ClassicPointLight.FromTorch(new TorchView(0, default, (int)(at.X * Fp32.One), (int)(-at.Z * Fp32.One),
+    private static ClassicPointLight Light(Vector3 at, ClassicLightFlags flags, float radius = 2f, int intensity = 128)
+    {
+        return ClassicPointLight.FromTorch(new TorchView(0, default, (int)(at.X * Fp32.One), (int)(-at.Z * Fp32.One),
             (int)(at.Y * Fp32.One), 0, 255, 128, 64, (byte)intensity, (int)(radius * Fp32.One), default), flags);
+    }
 
-    private static float Next(Random random, float low, float high) => low + (float)random.NextDouble() * (high - low);
+    private static float Next(Random random, float low, float high)
+    {
+        return low + (float)random.NextDouble() * (high - low);
+    }
 
     private static (ClassicTileLightSource[], uint[], L.TileSource[]) RandomGrid(Random random)
     {
@@ -384,5 +393,8 @@ public class ClassicVertexLightTests
         return new Vector3(sum.X, sum.Y, sum.Z);
     }
 
-    private static L.Float3 F(Vector3 v) => new(v.X, v.Y, v.Z);
+    private static L.Float3 F(Vector3 v)
+    {
+        return new(v.X, v.Y, v.Z);
+    }
 }

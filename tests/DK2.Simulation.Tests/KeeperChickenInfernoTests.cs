@@ -236,12 +236,21 @@ public class KeeperChickenInfernoTests
 
     // ------------------------------------------------------------------ fixture
 
-    private static void Tick(GameDatabase db, WorldState world, PlayerCommand command) =>
+    private static void Tick(GameDatabase db, WorldState world, PlayerCommand command)
+    {
         new GameSimulation(db, world, 1, [new KeeperSpellSystem(), new ShotSystem()]).Tick(InputFrame.Of(command));
+    }
 
     private sealed class PlaceBoundary : ISimulationSystem
     {
-        public string Name => "place_probe";
+        public string Name
+        {
+            get
+            {
+                return "place_probe";
+            }
+        }
+
         public KeeperSpellRefusal Refusal;
         public void Execute(SimulationContext context)
         {
@@ -254,28 +263,65 @@ public class KeeperChickenInfernoTests
 
     /// <summary>KeeperSpells.kwd records 9 and 11 as shipped, except Inferno's data1 of 100 is 10 so
     /// thirty runs stay countable below a Goblin's health.</summary>
-    private static KeeperSpellDef Inferno() => new()
+    private static KeeperSpellDef Inferno()
     {
-        Name = "Inferno", KeeperSpellId = KeeperSpellRules.Inferno, ManaCost = 50000, ManaUpkeepPerSecond = 0, CooldownRaw = 0x3C000,
-        ShotTypeId = 15, ShotData1 = 10, ShotData2 = 1, BonusShotTypeId = 15, BonusShotData1 = 125, BonusShotData2 = 1,
-        LocationSelector = 1, TargetSelector = 5, Flags = KeeperSpellFlags.Offensive,
-    };
+        return new()
+        {
+            Name = "Inferno",
+            KeeperSpellId = KeeperSpellRules.Inferno,
+            ManaCost = 50000,
+            ManaUpkeepPerSecond = 0,
+            CooldownRaw = 0x3C000,
+            ShotTypeId = 15,
+            ShotData1 = 10,
+            ShotData2 = 1,
+            BonusShotTypeId = 15,
+            BonusShotData1 = 125,
+            BonusShotData2 = 1,
+            LocationSelector = 1,
+            TargetSelector = 5,
+            Flags = KeeperSpellFlags.Offensive,
+        };
+    }
 
-    private static KeeperSpellDef Chicken() => new()
+    private static KeeperSpellDef Chicken()
     {
-        Name = "Chicken", KeeperSpellId = KeeperSpellRules.Chicken, ManaCost = 10000, ManaUpkeepPerSecond = 0, CooldownRaw = 0x3C000,
-        ShotTypeId = 10, ShotData1 = 60, BonusShotTypeId = 10, BonusShotData1 = 90,
-        LocationSelector = 1, TargetSelector = 3, Flags = KeeperSpellFlags.Offensive,
-    };
+        return new()
+        {
+            Name = "Chicken",
+            KeeperSpellId = KeeperSpellRules.Chicken,
+            ManaCost = 10000,
+            ManaUpkeepPerSecond = 0,
+            CooldownRaw = 0x3C000,
+            ShotTypeId = 10,
+            ShotData1 = 60,
+            BonusShotTypeId = 10,
+            BonusShotData1 = 90,
+            LocationSelector = 1,
+            TargetSelector = 3,
+            Flags = KeeperSpellFlags.Offensive,
+        };
+    }
 
     /// <summary>Shots.kwd records 10 and 15 as shipped (shots.md §2 offsets).</summary>
-    private static ShotDef Shot(byte id, byte process, uint flags, int health, uint processFlags = 0, byte collide = 0) =>
-        new(new byte[239])
+    private static ShotDef Shot(byte id, byte process, uint flags, int health, uint processFlags = 0, byte collide = 0)
+    {
+        return new(new byte[239])
         {
-            Name = $"shot {id}", ShotId = id, MeshResource = new("", 0, default, 0, 0, 0, 0),
-            Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0), SoundCategory = "", Speed = 2048, Radius = 819,
-            Health = (ushort)health, Flags = flags, ShotProcessFlags = processFlags, CollideType = collide, ProcessType = process,
+            Name = $"shot {id}",
+            ShotId = id,
+            MeshResource = new("", 0, default, 0, 0, 0, 0),
+            Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0),
+            SoundCategory = "",
+            Speed = 2048,
+            Radius = 819,
+            Health = (ushort)health,
+            Flags = flags,
+            ShotProcessFlags = processFlags,
+            CollideType = collide,
+            ProcessType = process,
         };
+    }
 
     private static (GameDatabase, WorldState) Setup(Action<GameDatabase, WorldState>? before = null)
     {

@@ -341,7 +341,10 @@ public class CombatAcquisitionTests
 
     // ------------------------------------------------------------------ helpers
 
-    private static int Centre(int tile) => CreatureState.CentreOf(tile);
+    private static int Centre(int tile)
+    {
+        return CreatureState.CentreOf(tile);
+    }
 
     /// <summary>The fixture map with its rock dug out into one open floor, five players.</summary>
     private static (GameDatabase, WorldState) OpenWorld()
@@ -364,15 +367,32 @@ public class CombatAcquisitionTests
         return (db, world);
     }
 
-    private static GameSimulation Combat(GameDatabase db, WorldState world) =>
-        new(db, world, 1, [new CombatSystem()]);
+    private static GameSimulation Combat(GameDatabase db, WorldState world)
+    {
+        return new(db, world, 1, [new CombatSystem()]);
+    }
 
     private sealed class BitGrid : ISightBlocker
     {
         private readonly bool[,] _blocked;
-        public BitGrid(int width, int height) => _blocked = new bool[width, height];
-        public void Block(int x, int y) => _blocked[x, y] = true;
-        public void Clear() => Array.Clear(_blocked);
-        public bool Blocks(int x, int y) => _blocked[x, y];
+        public BitGrid(int width, int height)
+        {
+            _blocked = new bool[width, height];
+        }
+
+        public void Block(int x, int y)
+        {
+            _blocked[x, y] = true;
+        }
+
+        public void Clear()
+        {
+            Array.Clear(_blocked);
+        }
+
+        public bool Blocks(int x, int y)
+        {
+            return _blocked[x, y];
+        }
     }
 }

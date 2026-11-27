@@ -24,7 +24,13 @@ public class CreatureAngerTests
     private const byte GoblinId = 7;
     private const int Second = SimulationTiming.TicksPerSecond;
 
-    private static GameDatabase Db => Dk2TerrainFixture.Database();
+    private static GameDatabase Db
+    {
+        get
+        {
+            return Dk2TerrainFixture.Database();
+        }
+    }
 
     private const byte DeserterId = Dk2TerrainFixture.DeserterCreatureId;
     private const byte VampireId = Dk2TerrainFixture.VampireCreatureId;
@@ -35,11 +41,19 @@ public class CreatureAngerTests
     /// written on a creature with nothing to roll — otherwise it is a test
     /// about seed 42.
     /// </summary>
-    private static GameDatabase DeserterDb =>
-        Dk2TerrainFixture.Database(Dk2TerrainFixture.Deserter());
+    private static GameDatabase DeserterDb
+    {
+        get
+        {
+            return Dk2TerrainFixture.Database(Dk2TerrainFixture.Deserter());
+        }
+    }
 
-    private static WorldState World(GameDatabase db) => WorldState.FromMap(
+    private static WorldState World(GameDatabase db)
+    {
+        return WorldState.FromMap(
         db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+    }
 
     private static GameSimulation Simulation(
         GameDatabase db, WorldState world, ListEventSink? sink = null)
@@ -734,13 +748,17 @@ public class CreatureAngerTests
 
     // ---- going hungry (0x00478D00's food arm, ADR-0651) -----------------------
 
-    private static int HungerChargeOf(GameDatabase db, WorldState world, CreatureState goblin) =>
-        CreatureAngerRules.PerSecond(world, db, db.CreatureById(GoblinId), goblin).Hunger;
+    private static int HungerChargeOf(GameDatabase db, WorldState world, CreatureState goblin)
+    {
+        return CreatureAngerRules.PerSecond(world, db, db.CreatureById(GoblinId), goblin).Hunger;
+    }
 
-    public static IEnumerable<object[]> NeedAngerSuppressedStates() =>
-        Enumerable.Range(0, CreatureStateTable.Count)
+    public static IEnumerable<object[]> NeedAngerSuppressedStates()
+    {
+        return Enumerable.Range(0, CreatureStateTable.Count)
             .Where(id => (CreatureStateTable.Get(id).Flags & CreatureStateFlags.SuppressNeedAnger) != 0)
             .Select(id => new object[] { id });
+    }
 
     [Theory]
     [MemberData(nameof(NeedAngerSuppressedStates))]
@@ -760,9 +778,11 @@ public class CreatureAngerTests
         Assert.Equal(default, CreatureAngerRules.PerSecond(world, db, definition, goblin));
     }
 
-    public static IEnumerable<object[]> ModeledNeedAngerSuppressedStates() =>
-        NeedAngerSuppressedStates().Where(row =>
+    public static IEnumerable<object[]> ModeledNeedAngerSuppressedStates()
+    {
+        return NeedAngerSuppressedStates().Where(row =>
             ActivityRules.Of(new CreatureState { Dk2StateId = (int)row[0] }) is not null);
+    }
 
     [Theory]
     [MemberData(nameof(ModeledNeedAngerSuppressedStates))]
@@ -849,8 +869,10 @@ public class CreatureAngerTests
         Assert.Equal(0, HungerChargeOf(db, world, goblin));
     }
 
-    private static int LairChargeOf(GameDatabase db, WorldState world, CreatureState goblin) =>
-        CreatureAngerRules.PerSecond(world, db, db.CreatureById(GoblinId), goblin).Lair;
+    private static int LairChargeOf(GameDatabase db, WorldState world, CreatureState goblin)
+    {
+        return CreatureAngerRules.PerSecond(world, db, db.CreatureById(GoblinId), goblin).Lair;
+    }
 
     [Fact]
     public void ABedlessGoblinIsChargedAngerNoLairOnlyWhileItsKeeperMayBuildALair()

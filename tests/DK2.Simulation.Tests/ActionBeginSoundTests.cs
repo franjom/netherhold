@@ -20,8 +20,10 @@ public sealed class ActionBeginSoundTests
     private const byte Rival = PlayerIds.FirstKeeper + 1;
     private static readonly TilePos Face = new(4, 2);
 
-    private static ThingSoundRequest[] Heard(ListEventSink events, int word) =>
-        [.. Sounds(events).Where(s => (ushort)s.Event == word && s.Source.Kind == SoundSourceKind.Creature)];
+    private static ThingSoundRequest[] Heard(ListEventSink events, int word)
+    {
+        return [.. Sounds(events).Where(s => (ushort)s.Event == word && s.Source.Kind == SoundSourceKind.Creature)];
+    }
 
     // ---- The imp's dig and mine ----
 
@@ -166,7 +168,14 @@ public sealed class ActionBeginSoundTests
     private sealed class Once(Action<SimulationContext> rule) : ISimulationSystem
     {
         private bool _done;
-        public string Name => nameof(Once);
+        public string Name
+        {
+            get
+            {
+                return nameof(Once);
+            }
+        }
+
         public void Execute(SimulationContext context)
         {
             if (_done)
@@ -188,7 +197,10 @@ public sealed class ActionBeginSoundTests
         return events;
     }
 
-    private static FpPosition3 Where(CreatureState c) => new(new Fp32(c.PosX), new Fp32(c.PosY), new Fp32(c.PosZ));
+    private static FpPosition3 Where(CreatureState c)
+    {
+        return new(new Fp32(c.PosX), new Fp32(c.PosY), new Fp32(c.PosZ));
+    }
 
     [Fact]
     public void AMeleeSwingBeginningAsksD7InTheAttackersCategoryWithItsHandleAtItsPosition()

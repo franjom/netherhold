@@ -16,7 +16,14 @@ public class JackInTheBoxTests
 {
     private sealed class SpringOnce(ShotState shot) : ISimulationSystem
     {
-        public string Name => "SpringOnce";
+        public string Name
+        {
+            get
+            {
+                return "SpringOnce";
+            }
+        }
+
         public void Execute(SimulationContext context)
         {
             context.Navigation.Refresh();
@@ -57,14 +64,17 @@ public class JackInTheBoxTests
     private const int WalkState = 6;
 
     /// <summary>Creature 46 as far as the Jack's rules read it: 240 health, no body, an Artisan.</summary>
-    private static CreatureDef Jack() => Dk2TerrainFixture.Goblin() with
+    private static CreatureDef Jack()
     {
-        Name = "Jack",
-        CreatureId = JackInTheBoxRules.JackCreatureId,
-        Hp = 240,
-        Flags = CreatureFlags.CanWalkOnWater | CreatureFlags.IsEvil | CreatureFlags.IsImmuneToChicken | CreatureFlags.IsFearless,
-        JobClass = JobClass.Artisan,
-    };
+        return Dk2TerrainFixture.Goblin() with
+        {
+            Name = "Jack",
+            CreatureId = JackInTheBoxRules.JackCreatureId,
+            Hp = 240,
+            Flags = CreatureFlags.CanWalkOnWater | CreatureFlags.IsEvil | CreatureFlags.IsImmuneToChicken | CreatureFlags.IsFearless,
+            JobClass = JobClass.Artisan,
+        };
+    }
 
     private static (GameDatabase db, WorldState world) Open()
     {

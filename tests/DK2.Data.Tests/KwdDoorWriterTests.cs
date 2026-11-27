@@ -91,6 +91,9 @@ public class KwdDoorWriterTests
         }
     }
 
-    private static DoorDef Read(byte[] source) => KwdDoors.Parse([
+    private static DoorDef Read(byte[] source)
+    {
+        return KwdDoors.Parse([
         new KwdChunk { Type = KwdRecordType.Doors, ItemCount = 1, Content = source, HeaderBlock = [] }]).Single();
+    }
 }

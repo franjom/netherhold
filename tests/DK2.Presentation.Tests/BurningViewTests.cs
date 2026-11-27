@@ -76,7 +76,10 @@ public class BurningViewTests
         Assert.Equal(0, view.PendingCameraJitters);
         view.Update(2, 0);
         Assert.Equal(default, view.CameraJitter);
-        void Send(PlayerId player, int count) => view.Emit(new SimEvent(default, "test", "shake", "")
-        { ScriptedView = new(ScriptedViewKind.CameraJitter, player, count, default, false) });
+        void Send(PlayerId player, int count)
+        {
+            view.Emit(new SimEvent(default, "test", "shake", "")
+            { ScriptedView = new(ScriptedViewKind.CameraJitter, player, count, default, false) });
+        }
     }
 }

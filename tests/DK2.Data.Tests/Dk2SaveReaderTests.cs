@@ -109,7 +109,10 @@ public class Dk2SaveReaderTests
         return bytes;
     }
 
-    private static string FindInstall() => Dk2InstallGate.Path;
+    private static string FindInstall()
+    {
+        return Dk2InstallGate.Path;
+    }
 
     private static (string Install, string Save)? FirstSave()
     {

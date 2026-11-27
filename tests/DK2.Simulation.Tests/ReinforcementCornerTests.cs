@@ -116,8 +116,18 @@ public class ReinforcementCornerTests
 
     private sealed class FillSystem(TilePos at) : ISimulationSystem
     {
-        public string Name => "Corner test";
-        public void Execute(SimulationContext context) => ReinforcementRules.FillCorners(context, at, 3);
+        public string Name
+        {
+            get
+            {
+                return "Corner test";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            ReinforcementRules.FillCorners(context, at, 3);
+        }
     }
 
     private static (GameSimulation Sim, TilePos Fill) Setup(int dx, int dy, bool swap)

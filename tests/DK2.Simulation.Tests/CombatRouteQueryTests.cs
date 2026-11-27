@@ -54,7 +54,17 @@ public sealed class CombatRouteQueryTests
 
     private sealed class Check(Action<SimulationContext> assertion) : ISimulationSystem
     {
-        public string Name => "combat route query";
-        public void Execute(SimulationContext context) => assertion(context);
+        public string Name
+        {
+            get
+            {
+                return "combat route query";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            assertion(context);
+        }
     }
 }

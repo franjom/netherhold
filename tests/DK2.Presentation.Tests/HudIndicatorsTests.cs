@@ -11,8 +11,10 @@ namespace DK2.Presentation.Tests;
 /// (menu40) it pushes up (message-tabs.md §6, §9).</summary>
 public sealed class HudIndicatorsTests
 {
-    private static HudIndicatorSnapshot Shown(bool time = false, bool score = false, bool kills = false, bool next = false) =>
-        new(time, 400, score, 0, kills, 0, 0, false, 0, next ? (byte)1 : (byte)0);
+    private static HudIndicatorSnapshot Shown(bool time = false, bool score = false, bool kills = false, bool next = false)
+    {
+        return new(time, 400, score, 0, kills, 0, 0, false, 0, next ? (byte)1 : (byte)0);
+    }
 
     [Fact]
     public void ShownIndicatorsPackLeftToRightFromTwentyAndHiddenOnesTakeNoSlot()
@@ -75,14 +77,29 @@ public sealed class HudIndicatorsTests
         Assert.Equal(8, HudIndicatorLayout.AlignedStart(2, 10));
     }
 
-    private static LevelDef Level(ushort flags) => new([])
+    private static LevelDef Level(ushort flags)
     {
-        Name = "fixture", Description = "", Author = "", Email = "", Information = "",
-        Unknown_1184 = ReadOnlyMemory<byte>.Empty, Messages = [], SoundCategory = "",
-        PreviousRewards = ReadOnlyMemory<byte>.Empty, NextRewards = ReadOnlyMemory<byte>.Empty,
-        IntroductionOverrideObjects = ReadOnlyMemory<byte>.Empty, IntroductionOverrideTextIds = [],
-        TerrainPath = "", Unknown_6403 = new byte[] { 0 }, Paths = [], UnknownPathTail = [], Flags = flags,
-    };
+        return new([])
+        {
+            Name = "fixture",
+            Description = "",
+            Author = "",
+            Email = "",
+            Information = "",
+            Unknown_1184 = ReadOnlyMemory<byte>.Empty,
+            Messages = [],
+            SoundCategory = "",
+            PreviousRewards = ReadOnlyMemory<byte>.Empty,
+            NextRewards = ReadOnlyMemory<byte>.Empty,
+            IntroductionOverrideObjects = ReadOnlyMemory<byte>.Empty,
+            IntroductionOverrideTextIds = [],
+            TerrainPath = "",
+            Unknown_6403 = new byte[] { 0 },
+            Paths = [],
+            UnknownPathTail = [],
+            Flags = flags,
+        };
+    }
 
     [Theory]
     [InlineData(0, false)]

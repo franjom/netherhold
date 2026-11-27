@@ -19,8 +19,10 @@ public class KeeperRoomRequestTests
     private const byte Keeper = KeeperWorld.Keeper;
     private const byte Treasury = (byte)RoomTypeId.Treasury, Lair = (byte)RoomTypeId.Lair, Portal = (byte)RoomTypeId.Portal;
 
-    private static KeeperAIParameters Policy(int policy) =>
-        KeeperWorld.Parameters(speed: 4) with { BuildNewRoomWhenMoreSpaceRequired = (byte)policy, RoomList = [Treasury] };
+    private static KeeperAIParameters Policy(int policy)
+    {
+        return KeeperWorld.Parameters(speed: 4) with { BuildNewRoomWhenMoreSpaceRequired = (byte)policy, RoomList = [Treasury] };
+    }
 
     /// <summary>A 3×3 Treasury at (10..12, 14..16), joined to the claimed patch on its east side.</summary>
     private static WorldState WithTreasury(int goldPerTile = 0)
@@ -46,8 +48,10 @@ public class KeeperRoomRequestTests
         return (new KeeperRoomRequests(view, state, p, available ?? (_ => true), commands), commands);
     }
 
-    private static PlayerMessage Post(WorldState world, PlayerMessageKind kind, RoomTypeId room) =>
-        world.Messages.PostRoom(world, Keeper, kind, room)!.Value;
+    private static PlayerMessage Post(WorldState world, PlayerMessageKind kind, RoomTypeId room)
+    {
+        return world.Messages.PostRoom(world, Keeper, kind, room)!.Value;
+    }
 
     // ---- 41 ---------------------------------------------------------------------------
 
@@ -164,8 +168,10 @@ public class KeeperRoomRequestTests
 
     // ---- 32 and 35 ------------------------------------------------------------------------
 
-    private static PlayerMessage Ownership(WorldState world, PlayerMessageKind kind, RoomTypeId room) =>
-        world.Messages.PostOwnership(world, Keeper, kind, room, 0)!.Value;
+    private static PlayerMessage Ownership(WorldState world, PlayerMessageKind kind, RoomTypeId room)
+    {
+        return world.Messages.PostOwnership(world, Keeper, kind, room, 0)!.Value;
+    }
 
     [Theory]
     [InlineData(0, Lair | KeeperRoomRequests.ExpandBit)]
@@ -266,8 +272,10 @@ public class KeeperRoomRequestTests
 
     // ---- the expansion rectangle ---------------------------------------------------------------
 
-    private static KeeperRoomView TreasuryView(KeeperView view) =>
-        view.OwnRooms.Single(r => r.Definition.TypeId == RoomTypeId.Treasury);
+    private static KeeperRoomView TreasuryView(KeeperView view)
+    {
+        return view.OwnRooms.Single(r => r.Definition.TypeId == RoomTypeId.Treasury);
+    }
 
     [Fact]
     public void AnExpansionKeepsEverySideThatPassesAndRefusesOneWhoseGapLineIsOpenTwice()
@@ -429,9 +437,11 @@ public class KeeperRoomRequestTests
         return (world, sim);
     }
 
-    private static int TreasuryTiles(WorldState world) =>
-        RoomIndex.Build(world, Db).Where(r => r.OwnerPlayerId == Keeper && r.Definition.TypeId == RoomTypeId.Treasury)
+    private static int TreasuryTiles(WorldState world)
+    {
+        return RoomIndex.Build(world, Db).Where(r => r.OwnerPlayerId == Keeper && r.Definition.TypeId == RoomTypeId.Treasury)
             .Sum(r => r.TileCount);
+    }
 
     private static void Play(WorldState world, GameSimulation sim, KeeperAI keeper, int ticks, InputFrame? first = null)
     {
@@ -491,7 +501,10 @@ public class KeeperRoomRequestTests
         Assert.True(LairRules.HasBed(world, Db, sleeper));
     }
 
-    private static bool Hatchery(RoomInstance r) => r.OwnerPlayerId == Keeper && r.Definition.TypeId == RoomTypeId.Hatchery;
+    private static bool Hatchery(RoomInstance r)
+    {
+        return r.OwnerPlayerId == Keeper && r.Definition.TypeId == RoomTypeId.Hatchery;
+    }
 
     [Fact]
     public void AHungryCreatureWithNoHatcheryMakesTheKeeperBuildOneThatLaysAndFeedsIt()

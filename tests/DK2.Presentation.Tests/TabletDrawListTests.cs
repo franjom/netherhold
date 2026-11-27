@@ -11,9 +11,15 @@ namespace DK2.Presentation.Tests;
 /// DungeonRunner.Finale: the sparkle points, the front's winding, the projection and the back-face cull.</summary>
 public sealed class TabletDrawListTests
 {
-    private static KmfVertex V(float x, float y, float u = 0, float v = 0) => new(new Vector3(x, y, 0), Vector3.UnitZ, new Vector2(u, v));
+    private static KmfVertex V(float x, float y, float u = 0, float v = 0)
+    {
+        return new(new Vector3(x, y, 0), Vector3.UnitZ, new Vector2(u, v));
+    }
 
-    private static KmfMaterial Material(string name, params string[] textures) => new(name, textures, 0, 1, 0, "");
+    private static KmfMaterial Material(string name, params string[] textures)
+    {
+        return new(name, textures, 0, 1, 0, "");
+    }
 
     /// <summary>A front with the item frames (one face toward the viewer, one away), a one-texture back, an untextured
     /// part and a back whose only face is turned away.</summary>
@@ -149,6 +155,9 @@ public sealed class TabletDrawListTests
 
     private sealed class LongLivedSparkles : Random
     {
-        public override int Next(int maxValue) => maxValue - 1;
+        public override int Next(int maxValue)
+        {
+            return maxValue - 1;
+        }
     }
 }

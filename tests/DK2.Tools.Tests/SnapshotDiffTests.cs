@@ -96,11 +96,17 @@ public class SnapshotDiffTests
         Assert.Equal("42", due.GetProperty(removed ? "before" : "after").GetString());
         Assert.Equal(JsonValueKind.Null, due.GetProperty(removed ? "after" : "before").ValueKind);
     }
-    private static EffectGeneratorState Generator(byte id, uint dueTurn, ushort[]? effects = null, byte[]? unknown = null) => new()
+    private static EffectGeneratorState Generator(byte id, uint dueTurn, ushort[]? effects = null, byte[]? unknown = null)
     {
-        GeneratorId = id, NextDueTurn = dueTurn, EffectIds = effects ?? [11, 12],
-        Unknown_001E = unknown ?? new byte[EffectGeneratorState.Unknown001ELength],
-    };
+        return new()
+        {
+            GeneratorId = id,
+            NextDueTurn = dueTurn,
+            EffectIds = effects ?? [11, 12],
+            Unknown_001E = unknown ?? new byte[EffectGeneratorState.Unknown001ELength],
+        };
+    }
+
     [Fact]
     public void ReportsCreaturePlayerAndTileChangesWithoutChangingInputs()
     {
@@ -310,7 +316,10 @@ public class SnapshotDiffTests
     }
 
 #pragma warning disable IDE0305 // Preserve the original collection construction or overload.
-    private static JsonElement[] Changes(JsonDocument report) => report.RootElement.GetProperty("changes").EnumerateArray().ToArray();
+    private static JsonElement[] Changes(JsonDocument report)
+    {
+        return report.RootElement.GetProperty("changes").EnumerateArray().ToArray();
+    }
 #pragma warning restore IDE0305
 
     private static void AssertChange(JsonDocument report, string path, string before, string after)
@@ -327,9 +336,29 @@ public class SnapshotDiffTests
         public GameDatabase Database { get; }
         public (GameSimulation Simulation, CreatureState Creature) Before { get; }
         public (GameSimulation Simulation, CreatureState Creature) After { get; }
-        public string BeforePath => Path.Combine(_directory, "before.bin");
-        public string AfterPath => Path.Combine(_directory, "after.bin");
-        public string Output => Path.Combine(_directory, "report.json");
+        public string BeforePath
+        {
+            get
+            {
+                return Path.Combine(_directory, "before.bin");
+            }
+        }
+
+        public string AfterPath
+        {
+            get
+            {
+                return Path.Combine(_directory, "after.bin");
+            }
+        }
+
+        public string Output
+        {
+            get
+            {
+                return Path.Combine(_directory, "report.json");
+            }
+        }
 
         public Fixture(int beforeWidth = 3, int beforeHeight = 2, int afterWidth = 3, int afterHeight = 2)
         {
@@ -398,10 +427,16 @@ public class SnapshotDiffTests
             SavedSessionFile.Save(AfterPath, new(new("fixture", 1, 0, DateTime.UnixEpoch.AddDays(1), "after"), after, new CampaignProfile()));
         }
 
-        public int Run(string? level = "fixture", string? output = null) => SnapshotDiffCommand.Run(
+        public int Run(string? level = "fixture", string? output = null)
+        {
+            return SnapshotDiffCommand.Run(
             ["snapshot-diff", BeforePath, AfterPath, output ?? Output, .. level is null ? Array.Empty<string>() : ["--level", level]],
             _ => Database);
+        }
 
-        public JsonDocument Report() => JsonDocument.Parse(File.ReadAllText(Output));
+        public JsonDocument Report()
+        {
+            return JsonDocument.Parse(File.ReadAllText(Output));
+        }
     }
 }

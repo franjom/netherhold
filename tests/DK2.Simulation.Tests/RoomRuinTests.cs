@@ -31,8 +31,10 @@ public sealed class RoomRuinTests
         return (db, world, Heart(db, world));
     }
 
-    private static RoomInstance Heart(GameDatabase db, WorldState world) =>
-        RoomIndex.Build(world, db).Single(r => r.Definition.TypeId == RoomTypeId.DungeonHeart);
+    private static RoomInstance Heart(GameDatabase db, WorldState world)
+    {
+        return RoomIndex.Build(world, db).Single(r => r.Definition.TypeId == RoomTypeId.DungeonHeart);
+    }
 
     private static void Capture(WorldState world, RoomInstance room, byte by)
     {

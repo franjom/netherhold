@@ -46,24 +46,34 @@ public partial class CampaignPlayerTests
         return rows;
     }
 
-    private static PlayerCreatureSummary[] Imps(int count, PlayerCreatureSummary[]? more = null) =>
-        [.. Enumerable.Range(0, count).Select(i => new PlayerCreatureSummary(Imp, new TilePos(8 + i % 4, 6 + i / 4 % 3), false)), .. more ?? []];
+    private static PlayerCreatureSummary[] Imps(int count, PlayerCreatureSummary[]? more = null)
+    {
+        return [.. Enumerable.Range(0, count).Select(i => new PlayerCreatureSummary(Imp, new TilePos(8 + i % 4, 6 + i / 4 % 3), false)), .. more ?? []];
+    }
 
-    private static PlayerSpellOffer CreateImpOffer(bool upgraded = false, bool ready = true) =>
-        new(4, "Create Imp", new ManaAmount(1500), true, false, ready, upgraded);
+    private static PlayerSpellOffer CreateImpOffer(bool upgraded = false, bool ready = true)
+    {
+        return new(4, "Create Imp", new ManaAmount(1500), true, false, ready, upgraded);
+    }
 
     /// <summary>A keeper with <paramref name="imps"/> Imps, 50000 mana, +300 income and 28 upkeep, Create Imp at 1500.</summary>
     private static PlayerObservation ImpView(int imps, int marks = 0, long tick = 1000, int mana = 50_000, int income = 300, int upkeep = 28,
-        bool upgraded = false, PlayerCreatureSummary[]? more = null) =>
-        Observe(tick / 4, map: Marked(marks), rooms: [], tick: tick, creatures: Imps(imps, more), spells: [CreateImpOffer(upgraded)],
+        bool upgraded = false, PlayerCreatureSummary[]? more = null)
+    {
+        return Observe(tick / 4, map: Marked(marks), rooms: [], tick: tick, creatures: Imps(imps, more), spells: [CreateImpOffer(upgraded)],
             mana: mana, income: income, upkeep: upkeep, impCost: 1500);
+    }
 
-    private static CampaignPlayer ImpMaker(Func<PlayerStrategy, PlayerStrategy>? tune = null) =>
+    private static CampaignPlayer ImpMaker(Func<PlayerStrategy, PlayerStrategy>? tune = null)
+    {
         // A long stall window: these timelines pass minutes with dig marks standing and nothing dug. Four free Imps, as shipped.
-        Player(o => o with { StallWindowTicks = 100_000, FreeImps = 4 }).Also(p => p.Apply((tune ?? (s => s))(p.Strategy with { CreateImps = 1 })));
+        return Player(o => o with { StallWindowTicks = 100_000, FreeImps = 4 }).Also(p => p.Apply((tune ?? (s => s))(p.Strategy with { CreateImps = 1 })));
+    }
 
-    private static PlayerAction.CreateImpAt? Cast(CampaignPlayer player, PlayerObservation view) =>
-        player.Decide(view).Actions.OfType<PlayerAction.CreateImpAt>().SingleOrDefault();
+    private static PlayerAction.CreateImpAt? Cast(CampaignPlayer player, PlayerObservation view)
+    {
+        return player.Decide(view).Actions.OfType<PlayerAction.CreateImpAt>().SingleOrDefault();
+    }
 
     [Fact]
     public void AnImpIsCreatedOnOwnFloorWhileFewerThanTheMinimumAndOnByDefault()
@@ -161,10 +171,14 @@ public partial class CampaignPlayerTests
     public void NoImpIsCreatedIntoAFight()
     {
         TilePos birth = Assert.IsType<PlayerAction.CreateImpAt>(Cast(ImpMaker(), ImpView(imps: 4))).Tile;
-        PlayerObservation With(int dx) => Observe(250, map: Marked(0), rooms: [], tick: 1000, creatures: Imps(4),
+        PlayerObservation With(int dx)
+        {
+            return Observe(250, map: Marked(0), rooms: [], tick: 1000, creatures: Imps(4),
             things: [new(Handle(1), PlayerThingKind.Creature, new TilePos(birth.X + dx, birth.Y), Heroes, PlayerThingActions.None,
                 creatureType: new CreatureTypeId(20))],
             spells: [CreateImpOffer()], mana: 50_000, income: 300, upkeep: 28, impCost: 1500);
+        }
+
         Assert.Null(Cast(ImpMaker(), With(2)));
         Assert.Null(Cast(ImpMaker(), With(10)));
         Assert.NotNull(Cast(ImpMaker(), With(11)));

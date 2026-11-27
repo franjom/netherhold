@@ -13,7 +13,10 @@ internal sealed class TestMaterial(string name, bool transparent = true, bool ta
     public string Name { get; } = name;
     public bool Transparent { get; } = transparent;
     public bool TagOverlay { get; } = tagOverlay;
-    public override string ToString() => Name;
+    public override string ToString()
+    {
+        return Name;
+    }
 }
 
 /// <summary>The Unity adapter's <c>TransparentTerrain</c> as it stood at 58bc1806 (SetChunk, Clear, Collect,
@@ -62,7 +65,10 @@ internal sealed class LegacyTransparentTerrain
 
     public Upload? Uploaded { get; private set; }
 
-    public void BeginEffectFrame() => _effectCount = 0;
+    public void BeginEffectFrame()
+    {
+        _effectCount = 0;
+    }
 
     public void AddEffectMesh(Vector3[] positions, int[] indices, TestMaterial material, Matrix4x4 worldTransform)
     {
@@ -305,10 +311,16 @@ internal sealed class LegacyTransparentTerrain
         return x * x + y * y + z * z < 9.99999944E-11f;
     }
 
-    private static float Dot(Vector3 a, Vector3 b) => a.X * b.X + a.Y * b.Y + a.Z * b.Z;
+    private static float Dot(Vector3 a, Vector3 b)
+    {
+        return a.X * b.X + a.Y * b.Y + a.Z * b.Z;
+    }
 
-    public static Vector3 MultiplyPoint3x4(in Matrix4x4 m, Vector3 p) => new(m.M11 * p.X + m.M12 * p.Y + m.M13 * p.Z + m.M14,
+    public static Vector3 MultiplyPoint3x4(in Matrix4x4 m, Vector3 p)
+    {
+        return new(m.M11 * p.X + m.M12 * p.Y + m.M13 * p.Z + m.M14,
         m.M21 * p.X + m.M22 * p.Y + m.M23 * p.Z + m.M24, m.M31 * p.X + m.M32 * p.Y + m.M33 * p.Z + m.M34);
+    }
 
     // Unity's Matrix4x4 * Matrix4x4, each element a sum of four products in index order.
     public static Matrix4x4 UnityMultiply(in Matrix4x4 a, in Matrix4x4 b)

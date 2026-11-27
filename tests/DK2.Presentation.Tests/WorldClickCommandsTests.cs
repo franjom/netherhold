@@ -27,7 +27,10 @@ public sealed class WorldClickCommandsTests
         public bool PointerOverHud() { Calls.Add("over hud"); return OverHud; }
         public TilePos? PointerTile() { Calls.Add("tile"); return Tile; }
         public WorldHoverHit Hover(TilePos tile) { Calls.Add("hover"); return Hit; }
-        public void FollowQueriedCreature() => Calls.Add("follow");
+        public void FollowQueriedCreature()
+        {
+            Calls.Add("follow");
+        }
     }
 
     private sealed class Rig
@@ -51,13 +54,22 @@ public sealed class WorldClickCommandsTests
             Commands = new WorldClickCommands(Tools, Input, Query, Panel, Keeper, Host);
         }
 
-        public void Choose(BottomPanelChoiceKind kind, byte value) => Tools.SelectPanelChoice(
+        public void Choose(BottomPanelChoiceKind kind, byte value)
+        {
+            Tools.SelectPanelChoice(
             new BottomPanelSelection(new BottomPanelChoiceKey(kind, value), PlayerToolMode.Hand, RoomTypeId.Portal), Input, Query);
+        }
 
-        public void Drag() => Input.Translate(new PlayerIntent(Keeper, PlayerToolMode.BuildRoom, new TilePos(1, 1),
+        public void Drag()
+        {
+            Input.Translate(new PlayerIntent(Keeper, PlayerToolMode.BuildRoom, new TilePos(1, 1),
             PointerButtonTransition.Pressed, RoomTypeId.Treasury), new PlayerInputSnapshot(false));
+        }
 
-        public bool Queue(bool primary, bool secondary) => Commands.Queue(new HudPress(primary, secondary), Database, Output);
+        public bool Queue(bool primary, bool secondary)
+        {
+            return Commands.Queue(new HudPress(primary, secondary), Database, Output);
+        }
     }
 
     [Fact]

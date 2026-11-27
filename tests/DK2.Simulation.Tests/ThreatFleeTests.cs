@@ -181,7 +181,17 @@ public sealed class ThreatFleeTests
 
     private sealed class Probe(Action<SimulationContext> act) : ISimulationSystem
     {
-        public string Name => "Probe";
-        public void Execute(SimulationContext context) => act(context);
+        public string Name
+        {
+            get
+            {
+                return "Probe";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            act(context);
+        }
     }
 }

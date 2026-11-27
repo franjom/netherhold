@@ -107,8 +107,11 @@ public class RoomConstructionParticleTests
             b.Particles.Select(p => (p.XRaw, p.YRaw, p.HeightRaw, p.Health)));
     }
 
-    private static SimEvent Request() => new(new GameTick(0), "room", "construction_effect", "")
-    { ConstructionEffect = new RoomConstructionEffect(PlayerIds.FirstKeeper, new TilePos(2, 3)) };
+    private static SimEvent Request()
+    {
+        return new(new GameTick(0), "room", "construction_effect", "")
+        { ConstructionEffect = new RoomConstructionEffect(PlayerIds.FirstKeeper, new TilePos(2, 3)) };
+    }
 
     [Fact]
     public void ColourDecayUsesTheRemainingLifetimeAfterTheHealthStep()
@@ -173,14 +176,30 @@ public class RoomConstructionParticleTests
     {
         byte[] descriptor = new byte[12]; descriptor[8] = 16;
         var art = new KwdArtResource("sprite", artFlags, descriptor, 2, 0, 0, 0);
-        EffectElementDef Element(ushort id, int mass, int drag) => new([])
+        EffectElementDef Element(ushort id, int mass, int drag)
         {
-            Name = $"element{id}", EffectElementId = id, ArtResource = art,
-            MinHp = 12, MaxHp = 16, MinScale = 1228, MaxScale = 2047,
-            MinSpeedXy = 0, MaxSpeedXy = 6144, MinSpeedYz = 8192, MaxSpeedYz = 12288,
-            Mass = mass, AirFriction = drag,
-            Flags = elementFlags, Red = 255, ScaleRatio = 10240, Elasticity = 32768,
-        };
+            return new([])
+            {
+                Name = $"element{id}",
+                EffectElementId = id,
+                ArtResource = art,
+                MinHp = 12,
+                MaxHp = 16,
+                MinScale = 1228,
+                MaxScale = 2047,
+                MinSpeedXy = 0,
+                MaxSpeedXy = 6144,
+                MinSpeedYz = 8192,
+                MaxSpeedYz = 12288,
+                Mass = mass,
+                AirFriction = drag,
+                Flags = elementFlags,
+                Red = 255,
+                ScaleRatio = 10240,
+                Elasticity = 32768,
+            };
+        }
+
         var effect = new EffectDef([])
         {
             Name = "build", EffectId = RoomConstructionEffect.DefinitionId, ArtResource = art,

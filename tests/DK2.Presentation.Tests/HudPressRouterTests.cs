@@ -26,18 +26,38 @@ public sealed class HudPressRouterTests
         public ClassicOptionsAction Option;
 
         public void ApplyHudAction(ClassicHudAction action) { Calls.Add("apply " + action); controls.Apply(action); }
-        public void GoToFullMapTile() => Calls.Add("full map tile");
-        public void PollGameOptionsKeyboard() => Calls.Add("poll keys");
+        public void GoToFullMapTile()
+        {
+            Calls.Add("full map tile");
+        }
+
+        public void PollGameOptionsKeyboard()
+        {
+            Calls.Add("poll keys");
+        }
+
         public ClassicOptionsAction OptionsActionAtPointer() { Calls.Add("options entry"); return Option; }
-        public void RefreshSaves() => Calls.Add("refresh saves");
-        public void StartSession(ClassicSessionAction session) => Calls.Add("session " + session);
+        public void RefreshSaves()
+        {
+            Calls.Add("refresh saves");
+        }
+
+        public void StartSession(ClassicSessionAction session)
+        {
+            Calls.Add("session " + session);
+        }
+
         public bool TryPressOverview(in HudPress press, out CreatureOverviewRequest request)
         {
             Calls.Add("overview");
             request = Request;
             return OverviewTakes;
         }
-        public void FocusCreature(FpPosition3 position) => Calls.Add("focus");
+        public void FocusCreature(FpPosition3 position)
+        {
+            Calls.Add("focus");
+        }
+
         public ClassicHudAction PressMinimap(in HudPress press) { Calls.Add("minimap"); return Minimap; }
         public KeeperResourceKind ResourceAtPointer() { Calls.Add("resource"); return Resource; }
     }
@@ -71,7 +91,10 @@ public sealed class HudPressRouterTests
             Router = new HudPressRouter(Controls, Tools, Overview, Panel, Pickups, Keeper, Host);
         }
 
-        public bool Route(HudPress press) => Router.Route(press, World, Database, 0, Output);
+        public bool Route(HudPress press)
+        {
+            return Router.Route(press, World, Database, 0, Output);
+        }
     }
 
     [Fact]

@@ -16,8 +16,10 @@ public class KeeperMoodRemediesTests
     private static readonly GameDatabase Db = KeeperWorld.Database();
     private const byte Keeper = KeeperWorld.Keeper;
 
-    private static KeeperAIParameters Happy(bool unhappy = true, bool angry = true) =>
-        KeeperWorld.Parameters() with { UnhappyCreaturesHappy = unhappy, AngryCreaturesHappy = angry };
+    private static KeeperAIParameters Happy(bool unhappy = true, bool angry = true)
+    {
+        return KeeperWorld.Parameters() with { UnhappyCreaturesHappy = unhappy, AngryCreaturesHappy = angry };
+    }
 
     private static (WorldState World, CreatureState Creature) Moody(AngerBucket largest, int amount = 20000)
     {
@@ -48,8 +50,10 @@ public class KeeperMoodRemediesTests
         return (handled, commands, view);
     }
 
-    private static PlayerMessage Post(WorldState world, PlayerMessageKind kind, AngerComplaint complaint, int creature) =>
-        world.Messages.Post(world, Keeper, kind, (int)complaint, creature)!.Value;
+    private static PlayerMessage Post(WorldState world, PlayerMessageKind kind, AngerComplaint complaint, int creature)
+    {
+        return world.Messages.Post(world, Keeper, kind, (int)complaint, creature)!.Value;
+    }
 
     [Fact]
     public void ARetainedHungerMessageWhileLairAngerIsLargestMovesTheCreatureToTheLair()
@@ -192,8 +196,10 @@ public class KeeperMoodRemediesTests
         Assert.IsType<TakeCreatureCommand>(commands[0]);
     }
 
-    private static KeeperAIParameters Disposing(byte method) =>
-        KeeperWorld.Parameters() with { AngryCreaturesDisposeOf = true, AngryDisposalMethod = method, AngryCreaturesHappy = true };
+    private static KeeperAIParameters Disposing(byte method)
+    {
+        return KeeperWorld.Parameters() with { AngryCreaturesDisposeOf = true, AngryDisposalMethod = method, AngryCreaturesHappy = true };
+    }
 
     [Fact]
     public void DisposalMethodOneDropsTheAngryCreatureOnATempleFloorSlot()

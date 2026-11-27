@@ -29,7 +29,11 @@ public sealed class LightningTargetDrawTests
         var expectedIndices = new List<int>();
         void Append(Vector3 start, Vector3 end, LightningAmplitude amplitude, Matrix4x4 view, Matrix4x4 camera)
         {
-            Vector3 Render(Vector3 p) => new(p.X, p.Z, -p.Y);
+            Vector3 Render(Vector3 p)
+            {
+                return new(p.X, p.Z, -p.Y);
+            }
+
             foreach (LightningPath path in originalBolts.Build(Transform(Render(start), view),
                 Transform(Render(end), view), amplitude))
             {
@@ -64,7 +68,11 @@ public sealed class LightningTargetDrawTests
         Assert.Equal(prefixUvs, draws.Uvs);
         Assert.Equal(prefixIndices, draws.Triangles);
         draws.DrawShots(f.World, f.Database, f.View, 1);
-        Vector3 Tiles(FpPosition3 p) => new(p.X.Raw / 4096f, p.Y.Raw / 4096f, p.Z.Raw / 4096f);
+        Vector3 Tiles(FpPosition3 p)
+        {
+            return new(p.X.Raw / 4096f, p.Y.Raw / 4096f, p.Z.Raw / 4096f);
+        }
+
         Append(Tiles(f.CasterStart), Tiles(target), LightningAmplitude.Shot, viewB, cameraB);
         Assert.True(draws.Vertices.Count > prefix.Length);
         Assert.Equal(expectedVertices.Count, draws.Vertices.Count);
@@ -78,10 +86,13 @@ public sealed class LightningTargetDrawTests
         Assert.Equal(expectedIndices, draws.Triangles);
     }
 
-    private static Vector3 Transform(Vector3 p, Matrix4x4 m) => new(
+    private static Vector3 Transform(Vector3 p, Matrix4x4 m)
+    {
+        return new(
         m.M11 * p.X + m.M21 * p.Y + m.M31 * p.Z + m.M41,
         m.M12 * p.X + m.M22 * p.Y + m.M32 * p.Z + m.M42,
         m.M13 * p.X + m.M23 * p.Y + m.M33 * p.Z + m.M43);
+    }
 
     [Theory]
     [InlineData(FightTargetKind.Creature)]
@@ -266,8 +277,18 @@ public sealed class LightningTargetDrawTests
     }
     private sealed class LaunchForInterpolation(ShotState shot, Fp32 height) : ISimulationSystem
     {
-        public string Name => "set interpolation origin";
-        public void Execute(SimulationContext context) => ShotRules.RequestTrail(context, shot, default, height);
+        public string Name
+        {
+            get
+            {
+                return "set interpolation origin";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            ShotRules.RequestTrail(context, shot, default, height);
+        }
     }
 
     [Fact]
@@ -384,7 +405,11 @@ public sealed class LightningTargetDrawTests
         var uvs = new List<Vector2>();
         var triangles = new List<int>();
         var bolts = new LightningBolts(seed);
-        Vector3 Render(FpPosition3 p) => new(p.X.Raw / 4096f, p.Z.Raw / 4096f, -p.Y.Raw / 4096f);
+        Vector3 Render(FpPosition3 p)
+        {
+            return new(p.X.Raw / 4096f, p.Z.Raw / 4096f, -p.Y.Raw / 4096f);
+        }
+
         for (int b = 0; b < boltCount; b++)
         {
             foreach (LightningPath path in bolts.Build(Render(start), Render(end)))
@@ -419,9 +444,23 @@ public sealed class LightningTargetDrawTests
         public CreatureState Caster { get; }
         public CreatureState Victim { get; }
         public ShotState Shot { get; }
-        public FpPosition3 CasterStart => new(new(Caster.PosX), new(Caster.PosY), Shot.ViewPosition.Z);
-        public FpPosition3 VictimEnd => new(new(Victim.PosX), new(Victim.PosY),
-            new(View.GroundHeightAt(World, new(new(Victim.PosX), new(Victim.PosY), default)).Raw + Victim.PosZ));
+        public FpPosition3 CasterStart
+        {
+            get
+            {
+                return new(new(Caster.PosX), new(Caster.PosY), Shot.ViewPosition.Z);
+            }
+        }
+
+        public FpPosition3 VictimEnd
+        {
+            get
+            {
+                return new(new(Victim.PosX), new(Victim.PosY),
+                        new(View.GroundHeightAt(World, new(new(Victim.PosX), new(Victim.PosY), default)).Raw + Victim.PosZ));
+            }
+        }
+
         public Fixture(bool fog = false)
         {
             GameDatabase basic = PressFixture.Database();
@@ -471,7 +510,11 @@ public sealed class LightningTargetDrawTests
             [new DoorThing(new byte[20]) { X = 6, Y = 2, DoorId = 1, PlayerId = PressFixture.Keeper.Value, Unknown_0011 = new byte[3] },
              new TrapThing(new byte[16]) { X = 7, Y = 2, TrapId = 1, PlayerId = PressFixture.Keeper.Value, NumberOfShots = 1 }]);
         }
-        public LightningDrawList Draws(uint seed) => new(Effects, seed);
+        public LightningDrawList Draws(uint seed)
+        {
+            return new(Effects, seed);
+        }
+
         public FpPosition3 Target(FightTargetKind kind)
         {
             Shot.TargetKind = kind;
@@ -499,6 +542,9 @@ public sealed class LightningTargetDrawTests
                 default: throw new ArgumentOutOfRangeException(nameof(kind));
             }
         }
-        private FpPosition3 Ground(FpPosition3 p) => p with { Z = View.GroundHeightAt(World, p) };
+        private FpPosition3 Ground(FpPosition3 p)
+        {
+            return p with { Z = View.GroundHeightAt(World, p) };
+        }
     }
 }

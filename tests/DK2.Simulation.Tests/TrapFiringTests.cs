@@ -56,8 +56,10 @@ public class TrapFiringTests
         return sim;
     }
 
-    private static List<long> Fired(ListEventSink sink, TrapState trap) =>
-        [.. sink.Events.Where(e => e.Kind == "trap_fired" && e.Detail.StartsWith($"trap={trap.Id} ")).Select(e => e.Tick.Value)];
+    private static List<long> Fired(ListEventSink sink, TrapState trap)
+    {
+        return [.. sink.Events.Where(e => e.Kind == "trap_fired" && e.Detail.StartsWith($"trap={trap.Id} ")).Select(e => e.Tick.Value)];
+    }
 
     [Fact]
     public void ASentryTurnsToAnEnemyInRange_FiresACannonBallFromItsTurnedMuzzle_PaysItsMana_AndRechargesFor24Ticks()
@@ -324,6 +326,9 @@ public class TrapFiringTests
 
     private sealed class NoWalls : ISightBlocker
     {
-        public bool Blocks(int x, int y) => false;
+        public bool Blocks(int x, int y)
+        {
+            return false;
+        }
     }
 }

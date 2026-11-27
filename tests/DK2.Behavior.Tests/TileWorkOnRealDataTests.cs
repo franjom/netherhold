@@ -24,19 +24,26 @@ namespace DK2.Behavior.Tests;
 /// </summary>
 public class TileWorkOnRealDataTests
 {
-    private static GameDatabase RealDatabase() =>
-        GameDatabaseLoader.Load(Dk2InstallGate.Path);
+    private static GameDatabase RealDatabase()
+    {
+        return GameDatabaseLoader.Load(Dk2InstallGate.Path);
+    }
 
     /// <summary>A tile of terrain <paramref name="id"/> at its shipped starting health.</summary>
-    private static TileState Tile(GameDatabase db, byte id, byte owner = 0) => new()
+    private static TileState Tile(GameDatabase db, byte id, byte owner = 0)
     {
-        TerrainId = id,
-        OwnerPlayerId = owner,
-        Health = db.TerrainById(id).StartingHealth,
-    };
+        return new()
+        {
+            TerrainId = id,
+            OwnerPlayerId = owner,
+            Health = db.TerrainById(id).StartingHealth,
+        };
+    }
 
-    private static byte IdOf(GameDatabase db, string name) =>
-        db.Terrain.Values.Single(t => t.Name == name).TerrainId;
+    private static byte IdOf(GameDatabase db, string name)
+    {
+        return db.Terrain.Values.Single(t => t.Name == name).TerrainId;
+    }
 
     [InstallFact]
     public void TheTerrainNamesTheRulesRelyOn_AreAllPresent()

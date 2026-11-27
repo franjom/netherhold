@@ -14,8 +14,10 @@ public sealed class GuiButtonPairsTests
     [InlineData(BottomPanelChoiceKind.Spell, GuiButtonCategory.Spell)]
     [InlineData(BottomPanelChoiceKind.Door, GuiButtonCategory.Door)]
     [InlineData(BottomPanelChoiceKind.Trap, GuiButtonCategory.Trap)]
-    public void APrimaryClickPostsItsCategory(BottomPanelChoiceKind kind, GuiButtonCategory category) =>
+    public void APrimaryClickPostsItsCategory(BottomPanelChoiceKind kind, GuiButtonCategory category)
+    {
         Assert.Equal(new GuiButtonTarget(category, 7), GuiButtonPairs.ForSelection(kind, 7, clearsTool: false));
+    }
 
     [Fact]
     public void ARoomThatOnlyClearsTheToolPostsNothing()
@@ -30,8 +32,10 @@ public sealed class GuiButtonPairsTests
     [InlineData(BottomPanelCategory.Rooms, 0xFB)]
     [InlineData(BottomPanelCategory.Spells, 0xFA)]
     [InlineData(BottomPanelCategory.Workshop, 0xF9)]
-    public void ATabPostsItsWidgetId(BottomPanelCategory tab, byte id) =>
+    public void ATabPostsItsWidgetId(BottomPanelCategory tab, byte id)
+    {
         Assert.Equal(new GuiButtonTarget(GuiButtonCategory.Widget, id), GuiButtonPairs.ForTab(tab));
+    }
 
     [Fact]
     public void ADoorRightClickPostsTheTrapCategory()

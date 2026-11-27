@@ -44,7 +44,10 @@ public sealed class DoorTrapSoundTests
         return (db, world, door, sim, events);
     }
 
-    private static FpPosition3 DoorAt(WorldState world, DoorState door) => Centre(world, (door.Y * world.Width) + door.X);
+    private static FpPosition3 DoorAt(WorldState world, DoorState door)
+    {
+        return Centre(world, (door.Y * world.Width) + door.X);
+    }
 
     [Fact]
     public void ADoorOpeningForAnAlliedCreatureAsksE7AndShuttingAsksE8InItsCategoryAtItsTileWithItsVoice()
@@ -169,7 +172,10 @@ public sealed class DoorTrapSoundTests
         return sim;
     }
 
-    private static FpPosition3 TrapAt(WorldState world, TrapState trap) => Centre(world, (trap.Y * world.Width) + trap.X);
+    private static FpPosition3 TrapAt(WorldState world, TrapState trap)
+    {
+        return Centre(world, (trap.Y * world.Width) + trap.X);
+    }
 
     [Fact]
     public void ASentryFiringAsksEbInItsCategoryAtItsTileWithItsVoiceForEveryone()

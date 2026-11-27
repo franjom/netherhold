@@ -24,12 +24,23 @@ public class RoomTests
 
     private sealed record Run(GameSimulation Sim, ListEventSink Events)
     {
-        public WorldState World => Sim.World;
+        public WorldState World
+        {
+            get
+            {
+                return Sim.World;
+            }
+        }
 
-        public void Tick(params PlayerCommand[] commands) =>
+        public void Tick(params PlayerCommand[] commands)
+        {
             Sim.Tick(commands.Length == 0 ? InputFrame.Empty : InputFrame.Of(commands));
+        }
 
-        public IEnumerable<SimEvent> Of(string kind) => Events.Events.Where(e => e.Kind == kind);
+        public IEnumerable<SimEvent> Of(string kind)
+        {
+            return Events.Events.Where(e => e.Kind == kind);
+        }
     }
 
     private static Run Start(ulong seed = 7)
@@ -44,8 +55,21 @@ public class RoomTests
         return new Run(sim, sink);
     }
 
-    private static RoomTypeId TreasuryId => RoomTypeId.Treasury;
-    private static RoomTypeId LairId => RoomTypeId.Lair;
+    private static RoomTypeId TreasuryId
+    {
+        get
+        {
+            return RoomTypeId.Treasury;
+        }
+    }
+
+    private static RoomTypeId LairId
+    {
+        get
+        {
+            return RoomTypeId.Lair;
+        }
+    }
 
     /// <summary>Gives the keeper somewhere to keep money, without going through the build rules.</summary>
     private static void GiveTreasury(Run run, byte player, params TilePos[] tiles)

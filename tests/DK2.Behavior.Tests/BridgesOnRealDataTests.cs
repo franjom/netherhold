@@ -30,7 +30,10 @@ public class BridgesOnRealDataTests
     private static readonly int[] NeighbourDx = [0, -1, 1, 0];
     private static readonly int[] NeighbourDy = [-1, 0, 0, 1];
 
-    private static string Install() => Dk2InstallGate.Path;
+    private static string Install()
+    {
+        return Dk2InstallGate.Path;
+    }
 
     /// <summary>Every map file the install ships, by level name.</summary>
     private static IEnumerable<string> LevelNames(string install)

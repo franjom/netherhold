@@ -284,9 +284,11 @@ public class PortalCreatureActionTests
     [InlineData(120, 30, 16)]
     [InlineData(0, 30, 0)]
     [InlineData(147, 0, 0)]
-    public void JoiningLastsTheEntranceAnimationRoundedUpToATick(int frames, int fps, int ticks) =>
+    public void JoiningLastsTheEntranceAnimationRoundedUpToATick(int frames, int fps, int ticks)
+    {
         Assert.Equal(ticks, PortalRules.JoiningTicks(
             Dk2TerrainFixture.Database().CreatureById(7) with { EntranceFrames = frames, EntranceFramesPerSecond = fps }));
+    }
 
     /// <summary>Q508: a portal creature's death lowers its portal's tally, never below zero
     /// (<c>0x00487C70</c>, <c>0x00488150</c>–<c>0x00488170</c>). Ours never lowered it.</summary>
@@ -326,8 +328,9 @@ public class PortalCreatureActionTests
         return new TriggerExecutor(tree, world.Triggers, world, db).Run(10);
     }
 
-    private static TriggerRecord[] Records(byte level) =>
-    [
+    private static TriggerRecord[] Records(byte level)
+    {
+        return [
         new ActionTriggerRecord(new byte[16])
         {
             Body = new byte[8], TriggerId = 0xFFFF, Type = 28, ChildTriggerId = 0xFFFE,
@@ -339,6 +342,7 @@ public class PortalCreatureActionTests
             Parameters = new Dictionary<string, long> { ["FlagId"] = 4, ["Flag"] = 0x0A, ["Value"] = 1 },
         },
     ];
+    }
 
     private static (GameDatabase, WorldState) Setup()
     {

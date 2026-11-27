@@ -285,14 +285,20 @@ public class WorldResyncTests
         return tiles;
     }
 
-    private static ResyncCreature Imp(int slot, TilePos at, int state, ResyncJob? job = null) =>
-        new(slot, Keeper, CreatureState.CentreOf(at.X), CreatureState.CentreOf(at.Y), Dk2TerrainFixture.ImpCreatureId, state, 1000, job ?? Job(0));
+    private static ResyncCreature Imp(int slot, TilePos at, int state, ResyncJob? job = null)
+    {
+        return new(slot, Keeper, CreatureState.CentreOf(at.X), CreatureState.CentreOf(at.Y), Dk2TerrainFixture.ImpCreatureId, state, 1000, job ?? Job(0));
+    }
 
-    private static ResyncJob Job(int resume, int taskX = 0, int taskY = 0, int side = 0, int slot = 0, int lastKind = 0, int gold = 0) =>
-        new(resume, taskX, taskY, 1, side, slot, lastKind, 0, 0, gold);
+    private static ResyncJob Job(int resume, int taskX = 0, int taskY = 0, int side = 0, int slot = 0, int lastKind = 0, int gold = 0)
+    {
+        return new(resume, taskX, taskY, 1, side, slot, lastKind, 0, 0, gold);
+    }
 
-    private static ResyncState State(WorldState world, ResyncCreature[] creatures, ResyncObject[]? objects = null, uint seed = 99) =>
-        new(10, world.Width, world.Height, [new ResyncPlayer(Keeper, 1234, 56)], TilesOf(world), null, creatures, objects, seed);
+    private static ResyncState State(WorldState world, ResyncCreature[] creatures, ResyncObject[]? objects = null, uint seed = 99)
+    {
+        return new(10, world.Width, world.Height, [new ResyncPlayer(Keeper, 1234, 56)], TilesOf(world), null, creatures, objects, seed);
+    }
 
     /// <summary>
     /// <b>A skipped part stays ours; the rest is DK2's.</b> The same capture as above, applied
@@ -599,8 +605,11 @@ public class WorldResyncTests
         CreatureState near = world.SpawnCreature(database, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(2, 2));
         CreatureState far = world.SpawnCreature(database, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 5));
         CreatureState extra = world.SpawnCreature(database, Dk2TerrainFixture.MistressCreatureId, Keeper, new TilePos(3, 3));
-        ResyncCreature Native(int slot, byte type, TilePos at, int level = 0, ResyncFear? fear = null) =>
-            new(slot, Keeper, CreatureState.CentreOf(at.X), CreatureState.CentreOf(at.Y), type, 1, 700, null, fear, level);
+        ResyncCreature Native(int slot, byte type, TilePos at, int level = 0, ResyncFear? fear = null)
+        {
+            return new(slot, Keeper, CreatureState.CentreOf(at.X), CreatureState.CentreOf(at.Y), type, 1, 700, null, fear, level);
+        }
+
         ResyncState state = State(world,
         [
             Native(500, Dk2TerrainFixture.GoblinCreatureId, new TilePos(5, 4), level: 3, fear: new ResyncFear(30, 40, 2)),
@@ -635,9 +644,12 @@ public class WorldResyncTests
         CreatureState ours = world.SpawnCreature(database, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(2, 2));
         CreatureState other = world.SpawnCreature(database, Dk2TerrainFixture.GoblinCreatureId, Keeper, new TilePos(5, 5));
         (ours.OldFightTileX, ours.OldFightTileY, ours.OldFightTick) = (9, 9, 1);
-        ResyncCreature Native(int slot, TilePos at, ResyncFightReturn fight) =>
-            new(slot, Keeper, CreatureState.CentreOf(at.X), CreatureState.CentreOf(at.Y),
+        ResyncCreature Native(int slot, TilePos at, ResyncFightReturn fight)
+        {
+            return new(slot, Keeper, CreatureState.CentreOf(at.X), CreatureState.CentreOf(at.Y),
                 Dk2TerrainFixture.GoblinCreatureId, 1, 700, null, FightReturn: fight);
+        }
+
         ResyncState state = State(world,
         [
             Native(500, new TilePos(2, 2), new ResyncFightReturn(0, 0, 0)),

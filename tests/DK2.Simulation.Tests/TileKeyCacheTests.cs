@@ -17,12 +17,23 @@ public sealed class TileKeyCacheTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
 
-    private static GameDatabase Db => Dk2TerrainFixture.Database();
+    private static GameDatabase Db
+    {
+        get
+        {
+            return Dk2TerrainFixture.Database();
+        }
+    }
 
-    private static WorldState World(GameDatabase db) =>
-        WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, (byte)4]);
+    private static WorldState World(GameDatabase db)
+    {
+        return WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, (byte)4]);
+    }
 
-    private static int Index(WorldState world, int x, int y) => (y * world.Width) + x;
+    private static int Index(WorldState world, int x, int y)
+    {
+        return (y * world.Width) + x;
+    }
 
     [Fact]
     public void RoomAt_SeesATerrainWrittenAfterAnEarlierQuery()
@@ -127,9 +138,11 @@ public sealed class TileKeyCacheTests
     }
 
     // TileState.NoteBulkKeyWrite is internal to DK2.Simulation, which has no friend among the test projects.
-    private static void NoteBulkKeyWrite() =>
+    private static void NoteBulkKeyWrite()
+    {
         typeof(TileState).GetMethod("NoteBulkKeyWrite", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!
             .Invoke(null, null);
+    }
 
     [Fact]
     public void StructureBlocks_SeeAPortalBuiltAndSoldBetweenQueries()
@@ -296,5 +309,8 @@ public sealed class TileKeyCacheTests
         Assert.Equal(rebuilds + 1, steering.Rebuilds);
     }
 
-    private static Fixed16Vector At(int x, int y) => new(CreatureState.CentreOf(x) << 4, CreatureState.CentreOf(y) << 4);
+    private static Fixed16Vector At(int x, int y)
+    {
+        return new(CreatureState.CentreOf(x) << 4, CreatureState.CentreOf(y) << 4);
+    }
 }

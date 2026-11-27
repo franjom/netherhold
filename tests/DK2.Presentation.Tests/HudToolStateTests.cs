@@ -22,10 +22,15 @@ public sealed class HudToolStateTests
     private readonly record struct Fields(DungeonToolMode Tool, RoomTypeId Room, BottomPanelChoiceKey? Choice, bool Query,
         ClassicHudAction Corner);
 
-    private static Fields Of(HudToolState state) =>
-        new(state.Tool, state.SelectedRoomId, state.PanelChoice, state.QueryTool, state.SelectedCorner);
+    private static Fields Of(HudToolState state)
+    {
+        return new(state.Tool, state.SelectedRoomId, state.PanelChoice, state.QueryTool, state.SelectedCorner);
+    }
 
-    private static BottomPanelView Panel() => new(new GameDatabase([], [], [], new GlobalVariables()), Keeper, (_, name) => name);
+    private static BottomPanelView Panel()
+    {
+        return new(new GameDatabase([], [], [], new GlobalVariables()), Keeper, (_, name) => name);
+    }
 
     private static CreatureQueryView Query()
     {
@@ -246,8 +251,11 @@ public sealed class HudToolStateTests
         var database = new GameDatabase([], [], [], new GlobalVariables());
         var input = new PlayerInputTranslator();
         BottomPanelView panel = Panel();
-        PlacementFeedback Over(HudToolState state, PlayerInputTranslator translator) =>
-            state.Placement(null!, database, null!, Keeper, null, default, 0, translator, panel);
+        PlacementFeedback Over(HudToolState state, PlayerInputTranslator translator)
+        {
+            return state.Placement(null!, database, null!, Keeper, null, default, 0, translator, panel);
+        }
+
         var state = new HudToolState();
         Assert.Equal(PlacementFeedback.None, Over(state, input));
         Assert.Equal(PlacementCursor.Targeting(new SpecialTargeting(8, SpecialTargeting.KillCreatures)), Over(state, Targeting()));
@@ -259,7 +267,14 @@ public sealed class HudToolStateTests
 
     private sealed class NoNames : IClassicCreatureNames
     {
-        public string Name(CreatureNameIndex index) => "";
-        public string BloodGroup(CreatureBloodGroupIndex index) => "";
+        public string Name(CreatureNameIndex index)
+        {
+            return "";
+        }
+
+        public string BloodGroup(CreatureBloodGroupIndex index)
+        {
+            return "";
+        }
     }
 }

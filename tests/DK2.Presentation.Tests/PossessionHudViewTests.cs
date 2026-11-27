@@ -55,8 +55,10 @@ public sealed class PossessionHudViewTests
     [InlineData(0, 0)]
     [InlineData(5, 50)]
     [InlineData(10, 100)]
-    public void NeverUsedRechargeStampStillUsesElapsedLevelTime(int tick, int percent) =>
+    public void NeverUsedRechargeStampStillUsesElapsedLevelTime(int tick, int percent)
+    {
         Assert.Equal(percent, PossessionHudView.Recharge(new GameTick(tick), 0, 10));
+    }
 
     [InstallFact]
     public void UnbuiltBookCarryStateDoesNotLightTheThrowIconFromHypnosisSelection()
@@ -170,8 +172,10 @@ public sealed class PossessionHudViewTests
     [InlineData(10, 10, 100)]
     [InlineData(30, 10, 100)]
     [InlineData(0, 0, 100)]
-    public void RechargeUsesHudClockWithoutTheWorkRateDivisor(int elapsed, int interval, int expected) =>
+    public void RechargeUsesHudClockWithoutTheWorkRateDivisor(int elapsed, int interval, int expected)
+    {
         Assert.Equal(expected, PossessionHudView.Recharge(new GameTick(100 + elapsed), 100, interval));
+    }
 
     [InstallFact]
     public void SnapshotHasCarriedGoldAndOnlyUnlockedSpellsAndOwnFollowers()

@@ -28,10 +28,19 @@ public class PaydayTests
     /// <summary>The claimed 3x3 room the fixture map puts in the corner.</summary>
     private static readonly TilePos Floor = new(2, 2);
 
-    private static GameDatabase Db => Dk2TerrainFixture.Database();
+    private static GameDatabase Db
+    {
+        get
+        {
+            return Dk2TerrainFixture.Database();
+        }
+    }
 
-    private static WorldState World(GameDatabase db) => WorldState.FromMap(
+    private static WorldState World(GameDatabase db)
+    {
+        return WorldState.FromMap(
         db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+    }
 
     /// <summary>
     /// Payday and movement only. Everything else is left out so a test that

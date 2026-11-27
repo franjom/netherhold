@@ -23,31 +23,39 @@ public class OriginalFixed16Tests(ITestOutputHelper log)
 
     /// <summary><c>0x004D1F10</c>: cdecl (out*, in*).</summary>
     [OracleFact]
-    public void Normalise_MatchesTheOriginal() =>
+    public void Normalise_MatchesTheOriginal()
+    {
         Compare("normalise", [.. Vectors().Select(v => (v, 0))],
             x => new Request(0x004D1F10, [Out, In], Input(x.V), [Out, Out + 4]),
             x => Fixed16.Normalise(x.V));
+    }
 
     /// <summary><c>0x004D4F60</c>: cdecl (out*, in*, max).</summary>
     [OracleFact]
-    public void Truncate_MatchesTheOriginal() =>
+    public void Truncate_MatchesTheOriginal()
+    {
         Compare("truncate", Pairs(),
             x => new Request(0x004D4F60, [Out, In, (uint)x.K], Input(x.V), [Out, Out + 4]),
             x => Fixed16.Truncate(x.V, x.K));
+    }
 
     /// <summary><c>0x004D1E70</c>: thiscall, ECX the vector, then (out*, k).</summary>
     [OracleFact]
-    public void Scale_MatchesTheOriginal() =>
+    public void Scale_MatchesTheOriginal()
+    {
         Compare("scale", Pairs(),
             x => new Request(0x004D1E70, [Out, (uint)x.K], Input(x.V), [Out, Out + 4], Ecx: In),
             x => x.V.Scale(x.K));
+    }
 
     /// <summary><c>0x004D1EC0</c>: thiscall, ECX the vector, then (out*, k).</summary>
     [OracleFact]
-    public void Over_MatchesTheOriginal() =>
+    public void Over_MatchesTheOriginal()
+    {
         Compare("over", Pairs(),
             x => new Request(0x004D1EC0, [Out, (uint)x.K], Input(x.V), [Out, Out + 4], Ecx: In),
             x => x.V.Over(x.K));
+    }
 
     private void Compare(string name, (Fixed16Vector V, int K)[] inputs,
         Func<(Fixed16Vector V, int K), Request> request, Func<(Fixed16Vector V, int K), Fixed16Vector> ours)
@@ -85,7 +93,10 @@ public class OriginalFixed16Tests(ITestOutputHelper log)
         Assert.True(mismatches.Count == 0, $"{mismatches.Count} of {inputs.Length} differ; first:\n" + string.Join("\n", mismatches.Take(15)));
     }
 
-    private static (uint, uint)[] Input(Fixed16Vector v) => [(In, (uint)v.X), (In + 4, (uint)v.Y)];
+    private static (uint, uint)[] Input(Fixed16Vector v)
+    {
+        return [(In, (uint)v.X), (In + 4, (uint)v.Y)];
+    }
 
     /// <summary>Components at every band edge of the three-band length, the unit, the signed
     /// extremes, and a spread of magnitudes from 1 to 2^31.</summary>

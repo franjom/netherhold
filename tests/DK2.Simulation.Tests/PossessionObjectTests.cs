@@ -62,8 +62,10 @@ public sealed class PossessionObjectTests
         return sim;
     }
 
-    private static ActPossessedCreatureCommand Act(CreatureState me, bool melee = true, int slot = 0) =>
-        new(Keeper, new(new(new(me.PosX), new(me.PosY), new(me.PosZ)), new(East), new(Level)), melee, new(slot));
+    private static ActPossessedCreatureCommand Act(CreatureState me, bool melee = true, int slot = 0)
+    {
+        return new(Keeper, new(new(new(me.PosX), new(me.PosY), new(me.PosZ)), new(East), new(Level)), melee, new(slot));
+    }
 
     /// <summary>An object a little east of the creature, inside its reach.</summary>
     private static ObjectState InFront(GameDatabase db, WorldState world, CreatureState me, byte type, byte owner = PlayerIds.Neutral)
@@ -74,9 +76,11 @@ public sealed class PossessionObjectTests
         return o;
     }
 
-    private static int Blow(GameDatabase db, CreatureState me) =>
-        MeleeDamageRules.ApplyPlayerModifiers(MeleeDamageRules.Swing(db, db.CreatureById(me.CreatureTypeId), me.Level,
+    private static int Blow(GameDatabase db, CreatureState me)
+    {
+        return MeleeDamageRules.ApplyPlayerModifiers(MeleeDamageRules.Swing(db, db.CreatureById(me.CreatureTypeId), me.Level,
             MeleeDamageRules.StanceOf(me)), 0, 0);
+    }
 
     // ------------------------------------------------------------------ the chicken
 

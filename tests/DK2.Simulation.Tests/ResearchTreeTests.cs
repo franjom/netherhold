@@ -24,7 +24,13 @@ public sealed class ResearchTreeTests
     /// <summary>A 3×3 Library's only floor slot, its interior tile.</summary>
     private static readonly TilePos Shelf = new(2, 2);
 
-    private static int Second => SimulationTiming.TicksPerSecond;
+    private static int Second
+    {
+        get
+        {
+            return SimulationTiming.TicksPerSecond;
+        }
+    }
 
     /// <summary>The fixture, with a two-entry research list: Create Imp, then the wooden door.
     /// Each costs <paramref name="cost"/>.</summary>
@@ -61,7 +67,10 @@ public sealed class ResearchTreeTests
     }
 
     /// <summary>The fixture's Vampire at work in the Library: one research point a tick.</summary>
-    private static CreatureState Researcher(GameDatabase db, WorldState world) => Researcher(db, world, new TilePos(1, 1));
+    private static CreatureState Researcher(GameDatabase db, WorldState world)
+    {
+        return Researcher(db, world, new TilePos(1, 1));
+    }
 
     private static CreatureState Researcher(GameDatabase db, WorldState world, TilePos at)
     {
@@ -82,8 +91,10 @@ public sealed class ResearchTreeTests
         return (sim, sink);
     }
 
-    private static List<ObjectState> Books(WorldState world) =>
-        [.. world.Objects.Where(o => o.ObjectTypeId == ResearchTreeRules.BookObjectTypeId)];
+    private static List<ObjectState> Books(WorldState world)
+    {
+        return [.. world.Objects.Where(o => o.ObjectTypeId == ResearchTreeRules.BookObjectTypeId)];
+    }
 
     // ---- choosing ---------------------------------------------------------
 

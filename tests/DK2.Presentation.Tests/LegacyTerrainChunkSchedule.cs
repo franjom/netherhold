@@ -48,7 +48,13 @@ internal sealed class LegacyTerrainChunkSchedule
 
     public double FlushBudgetMilliseconds { get; set; } = 4.0;
 
-    public int PendingChunks => _dirty.Count;
+    public int PendingChunks
+    {
+        get
+        {
+            return _dirty.Count;
+        }
+    }
 
     public List<SchedulerLog.Upload> Uploads { get; } = new();
 
@@ -143,7 +149,10 @@ internal sealed class LegacyTerrainChunkSchedule
         Array.Clear(_stale, 0, _stale.Length);
     }
 
-    public void WaitForBuild() => _buildTask?.Wait();
+    public void WaitForBuild()
+    {
+        _buildTask?.Wait();
+    }
 
     private void DirtyNeighbours(int tileIndex)
     {
@@ -175,8 +184,10 @@ internal sealed class LegacyTerrainChunkSchedule
         _dirty.Add(ChunkOf(tileIndex));
     }
 
-    private int ChunkOf(int tileIndex) =>
-        (tileIndex / _width / ChunkSize * _chunksX) + (tileIndex % _width / ChunkSize);
+    private int ChunkOf(int tileIndex)
+    {
+        return (tileIndex / _width / ChunkSize * _chunksX) + (tileIndex % _width / ChunkSize);
+    }
 
     private bool AnyStale(int chunk)
     {
@@ -321,9 +332,15 @@ internal sealed class SchedulerLog : ITerrainChunkSink
 
     public Action? Uploaded { get; set; }
 
-    public void BeginChunk(int chunk) => _open = new Upload(chunk);
+    public void BeginChunk(int chunk)
+    {
+        _open = new Upload(chunk);
+    }
 
-    public void AddTile(int tileIndex, TerrainTileGeometry geometry) => _open!.Add(tileIndex, geometry);
+    public void AddTile(int tileIndex, TerrainTileGeometry geometry)
+    {
+        _open!.Add(tileIndex, geometry);
+    }
 
     public void EndChunk(int chunk)
     {
@@ -359,6 +376,9 @@ internal sealed class SchedulerLog : ITerrainChunkSink
             }
         }
 
-        public override string ToString() => $"chunk {Chunk}: {Tiles.Count} tiles, {Vertices} vertices";
+        public override string ToString()
+        {
+            return $"chunk {Chunk}: {Tiles.Count} tiles, {Vertices} vertices";
+        }
     }
 }

@@ -12,11 +12,13 @@ public class WinScreenTests
 {
     private static readonly PlayerId Viewer = new(3);
 
-    private static SimEvent View(ScriptedViewKind kind, int value = 0, bool flag = false, int value2 = 0) =>
-        new(default, "t", "scripted_view", "")
+    private static SimEvent View(ScriptedViewKind kind, int value = 0, bool flag = false, int value2 = 0)
+    {
+        return new(default, "t", "scripted_view", "")
         {
             ScriptedView = new ScriptedViewRequest(kind, Viewer, value, default, flag, Value2: value2),
         };
+    }
 
     [Fact]
     public void ARewardWithNoSpeechDoesNotPlayMentorEntryZero()

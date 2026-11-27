@@ -10,7 +10,10 @@ namespace DK2.Simulation.Tests.Steering;
 /// full-force shove from soft obstacles and a recorded contact for solid ones.</summary>
 public class RepelObstacleTests
 {
-    private static Fixed16Vector T(double x, double y) => FakeSteeringWorld.Tiles(x, y);
+    private static Fixed16Vector T(double x, double y)
+    {
+        return FakeSteeringWorld.Tiles(x, y);
+    }
 
     private static (SteeringBody body, FakeSteeringWorld world) Setup()
     {

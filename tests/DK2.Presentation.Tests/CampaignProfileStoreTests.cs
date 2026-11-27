@@ -14,11 +14,23 @@ public sealed class CampaignProfileStoreTests : IDisposable
     private readonly string _root = Directory.CreateTempSubdirectory("dk2-profile-").FullName;
     private DateTime _clock = new(2026, 11, 16, 12, 0, 0);
 
-    private string ProfilePath => Path.Combine(_root, "campaign-profile.dk2p");
+    private string ProfilePath
+    {
+        get
+        {
+            return Path.Combine(_root, "campaign-profile.dk2p");
+        }
+    }
 
-    private CampaignProfileStore Store(Func<CampaignProfile?>? import = null) => new(import, () => _clock);
+    private CampaignProfileStore Store(Func<CampaignProfile?>? import = null)
+    {
+        return new(import, () => _clock);
+    }
 
-    private static byte[] Bytes(CampaignProfile profile) => CampaignProfileFile.Write(profile);
+    private static byte[] Bytes(CampaignProfile profile)
+    {
+        return CampaignProfileFile.Write(profile);
+    }
 
     private static CampaignProfile WithStatuses(params (int Slot, CampaignLevelStatus Status)[] statuses)
     {
@@ -138,8 +150,10 @@ public sealed class CampaignProfileStoreTests : IDisposable
         Assert.Empty(OpenSlots(loaded));
     }
 
-    private static int[] OpenSlots(CampaignProfile profile) =>
-        [.. Enumerable.Range(1, 24).Where(slot => profile.PlayerLevelStatus[slot - 1] == CampaignLevelStatus.Open)];
+    private static int[] OpenSlots(CampaignProfile profile)
+    {
+        return [.. Enumerable.Range(1, 24).Where(slot => profile.PlayerLevelStatus[slot - 1] == CampaignLevelStatus.Open)];
+    }
 
     [Fact]
     public void AnAdoptedProfileHasNoFileAndKeepsTrackedChangesInMemory()

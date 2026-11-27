@@ -26,8 +26,11 @@ public class RoomConversionTests
 
     private static readonly GameDatabase Db = Dk2TerrainFixture.Database();
 
-    private static WorldState World() => WorldState.FromMap(
+    private static WorldState World()
+    {
+        return WorldState.FromMap(
         Db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
+    }
 
     private static void Paint(
         WorldState world, RoomTypeId type, int x0, int y0, int w, int h, byte owner)
@@ -66,9 +69,11 @@ public class RoomConversionTests
         throw new InvalidOperationException($"ConvertRoom never completed at {at}");
     }
 
-    private static RoomInstance RoomAt(WorldState world, int x, int y) =>
-        RoomIndex.RoomAt(world, Db, (y * world.Width) + x)
+    private static RoomInstance RoomAt(WorldState world, int x, int y)
+    {
+        return RoomIndex.RoomAt(world, Db, (y * world.Width) + x)
         ?? throw new InvalidOperationException($"no room at ({x},{y})");
+    }
 
     // ---- the two tests that would have caught the defect ------------------
 

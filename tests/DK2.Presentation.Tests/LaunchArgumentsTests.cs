@@ -25,8 +25,10 @@ public sealed class LaunchArgumentsTests
     [InlineData("1e3")]
     [InlineData(" 5")]
     [InlineData("18446744073709551616")]
-    public void ASeedThatIsNotAPlainDecimalLeavesTheHostsOwn(string text) =>
+    public void ASeedThatIsNotAPlainDecimalLeavesTheHostsOwn(string text)
+    {
         Assert.Null(LaunchArguments.Parse(["-seed", text], "-").Seed);
+    }
 
     [Fact]
     public void AValueIsTheArgumentAfterTheFirstKey()
@@ -55,8 +57,10 @@ public sealed class LaunchArgumentsTests
     [InlineData("1,4,5")]
     [InlineData("1.5,4")]
     [InlineData("2147483648,4")]
-    public void AGlideTargetThatIsNotTwoPlainDecimalsIsNone(string text) =>
+    public void AGlideTargetThatIsNotTwoPlainDecimalsIsNone(string text)
+    {
         Assert.Null(LaunchArguments.GlideTarget(["--glide-to", text], "--"));
+    }
 
     [Fact]
     public void PossessFirstCreatureIsItsKeyUnderTheEnginesPrefix()
@@ -114,7 +118,10 @@ public sealed class LaunchArgumentsTests
     [InlineData("x:1,2")]
     [InlineData("0:1000000000000000000000000000000000000000000,2")]
     [InlineData("0:1,9999999999999999999999999999999999999999999999")]
-    public void APointerPathWithAMalformedKeyIsNone(string text) => Assert.Null(LaunchArguments.ParsePointerPath(text));
+    public void APointerPathWithAMalformedKeyIsNone(string text)
+    {
+        Assert.Null(LaunchArguments.ParsePointerPath(text));
+    }
 
     [Fact]
     public void AScriptedPointerMovesInLinesAndChangesButtonsOnItsFrames()

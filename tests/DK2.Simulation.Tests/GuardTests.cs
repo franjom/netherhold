@@ -64,7 +64,10 @@ public sealed class GuardTests
         // 0x00462BB0 returns the pair's facing on a hit (0x00462CD3) and 8 only for a miss, so the
         // ninth pair (mask 10, facing 0) is a post like the other corners (ADR-0780).
         (GameDatabase db, WorldState world) = World();
-        int SlotOf(int x, int y, out int f) => GuardRules.Slot(world, db, x, y, Keeper, out f);
+        int SlotOf(int x, int y, out int f)
+        {
+            return GuardRules.Slot(world, db, x, y, Keeper, out f);
+        }
 
         Assert.Equal(5, SlotOf(7, 5, out int se));   // west and north in the room
         Assert.Equal(2, se);

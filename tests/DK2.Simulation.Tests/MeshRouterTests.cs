@@ -21,10 +21,16 @@ public class MeshRouterTests
         public Grid(string[] rows) { _rows = rows; Height = rows.Length; Width = rows[0].Length; }
         public int Width { get; }
         public int Height { get; }
-        public byte NavByte(int x, int y) => _rows[y][x] switch
+        public byte NavByte(int x, int y)
         {
-            '#' => NavBytes.Solid, '~' => NavBytes.Water, 'L' => NavBytes.Lava, _ => NavBytes.Floor,
-        };
+            return _rows[y][x] switch
+            {
+                '#' => NavBytes.Solid,
+                '~' => NavBytes.Water,
+                'L' => NavBytes.Lava,
+                _ => NavBytes.Floor,
+            };
+        }
     }
 
     private static (MeshRouter router, NavMesh mesh) Make(params string[] rows)

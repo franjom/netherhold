@@ -34,10 +34,19 @@ public class ObjectCarryingTests
     private static readonly TilePos Loose = new(1, 1);
     private static readonly TilePos Middle = new(2, 2);
 
-    private static GameDatabase Db => Dk2TerrainFixture.Database();
+    private static GameDatabase Db
+    {
+        get
+        {
+            return Dk2TerrainFixture.Database();
+        }
+    }
 
-    private static WorldState World(GameDatabase db) => WorldState.FromMap(
+    private static WorldState World(GameDatabase db)
+    {
+        return WorldState.FromMap(
         db, Dk2TerrainFixture.Map(), [(byte)0, Rival, PlayerIds.Neutral, Keeper]);
+    }
 
     private static GameSimulation Simulation(
         GameDatabase db, WorldState world, ListEventSink? sink = null)
@@ -69,8 +78,10 @@ public class ObjectCarryingTests
 
     private static ObjectState Drop(
         GameDatabase db, WorldState world, TilePos at, byte type = SpellBook,
-        byte owner = PlayerIds.Unowned) =>
-        world.SpawnObject(db, type, owner, (at.Y * world.Width) + at.X);
+        byte owner = PlayerIds.Unowned)
+    {
+        return world.SpawnObject(db, type, owner, (at.Y * world.Width) + at.X);
+    }
 
     // ---- where a thing belongs ---------------------------------------------
 

@@ -60,10 +60,15 @@ public sealed class RenderRotationTests
         Assert.True(Vector3.Distance(expected, mirrored) < 1e-5f);
     }
 
-    private static float Angle(Random random) => (float)(random.NextDouble() * 720 - 360);
+    private static float Angle(Random random)
+    {
+        return (float)(random.NextDouble() * 720 - 360);
+    }
 
-    private static bool Same(Quaternion a, Quaternion b) =>
-        Math.Abs(a.X - b.X) < 1e-6f && Math.Abs(a.Y - b.Y) < 1e-6f && Math.Abs(a.Z - b.Z) < 1e-6f && Math.Abs(a.W - b.W) < 1e-6f;
+    private static bool Same(Quaternion a, Quaternion b)
+    {
+        return Math.Abs(a.X - b.X) < 1e-6f && Math.Abs(a.Y - b.Y) < 1e-6f && Math.Abs(a.Z - b.Z) < 1e-6f && Math.Abs(a.W - b.W) < 1e-6f;
+    }
 
     // The old adapter: Unity's single-axis Euler and AngleAxis quaternions, and its operator * written out.
     private static Quaternion Legacy(RenderEuler turn)
@@ -79,9 +84,12 @@ public sealed class RenderRotationTests
         return new Quaternion(x * s, y * s, z * s, (float)Math.Cos(half));
     }
 
-    private static Quaternion Multiply(Quaternion lhs, Quaternion rhs) => new(
+    private static Quaternion Multiply(Quaternion lhs, Quaternion rhs)
+    {
+        return new(
         lhs.W * rhs.X + lhs.X * rhs.W + lhs.Y * rhs.Z - lhs.Z * rhs.Y,
         lhs.W * rhs.Y + lhs.Y * rhs.W + lhs.Z * rhs.X - lhs.X * rhs.Z,
         lhs.W * rhs.Z + lhs.Z * rhs.W + lhs.X * rhs.Y - lhs.Y * rhs.X,
         lhs.W * rhs.W - lhs.X * rhs.X - lhs.Y * rhs.Y - lhs.Z * rhs.Z);
+    }
 }

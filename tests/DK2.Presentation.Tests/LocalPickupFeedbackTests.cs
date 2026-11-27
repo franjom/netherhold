@@ -105,8 +105,12 @@ public sealed class LocalPickupFeedbackTests
         var events = new ListEventSink();
         var sink = new LocalPickupEffectSink(pending, events);
         Assert.True(pending.TryQueue(world, db, Keeper, new(creature.Id), 0));
-        void Emit(string system, ViewEffectRequest request) => sink.Emit(
+        void Emit(string system, ViewEffectRequest request)
+        {
+            sink.Emit(
             new SimEvent(world.CurrentTick, system, "effect_requested", "") { EffectRequest = request });
+        }
+
         Emit("Hand", dust with { SourceCreatureId = new(creature.Id + 1) });
         Emit("Hand", dust with { Owner = PlayerIds.Neutral });
         Emit("movement dust", dust);

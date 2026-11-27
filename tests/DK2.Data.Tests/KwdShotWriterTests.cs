@@ -11,7 +11,8 @@ namespace DK2.Data.Tests;
 public class KwdShotWriterTests
 {
     [Fact]
-    public void EveryDecodedFieldRoundTripsWithoutChangingOtherBytes() =>
+    public void EveryDecodedFieldRoundTripsWithoutChangingOtherBytes()
+    {
         KwdScalarOverlayChecks.Check(KwdRecordType.Shots, 239, Read, KwdAdditionalRecords.WriteShotRecord,
             "Name:0:32 MeshResource:20:84 Light:74:24 AirFriction:8C:4 Mass:90:4 Speed:94:4 Unknown_0098:98:4 " +
             "Unknown_009C:9C:4 ShotProcessFlags:A0:4 Radius:A4:4 Flags:A8:4 GeneralEffectId:AC:2 CreationEffectId:AE:2 " +
@@ -19,16 +20,21 @@ public class KwdShotWriterTests
             "HitThingEffectId:BA:2 Health:BC:2 ShotId:BE:1 DeathShotId:BF:1 TimedDelay:C0:1 HitSolidShotId:C1:1 " +
             "HitLavaShotId:C2:1 HitWaterShotId:C3:1 HitThingShotId:C4:1 DamageType:C5:1 CollideType:C6:1 ProcessType:C7:1 " +
             "AttackCategory:C8:1 SoundCategory:C9:32 Threat:E9:2 BurnDuration:EB:4");
+    }
 
     [Fact]
-    public void EveryNestedArtFieldRoundTripsWithoutChangingOtherBytes() =>
+    public void EveryNestedArtFieldRoundTripsWithoutChangingOtherBytes()
+    {
         KwdNestedOverlayChecks.Art(KwdRecordType.Shots, 239, 32, Read, KwdAdditionalRecords.WriteShotRecord,
             c => c.MeshResource, (c, art) => c with { MeshResource = art });
+    }
 
     [Fact]
-    public void EveryNestedLightFieldRoundTripsWithoutChangingOtherBytes() =>
+    public void EveryNestedLightFieldRoundTripsWithoutChangingOtherBytes()
+    {
         KwdNestedOverlayChecks.Light(KwdRecordType.Shots, 239, 116, Read, KwdAdditionalRecords.WriteShotRecord,
             c => c.Light, (c, light) => c with { Light = light });
+    }
 
     [InstallFact]
     public void EveryShippedShotTypedOverlayIsByteIdentical()
@@ -42,6 +48,9 @@ public class KwdShotWriterTests
         }
     }
 
-    private static ShotDef Read(byte[] source) => KwdAdditionalRecords.ParseShots([
+    private static ShotDef Read(byte[] source)
+    {
+        return KwdAdditionalRecords.ParseShots([
         new KwdChunk { Type = KwdRecordType.Shots, ItemCount = 1, Content = source, HeaderBlock = [] }]).Single();
+    }
 }

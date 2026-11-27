@@ -228,10 +228,22 @@ public class FloorHeightTests
     /// <summary>The physical pass alone, as the creature update runs it.</summary>
     private sealed class Probe : ICreatureUpdateStep
     {
-        public string Name => "physical pass";
+        public string Name
+        {
+            get
+            {
+                return "physical pass";
+            }
+        }
 
-        public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+        public void Execute(SimulationContext context)
+        {
+            CreatureUpdateSystem.RunAlone(context, this);
+        }
 
-        public void Update(SimulationContext context, CreatureState creature) => CreaturePhysicsRules.Step(context, creature);
+        public void Update(SimulationContext context, CreatureState creature)
+        {
+            CreaturePhysicsRules.Step(context, creature);
+        }
     }
 }

@@ -19,10 +19,18 @@ public class KeeperKnowledgeTests(Xunit.Abstractions.ITestOutputHelper output)
         KeeperKnowledgeCommand.Measure(ScenarioCorpus.Database,
             GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "level1")!));
 
-    private static KeeperKnowledgeCommand.SizeFacts At(RoomTypeId room, int side) =>
-        Generated.Value.Single(r => r.Room == room).Sizes.Single(s => s.Side == side);
+    private static KeeperKnowledgeCommand.SizeFacts At(RoomTypeId room, int side)
+    {
+        return Generated.Value.Single(r => r.Room == room).Sizes.Single(s => s.Side == side);
+    }
 
-    private static string KnowledgeDirectory => Path.Combine(ScenarioCorpus.RepositoryRoot(), KeeperKnowledgeFile.DirectoryName);
+    private static string KnowledgeDirectory
+    {
+        get
+        {
+            return Path.Combine(ScenarioCorpus.RepositoryRoot(), KeeperKnowledgeFile.DirectoryName);
+        }
+    }
 
     [InstallFact]
     public void ALibrarysShelvesAndATemplesHandFollowTheirSquare()

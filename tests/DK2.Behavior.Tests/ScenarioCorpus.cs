@@ -35,17 +35,31 @@ internal static class ScenarioCorpus
 
     /// <summary>The shipped database, loaded once for the whole assembly: a run never mutates it,
     /// and a level's own variables are layered on per run by <see cref="ScenarioRunner"/>.</summary>
-    public static GameDatabase Database => InstallDatabase.Value;
+    public static GameDatabase Database
+    {
+        get
+        {
+            return InstallDatabase.Value;
+        }
+    }
 
     /// <summary>Every scenario file, as a path relative to <c>scenarios/</c> with forward slashes.</summary>
-    public static List<string> Files() =>
-        [.. Directory.EnumerateFiles(Root(), "*.yaml", SearchOption.AllDirectories)
+    public static List<string> Files()
+    {
+        return [.. Directory.EnumerateFiles(Root(), "*.yaml", SearchOption.AllDirectories)
              .Select(f => Path.GetRelativePath(Root(), f).Replace('\\', '/'))
              .OrderBy(f => f, StringComparer.Ordinal)];
+    }
 
-    public static string PathOf(string relative) => Path.Combine(Root(), relative);
+    public static string PathOf(string relative)
+    {
+        return Path.Combine(Root(), relative);
+    }
 
-    public static Scenario Load(string relative) => Scenario.Load(PathOf(relative));
+    public static Scenario Load(string relative)
+    {
+        return Scenario.Load(PathOf(relative));
+    }
 
     /// <summary>Runs a scenario against the shipped install and writes where its time went.</summary>
     public static ScenarioResult Run(Scenario scenario, ITestOutputHelper output)
@@ -75,5 +89,8 @@ internal static class ScenarioCorpus
             "Could not locate the repository root (no DK2.slnx above the test binaries).");
     }
 
-    private static string Root() => Path.Combine(RepositoryRoot(), "scenarios");
+    private static string Root()
+    {
+        return Path.Combine(RepositoryRoot(), "scenarios");
+    }
 }

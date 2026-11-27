@@ -67,7 +67,11 @@ internal sealed class LegacyTerrainChunkBuild
     /// <summary>A material ClassicMeshes would have made, named by the key it stands for.</summary>
     internal sealed class Material
     {
-        public Material(TerrainMaterialKey key) => Key = key;
+        public Material(TerrainMaterialKey key)
+        {
+            Key = key;
+        }
+
         public TerrainMaterialKey Key { get; }
     }
 
@@ -77,8 +81,10 @@ internal sealed class LegacyTerrainChunkBuild
     {
         private readonly Dictionary<object, Material> _cache = new();
 
-        public Material ForTexture(ClassicMaterialRecipe recipe) =>
-            Cached(("base", recipe), () => new Material(new TerrainMaterialKey(recipe, TerrainMaterialVariant.Plain)));
+        public Material ForTexture(ClassicMaterialRecipe recipe)
+        {
+            return Cached(("base", recipe), () => new Material(new TerrainMaterialKey(recipe, TerrainMaterialVariant.Plain)));
+        }
 
         public Material Tagged(Material material, bool red = false)
         {
@@ -107,11 +113,16 @@ internal sealed class LegacyTerrainChunkBuild
             }));
         }
 
-        public Material SightFog(Material source, byte alpha) => Cached(("fog", source, alpha), () => new Material(
+        public Material SightFog(Material source, byte alpha)
+        {
+            return Cached(("fog", source, alpha), () => new Material(
             source.Key with { Variant = TerrainMaterialVariant.Fog, FogOpacity = alpha }));
+        }
 
-        public Material TagOverlay(bool red = false) =>
-            Cached(("overlay", red), () => new Material(TerrainMaterialKey.Overlay(red)));
+        public Material TagOverlay(bool red = false)
+        {
+            return Cached(("overlay", red), () => new Material(TerrainMaterialKey.Overlay(red)));
+        }
 
         private Material Cached(object key, Func<Material> make)
         {
@@ -128,10 +139,38 @@ internal sealed class LegacyTerrainChunkBuild
     {
         public PieceSource(TerrainPiece piece, Material[] materials) { Piece = piece; Materials = materials; }
         public TerrainPiece Piece { get; }
-        public Vector3[] Positions => Piece.Positions;
-        public Vector3[] Normals => Piece.Normals;
-        public Vector2[] Uvs => Piece.Uvs;
-        public IReadOnlyList<int[]> Triangles => Piece.Triangles;
+        public Vector3[] Positions
+        {
+            get
+            {
+                return Piece.Positions;
+            }
+        }
+
+        public Vector3[] Normals
+        {
+            get
+            {
+                return Piece.Normals;
+            }
+        }
+
+        public Vector2[] Uvs
+        {
+            get
+            {
+                return Piece.Uvs;
+            }
+        }
+
+        public IReadOnlyList<int[]> Triangles
+        {
+            get
+            {
+                return Piece.Triangles;
+            }
+        }
+
         public Material[] Materials { get; }
     }
 
@@ -183,7 +222,10 @@ internal sealed class LegacyTerrainChunkBuild
         public int Piece, Group, Slot;
     }
 
-    private static Vector3 Ground(float x, float y, float height = 0f) => new(x, height, -y);
+    private static Vector3 Ground(float x, float y, float height = 0f)
+    {
+        return new(x, height, -y);
+    }
 
     private PieceSource? Piece(AssetRef key, int textureIndex = -1)
     {
@@ -381,7 +423,10 @@ internal sealed class LegacyTerrainChunkBuild
         }
     }
 
-    private static int SwapHeroHalf(int piece) => piece == 4 ? 5 : piece == 5 ? 4 : piece;
+    private static int SwapHeroHalf(int piece)
+    {
+        return piece == 4 ? 5 : piece == 5 ? 4 : piece;
+    }
 
     private void AddBed(TileGeometry geometry, int x, int y, in TileView tile)
     {
@@ -425,11 +470,15 @@ internal sealed class LegacyTerrainChunkBuild
             ? _tiles[ny * _width + nx].AmbientTint : default;
     }
 
-    private static AssetRef Key(RoomPieceKeys? room, TerrainPieceKeys? bed, int k) =>
-        room != null ? room.Piece(k) : bed!.Bed(k);
+    private static AssetRef Key(RoomPieceKeys? room, TerrainPieceKeys? bed, int k)
+    {
+        return room != null ? room.Piece(k) : bed!.Bed(k);
+    }
 
-    private static Vector3 Quadrant(Vector3 centre, int quadrant) =>
-        centre + new Vector3(QuadrantCentres[quadrant].X, 0f, QuadrantCentres[quadrant].Y);
+    private static Vector3 Quadrant(Vector3 centre, int quadrant)
+    {
+        return centre + new Vector3(QuadrantCentres[quadrant].X, 0f, QuadrantCentres[quadrant].Y);
+    }
 
     private void Add(TileGeometry geometry, PieceSource? piece, int rotation, Vector3 at, int x, int y, bool tagged = false,
         TerrainLightColour tint = default, byte? fogOpacity = null, bool invertLightingNormals = false)

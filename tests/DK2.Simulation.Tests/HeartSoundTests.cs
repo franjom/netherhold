@@ -46,16 +46,30 @@ public sealed class HeartSoundTests
         return (db, world);
     }
 
-    private static ThingSoundRequest[] Sounds(ListEventSink events) =>
-        [.. events.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value)];
+    private static ThingSoundRequest[] Sounds(ListEventSink events)
+    {
+        return [.. events.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value)];
+    }
 
-    private static FpPosition3 At(int x, int y, int height) =>
-        new(new Fp32(CreatureState.CentreOf(x)), new Fp32(CreatureState.CentreOf(y)), new Fp32(height));
+    private static FpPosition3 At(int x, int y, int height)
+    {
+        return new(new Fp32(CreatureState.CentreOf(x)), new Fp32(CreatureState.CentreOf(y)), new Fp32(height));
+    }
 
     private sealed class Act(Action<SimulationContext> action) : ISimulationSystem
     {
-        public string Name => "Act";
-        public void Execute(SimulationContext context) => action(context);
+        public string Name
+        {
+            get
+            {
+                return "Act";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            action(context);
+        }
     }
 
     [Fact]

@@ -190,11 +190,13 @@ public class TriggerConditionEvaluatorTests
 
     private static TriggerRecord Condition(
         byte type,
-        IReadOnlyDictionary<string, long> parameters) =>
-        new GenericTriggerRecord(new byte[16])
+        IReadOnlyDictionary<string, long> parameters)
+    {
+        return new GenericTriggerRecord(new byte[16])
         {
             Body = new byte[8],
             Parameters = parameters,
             Type = type,
         };
+    }
 }

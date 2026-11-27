@@ -14,7 +14,14 @@ public class StructureDeathEffectTests
 
     private sealed class LethalDoorShot : ISimulationSystem
     {
-        public string Name => "lethal_door_shot";
+        public string Name
+        {
+            get
+            {
+                return "lethal_door_shot";
+            }
+        }
+
         public void Execute(SimulationContext context)
         {
             foreach (DoorState door in context.World.Doors)

@@ -14,8 +14,10 @@ public sealed class MinimapMarkerTests
     [InlineData(10, 10, true)]
     [InlineData(11, 10, false)]
     [InlineData(0, -1, true)]
-    public void AlarmRingIncludesItsUnsignedDeadline(long tick, long rechargeAt, bool visible) =>
+    public void AlarmRingIncludesItsUnsignedDeadline(long tick, long rechargeAt, bool visible)
+    {
         Assert.Equal(visible, MinimapMarkerRules.IsAlarmRingActive(new(tick), new(rechargeAt)));
+    }
 
     [Theory]
     [InlineData(29, 29)]

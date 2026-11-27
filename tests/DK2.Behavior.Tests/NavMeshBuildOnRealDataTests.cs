@@ -103,9 +103,26 @@ public class NavMeshBuildOnRealDataTests(ITestOutputHelper output)
 
     private sealed class Grid(int width, int height, byte[] bytes) : INavByteGrid
     {
-        public int Width => width;
-        public int Height => height;
-        public byte NavByte(int x, int y) => bytes[(y * width) + x];
+        public int Width
+        {
+            get
+            {
+                return width;
+            }
+        }
+
+        public int Height
+        {
+            get
+            {
+                return height;
+            }
+        }
+
+        public byte NavByte(int x, int y)
+        {
+            return bytes[(y * width) + x];
+        }
     }
 
     [InstallFact]

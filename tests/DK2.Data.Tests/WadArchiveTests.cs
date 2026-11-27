@@ -20,10 +20,16 @@ public class WadArchiveTests
         return Path.Combine(dir, "Data");
     }
 
-    public static TheoryData<string> AllWads => new()
+    public static TheoryData<string> AllWads
+    {
+        get
+        {
+            return new()
     {
         "EngineTextures.WAD", "FrontEnd.WAD", "Meshes.WAD", "Paths.WAD", "Sprite.WAD",
     };
+        }
+    }
 
     [InstallTheory]
     [MemberData(nameof(AllWads))]

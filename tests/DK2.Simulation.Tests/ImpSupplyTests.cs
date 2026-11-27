@@ -18,10 +18,18 @@ public class ImpSupplyTests
 
     private sealed record Run(GameSimulation Sim, ListEventSink Events, GameDatabase Db)
     {
-        public WorldState World => Sim.World;
+        public WorldState World
+        {
+            get
+            {
+                return Sim.World;
+            }
+        }
 
-        public void Tick(params PlayerCommand[] commands) =>
+        public void Tick(params PlayerCommand[] commands)
+        {
             Sim.Tick(commands.Length == 0 ? InputFrame.Empty : InputFrame.Of(commands));
+        }
 
         public void Ticks(int count)
         {
@@ -31,11 +39,26 @@ public class ImpSupplyTests
             }
         }
 
-        public IEnumerable<SimEvent> Of(string kind) => Events.Events.Where(e => e.Kind == kind);
+        public IEnumerable<SimEvent> Of(string kind)
+        {
+            return Events.Events.Where(e => e.Kind == kind);
+        }
 
-        public int Imps => ImpSupplyRules.ImpCount(World, Db, Keeper);
+        public int Imps
+        {
+            get
+            {
+                return ImpSupplyRules.ImpCount(World, Db, Keeper);
+            }
+        }
 
-        public int Mana => World.Player(Keeper).Mana;
+        public int Mana
+        {
+            get
+            {
+                return World.Player(Keeper).Mana;
+            }
+        }
     }
 
     /// <summary>
@@ -323,9 +346,11 @@ public class ImpSupplyTests
             Assert.Equal((x, y, ImpCreationRules.FallingState), (imp.PosX, imp.PosY, imp.Dk2StateId)));
     }
 
-    private static (int X, int Y) RingPoint(TilePos origin, int angle) =>
-        (CreatureState.CentreOf(origin.X) + ((TrapRules.Sine(angle) * 0x2000) >> 16),
+    private static (int X, int Y) RingPoint(TilePos origin, int angle)
+    {
+        return (CreatureState.CentreOf(origin.X) + ((TrapRules.Sine(angle) * 0x2000) >> 16),
          CreatureState.CentreOf(origin.Y) - ((TrapRules.Cosine(angle) * 0x2000) >> 16));
+    }
 
     /// <summary>The Heart room with free supply due now and nothing else running but the shots, so
     /// the tick's first draw is the free cast's angle and the next tick's are its imp's.</summary>

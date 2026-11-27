@@ -12,7 +12,10 @@ namespace DK2.Presentation.Tests;
 /// (HAND 0xC5 once the swing reaches frame 3), both at the pointer's world position, height 2.</summary>
 public sealed class HandSoundTests
 {
-    private static FpPosition2 At(double x, double y) => new(new Fp32((int)(x * 4096)), new Fp32((int)(y * 4096)));
+    private static FpPosition2 At(double x, double y)
+    {
+        return new(new Fp32((int)(x * 4096)), new Fp32((int)(y * 4096)));
+    }
 
     private static SoundRequest Only(HandCursorFeedback feedback)
     {

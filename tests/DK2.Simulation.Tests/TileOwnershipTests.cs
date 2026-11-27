@@ -16,8 +16,10 @@ public class TileOwnershipTests
 
     private static readonly GameDatabase Db = Dk2TerrainFixture.Database();
 
-    private static WorldState World() =>
-        WorldState.FromMap(Db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
+    private static WorldState World()
+    {
+        return WorldState.FromMap(Db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
+    }
 
     private static void Set(WorldState world, TilePos at, byte terrainId, byte owner)
     {

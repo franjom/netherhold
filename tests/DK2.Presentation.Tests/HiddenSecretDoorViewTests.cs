@@ -36,8 +36,10 @@ public sealed class HiddenSecretDoorViewTests
         return (database, world, world.Doors.Single());
     }
 
-    private static bool DrawsTheDoor(WorldView view, WorldState world, DoorState door) =>
-        view.Structures(world).Any(structure => structure.Id == new StructureId(StructureKind.Door, door.Id));
+    private static bool DrawsTheDoor(WorldView view, WorldState world, DoorState door)
+    {
+        return view.Structures(world).Any(structure => structure.Id == new StructureId(StructureKind.Door, door.Id));
+    }
 
     [InstallFact]
     public void TheOwnerSeesItsHiddenDoorAsADoor()

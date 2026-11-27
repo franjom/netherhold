@@ -132,7 +132,11 @@ public class TorchLayoutTests
         var layout = new TorchLayout(db);
         layout.Update(world);
 
-        TilePos? WallOf(int x, int y) => layout.At((y * world.Width) + x)?.Wall;
+        TilePos? WallOf(int x, int y)
+        {
+            return layout.At((y * world.Width) + x)?.Wall;
+        }
+
         Assert.Equal(new TilePos(15, 5), WallOf(15, 6));
         Assert.Equal(new TilePos(17, 6), WallOf(16, 6));
         Assert.Equal(new TilePos(17, 7), WallOf(17, 8));
@@ -325,9 +329,13 @@ public class TorchLayoutTests
         return d % 2 == 0 ? (fx & 1) == 1 : (fy & 1) == 0;
     }
 
-    private static bool Solid(GameDatabase db, WorldState world, int x, int y) =>
-        db.TerrainById(world.Tile(x, y).TerrainId).IsSolid;
+    private static bool Solid(GameDatabase db, WorldState world, int x, int y)
+    {
+        return db.TerrainById(world.Tile(x, y).TerrainId).IsSolid;
+    }
 
-    private static byte TerrainOf(GameDatabase db, string name) =>
-        db.Terrain.Values.Single(t => t.Name == name).TerrainId;
+    private static byte TerrainOf(GameDatabase db, string name)
+    {
+        return db.Terrain.Values.Single(t => t.Name == name).TerrainId;
+    }
 }

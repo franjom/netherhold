@@ -17,11 +17,15 @@ public class CreatureOwnershipTests
         return (db, WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)1, (byte)3, (byte)4]));
     }
 
-    private static CreatureState Spawn(GameDatabase db, WorldState world, byte owner = 3) =>
-        world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, owner, new TilePos(2, 2));
+    private static CreatureState Spawn(GameDatabase db, WorldState world, byte owner = 3)
+    {
+        return world.SpawnCreature(db, Dk2TerrainFixture.ImpCreatureId, owner, new TilePos(2, 2));
+    }
 
-    private static int[] Order(WorldState world, byte owner = 3) =>
-        [.. world.OwnedCreatures(owner).Select(c => c.Id)];
+    private static int[] Order(WorldState world, byte owner = 3)
+    {
+        return [.. world.OwnedCreatures(owner).Select(c => c.Id)];
+    }
 
     [Fact]
     public void AcquisitionPrependsAndTransferDoesNotSortById()

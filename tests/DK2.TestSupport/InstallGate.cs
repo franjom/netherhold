@@ -40,11 +40,22 @@ public static class Dk2InstallGate
     public const string RequireVariable = "DK2_REQUIRE_INSTALL";
 
     /// <summary>Whether an installation was found. See <see cref="Dk2Install.Find"/>.</summary>
-    public static bool Present => Dk2Install.Find() is not null;
+    public static bool Present
+    {
+        get
+        {
+            return Dk2Install.Find() is not null;
+        }
+    }
 
     /// <summary>Whether a missing installation must fail rather than skip.</summary>
-    public static bool Required =>
-        Environment.GetEnvironmentVariable(RequireVariable) == "1";
+    public static bool Required
+    {
+        get
+        {
+            return Environment.GetEnvironmentVariable(RequireVariable) == "1";
+        }
+    }
 
     /// <summary>
     /// The installation root, never null.
@@ -53,7 +64,13 @@ public static class Dk2InstallGate
     /// test without a null check — that is the point of the attribute. Throws
     /// with the <c>DK2_DIR</c> instructions if called from an ungated test.</para>
     /// </summary>
-    public static string Path => Dk2Install.Require();
+    public static string Path
+    {
+        get
+        {
+            return Dk2Install.Require();
+        }
+    }
 
     /// <summary>
     /// The reason to skip, or null to run. <c>null</c> when the install is
@@ -61,11 +78,16 @@ public static class Dk2InstallGate
     /// <see cref="Required"/> — so the test runs and fails on the missing data
     /// rather than being quietly passed over.
     /// </summary>
-    public static string? SkipReason =>
-        Present || Required
+    public static string? SkipReason
+    {
+        get
+        {
+            return Present || Required
             ? null
             : $"No Dungeon Keeper 2 installation. Set DK2_DIR, or set "
               + $"{RequireVariable}=1 to make its absence a failure.";
+        }
+    }
 }
 
 /// <summary>
@@ -95,7 +117,10 @@ public sealed class InstallFactAttribute : FactAttribute
 /// </summary>
 public sealed class InstallTheoryAttribute : TheoryAttribute
 {
-    public InstallTheoryAttribute() => Skip = Dk2InstallGate.SkipReason;
+    public InstallTheoryAttribute()
+    {
+        Skip = Dk2InstallGate.SkipReason;
+    }
 }
 
 /// <summary>
@@ -105,13 +130,19 @@ public sealed class InstallTheoryAttribute : TheoryAttribute
 /// </summary>
 public sealed class SpeedBudgetFactAttribute : FactAttribute
 {
-    public SpeedBudgetFactAttribute() => Skip = SpeedBudgetGate.SkipReason;
+    public SpeedBudgetFactAttribute()
+    {
+        Skip = SpeedBudgetGate.SkipReason;
+    }
 }
 
 /// <summary><c>[Theory]</c> twin of <see cref="SpeedBudgetFactAttribute"/>.</summary>
 public sealed class SpeedBudgetTheoryAttribute : TheoryAttribute
 {
-    public SpeedBudgetTheoryAttribute() => Skip = SpeedBudgetGate.SkipReason;
+    public SpeedBudgetTheoryAttribute()
+    {
+        Skip = SpeedBudgetGate.SkipReason;
+    }
 }
 
 /// <summary>The opt-in on top of <see cref="Dk2InstallGate"/>: the install's skip reason first,
@@ -120,9 +151,14 @@ public static class SpeedBudgetGate
 {
     public const string Variable = "DK2_SPEED_BUDGET";
 
-    public static string? SkipReason =>
-        Dk2InstallGate.SkipReason
+    public static string? SkipReason
+    {
+        get
+        {
+            return Dk2InstallGate.SkipReason
         ?? (Environment.GetEnvironmentVariable(Variable) == "1"
             ? null
             : $"A wall-clock budget; set {Variable}=1 on an idle machine to run it.");
+        }
+    }
 }

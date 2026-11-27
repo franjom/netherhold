@@ -32,7 +32,10 @@ namespace DK2.Behavior.Tests;
 /// </summary>
 public class LevelVariablesOnRealDataTests
 {
-    private static string Install() => Dk2InstallGate.Path;
+    private static string Install()
+    {
+        return Dk2InstallGate.Path;
+    }
 
     /// <summary>
     /// The defect this work exists to fix, stated as the two numbers that

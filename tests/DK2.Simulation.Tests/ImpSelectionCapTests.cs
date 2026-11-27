@@ -49,8 +49,10 @@ public sealed class ImpSelectionCapTests
         Assert.Equal(2, Throttled(sink).Length);   // the rival's four all choose
     }
 
-    private static string[] Throttled(ListEventSink sink) =>
-        [.. sink.Events.Where(e => e.Kind == "throttled").Select(e => e.Detail + " ")];
+    private static string[] Throttled(ListEventSink sink)
+    {
+        return [.. sink.Events.Where(e => e.Kind == "throttled").Select(e => e.Detail + " ")];
+    }
 
     /// <summary>Six idle Imps of the keeper on its claimed floor (and optionally a rival's), all
     /// in state 10 after the first tick.</summary>

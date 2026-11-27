@@ -19,8 +19,10 @@ public class LevelGemIdleTests
     [InlineData(9, 0x1400 - 97)] // rounded toward zero, as the process's bias does
     [InlineData(12, 0x1400 - 256)]
     [InlineData(16, 0x1400)] // sixteen turns a bob
-    public void TheGemBobsOnTheSineTableAboutAQuarterTileUp(long turn, int height) =>
+    public void TheGemBobsOnTheSineTableAboutAQuarterTileUp(long turn, int height)
+    {
         Assert.Equal(height, LevelGemIdle.Height(turn));
+    }
 
     [Fact]
     public void TheGemSpinsAFullTurnIn32Turns()

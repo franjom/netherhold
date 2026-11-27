@@ -24,7 +24,10 @@ public class MeleeDamageOnRealDataTests
 {
     private const byte GoblinId = 7;
 
-    private static GameDatabase RealDatabase() => GameDatabaseLoader.Load(Dk2InstallGate.Path);
+    private static GameDatabase RealDatabase()
+    {
+        return GameDatabaseLoader.Load(Dk2InstallGate.Path);
+    }
 
     [InstallFact]
     public void TheMeleeDamageRowIsWhatTheFixtureSaysItIs()

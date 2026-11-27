@@ -150,8 +150,14 @@ public class KwdTriggerEditingTests
         }
     }
 
-    private static KwdLevelFileSet Set(KwdChunk triggers)=>KwdLevelFileSet.Create(new Dictionary<string,IReadOnlyList<KwdChunk>> {
-        ["level.kwd"]=[KwdLevelFileSetTests.Level(["triggers.kld"])],["triggers.kld"]=[triggers] });
+    private static KwdLevelFileSet Set(KwdChunk triggers)
+    {
+        return KwdLevelFileSet.Create(new Dictionary<string, IReadOnlyList<KwdChunk>>
+        {
+            ["level.kwd"] = [KwdLevelFileSetTests.Level(["triggers.kld"])],
+            ["triggers.kld"] = [triggers]
+        });
+    }
 
     private static KwdChunk TriggerChunk(byte[] content)
     {
@@ -162,7 +168,10 @@ public class KwdTriggerEditingTests
         return chunk;
     }
 
-    private static TriggerRecord Read(byte[] bytes)=>KwdTriggers.Parse([TriggerChunk(bytes)]).Single();
+    private static TriggerRecord Read(byte[] bytes)
+    {
+        return KwdTriggers.Parse([TriggerChunk(bytes)]).Single();
+    }
 
     private static IEnumerable<ushort> ReferenceIds(object row)
     {

@@ -127,7 +127,11 @@ public class FrontEndMenuTests
         Assert.Equal(FrontEndPage.Extras, session.Page);
     }
 
-    private static FrontEndRect HitBounds(FrontEndWidget widget) => new(0, 0, 10, 10);
+    private static FrontEndRect HitBounds(FrontEndWidget widget)
+    {
+        return new(0, 0, 10, 10);
+    }
+
     private static FrontEndSession ReadySession()
     {
         var session = new FrontEndSession(path => Enumerable.Range(0, path == FrontEndPath.Intro ? 1 : 30)

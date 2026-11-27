@@ -14,8 +14,10 @@ public sealed class TortureInformationTests
     private const byte Keeper = 4;
     private const byte Rival = 5;
 
-    private static WorldState World(GameDatabase db) =>
-        WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
+    private static WorldState World(GameDatabase db)
+    {
+        return WorldState.FromMap(db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
+    }
 
     [Theory]
     [InlineData(JobClass.Artisan, new[] { 3, 7, 10, 11 })]
@@ -116,8 +118,10 @@ public sealed class TortureRevealTests
         }
     }
 
-    private static bool Explored(WorldState world, TilePos[] tiles) =>
-        tiles.All(t => world.Tile(t.X, t.Y).IsExploredBy(Keeper));
+    private static bool Explored(WorldState world, TilePos[] tiles)
+    {
+        return tiles.All(t => world.Tile(t.X, t.Y).IsExploredBy(Keeper));
+    }
 
     [Fact]
     public void TheNewestUnexploredRoomIsExploredWhole()

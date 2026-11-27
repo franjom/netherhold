@@ -71,6 +71,8 @@ public sealed class AnimationTimingTests
     }
 
     [Fact]
-    public void MissingAnimationCompletesAtTheNextPoll_StronglyInferredFromBinary() =>
+    public void MissingAnimationCompletesAtTheNextPoll_StronglyInferredFromBinary()
+    {
         Assert.Equal(1, AnimationTimingRules.ActionHoldTicks(default));
+    }
 }

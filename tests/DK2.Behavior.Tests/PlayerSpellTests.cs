@@ -42,8 +42,10 @@ public class PlayerSpellTests
         return new Setup(database, world, imp);
     }
 
-    private static PlayerObservationCapture Capture(Setup s) =>
-        new PlayerObservationBuilder(s.Database, Keeper).Capture(s.World, new PlayerStamp(Run, Keeper, s.World.CurrentTick, new PlayerRevision(1)), []);
+    private static PlayerObservationCapture Capture(Setup s)
+    {
+        return new PlayerObservationBuilder(s.Database, Keeper).Capture(s.World, new PlayerStamp(Run, Keeper, s.World.CurrentTick, new PlayerRevision(1)), []);
+    }
 
     [InstallFact]
     public void TheSpellPanelsOffersCarryPriceAffordabilityAndTarget()
@@ -114,7 +116,11 @@ public class PlayerSpellTests
         PlayerCommand call = Assert.Single(adapter.Resolve(capture, new PlayerAction.CastSpell(CallToArmsRules.SpellId, Tile: tile)).Commands);
         Assert.Equal(new CastSpellAtPlaceCommand(Keeper, CallToArmsRules.SpellId, CreatureState.CentreOf(tile.X), CreatureState.CentreOf(tile.Y)), call);
 
-        PlayerRefusalReason Refusal(PlayerAction action) => adapter.Resolve(capture, action).Refusal;
+        PlayerRefusalReason Refusal(PlayerAction action)
+        {
+            return adapter.Resolve(capture, action).Refusal;
+        }
+
         Assert.Equal(PlayerRefusalReason.NotOffered, Refusal(new PlayerAction.CastSpell(KeeperSpellRules.Heal, Tile: tile)));               // a creature spell at a place
         Assert.Equal(PlayerRefusalReason.NotOffered, Refusal(new PlayerAction.CastSpell(CallToArmsRules.SpellId, Target: imp)));           // a place spell on a creature
         Assert.Equal(PlayerRefusalReason.NotOffered, Refusal(new PlayerAction.CastSpell(KeeperSpellRules.Heal, imp, tile)));                // both

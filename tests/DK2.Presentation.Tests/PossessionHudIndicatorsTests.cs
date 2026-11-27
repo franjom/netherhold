@@ -10,8 +10,15 @@ public sealed class PossessionHudIndicatorsTests
 {
     private sealed class Art : IBottomPanelArt
     {
-        public string? Icon(BottomPanelChoiceKey key) => "room";
-        public string Text(uint id) => "";
+        public string? Icon(BottomPanelChoiceKey key)
+        {
+            return "room";
+        }
+
+        public string Text(uint id)
+        {
+            return "";
+        }
     }
     private static readonly BitmapFont Font = new(10, [new BitmapGlyph('A', 2, 2, 0, 0, 3, [15, 15, 15, 15])]);
 

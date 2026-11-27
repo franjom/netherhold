@@ -10,7 +10,13 @@ namespace DK2.Tools.Tests;
 /// <summary>The ADR-0643 index: systems, note tags, ADR parsing, the docs gate's rules and the generated pages.</summary>
 public class WikiTests
 {
-    static string Root => Repo.FindRepoRoot() ?? throw new InvalidOperationException("no repository above the test");
+    static string Root
+    {
+        get
+        {
+            return Repo.FindRepoRoot() ?? throw new InvalidOperationException("no repository above the test");
+        }
+    }
 
     const string Catalog = """
         systems:
@@ -23,9 +29,11 @@ public class WikiTests
         """;
 
     static DocsContext Context(params (string Note, string[] Systems)[] notes)
-        => new(SystemCatalog.Parse(Catalog),
-            notes.ToDictionary(n => n.Note, n => (IReadOnlyList<string>)n.Systems, StringComparer.Ordinal),
-            notes.Select(n => n.Note).ToHashSet(StringComparer.Ordinal));
+    {
+        return new(SystemCatalog.Parse(Catalog),
+                notes.ToDictionary(n => n.Note, n => (IReadOnlyList<string>)n.Systems, StringComparer.Ordinal),
+                notes.Select(n => n.Note).ToHashSet(StringComparer.Ordinal));
+    }
 
     [Fact]
     public void AdrsCitedInCodeComeFromSourceNotTestsOrBuildOutput()
@@ -100,7 +108,9 @@ public class WikiTests
     [InlineData("docs/research/functions/0050EA70.md", null)]
     [InlineData("docs/plans/combat.md", null)]
     public void OnlyTopLevelResearchNotesAreNotes(string path, string? name)
-        => Assert.Equal(name, ResearchNotes.NoteName(path));
+    {
+        Assert.Equal(name, ResearchNotes.NoteName(path));
+    }
 
     [Fact]
     public void AnUntaggedNoteAndAnUnknownSystemFailTheGate()
@@ -146,14 +156,18 @@ public class WikiTests
         """;
 
     static IReadOnlyList<Adr> ParseDecisions(string text, params string[] notes)
-        => AdrIndex.Parse(text.Split('\n'), notes.ToHashSet(StringComparer.Ordinal));
+    {
+        return AdrIndex.Parse(text.Split('\n'), notes.ToHashSet(StringComparer.Ordinal));
+    }
 
     [Theory]
     [InlineData("accepted", "accepted")]
     [InlineData("Reversed", "superseded")]
     [InlineData("implemented", "")]   // retired by ADR-0660: the docs gate reports it on a touched ADR
     public void StatusWordsNormalise(string word, string status)
-        => Assert.Equal(status, AdrIndex.NormaliseStatus(word));
+    {
+        Assert.Equal(status, AdrIndex.NormaliseStatus(word));
+    }
 
     [Fact]
     public void AdrsAreParsedFromBothHeaderFormatsAndAnAmendmentStaysWithItsAdr()
@@ -192,7 +206,9 @@ public class WikiTests
 
     [Fact]
     public void AnAmendmentHeadingIsNotAReusedNumber()
-        => Assert.Empty(AdrIndex.Duplicates(ParseDecisions(Decisions)));
+    {
+        Assert.Empty(AdrIndex.Duplicates(ParseDecisions(Decisions)));
+    }
 
     [Fact]
     public void EveryRealResearchNoteNamesKnownSystems()

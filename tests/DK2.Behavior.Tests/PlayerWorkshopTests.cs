@@ -44,9 +44,11 @@ public class PlayerWorkshopTests
         return new Setup(database, world, floors[0], door, trap);
     }
 
-    private static PlayerObservationCapture Capture(Setup s) =>
-        new PlayerObservationBuilder(s.Database, Keeper).Capture(s.World,
+    private static PlayerObservationCapture Capture(Setup s)
+    {
+        return new PlayerObservationBuilder(s.Database, Keeper).Capture(s.World,
             new PlayerStamp(new PlayerRunId("workshop-test"), Keeper, s.World.CurrentTick, new PlayerRevision(1)), []);
+    }
 
     [InstallFact]
     public void TheWorkshopPanelOffersDoorsAndTrapsGreyedWithoutAWorkshop()

@@ -10,15 +10,19 @@ namespace DK2.Presentation.Tests;
 /// <summary>The possessed view in host axes, and the sounds its footfalls ask for.</summary>
 public sealed class PossessionCameraTests
 {
-    private static void Near(Vector3 expected, Vector3 actual) =>
+    private static void Near(Vector3 expected, Vector3 actual)
+    {
         Assert.True(Vector3.Distance(expected, actual) < 1e-5f, $"{actual} is not {expected}");
+    }
 
     [Theory]
     [InlineData(0, 0f, 1f)]          // yaw 0 walks minus Y, which is north
     [InlineData(0x200, 1f, 0f)]      // a quarter turn walks plus X, east
     [InlineData(0x400, 0f, -1f)]
-    public void TheLevelViewLooksAlongTheHeadingTheStepWalks(int yaw, float x, float z) =>
+    public void TheLevelViewLooksAlongTheHeadingTheStepWalks(int yaw, float x, float z)
+    {
         Near(new Vector3(x, 0, z), PossessionCamera.Forward(yaw, PossessionView.Horizon));
+    }
 
     [Fact]
     public void APitchBelowTheHorizonLooksDown()

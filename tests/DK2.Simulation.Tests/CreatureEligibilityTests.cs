@@ -6,7 +6,10 @@ namespace DK2.Simulation.Tests;
 
 public class CreatureEligibilityTests
 {
-    private static CreatureState Free() => new() { Id = 1, Health = 100 };
+    private static CreatureState Free()
+    {
+        return new() { Id = 1, Health = 100 };
+    }
 
     [Fact]
     public void AFreeCreatureIsExcludedByNoGuard()

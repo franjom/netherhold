@@ -20,13 +20,16 @@ public sealed class ClassicSoundMixerTests
     private static readonly SoundCategory Speech = new("speech_test");
     private const uint Placed = 0x100, HeadRelative = 0x101, Looping = 0x102, Low = 0x103;
 
-    private static FakeAssets Assets() => new FakeAssets()
+    private static FakeAssets Assets()
+    {
+        return new FakeAssets()
         .With(Effects, SoundMapBytes.Maps("Global\\Effects",
             new SoundMapBytes.Group(Placed, 5, 0, new SoundMapBytes.Item(20f, [(1, 1, 0)])),
             new SoundMapBytes.Group(HeadRelative, 5, 0x200, new SoundMapBytes.Item(20f, [(2, 1, 0)])),
             new SoundMapBytes.Group(Looping, 5, 0x08, new SoundMapBytes.Item(20f, [(3, 1, 0)])),
             new SoundMapBytes.Group(Low, 1, 0, new SoundMapBytes.Item(20f, [(4, 1, 0)]))))
         .With(Speech, SoundMapBytes.Maps("Speech\\Test", new SoundMapBytes.Group(1, 1, 0, new SoundMapBytes.Item(2f, [(1, 1, 0)]))));
+    }
 
     private static async Task<(ClassicSoundMixer Mixer, FakeOutput Output)> Mixer()
     {
@@ -143,7 +146,10 @@ public sealed class ClassicSoundMixerTests
     private sealed class HeldAssets(FakeAssets inner) : IClassicSoundAssets
     {
         public ManualResetEventSlim Release { get; } = new();
-        public SoundMaps Maps(SoundCategory category) => inner.Maps(category);
+        public SoundMaps Maps(SoundCategory category)
+        {
+            return inner.Maps(category);
+        }
 
         public PcmClip? Clip(ResolvedSound reference)
         {
@@ -278,10 +284,15 @@ public sealed class ClassicSoundMixerTests
             return this;
         }
 
-        public SoundMaps Maps(SoundCategory category) =>
-            _maps.TryGetValue(category, out SoundMaps? maps) ? maps : new SoundMaps(BankMap.Empty, SfxMap.Empty);
+        public SoundMaps Maps(SoundCategory category)
+        {
+            return _maps.TryGetValue(category, out SoundMaps? maps) ? maps : new SoundMaps(BankMap.Empty, SfxMap.Empty);
+        }
 
-        public PcmClip? Clip(ResolvedSound reference) => new(22050, 2, new short[ClipFrames * 2]);
+        public PcmClip? Clip(ResolvedSound reference)
+        {
+            return new(22050, 2, new short[ClipFrames * 2]);
+        }
     }
 
     internal sealed class FakeOutput : ISoundOutput
@@ -312,7 +323,10 @@ public sealed class ClassicSoundMixerTests
             return stream;
         }
 
-        public void Warn(string message) => throw new InvalidOperationException(message);
+        public void Warn(string message)
+        {
+            throw new InvalidOperationException(message);
+        }
     }
 
     internal sealed class FakeSource : ISoundSource
@@ -330,10 +344,25 @@ public sealed class ClassicSoundMixerTests
             Plays++;
         }
 
-        public void End() => IsPlaying = false;
-        public void Stop() => IsPlaying = false;
-        public void SetVolume(float volume) => Volume = volume;
-        public void Place(Vector2? offset) => Offset = offset;
+        public void End()
+        {
+            IsPlaying = false;
+        }
+
+        public void Stop()
+        {
+            IsPlaying = false;
+        }
+
+        public void SetVolume(float volume)
+        {
+            Volume = volume;
+        }
+
+        public void Place(Vector2? offset)
+        {
+            Offset = offset;
+        }
     }
 
     internal sealed class FakeStream(SoundStreamRole role, PcmAudioQueue samples) : ISoundStream
@@ -341,7 +370,11 @@ public sealed class ClassicSoundMixerTests
         public SoundStreamRole Role { get; } = role;
         public PcmAudioQueue Samples { get; } = samples;
         public float Volume { get; private set; } = float.NaN;
-        public void SetVolume(float volume) => Volume = volume;
+        public void SetVolume(float volume)
+        {
+            Volume = volume;
+        }
+
         public void Dispose() { }
     }
 }

@@ -62,6 +62,8 @@ public sealed class TypedTextBufferTests
     }
 
     [Fact]
-    public void AFrameHoldsAtLeastASurrogatePair() =>
+    public void AFrameHoldsAtLeastASurrogatePair()
+    {
         Assert.Throws<ArgumentOutOfRangeException>(() => new TypedTextBuffer(1));
+    }
 }

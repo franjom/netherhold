@@ -14,9 +14,29 @@ namespace DK2.Behavior.Tests;
 public class BuildReceiptTests : IDisposable
 {
     private readonly string _root = Path.Combine(Path.GetTempPath(), $"dk2-receipt-{Guid.NewGuid():N}");
-    private string Repo => Path.Combine(_root, "repo");
-    private string Harness => Path.Combine(Repo, "src", "DK2.Harness", "bin");
-    private string Receipt => Path.Combine(_root, "receipt");
+    private string Repo
+    {
+        get
+        {
+            return Path.Combine(_root, "repo");
+        }
+    }
+
+    private string Harness
+    {
+        get
+        {
+            return Path.Combine(Repo, "src", "DK2.Harness", "bin");
+        }
+    }
+
+    private string Receipt
+    {
+        get
+        {
+            return Path.Combine(_root, "receipt");
+        }
+    }
 
     public BuildReceiptTests()
     {
@@ -50,10 +70,15 @@ public class BuildReceiptTests : IDisposable
         File.WriteAllText(path, text);
     }
 
-    private static string Line(string root, string name, bool binary = false) =>
-        $"{Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(Path.Combine(root, name))))} {(binary ? '*' : ' ')}{name}\n";
+    private static string Line(string root, string name, bool binary = false)
+    {
+        return $"{Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(Path.Combine(root, name))))} {(binary ? '*' : ' ')}{name}\n";
+    }
 
-    private BuildReceipt.Verification Verify() => BuildReceipt.Verify(Receipt, Harness, Repo);
+    private BuildReceipt.Verification Verify()
+    {
+        return BuildReceipt.Verify(Receipt, Harness, Repo);
+    }
 
     [Fact]
     public void TheReceiptsOwnBuildAndTreeMatch()
@@ -125,11 +150,20 @@ public class BuildReceiptTests : IDisposable
             BuildReceipt.Verify(Receipt, Harness, repositoryRoot: null).Problems);
     }
 
-    private static Scenario ShippedStart() => new()
+    private static Scenario ShippedStart()
     {
-        Id = "start", Map = "campaign:level1", Seed = 1, Random = "dk2", FogOfWar = true, ViewingPlayer = 3, DurationTicks = 10,
-        Setup = new ScenarioSetup { PlacedThings = true },
-    };
+        return new()
+        {
+            Id = "start",
+            Map = "campaign:level1",
+            Seed = 1,
+            Random = "dk2",
+            FogOfWar = true,
+            ViewingPlayer = 3,
+            DurationTicks = 10,
+            Setup = new ScenarioSetup { PlacedThings = true },
+        };
+    }
 
     [Fact]
     public void OnlyAShippedLevelsOwnStartIsUnmodified()

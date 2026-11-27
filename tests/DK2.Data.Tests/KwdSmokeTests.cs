@@ -13,9 +13,18 @@ namespace DK2.Data.Tests;
 /// </summary>
 public class KwdSmokeTests
 {
-    private static string FindInstall() => Dk2InstallGate.Path;
+    private static string FindInstall()
+    {
+        return Dk2InstallGate.Path;
+    }
 
-    public static bool InstallPresent => FindInstall() is not null;
+    public static bool InstallPresent
+    {
+        get
+        {
+            return FindInstall() is not null;
+        }
+    }
 
     [InstallFact]
     public void EditorDatabaseFiles_StartWithExpectedRecordType()

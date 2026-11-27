@@ -11,7 +11,8 @@ namespace DK2.Data.Tests;
 public class KwdRoomWriterTests
 {
     [Fact]
-    public void EveryDecodedRoomFieldIncludingObjectArrayRoundTripsWithoutTouchingOtherBytes() =>
+    public void EveryDecodedRoomFieldIncludingObjectArrayRoundTripsWithoutTouchingOtherBytes()
+    {
         KwdScalarOverlayChecks.Check(KwdRecordType.Rooms, 1055, Read, KwdTerrainRooms.WriteRoomRecord,
             "Name:0:32 CeilingHeight:368:4 Flags:370:4 TooltipStringId:374:2 NameStringId:376:2 " +
             "Cost:378:2 RoomEffect421Id:382:2 CreatedObjectEffectId:384:2 RoomEffect425Id:386:2 RoomEffect427Id:388:2 RoomEffect429Id:38A:2 RoomId:392:1 ReturnPercentage:393:1 TerrainId:394:1 Construction:395:1 " +
@@ -19,6 +20,7 @@ public class KwdRoomWriterTests
             "RecommendedSizeX:41B:1 RecommendedSizeY:41C:1 HealthGain:41D:2",
             // The torch is read for the renderer and not written back: an edit to it is not a mod.
             excludedProperties: ["Torch"]);
+    }
 
     [Theory]
     [InlineData(0)]
@@ -51,6 +53,9 @@ public class KwdRoomWriterTests
         }
     }
 
-    private static RoomDef Read(byte[] source) => KwdTerrainRooms.ParseRooms([
+    private static RoomDef Read(byte[] source)
+    {
+        return KwdTerrainRooms.ParseRooms([
         new KwdChunk { Type = KwdRecordType.Rooms, ItemCount = 1, Content = source, HeaderBlock = [] }]).Single();
+    }
 }

@@ -21,14 +21,17 @@ public class OriginalGateWalkTests(ITestOutputHelper log)
 
     /// <summary><c>0x004CFC50</c>, <see cref="GateWalk.Collapse"/>.</summary>
     [OracleFact]
-    public void Collapse_MatchesTheOriginal() =>
+    public void Collapse_MatchesTheOriginal()
+    {
         Compare("collapse", 0x004CFC50, (ref GateRecord r, int cap) => GateWalk.Collapse(ref r, cap),
             (r, cap, after) => GateWalk.Octile(r.A, r.B) < cap ? "short" : r.Selector == 1 ? "keep B" : "keep A",
             ["short", "keep A", "keep B"]);
+    }
 
     /// <summary><c>0x004CFDA0</c>, <see cref="GateWalk.AdjustAroundCrossing"/>.</summary>
     [OracleFact]
-    public void AdjustAroundCrossing_MatchesTheOriginal() =>
+    public void AdjustAroundCrossing_MatchesTheOriginal()
+    {
         Compare("adjust", 0x004CFDA0, (ref GateRecord r, int cap) => GateWalk.AdjustAroundCrossing(ref r, cap),
             (r, cap, after) =>
             {
@@ -52,6 +55,7 @@ public class OriginalGateWalkTests(ITestOutputHelper log)
                 return movedA ? movedB ? "move both" : "move A only" : movedB ? "move B only" : "move neither";
             },
             ["both near", "A near", "B near", "move both", "move A only", "move B only", "move neither"]);
+    }
 
     /// <summary><c>0x004CFFD0</c>, <see cref="GateWalk.Intersect"/>: cdecl (record*, p.x, p.y, q.x,
     /// q.y), the answer in EAX and the crossing written at +0x10. The crossing starts as a sentinel,
@@ -196,10 +200,15 @@ public class OriginalGateWalkTests(ITestOutputHelper log)
             string.Join(", ", reached.Where(kv => kv.Value == 0).Select(kv => kv.Key)));
     }
 
-    private static int[] Words(GateRecord r) =>
-        [r.A.X, r.A.Y, r.B.X, r.B.Y, r.Crossing.X, r.Crossing.Y, r.Selector];
+    private static int[] Words(GateRecord r)
+    {
+        return [r.A.X, r.A.Y, r.B.X, r.B.Y, r.Crossing.X, r.Crossing.Y, r.Selector];
+    }
 
-    private static string Show(int[] words) => "[" + string.Join(", ", words) + "]";
+    private static string Show(int[] words)
+    {
+        return "[" + string.Join(", ", words) + "]";
+    }
 
     /// <summary>Gates of every length from a point to the map's diagonal, both selectors, the
     /// crossing on the gate, at an endpoint or off it, and caps on and between tile multiples.</summary>

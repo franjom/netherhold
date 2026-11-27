@@ -15,7 +15,10 @@ public class ChickenBirthTests
     {
         public List<int> Bounds { get; } = [];
         public int NextInt(int exclusiveMax) { Bounds.Add(exclusiveMax); return Bounds.Count == 1 ? 393 : 777; }
-        public void HashInto(ref Hash64 hash) => hash.Add(Bounds.Count);
+        public void HashInto(ref Hash64 hash)
+        {
+            hash.Add(Bounds.Count);
+        }
     }
 
     private static GameSimulation Start(SimRandom rng, bool animations = false)
@@ -34,8 +37,11 @@ public class ChickenBirthTests
         return new GameSimulation(db, world, rng, animations ? [new HatcherySystem(lays: false)] : []);
     }
 
-    private static ObjectState Egg(GameSimulation sim) => sim.World.SpawnObject(sim.Database,
+    private static ObjectState Egg(GameSimulation sim)
+    {
+        return sim.World.SpawnObject(sim.Database,
         HatcheryRules.EggObjectId, Keeper, sim.World.TileIndex(new TilePos(2, 2)));
+    }
 
     [Fact]
     public void LiveChickenCreationConsumesTheWorldSizeDraw()

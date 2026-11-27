@@ -25,8 +25,10 @@ public sealed class VerdictRulesTests
         return world;
     }
 
-    private static byte[] Statuses(WorldState world) =>
-        [world.Player(A).Status, world.Player(B).Status, world.Player(C).Status, world.Player(D).Status];
+    private static byte[] Statuses(WorldState world)
+    {
+        return [world.Player(A).Status, world.Player(B).Status, world.Player(C).Status, world.Player(D).Status];
+    }
 
     [Fact]
     public void InTheCampaignAVerdictTouchesNobodyElse()

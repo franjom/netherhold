@@ -15,21 +15,33 @@ namespace DK2.Simulation.Tests;
 /// </summary>
 public class ThingProjectionTests
 {
-    private static GameDatabase Database() => Dk2TerrainFixture.Database();
+    private static GameDatabase Database()
+    {
+        return Dk2TerrainFixture.Database();
+    }
 
-    private static WorldState World(GameDatabase database) =>
-        WorldState.FromMap(
+    private static WorldState World(GameDatabase database)
+    {
+        return WorldState.FromMap(
             database, Dk2TerrainFixture.Map(),
             [PlayerIds.Unowned, PlayerIds.Good, PlayerIds.Neutral, PlayerIds.FirstKeeper]);
+    }
 
     private static KeeperCreatureThing Keeper(
         int x, int y, byte creatureId, byte playerId, byte level = 1, int health = 100,
-        ushort triggerId = 0) =>
-        new(new byte[28])
+        ushort triggerId = 0)
+    {
+        return new(new byte[28])
         {
-            X = x, Y = y, CreatureId = creatureId, PlayerId = playerId,
-            Level = level, InitialHealth = health, TriggerId = triggerId,
+            X = x,
+            Y = y,
+            CreatureId = creatureId,
+            PlayerId = playerId,
+            Level = level,
+            InitialHealth = health,
+            TriggerId = triggerId,
         };
+    }
 
     [Fact]
     public void APlacedCreatureKeepsItsTriggerRoot()
@@ -257,8 +269,11 @@ public class ThingProjectionTests
         return world;
     }
 
-    private static RoomThing HeartRecord() => new(new byte[20])
-    { X = 10, Y = 5, RoomType = Dk2TerrainFixture.DungeonHeartTerrain, PlayerId = 3, InitialHealth = 100 };
+    private static RoomThing HeartRecord()
+    {
+        return new(new byte[20])
+        { X = 10, Y = 5, RoomType = Dk2TerrainFixture.DungeonHeartTerrain, PlayerId = 3, InitialHealth = 100 };
+    }
 
     private static int GoldIn(WorldState world, int x0, int y0, int x1, int y1)
     {
@@ -662,14 +677,27 @@ public class ThingProjectionTests
         public ushort GoldHeld, TriggerId;
         public byte Level, Flags, ObjectiveTargetPlayerId, Objective, CreatureId, Flags2;
         public byte[] Unknown = new byte[2];
-        public HeroPartyMemberState Build() => new()
+        public HeroPartyMemberState Build()
         {
-            X = X, Y = Y, Z = Z, GoldHeld = GoldHeld, Level = Level, Flags = Flags,
-            ObjectiveTargetActionPointId = ObjectiveTargetActionPointId,
-            InitialHealth = InitialHealth, TriggerId = TriggerId,
-            ObjectiveTargetPlayerId = ObjectiveTargetPlayerId, Objective = Objective,
-            CreatureId = CreatureId, WanderRadius = Unknown[0], PartyId = Unknown[1], Flags2 = Flags2,
-        };
+            return new()
+            {
+                X = X,
+                Y = Y,
+                Z = Z,
+                GoldHeld = GoldHeld,
+                Level = Level,
+                Flags = Flags,
+                ObjectiveTargetActionPointId = ObjectiveTargetActionPointId,
+                InitialHealth = InitialHealth,
+                TriggerId = TriggerId,
+                ObjectiveTargetPlayerId = ObjectiveTargetPlayerId,
+                Objective = Objective,
+                CreatureId = CreatureId,
+                WanderRadius = Unknown[0],
+                PartyId = Unknown[1],
+                Flags2 = Flags2,
+            };
+        }
     }
 
     [Fact]

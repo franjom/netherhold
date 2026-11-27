@@ -17,12 +17,27 @@ public sealed class ResearchTests
     private const byte Keeper = 4;
     private static readonly TilePos Room = new(3, 3);
 
-    private static int Second => SimulationTiming.TicksPerSecond;
+    private static int Second
+    {
+        get
+        {
+            return SimulationTiming.TicksPerSecond;
+        }
+    }
 
-    private static GameDatabase Db => Dk2TerrainFixture.Database();
+    private static GameDatabase Db
+    {
+        get
+        {
+            return Dk2TerrainFixture.Database();
+        }
+    }
 
-    private static WorldState World(GameDatabase db) => WorldState.FromMap(
+    private static WorldState World(GameDatabase db)
+    {
+        return WorldState.FromMap(
         db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+    }
 
     private static GameSimulation Simulation(
         GameDatabase db, WorldState world, ListEventSink? sink = null)

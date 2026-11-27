@@ -11,7 +11,10 @@ namespace DK2.Simulation.Tests.Steering;
 /// exemption and the repulsion from a remembered entity.</summary>
 public class SeparationBehaviourTests
 {
-    private static Fixed16Vector T(double x, double y) => FakeSteeringWorld.Tiles(x, y);
+    private static Fixed16Vector T(double x, double y)
+    {
+        return FakeSteeringWorld.Tiles(x, y);
+    }
 
     private static (SteeringBody a, SteeringBody b, SteeringMover mover, FakeSteeringWorld world) Touching()
     {

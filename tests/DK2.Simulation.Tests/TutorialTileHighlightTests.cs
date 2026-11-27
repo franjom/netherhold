@@ -118,12 +118,19 @@ public class TutorialTileHighlightTests
         return (db, world);
     }
 
-    private static ActionTriggerRecord Record(byte id, bool enabled, int durationTicks) => new(new byte[16])
+    private static ActionTriggerRecord Record(byte id, bool enabled, int durationTicks)
     {
-        Body = new byte[8], Type = 16, TriggerId = 0xFFFF,
-        Parameters = new Dictionary<string, long> { ["ActionPointId"] = id, ["Available"] = enabled ? 1 : 0, ["Value"] = durationTicks },
-    };
+        return new(new byte[16])
+        {
+            Body = new byte[8],
+            Type = 16,
+            TriggerId = 0xFFFF,
+            Parameters = new Dictionary<string, long> { ["ActionPointId"] = id, ["Available"] = enabled ? 1 : 0, ["Value"] = durationTicks },
+        };
+    }
 
-    private static void Run(GameDatabase db, WorldState world, byte id, bool enabled, int durationTicks) =>
+    private static void Run(GameDatabase db, WorldState world, byte id, bool enabled, int durationTicks)
+    {
         new TriggerExecutor(new TriggerTree([Record(id, enabled, durationTicks)], 0xFFFF), world.Triggers, world, db).Run(1);
+    }
 }

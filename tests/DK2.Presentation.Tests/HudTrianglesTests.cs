@@ -33,12 +33,16 @@ public sealed class HudTrianglesTests
     }
 
     [Fact]
-    public void ATriangleWithEveryCornerInTheCircleIsCopiedUnchanged() =>
+    public void ATriangleWithEveryCornerInTheCircleIsCopiedUnchanged()
+    {
         Assert.Equal(Square, Clip(Square, 0, 0, 15));
+    }
 
     [Fact]
-    public void ATriangleFarOutsideTheCircleIsDropped() =>
+    public void ATriangleFarOutsideTheCircleIsDropped()
+    {
         Assert.Empty(Clip(Square, 100, 100, 5));
+    }
 
     [Fact]
     public void ACoveringSquareLeavesTheCirclesTangentPolygon()
@@ -142,8 +146,10 @@ public sealed class HudTrianglesTests
         small.CopyFrom(big);
         Assert.True(small.SameAs(big));
     }
-    private static float SignedArea(in HudVertex a, in HudVertex b, in HudVertex c) =>
-        ((b.X - a.X) * (c.Y - a.Y) - (c.X - a.X) * (b.Y - a.Y)) / 2;
+    private static float SignedArea(in HudVertex a, in HudVertex b, in HudVertex c)
+    {
+        return ((b.X - a.X) * (c.Y - a.Y) - (c.X - a.X) * (b.Y - a.Y)) / 2;
+    }
 
     [Fact]
     public void ATriangleWithOnlyItsThirdCornerOutsideIsCut()

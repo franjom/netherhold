@@ -136,10 +136,15 @@ public partial class CampaignPlayerTests
         };
     }
 
-    private static CampaignPlayer Player(Func<CampaignPlayerOptions, CampaignPlayerOptions>? tune = null) =>
-        new((tune ?? (o => o))(new CampaignPlayerOptions(Run, Me, [Imp])));
+    private static CampaignPlayer Player(Func<CampaignPlayerOptions, CampaignPlayerOptions>? tune = null)
+    {
+        return new((tune ?? (o => o))(new CampaignPlayerOptions(Run, Me, [Imp])));
+    }
 
-    private static PlayerThingHandle Handle(int ordinal, long revision = 1) => new(new PlayerRevision(revision), ordinal);
+    private static PlayerThingHandle Handle(int ordinal, long revision = 1)
+    {
+        return new(new PlayerRevision(revision), ordinal);
+    }
 
     [Fact]
     public void AnAffordableRoomIsPressedThenBuiltOnTheNearestFreeSquareOfOwnFloor()
@@ -421,8 +426,11 @@ public partial class CampaignPlayerTests
         Assert.Contains(files, f => f.EndsWith("CampaignPlayer.cs", StringComparison.Ordinal));
         string[] forbidden = ["WorldState", "GameDatabase", "KeeperView", "GameSimulation", "CreatureState", "ObjectState",
             "PlayerObservationCapture", "WorldView", "HandRules", "DropLandingRules", "GoldStore", "PlayerSession"];
-        IEnumerable<string> Leaks(string name, string text) =>
-            forbidden.Where(word => System.Text.RegularExpressions.Regex.IsMatch(text, $@"\b{word}\b")).Select(word => $"{name}: {word}");
+        IEnumerable<string> Leaks(string name, string text)
+        {
+            return forbidden.Where(word => System.Text.RegularExpressions.Regex.IsMatch(text, $@"\b{word}\b")).Select(word => $"{name}: {word}");
+        }
+
         Assert.Empty(files.SelectMany(f => Leaks(Path.GetFileName(f), File.ReadAllText(f))));
         // Negative control: the scan does find a leak where one is written.
         Assert.Equal(["sample: WorldState", "sample: HandRules"], Leaks("sample", "var w = (WorldState)x; HandRules.CanSlap(d, c, p);"));

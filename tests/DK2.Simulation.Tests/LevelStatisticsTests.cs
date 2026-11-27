@@ -13,8 +13,10 @@ public class LevelStatisticsTests
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte Rival = PlayerIds.FirstKeeper + 1;
 
-    private static WorldState NewWorld(GameDatabase database) =>
-        WorldState.FromMap(database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
+    private static WorldState NewWorld(GameDatabase database)
+    {
+        return WorldState.FromMap(database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
+    }
 
     [Fact]
     public void ADeathCountsForTheKillerUnlessAHeroOrItsOwnAndAlwaysForTheVictimsOwner()

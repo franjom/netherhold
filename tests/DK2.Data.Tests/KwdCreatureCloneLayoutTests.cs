@@ -47,6 +47,9 @@ public class KwdCreatureCloneLayoutTests
         }
     }
 
-    private static CreatureDef Read(byte[] source) => KwdCreatures.Parse([
+    private static CreatureDef Read(byte[] source)
+    {
+        return KwdCreatures.Parse([
         new KwdChunk { Type = KwdRecordType.Creatures, ItemCount = 1, Content = source, HeaderBlock = [] }]).Single();
+    }
 }

@@ -195,8 +195,11 @@ public class CampaignPlayerLevel1Tests(ITestOutputHelper output)
         Directory.CreateDirectory(receipt);
         try
         {
-            static string Line(string path, string name) =>
-                $"{Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(path)))}  {name}\n";
+            static string Line(string path, string name)
+            {
+                return $"{Convert.ToHexStringLower(SHA256.HashData(File.ReadAllBytes(path)))}  {name}\n";
+            }
+
             File.WriteAllText(Path.Combine(receipt, BuildReceipt.OutputFile), string.Concat(Directory.EnumerateFiles(harness)
                 .Where(f => !f.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase)).Select(f => Line(f, Path.GetFileName(f)))));
             string[] inputs = [".cs", ".csproj", ".props", ".targets"];

@@ -22,10 +22,21 @@ public sealed class FrontEndMenuHudTests
     private sealed class Sources : IFrontEndMenuSources
     {
         public readonly HashSet<string> Missing = new();
-        public string Text(uint id) => "T" + id;
-        public BitmapFont Font(FrontEndFont font) => FrontEndMenuHudTests.Font;
-        public (int Width, int Height)? ImageSize(string name) => Missing.Contains(name) ? null
-            : name switch { "Logo" => (96, 64), "0-V-Scroll_Bar" => (12, 20), "3DFE\\3DSliderButton" => (16, 16), _ => (14, 14) };
+        public string Text(uint id)
+        {
+            return "T" + id;
+        }
+
+        public BitmapFont Font(FrontEndFont font)
+        {
+            return FrontEndMenuHudTests.Font;
+        }
+
+        public (int Width, int Height)? ImageSize(string name)
+        {
+            return Missing.Contains(name) ? null
+                    : name switch { "Logo" => (96, 64), "0-V-Scroll_Bar" => (12, 20), "3DFE\\3DSliderButton" => (16, 16), _ => (14, 14) };
+        }
     }
 
     /// <summary>On the Main page: the intro path is one frame, so it has already finished.</summary>
@@ -38,8 +49,10 @@ public sealed class FrontEndMenuHudTests
     }
 
     private static FrontEndMenuHud Menu(FrontEndSession? session = null, Sources? sources = null,
-        CampaignMapController? campaign = null, OptionsPagesController? options = null) =>
-        new(session ?? Session(), sources ?? new Sources(), percent => percent, scan => "K" + scan.Value, campaign, options);
+        CampaignMapController? campaign = null, OptionsPagesController? options = null)
+    {
+        return new(session ?? Session(), sources ?? new Sources(), percent => percent, scan => "K" + scan.Value, campaign, options);
+    }
 
     private static HudDraw[] Draws(FrontEndMenuHud hud)
     {
@@ -48,11 +61,20 @@ public sealed class FrontEndMenuHudTests
         return frame.Draws.ToArray();
     }
 
-    private static HudRect Virtual(FrontEndRect r) => new(r.X * 4, r.Y * 4, r.Width * 4, r.Height * 4);
-    private static FrontEndPointer Centre(FrontEndRect r, bool held = false) => new(r.X + r.Width / 2, r.Y + r.Height / 2, held);
+    private static HudRect Virtual(FrontEndRect r)
+    {
+        return new(r.X * 4, r.Y * 4, r.Width * 4, r.Height * 4);
+    }
 
-    private static HudDraw LabelDraw(HudDraw[] draws, FrontEndMenuHud hud, ushort widget) =>
-        draws.Single(d => d.Image.Label is not null && d.Image.Variant == HudImageVariant.None && ReferenceEquals(d.Image.Label, hud.LabelOf(new(widget))));
+    private static FrontEndPointer Centre(FrontEndRect r, bool held = false)
+    {
+        return new(r.X + r.Width / 2, r.Y + r.Height / 2, held);
+    }
+
+    private static HudDraw LabelDraw(HudDraw[] draws, FrontEndMenuHud hud, ushort widget)
+    {
+        return draws.Single(d => d.Image.Label is not null && d.Image.Variant == HudImageVariant.None && ReferenceEquals(d.Image.Label, hud.LabelOf(new(widget))));
+    }
 
     [Fact]
     public void AMainPageLaysItsLabelsOutAsBf4BoxesInDk2sColoursAndDimsTheOnesItCannotTake()
@@ -362,11 +384,25 @@ public sealed class FrontEndMenuHudTests
         private readonly string _text = Path.Combine(Dk2InstallGate.Path, "Data", "Text", "Default");
         private readonly Dk2StringTable _strings;
         private readonly Dictionary<string, BitmapFont> _fonts = new();
-        public InstallSources() => _strings = Dk2StringTable.Open(Path.Combine(_text, "Text.str"));
-        public string Text(uint id) => _strings.TryResolve(id, out string? text) ? text : "";
-        public BitmapFont Font(FrontEndFont font) =>
-            _fonts.TryGetValue(font.FileName, out BitmapFont? known) ? known : _fonts[font.FileName] = Bf4FontReader.Open(Path.Combine(_text, font.FileName));
-        public (int Width, int Height)? ImageSize(string name) => (14, 14);
+        public InstallSources()
+        {
+            _strings = Dk2StringTable.Open(Path.Combine(_text, "Text.str"));
+        }
+
+        public string Text(uint id)
+        {
+            return _strings.TryResolve(id, out string? text) ? text : "";
+        }
+
+        public BitmapFont Font(FrontEndFont font)
+        {
+            return _fonts.TryGetValue(font.FileName, out BitmapFont? known) ? known : _fonts[font.FileName] = Bf4FontReader.Open(Path.Combine(_text, font.FileName));
+        }
+
+        public (int Width, int Height)? ImageSize(string name)
+        {
+            return (14, 14);
+        }
     }
 
     /// <summary>The install's own BF4 fonts and strings through the label primitive: every label's raster covers its ink

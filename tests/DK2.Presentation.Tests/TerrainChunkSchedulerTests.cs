@@ -54,10 +54,13 @@ public class TerrainChunkSchedulerTests
         var scheduler = new TerrainChunkScheduler(new TerrainTileBuilderTests.FakePieces(), 1, 1, null, true)
         { FlushBudgetMilliseconds = 0 };
         var sink = new SchedulerLog();
-        TileView Tile(bool tagged = false, bool red = false, int tint = 0, int face = -1) =>
-            new(new TilePos(0, 0), default, default, default, tagged, false, 0, 1000,
+        TileView Tile(bool tagged = false, bool red = false, int tint = 0, int face = -1)
+        {
+            return new(new TilePos(0, 0), default, default, default, tagged, false, 0, 1000,
                 pieces: default(TerrainPieces).WithFloor(), pieceKeys: Rock, ambientTint: new TerrainLightColour(tint, 0, 0),
                 quarterAmbientTint: new TerrainLightColour(0, tint, 0), redHighlighted: red, faceTexture: face);
+        }
+
         scheduler.Set(0, Tile());
         scheduler.Flush(sink);
         Assert.Single(sink.Uploads);
@@ -414,7 +417,10 @@ public class TerrainChunkSchedulerTests
 
     private sealed class NoPieces : ITerrainPieceSource
     {
-        public TerrainPiece? Piece(DK2.Assets.AssetRef key, int textureIndex = -1) => null;
+        public TerrainPiece? Piece(DK2.Assets.AssetRef key, int textureIndex = -1)
+        {
+            return null;
+        }
     }
 
     [Fact]
@@ -645,7 +651,10 @@ public class TerrainChunkSchedulerTests
     private sealed class CountingPacker : ITerrainChunkPacker
     {
         public int Packs;
-        public void PackChunk(int chunk, ReadOnlySpan<TerrainTileGeometry> tiles) => Packs++;
+        public void PackChunk(int chunk, ReadOnlySpan<TerrainTileGeometry> tiles)
+        {
+            Packs++;
+        }
     }
 
     /// <summary>Records packs and uploads, and checks each upload's tiles against the chunk's last pack.</summary>
@@ -707,7 +716,11 @@ public class TerrainChunkSchedulerTests
     {
         public int Tiles;
         public void BeginChunk(int chunk) { }
-        public void AddTile(int tileIndex, TerrainTileGeometry geometry) => Tiles++;
+        public void AddTile(int tileIndex, TerrainTileGeometry geometry)
+        {
+            Tiles++;
+        }
+
         public void EndChunk(int chunk) { }
     }
 
@@ -726,11 +739,16 @@ public class TerrainChunkSchedulerTests
         return scheduler;
     }
 
-    private static int At(int x, int y) => (y * Width) + x;
+    private static int At(int x, int y)
+    {
+        return (y * Width) + x;
+    }
 
-    private static TileView Floor(int x, int y, bool tagged = false, TerrainLightColour tint = default) =>
-        new(new TilePos(x, y), default, default, default, tagged, false, 0, 1000,
+    private static TileView Floor(int x, int y, bool tagged = false, TerrainLightColour tint = default)
+    {
+        return new(new TilePos(x, y), default, default, default, tagged, false, 0, 1000,
             pieces: default(TerrainPieces).WithFloor(), pieceKeys: Rock, ambientTint: tint);
+    }
 
     private static TileView RandomTile(Random random, int index)
     {

@@ -24,10 +24,17 @@ public sealed class KeeperSpellUpgradeTests
     private const byte SightOfEvil = 1, CreateGold = 13;
     private static readonly TilePos GoldAt = new(10, 10);
 
-    private static int Second => SimulationTiming.TicksPerSecond;
+    private static int Second
+    {
+        get
+        {
+            return SimulationTiming.TicksPerSecond;
+        }
+    }
 
-    private static KeeperSpellDef[] TaskSpells() =>
-    [
+    private static KeeperSpellDef[] TaskSpells()
+    {
+        return [
         new()
         {
             Name = "Create Gold", KeeperSpellId = CreateGold, ManaCost = 15000, ManaUpkeepPerSecond = 0,
@@ -72,6 +79,7 @@ public sealed class KeeperSpellUpgradeTests
             ShotTypeId = 46, ShotData1 = 99,
         },
     ];
+    }
 
     /// <summary>The fixture with the task's spells and a one-entry research list: the spell.</summary>
     private static GameDatabase Db(byte spellId)

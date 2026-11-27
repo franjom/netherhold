@@ -82,17 +82,24 @@ public sealed class RoomPositionTests
         Assert.Equal(new TilePos(x, y), Position(room));
     }
 
-    private static TilePos Position(RoomInstance room) => new(room.CentreFieldX, room.CentreFieldY);
+    private static TilePos Position(RoomInstance room)
+    {
+        return new(room.CentreFieldX, room.CentreFieldY);
+    }
 
-    private static TilePos[] Rectangle(TilePos first, int width, int height) =>
-        [.. (from y in Enumerable.Range(first.Y, height)
+    private static TilePos[] Rectangle(TilePos first, int width, int height)
+    {
+        return [.. (from y in Enumerable.Range(first.Y, height)
          from x in Enumerable.Range(first.X, width) select new TilePos(x, y))];
+    }
 
-    private static TilePos[] Ring(int side) =>
-        [.. (from y in Enumerable.Range(10, side)
+    private static TilePos[] Ring(int side)
+    {
+        return [.. (from y in Enumerable.Range(10, side)
          from x in Enumerable.Range(10, side)
          where x == 10 || y == 10 || x == 9 + side || y == 9 + side
          select new TilePos(x, y))];
+    }
 
     private static void Place(WorldState world, RoomDef definition, PlayerId owner, IEnumerable<TilePos> points)
     {

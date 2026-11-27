@@ -70,7 +70,14 @@ public sealed class LairResumeGateTests
 
     private sealed class Attempt(CreatureState creature) : ISimulationSystem
     {
-        public string Name => "lair_resume_gate_test";
+        public string Name
+        {
+            get
+            {
+                return "lair_resume_gate_test";
+            }
+        }
+
         public bool Succeeded { get; private set; }
         public void Execute(SimulationContext context)
         {

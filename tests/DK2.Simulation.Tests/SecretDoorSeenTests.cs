@@ -52,14 +52,18 @@ public sealed class SecretDoorSeenTests
         return (sim, world, world.Doors[0], events);
     }
 
-    private static void PlaceDoor(WorldState world, GameDatabase db, TilePos at, byte doorId) =>
+    private static void PlaceDoor(WorldState world, GameDatabase db, TilePos at, byte doorId)
+    {
         ThingProjection.Place(world, db, [new DoorThing(new byte[20])
         {
             X = at.X, Y = at.Y, PlayerId = Rival, DoorId = doorId, Unknown_0011 = new byte[3],
         }]);
+    }
 
-    private static CreatureState Goblin(GameSimulation sim, byte owner, TilePos at) =>
-        sim.World.SpawnCreature(sim.Database, Dk2TerrainFixture.GoblinCreatureId, owner, at).Unstaggered();
+    private static CreatureState Goblin(GameSimulation sim, byte owner, TilePos at)
+    {
+        return sim.World.SpawnCreature(sim.Database, Dk2TerrainFixture.GoblinCreatureId, owner, at).Unstaggered();
+    }
 
     [Fact]
     public void AnEnemyBesideAnOpenSecretDoorSeesItAndIsForcedOntoIt()

@@ -22,12 +22,21 @@ public sealed class MessageTabsHudTests
 
     private sealed class Art : IBottomPanelArt
     {
-        public string? Icon(BottomPanelChoiceKey key) => "icon " + key.Value;
-        public string Text(uint id) => "text " + id;
+        public string? Icon(BottomPanelChoiceKey key)
+        {
+            return "icon " + key.Value;
+        }
+
+        public string Text(uint id)
+        {
+            return "text " + id;
+        }
     }
 
-    private static MessageTabsHud Hud(MessageTabsView? view = null) =>
-        new(new Art(), view ?? new MessageTabsView(PlayerIds.FirstKeeper), _ => Font, r => "message " + r, line => "AA");
+    private static MessageTabsHud Hud(MessageTabsView? view = null)
+    {
+        return new(new Art(), view ?? new MessageTabsView(PlayerIds.FirstKeeper), _ => Font, r => "message " + r, line => "AA");
+    }
 
     private static HudDraw[] Build(MessageTabsHud hud, (float, float, bool) pointer = default, HudVisibility? visibility = null)
     {
@@ -36,8 +45,10 @@ public sealed class MessageTabsHudTests
         return frame.Draws.ToArray();
     }
 
-    private static void Click(MessageTabsHud hud, HudRect at, int button = 0) =>
+    private static void Click(MessageTabsHud hud, HudRect at, int button = 0)
+    {
         Assert.True(hud.PointerDown(at.X + at.Width / 2, at.Y + at.Height / 2, button));
+    }
 
     [Fact]
     public void WithNoMessagesOnlyTheReviewObjectiveButtonDraws()

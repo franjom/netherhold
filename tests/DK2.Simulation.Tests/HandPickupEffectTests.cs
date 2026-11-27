@@ -24,8 +24,10 @@ public sealed class HandPickupEffectTests
         return (db, world, sim, events);
     }
 
-    private static ViewEffectRequest[] Effects(ListEventSink events) =>
-        [.. events.Events.Where(e => e.EffectRequest.HasValue).Select(e => e.EffectRequest!.Value)];
+    private static ViewEffectRequest[] Effects(ListEventSink events)
+    {
+        return [.. events.Events.Where(e => e.EffectRequest.HasValue).Select(e => e.EffectRequest!.Value)];
+    }
 
     [Theory]
     [InlineData(false)]

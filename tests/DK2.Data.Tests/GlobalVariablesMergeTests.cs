@@ -191,23 +191,26 @@ public class GlobalVariablesMergeTests
         Assert.Equal(0, forLevel[VariableTypeId.MinimumImpThreshold]);
     }
 
-    private static ObjectDef Bed(byte id) => new()
+    private static ObjectDef Bed(byte id)
     {
-        Name = $"bed {id}",
-        ObjectId = id,
-        Flags = ObjectFlags.TypeLair,
-        Hp = 1,
-        ManaValue = 0,
-        RoomCapacity = 1,
-        StartState = 0,
-        PickUpPriority = 0,
-        Width = new Fp32(0),
-        Height = new Fp32(0),
-        Mass = new Fp32(0),
-        Speed = new Fp32(0),
-        NameStringId = 0,
-        TooltipStringId = 0,
-    };
+        return new()
+        {
+            Name = $"bed {id}",
+            ObjectId = id,
+            Flags = ObjectFlags.TypeLair,
+            Hp = 1,
+            ManaValue = 0,
+            RoomCapacity = 1,
+            StartState = 0,
+            PickUpPriority = 0,
+            Width = new Fp32(0),
+            Height = new Fp32(0),
+            Mass = new Fp32(0),
+            Speed = new Fp32(0),
+            NameStringId = 0,
+            TooltipStringId = 0,
+        };
+    }
 
     /// <summary>Id 66 is its own record (<c>0x0051DC90</c>), several a level: no fold by id, a
     /// level's pairs add to the global ones, and a cell writes back to the bytes it was read from.</summary>

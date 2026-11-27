@@ -20,12 +20,27 @@ public sealed class CreatureJobTests
     private const byte VampireId = Dk2TerrainFixture.VampireCreatureId;
     private static readonly TilePos Floor = new(2, 2);
 
-    private static int Second => SimulationTiming.TicksPerSecond;
+    private static int Second
+    {
+        get
+        {
+            return SimulationTiming.TicksPerSecond;
+        }
+    }
 
-    private static GameDatabase Db => Dk2TerrainFixture.Database();
+    private static GameDatabase Db
+    {
+        get
+        {
+            return Dk2TerrainFixture.Database();
+        }
+    }
 
-    private static WorldState World(GameDatabase db) => WorldState.FromMap(
+    private static WorldState World(GameDatabase db)
+    {
+        return WorldState.FromMap(
         db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+    }
 
     /// <summary>
     /// The chooser plus the mover, because a job is a walk to a room. The anger

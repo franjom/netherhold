@@ -18,12 +18,34 @@ public class ImpKeepsItsGoldTests
 
     private sealed record Run(GameSimulation Sim, ListEventSink Events)
     {
-        public WorldState World => Sim.World;
-        public GameDatabase Db => Sim.Database;
-        public CreatureState Imp => Sim.World.Creatures[0];
+        public WorldState World
+        {
+            get
+            {
+                return Sim.World;
+            }
+        }
 
-        public void Tick(params PlayerCommand[] commands) =>
+        public GameDatabase Db
+        {
+            get
+            {
+                return Sim.Database;
+            }
+        }
+
+        public CreatureState Imp
+        {
+            get
+            {
+                return Sim.World.Creatures[0];
+            }
+        }
+
+        public void Tick(params PlayerCommand[] commands)
+        {
             Sim.Tick(commands.Length == 0 ? InputFrame.Empty : InputFrame.Of(commands));
+        }
 
         public void Ticks(int count)
         {
@@ -33,7 +55,10 @@ public class ImpKeepsItsGoldTests
             }
         }
 
-        public IEnumerable<SimEvent> Of(string kind) => Events.Events.Where(e => e.Kind == kind);
+        public IEnumerable<SimEvent> Of(string kind)
+        {
+            return Events.Events.Where(e => e.Kind == kind);
+        }
     }
 
     private static Run Start(TilePos impAt)

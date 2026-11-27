@@ -15,7 +15,10 @@ namespace DK2.Behavior.Tests;
 /// </summary>
 public class ResearchOnRealDataTests
 {
-    private static string Install() => Dk2InstallGate.Path;
+    private static string Install()
+    {
+        return Dk2InstallGate.Path;
+    }
 
     [InstallFact]
     public void ElevenCreaturesCanResearchAndTheWizardIsTheBestOfThem()

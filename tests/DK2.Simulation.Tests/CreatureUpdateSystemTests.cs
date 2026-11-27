@@ -27,10 +27,28 @@ public class CreatureUpdateSystemTests
     private sealed class Step(string name, List<string> log, Action<SimulationContext, CreatureState>? act = null)
         : ICreatureUpdateStep
     {
-        public string Name => name;
-        public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
-        public void BeginTurn(SimulationContext context) => log.Add($"{name} begin");
-        public void EndTurn(SimulationContext context) => log.Add($"{name} end");
+        public string Name
+        {
+            get
+            {
+                return name;
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            CreatureUpdateSystem.RunAlone(context, this);
+        }
+
+        public void BeginTurn(SimulationContext context)
+        {
+            log.Add($"{name} begin");
+        }
+
+        public void EndTurn(SimulationContext context)
+        {
+            log.Add($"{name} end");
+        }
 
         public void Update(SimulationContext context, CreatureState creature)
         {

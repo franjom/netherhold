@@ -60,7 +60,9 @@ public sealed class KeeperResourceViewTests
     [InlineData(KeeperResourceModifiers.Shift | KeeperResourceModifiers.Control, 100)]
     [InlineData(KeeperResourceModifiers.Alt, 100)]
     public void GoldCounterModifiersUseEqualityRatherThanIndependentBits(KeeperResourceModifiers modifiers, int expected)
-        => Assert.Equal(expected, KeeperResourceInteraction.WithdrawAmount(modifiers).Value);
+    {
+        Assert.Equal(expected, KeeperResourceInteraction.WithdrawAmount(modifiers).Value);
+    }
 
     [Fact]
     public void ResourceHitRegionsKeepNativePrecedenceAndScaleWithHeight()
@@ -80,11 +82,18 @@ public sealed class KeeperResourceViewTests
     [Fact]
     public void ResourceHoverUsesNativeDescriptionPairsAndTruncatedHeartPercentage()
     {
-        string Resolve(uint id) => id switch
+        string Resolve(uint id)
         {
-            2139 => "heart", 2140 => "%19% health", 2143 => "payday", 2144 => "cost %20",
-            _ => id.ToString(),
-        };
+            return id switch
+            {
+                2139 => "heart",
+                2140 => "%19% health",
+                2143 => "payday",
+                2144 => "cost %20",
+                _ => id.ToString(),
+            };
+        }
+
         var snapshot = new KeeperResourceSnapshot(default, default, default, default,
             HeartHealth: new(2, 3), WageBill: new(547), HeartTile: new(1, 1));
         HoverTextSnapshot heart = KeeperResourceInteraction.ResourceHover(snapshot, KeeperResourceKind.Heart, Resolve);

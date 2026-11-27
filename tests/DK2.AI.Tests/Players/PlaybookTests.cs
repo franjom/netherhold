@@ -14,13 +14,19 @@ public class PlaybookTests
 {
     private const ulong Hash = 521;
 
-    private static Playbook Level2 => new()
+    private static Playbook Level2
     {
-        Level = "campaign:level2",
-        Start = [PlaybookItem.Room(RoomTypeId.Lair), PlaybookItem.Room(RoomTypeId.Hatchery), new(PlaybookItemKind.Spell, "Create Imp")],
-        Creatures = [new(PlaybookItemKind.Creature, "Goblin")],
-        MayChange = [new(PlaybookItem.Room(RoomTypeId.TrainingRoom), true, "trigger 12 MAKE"), new(PlaybookItem.Room(RoomTypeId.Treasury), false, "trigger 13 MAKE")],
-    };
+        get
+        {
+            return new()
+            {
+                Level = "campaign:level2",
+                Start = [PlaybookItem.Room(RoomTypeId.Lair), PlaybookItem.Room(RoomTypeId.Hatchery), new(PlaybookItemKind.Spell, "Create Imp")],
+                Creatures = [new(PlaybookItemKind.Creature, "Goblin")],
+                MayChange = [new(PlaybookItem.Room(RoomTypeId.TrainingRoom), true, "trigger 12 MAKE"), new(PlaybookItem.Room(RoomTypeId.Treasury), false, "trigger 13 MAKE")],
+            };
+        }
+    }
 
     [Fact]
     public void ItemsReadAndWriteAsKindAndName()

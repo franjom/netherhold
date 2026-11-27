@@ -19,8 +19,10 @@ public class KeeperSpecialStepTests
     private const byte Keeper = KeeperWorld.Keeper;
     private static readonly TilePos Own = new(14, 15), OwnToo = new(16, 15), Unclaimed = new(5, 5);
 
-    private static ObjectState Box(WorldState world, byte type, TilePos at, byte owner = Keeper) =>
-        world.SpawnObject(Db, type, owner, (at.Y * world.Width) + at.X);
+    private static ObjectState Box(WorldState world, byte type, TilePos at, byte owner = Keeper)
+    {
+        return world.SpawnObject(Db, type, owner, (at.Y * world.Width) + at.X);
+    }
 
     private static List<PlayerCommand> Run(WorldState world)
     {
@@ -97,6 +99,8 @@ public class KeeperSpecialStepTests
     [InlineData(128, true)]
     [InlineData(129, true)]
     [InlineData(140, false)]
-    public void Special_005005C2_TheSwitchTakesEight117To126128And129(byte id, bool usable) =>
+    public void Special_005005C2_TheSwitchTakesEight117To126128And129(byte id, bool usable)
+    {
         Assert.Equal(usable, KeeperSpecialStep.Usable(id));
+    }
 }

@@ -155,10 +155,12 @@ public class TriggerSchedulingTests
         Assert.Equal(1, world.Triggers.ReadTimer(3));
     }
 
-    private static IEnumerable<ISimulationSystem> Scheduled(ICreatureUpdateStep step) =>
-        SimulationSystems.Default()
+    private static IEnumerable<ISimulationSystem> Scheduled(ICreatureUpdateStep step)
+    {
+        return SimulationSystems.Default()
             .Where(s => s is CreatureUpdateSystem || s.GetType().Name.EndsWith("TriggerSystem", StringComparison.Ordinal))
             .Select(s => s is CreatureUpdateSystem ? new CreatureUpdateSystem(step) : s);
+    }
 
     [Fact]
     public void AnAdditionalStandaloneStepDoesNotWalkTheCreatureRootAgain()
@@ -185,17 +187,41 @@ public class TriggerSchedulingTests
 
     private sealed class ClaimStep : ICreatureUpdateStep
     {
-        public string Name => "complete claim";
-        public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
-        public void Update(SimulationContext context, CreatureState creature) =>
+        public string Name
+        {
+            get
+            {
+                return "complete claim";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            CreatureUpdateSystem.RunAlone(context, this);
+        }
+
+        public void Update(SimulationContext context, CreatureState creature)
+        {
             context.World.Tile(5, 5).OwnerPlayerId = 1;
+        }
     }
 
     private sealed class HealthStep(int newer, int older) : ICreatureUpdateStep
     {
-        public string Name => "change health";
+        public string Name
+        {
+            get
+            {
+                return "change health";
+            }
+        }
+
         public int StampSeenByOlder { get; private set; }
-        public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+        public void Execute(SimulationContext context)
+        {
+            CreatureUpdateSystem.RunAlone(context, this);
+        }
+
         public void Update(SimulationContext context, CreatureState creature)
         {
             if (creature.Id == newer)
@@ -210,32 +236,64 @@ public class TriggerSchedulingTests
         }
     }
 
-    private static TriggerRecord Condition(ushort id, byte type, ushort child, Dictionary<string, long> parameters) =>
-        new GenericTriggerRecord(new byte[16])
+    private static TriggerRecord Condition(ushort id, byte type, ushort child, Dictionary<string, long> parameters)
+    {
+        return new GenericTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = id, Type = type, RepeatCount = 1,
-            ChildTriggerId = child, Parameters = parameters,
+            Body = new byte[8],
+            TriggerId = id,
+            Type = type,
+            RepeatCount = 1,
+            ChildTriggerId = child,
+            Parameters = parameters,
         };
+    }
 
     private sealed class FlagProbe(string label, List<string> log) : ICreatureUpdateStep
     {
-        public string Name => "flag probe";
-        public void Execute(SimulationContext context) => log.Add($"{label}: {Flags(context)}");
-        public void Update(SimulationContext context, CreatureState creature) =>
+        public string Name
+        {
+            get
+            {
+                return "flag probe";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            log.Add($"{label}: {Flags(context)}");
+        }
+
+        public void Update(SimulationContext context, CreatureState creature)
+        {
             log.Add($"{label} {creature.Id}: {Flags(context)}");
-        private static string Flags(SimulationContext context) =>
-            $"{context.World.Triggers.Read(1)}{context.World.Triggers.Read(2)}{context.World.Triggers.Read(3)}";
+        }
+
+        private static string Flags(SimulationContext context)
+        {
+            return $"{context.World.Triggers.Read(1)}{context.World.Triggers.Read(2)}{context.World.Triggers.Read(3)}";
+        }
     }
 
-    private static TriggerRecord SetFlag(ushort id, byte flag) => new ActionTriggerRecord(new byte[16])
+    private static TriggerRecord SetFlag(ushort id, byte flag)
     {
-        Body = new byte[8], TriggerId = id, Type = 7,
-        Parameters = new Dictionary<string, long> { ["FlagId"] = flag, ["Flag"] = 10, ["Value"] = 1 },
-    };
+        return new ActionTriggerRecord(new byte[16])
+        {
+            Body = new byte[8],
+            TriggerId = id,
+            Type = 7,
+            Parameters = new Dictionary<string, long> { ["FlagId"] = flag, ["Flag"] = 10, ["Value"] = 1 },
+        };
+    }
 
-    private static TriggerRecord Timer(ushort id, byte timer) => new ActionTriggerRecord(new byte[16])
+    private static TriggerRecord Timer(ushort id, byte timer)
     {
-        Body = new byte[8], TriggerId = id, Type = 8,
-        Parameters = new Dictionary<string, long> { ["TimerId"] = timer },
-    };
+        return new ActionTriggerRecord(new byte[16])
+        {
+            Body = new byte[8],
+            TriggerId = id,
+            Type = 8,
+            Parameters = new Dictionary<string, long> { ["TimerId"] = timer },
+        };
+    }
 }

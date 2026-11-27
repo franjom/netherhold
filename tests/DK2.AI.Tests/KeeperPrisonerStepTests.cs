@@ -142,11 +142,15 @@ public class KeeperPrisonerStepTests
         }
     }
 
-    private static int[] Lifted(IEnumerable<PlayerCommand> commands) =>
-        [.. commands.OfType<TakeCreatureCommand>().Select(c => c.CreatureId)];
+    private static int[] Lifted(IEnumerable<PlayerCommand> commands)
+    {
+        return [.. commands.OfType<TakeCreatureCommand>().Select(c => c.CreatureId)];
+    }
 
-    private static TilePos[] Drops(IEnumerable<PlayerCommand> commands) =>
-        [.. commands.OfType<DropCommand>().Select(c => c.Tile)];
+    private static TilePos[] Drops(IEnumerable<PlayerCommand> commands)
+    {
+        return [.. commands.OfType<DropCommand>().Select(c => c.Tile)];
+    }
 
     [Fact]
     public void WithoutAPrisonOrAnOccupantNothingIsSpent()
@@ -339,7 +343,13 @@ public class KeeperPrisonerStepTests
         Assert.Equal(3, left);
     }
 
-    public static TheoryData<string> Guards => ["landing", "stunned", "unpermitted", "held"];
+    public static TheoryData<string> Guards
+    {
+        get
+        {
+            return ["landing", "stunned", "unpermitted", "held"];
+        }
+    }
 
     [Theory]
     [MemberData(nameof(Guards))]

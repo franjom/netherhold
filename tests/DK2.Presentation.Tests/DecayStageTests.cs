@@ -13,13 +13,27 @@ namespace DK2.Presentation.Tests;
 /// Reinforced Wall steps from Brick (3) to Brick_DECAY3 (0) as Imps dig it down.</summary>
 public sealed class DecayStageTests
 {
-    private static TerrainDef Wall(TerrainFlags flags, byte variants) => new()
+    private static TerrainDef Wall(TerrainFlags flags, byte variants)
     {
-        Name = "Reinforced Wall", TerrainId = 9, Flags = flags, TextureVariants = variants,
-        StartingHealth = 900, MaxHealth = 900, GoldValue = 0, ManaGain = 0, MaxManaGain = 0,
-        Damage = 0, MaxHealthTypeTerrainId = 0, DestroyedTypeTerrainId = 0,
-        Depth = new Fp32(0), NameStringId = 0, TooltipStringId = 0,
-    };
+        return new()
+        {
+            Name = "Reinforced Wall",
+            TerrainId = 9,
+            Flags = flags,
+            TextureVariants = variants,
+            StartingHealth = 900,
+            MaxHealth = 900,
+            GoldValue = 0,
+            ManaGain = 0,
+            MaxManaGain = 0,
+            Damage = 0,
+            MaxHealthTypeTerrainId = 0,
+            DestroyedTypeTerrainId = 0,
+            Depth = new Fp32(0),
+            NameStringId = 0,
+            TooltipStringId = 0,
+        };
+    }
 
     [Theory]
     [InlineData(900, 3)]
@@ -30,8 +44,10 @@ public sealed class DecayStageTests
     [InlineData(227, 1)]
     [InlineData(226, 0)]   // health - 2 below one step
     [InlineData(1, 0)]
-    public void AReinforcedWallsStageIsItsHealthLessTwoOverAQuarterOfItsMaximum(int health, int stage) =>
+    public void AReinforcedWallsStageIsItsHealthLessTwoOverAQuarterOfItsMaximum(int health, int stage)
+    {
         Assert.Equal(stage, WorldView.DecayStage(health, Wall(TerrainFlags.Decay, 4)));
+    }
 
     [Fact]
     public void ATerrainWithoutDecayOrWithOneTextureHasNoStage()

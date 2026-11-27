@@ -203,10 +203,29 @@ public sealed class ReinforcementActionTests
     private sealed class AfterCombatScan(ICreatureUpdateStep next) : ICreatureUpdateStep
     {
         public static int ExperienceSeen;
-        public string Name => next.Name;
-        public void BeginTurn(SimulationContext context) => next.BeginTurn(context);
-        public void EndTurn(SimulationContext context) => next.EndTurn(context);
-        public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+        public string Name
+        {
+            get
+            {
+                return next.Name;
+            }
+        }
+
+        public void BeginTurn(SimulationContext context)
+        {
+            next.BeginTurn(context);
+        }
+
+        public void EndTurn(SimulationContext context)
+        {
+            next.EndTurn(context);
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            CreatureUpdateSystem.RunAlone(context, this);
+        }
+
         public void Update(SimulationContext context, CreatureState creature)
         {
             next.Update(context, creature);

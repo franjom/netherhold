@@ -298,7 +298,17 @@ public sealed class TurncoatTests
 
     private sealed class Probe(Action<SimulationContext> action) : ISimulationSystem
     {
-        public string Name => "turncoat_probe";
-        public void Execute(SimulationContext context) => action(context);
+        public string Name
+        {
+            get
+            {
+                return "turncoat_probe";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            action(context);
+        }
     }
 }

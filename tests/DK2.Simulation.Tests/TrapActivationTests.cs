@@ -68,6 +68,8 @@ public class TrapActivationTests
     [InlineData(1023, 0u)]
     [InlineData(-1, 1048575u)]
     [InlineData(0x40000000, 0u)]
-    public void BinaryInferredTimingUsesLowDwordAndLogicalShift(int raw, uint ticks) =>
+    public void BinaryInferredTimingUsesLowDwordAndLogicalShift(int raw, uint ticks)
+    {
         Assert.Equal(ticks, SimulationTiming.LoaderFixedSecondsToTicks(raw));
+    }
 }

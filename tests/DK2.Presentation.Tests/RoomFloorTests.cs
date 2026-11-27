@@ -41,7 +41,10 @@ public class RoomFloorTests
         return new Room(db, world, new WorldView(db));
     }
 
-    private static PieceSet Floor(Room room, int x, int y) => room.View.TileAt(room.World, x, y).RoomFloor;
+    private static PieceSet Floor(Room room, int x, int y)
+    {
+        return room.View.TileAt(room.World, x, y).RoomFloor;
+    }
 
     /// <summary>The top-left corner: an outer corner NW (piece 1), the two edges beside it (piece
     /// 0) and an interior quarter SE (piece 3), each turned by its table rotation plus its quadrant.</summary>

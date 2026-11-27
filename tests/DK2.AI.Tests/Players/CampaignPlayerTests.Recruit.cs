@@ -19,12 +19,16 @@ public partial class CampaignPlayerTests
         new RoomFacts(RoomTypeId.Hatchery, 300, [new(3, 1, 9, 0)], capsCreatures: false),
     ]);
 
-    private static PlayerObservation RecruitView(long tick, int gold = 50_000, bool portal = true, IReadOnlyList<PlayerCreatureSummary>? creatures = null) =>
-        Observe(map: Open, rooms: [Offer(RoomTypeId.GuardRoom), Offer(RoomTypeId.Hatchery)], gold: gold, tick: tick, revision: tick,
+    private static PlayerObservation RecruitView(long tick, int gold = 50_000, bool portal = true, IReadOnlyList<PlayerCreatureSummary>? creatures = null)
+    {
+        return Observe(map: Open, rooms: [Offer(RoomTypeId.GuardRoom), Offer(RoomTypeId.Hatchery)], gold: gold, tick: tick, revision: tick,
             owned: portal ? CoreOwned(more: new PlayerRoomSummary(RoomTypeId.Portal, 9)) : CoreOwned(), creatures: creatures);
+    }
 
-    private static CampaignPlayer Recruiter(Func<PlayerStrategy, PlayerStrategy>? tune = null) =>
-        Player(o => o with { Knowledge = GuardFacts }).Also(p => p.Apply((tune ?? (s => s))(p.Strategy with { CreateImps = 0 })));
+    private static CampaignPlayer Recruiter(Func<PlayerStrategy, PlayerStrategy>? tune = null)
+    {
+        return Player(o => o with { Knowledge = GuardFacts }).Also(p => p.Apply((tune ?? (s => s))(p.Strategy with { CreateImps = 0 })));
+    }
 
     [Fact]
     public void APortalThatBringsNobodyWhileGoldIdlesGetsTheRoomItsCreaturesNeed()
@@ -49,8 +53,12 @@ public partial class CampaignPlayerTests
     public void RecruitingBuildsOnlyWhileTheGoldPaysSixPaydays()
     {
         // A bill of 10000: 50000 pays five paydays, 61000 six (and leaves 49000 over the 12000 budget).
-        PlayerObservation View(int gold) => Observe(map: Open, rooms: [Offer(RoomTypeId.GuardRoom)], gold: gold, tick: 1300, revision: 1300,
+        PlayerObservation View(int gold)
+        {
+            return Observe(map: Open, rooms: [Offer(RoomTypeId.GuardRoom)], gold: gold, tick: 1300, revision: 1300,
             owned: CoreOwned(more: new PlayerRoomSummary(RoomTypeId.Portal, 9)), wageBill: 10_000);
+        }
+
         Assert.Null(Built(Recruiter().Decide(View(50_000)), RoomTypeId.GuardRoom));
         Assert.NotNull(Built(Recruiter().Decide(View(61_000)), RoomTypeId.GuardRoom));
     }
@@ -63,10 +71,18 @@ public partial class CampaignPlayerTests
             new RoomFacts(RoomTypeId.GuardRoom, 600, [new(3, 1, 9, 0)], capsCreatures: true),
             new RoomFacts(RoomTypeId.Temple, 3000, [new(3, 1, 9, 0)], capsCreatures: true),
         ]);
-        CampaignPlayer Make() => Player(o => o with { Knowledge = facts }).Also(p => p.Apply(p.Strategy with { CreateImps = 0, ExtraRooms = [] }));
+        CampaignPlayer Make()
+        {
+            return Player(o => o with { Knowledge = facts }).Also(p => p.Apply(p.Strategy with { CreateImps = 0, ExtraRooms = [] }));
+        }
+
         PlayerRoomOffer guard = new(RoomTypeId.GuardRoom, new GoldAmount(600), true), temple = new(RoomTypeId.Temple, new GoldAmount(3000), true);
-        PlayerObservation View(int guardTiles) => Observe(map: Open, rooms: [temple, guard], gold: 90_000, tick: 1300, revision: 1300,
+        PlayerObservation View(int guardTiles)
+        {
+            return Observe(map: Open, rooms: [temple, guard], gold: 90_000, tick: 1300, revision: 1300,
             owned: CoreOwned(more: [new PlayerRoomSummary(RoomTypeId.Portal, 9), .. guardTiles > 0 ? [new PlayerRoomSummary(RoomTypeId.GuardRoom, guardTiles)] : Array.Empty<PlayerRoomSummary>()]));
+        }
+
         PlayerDecision first = Make().Decide(View(0));
         Assert.NotNull(Built(first, RoomTypeId.GuardRoom));
         Assert.Null(Built(first, RoomTypeId.Temple));
@@ -80,9 +96,13 @@ public partial class CampaignPlayerTests
         // No screen shows the arrivals held (owner, 2026-11-17): the player counts its non-workers beyond the two the
         // level placed, seen at its first look.
         PlayerCreatureSummary goblin = new(Goblin, new TilePos(5, 5), false);
-        PlayerObservation View(long tick, int fighters) => Observe(map: Open, rooms: [Offer(RoomTypeId.GuardRoom)], gold: 50_000, tick: tick,
+        PlayerObservation View(long tick, int fighters)
+        {
+            return Observe(map: Open, rooms: [Offer(RoomTypeId.GuardRoom)], gold: 50_000, tick: tick,
             revision: tick, owned: CoreOwned(more: new PlayerRoomSummary(RoomTypeId.Portal, 9, Capacity: 15)),
             creatures: Enumerable.Repeat(goblin, fighters).ToArray());
+        }
+
         CampaignPlayer full = Recruiter(), room = Recruiter();
         full.Decide(View(1, 2));
         room.Decide(View(1, 2));

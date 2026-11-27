@@ -13,7 +13,10 @@ namespace DK2.Behavior.Tests;
 /// Gated with [InstallFact].</summary>
 public class TempleOnRealDataTests
 {
-    private static GameDatabase Db() => GameDatabaseLoader.LoadForCampaignLevel(Dk2InstallGate.Path, "level3");
+    private static GameDatabase Db()
+    {
+        return GameDatabaseLoader.LoadForCampaignLevel(Dk2InstallGate.Path, "level3");
+    }
 
     /// <summary>The definition's vector 1 (file <c>0x127B</c>) is the step 105 takes when a prayer
     /// ends: −y ahead, and x 0 for every creature.</summary>
@@ -21,7 +24,11 @@ public class TempleOnRealDataTests
     public void TheShippedPrayerStepIsWhatTheRecordsHold()
     {
         GameDatabase db = Db();
-        CreatureDef Named(string name) => db.Creatures.Values.Single(c => c.Name == name);
+        CreatureDef Named(string name)
+        {
+            return db.Creatures.Values.Single(c => c.Name == name);
+        }
+
         Assert.Equal(-1257, Named("Goblin").PrayerStepY);
         Assert.Equal(-1257, Named("Vampire").PrayerStepY);
         Assert.Equal(-1675, Named("Troll").PrayerStepY);

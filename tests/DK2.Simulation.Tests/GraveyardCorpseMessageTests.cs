@@ -41,8 +41,10 @@ public class GraveyardCorpseMessageTests
         return imp;
     }
 
-    private static PlayerMessageKind[] Posted(WorldState world) =>
-        [.. world.Messages.Entries.Where(m => m.Room == RoomTypeId.Graveyard).Select(m => m.Kind)];
+    private static PlayerMessageKind[] Posted(WorldState world)
+    {
+        return [.. world.Messages.Entries.Where(m => m.Room == RoomTypeId.Graveyard).Select(m => m.Kind)];
+    }
 
     [Fact]
     public void NoGraveyardAtAvailabilityThreeAsksForOneOnceAndLeavesTheCorpse()

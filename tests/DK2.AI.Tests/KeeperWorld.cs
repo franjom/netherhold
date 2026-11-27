@@ -164,23 +164,41 @@ internal static class KeeperWorld
     public const byte WallRock = 29;
     public const byte WoodenDoorId = 1, BarricadeDoorId = 2, LastDoorId = 3, BoulderTrapId = 2;
 
-    private static DoorDef Door(byte id, DoorFlags flags) => new()
+    private static DoorDef Door(byte id, DoorFlags flags)
     {
-        Name = "Door " + id, DoorId = id, Health = 1000, GoldCost = 250, ManufactureRequired = 1000, Flags = flags,
-    };
+        return new()
+        {
+            Name = "Door " + id,
+            DoorId = id,
+            Health = 1000,
+            GoldCost = 250,
+            ManufactureRequired = 1000,
+            Flags = flags,
+        };
+    }
 
-    private static TrapDef Trap(byte id, byte trigger) => new()
+    private static TrapDef Trap(byte id, byte trigger)
     {
-        Name = "Trap " + id, TrapId = id, Health = 500, GoldCost = 300, ManufactureRequired = 1000,
-        ShotTypeId = 0, ManaUpkeepPerSecond = 0, TriggerType = trigger,
-    };
+        return new()
+        {
+            Name = "Trap " + id,
+            TrapId = id,
+            Health = 500,
+            GoldCost = 300,
+            ManufactureRequired = 1000,
+            ShotTypeId = 0,
+            ManaUpkeepPerSecond = 0,
+            TriggerType = trigger,
+        };
+    }
 
     /// <summary>Spells 1 to 11 and 13 with the shipped ids, costs, flags and selectors, so the battle
     /// step's ascending walk over the descriptor count meets what DK2's meets: Thunderbolt (6),
     /// Inferno (9) and Chicken (11) are offensive, Heal (10) supportive, the rest excluded; 7 stands
     /// in for an offensive spell with no effect built, which shipped Turncoat is not.</summary>
-    private static KeeperSpellDef[] KeeperSpells() =>
-    [
+    private static KeeperSpellDef[] KeeperSpells()
+    {
+        return [
         Spell("Sight Of Evil", KeeperSpellRules.SightOfEvil, 5000, KeeperSpellFlags.ExcludedFromBattle, 5, 4, SightShotId, data1: 5),
         Spell("Possession", 2, 500, KeeperSpellFlags.ExcludedFromBattle, 5, 6),
         new()
@@ -206,6 +224,7 @@ internal static class KeeperWorld
         Spell("Create Gold", KeeperSpellRules.CreateGold, 15000, KeeperSpellFlags.ExcludedFromBattle, 1, 4, CreateObjectShotId,
             data1: FloorGold.FloorGoldObjectId, data2: 1000),
     ];
+    }
 
     /// <summary>Shots 10 and 15 as shipped: Chicken's process 15 on the thing struck, Inferno's process
     /// 30 before each move of its 30 ticks.</summary>
@@ -218,47 +237,115 @@ internal static class KeeperWorld
     public const byte ModifyHealthShotId = 4;
 
     private static KeeperSpellDef Spell(string name, byte id, int cost, KeeperSpellFlags flags, byte location, byte target, byte shot = 0,
-        int data1 = 0, int data2 = 0) =>
-        new()
+        int data1 = 0, int data2 = 0)
+    {
+        return new()
         {
-            Name = name, KeeperSpellId = id, ManaCost = cost, ManaUpkeepPerSecond = 0, Flags = flags,
-            LocationSelector = location, TargetSelector = target, ShotTypeId = shot, BonusShotTypeId = shot,
-            ShotData1 = data1, ShotData2 = data2, BonusShotData1 = data1, BonusShotData2 = data2,
+            Name = name,
+            KeeperSpellId = id,
+            ManaCost = cost,
+            ManaUpkeepPerSecond = 0,
+            Flags = flags,
+            LocationSelector = location,
+            TargetSelector = target,
+            ShotTypeId = shot,
+            BonusShotTypeId = shot,
+            ShotData1 = data1,
+            ShotData2 = data2,
+            BonusShotData1 = data1,
+            BonusShotData2 = data2,
         };
+    }
 
     /// <summary>Object 14, the Training Room's floor furniture: a room's places are its furniture (ADR-0205).</summary>
     public const byte TrainingDummyObjectId = 14;
 
-    private static ObjectDef TrainingDummy() => new()
+    private static ObjectDef TrainingDummy()
     {
-        Name = "Training Dummy", ObjectId = TrainingDummyObjectId, Flags = (ObjectFlags)0x02004000u, Hp = 1, ManaValue = 0,
-        RoomCapacity = 0, StartState = 0, PickUpPriority = 176, Width = new Fp32(2297), Height = new Fp32(1228),
-        Mass = new Fp32(8192), Speed = new Fp32(0), NameStringId = 0, TooltipStringId = 0,
-    };
+        return new()
+        {
+            Name = "Training Dummy",
+            ObjectId = TrainingDummyObjectId,
+            Flags = (ObjectFlags)0x02004000u,
+            Hp = 1,
+            ManaValue = 0,
+            RoomCapacity = 0,
+            StartState = 0,
+            PickUpPriority = 176,
+            Width = new Fp32(2297),
+            Height = new Fp32(1228),
+            Mass = new Fp32(8192),
+            Speed = new Fp32(0),
+            NameStringId = 0,
+            TooltipStringId = 0,
+        };
+    }
 
     /// <summary>A creature bed: <c>TypeLair</c> is the bit the Lair rules read (shipped flags 0x04034020).</summary>
-    private static ObjectDef Bed() => new()
+    private static ObjectDef Bed()
     {
-        Name = "Creature Bed", ObjectId = BedObjectId, Flags = (ObjectFlags)0x04034020u, Hp = 128, ManaValue = 0,
-        RoomCapacity = 1, StartState = 0, PickUpPriority = 176, Width = new Fp32(2048), Height = new Fp32(256),
-        Mass = new Fp32(8192), Speed = new Fp32(0), NameStringId = 0, TooltipStringId = 0,
-    };
+        return new()
+        {
+            Name = "Creature Bed",
+            ObjectId = BedObjectId,
+            Flags = (ObjectFlags)0x04034020u,
+            Hp = 128,
+            ManaValue = 0,
+            RoomCapacity = 1,
+            StartState = 0,
+            PickUpPriority = 176,
+            Width = new Fp32(2048),
+            Height = new Fp32(256),
+            Mass = new Fp32(8192),
+            Speed = new Fp32(0),
+            NameStringId = 0,
+            TooltipStringId = 0,
+        };
+    }
 
     /// <summary>Object 1, "Gold": the floor pile a sale's refund lands in when no store takes it.</summary>
-    private static ObjectDef FloorGoldPile() => new()
+    private static ObjectDef FloorGoldPile()
     {
-        Name = "Gold", ObjectId = FloorGold.FloorGoldObjectId, Flags = (ObjectFlags)0x00810140u, Hp = 128, ManaValue = 0,
-        RoomCapacity = 0, StartState = 31, PickUpPriority = 176, Width = new Fp32(256), Height = new Fp32(1228),
-        Mass = new Fp32(16384), Speed = new Fp32(0), NameStringId = 292, TooltipStringId = 292,
-    };
+        return new()
+        {
+            Name = "Gold",
+            ObjectId = FloorGold.FloorGoldObjectId,
+            Flags = (ObjectFlags)0x00810140u,
+            Hp = 128,
+            ManaValue = 0,
+            RoomCapacity = 0,
+            StartState = 31,
+            PickUpPriority = 176,
+            Width = new Fp32(256),
+            Height = new Fp32(1228),
+            Mass = new Fp32(16384),
+            Speed = new Fp32(0),
+            NameStringId = 292,
+            TooltipStringId = 292,
+        };
+    }
 
     /// <summary>The coop, egg and chicken with their shipped flags, capacity and width.</summary>
-    private static ObjectDef Hatchery(byte id, uint flags, byte capacity, int width) => new()
+    private static ObjectDef Hatchery(byte id, uint flags, byte capacity, int width)
     {
-        Name = $"Hatchery object {id}", ObjectId = id, Flags = (ObjectFlags)flags, Hp = 128, ManaValue = 0,
-        RoomCapacity = capacity, StartState = 0, PickUpPriority = 176, Width = new Fp32(width), Height = new Fp32(128),
-        Mass = new Fp32(8192), Speed = new Fp32(0), NameStringId = 0, TooltipStringId = 0,
-    };
+        return new()
+        {
+            Name = $"Hatchery object {id}",
+            ObjectId = id,
+            Flags = (ObjectFlags)flags,
+            Hp = 128,
+            ManaValue = 0,
+            RoomCapacity = capacity,
+            StartState = 0,
+            PickUpPriority = 176,
+            Width = new Fp32(width),
+            Height = new Fp32(128),
+            Mass = new Fp32(8192),
+            Speed = new Fp32(0),
+            NameStringId = 0,
+            TooltipStringId = 0,
+        };
+    }
 
     /// <summary>Stands each room's auto-placed furniture, as a level's rooms come furnished.</summary>
     public static void FurnishRooms(GameDatabase database, WorldState world)
@@ -282,30 +369,70 @@ internal static class KeeperWorld
     public const byte KillCreaturesObjectId = 127;
 
     /// <summary>A magic box: <c>TypeSpecial</c> (definition <c>+0xF4</c> bit 2) is the bit the specials step reads.</summary>
-    private static ObjectDef Special(byte id) => new()
+    private static ObjectDef Special(byte id)
     {
-        Name = $"Special {id}", ObjectId = id, Flags = ObjectFlags.TypeSpecial, Hp = 128, ManaValue = 0,
-        RoomCapacity = 1, StartState = 0, PickUpPriority = 176, Width = new Fp32(1024), Height = new Fp32(1024),
-        Mass = new Fp32(8192), Speed = new Fp32(0), NameStringId = 0, TooltipStringId = 0,
-    };
+        return new()
+        {
+            Name = $"Special {id}",
+            ObjectId = id,
+            Flags = ObjectFlags.TypeSpecial,
+            Hp = 128,
+            ManaValue = 0,
+            RoomCapacity = 1,
+            StartState = 0,
+            PickUpPriority = 176,
+            Width = new Fp32(1024),
+            Height = new Fp32(1024),
+            Mass = new Fp32(8192),
+            Speed = new Fp32(0),
+            NameStringId = 0,
+            TooltipStringId = 0,
+        };
+    }
 
     /// <summary>The Call to Arms flag, OBJECTS record 10 as shipped: start state 12, 128 health.</summary>
-    private static ObjectDef Flag() => new()
+    private static ObjectDef Flag()
     {
-        Name = "Call To Arms", ObjectId = CallToArmsRules.ObjectTypeId,
-        Flags = ObjectFlags.CanBePickedUp | ObjectFlags.CanBeSlapped | ObjectFlags.CanBeDroppedOnAnyLand,
-        Hp = 128, ManaValue = 0, RoomCapacity = 1, StartState = 12, PickUpPriority = 176,
-        Width = new Fp32(1704), Height = new Fp32(127), Mass = new Fp32(4), Speed = new Fp32(0),
-        NameStringId = 2725, TooltipStringId = 2726,
-    };
-
-    private static ShotDef Shot(string name, byte id, int speed, ushort health, uint flags, uint processFlags, byte process, byte collide = 0) =>
-        new(new byte[239])
+        return new()
         {
-            Name = name, MeshResource = new KwdArtResource("", 0, default, 0, 0, 0, 0), Light = new KwdLight(0, 0, 0, 0, 0, 0, 0, 0, 0),
-            SoundCategory = "", ShotId = id, Speed = speed, Radius = 819, Health = health, Flags = flags,
-            ShotProcessFlags = processFlags, CollideType = collide, ProcessType = process, DamageType = 0, AttackCategory = 12, DeathShotId = 0,
+            Name = "Call To Arms",
+            ObjectId = CallToArmsRules.ObjectTypeId,
+            Flags = ObjectFlags.CanBePickedUp | ObjectFlags.CanBeSlapped | ObjectFlags.CanBeDroppedOnAnyLand,
+            Hp = 128,
+            ManaValue = 0,
+            RoomCapacity = 1,
+            StartState = 12,
+            PickUpPriority = 176,
+            Width = new Fp32(1704),
+            Height = new Fp32(127),
+            Mass = new Fp32(4),
+            Speed = new Fp32(0),
+            NameStringId = 2725,
+            TooltipStringId = 2726,
         };
+    }
+
+    private static ShotDef Shot(string name, byte id, int speed, ushort health, uint flags, uint processFlags, byte process, byte collide = 0)
+    {
+        return new(new byte[239])
+        {
+            Name = name,
+            MeshResource = new KwdArtResource("", 0, default, 0, 0, 0, 0),
+            Light = new KwdLight(0, 0, 0, 0, 0, 0, 0, 0, 0),
+            SoundCategory = "",
+            ShotId = id,
+            Speed = speed,
+            Radius = 819,
+            Health = health,
+            Flags = flags,
+            ShotProcessFlags = processFlags,
+            CollideType = collide,
+            ProcessType = process,
+            DamageType = 0,
+            AttackCategory = 12,
+            DeathShotId = 0,
+        };
+    }
 
     /// <summary>Gormagon-shaped parameters, trimmed to what step 1 reads.</summary>
     public static KeeperAIParameters Parameters(byte speed = 1, byte roomSize = 9, ushort money = 1000, byte maxImps = 0, byte gap = 0,

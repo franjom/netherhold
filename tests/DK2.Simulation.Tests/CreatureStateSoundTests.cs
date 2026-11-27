@@ -19,11 +19,15 @@ public sealed class CreatureStateSoundTests
     private const byte GoblinId = Dk2TerrainFixture.GoblinCreatureId;
     private const int Second = SimulationTiming.TicksPerSecond;
 
-    private static ThingSoundRequest[] Sounds(ListEventSink sink) =>
-        [.. sink.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value)];
+    private static ThingSoundRequest[] Sounds(ListEventSink sink)
+    {
+        return [.. sink.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value)];
+    }
 
-    private static FpPosition3 At(CreatureState creature) =>
-        new(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ));
+    private static FpPosition3 At(CreatureState creature)
+    {
+        return new(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ));
+    }
 
     // ---- state 193 ------------------------------------------------------------------------------
 

@@ -178,8 +178,22 @@ public sealed class CombatExperienceOrderTests
 
     private sealed class Handler(Action<SimulationContext, CreatureState> run) : ICreatureUpdateStep
     {
-        public string Name => "controlled state handler";
-        public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
-        public void Update(SimulationContext context, CreatureState creature) => run(context, creature);
+        public string Name
+        {
+            get
+            {
+                return "controlled state handler";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            CreatureUpdateSystem.RunAlone(context, this);
+        }
+
+        public void Update(SimulationContext context, CreatureState creature)
+        {
+            run(context, creature);
+        }
     }
 }

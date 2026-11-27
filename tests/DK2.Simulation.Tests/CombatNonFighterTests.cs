@@ -254,8 +254,18 @@ public class CombatNonFighterTests
 
     private sealed class Probe(Action<SimulationContext> body) : ISimulationSystem
     {
-        public string Name => "probe";
-        public void Execute(SimulationContext context) => body(context);
+        public string Name
+        {
+            get
+            {
+                return "probe";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            body(context);
+        }
     }
 
     [Fact]
@@ -492,8 +502,10 @@ public class CombatNonFighterTests
         Assert.Equal((5000, 6000, 54, 7, 3), (copy.AlarmX, copy.AlarmY, copy.AlarmDeficit, copy.AlarmRoomTile, copy.ReportTicks));
     }
 
-    private static ThingSoundRequest[] Sounds(ListEventSink sink) =>
-        [.. sink.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value)];
+    private static ThingSoundRequest[] Sounds(ListEventSink sink)
+    {
+        return [.. sink.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value)];
+    }
 
     /// <summary>The Scout's alarm (<c>0x004752B0</c>) requests <c>0xDC</c> with its own handle after its route is
     /// found, at its position; state 251 (<c>0x00475660</c>), when it dispatches the room's creatures, requests
@@ -583,8 +595,10 @@ public class CombatNonFighterTests
         }
     }
 
-    private static CreatureState Spawn(GameDatabase db, WorldState world, byte type, byte owner, int x, int y) =>
-        world.SpawnArrived(db, type, owner, new TilePos(x, y));
+    private static CreatureState Spawn(GameDatabase db, WorldState world, byte type, byte owner, int x, int y)
+    {
+        return world.SpawnArrived(db, type, owner, new TilePos(x, y));
+    }
 
     private static CreatureState Touching(GameDatabase db, WorldState world, byte type, byte owner, CreatureState other)
     {
@@ -594,8 +608,10 @@ public class CombatNonFighterTests
         return c;
     }
 
-    private static GameSimulation Combat(GameDatabase db, WorldState world) =>
-        new(db, world, 1, [new CombatSystem()]);
+    private static GameSimulation Combat(GameDatabase db, WorldState world)
+    {
+        return new(db, world, 1, [new CombatSystem()]);
+    }
 
     // Keep the candidate unregistered while testing the ordinary NonFighter arm.
     private static void DelayAcquisition(WorldState world, CreatureState candidate)

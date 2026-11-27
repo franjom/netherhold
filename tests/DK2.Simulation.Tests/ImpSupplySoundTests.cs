@@ -31,9 +31,11 @@ public sealed class ImpSupplySoundTests
         return (sim, world);
     }
 
-    private static ThingSoundRequest[] Heard(ListEventSink events, ThingSoundEvent sound) =>
-        [.. Sounds(events).Where(s => s.Event == sound
+    private static ThingSoundRequest[] Heard(ListEventSink events, ThingSoundEvent sound)
+    {
+        return [.. Sounds(events).Where(s => s.Event == sound
             && s.Source.Kind is SoundSourceKind.Player or SoundSourceKind.Shot or SoundSourceKind.ShotSecond)];
+    }
 
     private static ListEventSink Observe(GameSimulation sim)
     {

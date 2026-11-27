@@ -14,8 +14,10 @@ public sealed class CreatureStateTransitionsTests
 {
     /// <summary>No utility state is involved in most of these, so the third argument is
     /// never consulted; passing the current state makes that explicit.</summary>
-    private static StateTransition Classify(int from, int to) =>
-        CreatureStateTransitions.Classify(from, to, from);
+    private static StateTransition Classify(int from, int to)
+    {
+        return CreatureStateTransitions.Classify(from, to, from);
+    }
 
     /// <summary>Sleeping states 82 and 84 share group 7 and the sleeping category.</summary>
     [Fact]

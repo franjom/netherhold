@@ -19,17 +19,25 @@ public class KeeperThreatResponseTests
     private const byte Keeper = KeeperWorld.Keeper;
     private const byte Hero = PlayerIds.Good;
 
-    private static KeeperAI NewKeeper(byte speed = 1, bool withdraw = false, byte imprison = 0, ulong seed = 7) =>
-        new(Keeper, KeeperWorld.Parameters(speed: speed, withdraw: withdraw, imprison: imprison), new SimRandom(seed));
+    private static KeeperAI NewKeeper(byte speed = 1, bool withdraw = false, byte imprison = 0, ulong seed = 7)
+    {
+        return new(Keeper, KeeperWorld.Parameters(speed: speed, withdraw: withdraw, imprison: imprison), new SimRandom(seed));
+    }
 
-    private static GameSimulation Sim(WorldState world, params ISimulationSystem[] systems) =>
-        new(Db, world, 1, systems.Length == 0 ? [new HandSystem(), new RescuePrioritySystem()] : systems);
+    private static GameSimulation Sim(WorldState world, params ISimulationSystem[] systems)
+    {
+        return new(Db, world, 1, systems.Length == 0 ? [new HandSystem(), new RescuePrioritySystem()] : systems);
+    }
 
-    private static CreatureState Fighter(WorldState world, byte owner, int x, int y) =>
-        world.SpawnCreature(Db, KeeperWorld.FighterCreature, owner, new TilePos(x, y));
+    private static CreatureState Fighter(WorldState world, byte owner, int x, int y)
+    {
+        return world.SpawnCreature(Db, KeeperWorld.FighterCreature, owner, new TilePos(x, y));
+    }
 
-    private static PlayerMessage Attack(WorldState world, int x, int y, PlayerMessageKind kind = PlayerMessageKind.CombatStarted) =>
-        world.Messages.Post(world, Keeper, kind, x, y)!.Value;
+    private static PlayerMessage Attack(WorldState world, int x, int y, PlayerMessageKind kind = PlayerMessageKind.CombatStarted)
+    {
+        return world.Messages.Post(world, Keeper, kind, x, y)!.Value;
+    }
 
     /// <summary>Clears rock to unowned floor so creatures can stand and see there.</summary>
     private static void Open(WorldState world, int x0, int y0, int x1, int y1)

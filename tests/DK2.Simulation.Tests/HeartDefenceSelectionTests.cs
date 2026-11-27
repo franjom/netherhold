@@ -52,7 +52,14 @@ public class HeartDefenceSelectionTests
 
     private sealed class ScanReportingImp(CreatureState imp) : ISimulationSystem
     {
-        public string Name => "reporting control";
+        public string Name
+        {
+            get
+            {
+                return "reporting control";
+            }
+        }
+
         public void Execute(SimulationContext context)
         {
             var combat = new CombatSystem();
@@ -99,12 +106,21 @@ public class HeartDefenceSelectionTests
         Assert.Equal(FightTargetKind.Heart, hero.FightTargetKind);
     }
 
-    private static void Select(GameDatabase db, WorldState world, CreatureState hero) =>
+    private static void Select(GameDatabase db, WorldState world, CreatureState hero)
+    {
         new GameSimulation(db, world, 1, [new SelectOnce(hero)]).Tick();
+    }
 
     private sealed class SelectOnce(CreatureState hero) : ISimulationSystem
     {
-        public string Name => "select at Heart";
+        public string Name
+        {
+            get
+            {
+                return "select at Heart";
+            }
+        }
+
         public void Execute(SimulationContext context)
         {
             context.Navigation.Refresh();

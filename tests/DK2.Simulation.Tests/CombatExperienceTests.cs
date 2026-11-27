@@ -24,19 +24,26 @@ public class CombatExperienceTests
     [InlineData((uint)CreatureFlags.IsWorker, 199, true, 0)]
     [InlineData((uint)(CreatureFlags.IsWorker | CreatureFlags.IsGood), 199, true, 160 / 4)]
     public void CombatExperienceIsPerTickInTheFightStates_ForANonWorkerOrAGoodOne(
-        uint flags, int state, bool liveTarget, int expected) =>
+        uint flags, int state, bool liveTarget, int expected)
+    {
         Assert.Equal(expected, Earned(flags, state, liveTarget, deadTarget: false));
+    }
 
     /// <summary>A target that is a body, not a live creature, earns nothing (the slot and class
     /// gate in <c>0x0047A870</c>).</summary>
     [Fact]
-    public void ADeadTargetEarnsNothing() => Assert.Equal(0, Earned(0, 199, liveTarget: true, deadTarget: true));
+    public void ADeadTargetEarnsNothing()
+    {
+        Assert.Equal(0, Earned(0, 199, liveTarget: true, deadTarget: true));
+    }
 
     /// <summary>The walk to the target is state 8, not 199, so it earns nothing (ADR-0366 amendment);
     /// Level 4's hero Dwarves gained a level on the walk where DK2's gained none.</summary>
     [Fact]
-    public void TheApproachEarnsNothing() =>
+    public void TheApproachEarnsNothing()
+    {
         Assert.Equal(0, Earned(0, 8, liveTarget: true, deadTarget: false));
+    }
 
     private static int Earned(uint flags, int state, bool liveTarget, bool deadTarget)
     {

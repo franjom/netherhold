@@ -16,8 +16,11 @@ public class RoomAttackTests
 
     private static readonly GameDatabase Db = Dk2TerrainFixture.Database();
 
-    private static WorldState World() => WorldState.FromMap(
+    private static WorldState World()
+    {
+        return WorldState.FromMap(
         Db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
+    }
 
     private static void Paint(WorldState world, RoomTypeId type, int x0, int y, int width, byte owner)
     {

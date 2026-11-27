@@ -16,8 +16,10 @@ namespace DK2.Behavior.Tests;
 /// </summary>
 public class DoorsAndTrapsDefinitionsOnRealDataTests
 {
-    private static GameDatabase Database() =>
-        GameDatabaseLoader.Load(Dk2InstallGate.Path);
+    private static GameDatabase Database()
+    {
+        return GameDatabaseLoader.Load(Dk2InstallGate.Path);
+    }
 
     [InstallFact]
     public void EveryDoorDeathEffectMatchesTheShippedDefinitionIncludingSharedEffects()

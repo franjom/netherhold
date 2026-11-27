@@ -62,8 +62,10 @@ public sealed class CombatPitSpectatorTests
         return (sim, sink);
     }
 
-    private static RoomInstance Pit(GameDatabase db, WorldState world) =>
-        RoomIndex.RoomAt(world, db, (4 * world.Width) + 6)!;
+    private static RoomInstance Pit(GameDatabase db, WorldState world)
+    {
+        return RoomIndex.RoomAt(world, db, (4 * world.Width) + 6)!;
+    }
 
     /// <summary>Two creatures in the fight state on the floor, which is all <c>0x004D7CF0</c> looks for.</summary>
     private static void AFight(GameDatabase db, WorldState world)
@@ -86,8 +88,10 @@ public sealed class CombatPitSpectatorTests
         }
     }
 
-    private static bool OnTheFloor(GameDatabase db, WorldState world, CreatureState c) =>
-        CombatPitRules.IsFloor(Pit(db, world), (c.Tile.Y * world.Width) + c.Tile.X);
+    private static bool OnTheFloor(GameDatabase db, WorldState world, CreatureState c)
+    {
+        return CombatPitRules.IsFloor(Pit(db, world), (c.Tile.Y * world.Width) + c.Tile.X);
+    }
 
     [Fact]
     public void TheJobWantsAFightInTheKeepersPit_WithNoneItIsRefused()

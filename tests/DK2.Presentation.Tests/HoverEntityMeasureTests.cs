@@ -21,7 +21,10 @@ public sealed class HoverEntityMeasureTests
     // x, y and z each between -1 and 1: Gribb and Hartmann over the identity.
     private static readonly ViewFrustum UnitView = ViewFrustum.FromViewProjection(Matrix4x4.Identity);
 
-    private static WorldHoverHit Creature(int id) => new(WorldHoverKind.Creature, Pointer, id);
+    private static WorldHoverHit Creature(int id)
+    {
+        return new(WorldHoverKind.Creature, Pointer, id);
+    }
 
     private static WorldHoverPicker Begin(ViewFrustum? frustum = null, Func<WorldHoverKind, int, bool>? rendered = null)
     {
@@ -32,8 +35,10 @@ public sealed class HoverEntityMeasureTests
     }
 
     // A box of half size .5 around the point (10.5, height, -10.5).
-    private static PickBox BoxAt(float height, float half = .5f) =>
-        new(new Vector3(10.5f - half, height - half, -10.5f - half), new Vector3(10.5f + half, height + half, -10.5f + half));
+    private static PickBox BoxAt(float height, float half = .5f)
+    {
+        return new(new Vector3(10.5f - half, height - half, -10.5f - half), new Vector3(10.5f + half, height + half, -10.5f + half));
+    }
 
     [Fact]
     public void ABoxAroundPointsTakesEachAxisLowAndHigh()
@@ -333,9 +338,15 @@ public sealed class HoverEntityMeasureTests
         Assert.Equal(0, red.QueueOffset);
     }
 
-    private static float Next(Random random) => (float)(random.NextDouble() * 2 - 1);
+    private static float Next(Random random)
+    {
+        return (float)(random.NextDouble() * 2 - 1);
+    }
 
-    private static Vector3 Round(Vector3 v) => new(MathF.Round(v.X, 4), MathF.Round(v.Y, 4), MathF.Round(v.Z, 4));
+    private static Vector3 Round(Vector3 v)
+    {
+        return new(MathF.Round(v.X, 4), MathF.Round(v.Y, 4), MathF.Round(v.Z, 4));
+    }
 
     private static void AssertClose(Vector3 expected, Vector3 actual)
     {
@@ -358,12 +369,16 @@ public sealed class HoverEntityMeasureTests
 
     // Legacy: position + rotation * (scale * local), Transform.TransformPoint's formula for a root object as the move
     // reads it; it pins the move, not Unity's own floats.
-    private static Vector3 LegacyTransformPoint(Vector3 local, Vector3 position, Quaternion turn, Vector3 scale) =>
-        position + Vector3.Transform(new Vector3(local.X * scale.X, local.Y * scale.Y, local.Z * scale.Z), turn);
+    private static Vector3 LegacyTransformPoint(Vector3 local, Vector3 position, Quaternion turn, Vector3 scale)
+    {
+        return position + Vector3.Transform(new Vector3(local.X * scale.X, local.Y * scale.Y, local.Z * scale.Z), turn);
+    }
 
     // Legacy: DungeonScene's radius before the move, sphere.w * Mathf.Max(|x|, Mathf.Max(|y|, |z|)); it pins the move.
-    private static float LegacyRadius(float radius, Vector3 scale) =>
-        radius * Math.Max(Math.Abs(scale.X), Math.Max(Math.Abs(scale.Y), Math.Abs(scale.Z)));
+    private static float LegacyRadius(float radius, Vector3 scale)
+    {
+        return radius * Math.Max(Math.Abs(scale.X), Math.Max(Math.Abs(scale.Y), Math.Abs(scale.Z)));
+    }
 
     // Legacy: DungeonScene.NearestTriangle's loop before the move, over one submesh; it pins the move.
     private static float? LegacyNearestTriangle(Vector3[] vertices, int[] triangles, Vector3 origin, Vector3 direction, float limit)

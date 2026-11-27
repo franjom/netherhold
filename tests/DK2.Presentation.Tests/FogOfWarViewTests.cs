@@ -239,7 +239,9 @@ public sealed class FogOfWarViewTests
         Assert.Equal(neighbourTerrain != 3, view.TileAt(world, 1, 1).Pieces.HasFace(1));
     }
 
-    private static GameDatabase Database() => new(
+    private static GameDatabase Database()
+    {
+        return new(
         [
             Terrain(1, "Secret", TerrainFlags.Ownable),
             Terrain(27, "Fog Of War", TerrainFlags.Solid | TerrainFlags.Impenetrable | TerrainFlags.Taggable),
@@ -251,22 +253,26 @@ public sealed class FogOfWarViewTests
         rooms: [],
         creatures: [],
         variables: new GlobalVariables());
+    }
 
-    private static TerrainDef Terrain(byte id, string name, TerrainFlags flags) => new()
+    private static TerrainDef Terrain(byte id, string name, TerrainFlags flags)
     {
-        Name = name,
-        TerrainId = id,
-        Flags = flags,
-        StartingHealth = 1,
-        MaxHealth = 1,
-        GoldValue = 0,
-        ManaGain = 0,
-        MaxManaGain = 0,
-        Damage = 0,
-        MaxHealthTypeTerrainId = id,
-        DestroyedTypeTerrainId = id,
-        Depth = new Fp32(0),
-        NameStringId = 0,
-        TooltipStringId = 0,
-    };
+        return new()
+        {
+            Name = name,
+            TerrainId = id,
+            Flags = flags,
+            StartingHealth = 1,
+            MaxHealth = 1,
+            GoldValue = 0,
+            ManaGain = 0,
+            MaxManaGain = 0,
+            Damage = 0,
+            MaxHealthTypeTerrainId = id,
+            DestroyedTypeTerrainId = id,
+            Depth = new Fp32(0),
+            NameStringId = 0,
+            TooltipStringId = 0,
+        };
+    }
 }

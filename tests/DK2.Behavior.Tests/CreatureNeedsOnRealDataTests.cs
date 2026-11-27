@@ -31,11 +31,17 @@ namespace DK2.Behavior.Tests;
 /// </summary>
 public class CreatureNeedsOnRealDataTests
 {
-    private static string Install() => Dk2InstallGate.Path;
+    private static string Install()
+    {
+        return Dk2InstallGate.Path;
+    }
 
     private const int Never = CreatureHealthRules.Never;
 
-    private static int Seconds(Fp32 value) => value.Raw / Fp32.One;
+    private static int Seconds(Fp32 value)
+    {
+        return value.Raw / Fp32.One;
+    }
 
     // ---- the drift guard --------------------------------------------------
 
@@ -1151,8 +1157,10 @@ public class CreatureNeedsOnRealDataTests
     }
 
     /// <summary>One stat's percentages for levels 2 to 10, in order.</summary>
-    private static int[] Levels(GameDatabase db, CreatureStatId stat) =>
-        [.. Enumerable.Range(2, 9).Select(l => db.StatPercent(stat, l))];
+    private static int[] Levels(GameDatabase db, CreatureStatId stat)
+    {
+        return [.. Enumerable.Range(2, 9).Select(l => db.StatPercent(stat, l))];
+    }
 
     // ---- anger, against the owner's two measurements ----------------------
 

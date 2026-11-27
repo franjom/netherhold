@@ -31,7 +31,9 @@ public class PlayerRunTests
         }
     }
 
-    private static string Yaml(int duration = 10, string? commands = null) => $"""
+    private static string Yaml(int duration = 10, string? commands = null)
+    {
+        return $"""
         id: player-run-probe
         map: chamber_9x9
         seed: 7
@@ -41,6 +43,7 @@ public class PlayerRunTests
             - {"{"} id: 3, gold: 0, mana: 0 {"}"}
         {(commands is null ? "" : "commands:\n" + commands)}
         """;
+    }
 
     private static T WithScenario<T>(string yaml, Func<Scenario, T> use)
     {
@@ -60,15 +63,19 @@ public class PlayerRunTests
     }
 
     private static ScenarioResult RunPlayer(string yaml, IPlayerController controller, Stream? journal = null,
-        Func<PlayerRunOptions, PlayerRunOptions>? tune = null) =>
-        WithScenario(yaml, scenario => Runner().Run(scenario, new RunOptions
+        Func<PlayerRunOptions, PlayerRunOptions>? tune = null)
+    {
+        return WithScenario(yaml, scenario => Runner().Run(scenario, new RunOptions
         {
             Journal = journal,
             PlayerRun = (tune ?? (o => o))(new PlayerRunOptions(controller, Keeper, Run)),
         }));
+    }
 
-    private static IEnumerable<PlayerAction> TagRockOnce(PlayerObservation o) =>
-        o.Stamp.Revision.Value == 1 ? [new PlayerAction.TagArea(Rock, Rock)] : [];
+    private static IEnumerable<PlayerAction> TagRockOnce(PlayerObservation o)
+    {
+        return o.Stamp.Revision.Value == 1 ? [new PlayerAction.TagArea(Rock, Rock)] : [];
+    }
 
     [Fact]
     public void AControlledActionIsTheSameInputAsTheScriptedCommandOneTickLater()
@@ -109,12 +116,15 @@ public class PlayerRunTests
     public void TheMonitorOnOrOffLeavesTheHashSeriesAndItsRandomStateAlone()
     {
         // The state hash folds in the generator's state, so equal series mean equal RNG too.
-        ScenarioResult Monitored(bool monitored) => WithScenario(Yaml(duration: 40), s => Runner().Run(s, new RunOptions
+        ScenarioResult Monitored(bool monitored)
         {
-            Coverage = monitored,
-            ProgressEvery = monitored ? 4 : 0,
-            PlayerRun = new PlayerRunOptions(new Scripted(4, TagRockOnce), Keeper, Run),
-        }));
+            return WithScenario(Yaml(duration: 40), s => Runner().Run(s, new RunOptions
+            {
+                Coverage = monitored,
+                ProgressEvery = monitored ? 4 : 0,
+                PlayerRun = new PlayerRunOptions(new Scripted(4, TagRockOnce), Keeper, Run),
+            }));
+        }
 
         ScenarioResult on = Monitored(true), off = Monitored(false);
 
@@ -174,12 +184,18 @@ public class PlayerRunTests
 
     private sealed class GivesUp : IPlayerController
     {
-        public PlayerDecision Decide(PlayerObservation observation) => PlayerDecision.Limited("stuck");
+        public PlayerDecision Decide(PlayerObservation observation)
+        {
+            return PlayerDecision.Limited("stuck");
+        }
     }
 
     private sealed class Silent : IPlayerController
     {
-        public PlayerDecision Decide(PlayerObservation observation) => null!;
+        public PlayerDecision Decide(PlayerObservation observation)
+        {
+            return null!;
+        }
     }
 
     [Fact]
@@ -479,8 +495,10 @@ public class PlayerRunTests
         }
     }
 
-    private static string Sha(string path) =>
-        Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant();
+    private static string Sha(string path)
+    {
+        return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant();
+    }
 
     /// <summary>The same journal under another header: the test scenario file is rewritten per
     /// call, so its recorded hash names a deleted file.</summary>

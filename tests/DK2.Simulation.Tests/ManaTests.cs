@@ -24,14 +24,28 @@ public class ManaTests
 
     private sealed record Run(GameSimulation Sim, ListEventSink Events)
     {
-        public WorldState World => Sim.World;
+        public WorldState World
+        {
+            get
+            {
+                return Sim.World;
+            }
+        }
 
-        public int Mana(byte player) => World.Player(player).Mana;
+        public int Mana(byte player)
+        {
+            return World.Player(player).Mana;
+        }
 
-        public void Seconds(int count) =>
+        public void Seconds(int count)
+        {
             Sim.Run(count * SimulationTiming.TicksPerSecond);
+        }
 
-        public IEnumerable<SimEvent> Of(string kind) => Events.Events.Where(e => e.Kind == kind);
+        public IEnumerable<SimEvent> Of(string kind)
+        {
+            return Events.Events.Where(e => e.Kind == kind);
+        }
     }
 
     private static Run Start(ulong seed = 7)

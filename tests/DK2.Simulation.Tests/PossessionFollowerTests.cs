@@ -61,12 +61,24 @@ public sealed class PossessionFollowerTests
 
     private sealed class Probe(Action<SimulationContext> act) : ISimulationSystem
     {
-        public string Name => "probe";
-        public void Execute(SimulationContext context) => act(context);
+        public string Name
+        {
+            get
+            {
+                return "probe";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            act(context);
+        }
     }
 
-    private static ActPossessedCreatureCommand Recruit(CreatureState me, ushort yaw = East) =>
-        new(Keeper, new(new(new(me.PosX), new(me.PosY), new(me.PosZ)), new(yaw), new(Level)), false, new(PossessedSlot.FollowerArm));
+    private static ActPossessedCreatureCommand Recruit(CreatureState me, ushort yaw = East)
+    {
+        return new(Keeper, new(new(new(me.PosX), new(me.PosY), new(me.PosZ)), new(yaw), new(Level)), false, new(PossessedSlot.FollowerArm));
+    }
 
     [Fact]
     public void SlotThreeRecruitsTheBestAimedHappyFriendNotTheNearestAndDoesNotStamp_ConfirmedFromBinary()

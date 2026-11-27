@@ -12,7 +12,10 @@ public sealed class AssetConverterTests : IDisposable
 {
     private readonly string _root = Directory.CreateTempSubdirectory("dk2-convert-").FullName;
 
-    public void Dispose() => Directory.Delete(_root, recursive: true);
+    public void Dispose()
+    {
+        Directory.Delete(_root, recursive: true);
+    }
 
     [Fact]
     public void ObjectsConvertThroughFakeSourcesInCatalogueOrder()

@@ -48,12 +48,22 @@ public sealed class CombatPitTargetingTests
 
     private sealed class Sight(bool blocked) : ISightBlocker
     {
-        public bool Blocks(int x, int y) => blocked;
+        public bool Blocks(int x, int y)
+        {
+            return blocked;
+        }
     }
 
     private sealed class SelectOnce(CreatureState me, ISightBlocker? sight = null) : ISimulationSystem
     {
-        public string Name => "pit target selection";
+        public string Name
+        {
+            get
+            {
+                return "pit target selection";
+            }
+        }
+
         public bool Selected { get; private set; }
         public void Execute(SimulationContext context)
         {

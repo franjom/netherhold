@@ -21,10 +21,18 @@ public class ManaUpkeepTests
 
     private sealed record Run(GameSimulation Sim, ListEventSink Events, GameDatabase Db)
     {
-        public WorldState World => Sim.World;
+        public WorldState World
+        {
+            get
+            {
+                return Sim.World;
+            }
+        }
 
-        public void Tick(params PlayerCommand[] commands) =>
+        public void Tick(params PlayerCommand[] commands)
+        {
             Sim.Tick(commands.Length == 0 ? InputFrame.Empty : InputFrame.Of(commands));
+        }
 
         public void Ticks(int count)
         {
@@ -34,14 +42,32 @@ public class ManaUpkeepTests
             }
         }
 
-        public int Imps => ImpSupplyRules.ImpCount(World, Db, Keeper);
+        public int Imps
+        {
+            get
+            {
+                return ImpSupplyRules.ImpCount(World, Db, Keeper);
+            }
+        }
 
-        public int Mana => World.Player(Keeper).Mana;
+        public int Mana
+        {
+            get
+            {
+                return World.Player(Keeper).Mana;
+            }
+        }
 
         /// <summary>The most recent mana event for our keeper, whichever way it went.</summary>
-        public SimEvent LastManaEvent => Events.Events
+        public SimEvent LastManaEvent
+        {
+            get
+            {
+                return Events.Events
             .Last(e => (e.Kind == "mana_gained" || e.Kind == "mana_drained")
                        && e.Detail.Contains($"player={Keeper} "));
+            }
+        }
     }
 
     private static Run World(int mana = 0, bool heart = true)
@@ -76,9 +102,11 @@ public class ManaUpkeepTests
     }
 
     /// <summary>Enough ticks for the free four to arrive and a second to elapse.</summary>
-    private static void SettleWithFourImps(Run run) =>
+    private static void SettleWithFourImps(Run run)
+    {
         run.Ticks((HeartIntroRules.SequenceSeconds * SimulationTiming.TicksPerSecond)
             + ((ImpSupplyRules.FreeImpIntervalTicks(run.Db) + 1) * 4));
+    }
 
     /// <summary>Ticks on until the keeper's land income stops growing. A test about
     /// upkeep must not race four imps still claiming ground: income climbed 41 to 44

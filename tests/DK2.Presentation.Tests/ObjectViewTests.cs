@@ -317,8 +317,11 @@ public class ObjectViewTests
         const byte keeper = 3;
 
         ObjectState pile = world.SpawnObject(database, 1, PlayerIds.Neutral, 40);
-        bool Offered() => PlayerInputSnapshot.Capture(new WorldView(database), world, keeper, database)
+        bool Offered()
+        {
+            return PlayerInputSnapshot.Capture(new WorldView(database), world, keeper, database)
             .Targets.Any(t => t.Kind == PlayerInputTargetKind.Object && t.Id == pile.Id);
+        }
 
         world.TileAtIndex(40).OwnerPlayerId = PlayerIds.Unowned;
         Assert.False(Offered());

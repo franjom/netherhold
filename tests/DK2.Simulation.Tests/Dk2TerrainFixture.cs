@@ -90,8 +90,9 @@ internal static class Dk2TerrainFixture
     /// <summary>The Alarm trap, its crate the Alarm crate (ADR-0214), and the traps whose firing is
     /// built (ADR-0321) and the Guard Post at their shipped values, upkeep included (<c>TrapRuntimeOnRealDataTests</c>), with no crate. The
     /// Freeze is id 17 here, the fixture's Alarm holding the shipped Freeze's 7.</summary>
-    public static TrapDef[] Traps() =>
-    [
+    public static TrapDef[] Traps()
+    {
+        return [
         new() { Name = "Alarm", TrapId = 7, Health = 100, GoldCost = 250, ManufactureRequired = 1000, CrateObjectId = AlarmCrateObjectId, ShotTypeId = 0, ManaUpkeepPerSecond = 0 },
         FiringTrap("Sentry Trap", SentryTrapId, 1, 24, 5, 250, 0x31598, CannonBallShotId, 250, 0, -2048, 74, 45, 6, 3000, upkeep: 5),
         FiringTrap("Fireburst Trap", FireburstTrapId, 1, 48, 1, 250, 0x3053A, FireburstShotId, 2000, 1, -1761, 185, 45, 16, 8000, upkeep: 10),
@@ -108,30 +109,52 @@ internal static class Dk2TerrainFixture
         FiringTrap("Boulder Trap", BoulderTrapId, 1, 4, 3, 0, 0x31418, BoulderShotId, 1, 0, 0, 0, 0, 0, 8000),
         FiringTrap("Jack In The Box", JackInTheBoxTrapId, 2, 4, 1, 0, 0x21408, JackInTheBoxShotId, 10000, 2, 0, 0, 0, 0, 8000),
     ];
+    }
 
     public const byte SentryTrapId = 3, FireburstTrapId = 5, LightningTrapId = 6, FreezeTrapId = 17, TriggerTrapId = 9,
         MagicDoorTrapId = 12, HeroSentryTrapId = 14, GuardPostTrapId = 11, GasTrapId = 1, AlarmTrapId = 4, FearTrapId = 8,
         SpikeTrapId = 10, BoulderTrapId = 2, JackInTheBoxTrapId = 16;
 
     private static TrapDef FiringTrap(string name, byte id, byte selector, int rechargeTicks, int range, int mana, uint flags,
-        byte shot, int data1, int data2, int offsetY, ushort threat, int threatSeconds, short gain, ushort health, ushort upkeep = 0) => new()
+        byte shot, int data1, int data2, int offsetY, ushort threat, int threatSeconds, short gain, ushort health, ushort upkeep = 0)
     {
-        Name = name, TrapId = id, Health = health, GoldCost = 1000, ManufactureRequired = 1000, ShotTypeId = shot,
-        ManaUpkeepPerSecond = upkeep, TriggerType = selector, RechargeSecondsRaw = rechargeTicks * 1024, RangeTiles = range,
-        ManaCostToFire = mana, Flags = flags, ShotData1 = data1, ShotData2 = data2, ShotOffsetY = offsetY, Threat = threat,
-        ThreatSecondsRaw = threatSeconds * 4096, HealthGain = gain,
-    };
+        return new()
+        {
+            Name = name,
+            TrapId = id,
+            Health = health,
+            GoldCost = 1000,
+            ManufactureRequired = 1000,
+            ShotTypeId = shot,
+            ManaUpkeepPerSecond = upkeep,
+            TriggerType = selector,
+            RechargeSecondsRaw = rechargeTicks * 1024,
+            RangeTiles = range,
+            ManaCostToFire = mana,
+            Flags = flags,
+            ShotData1 = data1,
+            ShotData2 = data2,
+            ShotOffsetY = offsetY,
+            Threat = threat,
+            ThreatSecondsRaw = threatSeconds * 4096,
+            HealthGain = gain,
+        };
+    }
 
     /// <summary>Two shipped door records: the Wooden Door and the Barricade, whose flags byte
     /// (0x40) the navigation writer reads as a permanent lock. Their <c>HealthGain</c> is the
     /// shipped recovery a second, 2 and 1 (<c>TrapRuntimeOnRealDataTests</c>).</summary>
-    public static DoorDef[] Doors() =>
-    [
+    public static DoorDef[] Doors()
+    {
+        return [
         new() { Name = "Wooden Door", DoorId = 1, Health = 400, HealthGain = 2, GoldCost = 500, ManufactureRequired = 1000, CrateObjectId = WoodenDoorCrateObjectId },
         new() { Name = "Barricade", DoorId = 6, Health = 800, HealthGain = 1, GoldCost = 750, ManufactureRequired = 1000, Flags = DoorFlags.Barricade },
     ];
+    }
 
-    public static GameDatabase Database(params CreatureDef[] extraCreatures) => new(
+    public static GameDatabase Database(params CreatureDef[] extraCreatures)
+    {
+        return new(
         [
             T(ImpenetrableRock, "Impenetrable Rock",
               TerrainFlags.Solid | TerrainFlags.Impenetrable, 1, 1, 1, 1),
@@ -302,6 +325,7 @@ internal static class Dk2TerrainFixture
         objects: Objects(),
         creatureSpells: CreatureSpells(),
         shots: Shots());
+    }
 
     /// <summary>Object id 22, the Goblin's bed.</summary>
     public const byte GoblinBedObjectId = 22;
@@ -371,15 +395,30 @@ internal static class Dk2TerrainFixture
     /// transcribed from the shipped <c>Objects.kwd</c> and read back by
     /// <c>ObjectsOnRealDataTests</c>, so none can drift from it.
     /// </remarks>
-    private static ObjectDef Carried(byte id, string name, ObjectFlags flags) => new()
+    private static ObjectDef Carried(byte id, string name, ObjectFlags flags)
     {
-        Name = name, ObjectId = id, Flags = flags, Hp = 1, ManaValue = 0, RoomCapacity = 0,
-        StartState = 0, PickUpPriority = 0, Width = new Fp32(4096), Height = new Fp32(4096),
-        Mass = new Fp32(4096), Speed = new Fp32(0), NameStringId = 0, TooltipStringId = 0,
-    };
+        return new()
+        {
+            Name = name,
+            ObjectId = id,
+            Flags = flags,
+            Hp = 1,
+            ManaValue = 0,
+            RoomCapacity = 0,
+            StartState = 0,
+            PickUpPriority = 0,
+            Width = new Fp32(4096),
+            Height = new Fp32(4096),
+            Mass = new Fp32(4096),
+            Speed = new Fp32(0),
+            NameStringId = 0,
+            TooltipStringId = 0,
+        };
+    }
 
-    private static ObjectDef[] Objects() =>
-    [
+    private static ObjectDef[] Objects()
+    {
+        return [
         // The Call to Arms flag, OBJECTS record 10 as shipped: start state 12, the hand may lift
         // it and put it down on any land, 128 health (call-to-arms.md).
         new ObjectDef
@@ -665,6 +704,7 @@ internal static class Dk2TerrainFixture
         GoldObject(2, "Gold Bag", 0x00810140u, 1, 585, 1228),
         GoldObject(FloorGold.TreasuryPileObjectId, "Gold Pile 1", 0x00014140u, 1, 1085, 1068, idleEffect: 34),
     ];
+    }
 
     /// <summary>
     /// One of the three gold records. They differ in four numbers and agree on
@@ -679,34 +719,50 @@ internal static class Dk2TerrainFixture
     /// independently in the binary.</para>
     /// </summary>
     private static ObjectDef GoldObject(
-        byte id, string name, uint flags, byte roomCapacity, int width, int height, ushort idleEffect = 0) => new()
+        byte id, string name, uint flags, byte roomCapacity, int width, int height, ushort idleEffect = 0)
     {
-        Name = name,
-        IdleEffectId = idleEffect, // Gold Pile 1's 34, Gold Sparkle (gold-hover-and-sparkle.md §3)
-        ObjectId = id,
-        Flags = (ObjectFlags)flags,
-        Hp = 128,
-        ManaValue = 0,
-        RoomCapacity = roomCapacity,
-        StartState = 31,
-        PickUpPriority = 176,
-        Width = new Fp32(width),
-        Height = new Fp32(height),
-        Mass = new Fp32(16384),
-        Speed = new Fp32(0),
-        NameStringId = 292,
-        TooltipStringId = 292,
-    };
+        return new()
+        {
+            Name = name,
+            IdleEffectId = idleEffect, // Gold Pile 1's 34, Gold Sparkle (gold-hover-and-sparkle.md §3)
+            ObjectId = id,
+            Flags = (ObjectFlags)flags,
+            Hp = 128,
+            ManaValue = 0,
+            RoomCapacity = roomCapacity,
+            StartState = 31,
+            PickUpPriority = 176,
+            Width = new Fp32(width),
+            Height = new Fp32(height),
+            Mass = new Fp32(16384),
+            Speed = new Fp32(0),
+            NameStringId = 292,
+            TooltipStringId = 292,
+        };
+    }
 
     /// <summary>A room's furniture as shipped: the fields that differ between the eleven records
     /// transcribed, the rest being 0 in every one (<c>RoomFurnitureOnRealDataTests</c>).</summary>
-    private static ObjectDef Furniture(byte id, string name, uint flags, int hp, int width) => new()
+    private static ObjectDef Furniture(byte id, string name, uint flags, int hp, int width)
     {
-        Name = name, ObjectId = id, Flags = (ObjectFlags)flags, Hp = (ushort)hp, ManaValue = 0,
-        RoomCapacity = 0, StartState = 0, PickUpPriority = 176, Width = new Fp32(width),
-        Height = new Fp32(hp == 128 ? 128 : 1228), Mass = new Fp32(8192), Speed = new Fp32(0),
-        NameStringId = 0, TooltipStringId = 0,
-    };
+        return new()
+        {
+            Name = name,
+            ObjectId = id,
+            Flags = (ObjectFlags)flags,
+            Hp = (ushort)hp,
+            ManaValue = 0,
+            RoomCapacity = 0,
+            StartState = 0,
+            PickUpPriority = 176,
+            Width = new Fp32(width),
+            Height = new Fp32(hp == 128 ? 128 : 1228),
+            Mass = new Fp32(8192),
+            Speed = new Fp32(0),
+            NameStringId = 0,
+            TooltipStringId = 0,
+        };
+    }
 
     /// <summary>Stands one piece of <paramref name="type"/>'s own furniture on
     /// <paramref name="at"/>, auto-placed, so the room has places: a room's capacity counts
@@ -744,30 +800,33 @@ internal static class Dk2TerrainFixture
         }
     }
 
-    private static ObjectDef Bed(byte id, string name) => new()
+    private static ObjectDef Bed(byte id, string name)
     {
-        Name = name,
-        ObjectId = id,
+        return new()
+        {
+            Name = name,
+            ObjectId = id,
 
-        // 0x04034020: TypeLair (0x20), Obstacle (0x4000), BoulderCanRollThrough
-        // (0x10000), BoulderDestroys (0x20000), CastShadows (0x4000000). The
-        // first bit is the only one any rule reads; the rest are transcribed
-        // rather than trimmed, because a fixture that keeps only the bits it
-        // uses stops being a copy of the record.
-        Flags = (ObjectFlags)0x04034020u,
+            // 0x04034020: TypeLair (0x20), Obstacle (0x4000), BoulderCanRollThrough
+            // (0x10000), BoulderDestroys (0x20000), CastShadows (0x4000000). The
+            // first bit is the only one any rule reads; the rest are transcribed
+            // rather than trimmed, because a fixture that keeps only the bits it
+            // uses stops being a copy of the record.
+            Flags = (ObjectFlags)0x04034020u,
 
-        Hp = 128,
-        ManaValue = 0,
-        RoomCapacity = 1,
-        StartState = 0,
-        PickUpPriority = 176,
-        Width = new Fp32(2048),
-        Height = new Fp32(256),
-        Mass = new Fp32(8192),
-        Speed = new Fp32(0),
-        NameStringId = 0,
-        TooltipStringId = 0,
-    };
+            Hp = 128,
+            ManaValue = 0,
+            RoomCapacity = 1,
+            StartState = 0,
+            PickUpPriority = 176,
+            Width = new Fp32(2048),
+            Height = new Fp32(256),
+            Mass = new Fp32(8192),
+            Speed = new Fp32(0),
+            NameStringId = 0,
+            TooltipStringId = 0,
+        };
+    }
 
     /// <summary>
     /// The keeper spells a registered system reads. Only Create Imp, because
@@ -780,8 +839,9 @@ internal static class Dk2TerrainFixture
     /// made-up figure inside a determinism hash. `KeeperSpellsOnRealDataTests`
     /// reads both back out of the shipped file so these cannot drift from it.</para>
     /// </summary>
-    private static KeeperSpellDef[] KeeperSpells() =>
-    [
+    private static KeeperSpellDef[] KeeperSpells()
+    {
+        return [
         // Id, shot and bonus shot transcribed from the shipped record and guarded by
         // ResearchTreeOnRealDataTests: shot 2 makes an Imp (1) at level 1, and the bonus shot
         // an upgraded cast fires, 60, makes one at level 4. Location selector 1 and target
@@ -804,6 +864,7 @@ internal static class Dk2TerrainFixture
             BonusShotTypeId = CreateObjectShotId, BonusShotData1 = CallToArmsRules.ObjectTypeId, BonusShotData2 = 0,
         },
     ];
+    }
 
     /// <summary>Shot 5, Create Object, as shipped: flag 4 counts its one health down, so it
     /// dies on its first tick and its death process (0x80, type 2) puts the object down.</summary>
@@ -824,98 +885,101 @@ internal static class Dk2TerrainFixture
     /// against the install, so a field added here without being checked there
     /// would be an invention nobody notices.
     /// </summary>
-    public static CreatureDef Imp() => new()
+    public static CreatureDef Imp()
     {
-        Name = "Imp",
-        SoundCategory = "CREATURE_IMP",
-        CreatureId = ImpCreatureId,
-        Flags = (CreatureFlags)0xB000089Fu,
+        return new()
+        {
+            Name = "Imp",
+            SoundCategory = "CREATURE_IMP",
+            CreatureId = ImpCreatureId,
+            Flags = (CreatureFlags)0xB000089Fu,
 
-        Speed = new Fp32(7536),
-        RunSpeed = new Fp32(7536),
-        ShuffleSpeed = new Fp32(4096),
-        AirFriction = 327, // every shipped creature: file +0xEAC
-        Height = new Fp32(2048),
-        DistanceCanSee = new Fp32(16384),
-        DistanceCanHear = new Fp32(16384),
-        PerceptionRange = new Fp32(0x6000),
-        FootprintRadius = new Fp32(573),
-        SizeClass = 1,
-        TurnRate = 4096,
+            Speed = new Fp32(7536),
+            RunSpeed = new Fp32(7536),
+            ShuffleSpeed = new Fp32(4096),
+            AirFriction = 327, // every shipped creature: file +0xEAC
+            Height = new Fp32(2048),
+            DistanceCanSee = new Fp32(16384),
+            DistanceCanHear = new Fp32(16384),
+            PerceptionRange = new Fp32(0x6000),
+            FootprintRadius = new Fp32(573),
+            SizeClass = 1,
+            TurnRate = 4096,
 
-        Hp = 500,
-        HungerRate = new Fp32(134213632), // 32767 in DK2's fixed point: the "never" sentinel (Q12)
-        TimeAwake = 32767,
-        TimeSleep = 0,
+            Hp = 500,
+            HungerRate = new Fp32(134213632), // 32767 in DK2's fixed point: the "never" sentinel (Q12)
+            TimeAwake = 32767,
+            TimeSleep = 0,
 
-        MeleeDamage = 30,
-        MeleeRange = new Fp32(1433),
-        MeleeHitDelay = new Fp32(0),
-        MeleeRecharge = new Fp32(4915),
-        MeleeAttackType = AttackType.MeleeBlade,
+            MeleeDamage = 30,
+            MeleeRange = new Fp32(1433),
+            MeleeHitDelay = new Fp32(0),
+            MeleeRecharge = new Fp32(4915),
+            MeleeAttackType = AttackType.MeleeBlade,
 
-        MaxGoldHeld = 1400,
-        InitialGoldHeld = 500,
+            MaxGoldHeld = 1400,
+            InitialGoldHeld = 500,
 
-        Pay = 0,
-        Fear = 5,
-        Threat = 2,
-        ExpForNextLevel = 3000,
-        ExpPerSecond = 1200,
-        ExpPerSecondTraining = 30,
-        UnhappyThreshold = 50,
-        JobClass = JobClass.Scout,
-        FightStyle = FightStyle.NonFighter,
+            Pay = 0,
+            Fear = 5,
+            Threat = 2,
+            ExpForNextLevel = 3000,
+            ExpPerSecond = 1200,
+            ExpPerSecondTraining = 30,
+            UnhappyThreshold = 50,
+            JobClass = JobClass.Scout,
+            FightStyle = FightStyle.NonFighter,
 
-        // Not transcribed. Present because the record requires them.
-        EyeHeight = new Fp32(0),
-        // HpFromChicken and HungerFill really are 0 — the Imp never eats.
-        // OwnLandHealthIncreasePerSecond is 67, one of only two non-zero values
-        // in that whole column (the other is King Reginald at 400). Checked
-        // against the install by CreatureNeedsOnRealDataTests.
-        HpFromChicken = 0,
-        HungerFill = 0,
-        OwnLandHealthIncreasePerSecond = 67,
-        DecomposeValue = 0,
+            // Not transcribed. Present because the record requires them.
+            EyeHeight = new Fp32(0),
+            // HpFromChicken and HungerFill really are 0 — the Imp never eats.
+            // OwnLandHealthIncreasePerSecond is 67, one of only two non-zero values
+            // in that whole column (the other is King Reginald at 400). Checked
+            // against the install by CreatureNeedsOnRealDataTests.
+            HpFromChicken = 0,
+            HungerFill = 0,
+            OwnLandHealthIncreasePerSecond = 67,
+            DecomposeValue = 0,
 
-        // 100 against the Imp's 500 health means five slaps kill an imp.
-        // Checked against the install by CreatureNeedsOnRealDataTests.
-        SlapDamage = 100,
-        StunDuration = new Fp32(0),
-        Resistances = [],
-        Spells = [],
-        ResearchPerSecond = 0,
-        ManufacturePerSecond = 0,
-        ManaGeneratedByPrayerPerSecond = 0,
-        // The Imp's real anger values, and they are why it never gets angry
-        // without needing a special case: 1 a second against a ceiling of 32767
-        // is nine hours. The DK2 wiki says flatly "Imps never get angry"; the
-        // shipped data says the same thing arithmetically.
-        AngerNoLair = 1,
-        AngerNoFood = 1,
-        AngerNoPay = 1,
-        AngerNoWork = 1,
-        AngerSlap = 1,
-        AngerInHand = 0,
-        TortureHpChange = 0,
-        TortureMoodChange = 0,
-        TortureTimeToConvert = new Fp32(0),
-        HappyJobs = [],
-        UnhappyJobs = [],
-        AngryJobs = [],
-        HateJobs = [],
-        AlternativeJobs = [],
-        Attractions = [],
-        GuardDuration = new Fp32(0),
-        IdleDuration = new Fp32(0),
-        SlapFearlessDuration = new Fp32(0),
-        PossessionManaCost = 0,
-        LairObjectId = 0,
-        CloneCreatureId = 0,
-        NameStringId = 0,
-        TooltipStringId = 0,
-        IntroductionStringId = 0,
-    };
+            // 100 against the Imp's 500 health means five slaps kill an imp.
+            // Checked against the install by CreatureNeedsOnRealDataTests.
+            SlapDamage = 100,
+            StunDuration = new Fp32(0),
+            Resistances = [],
+            Spells = [],
+            ResearchPerSecond = 0,
+            ManufacturePerSecond = 0,
+            ManaGeneratedByPrayerPerSecond = 0,
+            // The Imp's real anger values, and they are why it never gets angry
+            // without needing a special case: 1 a second against a ceiling of 32767
+            // is nine hours. The DK2 wiki says flatly "Imps never get angry"; the
+            // shipped data says the same thing arithmetically.
+            AngerNoLair = 1,
+            AngerNoFood = 1,
+            AngerNoPay = 1,
+            AngerNoWork = 1,
+            AngerSlap = 1,
+            AngerInHand = 0,
+            TortureHpChange = 0,
+            TortureMoodChange = 0,
+            TortureTimeToConvert = new Fp32(0),
+            HappyJobs = [],
+            UnhappyJobs = [],
+            AngryJobs = [],
+            HateJobs = [],
+            AlternativeJobs = [],
+            Attractions = [],
+            GuardDuration = new Fp32(0),
+            IdleDuration = new Fp32(0),
+            SlapFearlessDuration = new Fp32(0),
+            PossessionManaCost = 0,
+            LairObjectId = 0,
+            CloneCreatureId = 0,
+            NameStringId = 0,
+            TooltipStringId = 0,
+            IntroductionStringId = 0,
+        };
+    }
 
     /// <summary>The Goblin — level 1's whole creature pool, and the first
     /// non-worker the simulation can produce.</summary>
@@ -931,110 +995,114 @@ internal static class Dk2TerrainFixture
     /// </remarks>
     public const byte GoblinCreatureId = 7;
 
-    public static CreatureDef Goblin() => Imp() with
+    public static CreatureDef Goblin()
     {
-        Name = "Goblin",
-        SoundCategory = "CREATURE_GOBLIN",
-        CreatureId = GoblinCreatureId,
-        // Synthetic timing for the training action; original assets are not required by this fixture.
-        ArtSlots = Enumerable.Range(0, CreatureDef.ArtSlotCount).Select(slot => slot == 5
-            ? new CreatureAnimationTiming { ResourceType = 6, FrameCount = 8, FramesPerSecond = 8 }
-            : default).ToArray(),
-        SlapDamage = 115,
-        FootprintRadius = new Fp32(651),
-        SizeClass = 2,
-        TurnRate = 2048,
+        return Imp() with
+        {
+            Name = "Goblin",
+            SoundCategory = "CREATURE_GOBLIN",
+            CreatureId = GoblinCreatureId,
+            // Synthetic timing for the training action; original assets are not required by this fixture.
+            ArtSlots = Enumerable.Range(0, CreatureDef.ArtSlotCount).Select(slot => slot == 5
+                ? new CreatureAnimationTiming { ResourceType = 6, FrameCount = 8, FramesPerSecond = 8 }
+                : default).ToArray(),
+            SlapDamage = 115,
+            FootprintRadius = new Fp32(651),
+            SizeClass = 2,
+            TurnRate = 2048,
 
-        // The real Goblin's flags, all load-bearing. AvailableViaPortal is what
-        // PortalRules.CanComeFromPortal requires; GenerateDeadBody decides
-        // whether death leaves a corpse (Q99); CanWalkOnWater decides both
-        // whether water may be crossed and whether crossing costs health (Q118,
-        // and 44 of 46 creatures carry it); CanBePickedUp and CanBeSlapped are
-        // what let the hand handle it at all (ADR-0062).
-        Flags = CreatureFlags.IsEvil | CreatureFlags.AvailableViaPortal
+            // The real Goblin's flags, all load-bearing. AvailableViaPortal is what
+            // PortalRules.CanComeFromPortal requires; GenerateDeadBody decides
+            // whether death leaves a corpse (Q99); CanWalkOnWater decides both
+            // whether water may be crossed and whether crossing costs health (Q118,
+            // and 44 of 46 creatures carry it); CanBePickedUp and CanBeSlapped are
+            // what let the hand handle it at all (ADR-0062).
+            Flags = CreatureFlags.IsEvil | CreatureFlags.AvailableViaPortal
                 | CreatureFlags.GenerateDeadBody | CreatureFlags.CanWalkOnWater
                 | CreatureFlags.CanBePickedUp | CreatureFlags.CanBeSlapped,
 
-        Hp = 1500,
-        MeleeDamage = 170,
-        MeleeHitDelay = Fp32.FromDouble(0.75),
-        MeleeRecharge = Fp32.FromDouble(1.3),
-        // A test value, not the shipped Goblin's: five seconds stunned by Lightning (creature-status-effects.md §2).
-        StunDuration = Fp32.FromDouble(5),
-        GetUpFrames = 69, GetUpFramesPerSecond = 30, // the shipped Goblin-Getup: 11 ticks
-        Pay = 500,
-        Fear = 50,
-        Threat = 37,
+            Hp = 1500,
+            MeleeDamage = 170,
+            MeleeHitDelay = Fp32.FromDouble(0.75),
+            MeleeRecharge = Fp32.FromDouble(1.3),
+            // A test value, not the shipped Goblin's: five seconds stunned by Lightning (creature-status-effects.md §2).
+            StunDuration = Fp32.FromDouble(5),
+            GetUpFrames = 69,
+            GetUpFramesPerSecond = 30, // the shipped Goblin-Getup: 11 ticks
+            Pay = 500,
+            Fear = 50,
+            Threat = 37,
 
-        // The Goblin's own experience rates, both live now that training pays
-        // (Q205). 40 divides by variable 19 exactly, so a Goblin loses nothing
-        // to the loader's truncation where a Vampire's 30 loses two a second.
-        // 200 is its COMBAT rate: across every shipped creature the combat rate
-        // is exactly five times the training rate.
-        ExpPerSecond = 200,
-        ExpPerSecondTraining = 40,
-        Speed = new Fp32(2867),
-        RunSpeed = new Fp32(2867),
-        JobClass = JobClass.Fighter,
-        FightStyle = FightStyle.Blitzer,
+            // The Goblin's own experience rates, both live now that training pays
+            // (Q205). 40 divides by variable 19 exactly, so a Goblin loses nothing
+            // to the loader's truncation where a Vampire's 30 loses two a second.
+            // 200 is its COMBAT rate: across every shipped creature the combat rate
+            // is exactly five times the training rate.
+            ExpPerSecond = 200,
+            ExpPerSecondTraining = 40,
+            Speed = new Fp32(2867),
+            RunSpeed = new Fp32(2867),
+            JobClass = JobClass.Fighter,
+            FightStyle = FightStyle.Blitzer,
 
-        // The one field the portal's attraction gate reads: a Lair, any size.
-        // The second slot is empty on the Goblin, as it is on all but four
-        // creatures.
-        Attractions =
+            // The one field the portal's attraction gate reads: a Lair, any size.
+            // The second slot is empty on the Goblin, as it is on all but four
+            // creatures.
+            Attractions =
         [
             new CreatureAttraction(1, (byte)RoomTypeId.Lair, 0),
             new CreatureAttraction(0, 0, 0),
         ],
 
-        // The needs, as shipped: hungry every 180 seconds, one chicken fills
-        // it, and that chicken is worth 375 — a quarter of its 1500 health.
-        // These are what make the Goblin the fixture creature that has needs,
-        // against the Imp which has none at all.
-        HungerRate = Fp32.FromDouble(180),
-        HungerFill = 1,
-        HpFromChicken = 375,
-        TimeAwake = 240,
-        TimeSleep = 9,
-        DecomposeValue = 200,
-        OwnLandHealthIncreasePerSecond = 0,
+            // The needs, as shipped: hungry every 180 seconds, one chicken fills
+            // it, and that chicken is worth 375 — a quarter of its 1500 health.
+            // These are what make the Goblin the fixture creature that has needs,
+            // against the Imp which has none at all.
+            HungerRate = Fp32.FromDouble(180),
+            HungerFill = 1,
+            HpFromChicken = 375,
+            TimeAwake = 240,
+            TimeSleep = 9,
+            DecomposeValue = 200,
+            OwnLandHealthIncreasePerSecond = 0,
 
-        // Its bed. 22 is the Goblin's own object id, and it is what makes the
-        // Goblin the fixture creature that sleeps — the Imp's is 0, which the
-        // owner confirms means no lair at all (as for the Skeleton).
-        LairObjectId = 22,
+            // Its bed. 22 is the Goblin's own object id, and it is what makes the
+            // Goblin the fixture creature that sleeps — the Imp's is 0, which the
+            // owner confirms means no lair at all (as for the Skeleton).
+            LairObjectId = 22,
 
-        // What a torture device does to it, as shipped (ADR-0193): 10 health an act, the
-        // mood that only its own keeper's chamber applies, and 80 seconds to convert.
-        TortureHpChange = -10,
-        TortureMoodChange = 1092,
-        TortureTimeToConvert = Fp32.FromDouble(80),
+            // What a torture device does to it, as shipped (ADR-0193): 10 health an act, the
+            // mood that only its own keeper's chamber applies, and 80 seconds to convert.
+            TortureHpChange = -10,
+            TortureMoodChange = 1092,
+            TortureTimeToConvert = Fp32.FromDouble(80),
 
-        // The Goblin's real anger record. AngerNoLair is the rate the owner
-        // measured against a stopwatch to give the ceiling (Q106): 100 a second
-        // reached unhappy at 2:45 and angry at 5:30, which is 32767/2 and
-        // 32767. AngerSlap 3000 is the rate that gave the second, independent
-        // confirmation — 6 slaps to unhappy, 11 to angry (Q114).
-        AngerNoLair = 100,
-        AngerNoFood = 100,
-        AngerNoPay = 60,
-        AngerNoWork = 50,
-        AngerSlap = 3000,
-        AngerInHand = -250,
+            // The Goblin's real anger record. AngerNoLair is the rate the owner
+            // measured against a stopwatch to give the ceiling (Q106): 100 a second
+            // reached unhappy at 2:45 and angry at 5:30, which is 32767/2 and
+            // 32767. AngerSlap 3000 is the rate that gave the second, independent
+            // confirmation — 6 slaps to unhappy, 11 to angry (Q114).
+            AngerNoLair = 100,
+            AngerNoFood = 100,
+            AngerNoPay = 60,
+            AngerNoWork = 50,
+            AngerSlap = 3000,
+            AngerInHand = -250,
 
-        // Its three mood job tables, which are what the ladder actually drives.
-        // A content Goblin trains, an unhappy one drinks, and an angry one is a
-        // coin toss between walking out and rebelling — only the first of which
-        // is implemented (ADR-0053).
-        HappyJobs = [new(JobType.Train, 0, 0, 100)],
-        UnhappyJobs = [new(JobType.Drink, 0, 0, 100)],
-        AngryJobs = [new(JobType.Leave, 0, 0, 50), new(JobType.Rebel, 0, 0, 50)],
+            // Its three mood job tables, which are what the ladder actually drives.
+            // A content Goblin trains, an unhappy one drinks, and an angry one is a
+            // coin toss between walking out and rebelling — only the first of which
+            // is implemented (ADR-0053).
+            HappyJobs = [new(JobType.Train, 0, 0, 100)],
+            UnhappyJobs = [new(JobType.Drink, 0, 0, 100)],
+            AngryJobs = [new(JobType.Leave, 0, 0, 50), new(JobType.Rebel, 0, 0, 50)],
 
-        // Its purse, as shipped: a wage's half and the Casino's winnings stop at 5000
-        // (ADR-0187). InitialGoldHeld ships as 500 and nothing reads it, so it is 0 here.
-        MaxGoldHeld = 5000,
-        InitialGoldHeld = 0,
-    };
+            // Its purse, as shipped: a wage's half and the Casino's winnings stop at 5000
+            // (ADR-0187). InitialGoldHeld ships as 500 and nothing reads it, so it is 0 here.
+            MaxGoldHeld = 5000,
+            InitialGoldHeld = 0,
+        };
+    }
 
     public const byte DeserterCreatureId = 44;
 
@@ -1048,12 +1116,15 @@ internal static class Dk2TerrainFixture
     /// <c>CreatureNeedsOnRealDataTests</c>, so this cannot be mistaken for a
     /// claim about the original.
     /// </remarks>
-    public static CreatureDef Deserter() => Goblin() with
+    public static CreatureDef Deserter()
     {
-        Name = "Deserter",
-        CreatureId = DeserterCreatureId,
-        AngryJobs = [new(JobType.Leave, 0, 0, 100)],
-    };
+        return Goblin() with
+        {
+            Name = "Deserter",
+            CreatureId = DeserterCreatureId,
+            AngryJobs = [new(JobType.Leave, 0, 0, 100)],
+        };
+    }
 
     public const byte MistressCreatureId = 4;
 
@@ -1061,17 +1132,20 @@ internal static class Dk2TerrainFixture
     /// happy table, Train and Torture at 50 each, and her torture numbers, 0 health and 0 mood
     /// an act. Everything else is the Goblin's. <c>CreatureNeedsOnRealDataTests</c> guards the
     /// overrides.</summary>
-    public static CreatureDef Mistress() => Goblin() with
+    public static CreatureDef Mistress()
     {
-        Name = "Mistress",
-        CreatureId = MistressCreatureId,
-        Hp = 2000,
-        HappyJobs = [new(JobType.Train, 10, 0, 50), new(JobType.Torture, 0, 0, 50)],
-        UnhappyJobs = [new(JobType.Sulk, 0, 0, 10), new(JobType.Drink, 0, 0, 90)],
-        TortureHpChange = 0,
-        TortureMoodChange = 0,
-        TortureTimeToConvert = Fp32.FromDouble(280),
-    };
+        return Goblin() with
+        {
+            Name = "Mistress",
+            CreatureId = MistressCreatureId,
+            Hp = 2000,
+            HappyJobs = [new(JobType.Train, 10, 0, 50), new(JobType.Torture, 0, 0, 50)],
+            UnhappyJobs = [new(JobType.Sulk, 0, 0, 10), new(JobType.Drink, 0, 0, 90)],
+            TortureHpChange = 0,
+            TortureMoodChange = 0,
+            TortureTimeToConvert = Fp32.FromDouble(280),
+        };
+    }
 
     public const byte VampireCreatureId = 8;
 
@@ -1087,74 +1161,77 @@ internal static class Dk2TerrainFixture
     /// owner, Q113) and no <c>AvailableViaPortal</c> (it arrives from a
     /// Graveyard — attraction room 14, <c>LairObjectId</c> 26, its coffin).
     /// <c>CreatureNeedsOnRealDataTests</c> guards the overrides.</remarks>
-    public static CreatureDef Vampire() => Goblin() with
+    public static CreatureDef Vampire()
     {
-        Name = "Vampire",
-        CreatureId = VampireCreatureId,
-        FootprintRadius = new Fp32(999),
-        SizeClass = 3,
-        TurnRate = 1365,
+        return Goblin() with
+        {
+            Name = "Vampire",
+            CreatureId = VampireCreatureId,
+            FootprintRadius = new Fp32(999),
+            SizeClass = 3,
+            TurnRate = 1365,
 
-        // 30 is the value that DOES lose to the loader's divide - 30 / 4 = 7,
-        // so a Vampire trains at 28 a game second, not 30 - which makes it the
-        // fixture's witness for that quirk. Eighteen of the 46 shipped
-        // creatures carry 30, and 26 of the 46 lose something to truncation.
-        ExpPerSecond = 150,
-        ExpPerSecondTraining = 30,
-        ResearchPerSecond = 5,
-        SlapDamage = 125,
+            // 30 is the value that DOES lose to the loader's divide - 30 / 4 = 7,
+            // so a Vampire trains at 28 a game second, not 30 - which makes it the
+            // fixture's witness for that quirk. Eighteen of the 46 shipped
+            // creatures carry 30, and 26 of the 46 lose something to truncation.
+            ExpPerSecond = 150,
+            ExpPerSecondTraining = 30,
+            ResearchPerSecond = 5,
+            SlapDamage = 125,
 
-        Flags = CreatureFlags.IsEvil | CreatureFlags.IsFearless
+            Flags = CreatureFlags.IsEvil | CreatureFlags.IsFearless
                 | CreatureFlags.CanBeResurrected | CreatureFlags.NeedBodyForFightIdle,
 
-        Hp = 2500,
-        MeleeDamage = 666,
-        Pay = 750,
-        Fear = 267,
-        Threat = 107,
-        Speed = new Fp32(2867),
-        RunSpeed = new Fp32(5160),
-        ShuffleSpeed = new Fp32(1638),
-        JobClass = JobClass.Thinker,
+            Hp = 2500,
+            MeleeDamage = 666,
+            Pay = 750,
+            Fear = 267,
+            Threat = 107,
+            Speed = new Fp32(2867),
+            RunSpeed = new Fp32(5160),
+            ShuffleSpeed = new Fp32(1638),
+            JobClass = JobClass.Thinker,
 
-        // Never eats — the same 32767 sentinel the Imp carries — but does
-        // sleep, and for the same nine seconds as a Goblin after a much longer
-        // 330 awake. Its bed is object 26 and its attraction is room 14, the
-        // Graveyard.
-        HungerRate = Imp().HungerRate,
-        HungerFill = 0,
-        HpFromChicken = 0,
-        TimeAwake = 330,
-        TimeSleep = 9,
-        LairObjectId = 26,
-        Attractions = [new CreatureAttraction(1, 14, 0), new CreatureAttraction(0, 0, 0)],
+            // Never eats — the same 32767 sentinel the Imp carries — but does
+            // sleep, and for the same nine seconds as a Goblin after a much longer
+            // 330 awake. Its bed is object 26 and its attraction is room 14, the
+            // Graveyard.
+            HungerRate = Imp().HungerRate,
+            HungerFill = 0,
+            HpFromChicken = 0,
+            TimeAwake = 330,
+            TimeSleep = 9,
+            LairObjectId = 26,
+            Attractions = [new CreatureAttraction(1, 14, 0), new CreatureAttraction(0, 0, 0)],
 
-        // Its own anger record. AngerNoFood is 1 rather than 0 on a creature
-        // that never eats, which is the shipped table's way of leaving a
-        // needle in a need it does not have. AngerSlap is 7000, so a Vampire
-        // takes five slaps to unhappy where a Goblin takes six.
-        AngerNoFood = 1,
-        AngerNoWork = 60,
-        AngerSlap = 7000,
+            // Its own anger record. AngerNoFood is 1 rather than 0 on a creature
+            // that never eats, which is the shipped table's way of leaving a
+            // needle in a need it does not have. AngerSlap is 7000, so a Vampire
+            // takes five slaps to unhappy where a Goblin takes six.
+            AngerNoFood = 1,
+            AngerNoWork = 60,
+            AngerSlap = 7000,
 
-        // A vampire never walks out. Where a Goblin's angry table is a coin
-        // toss between Leave and Rebel, this one is Rebel outright.
-        HappyJobs = [new(JobType.Research, 0, 0, 80), new(JobType.Praying, 0, 0, 20)],
-        UnhappyJobs = [new(JobType.Sulk, 0, 0, 10), new(JobType.Drink, 0, 0, 90)],
-        AngryJobs = [new(JobType.Rebel, 0, 0, 100)],
+            // A vampire never walks out. Where a Goblin's angry table is a coin
+            // toss between Leave and Rebel, this one is Rebel outright.
+            HappyJobs = [new(JobType.Research, 0, 0, 80), new(JobType.Praying, 0, 0, 20)],
+            UnhappyJobs = [new(JobType.Sulk, 0, 0, 10), new(JobType.Drink, 0, 0, 90)],
+            AngryJobs = [new(JobType.Rebel, 0, 0, 100)],
 
-        DecomposeValue = 0,
-        MaxGoldHeld = 7500,
-        InitialGoldHeld = 500,
+            DecomposeValue = 0,
+            MaxGoldHeld = 7500,
+            InitialGoldHeld = 500,
 
-        // The shipped third slot: Raise Dead from level 10 (combat-spells.md §12); slots 1 and 2 are empty.
-        Spells =
+            // The shipped third slot: Raise Dead from level 10 (combat-spells.md §12); slots 1 and 2 are empty.
+            Spells =
         [
             new CreatureSpellSlot(0, 1, new Fp32(4096), 1),
             new CreatureSpellSlot(0, 1, new Fp32(4096), 1),
             new CreatureSpellSlot(RaiseDeadSpellId, 10, new Fp32(4096), 1),
         ],
-    };
+        };
+    }
 
     public const byte SkeletonCreatureId = 9;
 
@@ -1168,60 +1245,63 @@ internal static class Dk2TerrainFixture
     /// writing "does not run away" on a creature also flagged
     /// <c>IsFearless</c>. It does <b>not</b> carry <c>GenerateDeadBody</c>, so
     /// a skeleton that runs out of health leaves nothing behind.</remarks>
-    public static CreatureDef Skeleton() => Goblin() with
+    public static CreatureDef Skeleton()
     {
-        Name = "Skeleton",
-        CreatureId = SkeletonCreatureId,
-        FootprintRadius = new Fp32(634),
-        TurnRate = 1365,
+        return Goblin() with
+        {
+            Name = "Skeleton",
+            CreatureId = SkeletonCreatureId,
+            FootprintRadius = new Fp32(634),
+            TurnRate = 1365,
 
-        Flags = CreatureFlags.IsEvil | CreatureFlags.IsFearless
+            Flags = CreatureFlags.IsEvil | CreatureFlags.IsFearless
                 | CreatureFlags.CanBePickedUp | CreatureFlags.CanBeSlapped,
 
-        Hp = 1500,
-        MeleeDamage = 280,
-        Pay = 0,
-        Fear = 30000,
-        Threat = 60,
-        Speed = new Fp32(2867),
-        RunSpeed = new Fp32(3686),
-        JobClass = JobClass.Fighter,
-        FightStyle = FightStyle.Flanker,
+            Hp = 1500,
+            MeleeDamage = 280,
+            Pay = 0,
+            Fear = 30000,
+            Threat = 60,
+            Speed = new Fp32(2867),
+            RunSpeed = new Fp32(3686),
+            JobClass = JobClass.Fighter,
+            FightStyle = FightStyle.Flanker,
 
-        // Never eats, never sleeps, never wants a bed. The three sentinels the
-        // shipped record uses to say so.
-        HungerRate = Imp().HungerRate,
-        HungerFill = 0,
-        HpFromChicken = 0,
-        TimeAwake = 32767,
-        TimeSleep = 0,
-        LairObjectId = 0,
-        DecomposeValue = 0,
-        MaxGoldHeld = 0, // the shipped Skeleton's: it never takes gold (creature-table-dump.md)
+            // Never eats, never sleeps, never wants a bed. The three sentinels the
+            // shipped record uses to say so.
+            HungerRate = Imp().HungerRate,
+            HungerFill = 0,
+            HpFromChicken = 0,
+            TimeAwake = 32767,
+            TimeSleep = 0,
+            LairObjectId = 0,
+            DecomposeValue = 0,
+            MaxGoldHeld = 0, // the shipped Skeleton's: it never takes gold (creature-table-dump.md)
 
-        // Attracted by a Prison, which is the room that makes it.
-        Attractions =
+            // Attracted by a Prison, which is the room that makes it.
+            Attractions =
         [
             new CreatureAttraction(1, (byte)RoomTypeId.Prison, 0),
             new CreatureAttraction(0, 0, 0),
         ],
 
-        // The shipped record says "never angry" TWICE: every anger rate is
-        // zero, AND it carries the never-angered flag. The FLAG is the rule DK2
-        // reads (tested in the one wrapper every anger site goes through); the
-        // zero rates are a coincidence of this creature - Jack carries the same
-        // flag with all four rates populated (Q210). Both are kept, so the
-        // fixture reproduces the record rather than the inference.
-        Flags2 = CreatureFlags2.NeverAngered,
-        AngerNoLair = 0,
-        AngerNoFood = 0,
-        AngerNoPay = 0,
-        AngerNoWork = 0,
+            // The shipped record says "never angry" TWICE: every anger rate is
+            // zero, AND it carries the never-angered flag. The FLAG is the rule DK2
+            // reads (tested in the one wrapper every anger site goes through); the
+            // zero rates are a coincidence of this creature - Jack carries the same
+            // flag with all four rates populated (Q210). Both are kept, so the
+            // fixture reproduces the record rather than the inference.
+            Flags2 = CreatureFlags2.NeverAngered,
+            AngerNoLair = 0,
+            AngerNoFood = 0,
+            AngerNoPay = 0,
+            AngerNoWork = 0,
 
-        HappyJobs = [new(JobType.Train, 0, 0, 100)],
-        UnhappyJobs = [new(JobType.Guard, 0, 0, 100)],
-        AngryJobs = [new(JobType.Rebel, 0, 0, 100)],
-    };
+            HappyJobs = [new(JobType.Train, 0, 0, 100)],
+            UnhappyJobs = [new(JobType.Guard, 0, 0, 100)],
+            AngryJobs = [new(JobType.Rebel, 0, 0, 100)],
+        };
+    }
 
     public const byte BileDemonCreatureId = 3;
 
@@ -1236,92 +1316,113 @@ internal static class Dk2TerrainFixture
     /// shipped record's — 6000 health, 220 seconds between meals, five chickens
     /// to fill, 200 health a chicken, 270 awake, 9 asleep — and the rest is the
     /// Goblin's, because nothing reads the rest.</remarks>
-    public static CreatureDef BileDemon() => Goblin() with
+    public static CreatureDef BileDemon()
     {
-        Name = "Bile Demon",
-        CreatureId = BileDemonCreatureId,
-        FootprintRadius = new Fp32(1740),
-        SizeClass = 5,
-        TurnRate = 682,
+        return Goblin() with
+        {
+            Name = "Bile Demon",
+            CreatureId = BileDemonCreatureId,
+            FootprintRadius = new Fp32(1740),
+            SizeClass = 5,
+            TurnRate = 682,
 
-        Hp = 6000,
-        MeleeDamage = 525,
-        MeleeHitDelay = Fp32.FromDouble(1.25),
-        MeleeRecharge = Fp32.FromDouble(3.5),
-        Pay = 600,
-        Fear = 300,
-        Threat = 120,
+            Hp = 6000,
+            MeleeDamage = 525,
+            MeleeHitDelay = Fp32.FromDouble(1.25),
+            MeleeRecharge = Fp32.FromDouble(3.5),
+            Pay = 600,
+            Fear = 300,
+            Threat = 120,
 
-        // The shipped Bile Demon is a Blocker, one of the fifteen heavy melee that pick the
-        // nearest hostile (combat-target-selection.md §1); the fixture's one built arm.
-        FightStyle = FightStyle.Blocker,
+            // The shipped Bile Demon is a Blocker, one of the fifteen heavy melee that pick the
+            // nearest hostile (combat-target-selection.md §1); the fixture's one built arm.
+            FightStyle = FightStyle.Blocker,
 
-        HungerRate = Fp32.FromDouble(220),
-        HungerFill = 5,
-        HpFromChicken = 200,
-        TimeAwake = 270,
-        TimeSleep = 9,
-        LairObjectId = 18,
-    };
+            HungerRate = Fp32.FromDouble(220),
+            HungerFill = 5,
+            HpFromChicken = 200,
+            TimeAwake = 270,
+            TimeSleep = 9,
+            LairObjectId = 18,
+        };
+    }
 
     public const byte KnightCreatureId = 20;
 
     /// <summary>A hero: the Goblin's record with the good alignment, the Blocker arm and no fear,
     /// so the alignment discount, a hero's own acquisition and the retaliation rules have a
     /// creature that stands its ground. The real Knight's stats are not these.</summary>
-    public static CreatureDef Knight() => Goblin() with
+    public static CreatureDef Knight()
     {
-        Name = "Knight",
-        CreatureId = KnightCreatureId,
-        Flags = CreatureFlags.IsGood | CreatureFlags.GenerateDeadBody | CreatureFlags.CanWalkOnWater
+        return Goblin() with
+        {
+            Name = "Knight",
+            CreatureId = KnightCreatureId,
+            Flags = CreatureFlags.IsGood | CreatureFlags.GenerateDeadBody | CreatureFlags.CanWalkOnWater
                 | CreatureFlags.CanBePickedUp | CreatureFlags.CanBeSlapped | CreatureFlags.IsFearless,
-        FightStyle = FightStyle.Blocker,
-        LairObjectId = 0,
-    };
+            FightStyle = FightStyle.Blocker,
+            LairObjectId = 0,
+        };
+    }
 
     public const byte WarlockCreatureId = 21;
 
     /// <summary>The Goblin's record with the Support arm and no fear, for the scores that prefer a
     /// crowded enemy and the Blitzer's dive at the backline. Not the real Warlock's stats.</summary>
-    public static CreatureDef Warlock() => Goblin() with
+    public static CreatureDef Warlock()
     {
-        Name = "Warlock",
-        CreatureId = WarlockCreatureId,
-        Flags = Goblin().Flags | CreatureFlags.IsFearless,
-        FightStyle = FightStyle.Support,
-        LairObjectId = 0,
-        // The shipped Warlock's first two slots: Fireball from level 1 and Firebomb from level 8,
-        // both winding up 11345/4096 s — eleven ticks (combat-spells.md §3).
-        Spells =
+        return Goblin() with
+        {
+            Name = "Warlock",
+            CreatureId = WarlockCreatureId,
+            Flags = Goblin().Flags | CreatureFlags.IsFearless,
+            FightStyle = FightStyle.Support,
+            LairObjectId = 0,
+            // The shipped Warlock's first two slots: Fireball from level 1 and Firebomb from level 8,
+            // both winding up 11345/4096 s — eleven ticks (combat-spells.md §3).
+            Spells =
         [
             new CreatureSpellSlot(FireballSpellId, 1, new Fp32(11345), 1),
             new CreatureSpellSlot(FirebombSpellId, 8, new Fp32(11345), 1),
         ],
-    };
+        };
+    }
 
     public const byte PriestCreatureId = 22;
     public const byte ThiefCreatureId = 23;
 
     /// <summary>A Support with three friendly slots at their shipped words — Haste, Cast Armour and Heal
     /// — so the last castable slot wins (spell-friendly-arm.md §8.1). Not a shipped creature's stats.</summary>
-    public static CreatureDef Priest() => Goblin() with
+    public static CreatureDef Priest()
     {
-        Name = "Priest", CreatureId = PriestCreatureId, Flags = Goblin().Flags | CreatureFlags.IsFearless,
-        FightStyle = FightStyle.Support, LairObjectId = 0,
-        Spells =
+        return Goblin() with
+        {
+            Name = "Priest",
+            CreatureId = PriestCreatureId,
+            Flags = Goblin().Flags | CreatureFlags.IsFearless,
+            FightStyle = FightStyle.Support,
+            LairObjectId = 0,
+            Spells =
         [
             new CreatureSpellSlot(HasteSpellId, 1, new Fp32(4096), 1),
             new CreatureSpellSlot(ArmourSpellId, 1, new Fp32(4096), 1),
             new CreatureSpellSlot(HealSpellId, 1, new Fp32(4096), 1),
         ],
-    };
+        };
+    }
 
     /// <summary>A fighter with the self-only Invisible (bit 7).</summary>
-    public static CreatureDef Thief() => Goblin() with
+    public static CreatureDef Thief()
     {
-        Name = "Thief", CreatureId = ThiefCreatureId, Flags = Goblin().Flags | CreatureFlags.IsFearless, LairObjectId = 0,
-        Spells = [new CreatureSpellSlot(InvisibleSpellId, 1, new Fp32(4096), 1)],
-    };
+        return Goblin() with
+        {
+            Name = "Thief",
+            CreatureId = ThiefCreatureId,
+            Flags = Goblin().Flags | CreatureFlags.IsFearless,
+            LairObjectId = 0,
+            Spells = [new CreatureSpellSlot(InvisibleSpellId, 1, new Fp32(4096), 1)],
+        };
+    }
 
     public const byte FireballSpellId = 1;
     public const byte FirebombSpellId = 2;
@@ -1356,8 +1457,9 @@ internal static class Dk2TerrainFixture
 
     /// <summary>The Warlock's two attack spells at their shipped values (combat-spells.md §1–§2):
     /// attack flag, four-tile range, 5 s and 7.5 s recharges, 300 and 600 damage.</summary>
-    public static CreatureSpellDef[] CreatureSpells() =>
-    [
+    public static CreatureSpellDef[] CreatureSpells()
+    {
+        return [
         new(new byte[266])
         {
             Name = "Warlock Fireball", EditorIcon = NoArt, GuiIcon = NoArt, CreatureSpellId = FireballSpellId,
@@ -1399,6 +1501,7 @@ internal static class Dk2TerrainFixture
             Flags = 0x101, Range = 16384, RechargeTime = 20480, ShotTypeId = LightningShotId, Unknown_00EF = default,
         },
     ];
+    }
 
     public const byte TeleportTestSpellId = 40;
     public const byte SpeedTestSpellId = 41;
@@ -1407,30 +1510,48 @@ internal static class Dk2TerrainFixture
 
     /// <summary>A Goblin carrying the three test flag spells, for the possessed spell arm. Pass it to
     /// <see cref="Database"/>; not a shipped creature.</summary>
-    public static CreatureDef Possessor() => Goblin() with
+    public static CreatureDef Possessor()
     {
-        Name = "Possessor", CreatureId = PossessorCreatureId, LairObjectId = 0,
-        Spells =
+        return Goblin() with
+        {
+            Name = "Possessor",
+            CreatureId = PossessorCreatureId,
+            LairObjectId = 0,
+            Spells =
         [
             new CreatureSpellSlot(TeleportTestSpellId, 1, new Fp32(4096), 1),
             new CreatureSpellSlot(SpeedTestSpellId, 1, new Fp32(4096), 1),
             new CreatureSpellSlot(HomingTestSpellId, 1, new Fp32(4096), 1),
         ],
-    };
+        };
+    }
 
     /// <summary>A friendly spell (bit 2) with a four-tile range and a five-second recharge.</summary>
-    private static CreatureSpellDef Friendly(string name, byte id, uint flags, byte alternativeShot, byte shot, uint data1, uint data2) =>
-        new(new byte[266])
+    private static CreatureSpellDef Friendly(string name, byte id, uint flags, byte alternativeShot, byte shot, uint data1, uint data2)
+    {
+        return new(new byte[266])
         {
-            Name = name, EditorIcon = NoArt, GuiIcon = NoArt, CreatureSpellId = id, Flags = flags, Range = 16384, RechargeTime = 20480,
-            ShotTypeId = shot, AlternativeShot = alternativeShot, ShotData1 = data1, ShotData2 = data2, Unknown_00EF = default,
+            Name = name,
+            EditorIcon = NoArt,
+            GuiIcon = NoArt,
+            CreatureSpellId = id,
+            Flags = flags,
+            Range = 16384,
+            RechargeTime = 20480,
+            ShotTypeId = shot,
+            AlternativeShot = alternativeShot,
+            ShotData1 = data1,
+            ShotData2 = data2,
+            Unknown_00EF = default,
         };
+    }
 
     /// <summary>The shots those spells fire, at their shipped values (shots.md §9): the Fireball dies
     /// on solid and on a thing and lives 60 ticks; the Firebomb chains its explosion on either hit;
     /// the explosion stands still and hurts a linear area for the ticks its health lasts.</summary>
-    public static ShotDef[] Shots() =>
-    [
+    public static ShotDef[] Shots()
+    {
+        return [
         Status("Create Object", CreateObjectShotId, 2048, 1, 4, 0x80, 0, ShotRules.CreateObjectProcess, attackCategory: 12),
         // Create Imp's two shots as shipped: 2 runs creation process 1, the upgraded 60 process 36.
         new(new byte[239])
@@ -1507,17 +1628,33 @@ internal static class Dk2TerrainFixture
             DamageType = 2, AttackCategory = 4, Unknown_0098 = 20000, Unknown_009C = 3,
         },
     ];
+    }
 
     public const byte CannonBallShotId = 44, FireburstShotId = 14, LightningTrapShotId = 59, FreezeTrapShotId = 45,
         TriggerTrapShotId = 39, DoorFireballShotId = 57, AlarmShotId = 13, FearShotId = 25, SpikeShotId = 27, GasTrapCloudShotId = 58,
         BoulderShotId = 26, JackInTheBoxShotId = 64, JackExplosionShotId = 65;
 
-    private static ShotDef Status(string name, byte id, int speed, ushort health, uint flags, uint processFlags, byte collide, byte process, byte damageType = 0, byte attackCategory = 0, byte deathShot = 0) =>
-        new(new byte[239])
+    private static ShotDef Status(string name, byte id, int speed, ushort health, uint flags, uint processFlags, byte collide, byte process, byte damageType = 0, byte attackCategory = 0, byte deathShot = 0)
+    {
+        return new(new byte[239])
         {
-            Name = name, MeshResource = NoArt, Light = NoLight, SoundCategory = "", ShotId = id, Speed = speed, Radius = 819,
-            Health = health, Flags = flags, ShotProcessFlags = processFlags, CollideType = collide, ProcessType = process, DamageType = damageType, AttackCategory = attackCategory, DeathShotId = deathShot,
+            Name = name,
+            MeshResource = NoArt,
+            Light = NoLight,
+            SoundCategory = "",
+            ShotId = id,
+            Speed = speed,
+            Radius = 819,
+            Health = health,
+            Flags = flags,
+            ShotProcessFlags = processFlags,
+            CollideType = collide,
+            ProcessType = process,
+            DamageType = damageType,
+            AttackCategory = attackCategory,
+            DeathShotId = deathShot,
         };
+    }
 
     /// <summary>Gives every keeper of <paramref name="world"/> a researchable (2) row for each room type it
     /// lacks one for, so a paid sale passes its opening availability test (<c>0x0044F770</c> refuses 1 and 4)
@@ -1783,8 +1920,10 @@ internal static class Dk2TerrainFixture
         }
     }
 
-    private static void Set(GlobalVariables vars, VariableTypeId id, int value) =>
+    private static void Set(GlobalVariables vars, VariableTypeId id, int value)
+    {
         vars.Misc[id] = new MiscVariable(id, value, 0, 0);
+    }
 
     /// <summary>TERRAIN file bytes 0x1DF of the shipped terrains this fixture carries (a room's tiles use
     /// the room terrain's); <c>TerrainSoundCategoriesAreTheShippedNames</c> reads the real file.</summary>
@@ -1806,24 +1945,27 @@ internal static class Dk2TerrainFixture
         ushort startingHealth, ushort maxHealth,
         byte maxHealthType, byte destroyedType,
         ushort goldValue = 0, ushort manaGain = 0, ushort maxManaGain = 0,
-        short damage = 0) => new()
+        short damage = 0)
     {
-        Name = name,
-        TerrainId = id,
-        SoundCategory = ShippedSoundCategory.GetValueOrDefault(id, ""),
-        Flags = flags,
-        StartingHealth = startingHealth,
-        MaxHealth = maxHealth,
-        GoldValue = goldValue,
-        ManaGain = manaGain,
-        MaxManaGain = maxManaGain,
-        Damage = damage,
-        MaxHealthTypeTerrainId = maxHealthType,
-        DestroyedTypeTerrainId = destroyedType,
-        Depth = new Fp32(0),
-        NameStringId = 0,
-        TooltipStringId = 0,
-    };
+        return new()
+        {
+            Name = name,
+            TerrainId = id,
+            SoundCategory = ShippedSoundCategory.GetValueOrDefault(id, ""),
+            Flags = flags,
+            StartingHealth = startingHealth,
+            MaxHealth = maxHealth,
+            GoldValue = goldValue,
+            ManaGain = manaGain,
+            MaxManaGain = maxManaGain,
+            Damage = damage,
+            MaxHealthTypeTerrainId = maxHealthType,
+            DestroyedTypeTerrainId = destroyedType,
+            Depth = new Fp32(0),
+            NameStringId = 0,
+            TooltipStringId = 0,
+        };
+    }
 
     /// <summary>
     /// One room record. Only the fields the room rules read are transcribed;
@@ -1835,45 +1977,48 @@ internal static class Dk2TerrainFixture
         TileConstruction construction = TileConstruction.Normal,
         byte createdCreatureId = 0,
         byte[]? objectIds = null,
-        ushort roomEffect = 0) => new()
+        ushort roomEffect = 0)
     {
-        Name = name,
-        RoomId = (byte)id,
-        Flags = (RoomFlags)flags,
-        Cost = cost,
-        TerrainId = terrainId,
-        ReturnPercentage = 100,
+        return new()
+        {
+            Name = name,
+            RoomId = (byte)id,
+            Flags = (RoomFlags)flags,
+            Cost = cost,
+            TerrainId = terrainId,
+            ReturnPercentage = 100,
 
-        // Transcribed, because RoomInstance.IsFunctional reads them: the size
-        // below which a room does nothing (Q45).
-        RecommendedSizeX = sizeX,
-        RecommendedSizeY = sizeY,
+            // Transcribed, because RoomInstance.IsFunctional reads them: the size
+            // below which a room does nothing (Q45).
+            RecommendedSizeX = sizeX,
+            RecommendedSizeY = sizeY,
 
-        // Transcribed for the portal, because PortalRules.IsEntrance asserts
-        // that ThreeByThree picks out exactly the two portals.
-        Construction = construction,
+            // Transcribed for the portal, because PortalRules.IsEntrance asserts
+            // that ThreeByThree picks out exactly the two portals.
+            Construction = construction,
 
-        // Transcribed for the two rooms that set it -- Graveyard 8 (Vampire)
-        // and Prison 9 (Skeleton) -- because PrisonSystem reads it to decide
-        // what a withered prisoner rises as.
-        CreatedCreatureId = createdCreatureId,
+            // Transcribed for the two rooms that set it -- Graveyard 8 (Vampire)
+            // and Prison 9 (Skeleton) -- because PrisonSystem reads it to decide
+            // what a withered prisoner rises as.
+            CreatedCreatureId = createdCreatureId,
 
-        // Transcribed for the Library, because ObjectCarryRules reads the
-        // room->objects mapping backwards to decide where a loose object
-        // belongs. Ten of the shipped rooms have a list (Q120).
-        ObjectIds = objectIds ?? [],
+            // Transcribed for the Library, because ObjectCarryRules reads the
+            // room->objects mapping backwards to decide where a loose object
+            // belongs. Ten of the shipped rooms have a list (Q120).
+            ObjectIds = objectIds ?? [],
 
-        // Transcribed for the Treasury (60, Gold Earn Creation), because a gold
-        // deposit asks for it on each store pile it creates.
-        RoomEffect425Id = roomEffect,
+            // Transcribed for the Treasury (60, Gold Earn Creation), because a gold
+            // deposit asks for it on each store pile it creates.
+            RoomEffect425Id = roomEffect,
 
-        // Not transcribed. Present because the record requires them.
-        HealthGain = 0,
-        CeilingHeight = new Fp32(0),
-        OrderInEditor = 0,
-        NameStringId = 0,
-        TooltipStringId = 0,
-    };
+            // Not transcribed. Present because the record requires them.
+            HealthGain = 0,
+            CeilingHeight = new Fp32(0),
+            OrderInEditor = 0,
+            NameStringId = 0,
+            TooltipStringId = 0,
+        };
+    }
 
     /// <summary>A small dungeon: impenetrable border, a rock body, a
     /// claimed-path room at the top-left owned by
@@ -1938,8 +2083,10 @@ internal static class Dk2TerrainFixture
         ManaRules.SetOwner(world, database, ref tile, owner);
     }
 
-    public static WorldState World() =>
-        WorldState.FromMap(Database(), Map(), [(byte)0, (byte)1, (byte)2]);
+    public static WorldState World()
+    {
+        return WorldState.FromMap(Database(), Map(), [(byte)0, (byte)1, (byte)2]);
+    }
 
     /// <summary>A simulation with the real M3 systems, in registration order.</summary>
     public static GameSimulation Simulation(ulong seed = 4242)
@@ -1953,7 +2100,10 @@ internal static class Dk2TerrainFixture
     }
 
     /// <summary>The one declared system order — see <see cref="Systems.SimulationSystems"/>.</summary>
-    public static ISimulationSystem[] DefaultSystems() => Systems.SimulationSystems.Default();
+    public static ISimulationSystem[] DefaultSystems()
+    {
+        return Systems.SimulationSystems.Default();
+    }
 
     /// <summary>The declared order with one system left out, for tests that
     /// measure one mechanic and would otherwise be measuring two. Use it
@@ -1963,11 +2113,13 @@ internal static class Dk2TerrainFixture
     /// immediately unless it excludes that system.</summary>
     /// <remarks>The room walk's steps count as systems: leaving out <see cref="Systems.DungeonHeartSystem"/>
     /// also leaves out the Heart handler's own part, <see cref="Systems.HeartFrameStep"/>, which runs in the walk.</remarks>
-    public static ISimulationSystem[] SystemsWithout<T>() where T : ISimulationSystem =>
-    [
+    public static ISimulationSystem[] SystemsWithout<T>() where T : ISimulationSystem
+    {
+        return [
         .. Systems.SimulationSystems.Default().Where(s => s is not T).Select(s => s is Systems.RoomTickSystem walk
             ? new Systems.RoomTickSystem([.. walk.Steps.Where(step =>
                 step is not T && !(typeof(T) == typeof(Systems.DungeonHeartSystem) && step is Systems.HeartFrameStep))])
             : s),
     ];
+    }
 }

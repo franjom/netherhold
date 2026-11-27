@@ -16,8 +16,10 @@ public class PoseInterpolatorTests
     [InlineData(.5f, 2.625)]
     [InlineData(1.5f, 2.75)]
     [InlineData(-.2f, 2.5)]
-    public void DrawSecondsAreTheTickPlusTheClampedFractionAtFourTicksASecond(float fraction, double seconds) =>
+    public void DrawSecondsAreTheTickPlusTheClampedFractionAtFourTicksASecond(float fraction, double seconds)
+    {
         Assert.Equal(seconds, PoseInterpolator.DrawSeconds(new GameTick(10), fraction));
+    }
 
     [Fact]
     public void PositionLerpsEachAxisInTilesWithTheFractionClamped()
@@ -35,8 +37,10 @@ public class PoseInterpolatorTests
     [InlineData(0, 1023, 1023)]
     [InlineData(0, 1024, -1024)]
     [InlineData(100, 100, 0)]
-    public void ShortestArcTakesTheShortWayRound(int previous, int current, int turn) =>
+    public void ShortestArcTakesTheShortWayRound(int previous, int current, int turn)
+    {
         Assert.Equal(turn, PoseInterpolator.ShortestArc(previous, current));
+    }
 
     [Fact]
     public void AnObjectTurnsTheShortWayAcrossNorthWithTheHalfTurnOnItsHeading()
@@ -85,8 +89,10 @@ public class PoseInterpolatorTests
     [InlineData(10f, 350f, .5f, 0f)]
     [InlineData(0f, 90f, 2f, 90f)]
     [InlineData(0f, 270f, .5f, -45f)]
-    public void LerpAngleIsUnitysShortWayWithAClampedFraction(float from, float to, float fraction, float angle) =>
+    public void LerpAngleIsUnitysShortWayWithAClampedFraction(float from, float to, float fraction, float angle)
+    {
         Assert.Equal(angle, MeshOrientation.LerpAngle(from, to, fraction));
+    }
 
     [Fact]
     public void ClipStartsTheTurnAfterItsStartElseNow()
@@ -135,8 +141,10 @@ public class PoseInterpolatorTests
     }
 
     [Fact]
-    public void TheArtClockTurnsAtTheSimulationsTicksPerSecond() =>
+    public void TheArtClockTurnsAtTheSimulationsTicksPerSecond()
+    {
         Assert.Equal(DK2.Simulation.SimulationTiming.OriginalTicksPerGameSecond, CreatureAnimationArt.TurnsPerSecond);
+    }
 
     [Fact]
     public void AHeartDrawsItsDecayPhaseAndItsVerticalScale()
@@ -153,16 +161,20 @@ public class PoseInterpolatorTests
     }
 
     [Fact]
-    public void ALightningPointLeavesTheRenderFrameAsXMinusZY() =>
+    public void ALightningPointLeavesTheRenderFrameAsXMinusZY()
+    {
         Assert.Equal(new System.Numerics.Vector3(1, -3, 2),
             LightningControlPoint.FromRenderWorld(7, new System.Numerics.Vector3(1, 2, 3)).Position);
+    }
 
     private static ObjectView Object(int heading = 0, int? previousHeading = null, int pitch = 0, int? previousPitch = null,
         int roll = 0, int? previousRoll = null, int scale = Fp32.One, Fp32? texturePhase = null,
         DungeonHeartVisual? heart = null, Fp32 initialPhase = default, GameTick? startedAt = null, bool loops = true,
-        TerrainLightColour addedLight = default) =>
-        new(1, 1, new PlayerId(1), new TilePos(1, 1), default, 0, Fp32.One, Fp32.One, Fp32.One, heading, scale,
+        TerrainLightColour addedLight = default)
+    {
+        return new(1, 1, new PlayerId(1), new TilePos(1, 1), default, 0, Fp32.One, Fp32.One, Fp32.One, heading, scale,
             pitch: pitch, roll: roll, previousHeading: previousHeading, previousPitch: previousPitch,
             previousRoll: previousRoll, heartVisual: heart, texturePhase: texturePhase, animationInitialPhase: initialPhase,
             animationStartedAt: startedAt, animationLoops: loops, addedLight: addedLight);
+    }
 }

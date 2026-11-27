@@ -24,14 +24,20 @@ public partial class CampaignPlayerTests
         "RRRRRRRRRRRRRRRRRRRRRRRR",
     ];
 
-    private static PlayerVisibleThing Raider(int ordinal, TilePos at) =>
-        new(Handle(ordinal), PlayerThingKind.Creature, at, Heroes, PlayerThingActions.None, creatureType: new CreatureTypeId(20));
+    private static PlayerVisibleThing Raider(int ordinal, TilePos at)
+    {
+        return new(Handle(ordinal), PlayerThingKind.Creature, at, Heroes, PlayerThingActions.None, creatureType: new CreatureTypeId(20));
+    }
 
-    private static PlayerVisibleThing Defender(int ordinal, TilePos at) =>
-        new(Handle(ordinal), PlayerThingKind.Creature, at, Me, PlayerThingActions.PickUp, creatureType: Goblin);
+    private static PlayerVisibleThing Defender(int ordinal, TilePos at)
+    {
+        return new(Handle(ordinal), PlayerThingKind.Creature, at, Me, PlayerThingActions.PickUp, creatureType: Goblin);
+    }
 
-    private static PlayerObservation DefenceView(long revision, int hand = 0, params PlayerVisibleThing[] things) =>
-        Observe(revision, map: DefenceMap, hand: hand, rooms: [], gold: 0, things: things);
+    private static PlayerObservation DefenceView(long revision, int hand = 0, params PlayerVisibleThing[] things)
+    {
+        return Observe(revision, map: DefenceMap, hand: hand, rooms: [], gold: 0, things: things);
+    }
 
     [Fact]
     public void AnAttackOnAFarRoomIsAnswered()
@@ -104,17 +110,24 @@ public partial class CampaignPlayerTests
 
     private static readonly CreatureTypeId Flier = new(8), Healer = new(9);
 
-    private static CampaignPlayer Styled() => Player(o => o with
+    private static CampaignPlayer Styled()
     {
-        FightStyles = new Dictionary<CreatureTypeId, FightStyle>
+        return Player(o => o with
+        {
+            FightStyles = new Dictionary<CreatureTypeId, FightStyle>
             { [Goblin] = FightStyle.Blocker, [Flier] = FightStyle.Flanker, [Healer] = FightStyle.Support },
-    });
+        });
+    }
 
-    private static PlayerVisibleThing Own(int ordinal, TilePos at, CreatureTypeId type) =>
-        new(Handle(ordinal), PlayerThingKind.Creature, at, Me, PlayerThingActions.PickUp, creatureType: type);
+    private static PlayerVisibleThing Own(int ordinal, TilePos at, CreatureTypeId type)
+    {
+        return new(Handle(ordinal), PlayerThingKind.Creature, at, Me, PlayerThingActions.PickUp, creatureType: type);
+    }
 
-    private static PlayerCreatureSummary Flower(PlayerVisibleThing own, int petals) =>
-        new(own.CreatureType!.Value, own.Tile, false, own.Handle, 3, petals, PlayerCreatureMood.Happy);
+    private static PlayerCreatureSummary Flower(PlayerVisibleThing own, int petals)
+    {
+        return new(own.CreatureType!.Value, own.Tile, false, own.Handle, 3, petals, PlayerCreatureMood.Happy);
+    }
 
     [Fact]
     public void TheFormationPutsBlockersInFrontSupportFurtherBackAndFlankersBehind()
@@ -131,8 +144,11 @@ public partial class CampaignPlayerTests
     {
         PlayerVisibleThing raider = Raider(0, new TilePos(12, 4));
         PlayerVisibleThing flier = Own(1, new TilePos(2, 1), Flier), goblin = Own(2, new TilePos(4, 4), Goblin);
-        PlayerObservation View(params PlayerCreatureSummary[] flowers) =>
-            Observe(1, map: DefenceMap, rooms: [], gold: 0, things: [raider, flier, goblin], creatures: flowers);
+        PlayerObservation View(params PlayerCreatureSummary[] flowers)
+        {
+            return Observe(1, map: DefenceMap, rooms: [], gold: 0, things: [raider, flier, goblin], creatures: flowers);
+        }
+
         Assert.Contains(new PlayerAction.PickUp(goblin.Handle), Styled().Decide(View(Flower(flier, 6), Flower(goblin, 6))).Actions);
         // The Blocker is hurt (four petals): the Flanker goes.
         Assert.Contains(new PlayerAction.PickUp(flier.Handle), Styled().Decide(View(Flower(flier, 6), Flower(goblin, 4))).Actions);

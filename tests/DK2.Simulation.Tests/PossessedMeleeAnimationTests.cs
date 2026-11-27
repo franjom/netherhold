@@ -14,8 +14,18 @@ public sealed class PossessedMeleeAnimationTests
 {
     private sealed class Commands(Action<SimulationContext> run) : ISimulationSystem
     {
-        public string Name => "test commands";
-        public void Execute(SimulationContext context) => run(context);
+        public string Name
+        {
+            get
+            {
+                return "test commands";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            run(context);
+        }
     }
 
     private static (GameSimulation Sim, CreatureState Imp) Setup(Action<SimulationContext, CreatureState> run, uint flags = 0x8000, int hitDelayRaw = 0,
@@ -49,8 +59,10 @@ public sealed class PossessedMeleeAnimationTests
         return (sim, imp);
     }
 
-    private static void Begin(SimulationContext c, CreatureState imp) =>
+    private static void Begin(SimulationContext c, CreatureState imp)
+    {
         FightRules.BeginPossessedAction(c, imp, SpellRules.MeleeSwing, 0, FightTargetKind.None, CombatRules.NoTarget);
+    }
 
     [Fact]
     public void PossessedMeleeInstallsTheClipAndConsumesTheFc00CoinWithoutAnAlternateFlag()

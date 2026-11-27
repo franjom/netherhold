@@ -63,11 +63,15 @@ public class RepairWallPoolTests
         Assert.True(done(), "the condition was not reached");
     }
 
-    private static int Holder(GameSimulation sim, int side) =>
-        sim.World.RepairTaskEntries.TryGetValue((Keeper, Wall), out RepairTaskEntry? entry) ? entry.Holders[side] : 0;
+    private static int Holder(GameSimulation sim, int side)
+    {
+        return sim.World.RepairTaskEntries.TryGetValue((Keeper, Wall), out RepairTaskEntry? entry) ? entry.Holders[side] : 0;
+    }
 
-    private static bool Repairs(CreatureState imp) =>
-        imp.TargetWork == TileWorkKind.RepairWall && imp.TargetTileIndex == (Wall.Y * 7) + Wall.X;
+    private static bool Repairs(CreatureState imp)
+    {
+        return imp.TargetWork == TileWorkKind.RepairWall && imp.TargetTileIndex == (Wall.Y * 7) + Wall.X;
+    }
 
     [Fact]
     public void ARepairerThatFledStillHoldsItsSide_SoAFartherRepairerTakesTheNextOne()
@@ -182,8 +186,18 @@ public class RepairWallPoolTests
     {
         public CreatureState? Target;
         public bool Armed;
-        public string Name => "KnockOff";
-        public void Execute(SimulationContext context) => Systems.CreatureUpdateSystem.RunAlone(context, this);
+        public string Name
+        {
+            get
+            {
+                return "KnockOff";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            Systems.CreatureUpdateSystem.RunAlone(context, this);
+        }
 
         public void Update(SimulationContext context, CreatureState creature)
         {

@@ -98,8 +98,12 @@ public sealed class SoundLoopTests
     public void OnlyAGroupWhoseFlagWordHasBit8Loops()
     {
         string root = Path.Combine(Dk2InstallGate.Path, "Data", "Sound", "Sfx", "Global");
-        SoundResolver Of(string name) => new(BankMap.Read(File.ReadAllBytes(Path.Combine(root, name + "BANK.map"))),
+        SoundResolver Of(string name)
+        {
+            return new(BankMap.Read(File.ReadAllBytes(Path.Combine(root, name + "BANK.map"))),
             SfxMap.Read(File.ReadAllBytes(Path.Combine(root, name + "SFX.map"))));
+        }
+
         SoundResolver fireball = Of("spell_fireball");
         Assert.True(fireball.IsLooping(new SoundId(0xF2)));    // the shot's second handle: the trail (flags 0x0008)
         Assert.False(fireball.IsLooping(new SoundId(0xF4)));

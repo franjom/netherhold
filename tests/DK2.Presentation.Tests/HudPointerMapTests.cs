@@ -19,7 +19,10 @@ public sealed class HudPointerMapTests
     /// <summary>The pointer over no panel, recording nothing, so a call allocates only what the map does.</summary>
     private readonly struct NoPanels : IHudPointerPanels
     {
-        public bool Contains(HudPointerPanel panel) => false;
+        public bool Contains(HudPointerPanel panel)
+        {
+            return false;
+        }
     }
 
     [Fact]
@@ -34,8 +37,10 @@ public sealed class HudPointerMapTests
     }
 
     [Fact]
-    public void TheOpenFullMapHoldsTheWholeScreen() =>
+    public void TheOpenFullMapHoldsTheWholeScreen()
+    {
         Assert.True(HudPointerMap.Over(new Panels(null, []), fullMapVisible: true, queryHasTarget: false, modal: true));
+    }
 
     [Theory]
     [InlineData(true, false, true)]

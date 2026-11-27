@@ -66,10 +66,22 @@ public class PreviousPositionStepTests
 
     private sealed class Probe(Action<CreatureState> act) : ICreatureUpdateStep
     {
-        public string Name => "probe";
+        public string Name
+        {
+            get
+            {
+                return "probe";
+            }
+        }
 
-        public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+        public void Execute(SimulationContext context)
+        {
+            CreatureUpdateSystem.RunAlone(context, this);
+        }
 
-        public void Update(SimulationContext context, CreatureState creature) => act(creature);
+        public void Update(SimulationContext context, CreatureState creature)
+        {
+            act(creature);
+        }
     }
 }

@@ -287,11 +287,34 @@ public class JournalReportTests
     private sealed class Fixture
     {
         private readonly string _directory = Path.Combine(Directory.GetCurrentDirectory(), "build", "journal-report-tests", Guid.NewGuid().ToString("N"));
-        public string JournalPath => Path.Combine(_directory, "input.journal");
-        public string HashPath => Path.Combine(_directory, "hashes.tsv");
-        public string Output => Path.Combine(_directory, "report.html");
+        public string JournalPath
+        {
+            get
+            {
+                return Path.Combine(_directory, "input.journal");
+            }
+        }
 
-        public Fixture() => Directory.CreateDirectory(_directory);
+        public string HashPath
+        {
+            get
+            {
+                return Path.Combine(_directory, "hashes.tsv");
+            }
+        }
+
+        public string Output
+        {
+            get
+            {
+                return Path.Combine(_directory, "report.html");
+            }
+        }
+
+        public Fixture()
+        {
+            Directory.CreateDirectory(_directory);
+        }
 
         public void Journal(bool end = true, bool hashes = true, int? omittedHash = null)
         {
@@ -324,9 +347,14 @@ public class JournalReportTests
             }
         }
 
-        public void Hashes(string text) => File.WriteAllText(HashPath, text);
+        public void Hashes(string text)
+        {
+            File.WriteAllText(HashPath, text);
+        }
 
-        public int Run(string? output = null) =>
-            Program.Dispatch(["journal-report", JournalPath, HashPath, output ?? Output]);
+        public int Run(string? output = null)
+        {
+            return Program.Dispatch(["journal-report", JournalPath, HashPath, output ?? Output]);
+        }
     }
 }

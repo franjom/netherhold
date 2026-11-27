@@ -42,8 +42,10 @@ public class TileWorkTests
     [InlineData(825, 0xCCC + 2 * 0x199, 205)]
     [InlineData(-8, 0xCCC, -2)]
     [InlineData(825, 0xCCC, 164)]
-    public void AnApplicationTruncatesTheLoadedRateThenFloorsTheScaledOne(int perSecond, int efficiency, int expected) =>
+    public void AnApplicationTruncatesTheLoadedRateThenFloorsTheScaledOne(int perSecond, int efficiency, int expected)
+    {
         Assert.Equal(expected, SimulationTiming.WorkApplication(perSecond, efficiency));
+    }
 
     [Fact]
     public void DiggingRock_TakesOneApplication_AndLeavesDirtPath()

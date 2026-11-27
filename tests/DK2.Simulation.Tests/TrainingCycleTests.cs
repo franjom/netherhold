@@ -247,11 +247,13 @@ public class TrainingCycleTests
     }
 
     // The default order, cut to the trainee's update and what its action makes.
-    private static ISimulationSystem[] TrainingPipeline() =>
-    [
+    private static ISimulationSystem[] TrainingPipeline()
+    {
+        return [
         new CreatureUpdateSystem(new CreatureJobSystem(), new CreatureMovementSystem()),
         new TrainingActionSystem(),
         new ShotSystem(),
         new ObjectMovementSystem(),
     ];
+    }
 }

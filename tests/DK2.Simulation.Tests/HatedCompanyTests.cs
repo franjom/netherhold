@@ -49,8 +49,10 @@ public sealed class HatedCompanyTests
         return c;
     }
 
-    private static void Run(GameDatabase db, WorldState world, int ticks) =>
+    private static void Run(GameDatabase db, WorldState world, int ticks)
+    {
         new GameSimulation(db, world, seed: 42, [new HatedCompanySystem()]).Run(ticks);
+    }
 
     [Fact]
     public void ARoomHoldingBothAlignmentsAngersEveryHolderByEightSecondsOnItsTurn()

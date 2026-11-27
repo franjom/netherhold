@@ -26,7 +26,9 @@ internal static class TestWorld
     public const byte DirtPath = 3;
     public const byte ClaimedPath = 8;
 
-    public static GameDatabase Database() => new(
+    public static GameDatabase Database()
+    {
+        return new(
         [
             Terrain(Impenetrable, "Impenetrable Rock", TerrainFlags.Solid | TerrainFlags.Impenetrable, 0),
             Terrain(Rock, "Rock", TerrainFlags.Solid | TerrainFlags.Taggable, 165,
@@ -46,6 +48,7 @@ internal static class TestWorld
         creatures: [Dk2TerrainFixture.Imp(), Dk2TerrainFixture.Goblin()],
         variables: Variables(),
         keeperSpells: KeeperSpells());
+    }
 
     /// <summary>
     /// The keeper spells a registered system reads. Only Create Imp, because
@@ -58,10 +61,12 @@ internal static class TestWorld
     /// made-up figure inside a determinism hash. `KeeperSpellsOnRealDataTests`
     /// reads both back out of the shipped file so these cannot drift from it.</para>
     /// </summary>
-    private static KeeperSpellDef[] KeeperSpells() =>
-    [
+    private static KeeperSpellDef[] KeeperSpells()
+    {
+        return [
         new() { Name = KeeperSpellName.CreateImp, ManaCost = 1500, ManaUpkeepPerSecond = 7 },
     ];
+    }
 
     /// <summary>
     /// Only what a system would throw without. `GameDatabase` refuses to invent
@@ -103,28 +108,33 @@ internal static class TestWorld
         return vars;
     }
 
-    private static void Set(GlobalVariables vars, VariableTypeId id, int value) =>
+    private static void Set(GlobalVariables vars, VariableTypeId id, int value)
+    {
         vars.Misc[id] = new MiscVariable(id, value, 0, 0);
+    }
 
     private static TerrainDef Terrain(
         byte id, string name, TerrainFlags flags, ushort health,
-        byte maxHealthType = 0, byte destroyedType = 0) => new()
+        byte maxHealthType = 0, byte destroyedType = 0)
     {
-        Name = name,
-        TerrainId = id,
-        Flags = flags,
-        StartingHealth = health,
-        MaxHealth = health,
-        GoldValue = 0,
-        ManaGain = 0,
-        MaxManaGain = 0,
-        Damage = 0,
-        MaxHealthTypeTerrainId = maxHealthType,
-        DestroyedTypeTerrainId = destroyedType,
-        Depth = new Fp32(0),
-        NameStringId = 0,
-        TooltipStringId = 0,
-    };
+        return new()
+        {
+            Name = name,
+            TerrainId = id,
+            Flags = flags,
+            StartingHealth = health,
+            MaxHealth = health,
+            GoldValue = 0,
+            ManaGain = 0,
+            MaxManaGain = 0,
+            Damage = 0,
+            MaxHealthTypeTerrainId = maxHealthType,
+            DestroyedTypeTerrainId = destroyedType,
+            Depth = new Fp32(0),
+            NameStringId = 0,
+            TooltipStringId = 0,
+        };
+    }
 
     /// <summary>
     /// A walled room of dirt path: impenetrable border, rock ring, dirt inside.
@@ -147,8 +157,10 @@ internal static class TestWorld
         return new LevelMap(width, height, tiles);
     }
 
-    public static WorldState World(GameDatabase database) =>
-        WorldState.FromMap(database, Map(), [(byte)0, (byte)1, (byte)2]);
+    public static WorldState World(GameDatabase database)
+    {
+        return WorldState.FromMap(database, Map(), [(byte)0, (byte)1, (byte)2]);
+    }
 
     /// <summary>A simulation with the chaos system attached, for gate testing.
     /// <para><b>Two creatures stand in it</b>, which is the point of them: until
@@ -184,7 +196,13 @@ internal static class TestWorld
 /// </summary>
 internal sealed class ChaosSystem : ISimulationSystem
 {
-    public string Name => "chaos";
+    public string Name
+    {
+        get
+        {
+            return "chaos";
+        }
+    }
 
     public void Execute(SimulationContext context)
     {

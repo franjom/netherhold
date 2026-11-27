@@ -113,9 +113,15 @@ public class JournalReplayTests
         Assert.Contains(journal.Header[JournalHeader.SourceDirty], new[] { "true", "false", "unknown" });
     }
 
-    private static ScenarioRunner Runner() => new(ScenarioTests.SyntheticDatabase(), null);
+    private static ScenarioRunner Runner()
+    {
+        return new(ScenarioTests.SyntheticDatabase(), null);
+    }
 
-    private static InputJournal Read(MemoryStream stream) => InputJournal.Read(new MemoryStream(stream.ToArray()));
+    private static InputJournal Read(MemoryStream stream)
+    {
+        return InputJournal.Read(new MemoryStream(stream.ToArray()));
+    }
 
     private static ScenarioController TagOnce()
     {
@@ -132,7 +138,9 @@ public class JournalReplayTests
         });
     }
 
-    private static string Yaml(string? commands = null) => $"""
+    private static string Yaml(string? commands = null)
+    {
+        return $"""
         id: journal-probe
         map: chamber_9x9
         seed: 7
@@ -142,6 +150,7 @@ public class JournalReplayTests
             - {"{"} id: 3, gold: 0, mana: 0 {"}"}
         {(commands is null ? "" : "commands:\n" + commands)}
         """;
+    }
 
     private sealed class TempScenario : IDisposable
     {
@@ -153,8 +162,14 @@ public class JournalReplayTests
 
         public string Path { get; }
 
-        public Scenario Load() => Scenario.Load(Path);
+        public Scenario Load()
+        {
+            return Scenario.Load(Path);
+        }
 
-        public void Dispose() => File.Delete(Path);
+        public void Dispose()
+        {
+            File.Delete(Path);
+        }
     }
 }

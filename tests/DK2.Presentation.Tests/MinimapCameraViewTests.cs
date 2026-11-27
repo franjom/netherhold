@@ -14,15 +14,28 @@ public sealed class MinimapCameraViewTests
 {
     private static readonly CameraViewport FullHd = new(1920, 1920, 1080);
 
-    private static ClassicCamera Camera(ushort yaw = 256, ushort pitch = 220) => new(new CameraThing(new byte[84])
+    private static ClassicCamera Camera(ushort yaw = 256, ushort pitch = 220)
     {
-        CameraId = 3, Z = 4096, Zoom = 40960, MinZoom = 16384, MaxZoom = 53248, Lens = 8192, AnglePitch = pitch, Flags = 0x26,
-    }, new Dk2Angle(yaw)) { ReferenceScreenWidth = ClassicCameraSetup.ReferenceScreenWidth };
+        return new(new CameraThing(new byte[84])
+        {
+            CameraId = 3,
+            Z = 4096,
+            Zoom = 40960,
+            MinZoom = 16384,
+            MaxZoom = 53248,
+            Lens = 8192,
+            AnglePitch = pitch,
+            Flags = 0x26,
+        }, new Dk2Angle(yaw))
+        { ReferenceScreenWidth = ClassicCameraSetup.ReferenceScreenWidth };
+    }
 
     private static readonly Vector3 Focus = new(40.5f, TileHeights.Floor, -30.5f);
 
-    private static MinimapCameraView View(ClassicCamera camera, Vector3 focus) =>
-        MinimapCameraView.Of(camera.Pose(focus, FullHd), FullHd);
+    private static MinimapCameraView View(ClassicCamera camera, Vector3 focus)
+    {
+        return MinimapCameraView.Of(camera.Pose(focus, FullHd), FullHd);
+    }
 
     /// <summary>Where a world point lands in the viewport (0 to 1 from the bottom left), by the off-centre perspective
     /// Unity's runner gives the camera (<c>projection[1, 2] = -shift</c>), worked out independently of the ray.</summary>
@@ -101,8 +114,10 @@ public sealed class MinimapCameraViewTests
     [InlineData(.087890625f, 0)]
     [InlineData(.263671875f, 2)]
     [InlineData(.439453125f, 2)]
-    public void TheHeadingRoundsToTheNearestUnitAndIsNotMasked(float degrees, int expected) =>
+    public void TheHeadingRoundsToTheNearestUnitAndIsNotMasked(float degrees, int expected)
+    {
         Assert.Equal(expected, MinimapCameraView.HeadingOf(degrees).Raw);
+    }
 
     [Fact]
     public void TheYawIsTheTurnFromNorthClockwiseSeenFromAbove()

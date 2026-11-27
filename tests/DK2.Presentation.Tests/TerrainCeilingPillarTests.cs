@@ -11,12 +11,27 @@ public sealed class TerrainCeilingPillarTests
     private const int Size = 12;
     private static (WorldState World, GameDatabase Database) Room(RoomTypeId type, int width = 3, int height = 3)
     {
-        TerrainDef Terrain(byte id) => new()
+        TerrainDef Terrain(byte id)
         {
-            Name = "Open", TerrainId = id, Flags = TerrainFlags.Ownable, StartingHealth = 1, MaxHealth = 1,
-            GoldValue = 0, ManaGain = 0, MaxManaGain = 0, Damage = 0, MaxHealthTypeTerrainId = id,
-            DestroyedTypeTerrainId = id, Depth = new Fp32(0), NameStringId = 0, TooltipStringId = 0,
-        };
+            return new()
+            {
+                Name = "Open",
+                TerrainId = id,
+                Flags = TerrainFlags.Ownable,
+                StartingHealth = 1,
+                MaxHealth = 1,
+                GoldValue = 0,
+                ManaGain = 0,
+                MaxManaGain = 0,
+                Damage = 0,
+                MaxHealthTypeTerrainId = id,
+                DestroyedTypeTerrainId = id,
+                Depth = new Fp32(0),
+                NameStringId = 0,
+                TooltipStringId = 0,
+            };
+        }
+
         var room = new RoomDef
         {
             Name = "Room", RoomId = (byte)type, Flags = RoomFlags.Buildable, Cost = 0, ReturnPercentage = 0,

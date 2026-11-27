@@ -131,28 +131,34 @@ public class TilePickerTests
     private const byte Wall = 2;
     private const byte Floor = 3;
 
-    private static GameDatabase Database() => new(
+    private static GameDatabase Database()
+    {
+        return new(
         [
             Terrain(Wall, "Rock", TerrainFlags.Solid | TerrainFlags.Taggable),
             Terrain(Floor, "Dirt Path", TerrainFlags.Ownable),
         ],
         rooms: [], creatures: [], variables: new GlobalVariables(), keeperSpells: []);
+    }
 
-    private static TerrainDef Terrain(byte id, string name, TerrainFlags flags) => new()
+    private static TerrainDef Terrain(byte id, string name, TerrainFlags flags)
     {
-        Name = name,
-        TerrainId = id,
-        Flags = flags,
-        StartingHealth = 100,
-        MaxHealth = 100,
-        GoldValue = 0,
-        ManaGain = 0,
-        MaxManaGain = 0,
-        Damage = 0,
-        MaxHealthTypeTerrainId = 0,
-        DestroyedTypeTerrainId = 0,
-        Depth = new Fp32(0),
-        NameStringId = 0,
-        TooltipStringId = 0,
-    };
+        return new()
+        {
+            Name = name,
+            TerrainId = id,
+            Flags = flags,
+            StartingHealth = 100,
+            MaxHealth = 100,
+            GoldValue = 0,
+            ManaGain = 0,
+            MaxManaGain = 0,
+            Damage = 0,
+            MaxHealthTypeTerrainId = 0,
+            DestroyedTypeTerrainId = 0,
+            Depth = new Fp32(0),
+            NameStringId = 0,
+            TooltipStringId = 0,
+        };
+    }
 }

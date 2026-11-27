@@ -12,12 +12,17 @@ namespace DK2.Data.Tests;
 public class KwdPlayersWriterTests
 {
     [Fact]
-    public void EveryDecodedPlayerFieldRoundTripsWithoutChangingOtherBytes() => Check<PlayerDef>(
+    public void EveryDecodedPlayerFieldRoundTripsWithoutChangingOtherBytes()
+    {
+        Check<PlayerDef>(
         "PlayerId:A8:1 Name:AD:32 StartingGold:0:4 HasAiFlag:4:4 TriggerId:A6:2 CameraX:A9:2 CameraY:AB:2",
         p => p, (p, changed) => changed, excluded: "Ai");
+    }
 
     [Fact]
-    public void EveryDecodedAiFieldRoundTripsWithoutChangingOtherBytes() => Check<KeeperAIParameters>(
+    public void EveryDecodedAiFieldRoundTripsWithoutChangingOtherBytes()
+    {
+        Check<KeeperAIParameters>(
         "EditorAiType:0:1 TendancySpeed:1:1 Openness:2:1 RemoveCallToArmsOwnCreatures:3:1 " +
         "BuildLostRoomAfterMinimumTime:4:1 CreateEmptyRoomShapeAreasWhenIdle:8:4 " +
         "AutomaticallyBuildBiggerLairWhenPortalTakenOver:C:4 SellRecentlyTakenOverRoom:10:4 " +
@@ -38,6 +43,7 @@ public class KwdPlayersWriterTests
         "MaxBuildAreaMinX:92:2 MaxBuildAreaMinY:94:2 MaxBuildAreaMaxX:96:2 MaxBuildAreaMaxY:98:2 " +
         "ProbabilityOfMovingCreatureForResearch:9A:1 SpecialSearchChance:9B:1 SpecialFindChance:9C:1 ImprisonedCreatureAction:9D:1",
         p => p.Ai, (p, changed) => p with { Ai = changed }, excluded: "RawBlock", baseOffset: 8);
+    }
 
     [Fact]
     public void RefusesRawAiBlockEditsAndWrongRoomListSize()
@@ -144,6 +150,9 @@ public class KwdPlayersWriterTests
         return source;
     }
 
-    private static PlayerDef Read(byte[] source) => KwdPlayers.Parse([
+    private static PlayerDef Read(byte[] source)
+    {
+        return KwdPlayers.Parse([
         new KwdChunk { Type = KwdRecordType.Players, ItemCount = 1, Content = source, HeaderBlock = [] }]).Single();
+    }
 }

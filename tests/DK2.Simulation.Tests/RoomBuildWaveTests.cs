@@ -187,11 +187,17 @@ public sealed class RoomBuildWaveTests
         Assert.NotEqual(original, sim.StateHash());
     }
 
-    private static TilePos[] EffectTiles(ListEventSink events) => [.. events.Events
+    private static TilePos[] EffectTiles(ListEventSink events)
+    {
+        return [.. events.Events
         .Where(e => e.ConstructionEffect.HasValue).Select(e => e.ConstructionEffect!.Value.Tile)];
+    }
 
-    private static int CountRoom(GameSimulation sim) => Enumerable.Range(0, sim.World.TileCount)
+    private static int CountRoom(GameSimulation sim)
+    {
+        return Enumerable.Range(0, sim.World.TileCount)
         .Count(i => sim.World.TileAtIndex(i).TerrainId == Dk2TerrainFixture.LairTerrain);
+    }
 
     private static (GameSimulation Sim, ListEventSink Events) Start(Action<SimulationContext>? intervene = null)
     {
@@ -210,7 +216,17 @@ public sealed class RoomBuildWaveTests
 
     private sealed class InterveningSystem(Action<SimulationContext> action) : ISimulationSystem
     {
-        public string Name => "Intervening";
-        public void Execute(SimulationContext context) => action(context);
+        public string Name
+        {
+            get
+            {
+                return "Intervening";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            action(context);
+        }
     }
 }

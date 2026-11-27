@@ -35,7 +35,13 @@ public sealed class EffectGroupPartsTests
     }
 
     [Fact]
-    public void AnEmptyGroupHasNoParts() => Assert.Empty(EffectGroupParts.Of(new KmfGroup([])));
+    public void AnEmptyGroupHasNoParts()
+    {
+        Assert.Empty(EffectGroupParts.Of(new KmfGroup([])));
+    }
 
-    private static float Value(Random random) => (float)(random.NextDouble() * 6 - 3);
+    private static float Value(Random random)
+    {
+        return (float)(random.NextDouble() * 6 - 3);
+    }
 }

@@ -42,11 +42,26 @@ public class GoldOnRealDataTests
 
     private sealed record Level(GameSimulation Sim, GameDatabase Db, ListEventSink Events)
     {
-        public WorldState World => Sim.World;
+        public WorldState World
+        {
+            get
+            {
+                return Sim.World;
+            }
+        }
 
-        public CreatureState Imp => Sim.World.Creatures[0];
+        public CreatureState Imp
+        {
+            get
+            {
+                return Sim.World.Creatures[0];
+            }
+        }
 
-        public IEnumerable<SimEvent> Of(string kind) => Events.Events.Where(e => e.Kind == kind);
+        public IEnumerable<SimEvent> Of(string kind)
+        {
+            return Events.Events.Where(e => e.Kind == kind);
+        }
     }
 
     /// <summary>Loads level 1 and puts one of player 3's imps on their own path beside the seam.</summary>
@@ -296,6 +311,8 @@ public class GoldOnRealDataTests
         Assert.Equal(2000, db[VariableTypeId.MaxGoldPileOutsideTreasury]);
     }
 
-    private static int Amount(SimEvent e) =>
-        int.Parse(e.Detail.Split("amount=")[1].Split(' ')[0]);
+    private static int Amount(SimEvent e)
+    {
+        return int.Parse(e.Detail.Split("amount=")[1].Split(' ')[0]);
+    }
 }

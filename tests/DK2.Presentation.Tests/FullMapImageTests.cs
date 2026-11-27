@@ -10,10 +10,15 @@ namespace DK2.Presentation.Tests;
 /// <summary>The full map's image from the minimap's class grid, as Unity's DK2FullMap shader colours it.</summary>
 public sealed class FullMapImageTests
 {
-    private static MinimapPalette Palette() =>
-        new(Enumerable.Range(0, 37).Select(i => 0x00102030u + (uint)i).ToArray());
+    private static MinimapPalette Palette()
+    {
+        return new(Enumerable.Range(0, 37).Select(i => 0x00102030u + (uint)i).ToArray());
+    }
 
-    private static byte[] Pixel(FullMapImage image, int x, int y) => image.Pixels.Slice((y * image.Width + x) * 4, 4).ToArray();
+    private static byte[] Pixel(FullMapImage image, int x, int y)
+    {
+        return image.Pixels.Slice((y * image.Width + x) * 4, 4).ToArray();
+    }
 
     [Fact]
     public void EachTileIsItsClassColourOpaqueAndTheUnknownClassIsBlack()

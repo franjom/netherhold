@@ -54,9 +54,16 @@ public sealed class PossessionWorldTests
         view.Bind(world, me);
         return (db, world, view, me, open, wall);
 
-        bool Solid(int x, int y) => db.TerrainById(world.Tile(x, y).TerrainId).IsSolid;
-        bool Plain(int x, int y) => db.RoomByTerrain(world.Tile(x, y).TerrainId) is null
-            && !db.TerrainById(world.Tile(x, y).TerrainId).IsWater && !db.TerrainById(world.Tile(x, y).TerrainId).IsLava;
+        bool Solid(int x, int y)
+        {
+            return db.TerrainById(world.Tile(x, y).TerrainId).IsSolid;
+        }
+
+        bool Plain(int x, int y)
+        {
+            return db.RoomByTerrain(world.Tile(x, y).TerrainId) is null
+                    && !db.TerrainById(world.Tile(x, y).TerrainId).IsWater && !db.TerrainById(world.Tile(x, y).TerrainId).IsLava;
+        }
     }
 
     private static CreatureState Spawn(GameDatabase db, WorldState world, byte type, TilePos at)

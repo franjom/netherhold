@@ -9,10 +9,16 @@ namespace DK2.Presentation.Tests;
 
 public sealed class ViewFrustumTests
 {
-    private static ClassicCameraPose Pose(float shift) => new(new Vector3(20f, 9f, -30f),
+    private static ClassicCameraPose Pose(float shift)
+    {
+        return new(new Vector3(20f, 9f, -30f),
         Vector3.Normalize(new Vector3(.3f, -.8f, .5f)), Vector3.UnitY, 50f, 40f, 55f, 31f, shift);
+    }
 
-    private static float Value(in Plane plane, Vector3 point) => Vector3.Dot(plane.Normal, point) + plane.D;
+    private static float Value(in Plane plane, Vector3 point)
+    {
+        return Vector3.Dot(plane.Normal, point) + plane.D;
+    }
 
     /// <summary>The corners of the near and far rectangles, cast as <see cref="MinimapCameraView.RayDirection"/> casts
     /// Unity's viewport rays, lie on the side planes, and each rectangle on its own plane.</summary>
@@ -92,7 +98,10 @@ public sealed class ViewFrustumTests
             Plane plane = frustum[index];
             Vector3 onPlane = inside - plane.Normal * Value(plane, inside);
             var t = Vector3.Normalize(Vector3.Cross(plane.Normal, MathF.Abs(plane.Normal.Y) < .9f ? Vector3.UnitY : Vector3.UnitX));
-            Vector3 Outside(float distance, Vector3 offset) => onPlane + offset - plane.Normal * distance;
+            Vector3 Outside(float distance, Vector3 offset)
+            {
+                return onPlane + offset - plane.Normal * distance;
+            }
             // Corners 5e-5 outside stay; 5e-4 outside (between 1e-4 and 1e-3) go.
             Assert.False(frustum.Excludes(Outside(5e-5f, default), Outside(5e-5f, t * .01f), Outside(5e-5f, -t * .01f)), $"plane {index}");
             Assert.True(frustum.Excludes(Outside(5e-4f, default), Outside(5e-4f, t * .01f), Outside(5e-4f, -t * .01f)), $"plane {index}");

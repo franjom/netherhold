@@ -20,7 +20,10 @@ namespace DK2.Behavior.Tests;
 /// </summary>
 public class PlacedThingsOnRealDataTests
 {
-    private static string Install() => Dk2InstallGate.Path;
+    private static string Install()
+    {
+        return Dk2InstallGate.Path;
+    }
 
     /// <summary>Every level the install ships, by name.</summary>
     private static IEnumerable<string> LevelNames(string install)
@@ -504,8 +507,10 @@ public class PlacedThingsOnRealDataTests
 
         Assert.Equal(0, notYet);
 
-        static IEnumerable<byte> Keepers() =>
-            Enumerable.Range(PlayerIds.FirstKeeper, 5).Select(i => (byte)i);
+        static IEnumerable<byte> Keepers()
+        {
+            return Enumerable.Range(PlayerIds.FirstKeeper, 5).Select(i => (byte)i);
+        }
     }
 
     /// <summary>

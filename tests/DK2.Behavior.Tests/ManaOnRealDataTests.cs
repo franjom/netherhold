@@ -16,16 +16,27 @@ namespace DK2.Behavior.Tests;
 public class ManaOnRealDataTests
 {
     private readonly Xunit.Abstractions.ITestOutputHelper _output;
-    public ManaOnRealDataTests(Xunit.Abstractions.ITestOutputHelper output) => _output = output;
-    private static GameDatabase RealDatabase() =>
-        GameDatabaseLoader.Load(Dk2InstallGate.Path);
-    private static WorldState OneTileWorld(GameDatabase db, byte terrainId, byte owner) =>
-        WorldState.FromMap(db, new LevelMap(1, 1, [new MapTile(terrainId, owner, 0, 0)]),
-            [(byte)0, PlayerIds.FirstKeeper, (byte)4, PlayerIds.Neutral]);
+    public ManaOnRealDataTests(Xunit.Abstractions.ITestOutputHelper output)
+    {
+        _output = output;
+    }
 
-    private static int KeeperGain(WorldState world, GameDatabase db) =>
-        ManaRules.GainPerSecondByPlayerIndex(world, db)[Enumerable.Range(0, world.PlayerCount)
+    private static GameDatabase RealDatabase()
+    {
+        return GameDatabaseLoader.Load(Dk2InstallGate.Path);
+    }
+
+    private static WorldState OneTileWorld(GameDatabase db, byte terrainId, byte owner)
+    {
+        return WorldState.FromMap(db, new LevelMap(1, 1, [new MapTile(terrainId, owner, 0, 0)]),
+                [(byte)0, PlayerIds.FirstKeeper, (byte)4, PlayerIds.Neutral]);
+    }
+
+    private static int KeeperGain(WorldState world, GameDatabase db)
+    {
+        return ManaRules.GainPerSecondByPlayerIndex(world, db)[Enumerable.Range(0, world.PlayerCount)
             .Single(i => world.PlayerAtIndex(i).PlayerId == PlayerIds.FirstKeeper)];
+    }
 
     [InstallFact]
     public void BuiltBridgeEarnsOnePerSecond_AndRemovalRestoresWaterWithoutIncome()

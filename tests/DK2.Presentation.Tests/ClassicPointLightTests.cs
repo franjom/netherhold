@@ -46,8 +46,11 @@ public class ClassicPointLightTests
         Assert.Throws<ArgumentOutOfRangeException>(() => ClassicPointLight.FromTorch(torch));
     }
 
-    private static ClassicPointLight Light(byte intensity = 128) => ClassicPointLight.FromTorch(
+    private static ClassicPointLight Light(byte intensity = 128)
+    {
+        return ClassicPointLight.FromTorch(
         new TorchView(0, new TilePos(0, 0), 0, 0, 0, 0, 255, 128, 0, intensity, 8192, default));
+    }
 
     [Fact]
     public void TorchInputsPreserveHdrColourAndNativeScales()

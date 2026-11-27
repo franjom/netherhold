@@ -28,19 +28,34 @@ internal sealed record CapturedState(
     /// whole-process dump the state was read with.</summary>
     public string MemoryImage { get; init; } = "";
 
-    public int Terrain(int x, int y) => Tiles[3 * (y * Width + x)];
+    public int Terrain(int x, int y)
+    {
+        return Tiles[3 * (y * Width + x)];
+    }
 
-    public int Owner(int x, int y) => Tiles[3 * (y * Width + x) + 1];
+    public int Owner(int x, int y)
+    {
+        return Tiles[3 * (y * Width + x) + 1];
+    }
 
-    public int RoomSlot(int x, int y) => Tiles[3 * (y * Width + x) + 2];
+    public int RoomSlot(int x, int y)
+    {
+        return Tiles[3 * (y * Width + x) + 2];
+    }
 
     /// <summary>The ticks of <paramref name="capture"/> (a path under the repository) that it
     /// holds, exported once per test run into the temp folder.</summary>
-    public static IReadOnlyList<CapturedState> Load(string capture, IEnumerable<int> ticks) => Load(capture, ticks, null);
+    public static IReadOnlyList<CapturedState> Load(string capture, IEnumerable<int> ticks)
+    {
+        return Load(capture, ticks, null);
+    }
 
     /// <summary>One tick read with the whole-process dump taken at it (<c>process_dump.py</c>):
     /// the dump is the memory image, and the dump-only fields are filled.</summary>
-    public static CapturedState LoadWithDump(string capture, int tick, string dump) => Load(capture, [tick], dump).Single();
+    public static CapturedState LoadWithDump(string capture, int tick, string dump)
+    {
+        return Load(capture, [tick], dump).Single();
+    }
 
     private static IReadOnlyList<CapturedState> Load(string capture, IEnumerable<int> ticks, string? dump)
     {

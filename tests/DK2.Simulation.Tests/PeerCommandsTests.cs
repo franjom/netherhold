@@ -105,8 +105,10 @@ public class PeerCommandsTests
 
     private static readonly PlayerId P = new(3);
 
-    private static PlayerCommand Decode(PlayerCommand command, PlayerId sender) =>
-        PeerCommands.Read(new BinaryReader(new MemoryStream(Encode(command))), sender, MapSize, MapSize);
+    private static PlayerCommand Decode(PlayerCommand command, PlayerId sender)
+    {
+        return PeerCommands.Read(new BinaryReader(new MemoryStream(Encode(command))), sender, MapSize, MapSize);
+    }
 
     private static byte[] Encode(PlayerCommand command)
     {

@@ -884,18 +884,26 @@ public class TriggerExecutorTests
         return new TriggerExecutor(tree, world.Triggers, world, database).Run(1);
     }
 
-    private static DoorThing Door(byte type, byte owner, bool underConstruction) =>
-        new(new byte[20])
+    private static DoorThing Door(byte type, byte owner, bool underConstruction)
+    {
+        return new(new byte[20])
         {
-            DoorId = type, PlayerId = owner, Flags = underConstruction ? (byte)0x02 : (byte)0,
+            DoorId = type,
+            PlayerId = owner,
+            Flags = underConstruction ? (byte)0x02 : (byte)0,
             Unknown_0011 = new byte[3],
         };
+    }
 
-    private static TrapThing Trap(byte type, byte owner, bool underConstruction) =>
-        new(new byte[16])
+    private static TrapThing Trap(byte type, byte owner, bool underConstruction)
+    {
+        return new(new byte[16])
         {
-            TrapId = type, PlayerId = owner, NumberOfShots = underConstruction ? (byte)0 : (byte)1,
+            TrapId = type,
+            PlayerId = owner,
+            NumberOfShots = underConstruction ? (byte)0 : (byte)1,
         };
+    }
 
     private static TriggerRecord PlayerCondition(
         ushort id, byte type, byte comparison, int value, (string Name, long Value)? extra)
@@ -951,17 +959,24 @@ public class TriggerExecutorTests
     }
 
     private static TriggerRecord CreatureCondition(
-        ushort id, byte type, byte creatureId, byte comparison, int threshold) =>
-        new GenericTriggerRecord(new byte[16])
+        ushort id, byte type, byte creatureId, byte comparison, int threshold)
+    {
+        return new GenericTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = id, Type = type, RepeatCount = 1,
-            ChildTriggerId = 0xFFFF, NextTriggerId = 0,
+            Body = new byte[8],
+            TriggerId = id,
+            Type = type,
+            RepeatCount = 1,
+            ChildTriggerId = 0xFFFF,
+            NextTriggerId = 0,
             Parameters = new Dictionary<string, long>
             {
-                ["Comparison"] = comparison, ["CreatureId"] = creatureId,
+                ["Comparison"] = comparison,
+                ["CreatureId"] = creatureId,
                 ["Value"] = threshold,
             },
         };
+    }
 
     /// <summary>The room list types 24 and 25 read is built once per <see cref="Run"/> and
     /// held for the whole walk (ADR-0114). That is only sound while <b>no action this
@@ -1209,14 +1224,18 @@ public class TriggerExecutorTests
     /// <summary><c>Object_Create</c> refuses a type with no definition, and the arm ignores its result
     /// and returns 1: nothing is made and the action succeeds.</summary>
     [Fact]
-    public void CreateObjectMakesNothingAndSucceedsForAnUndefinedType() =>
+    public void CreateObjectMakesNothingAndSucceedsForAnUndefinedType()
+    {
         AssertCreateObjectMadeNothing(objectId: 255, x: 4, y: 3);
+    }
 
     /// <summary>Ours, not DK2's: the arm does not test the tile, and no shipped record names one off the
     /// map, so ours makes nothing there rather than an object outside the grid.</summary>
     [Fact]
-    public void CreateObjectOffTheMapMakesNothingInOursAndSucceeds() =>
+    public void CreateObjectOffTheMapMakesNothingInOursAndSucceeds()
+    {
         AssertCreateObjectMadeNothing(Dk2TerrainFixture.LibraryBookObjectId, x: 30_000, y: 3);
+    }
 
     private static void AssertCreateObjectMadeNothing(byte objectId, int x, int y)
     {
@@ -1399,19 +1418,27 @@ public class TriggerExecutorTests
         Assert.Empty(result.Partial);
     }
 
-    private static TriggerRecord AllianceRecord(ushort id, byte one, byte two, byte mode) =>
-        new ActionTriggerRecord(new byte[16])
+    private static TriggerRecord AllianceRecord(ushort id, byte one, byte two, byte mode)
+    {
+        return new ActionTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = unchecked((ushort)-(short)id), Type = 18,
+            Body = new byte[8],
+            TriggerId = unchecked((ushort)-(short)id),
+            Type = 18,
             Parameters = new Dictionary<string, long> { ["PlayerOneId"] = one, ["PlayerTwoId"] = two, ["Available"] = mode },
         };
+    }
 
-    private static TriggerRecord CollapseRecord(ushort id, int x, int y) =>
-        new ActionTriggerRecord(new byte[16])
+    private static TriggerRecord CollapseRecord(ushort id, int x, int y)
+    {
+        return new ActionTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = unchecked((ushort)-(short)id), Type = 32,
+            Body = new byte[8],
+            TriggerId = unchecked((ushort)-(short)id),
+            Type = 32,
             Parameters = new Dictionary<string, long> { ["Unreached_0000"] = 0, ["PosX"] = x, ["PosY"] = y },
         };
+    }
 
     private static (WorldState World, GameDatabase Database) AlterWorld()
     {
@@ -1436,16 +1463,22 @@ public class TriggerExecutorTests
     }
 
     private static TriggerRecord AlterTerrainRecord(
-        ushort id, byte terrainId, byte playerId, int x, int y) =>
-        new ActionTriggerRecord(new byte[16])
+        ushort id, byte terrainId, byte playerId, int x, int y)
+    {
+        return new ActionTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = unchecked((ushort)-(short)id), Type = 22,
+            Body = new byte[8],
+            TriggerId = unchecked((ushort)-(short)id),
+            Type = 22,
             Parameters = new Dictionary<string, long>
             {
-                ["TerrainId"] = terrainId, ["PlayerId"] = playerId,
-                ["PosX"] = x, ["PosY"] = y,
+                ["TerrainId"] = terrainId,
+                ["PlayerId"] = playerId,
+                ["PosX"] = x,
+                ["PosY"] = y,
             },
         };
+    }
 
     /// <summary>And the cache lives for one turn, not for the executor: each
     /// <see cref="TriggerExecutor.Run"/> makes its own <c>TriggerRun</c>. A room dug between
@@ -1595,9 +1628,11 @@ public class TriggerExecutorTests
         Assert.DoesNotContain(result.Blocked, b => b.Type == 29);
     }
 
-    private static GameDatabase SpellDatabase(int spellId, int state, byte owner) =>
-        Dk2TerrainFixture.Database().ForLevel(Level(
+    private static GameDatabase SpellDatabase(int spellId, int state, byte owner)
+    {
+        return Dk2TerrainFixture.Database().ForLevel(Level(
             new AvailabilityEntry(5, owner, spellId, state)));
+    }
 
     private static GlobalVariables Level(params AvailabilityEntry[] entries)
     {
@@ -1661,45 +1696,70 @@ public class TriggerExecutorTests
         Assert.Contains(run.Unhandled, b => b.Type == 10);
     }
 
-    private static TriggerRecord EndGameAction(ushort id, byte type) =>
-        new ActionTriggerRecord(new byte[16])
+    private static TriggerRecord EndGameAction(ushort id, byte type)
+    {
+        return new ActionTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = unchecked((ushort)-(short)id), Type = type,
+            Body = new byte[8],
+            TriggerId = unchecked((ushort)-(short)id),
+            Type = type,
             Parameters = new Dictionary<string, long>(),
         };
+    }
 
-    private static TriggerRecord SpellAvailable(ushort id, int targetId, ushort child = 0xFFFF) =>
-        new GenericTriggerRecord(new byte[16])
+    private static TriggerRecord SpellAvailable(ushort id, int targetId, ushort child = 0xFFFF)
+    {
+        return new GenericTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = id, Type = 29, RepeatCount = 1,
-            ChildTriggerId = child, NextTriggerId = 0,
+            Body = new byte[8],
+            TriggerId = id,
+            Type = 29,
+            RepeatCount = 1,
+            ChildTriggerId = child,
+            NextTriggerId = 0,
             Parameters = new Dictionary<string, long> { ["TargetId"] = targetId },
         };
+    }
 
     /// <summary>A type-47 record as the reader builds one: byte 00 only, no comparison and
     /// no value, so a helper that supplied either would not be testing this arm.</summary>
-    private static TriggerRecord KilledBy(ushort id, int playerId) =>
-        new GenericTriggerRecord(new byte[16])
+    private static TriggerRecord KilledBy(ushort id, int playerId)
+    {
+        return new GenericTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = id, Type = 47, RepeatCount = 1,
-            ChildTriggerId = 0xFFFF, NextTriggerId = 0,
+            Body = new byte[8],
+            TriggerId = id,
+            Type = 47,
+            RepeatCount = 1,
+            ChildTriggerId = 0xFFFF,
+            NextTriggerId = 0,
             Parameters = new Dictionary<string, long> { ["PlayerId"] = playerId },
         };
+    }
 
-    private static TriggerRecord Gold(ushort id, byte comparison, int threshold, ushort child) =>
-        Counter(id, 30, comparison, threshold, child);
+    private static TriggerRecord Gold(ushort id, byte comparison, int threshold, ushort child)
+    {
+        return Counter(id, 30, comparison, threshold, child);
+    }
 
     private static TriggerRecord Counter(
-        ushort id, byte type, byte comparison, int threshold, ushort child) =>
-        new GenericTriggerRecord(new byte[16])
+        ushort id, byte type, byte comparison, int threshold, ushort child)
+    {
+        return new GenericTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = id, Type = type, RepeatCount = 1,
-            ChildTriggerId = child, NextTriggerId = 0,
+            Body = new byte[8],
+            TriggerId = id,
+            Type = type,
+            RepeatCount = 1,
+            ChildTriggerId = child,
+            NextTriggerId = 0,
             Parameters = new Dictionary<string, long>
             {
-                ["Comparison"] = comparison, ["Value"] = threshold,
+                ["Comparison"] = comparison,
+                ["Value"] = threshold,
             },
         };
+    }
 
     private static TriggerRecord RoomCounter(
         ushort id,
@@ -1707,18 +1767,29 @@ public class TriggerExecutorTests
         byte comparison,
         RoomTypeId roomType,
         int threshold,
-        ushort child) => new GenericTriggerRecord(new byte[16])
+        ushort child)
     {
-        Body = new byte[8], TriggerId = id, Type = type, RepeatCount = 1,
-        ChildTriggerId = child, NextTriggerId = 0,
-        Parameters = new Dictionary<string, long>
+        return new GenericTriggerRecord(new byte[16])
         {
-            ["Comparison"] = comparison, ["RoomId"] = (byte)roomType, ["Value"] = threshold,
-        },
-    };
+            Body = new byte[8],
+            TriggerId = id,
+            Type = type,
+            RepeatCount = 1,
+            ChildTriggerId = child,
+            NextTriggerId = 0,
+            Parameters = new Dictionary<string, long>
+            {
+                ["Comparison"] = comparison,
+                ["RoomId"] = (byte)roomType,
+                ["Value"] = threshold,
+            },
+        };
+    }
 
-    private static WorldState RoomWorld(GameDatabase database) =>
-        WorldState.FromMap(database, TestWorld.Map(10, 8), [(byte)0, (byte)1, (byte)2]);
+    private static WorldState RoomWorld(GameDatabase database)
+    {
+        return WorldState.FromMap(database, TestWorld.Map(10, 8), [(byte)0, (byte)1, (byte)2]);
+    }
 
     private static void PlaceRoom(
         WorldState world,
@@ -2253,21 +2324,35 @@ public class TriggerExecutorTests
             (hero.GoodJob, hero.GoodJobPlayerId, hero.GoodJobActionPointId, hero.Dk2StateId, hero.PrisonOwnerPlayerId));
     }
 
-    private static Dictionary<string, long> FlagEquals(byte flag, int value) => new()
+    private static Dictionary<string, long> FlagEquals(byte flag, int value)
     {
-        ["Comparison"] = 3, ["FlagId"] = flag, ["Flag"] = 1,
-        ["IndirectFlagId"] = 0, ["Value"] = value,
-    };
-
-    private static TriggerRecord Objective(ushort id, byte objective, byte player, int actionPoint) =>
-        new ActionTriggerRecord(new byte[16])
+        return new()
         {
-            Body = new byte[8], TriggerId = id, Type = 15, RepeatCount = 0, ChildTriggerId = 0,
+            ["Comparison"] = 3,
+            ["FlagId"] = flag,
+            ["Flag"] = 1,
+            ["IndirectFlagId"] = 0,
+            ["Value"] = value,
+        };
+    }
+
+    private static TriggerRecord Objective(ushort id, byte objective, byte player, int actionPoint)
+    {
+        return new ActionTriggerRecord(new byte[16])
+        {
+            Body = new byte[8],
+            TriggerId = id,
+            Type = 15,
+            RepeatCount = 0,
+            ChildTriggerId = 0,
             Parameters = new Dictionary<string, long>
             {
-                ["PlayerId"] = player, ["ObjectiveType"] = objective, ["ActionPointId"] = actionPoint,
+                ["PlayerId"] = player,
+                ["ObjectiveType"] = objective,
+                ["ActionPointId"] = actionPoint,
             },
         };
+    }
 
     /// <summary>Creature action 33 (<c>0x0049AF3D</c>): byte 0 picks the walk (0) or the run
     /// (anything else), and the arm returns 1. The turn mark is not taken: the next update clears it
@@ -2509,133 +2594,215 @@ public class TriggerExecutorTests
         Assert.DoesNotContain(run.Blocked, b => b.Tag == tag && b.Type == type);
     }
 
-    private static TriggerRecord Type72(ushort id, ushort child) =>
-        new GenericTriggerRecord(new byte[16])
+    private static TriggerRecord Type72(ushort id, ushort child)
+    {
+        return new GenericTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = id, Type = 72, RepeatCount = 1,
-            ChildTriggerId = child, NextTriggerId = 0,
+            Body = new byte[8],
+            TriggerId = id,
+            Type = 72,
+            RepeatCount = 1,
+            ChildTriggerId = child,
+            NextTriggerId = 0,
             Parameters = new Dictionary<string, long>(),
         };
+    }
 
-    private static TriggerRecord Typed(ushort id, byte type, ushort child) =>
-        new GenericTriggerRecord(new byte[16])
+    private static TriggerRecord Typed(ushort id, byte type, ushort child)
+    {
+        return new GenericTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = id, Type = type, RepeatCount = 1,
-            ChildTriggerId = child, NextTriggerId = 0,
+            Body = new byte[8],
+            TriggerId = id,
+            Type = type,
+            RepeatCount = 1,
+            ChildTriggerId = child,
+            NextTriggerId = 0,
             Parameters = new Dictionary<string, long>
             {
-                ["Comparison"] = 3, ["FlagId"] = 0, ["Flag"] = 1,
-                ["IndirectFlagId"] = 0, ["TimerId"] = 0, ["IndirectTimerId"] = 0, ["Value"] = 0,
+                ["Comparison"] = 3,
+                ["FlagId"] = 0,
+                ["Flag"] = 1,
+                ["IndirectFlagId"] = 0,
+                ["TimerId"] = 0,
+                ["IndirectTimerId"] = 0,
+                ["Value"] = 0,
             },
         };
+    }
 
-    private static TriggerRecord Typed214(ushort id, byte type, ushort child = 0) =>
-        new ActionTriggerRecord(new byte[16])
+    private static TriggerRecord Typed214(ushort id, byte type, ushort child = 0)
+    {
+        return new ActionTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = unchecked((ushort)-(short)id), Type = type,
-            RepeatCount = 0, ChildTriggerId = child,
+            Body = new byte[8],
+            TriggerId = unchecked((ushort)-(short)id),
+            Type = type,
+            RepeatCount = 0,
+            ChildTriggerId = child,
             Parameters = new Dictionary<string, long>
             {
-                ["FlagId"] = 3, ["Flag"] = 0x0A, ["Value"] = 1, ["TimerId"] = 0,
-                ["PartyId"] = 0, ["PartyType"] = 0, ["ActionPointId"] = 0,
+                ["FlagId"] = 3,
+                ["Flag"] = 0x0A,
+                ["Value"] = 1,
+                ["TimerId"] = 0,
+                ["PartyId"] = 0,
+                ["PartyType"] = 0,
+                ["ActionPointId"] = 0,
                 ["Available"] = 1,
             },
         };
+    }
 
-    private static TriggerRecord WorldOptionAction(ushort id, byte type, byte available) =>
-        new ActionTriggerRecord(new byte[16])
+    private static TriggerRecord WorldOptionAction(ushort id, byte type, byte available)
+    {
+        return new ActionTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = unchecked((ushort)-(short)id), Type = type,
+            Body = new byte[8],
+            TriggerId = unchecked((ushort)-(short)id),
+            Type = type,
             Parameters = new Dictionary<string, long> { ["Available"] = available },
         };
+    }
 
     private static TriggerRecord AvailabilityAction(
-        ushort id, byte playerId, byte kind, byte typeId, byte available) =>
-        new ActionTriggerRecord(new byte[16])
+        ushort id, byte playerId, byte kind, byte typeId, byte available)
+    {
+        return new ActionTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = unchecked((ushort)-(short)id), Type = 6,
+            Body = new byte[8],
+            TriggerId = unchecked((ushort)-(short)id),
+            Type = 6,
             Parameters = new Dictionary<string, long>
             {
-                ["PlayerId"] = playerId, ["AvailabilityKind"] = kind,
-                ["TypeId"] = typeId, ["Available"] = available,
+                ["PlayerId"] = playerId,
+                ["AvailabilityKind"] = kind,
+                ["TypeId"] = typeId,
+                ["Available"] = available,
             },
         };
+    }
 
     // A party root (5) whose subtree writes flag 3, a spare member subtree (7) linked from
     // nowhere else, and the type-14 action that arms them both.
-    private static TriggerRecord[] PartyRecords() =>
-    [
+    private static TriggerRecord[] PartyRecords()
+    {
+        return [
         Condition(5, repeat: 255, child: 0xFFFF, next: 0, FlagEqualsZero()),
         Condition(7, repeat: 255, child: 0, next: 0, FlagEqualsZero()),
         Action(1, 3, 0x0A, 1),
         PartyAction(2, partyId: 0),
     ];
+    }
 
     private static HeroPartyThing Party(
-        byte partyId, ushort triggerId, params (ushort Trigger, byte Creature)[] members) =>
-        new(new byte[555])
+        byte partyId, ushort triggerId, params (ushort Trigger, byte Creature)[] members)
+    {
+        return new(new byte[555])
         {
-            Name = string.Empty, TriggerId = triggerId, PartyId = partyId,
+            Name = string.Empty,
+            TriggerId = triggerId,
+            PartyId = partyId,
             Members = members.Select(m => new GoodCreatureThing(new byte[32])
             {
-                TriggerId = m.Trigger, CreatureId = m.Creature,
+                TriggerId = m.Trigger,
+                CreatureId = m.Creature,
             }).ToArray(),
         };
+    }
 
-    private static TriggerRecord PartyAction(ushort id, byte partyId) =>
-        new ActionTriggerRecord(new byte[16])
+    private static TriggerRecord PartyAction(ushort id, byte partyId)
+    {
+        return new ActionTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = unchecked((ushort)-(short)id), Type = 14,
+            Body = new byte[8],
+            TriggerId = unchecked((ushort)-(short)id),
+            Type = 14,
             RepeatCount = 0,
             Parameters = new Dictionary<string, long>
             {
-                ["PartyId"] = partyId, ["PartyType"] = 0, ["ActionPointId"] = 0,
+                ["PartyId"] = partyId,
+                ["PartyType"] = 0,
+                ["ActionPointId"] = 0,
             },
         };
+    }
 
-    private static TriggerRecord LevelTime(ushort id, byte comparison, int seconds, ushort child) =>
-        new GenericTriggerRecord(new byte[16])
+    private static TriggerRecord LevelTime(ushort id, byte comparison, int seconds, ushort child)
+    {
+        return new GenericTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = id, Type = 34, RepeatCount = 1,
-            ChildTriggerId = child, NextTriggerId = 0,
+            Body = new byte[8],
+            TriggerId = id,
+            Type = 34,
+            RepeatCount = 1,
+            ChildTriggerId = child,
+            NextTriggerId = 0,
             Parameters = new Dictionary<string, long>
             {
-                ["Comparison"] = comparison, ["Value"] = seconds,
+                ["Comparison"] = comparison,
+                ["Value"] = seconds,
             },
         };
+    }
 
     private static TriggerRecord Action(
-        ushort id, byte flagId, byte mode, int value, ushort child = 0, ushort next = 0) =>
-        new ActionTriggerRecord(new byte[16])
+        ushort id, byte flagId, byte mode, int value, ushort child = 0, ushort next = 0)
+    {
+        return new ActionTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = unchecked((ushort)-(short)id), Type = 7,
-            RepeatCount = 0, ChildTriggerId = child, NextTriggerId = next,
+            Body = new byte[8],
+            TriggerId = unchecked((ushort)-(short)id),
+            Type = 7,
+            RepeatCount = 0,
+            ChildTriggerId = child,
+            NextTriggerId = next,
             Parameters = new Dictionary<string, long>
             {
-                ["FlagId"] = flagId, ["Flag"] = mode, ["Value"] = value,
+                ["FlagId"] = flagId,
+                ["Flag"] = mode,
+                ["Value"] = value,
             },
         };
+    }
 
-    private static TriggerRecord Timer(ushort id, byte timerId) =>
-        new ActionTriggerRecord(new byte[16])
+    private static TriggerRecord Timer(ushort id, byte timerId)
+    {
+        return new ActionTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = unchecked((ushort)-(short)id), Type = 8,
+            Body = new byte[8],
+            TriggerId = unchecked((ushort)-(short)id),
+            Type = 8,
             Parameters = new Dictionary<string, long> { ["TimerId"] = timerId },
         };
+    }
 
     private static TriggerRecord Condition(
-        ushort id, byte repeat, ushort child, ushort next, Dictionary<string, long> parameters) =>
-        new GenericTriggerRecord(new byte[16])
-        {
-            Body = new byte[8], TriggerId = id, Type = parameters.Count == 0 ? (byte)72 : (byte)1,
-            RepeatCount = repeat, ChildTriggerId = child, NextTriggerId = next, Parameters = parameters,
-        };
-
-    private static Dictionary<string, long> FlagEqualsZero() => new()
+        ushort id, byte repeat, ushort child, ushort next, Dictionary<string, long> parameters)
     {
-        ["Comparison"] = 3, ["FlagId"] = 0, ["Flag"] = 1,
-        ["IndirectFlagId"] = 0, ["Value"] = 0,
-    };
+        return new GenericTriggerRecord(new byte[16])
+        {
+            Body = new byte[8],
+            TriggerId = id,
+            Type = parameters.Count == 0 ? (byte)72 : (byte)1,
+            RepeatCount = repeat,
+            ChildTriggerId = child,
+            NextTriggerId = next,
+            Parameters = parameters,
+        };
+    }
+
+    private static Dictionary<string, long> FlagEqualsZero()
+    {
+        return new()
+        {
+            ["Comparison"] = 3,
+            ["FlagId"] = 0,
+            ["Flag"] = 1,
+            ["IndirectFlagId"] = 0,
+            ["Value"] = 0,
+        };
+    }
 
     private static ulong StateHash(TriggerState state)
     {

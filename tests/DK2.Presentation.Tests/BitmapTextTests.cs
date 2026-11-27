@@ -20,8 +20,10 @@ public class BitmapTextTests
     [InlineData(8, 512, 7)]
     [InlineData(18, 1024, 22)]
     [InlineData(12, 640, 12)]
-    public void TheSubtitleFontFollowsDk2sWidthRule(int baseSize, int width, int pointSize) =>
+    public void TheSubtitleFontFollowsDk2sWidthRule(int baseSize, int width, int pointSize)
+    {
         Assert.Equal(pointSize, InterfaceFonts.IngamePointSize(baseSize, width));
+    }
 
     [Theory]
     [InlineData(200, "FONT_INGAME7.bf4")]
@@ -29,23 +31,29 @@ public class BitmapTextTests
     [InlineData(1080, "FONT_INGAME26.bf4")]
     [InlineData(1440, "FONT_INGAME36.bf4")]
     [InlineData(2160, "FONT_INGAME48.bf4")]
-    public void OurLegibleSizeIsTheLargestShippedFontWithinAFortiethOfTheHeight(int height, string file) =>
+    public void OurLegibleSizeIsTheLargestShippedFontWithinAFortiethOfTheHeight(int height, string file)
+    {
         Assert.Equal(file, InterfaceFonts.LegibleFileName(height));
+    }
 
     [Theory]
     [InlineData(480, "FONT_INGAME8.bf4")]
     [InlineData(768, "FONT_INGAME12.bf4")]
     [InlineData(1080, "FONT_INGAME18.bf4")]
     [InlineData(1440, "FONT_INGAME24.bf4")]
-    public void HudTextIsTheLargestShippedFontWithinASixtiethOfTheHeight(int height, string file) =>
+    public void HudTextIsTheLargestShippedFontWithinASixtiethOfTheHeight(int height, string file)
+    {
         Assert.Equal(file, InterfaceFonts.HudTextFileName(height));
+    }
 
     [Theory]
     [InlineData(768, "FONT_INGAME8.bf4")]
     [InlineData(1080, "FONT_INGAME10.bf4")]
     [InlineData(1440, "FONT_INGAME14.bf4")]
-    public void HudTooltipsAreAboutThirtyPercentOverAHundredTwentiethOfTheHeight(int height, string file) =>
+    public void HudTooltipsAreAboutThirtyPercentOverAHundredTwentiethOfTheHeight(int height, string file)
+    {
         Assert.Equal(file, InterfaceFonts.HudTooltipFileName(height));
+    }
 
     [Fact]
     public void InferredWrapKeepsADoubleSpaceInsideALine()
@@ -153,8 +161,10 @@ public class BitmapTextTests
     [InlineData(1920f, 1f, 1920)]
     [InlineData(1919f, 2f, 959)]
     [InlineData(100f, 3f, 33)]
-    public void TheWrapWidthIsTheBoxWidthInFontPixelsRoundedDown(float boxWidth, float scale, int wrapWidth) =>
+    public void TheWrapWidthIsTheBoxWidthInFontPixelsRoundedDown(float boxWidth, float scale, int wrapWidth)
+    {
         Assert.Equal(wrapWidth, BitmapTextPlacement.WrapWidth(boxWidth, scale));
+    }
 
     [Fact]
     public void TheSubtitleBoxesAreTheRemakesLayout()
@@ -173,8 +183,10 @@ public class BitmapTextTests
     [InlineData(300, 1f, 12)]
     [InlineData(375, 1f, 12)] // 12.5 halves to even
     [InlineData(405, 1f, 14)] // 13.5 halves to even
-    public void TheTrueTypeSubtitleIsAThirtiethOfTheHeightAtLeastTwelve(int height, float scale, int size) =>
+    public void TheTrueTypeSubtitleIsAThirtiethOfTheHeightAtLeastTwelve(int height, float scale, int size)
+    {
         Assert.Equal(size, SubtitleLayout.TrueTypePixelSize(height, scale));
+    }
 
     private static PlacedBitmapGlyph[] Placed(BitmapFont font, HudRect box, IReadOnlyList<BitmapTextLine> lines, float scale, bool centred)
     {
@@ -262,7 +274,9 @@ public class BitmapTextTests
         return [.. placed];
     }
 
-    private static BitmapFont Font() => new(18,
+    private static BitmapFont Font()
+    {
+        return new(18,
     [
         new BitmapGlyph('a', 8, 8, 0, 0, 10, new byte[64]),
         new BitmapGlyph('b', 8, 8, 0, 0, 10, new byte[64]),
@@ -270,4 +284,5 @@ public class BitmapTextTests
         new BitmapGlyph(' ', 0, 0, 0, 0, 5, []),
         new BitmapGlyph('.', 2, 2, 0, 0, 2, new byte[4]),
     ]);
+    }
 }

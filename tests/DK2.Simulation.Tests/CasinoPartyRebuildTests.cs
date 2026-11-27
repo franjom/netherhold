@@ -45,8 +45,10 @@ public class CasinoPartyRebuildTests
         SlabChain.Changed(world, Db, world.TileIndex(new TilePos(x, 2)), before, tile.OwnerPlayerId);
     }
 
-    private static RoomInstance CasinoAt(WorldState world, int x) =>
-        RoomIndex.Build(world, Db).Single(r => r.Definition.TypeId == RoomTypeId.Casino && r.Contains(world.TileIndex(new TilePos(x, 2))));
+    private static RoomInstance CasinoAt(WorldState world, int x)
+    {
+        return RoomIndex.Build(world, Db).Single(r => r.Definition.TypeId == RoomTypeId.Casino && r.Contains(world.TileIndex(new TilePos(x, 2))));
+    }
 
     private static void StartParty(WorldState world, int x, long tick)
     {

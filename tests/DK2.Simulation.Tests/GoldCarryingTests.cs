@@ -30,12 +30,26 @@ public class GoldCarryingTests
 
     private sealed record Run(GameSimulation Sim, ListEventSink Events)
     {
-        public WorldState World => Sim.World;
+        public WorldState World
+        {
+            get
+            {
+                return Sim.World;
+            }
+        }
 
-        public CreatureState Imp => Sim.World.Creatures[0];
+        public CreatureState Imp
+        {
+            get
+            {
+                return Sim.World.Creatures[0];
+            }
+        }
 
-        public void Tick(params PlayerCommand[] commands) =>
+        public void Tick(params PlayerCommand[] commands)
+        {
             Sim.Tick(commands.Length == 0 ? InputFrame.Empty : InputFrame.Of(commands));
+        }
 
         public void Ticks(int count)
         {
@@ -45,12 +59,20 @@ public class GoldCarryingTests
             }
         }
 
-        public IEnumerable<SimEvent> Of(string kind) => Events.Events.Where(e => e.Kind == kind);
+        public IEnumerable<SimEvent> Of(string kind)
+        {
+            return Events.Events.Where(e => e.Kind == kind);
+        }
 
-        public int Amounts(string kind) => Of(kind).Sum(Amount);
+        public int Amounts(string kind)
+        {
+            return Of(kind).Sum(Amount);
+        }
 
-        public static int Amount(SimEvent e) =>
-            int.Parse(e.Detail.Split("amount=")[1].Split(' ')[0]);
+        public static int Amount(SimEvent e)
+        {
+            return int.Parse(e.Detail.Split("amount=")[1].Split(' ')[0]);
+        }
     }
 
     /// <summary>
@@ -531,7 +553,10 @@ public class GoldCarryingTests
         Assert.False(takenWhileOver);
         Assert.Equal(takenAtOnce, run.Of("job_taken").Take(1).Any(e => e.Detail.Contains("MineGold")));
 
-        static int MiningTaken(Run r) => r.Of("job_taken").Count(e => e.Detail.Contains("MineGold"));
+        static int MiningTaken(Run r)
+        {
+            return r.Of("job_taken").Count(e => e.Detail.Contains("MineGold"));
+        }
     }
 
     /// <summary>A miner with nowhere to deliver gives its slot up once the pile in the slot's cell

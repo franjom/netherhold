@@ -285,8 +285,10 @@ public class StealGoldTests
         }
     }
 
-    private static int GoldIn(WorldState world, int x, int y) =>
-        world.Tile(x, y).GoldHeld + world.Tile(x + 1, y).GoldHeld + world.Tile(x, y + 1).GoldHeld + world.Tile(x + 1, y + 1).GoldHeld;
+    private static int GoldIn(WorldState world, int x, int y)
+    {
+        return world.Tile(x, y).GoldHeld + world.Tile(x + 1, y).GoldHeld + world.Tile(x, y + 1).GoldHeld + world.Tile(x + 1, y + 1).GoldHeld;
+    }
 
     private static (GameSimulation, ListEventSink) Simulation(GameDatabase db, WorldState world)
     {

@@ -13,19 +13,31 @@ namespace DK2.AI.Tests.Players;
 /// stand in their Prison nine tiles and more from the Heart all game, and an enemy merely in sight froze them.</summary>
 public partial class CampaignPlayerTests
 {
-    private static PlayerVisibleThing HeroAt(TilePos at) =>
-        new(Handle(9), PlayerThingKind.Creature, at, Heroes, PlayerThingActions.None, creatureType: new CreatureTypeId(20));
+    private static PlayerVisibleThing HeroAt(TilePos at)
+    {
+        return new(Handle(9), PlayerThingKind.Creature, at, Heroes, PlayerThingActions.None, creatureType: new CreatureTypeId(20));
+    }
 
     [Fact]
     public void AFarEnemyDoesNotStopThePitButOneNearHomeOrThePitDoes()
     {
         (PlayerVisibleThing Thing, PlayerCreatureSummary Flower) idle = Goblin1(new TilePos(9, 6), level: 3, petals: 6, ordinal: 0);
         (PlayerVisibleThing Thing, PlayerCreatureSummary Flower) partner = Goblin1(new TilePos(10, 6), level: 4, petals: 6, ordinal: 1);
-        PlayerObservation With(TilePos hero) => Observe(1, map: PitMap, rooms: [], owned: PitRooms, tick: 1000,
+        PlayerObservation With(TilePos hero)
+        {
+            return Observe(1, map: PitMap, rooms: [], owned: PitRooms, tick: 1000,
             things: [idle.Thing, partner.Thing, HeroAt(hero)], creatures: [idle.Flower, partner.Flower]);
+        }
         // Fighting off: a near hero would otherwise draw a lift of its own, to fight it.
-        CampaignPlayer Near(int tiles) => PitPlayer().Also(p => p.Apply(p.Strategy with { EnemyNearTiles = tiles, Fight = FightMode.Off }));
-        bool Sends(int tiles, TilePos hero) => Near(tiles).Decide(With(hero)).Actions.OfType<PlayerAction.PickUp>().Any();
+        CampaignPlayer Near(int tiles)
+        {
+            return PitPlayer().Also(p => p.Apply(p.Strategy with { EnemyNearTiles = tiles, Fight = FightMode.Off }));
+        }
+
+        bool Sends(int tiles, TilePos hero)
+        {
+            return Near(tiles).Decide(With(hero)).Actions.OfType<PlayerAction.PickUp>().Any();
+        }
 
         // The heart is at (6,6); the Pit's tile nearest it is (5,5).
         Assert.False(Sends(8, new TilePos(10, 10)));                // 4 from home: near
@@ -66,7 +78,10 @@ public partial class CampaignPlayerTests
     public void NoCreatureIsSentToARoomAnEnemyStandsNearEvenWithHomeClear()
     {
         PlayerRoomSummary[] owned = CoreOwned(more: new PlayerRoomSummary(RoomTypeId.TrainingRoom, 9));
-        CampaignPlayer Trainer1() => Trainer().Also(p => p.Apply(p.Strategy with { EnemyNearTiles = 1, Fight = FightMode.Off }));
+        CampaignPlayer Trainer1()
+        {
+            return Trainer().Also(p => p.Apply(p.Strategy with { EnemyNearTiles = 1, Fight = FightMode.Off }));
+        }
         // The heart is at (5,5) and the room's tile nearest it (4,4). At (3,3) the hero is 1 from the room, 2 from home.
         Assert.Empty(Trainer1().Decide(Observe(map: WithTraining, owned: owned, things: [Creature(0, 7, 7, Goblin), HeroAt(new TilePos(3, 3))]))
             .Actions.OfType<PlayerAction.PickUp>());

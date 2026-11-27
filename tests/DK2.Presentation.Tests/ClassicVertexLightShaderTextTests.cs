@@ -59,8 +59,10 @@ public class ClassicVertexLightShaderTextTests
 
     [Theory]
     [MemberData(nameof(Glsl))]
-    public void GodotsCompiledShaderKeepsTheReferencesFormulas(string statement, int times) =>
+    public void GodotsCompiledShaderKeepsTheReferencesFormulas(string statement, int times)
+    {
         Assert.Equal(times, Count(GodotShader(), statement));
+    }
 
     /// <summary>With the torch shadows on, the same formulas; the sum is checked by the next test.</summary>
     [Theory]
@@ -199,7 +201,10 @@ public class ClassicVertexLightShaderTextTests
     }
 
     /// <summary>WorldLight.gdshaderinc as Godot's preprocessor expands it with <paramref name="defined"/>, normalised.</summary>
-    private static string GodotShader(params string[] defined) => Normalise(Preprocess(Read(GodotLighting), defined));
+    private static string GodotShader(params string[] defined)
+    {
+        return Normalise(Preprocess(Read(GodotLighting), defined));
+    }
 
     /// <summary>The preprocessor directives the world shader's includes use: <c>#ifdef</c>, <c>#ifndef</c>, <c>#else</c>,
     /// <c>#endif</c>, object-like and one-argument <c>#define</c>s expanded by whole words; <c>#include</c> dropped.</summary>
@@ -275,8 +280,10 @@ public class ClassicVertexLightShaderTextTests
     }
 
     /// <summary>Line comments dropped and every run of whitespace one space.</summary>
-    private static string Normalise(string text) =>
-        Regex.Replace(Regex.Replace(text, @"//[^\n]*", " "), @"\s+", " ");
+    private static string Normalise(string text)
+    {
+        return Regex.Replace(Regex.Replace(text, @"//[^\n]*", " "), @"\s+", " ");
+    }
 
     private static int Count(string text, string statement)
     {
@@ -290,7 +297,10 @@ public class ClassicVertexLightShaderTextTests
         return count;
     }
 
-    private static string Read(string path) => File.ReadAllText(Path.Combine(RepositoryRoot(), path));
+    private static string Read(string path)
+    {
+        return File.ReadAllText(Path.Combine(RepositoryRoot(), path));
+    }
 
     private static string RepositoryRoot()
     {

@@ -55,8 +55,10 @@ public sealed class OneShotReaperTests
         Assert.Equal(0, world.Player(Keeper).OneShotManaSpent);
     }
 
-    private static CastSpellAtPlaceCommand Cast(TilePos at, byte spell = SpellId) =>
-        new(Keeper, spell, CreatureState.CentreOf(at.X), CreatureState.CentreOf(at.Y));
+    private static CastSpellAtPlaceCommand Cast(TilePos at, byte spell = SpellId)
+    {
+        return new(Keeper, spell, CreatureState.CentreOf(at.X), CreatureState.CentreOf(at.Y));
+    }
 
     [Theory]
     [InlineData(0, 1)]
@@ -259,7 +261,17 @@ public sealed class OneShotReaperTests
 
     private sealed class CallbackSystem(Action<SimulationContext> execute) : ISimulationSystem
     {
-        public string Name => "oneshot-test";
-        public void Execute(SimulationContext context) => execute(context);
+        public string Name
+        {
+            get
+            {
+                return "oneshot-test";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            execute(context);
+        }
     }
 }

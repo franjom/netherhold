@@ -38,17 +38,23 @@ public partial class CampaignPlayerTests
 
     /// <summary>One own Goblin at <paramref name="at"/> with the given flower.</summary>
     private static (PlayerVisibleThing Thing, PlayerCreatureSummary Flower) Goblin1(TilePos at, int level, int petals,
-        PlayerCreatureMood mood = PlayerCreatureMood.Happy, int ordinal = 0) =>
-        (new PlayerVisibleThing(Handle(ordinal), PlayerThingKind.Creature, at, Me, PlayerThingActions.PickUp | PlayerThingActions.Slap, creatureType: Goblin),
+        PlayerCreatureMood mood = PlayerCreatureMood.Happy, int ordinal = 0)
+    {
+        return (new PlayerVisibleThing(Handle(ordinal), PlayerThingKind.Creature, at, Me, PlayerThingActions.PickUp | PlayerThingActions.Slap, creatureType: Goblin),
          new PlayerCreatureSummary(Goblin, at, false, Handle(ordinal), level, petals, mood));
+    }
 
     private static PlayerObservation PitView((PlayerVisibleThing Thing, PlayerCreatureSummary Flower)[] creatures, int hand = 0,
-        long revision = 1, IReadOnlyList<PlayerSpellOffer>? spells = null) =>
-        Observe(revision, map: PitMap, hand: hand, rooms: [], owned: PitRooms, tick: revision * 1000,
+        long revision = 1, IReadOnlyList<PlayerSpellOffer>? spells = null)
+    {
+        return Observe(revision, map: PitMap, hand: hand, rooms: [], owned: PitRooms, tick: revision * 1000,
             things: [.. creatures.Select(c => c.Thing)], creatures: [.. creatures.Select(c => c.Flower)], spells: spells);
+    }
 
-    private static CampaignPlayer PitPlayer(int fighters = 2) =>
-        Player(o => o with { CombatPitMaxLevel = 8 }).Also(p => p.Apply(p.Strategy with { PitFighters = fighters, Dig = DigMode.Off }));
+    private static CampaignPlayer PitPlayer(int fighters = 2)
+    {
+        return Player(o => o with { CombatPitMaxLevel = 8 }).Also(p => p.Apply(p.Strategy with { PitFighters = fighters, Dig = DigMode.Off }));
+    }
 
     [Fact]
     public void AnIdleHealthyFighterIsLiftedOntoThePitsInterior()
@@ -145,8 +151,12 @@ public partial class CampaignPlayerTests
             .Actions.OfType<PlayerAction.DropAt>()).Tile);                                           // the body lies on the rim: beside it is its own tile
 
         // Sent once: within the rescue window no second Imp goes to the same body; after it, one does.
-        PlayerObservation Later(long revision, long tick) => Observe(revision, map: PitMap, rooms: [], owned: PitRooms, tick: tick,
+        PlayerObservation Later(long revision, long tick)
+        {
+            return Observe(revision, map: PitMap, rooms: [], owned: PitRooms, tick: tick,
             things: [body.Thing, far, near], creatures: [body.Flower]);
+        }
+
         Assert.Empty(player.Decide(Later(3, 1300)).Actions.OfType<PlayerAction.PickUp>());
         Assert.Contains(new PlayerAction.PickUp(near.Handle), player.Decide(Later(4, 1500)).Actions);
 
@@ -164,8 +174,11 @@ public partial class CampaignPlayerTests
         (PlayerVisibleThing Thing, PlayerCreatureSummary Flower) body = Goblin1(new TilePos(3, 3), level: 4, petals: 1, ordinal: 0);                   // interior: a worker drop is refused there
         PlayerVisibleThing imp = new(Handle(1), PlayerThingKind.Creature, new TilePos(9, 9), Me, PlayerThingActions.PickUp, creatureType: Imp);
         CampaignPlayer player = PitPlayer();
-        PlayerObservation Sinking(long revision, long tick) => Observe(revision, map: PitMap, rooms: [], owned: PitRooms, tick: tick,
+        PlayerObservation Sinking(long revision, long tick)
+        {
+            return Observe(revision, map: PitMap, rooms: [], owned: PitRooms, tick: tick,
             things: [body.Thing, imp], creatures: [body.Flower]);
+        }
         // It sinks and rises on the rim within seconds (state 217): no Imp yet, decision after decision.
         for (int i = 0; i < 10; i++)
         {
@@ -238,8 +251,12 @@ public partial class CampaignPlayerTests
         gap.Decide(Observe(1, map: PitMap, rooms: [], owned: PitRooms, tick: 1000, things: [body.Thing, imp], creatures: [body.Flower]));
         gap.Decide(Observe(2, map: PitMap, hand: 1, rooms: [], owned: PitRooms, tick: 1004));
         (PlayerVisibleThing Thing, PlayerCreatureSummary Flower) moved = Goblin1(new TilePos(2, 2), level: 4, petals: 1, ordinal: 0);
-        PlayerObservation Moved(long revision, long tick) => Observe(revision, map: PitMap, rooms: [], owned: PitRooms, tick: tick,
+        PlayerObservation Moved(long revision, long tick)
+        {
+            return Observe(revision, map: PitMap, rooms: [], owned: PitRooms, tick: tick,
             things: [moved.Thing, other], creatures: [moved.Flower]);
+        }
+
         Assert.Empty(gap.Decide(Moved(3, 1020)).Actions.OfType<PlayerAction.PickUp>());
         Assert.Contains(new PlayerAction.PickUp(other.Handle), gap.Decide(Moved(4, 1040)).Actions);
     }
@@ -254,9 +271,12 @@ public partial class CampaignPlayerTests
         (PlayerVisibleThing Thing, PlayerCreatureSummary Flower) b = Goblin1(new TilePos(9, 6), level: 3, petals: 6, ordinal: 1);
         (PlayerVisibleThing Thing, PlayerCreatureSummary Flower) c = Goblin1(new TilePos(10, 6), level: 4, petals: 6, ordinal: 2);
         (PlayerVisibleThing Thing, PlayerCreatureSummary Flower) bIn = Goblin1(new TilePos(4, 4), level: 3, petals: 6, ordinal: 1);
-        PlayerObservation View(long tick, int hand, params (PlayerVisibleThing Thing, PlayerCreatureSummary Flower)[] cs) =>
-            Observe(tick, map: PitMap, hand: hand, rooms: [], owned: PitRooms, tick: tick,
+        PlayerObservation View(long tick, int hand, params (PlayerVisibleThing Thing, PlayerCreatureSummary Flower)[] cs)
+        {
+            return Observe(tick, map: PitMap, hand: hand, rooms: [], owned: PitRooms, tick: tick,
                 things: [.. cs.Select(x => x.Thing)], creatures: [.. cs.Select(x => x.Flower)]);
+        }
+
         Assert.Contains(new PlayerAction.PickUp(b.Thing.Handle), player.Decide(View(1000, 0, a, b, c)).Actions);
         player.Decide(View(1004, 1, a, c));
         for (long t = 1008; t < 1100; t += 4)

@@ -25,8 +25,10 @@ public partial class CampaignPlayerTests
         "RRRRRRRRRRRR",
     ];
 
-    private static IReadOnlyList<TilePos> TakeMarks(PlayerDecision decision) =>
-        [.. decision.Actions.OfType<PlayerAction.TagArea>().Select(t => t.From)];
+    private static IReadOnlyList<TilePos> TakeMarks(PlayerDecision decision)
+    {
+        return [.. decision.Actions.OfType<PlayerAction.TagArea>().Select(t => t.From)];
+    }
 
     [Fact]
     public void AHeroPrisonInViewIsDugTowardThroughHeldBackGround()

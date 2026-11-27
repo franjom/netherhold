@@ -201,7 +201,14 @@ public class KeeperViewTests
 
     private sealed class CombatMessageProducer : ISimulationSystem
     {
-        public string Name => "test combat messages";
+        public string Name
+        {
+            get
+            {
+                return "test combat messages";
+            }
+        }
+
         public void Execute(SimulationContext context)
         {
             if (context.Tick != GameTick.Zero)

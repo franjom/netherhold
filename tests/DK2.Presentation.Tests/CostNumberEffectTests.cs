@@ -144,13 +144,19 @@ public class CostNumberEffectTests
         Assert.Empty(model.Particles);
     }
 
-    private static ViewEffectRequest Amount(int amount) => new(new(CostNumberRules.GoldEffectId), Viewer,
-        new FpPosition3(new(10000), new(12000), new(0))) { Amount = amount };
+    private static ViewEffectRequest Amount(int amount)
+    {
+        return new(new(CostNumberRules.GoldEffectId), Viewer,
+        new FpPosition3(new(10000), new(12000), new(0)))
+        { Amount = amount };
+    }
 
     private static readonly KwdArtResource EmptyArt = new("", 0, new byte[12], 0, 0, 0, 0);
 
-    private static RoomConstructionParticles Model(Func<ViewEffectRequest, bool>? cameraVisible = null) =>
-        Model(Viewer, cameraVisible);
+    private static RoomConstructionParticles Model(Func<ViewEffectRequest, bool>? cameraVisible = null)
+    {
+        return Model(Viewer, cameraVisible);
+    }
 
     private static RoomConstructionParticles Model(PlayerId? viewer, Func<ViewEffectRequest, bool>? cameraVisible = null)
     {

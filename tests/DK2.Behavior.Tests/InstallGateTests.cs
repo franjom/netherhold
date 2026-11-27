@@ -52,18 +52,22 @@ public class InstallGateTests
         return dir;
     }
 
-    private static IEnumerable<string> TestSources() =>
-        Directory.EnumerateFiles(
+    private static IEnumerable<string> TestSources()
+    {
+        return Directory.EnumerateFiles(
                 Path.Combine(RepoRoot().FullName, "tests"), "*.cs", SearchOption.AllDirectories)
             .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}")
                         && !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}")
                         && !f.Contains("DK2.TestSupport"));
+    }
 
     /// <summary>The file's code, with doc comments removed.</summary>
-    private static string CodeOnly(IEnumerable<string> lines) =>
-        string.Join(
+    private static string CodeOnly(IEnumerable<string> lines)
+    {
+        return string.Join(
             Environment.NewLine,
             lines.Where(l => !l.TrimStart().StartsWith("///", StringComparison.Ordinal)));
+    }
 
     [Fact]
     public void NoTestLooksTheInstallUpForItself_BecauseThatIsHowTheSilentSkipHappened()

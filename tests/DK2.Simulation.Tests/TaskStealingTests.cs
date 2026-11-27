@@ -17,8 +17,21 @@ public class TaskStealingTests
 
     private sealed record Run(GameSimulation Sim, ListEventSink Events)
     {
-        public WorldState World => Sim.World;
-        public GameDatabase Db => Sim.Database;
+        public WorldState World
+        {
+            get
+            {
+                return Sim.World;
+            }
+        }
+
+        public GameDatabase Db
+        {
+            get
+            {
+                return Sim.Database;
+            }
+        }
 
         public void Ticks(int count)
         {
@@ -28,12 +41,20 @@ public class TaskStealingTests
             }
         }
 
-        public CreatureState Imp(TilePos at) =>
-            World.SpawnCreature(Db, Dk2TerrainFixture.ImpCreatureId, Keeper, at);
+        public CreatureState Imp(TilePos at)
+        {
+            return World.SpawnCreature(Db, Dk2TerrainFixture.ImpCreatureId, Keeper, at);
+        }
 
-        public IEnumerable<SimEvent> Of(string kind) => Events.Events.Where(e => e.Kind == kind);
+        public IEnumerable<SimEvent> Of(string kind)
+        {
+            return Events.Events.Where(e => e.Kind == kind);
+        }
 
-        public int Index(TilePos at) => (at.Y * World.Width) + at.X;
+        public int Index(TilePos at)
+        {
+            return (at.Y * World.Width) + at.X;
+        }
     }
 
     /// <summary>The keeper's claimed 3×3 room at (1..3, 1..3) in rock, and a dirt path from
@@ -72,8 +93,10 @@ public class TaskStealingTests
     [InlineData(2, 1, 1, 1)]
     [InlineData(1, -2, 0, 1)]
     [InlineData(2, -1, 1, -1)]
-    public void TheDigWalkStartsOnTheSideTheBinaryPicks(int dx, int dy, int side, int step) =>
+    public void TheDigWalkStartsOnTheSideTheBinaryPicks(int dx, int dy, int side, int step)
+    {
         Assert.Equal((side, step), MiningSlots.StartSide(dx, dy));
+    }
 
     /// <summary>
     /// <b>A nearer imp takes a claim from a farther one that is walking to it</b>, and not from

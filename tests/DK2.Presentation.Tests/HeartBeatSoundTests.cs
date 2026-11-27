@@ -13,19 +13,50 @@ namespace DK2.Presentation.Tests;
 /// through (<see cref="HeartPulseGate"/>), whatever the game turn.</summary>
 public sealed class HeartBeatSoundTests
 {
-    private static RoomDef HeartRoom() => new()
+    private static RoomDef HeartRoom()
     {
-        Name = "Dungeon Heart", RoomId = (byte)RoomTypeId.DungeonHeart, Flags = 0, Cost = 0, ReturnPercentage = 0, TerrainId = 14,
-        Construction = TileConstruction.Normal, CreatedCreatureId = 0, ObjectIds = [], HealthGain = 0,
-        CeilingHeight = new Fp32(0), RecommendedSizeX = 1, RecommendedSizeY = 1, OrderInEditor = 0, NameStringId = 0, TooltipStringId = 0,
-    };
+        return new()
+        {
+            Name = "Dungeon Heart",
+            RoomId = (byte)RoomTypeId.DungeonHeart,
+            Flags = 0,
+            Cost = 0,
+            ReturnPercentage = 0,
+            TerrainId = 14,
+            Construction = TileConstruction.Normal,
+            CreatedCreatureId = 0,
+            ObjectIds = [],
+            HealthGain = 0,
+            CeilingHeight = new Fp32(0),
+            RecommendedSizeX = 1,
+            RecommendedSizeY = 1,
+            OrderInEditor = 0,
+            NameStringId = 0,
+            TooltipStringId = 0,
+        };
+    }
 
-    private static TerrainDef HeartTerrain(string category) => new()
+    private static TerrainDef HeartTerrain(string category)
     {
-        Name = "Dungeon Heart", TerrainId = 14, Flags = 0, StartingHealth = 1, MaxHealth = 1, GoldValue = 0, ManaGain = 0,
-        MaxManaGain = 0, Damage = 0, MaxHealthTypeTerrainId = 14, DestroyedTypeTerrainId = 8, Depth = new Fp32(0),
-        NameStringId = 0, TooltipStringId = 0, SoundCategory = category,
-    };
+        return new()
+        {
+            Name = "Dungeon Heart",
+            TerrainId = 14,
+            Flags = 0,
+            StartingHealth = 1,
+            MaxHealth = 1,
+            GoldValue = 0,
+            ManaGain = 0,
+            MaxManaGain = 0,
+            Damage = 0,
+            MaxHealthTypeTerrainId = 14,
+            DestroyedTypeTerrainId = 8,
+            Depth = new Fp32(0),
+            NameStringId = 0,
+            TooltipStringId = 0,
+            SoundCategory = category,
+        };
+    }
 
     [Fact]
     public void TheBeatIs0x150InTheHeartRoomsTerrainCategoryAtTheObjectsPositionWithoutAVoice()

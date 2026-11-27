@@ -17,9 +17,15 @@ namespace DK2.Simulation.Tests;
 /// </summary>
 public class MeleeDamageTests
 {
-    private static GameDatabase Db() => Dk2TerrainFixture.Database();
+    private static GameDatabase Db()
+    {
+        return Dk2TerrainFixture.Database();
+    }
 
-    private static CreatureDef Goblin() => Dk2TerrainFixture.Goblin();
+    private static CreatureDef Goblin()
+    {
+        return Dk2TerrainFixture.Goblin();
+    }
 
     [Fact]
     public void LevelOneSwingsForTheRecordValue()

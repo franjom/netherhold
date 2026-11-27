@@ -53,8 +53,10 @@ public sealed class FrameDriverTests
             Driver = new FrameDriver(Pending, View, Pacer, Journal);
         }
 
-        public FrameTicks Take(double elapsed, ITurnPoseSource? poses = null, float speed = 1f, bool paused = false) =>
-            Driver.TakeTicks(World, Keeper, elapsed, speed, 4, paused, TickPacer.DefaultMaxTicksPerFrame, poses);
+        public FrameTicks Take(double elapsed, ITurnPoseSource? poses = null, float speed = 1f, bool paused = false)
+        {
+            return Driver.TakeTicks(World, Keeper, elapsed, speed, 4, paused, TickPacer.DefaultMaxTicksPerFrame, poses);
+        }
     }
 
     private static readonly PlayerCommand Pose = new SlapCreatureCommand(Keeper, 9);
@@ -333,8 +335,10 @@ public sealed class FrameDriverTests
         Assert.False(rig.Script.TryTakeCameraMove(out _));
     }
 
-    private static KcsFrame[] IndexedFrames() =>
-        [.. Enumerable.Range(0, 399).Select(i => new KcsFrame(i, 0, -3f, Identity, 1f, 12000f))];
+    private static KcsFrame[] IndexedFrames()
+    {
+        return [.. Enumerable.Range(0, 399).Select(i => new KcsFrame(i, 0, -3f, Identity, 1f, 12000f))];
+    }
 
     private static Rig PathRig()
     {
@@ -347,6 +351,8 @@ public sealed class FrameDriverTests
 
     private static readonly KcsRotation Identity = new(1, 0, 0, 0, 1, 0, 0, 0, 1);
 
-    private static SimEvent View(ScriptedViewKind kind, int value, TilePos tile) =>
-        new(default, "t", "scripted_view", "") { ScriptedView = new ScriptedViewRequest(kind, Keeper, value, tile, false) };
+    private static SimEvent View(ScriptedViewKind kind, int value, TilePos tile)
+    {
+        return new(default, "t", "scripted_view", "") { ScriptedView = new ScriptedViewRequest(kind, Keeper, value, tile, false) };
+    }
 }

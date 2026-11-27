@@ -251,8 +251,9 @@ public class HeroPartyTests
 
     /// <summary>A creature tree rooted at <paramref name="asker"/> asking <c>missing members of the
     /// party &gt;= atLeast</c>, setting flag 10.</summary>
-    private static TriggerTree MemberTree(ushort asker, byte partyId, int atLeast) =>
-        new(
+    private static TriggerTree MemberTree(ushort asker, byte partyId, int atLeast)
+    {
+        return new(
         [
             new GenericTriggerRecord(new byte[16])
             {
@@ -269,10 +270,12 @@ public class HeroPartyTests
                 Parameters = new Dictionary<string, long> { ["FlagId"] = 10, ["Flag"] = 0x0A, ["Value"] = 1 },
             },
         ], 0, playerRoots: []);
+    }
 
     /// <summary>A world root asking <c>missing members of the party &gt;= atLeast</c>, setting flag 10.</summary>
-    private static TriggerTree MissingTree(byte partyId, int atLeast) =>
-        new(
+    private static TriggerTree MissingTree(byte partyId, int atLeast)
+    {
+        return new(
         [
             new GenericTriggerRecord(new byte[16])
             {
@@ -289,6 +292,7 @@ public class HeroPartyTests
                 Parameters = new Dictionary<string, long> { ["FlagId"] = 10, ["Flag"] = 0x0A, ["Value"] = 1 },
             },
         ], 1, playerRoots: []);
+    }
 
     private static (WorldState World, GameDatabase Database) World(params CreatureDef[] extra)
     {
@@ -305,7 +309,8 @@ public class HeroPartyTests
         return (world, database);
     }
 
-    private static void Place(WorldState world, GameDatabase database, byte partyId, GoodCreatureThing[] members) =>
+    private static void Place(WorldState world, GameDatabase database, byte partyId, GoodCreatureThing[] members)
+    {
         ThingProjection.Place(world, database,
         [
             new HeroPartyThing(new byte[555])
@@ -314,22 +319,36 @@ public class HeroPartyTests
                 Members = members,
             },
         ]);
+    }
 
     private static GoodCreatureThing Member(
         byte creature, byte level, ushort gold, int health, byte flags,
-        byte objective = 0, int target = 0, byte player = 0, ushort trigger = 0, byte flags2 = 0, byte party = 0) =>
-        new(new byte[32])
+        byte objective = 0, int target = 0, byte player = 0, ushort trigger = 0, byte flags2 = 0, byte party = 0)
+    {
+        return new(new byte[32])
         {
-            CreatureId = creature, Level = level, GoldHeld = gold, InitialHealth = health, Flags = flags,
-            Objective = objective, ObjectiveTargetActionPointId = target, ObjectiveTargetPlayerId = player,
-            TriggerId = trigger, Flags2 = flags2, PartyId = party,
+            CreatureId = creature,
+            Level = level,
+            GoldHeld = gold,
+            InitialHealth = health,
+            Flags = flags,
+            Objective = objective,
+            ObjectiveTargetActionPointId = target,
+            ObjectiveTargetPlayerId = player,
+            TriggerId = trigger,
+            Flags2 = flags2,
+            PartyId = party,
         };
+    }
 
-    private static TriggerRunResult Raise(WorldState world, GameDatabase database, byte partyId, byte partyType) =>
-        new TriggerExecutor(Tree(partyId, partyType), world.Triggers, world, database, new SimRandom(1)).Run(1);
+    private static TriggerRunResult Raise(WorldState world, GameDatabase database, byte partyId, byte partyType)
+    {
+        return new TriggerExecutor(Tree(partyId, partyType), world.Triggers, world, database, new SimRandom(1)).Run(1);
+    }
 
-    private static TriggerTree Tree(byte partyId, byte partyType) =>
-        new(
+    private static TriggerTree Tree(byte partyId, byte partyType)
+    {
+        return new(
         [
             new GenericTriggerRecord(new byte[16])
             {
@@ -346,4 +365,5 @@ public class HeroPartyTests
                 },
             },
         ], 1, playerRoots: []);
+    }
 }

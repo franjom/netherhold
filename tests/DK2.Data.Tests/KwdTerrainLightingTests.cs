@@ -35,8 +35,11 @@ public class KwdTerrainLightingTests
             terrain with { TerrainLightHeight = null }, image));
     }
 
-    private static TerrainDef Read(byte[] bytes) => KwdTerrainRooms.ParseTerrain([
+    private static TerrainDef Read(byte[] bytes)
+    {
+        return KwdTerrainRooms.ParseTerrain([
         new KwdChunk { Type = KwdRecordType.Terrain, ItemCount = 1, Content = bytes, HeaderBlock = [] }]).Single();
+    }
 
     [Fact]
     public void AuthoredRgbChannelsRoundTripAndEditsPreserveUnrelatedBytes()

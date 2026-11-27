@@ -171,5 +171,8 @@ public sealed class FrameRecordingTests
     [InlineData("1:1")]
     [InlineData("1:1,x")]
     [InlineData("1:1,1:L")]
-    public void AMalformedCameraScriptIsNull(string text) => Assert.Null(CameraScript.Parse(text));
+    public void AMalformedCameraScriptIsNull(string text)
+    {
+        Assert.Null(CameraScript.Parse(text));
+    }
 }

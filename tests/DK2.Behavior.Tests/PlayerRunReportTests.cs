@@ -17,12 +17,18 @@ public class PlayerRunReportTests
 {
     private sealed class Waits : IPlayerController
     {
-        public PlayerDecision Decide(PlayerObservation observation) => PlayerDecision.Wait(4, "wait");
+        public PlayerDecision Decide(PlayerObservation observation)
+        {
+            return PlayerDecision.Wait(4, "wait");
+        }
     }
 
     private sealed class GivesUp : IPlayerController
     {
-        public PlayerDecision Decide(PlayerObservation observation) => PlayerDecision.Limited("stuck");
+        public PlayerDecision Decide(PlayerObservation observation)
+        {
+            return PlayerDecision.Limited("stuck");
+        }
     }
 
     /// <summary>A coordinator after one tick of a world in the given state.</summary>
@@ -165,7 +171,9 @@ public class PlayerRunReportTests
         Assert.Equal(100, stream.Written);
     }
 
-    private static string Yaml(int duration) => $"""
+    private static string Yaml(int duration)
+    {
+        return $"""
         id: player-report-probe
         map: chamber_9x9
         seed: 7
@@ -174,6 +182,7 @@ public class PlayerRunReportTests
           players:
             - {"{"} id: 3, gold: 0, mana: 0 {"}"}
         """;
+    }
 
     private static GameDatabase Database()
     {
@@ -194,11 +203,20 @@ public class PlayerRunReportTests
         return stream.ToArray();
     }
 
-    private static Scenario ShippedStart() => new()
+    private static Scenario ShippedStart()
     {
-        Id = "start", Map = "campaign:level1", Seed = 1, Random = "dk2", FogOfWar = true, ViewingPlayer = 3, DurationTicks = 10,
-        Setup = new ScenarioSetup { PlacedThings = true },
-    };
+        return new()
+        {
+            Id = "start",
+            Map = "campaign:level1",
+            Seed = 1,
+            Random = "dk2",
+            FogOfWar = true,
+            ViewingPlayer = 3,
+            DurationTicks = 10,
+            Setup = new ScenarioSetup { PlacedThings = true },
+        };
+    }
 
     [Fact]
     public void EachThingAClaimNeedsIsNamedWhenItIsMissing()
@@ -206,8 +224,10 @@ public class PlayerRunReportTests
         var receipt = new BuildReceipt.Verification("receipt", "abc", []);
         PlayerRunCoordinator won = After(PlayerStatus.Won);   // a zero finale window: Unchecked
         List<string> Gaps(PlayerRunCoordinator player, BuildReceipt.Verification? r = null, bool fuzzed = false,
-            byte[]? keepers = null, Scenario? scenario = null) =>
-            PlayerRunCommand.ClaimGaps(scenario ?? ShippedStart(), player, PlayerRunReport.Outcome(player, true), r, fuzzed, keepers);
+            byte[]? keepers = null, Scenario? scenario = null)
+        {
+            return PlayerRunCommand.ClaimGaps(scenario ?? ShippedStart(), player, PlayerRunReport.Outcome(player, true), r, fuzzed, keepers);
+        }
 
         Assert.Equal(["the finale is Unchecked: the Horned Reaper did not take the Portal Gem"], Gaps(won, receipt, keepers: []));
         Assert.Contains("no build receipt was given (--player-receipt)", Gaps(won, keepers: []));

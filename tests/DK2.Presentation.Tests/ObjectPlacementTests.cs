@@ -46,10 +46,15 @@ public class ObjectPlacementTests
         return new Room(db, world, new WorldView(db));
     }
 
-    private static List<ObjectView> Decorations(Room room, byte objectTypeId) =>
-        [.. room.View.Decorations(room.World).Where(o => o.ObjectTypeId == objectTypeId)];
+    private static List<ObjectView> Decorations(Room room, byte objectTypeId)
+    {
+        return [.. room.View.Decorations(room.World).Where(o => o.ObjectTypeId == objectTypeId)];
+    }
 
-    private static int Centre(int tile) => (tile * Fp32.One) + (Fp32.One / 2);
+    private static int Centre(int tile)
+    {
+        return (tile * Fp32.One) + (Fp32.One / 2);
+    }
 
     [InstallTheory]
     [InlineData(0)]
@@ -152,8 +157,10 @@ public class ObjectPlacementTests
 
     /// <summary>A room shorter than three tiles on either axis has no pillars.</summary>
     [InstallFact]
-    public void ATwoWideTreasuryHasNoPillars() =>
+    public void ATwoWideTreasuryHasNoPillars()
+    {
         Assert.Empty(Decorations(Carve(RoomTypeId.Treasury, 2, 5), 76));
+    }
 
     /// <summary>A treasury tile's gold shows Urn1 below 1000, Urn2 below 2000 and the Chest from 2000
     /// (<c>0x004F4440</c>, cap 3000); an empty tile shows nothing.</summary>

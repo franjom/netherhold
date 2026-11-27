@@ -42,7 +42,14 @@ public class CreatureLevelEffectTests
 
     private sealed class Promote(CreatureState imp, bool earned) : ISimulationSystem
     {
-        public string Name => nameof(Promote);
+        public string Name
+        {
+            get
+            {
+                return nameof(Promote);
+            }
+        }
+
         public void Execute(SimulationContext context)
         {
             CreatureDef definition = context.Database.CreatureById(imp.CreatureTypeId);

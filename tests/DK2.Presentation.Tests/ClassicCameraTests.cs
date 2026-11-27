@@ -14,11 +14,20 @@ namespace DK2.Presentation.Tests;
 
 public class ClassicCameraTests
 {
-    private static CameraThing Profile() => new(new byte[84])
+    private static CameraThing Profile()
     {
-        CameraId = 3, Z = 4096, Zoom = 40960, MinZoom = 16384, MaxZoom = 53248,
-        Lens = 8192, AnglePitch = 220, Flags = 0x26,
-    };
+        return new(new byte[84])
+        {
+            CameraId = 3,
+            Z = 4096,
+            Zoom = 40960,
+            MinZoom = 16384,
+            MaxZoom = 53248,
+            Lens = 8192,
+            AnglePitch = 220,
+            Flags = 0x26,
+        };
+    }
 
     [Theory]
     [InlineData(0, 40960, 20f)]
@@ -87,8 +96,10 @@ public class ClassicCameraTests
         Assert.Equal(0f, camera.Pose(Vector3.Zero, new CameraViewport(1600, 1600, 1200)).ProjectionCentreShift, 5);
     }
 
-    private static double HorizontalHalfAngle(ClassicCameraPose pose, int width, int height) =>
-        Math.Atan(Math.Tan(pose.VerticalFieldOfView * Math.PI / 360) * width / height);
+    private static double HorizontalHalfAngle(ClassicCameraPose pose, int width, int height)
+    {
+        return Math.Atan(Math.Tan(pose.VerticalFieldOfView * Math.PI / 360) * width / height);
+    }
 
     [Fact]
     public void LevelStartFocusUsesTileCentresAndLiteralHeightIndependentOfProfilePosition()
@@ -111,11 +122,20 @@ public class ClassicCameraTests
         Assert.Equal(new Vector3(worldX, 1, worldZ), ClassicCamera.LevelStartFocus(new TilePos(x, y)));
     }
 
-    private static PlayerDef Player(byte id, ushort cameraX, ushort cameraY) => new()
+    private static PlayerDef Player(byte id, ushort cameraX, ushort cameraY)
     {
-        PlayerId = id, Name = "test", StartingGold = 0, HasAiFlag = false, TriggerId = 0, CameraX = cameraX, CameraY = cameraY,
-        Ai = null!,
-    };
+        return new()
+        {
+            PlayerId = id,
+            Name = "test",
+            StartingGold = 0,
+            HasAiFlag = false,
+            TriggerId = 0,
+            CameraX = cameraX,
+            CameraY = cameraY,
+            Ai = null!,
+        };
+    }
 
     [Fact]
     public void LevelStartFocusIsTheViewersAuthoredCameraTileElseTheMapCentre()

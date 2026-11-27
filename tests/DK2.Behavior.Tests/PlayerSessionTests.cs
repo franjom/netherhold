@@ -41,10 +41,15 @@ public class PlayerSessionTests
             return Current;
         }
 
-        public PlayerRequest Request(long id, PlayerAction action, PlayerStamp? basedOn = null) =>
-            new(basedOn ?? Current.Observation.Stamp, new PlayerActionId(id), action);
+        public PlayerRequest Request(long id, PlayerAction action, PlayerStamp? basedOn = null)
+        {
+            return new(basedOn ?? Current.Observation.Stamp, new PlayerActionId(id), action);
+        }
 
-        public PlayerReceipt Submit(long id, PlayerAction action) => Session.Submit(Request(id, action));
+        public PlayerReceipt Submit(long id, PlayerAction action)
+        {
+            return Session.Submit(Request(id, action));
+        }
     }
 
     private static readonly PlayerAction Tag = new PlayerAction.TagArea(new TilePos(4, 0), new TilePos(5, 1));
@@ -270,8 +275,11 @@ public class PlayerSessionTests
         h.Observe();
         var snapshot = PlayerInputSnapshot.Capture(new WorldView(h.Database, Viewer), h.World, Viewer, h.Database);
         var human = new PlayerInputTranslator();
-        PlayerCommand Click(TilePos tile) => Assert.Single(human.Translate(new PlayerIntent(Viewer, PlayerToolMode.Hand, tile,
+        PlayerCommand Click(TilePos tile)
+        {
+            return Assert.Single(human.Translate(new PlayerIntent(Viewer, PlayerToolMode.Hand, tile,
             PointerButtonTransition.None, SecondaryButton: PointerButtonTransition.Pressed), snapshot).All);
+        }
 
         h.Submit(1, new PlayerAction.DropAt(OwnFloor));
         h.Submit(2, new PlayerAction.DropAt(new TilePos(0, 2)));
@@ -337,7 +345,11 @@ public class PlayerSessionTests
     [Fact]
     public void ReceiptsDoNotDistinguishHiddenStates()
     {
-        PlayerThingHandle Own(int ordinal) => new(new PlayerRevision(1), ordinal);
+        PlayerThingHandle Own(int ordinal)
+        {
+            return new(new PlayerRevision(1), ordinal);
+        }
+
         PlayerAction[] probes =
         [
             new PlayerAction.TagArea(new TilePos(5, 0), new TilePos(7, 2)),

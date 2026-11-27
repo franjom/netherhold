@@ -212,10 +212,15 @@ public class HandInputTests
         Assert.Equal(initiallyTagged, view.TileAt(world, Start.X, Start.Y).Tagged);
     }
 
-    private static PlayerInputSnapshot Creature(bool holding) => new(holding,
+    private static PlayerInputSnapshot Creature(bool holding)
+    {
+        return new(holding,
         [new PlayerInputTarget(PlayerInputTargetKind.Creature, 40, Start)]);
+    }
 
     private static PlayerIntent Intent(TilePos? at, PointerButtonTransition primary = PointerButtonTransition.None,
-        PointerButtonTransition secondary = PointerButtonTransition.None) =>
-        new(Keeper, PlayerToolMode.Hand, at, primary, SecondaryButton: secondary);
+        PointerButtonTransition secondary = PointerButtonTransition.None)
+    {
+        return new(Keeper, PlayerToolMode.Hand, at, primary, SecondaryButton: secondary);
+    }
 }

@@ -33,7 +33,10 @@ public class PortalOnRealDataTests
 {
     private const byte GoblinId = 7;
 
-    private static string Install() => Dk2InstallGate.Path;
+    private static string Install()
+    {
+        return Dk2InstallGate.Path;
+    }
 
     private static IEnumerable<string> CampaignLevels(string install)
     {

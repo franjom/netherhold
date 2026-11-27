@@ -277,10 +277,14 @@ public class EffectChainTests
         string install = Dk2InstallGate.Path;
         GameDatabase database = DK2.Data.GameDatabaseLoader.Load(install);
         using var art = DK2.Art.InstallArtProvider.Open(install, database);
-        IReadOnlyList<EffectGroupPart>? Parts(string name) => art.TryLoadGroup(name, out DK2.Art.Kmf.KmfGroup group)
+        IReadOnlyList<EffectGroupPart>? Parts(string name)
+        {
+            return art.TryLoadGroup(name, out DK2.Art.Kmf.KmfGroup group)
             ? group.Elements.Select(member => new EffectGroupPart(member.Name, (int)(member.Position.X * Fp32.One),
                 (int)(member.Position.Y * Fp32.One), (int)(-member.Position.Z * Fp32.One))).ToList()
             : null;
+        }
+
         var model = new RoomConstructionParticles(database, 7, () => new EffectTime(0),
             floorHeight: _ => new Fp32(Fp32.One), groupParts: Parts);
         model.Request(new ViewEffectRequest(new EffectId(215), PlayerIds.FirstKeeper, Point(Fp32.One)));
@@ -297,10 +301,14 @@ public class EffectChainTests
         string install = Dk2InstallGate.Path;
         GameDatabase database = DK2.Data.GameDatabaseLoader.Load(install);
         using var art = DK2.Art.InstallArtProvider.Open(install, database);
-        IReadOnlyList<EffectGroupPart>? Parts(string name) => art.TryLoadGroup(name, out DK2.Art.Kmf.KmfGroup group)
+        IReadOnlyList<EffectGroupPart>? Parts(string name)
+        {
+            return art.TryLoadGroup(name, out DK2.Art.Kmf.KmfGroup group)
             ? group.Elements.Select(member => new EffectGroupPart(member.Name, (int)(member.Position.X * Fp32.One),
                 (int)(member.Position.Y * Fp32.One), (int)(-member.Position.Z * Fp32.One))).ToList()
             : null;
+        }
+
         Assert.Equal((ushort)76, database.Objects[13].DeathEffectId);
         Assert.Equal("Group_dharch", database.Effects[300].ArtResource.Name);
         var model = new RoomConstructionParticles(database, 7, () => new EffectTime(0),
@@ -351,7 +359,10 @@ public class EffectChainTests
         return new([], [], [], new GlobalVariables(), effects: [lit, generator, parent], effectElements: [sparkle]);
     }
 
-    private static FpPosition3 Point(int height) => new(new(10240), new(14336), new(height));
+    private static FpPosition3 Point(int height)
+    {
+        return new(new(10240), new(14336), new(height));
+    }
 
     private static RoomConstructionParticles Model(out GameDatabase database, ushort randomness = 0,
         Func<string, IReadOnlyList<EffectGroupPart>?>? groupParts = null, ushort hp = 3)
@@ -373,13 +384,26 @@ public class EffectChainTests
         EffectElementDef part = sparkle with { Name = "part", EffectElementId = Part, MinHp = 10, MaxHp = 10, ArtResource = new KwdArtResource("", 0, new byte[12], 0, 0, 0, 0),
             Flags = partFlags, MinScale = partScale, MaxScale = partScale };
         EffectDef Effect(ushort id, string name, ushort hp, ushort[] generates, ushort next = 0, ushort death = 0,
-            uint flags = 0x80, KwdArtResource? ownArt = null, byte perTurn = 1) => new([])
+            uint flags = 0x80, KwdArtResource? ownArt = null, byte perTurn = 1)
         {
-            Name = name, EffectId = id, ArtResource = ownArt ?? new KwdArtResource("", 0, new byte[12], 0, 0, 0, 0),
-            Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0), GenerateIds = generates, Flags = flags, GenerationType = 4,
-            ElementsPerTurn = perTurn, MinHp = hp, MaxHp = hp, NextEffectId = next, DeathEffectId = death,
-            GenerateRandomness = randomness,
-        };
+            return new([])
+            {
+                Name = name,
+                EffectId = id,
+                ArtResource = ownArt ?? new KwdArtResource("", 0, new byte[12], 0, 0, 0, 0),
+                Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0),
+                GenerateIds = generates,
+                Flags = flags,
+                GenerationType = 4,
+                ElementsPerTurn = perTurn,
+                MinHp = hp,
+                MaxHp = hp,
+                NextEffectId = next,
+                DeathEffectId = death,
+                GenerateRandomness = randomness,
+            };
+        }
+
         EffectDef first = Effect(First, "first", 1, [Sparkle], next: Next, death: Death);
         EffectDef nextEffect = Effect(Next, "next", nextHp, [Flake]);
         EffectDef death = Effect(Death, "death", 1, [Part]);

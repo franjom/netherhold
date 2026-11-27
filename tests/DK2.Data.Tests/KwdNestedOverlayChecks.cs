@@ -11,15 +11,21 @@ internal static class KwdNestedOverlayChecks
 {
     internal static void Art<T>(KwdRecordType type, int stride, int offset, Func<byte[], T> read,
         Func<T, KwdRecordImage, byte[]> write, Func<T, KwdArtResource> select,
-        Func<T, KwdArtResource, T> replace) where T : class => Check(type, stride, offset, 84,
+        Func<T, KwdArtResource, T> replace) where T : class
+    {
+        Check(type, stride, offset, 84,
             read, write, select, replace,
             "Name:0:64 Flags:40:4 Unknown_0044:44:12 Type:50:1 Unknown_0051:51:1 Unknown_0052:52:1 Unknown_0053:53:1");
+    }
 
     internal static void Light<T>(KwdRecordType type, int stride, int offset, Func<byte[], T> read,
         Func<T, KwdRecordImage, byte[]> write, Func<T, KwdLight> select,
-        Func<T, KwdLight, T> replace) where T : class => Check(type, stride, offset, 24,
+        Func<T, KwdLight, T> replace) where T : class
+    {
+        Check(type, stride, offset, 24,
             read, write, select, replace,
             "X:0:4 Y:4:4 Z:8:4 Radius:C:4 Flags:10:4 Red:14:1 Green:15:1 Blue:16:1 Alpha:17:1");
+    }
 
     private static void Check<T, TNested>(KwdRecordType type, int stride, int offset, int width,
         Func<byte[], T> read, Func<T, KwdRecordImage, byte[]> write, Func<T, TNested> select,

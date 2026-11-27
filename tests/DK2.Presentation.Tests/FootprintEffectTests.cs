@@ -61,11 +61,21 @@ public sealed class FootprintEffectTests
         Assert.Single(model.Particles);
     }
 
-    private static EffectDef Definition(ushort id, string art, uint flags) => new([])
+    private static EffectDef Definition(ushort id, string art, uint flags)
     {
-        EffectId = id, Name = art, ArtResource = new KwdArtResource(art, flags, new byte[12], 2, 0, 0, 0),
-        Light = new KwdLight(0, 0, 0, 0, 0, 0, 0, 0, 0), GenerateIds = [],
-        GenerationType = 0, MinHp = 50, MaxHp = 50, MinScale = 819, MaxScale = 819,
-        Flags = 0x480
-    };
+        return new([])
+        {
+            EffectId = id,
+            Name = art,
+            ArtResource = new KwdArtResource(art, flags, new byte[12], 2, 0, 0, 0),
+            Light = new KwdLight(0, 0, 0, 0, 0, 0, 0, 0, 0),
+            GenerateIds = [],
+            GenerationType = 0,
+            MinHp = 50,
+            MaxHp = 50,
+            MinScale = 819,
+            MaxScale = 819,
+            Flags = 0x480
+        };
+    }
 }

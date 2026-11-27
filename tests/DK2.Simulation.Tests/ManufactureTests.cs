@@ -18,8 +18,11 @@ public class ManufactureTests
     private static readonly TilePos Bench = new(3, 3);
 
     /// <summary>A Goblin that manufactures 40 a second: 10 a turn after the loader's division.</summary>
-    private static GameDatabase Db() => Dk2TerrainFixture.Database(
+    private static GameDatabase Db()
+    {
+        return Dk2TerrainFixture.Database(
         Dk2TerrainFixture.Goblin() with { CreatureId = MakerId, Name = "Maker", ManufacturePerSecond = 40 });
+    }
 
     private static WorldState World(GameDatabase db)
     {
@@ -161,8 +164,16 @@ public class ManufactureTests
         Assert.Null(JobRules.Refused(world, db, db.CreatureById(MakerId), new CreatureState { OwnerPlayerId = Keeper }, JobType.Manufacture));
     }
 
-    private static DoorThing Door(int x, int y) => new(new byte[20])
+    private static DoorThing Door(int x, int y)
     {
-        X = x, Y = y, DoorId = 1, PlayerId = Keeper, Flags = 0x02, Unknown_0011 = new byte[3],
-    };
+        return new(new byte[20])
+        {
+            X = x,
+            Y = y,
+            DoorId = 1,
+            PlayerId = Keeper,
+            Flags = 0x02,
+            Unknown_0011 = new byte[3],
+        };
+    }
 }

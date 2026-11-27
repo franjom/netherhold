@@ -19,14 +19,29 @@ public sealed class PossessionUpkeepTests
     /// both clamps (GameDatabase drops a negative row, as it does for every stat).</summary>
     private static readonly int[] Stat27Row = [0, 133, 200, 250, 300, 350, 400, 500, 30000];
 
-    private static LevelDef Level(ushort flags) => new([])
+    private static LevelDef Level(ushort flags)
     {
-        Name = "", Description = "", Author = "", Email = "", Information = "",
-        Unknown_1184 = default, Messages = [], Flags = flags, SoundCategory = "",
-        PreviousRewards = default, NextRewards = default, IntroductionOverrideObjects = default,
-        IntroductionOverrideTextIds = [], TerrainPath = "", Unknown_6403 = default,
-        Paths = [], UnknownPathTail = [],
-    };
+        return new([])
+        {
+            Name = "",
+            Description = "",
+            Author = "",
+            Email = "",
+            Information = "",
+            Unknown_1184 = default,
+            Messages = [],
+            Flags = flags,
+            SoundCategory = "",
+            PreviousRewards = default,
+            NextRewards = default,
+            IntroductionOverrideObjects = default,
+            IntroductionOverrideTextIds = [],
+            TerrainPath = "",
+            Unknown_6403 = default,
+            Paths = [],
+            UnknownPathTail = [],
+        };
+    }
 
     private static (GameDatabase Db, WorldState World, CreatureState Me) Setup(
         ushort levelFlags = PossessionRules.UpkeepLevelFlag, bool upgraded = false, int level = 1,
@@ -71,8 +86,10 @@ public sealed class PossessionUpkeepTests
         }
     }
 
-    private static int Charge(GameDatabase db, WorldState world) =>
-        PossessionRules.UpkeepPerSecond(world, db, world.Player(Keeper));
+    private static int Charge(GameDatabase db, WorldState world)
+    {
+        return PossessionRules.UpkeepPerSecond(world, db, world.Player(Keeper));
+    }
 
     [Fact]
     public void LevelOneChargesTheCreaturesUnsignedCost_FromBinary()

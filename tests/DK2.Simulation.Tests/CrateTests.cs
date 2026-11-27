@@ -26,12 +26,17 @@ public class CrateTests
 
     /// <summary>A maker at 40 a second whose content table is Manufacture alone, as the shipped
     /// Troll's is.</summary>
-    private static GameDatabase Db() => Dk2TerrainFixture.Database(
+    private static GameDatabase Db()
+    {
+        return Dk2TerrainFixture.Database(
         Dk2TerrainFixture.Goblin() with
         {
-            CreatureId = MakerId, Name = "Maker", ManufacturePerSecond = 40,
+            CreatureId = MakerId,
+            Name = "Maker",
+            ManufacturePerSecond = 40,
             HappyJobs = [new(JobType.Manufacture, 0, 0, 100)],
         });
+    }
 
     private static WorldState World(GameDatabase db)
     {
@@ -54,27 +59,48 @@ public class CrateTests
         return world;
     }
 
-    private static DoorThing Door(TilePos at, byte flags = 0x02) => new(new byte[20])
+    private static DoorThing Door(TilePos at, byte flags = 0x02)
     {
-        X = at.X, Y = at.Y, DoorId = 1, PlayerId = Keeper, Flags = flags, Unknown_0011 = new byte[3],
-    };
+        return new(new byte[20])
+        {
+            X = at.X,
+            Y = at.Y,
+            DoorId = 1,
+            PlayerId = Keeper,
+            Flags = flags,
+            Unknown_0011 = new byte[3],
+        };
+    }
 
-    private static TrapThing Trap(TilePos at, byte shots = 0) => new(new byte[16])
+    private static TrapThing Trap(TilePos at, byte shots = 0)
     {
-        X = at.X, Y = at.Y, TrapId = 7, PlayerId = Keeper, NumberOfShots = shots,
-    };
+        return new(new byte[16])
+        {
+            X = at.X,
+            Y = at.Y,
+            TrapId = 7,
+            PlayerId = Keeper,
+            NumberOfShots = shots,
+        };
+    }
 
-    private static RoomInstance Workshop(GameDatabase db, WorldState world) =>
-        RoomIndex.RoomAt(world, db, world.Width + 1)!;
+    private static RoomInstance Workshop(GameDatabase db, WorldState world)
+    {
+        return RoomIndex.RoomAt(world, db, world.Width + 1)!;
+    }
 
-    private static ObjectState Crate(GameDatabase db, WorldState world, byte type, TilePos at, byte owner = Keeper) =>
-        world.SpawnObject(db, type, owner, (at.Y * world.Width) + at.X);
+    private static ObjectState Crate(GameDatabase db, WorldState world, byte type, TilePos at, byte owner = Keeper)
+    {
+        return world.SpawnObject(db, type, owner, (at.Y * world.Width) + at.X);
+    }
 
-    private static GameSimulation Simulation(GameDatabase db, WorldState world, ListEventSink sink, params ISimulationSystem[] extra) =>
-        Observed(new GameSimulation(db, world, seed: 42,
+    private static GameSimulation Simulation(GameDatabase db, WorldState world, ListEventSink sink, params ISimulationSystem[] extra)
+    {
+        return Observed(new GameSimulation(db, world, seed: 42,
         [
             new HandSystem(), new CreatureMovementSystem(), new ImpTaskSystem(), new CreatureJobSystem(), .. extra,
         ]), sink);
+    }
 
     private static GameSimulation Observed(GameSimulation sim, ListEventSink sink)
     {

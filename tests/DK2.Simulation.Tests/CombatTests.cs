@@ -234,8 +234,18 @@ public class CombatTests
 
     private sealed class Lambda(Action<SimulationContext> body) : ISimulationSystem
     {
-        public string Name => "test step";
-        public void Execute(SimulationContext context) => body(context);
+        public string Name
+        {
+            get
+            {
+                return "test step";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            body(context);
+        }
     }
 
     [Fact]
@@ -592,8 +602,10 @@ public class CombatTests
         return (db, world);
     }
 
-    private static CreatureState Spawn(GameDatabase db, WorldState world, byte type, byte owner, int x, int y) =>
-        world.SpawnArrived(db, type, owner, new TilePos(x, y));
+    private static CreatureState Spawn(GameDatabase db, WorldState world, byte type, byte owner, int x, int y)
+    {
+        return world.SpawnArrived(db, type, owner, new TilePos(x, y));
+    }
 
     /// <summary>A creature a third of a tile from <paramref name="other"/>: inside every melee reach.</summary>
     private static CreatureState Touching(GameDatabase db, WorldState world, byte type, byte owner, CreatureState other, int dy = 0)
@@ -604,6 +616,8 @@ public class CombatTests
         return c;
     }
 
-    private static GameSimulation Combat(GameDatabase db, WorldState world) =>
-        new(db, world, 1, [new CombatSystem()]);
+    private static GameSimulation Combat(GameDatabase db, WorldState world)
+    {
+        return new(db, world, 1, [new CombatSystem()]);
+    }
 }

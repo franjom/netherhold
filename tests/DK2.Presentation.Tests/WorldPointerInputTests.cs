@@ -21,26 +21,53 @@ public sealed class WorldPointerInputTests
         public TilePos? Tile;
         public Func<string>? AtMinimap;
 
-        public void MinimapPress(in HudPress press) => Calls.Add("minimap " + press.Primary + AtMinimap?.Invoke());
+        public void MinimapPress(in HudPress press)
+        {
+            Calls.Add("minimap " + press.Primary + AtMinimap?.Invoke());
+        }
+
         public FpPosition2? PointerPosition(TilePos tile) { Calls.Add("position"); return null; }
         public bool PointerOverHud() { Calls.Add("over hud"); return false; }
         public TilePos? PointerTile() { Calls.Add("tile"); return Tile; }
         public WorldHoverHit Hover(TilePos tile) { Calls.Add("hover"); return new WorldHoverHit(WorldHoverKind.Tile, tile); }
-        public void FollowQueriedCreature() => Calls.Add("follow");
+        public void FollowQueriedCreature()
+        {
+            Calls.Add("follow");
+        }
 
         public void ApplyHudAction(ClassicHudAction action) { Calls.Add("apply " + action); controls.Apply(action); }
-        public void GoToFullMapTile() => Calls.Add("full map tile");
-        public void PollGameOptionsKeyboard() => Calls.Add("poll keys");
+        public void GoToFullMapTile()
+        {
+            Calls.Add("full map tile");
+        }
+
+        public void PollGameOptionsKeyboard()
+        {
+            Calls.Add("poll keys");
+        }
+
         public ClassicOptionsAction OptionsActionAtPointer() { Calls.Add("options entry"); return ClassicOptionsAction.None; }
-        public void RefreshSaves() => Calls.Add("refresh saves");
-        public void StartSession(ClassicSessionAction session) => Calls.Add("session " + session);
+        public void RefreshSaves()
+        {
+            Calls.Add("refresh saves");
+        }
+
+        public void StartSession(ClassicSessionAction session)
+        {
+            Calls.Add("session " + session);
+        }
+
         public bool TryPressOverview(in HudPress press, out CreatureOverviewRequest request)
         {
             Calls.Add("overview");
             request = default;
             return false;
         }
-        public void FocusCreature(FpPosition3 position) => Calls.Add("focus");
+        public void FocusCreature(FpPosition3 position)
+        {
+            Calls.Add("focus");
+        }
+
         public ClassicHudAction PressMinimap(in HudPress press) { Calls.Add("hud minimap"); return ClassicHudAction.None; }
         public KeeperResourceKind ResourceAtPointer() { Calls.Add("resource"); return KeeperResourceKind.None; }
     }
@@ -81,9 +108,11 @@ public sealed class WorldPointerInputTests
         }
 
         public void Queue(bool ordinary = true, bool possessing = false, bool modal = false, bool primary = false,
-            bool secondary = false, bool primaryUp = false) =>
+            bool secondary = false, bool primaryUp = false)
+        {
             Pointer.Queue(new WorldPointerFrame(Keeper, ordinary, possessing, modal, new HudPress(primary, secondary), primaryUp,
                 false, 0), World, Database, Pending);
+        }
     }
 
     [Fact]

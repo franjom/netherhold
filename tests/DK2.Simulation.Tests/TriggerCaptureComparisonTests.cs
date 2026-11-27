@@ -199,8 +199,10 @@ public class TriggerCaptureComparisonTests
         Assert.Empty(result.AlignedEvents);
     }
 
-    private static CsvRow Row(int tick, params (string Id, int Value)[] events) =>
-        new(tick, events);
+    private static CsvRow Row(int tick, params (string Id, int Value)[] events)
+    {
+        return new(tick, events);
+    }
 
     private static StringReader Csv(params CsvRow[] rows)
     {

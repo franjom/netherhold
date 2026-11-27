@@ -105,7 +105,10 @@ public class CampaignResultsTests
     [InlineData(18u, 2896u)]
     [InlineData(82u, 2899u)]
     [InlineData(83u, 2900u)]
-    public void RankTitlesFollowTheNativeThresholds(uint rank, uint title) => Assert.Equal(title, KeeperRank.TitleTextId(rank));
+    public void RankTitlesFollowTheNativeThresholds(uint rank, uint title)
+    {
+        Assert.Equal(title, KeeperRank.TitleTextId(rank));
+    }
 
     [Fact]
     public void TheRankSaturatesItsTermsAndCapsAtAHundred()
@@ -135,8 +138,10 @@ public class CampaignResultsTests
     [InlineData(15, "12")]
     [InlineData(19, "15b")]
     [InlineData(24, "20")]
-    public void HiScoreLabelsNameTheLevelAndItsBranch(int slot, string label) =>
+    public void HiScoreLabelsNameTheLevelAndItsBranch(int slot, string label)
+    {
         Assert.Equal(label, HiScoreTable.Label(new CampaignSlot(slot), ""));
+    }
 
     [Fact]
     public void AQualifyingWinOpensNameEntryAndCommitSavesThenFliesToTheMap()

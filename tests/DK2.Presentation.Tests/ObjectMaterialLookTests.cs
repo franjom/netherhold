@@ -15,7 +15,10 @@ namespace DK2.Presentation.Tests;
 public sealed class ObjectMaterialLookTests
 {
     private static KmfMaterial Material(uint flags, float brightness, float shininess, string environment,
-        params string[] textures) => new("m", textures, flags, brightness, shininess, environment);
+        params string[] textures)
+    {
+        return new("m", textures, flags, brightness, shininess, environment);
+    }
 
     private static readonly ObjectMaterialLook Opaque = ObjectMaterialLook.Own(new ClassicMaterialRecipe("A", KmfBlend.Opaque, 0.25f));
     private static readonly ObjectMaterialLook Alpha = ObjectMaterialLook.Own(new ClassicMaterialRecipe("B", KmfBlend.AlphaBlend, 0.5f));
@@ -213,5 +216,8 @@ public sealed class ObjectMaterialLookTests
 
 internal static class KmfMaterialTestExtensions
 {
-    public static string Texture(this KmfMaterial material, int index) => material.TextureNames[index];
+    public static string Texture(this KmfMaterial material, int index)
+    {
+        return material.TextureNames[index];
+    }
 }

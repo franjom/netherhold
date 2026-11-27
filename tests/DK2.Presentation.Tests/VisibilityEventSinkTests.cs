@@ -75,15 +75,24 @@ public sealed class VisibilityEventSinkTests
     private sealed class VisibilityRecorder(WorldView view, WorldState world, TilePos tile,
         List<bool> received) : ISimulationEventSink
     {
-        public void Emit(in SimEvent simEvent) => received.Add(view.CanShowTile(world, tile));
+        public void Emit(in SimEvent simEvent)
+        {
+            received.Add(view.CanShowTile(world, tile));
+        }
     }
 
-    private static SimEvent Sight(GameTick tick, TilePos tile, byte viewer) => new(tick, "test", "sight", "")
+    private static SimEvent Sight(GameTick tick, TilePos tile, byte viewer)
     {
-        SightRegion = new SightRegionRequest(new PlayerId(viewer), tile, 64, 5),
-    };
+        return new(tick, "test", "sight", "")
+        {
+            SightRegion = new SightRegionRequest(new PlayerId(viewer), tile, 64, 5),
+        };
+    }
 
-    private static SimEvent Effect(GameTick tick) => new(tick, "test", "effect", "");
+    private static SimEvent Effect(GameTick tick)
+    {
+        return new(tick, "test", "effect", "");
+    }
 
     private static (GameSimulation Simulation, WorldView View) Fixture()
     {

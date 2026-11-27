@@ -20,10 +20,19 @@ public class PrisonGateTests
     private const byte GoblinId = 7;
     private const int Second = SimulationTiming.TicksPerSecond;
 
-    private static GameDatabase Db => Dk2TerrainFixture.Database();
+    private static GameDatabase Db
+    {
+        get
+        {
+            return Dk2TerrainFixture.Database();
+        }
+    }
 
-    private static WorldState World(GameDatabase db) => Dk2TerrainFixture.Sellable(WorldState.FromMap(
+    private static WorldState World(GameDatabase db)
+    {
+        return Dk2TerrainFixture.Sellable(WorldState.FromMap(
         db, Dk2TerrainFixture.Map(), [(byte)0, Rival, PlayerIds.Neutral, Keeper]));
+    }
 
     /// <summary>A 5x5 Prison at (3..7, 2..6) on paved ground, whose fenced cell is the 3x3 at (4..6, 3..5).</summary>
     private static void BigPrison(GameDatabase db, WorldState world)
@@ -83,7 +92,10 @@ public class PrisonGateTests
         return new Setup(db, world, sim, sink, imp, body, prison, JailBreakRules.DoorTile(world, prison));
     }
 
-    private static int Index(WorldState world, TilePos tile) => (tile.Y * world.Width) + tile.X;
+    private static int Index(WorldState world, TilePos tile)
+    {
+        return (tile.Y * world.Width) + tile.X;
+    }
 
     [Fact]
     public void TheDoorTileIsARimTileAndTheCellIsAThreeByThree()

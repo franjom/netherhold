@@ -20,7 +20,10 @@ internal static class SoundMapBytes
     public sealed record Item(float Maximum, (uint Entry, uint Archive, uint Weight)[] Samples,
         (uint Target, byte Minimum, byte Maximum)[]? Links = null, byte Volume = 100);
 
-    public static SoundMaps Maps(string archive, params Group[] groups) => new(Bank(archive), Sfx(groups));
+    public static SoundMaps Maps(string archive, params Group[] groups)
+    {
+        return new(Bank(archive), Sfx(groups));
+    }
 
     public static SfxMap Sfx(params Group[] groups)
     {

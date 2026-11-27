@@ -15,9 +15,11 @@ namespace DK2.Presentation.Tests;
 /// the head table, the frame helper, the flower layers, the dollar clock and the brightness exponent.</summary>
 public sealed class SceneRuleTests
 {
-    private static ObjectView Heart(byte owner, EffectId mana, DungeonHeartVisual? visual = null) =>
-        new(1, 13, new PlayerId(owner), new TilePos(5, 5), default, 0, 100, 200, 300, 0, Fp32.One,
+    private static ObjectView Heart(byte owner, EffectId mana, DungeonHeartVisual? visual = null)
+    {
+        return new(1, 13, new PlayerId(owner), new TilePos(5, 5), default, 0, 100, 200, 300, 0, Fp32.One,
             heartVisual: visual ?? new DungeonHeartVisual(new Fp32(7), new Fp32(Fp32.One), default) { ManaEffect = mana });
+    }
 
     [Fact]
     public void HealthChangesComeOutOldestFirstAndAdvanceEveryHeartOfTheirOwner()
@@ -173,8 +175,11 @@ public sealed class SceneRuleTests
     }
 
     private static StatusFlower Flower(bool drawRing = true, int ring = 2, bool arcs = true, bool imprison = true,
-        string? objective = "Objective", bool dollar = false) => new(7, 3, new PlayerId(3), new StatusFlowerColour(1, 2, 3),
+        string? objective = "Objective", bool dollar = false)
+    {
+        return new(7, 3, new PlayerId(3), new StatusFlowerColour(1, 2, 3),
         default, false, ring, "SL-03", arcs, .25f, objective, imprison, drawRing, dollar);
+    }
 
     [Fact]
     public void AFlowerDrawsTheRingTheCentreImprisonAndTheObjectiveInThatOrder()
@@ -272,8 +277,10 @@ public sealed class SceneRuleTests
     [InlineData(0d, 0f)]
     [InlineData(2.6d, .4f)]
     [InlineData(1.25d, 0f)]
-    public void TheDollarIsDrawnAtTheWallClocksQuarterSeconds(double seconds, float fraction) =>
+    public void TheDollarIsDrawnAtTheWallClocksQuarterSeconds(double seconds, float fraction)
+    {
         Assert.Equal(fraction, FlowerDollarClock.Fraction(seconds), 5);
+    }
 
     [Fact]
     public void BrightnessIsDrawnOnlyAwayFromTheDefaultGamma()

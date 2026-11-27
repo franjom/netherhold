@@ -95,10 +95,14 @@ public sealed class Level6aTortureSpeechTests
         Assert.Equal(new uint[] { 380, 379 }, messages.Speech.Pending.Select(r => r.Id.Value));
     }
     private static void Award(GameDatabase db, WorldState world, ISimulationEventSink sink,
-        KwdTriggerId root, CreatureTypeId type) => TortureInformationRules.Award(world, db, new SimRandom(1),
+        KwdTriggerId root, CreatureTypeId type)
+    {
+        TortureInformationRules.Award(world, db, new SimRandom(1),
             db.CreatureById(type.Value), PlayerIds.Good, Keeper, message => sink.Emit(
                 new SimEvent(world.CurrentTick, "Torture", "death_message", "")
                 { TortureMessage = new(message, new CreatureId(50), type, root) }));
+    }
+
     private static (GameDatabase, WorldState) Fixture(string level)
     {
         GameDatabase db = GameDatabaseLoader.LoadForCampaignLevel(Dk2InstallGate.Path, level);

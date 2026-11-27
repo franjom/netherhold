@@ -142,8 +142,10 @@ public sealed class CreatureStateTableTests
     [InlineData(264, true)]
     [InlineData(257, false)]
     [InlineData(250, false)]
-    public void TheStunsRefuseTheFightLookup_ButGettingUpDoesNot(int state, bool refuses) =>
+    public void TheStunsRefuseTheFightLookup_ButGettingUpDoesNot(int state, bool refuses)
+    {
         Assert.Equal(refuses, CreatureStateTable.Get(state).Has(CreatureStateFlags.NoFightLookup));
+    }
 
     /// <summary>The two clock-suppressing bits always travel together, and they mark a
     /// <b>contiguous run of ids</b> — 145 to 159, the Casino's states, which is why the room

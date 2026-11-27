@@ -24,8 +24,11 @@ public class KwdTerrainWibbleTests
         return source;
     }
 
-    private static TerrainDef Read(byte[] source) => KwdTerrainRooms.ParseTerrain([
+    private static TerrainDef Read(byte[] source)
+    {
+        return KwdTerrainRooms.ParseTerrain([
         new KwdChunk { Type = KwdRecordType.Terrain, ItemCount = 1, Content = source, HeaderBlock = [] }]).Single();
+    }
 
     [Fact]
     public void TheEightBytesReadInOrderAndWriteBackUnchanged()

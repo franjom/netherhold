@@ -23,10 +23,19 @@ public class ObjectsInWorldTests
     private const byte VampireId = Dk2TerrainFixture.VampireCreatureId;
     private const int Second = SimulationTiming.TicksPerSecond;
 
-    private static GameDatabase Db => Dk2TerrainFixture.Database();
+    private static GameDatabase Db
+    {
+        get
+        {
+            return Dk2TerrainFixture.Database();
+        }
+    }
 
-    private static WorldState World(GameDatabase db) => WorldState.FromMap(
+    private static WorldState World(GameDatabase db)
+    {
+        return WorldState.FromMap(
         db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
+    }
 
     private static void Paint(
         GameDatabase db, WorldState world, RoomTypeId type, TilePos at, byte owner)

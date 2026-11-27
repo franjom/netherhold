@@ -159,10 +159,12 @@ public class CapturedSteeringTests(ITestOutputHelper log)
         return body;
     }
 
-    private static MoverProfile Profile(CapturedMover m) =>
-        new(CanWalkOnWater: ((m.Def686 >> 4) & 1) != 0, CanWalkOnLava: ((m.Def686 >> 5) & 1) != 0, Owner: (byte)m.Number,
+    private static MoverProfile Profile(CapturedMover m)
+    {
+        return new(CanWalkOnWater: ((m.Def686 >> 4) & 1) != 0, CanWalkOnLava: ((m.Def686 >> 5) & 1) != 0, Owner: (byte)m.Number,
             RespectDoors: ((m.Flags3E6 >> 19) & 1) != 0, PassOwnLockedDoors: ((m.Flags3E6 >> 17) & 1) != 0,
             EntersPortalHole: ((m.Flags3E6 >> 18) & 1) != 0);
+    }
 
     /// <summary>Bodies on every open tile of the map, a tenth beside its doors: positions anywhere in
     /// the tile, headings all round at speeds to two tiles a tick, the shipped radius or another,
@@ -212,7 +214,11 @@ public class CapturedSteeringTests(ITestOutputHelper log)
         (int tx, int ty) = body.Pos.Tile();
         byte own = world.NavByte(tx, ty);
         int sx = body.Vel.X < 0 ? -1 : 1, sy = body.Vel.Y < 0 ? -1 : 1;
-        bool Open(int x, int y) => MeshRouter.TransitionCost(world.NavByte(x, y), own, mover) != 0;
+        bool Open(int x, int y)
+        {
+            return MeshRouter.TransitionCost(world.NavByte(x, y), own, mover) != 0;
+        }
+
         return !Open(tx + sx, ty + sy) && Open(tx, ty + sy) && Open(tx + sx, ty) ? "corner reflection" : "axis margin";
     }
 
@@ -253,15 +259,44 @@ public class CapturedSteeringTests(ITestOutputHelper log)
     /// bytes, and off the map the original's probe answers solid (8).</summary>
     private sealed class GridWorld(int width, int height, int[] bytes) : ISteeringWorld
     {
-        public byte NavByte(int x, int y) =>
-            x < 0 || y < 0 || x >= width || y >= height ? NavBytes.Solid : (byte)bytes[y * width + x];
+        public byte NavByte(int x, int y)
+        {
+            return x < 0 || y < 0 || x >= width || y >= height ? NavBytes.Solid : (byte)bytes[y * width + x];
+        }
 
-        public bool CanMove(Fixed16Vector from, Fixed16Vector to) => throw new NotSupportedException();
-        public Fixed16Vector ConstrainTarget(Fixed16Vector from, Fixed16Vector target) => throw new NotSupportedException();
-        public void CollectObstacles(Fixed16Vector centre, int range, List<SteeringObstacle> into) => throw new NotSupportedException();
-        public int CrowdWeight(Fixed16Vector point, int span) => throw new NotSupportedException();
-        public bool Route(Fixed16Vector from, Fixed16Vector to, MoverProfile mover, List<Fixed16Vector> points) => throw new NotSupportedException();
-        public void CollectNeighbours(Fixed16Vector centre, int range, List<SteeringNeighbour> into) => throw new NotSupportedException();
-        public SteeringBody? RelatedBody(SteeringMover mover, out int reachTiles) => throw new NotSupportedException();
+        public bool CanMove(Fixed16Vector from, Fixed16Vector to)
+        {
+            throw new NotSupportedException();
+        }
+
+        public Fixed16Vector ConstrainTarget(Fixed16Vector from, Fixed16Vector target)
+        {
+            throw new NotSupportedException();
+        }
+
+        public void CollectObstacles(Fixed16Vector centre, int range, List<SteeringObstacle> into)
+        {
+            throw new NotSupportedException();
+        }
+
+        public int CrowdWeight(Fixed16Vector point, int span)
+        {
+            throw new NotSupportedException();
+        }
+
+        public bool Route(Fixed16Vector from, Fixed16Vector to, MoverProfile mover, List<Fixed16Vector> points)
+        {
+            throw new NotSupportedException();
+        }
+
+        public void CollectNeighbours(Fixed16Vector centre, int range, List<SteeringNeighbour> into)
+        {
+            throw new NotSupportedException();
+        }
+
+        public SteeringBody? RelatedBody(SteeringMover mover, out int reachTiles)
+        {
+            throw new NotSupportedException();
+        }
     }
 }

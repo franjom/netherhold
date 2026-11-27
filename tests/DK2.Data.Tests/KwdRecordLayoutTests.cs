@@ -30,10 +30,15 @@ namespace DK2.Data.Tests;
 /// </summary>
 public class KwdRecordLayoutTests
 {
-    private static string FindInstall() => Dk2InstallGate.Path;
+    private static string FindInstall()
+    {
+        return Dk2InstallGate.Path;
+    }
 
-    private static string Editor(string dir, string file) =>
-        Path.Combine(dir, "Data", "editor", file);
+    private static string Editor(string dir, string file)
+    {
+        return Path.Combine(dir, "Data", "editor", file);
+    }
 
     /// <summary>
     /// Every fixed-stride record type, and the stride the shipped files carry.
@@ -42,7 +47,9 @@ public class KwdRecordLayoutTests
     /// is independently reproduced by summing OpenKeeper's field list for the
     /// same record — two routes, one number, on all of these.</para>
     /// </summary>
-    public static TheoryData<string, KwdRecordType, int, int> FixedStrides() => new()
+    public static TheoryData<string, KwdRecordType, int, int> FixedStrides()
+    {
+        return new()
     {
         // file, type, item count, record size
         { "Terrain.kwd",        KwdRecordType.Terrain,         41,  552 },  // parsed
@@ -57,6 +64,7 @@ public class KwdRecordLayoutTests
         { "Effects.kwd",        KwdRecordType.Effects,        370,  246 },  // parsed
         { "EffectElements.kwd", KwdRecordType.EffectElements, 596,  182 },  // parsed
     };
+    }
 
     [InstallTheory]
     [MemberData(nameof(FixedStrides))]

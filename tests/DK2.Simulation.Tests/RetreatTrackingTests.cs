@@ -176,8 +176,18 @@ public class RetreatTrackingTests
 
     private sealed class Probe(Action<SimulationContext> run) : ISimulationSystem
     {
-        public string Name => "probe";
-        public void Execute(SimulationContext context) => run(context);
+        public string Name
+        {
+            get
+            {
+                return "probe";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            run(context);
+        }
     }
 
     // ------------------------------------------------------------------ helpers

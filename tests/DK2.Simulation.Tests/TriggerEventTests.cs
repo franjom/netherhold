@@ -243,50 +243,86 @@ public class TriggerEventTests
         return (world, database, creature);
     }
 
-    private static TriggerExecutor Executor(TriggerRecord[] records, WorldState world, GameDatabase database) =>
-        new(new TriggerTree(records, 0), world.Triggers, world, database);
+    private static TriggerExecutor Executor(TriggerRecord[] records, WorldState world, GameDatabase database)
+    {
+        return new(new TriggerTree(records, 0), world.Triggers, world, database);
+    }
 
-    private static TriggerRecord Event(ushort id, CreatureTriggerEvent type, ushort child, ushort next = 0, byte repeat = 255) =>
-        Event(id, (byte)type, child, next, repeat);
+    private static TriggerRecord Event(ushort id, CreatureTriggerEvent type, ushort child, ushort next = 0, byte repeat = 255)
+    {
+        return Event(id, (byte)type, child, next, repeat);
+    }
 
-    private static TriggerRecord Event(ushort id, byte type, ushort child, ushort next = 0, byte repeat = 255) =>
-        new GenericTriggerRecord(new byte[16])
+    private static TriggerRecord Event(ushort id, byte type, ushort child, ushort next = 0, byte repeat = 255)
+    {
+        return new GenericTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = id, Type = type, RepeatCount = repeat,
-            ChildTriggerId = child, NextTriggerId = next,
+            Body = new byte[8],
+            TriggerId = id,
+            Type = type,
+            RepeatCount = repeat,
+            ChildTriggerId = child,
+            NextTriggerId = next,
             Parameters = new Dictionary<string, long>(),
         };
+    }
 
-    private static TriggerRecord Gui(ushort id, byte targetType, byte targetId, ushort child, ushort next = 0) =>
-        new GenericTriggerRecord(new byte[16])
+    private static TriggerRecord Gui(ushort id, byte targetType, byte targetId, ushort child, ushort next = 0)
+    {
+        return new GenericTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = id, Type = 53, RepeatCount = 255,
-            ChildTriggerId = child, NextTriggerId = next,
+            Body = new byte[8],
+            TriggerId = id,
+            Type = 53,
+            RepeatCount = 255,
+            ChildTriggerId = child,
+            NextTriggerId = next,
             Parameters = new Dictionary<string, long> { ["TargetType"] = targetType, ["TargetId"] = targetId },
         };
+    }
 
-    private static TriggerRecord FlagCondition(ushort id, ushort child) =>
-        new GenericTriggerRecord(new byte[16])
+    private static TriggerRecord FlagCondition(ushort id, ushort child)
+    {
+        return new GenericTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = id, Type = 1, RepeatCount = 255,
-            ChildTriggerId = child, NextTriggerId = 0,
+            Body = new byte[8],
+            TriggerId = id,
+            Type = 1,
+            RepeatCount = 255,
+            ChildTriggerId = child,
+            NextTriggerId = 0,
             Parameters = new Dictionary<string, long>
             {
-                ["Comparison"] = 3, ["TargetId"] = 0, ["Flag"] = 1, ["FlagId"] = 0, ["Value"] = 0,
+                ["Comparison"] = 3,
+                ["TargetId"] = 0,
+                ["Flag"] = 1,
+                ["FlagId"] = 0,
+                ["Value"] = 0,
             },
         };
+    }
 
-    private static TriggerRecord Assign(ushort id, byte flagId, ushort next = 0) =>
-        Action(id, flagId, mode: 0x0A, value: 9, next);
+    private static TriggerRecord Assign(ushort id, byte flagId, ushort next = 0)
+    {
+        return Action(id, flagId, mode: 0x0A, value: 9, next);
+    }
 
-    private static TriggerRecord Add(ushort id, byte flagId, int value) =>
-        Action(id, flagId, mode: 0x12, value, next: 0);
+    private static TriggerRecord Add(ushort id, byte flagId, int value)
+    {
+        return Action(id, flagId, mode: 0x12, value, next: 0);
+    }
 
-    private static TriggerRecord Action(ushort id, byte flagId, byte mode, int value, ushort next) =>
-        new ActionTriggerRecord(new byte[16])
+    private static TriggerRecord Action(ushort id, byte flagId, byte mode, int value, ushort next)
+    {
+        return new ActionTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = unchecked((ushort)-(short)id), Type = 7,
-            RepeatCount = 0, ChildTriggerId = 0, NextTriggerId = next,
+            Body = new byte[8],
+            TriggerId = unchecked((ushort)-(short)id),
+            Type = 7,
+            RepeatCount = 0,
+            ChildTriggerId = 0,
+            NextTriggerId = next,
             Parameters = new Dictionary<string, long> { ["FlagId"] = flagId, ["Flag"] = mode, ["Value"] = value },
         };
+    }
 }

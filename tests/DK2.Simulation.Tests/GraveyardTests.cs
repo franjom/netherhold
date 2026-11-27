@@ -213,12 +213,16 @@ public class GraveyardTests
 
     // ---- the crypt (0x004DD5C0, 0x004DD9B0; owner 2026-10-09) ----------------------------------
 
-    private static void Furnish(GameDatabase db, WorldState world) =>
+    private static void Furnish(GameDatabase db, WorldState world)
+    {
         new GameSimulation(db, world, 7, [new AutoFurnitureSystem()]).Tick(InputFrame.Empty);
+    }
 
-    private static int[] Objects(WorldState world, RoomInstance room, int first, int last) =>
-        [.. world.Objects.Where(o => o.ObjectTypeId >= first && o.ObjectTypeId <= last && room.Contains(o.TileIndex))
+    private static int[] Objects(WorldState world, RoomInstance room, int first, int last)
+    {
+        return [.. world.Objects.Where(o => o.ObjectTypeId >= first && o.ObjectTypeId <= last && room.Contains(o.TileIndex))
             .Select(o => o.TileIndex).Order()];
+    }
 
     [Fact]
     public void AFiveByFiveGraveyardGetsOneCryptAtItsCentreAndATombStoneOnEachOtherInteriorTile()
@@ -361,8 +365,10 @@ public class GraveyardTests
         SlabChain.Changed(world, db, world.TileIndex(new TilePos(x, y)), before, tile.OwnerPlayerId);
     }
 
-    private static CreatureDef Corpse(ushort decompose) =>
-        Dk2TerrainFixture.Goblin() with { Name = "Corpse", CreatureId = CorpseId, DecomposeValue = decompose };
+    private static CreatureDef Corpse(ushort decompose)
+    {
+        return Dk2TerrainFixture.Goblin() with { Name = "Corpse", CreatureId = CorpseId, DecomposeValue = decompose };
+    }
 
     private static (GameDatabase Db, WorldState World) Setup(CreatureDef corpse)
     {
@@ -394,7 +400,17 @@ public class GraveyardTests
 
     private sealed class Probe(Action<SimulationContext> run) : ISimulationSystem
     {
-        public string Name => "probe";
-        public void Execute(SimulationContext context) => run(context);
+        public string Name
+        {
+            get
+            {
+                return "probe";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            run(context);
+        }
     }
 }

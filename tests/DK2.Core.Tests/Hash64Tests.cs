@@ -9,8 +9,10 @@ namespace DK2.Core.Tests;
 public class Hash64Tests
 {
     [Fact]
-    public void SameInput_ProducesSameHash() =>
+    public void SameInput_ProducesSameHash()
+    {
         Assert.Equal(HashOf("dungeon", 42), HashOf("dungeon", 42));
+    }
 
     [Fact]
     public void DifferentInput_ProducesDifferentHash()

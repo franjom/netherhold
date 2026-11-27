@@ -144,8 +144,11 @@ public sealed class StructureViewTests
         TrapState trap = world.Traps[0];
         door.UnderConstruction = trap.UnderConstruction = true;
         var simulation = new GameSimulation(database, world, 7, []);
-        BlueprintTint Plan(StructureKind kind, int id) =>
-            view.Structures(world).Single(value => value.Id == new StructureId(kind, id)).Plan;
+        BlueprintTint Plan(StructureKind kind, int id)
+        {
+            return view.Structures(world).Single(value => value.Id == new StructureId(kind, id)).Plan;
+        }
+
         for (int i = 0; i < 2; i++)
         {
             bool even = (world.CurrentTick.Value & 1) == 0;
@@ -185,7 +188,10 @@ public sealed class StructureViewTests
         var view = new WorldView(database, 2);
         DoorState door = world.Doors[0];
         var id = new StructureId(StructureKind.Door, door.Id);
-        StructureView Door() => view.Structures(world).Single(value => value.Id == id);
+        StructureView Door()
+        {
+            return view.Structures(world).Single(value => value.Id == id);
+        }
 
         door.UnderConstruction = false;
         door.Open = false;
@@ -302,8 +308,16 @@ public sealed class StructureViewTests
         var presenter = new ScenePresenter(new WorldView(database), AssetProviderChain.Standard(), target);
         DoorState[] doors = [.. world.Doors.OrderBy(door => door.Id)];
         TrapState trap = world.Traps.Single();
-        string Door(DoorState door) => $"Door {door.Id}";
-        string Trap() => $"Trap {trap.Id}";
+        string Door(DoorState door)
+        {
+            return $"Door {door.Id}";
+        }
+
+        string Trap()
+        {
+            return $"Trap {trap.Id}";
+        }
+
         void Show(bool shown)
         {
             foreach (DoorState door in doors)
@@ -354,13 +368,27 @@ public sealed class StructureViewTests
 
     private static (GameDatabase, WorldState) Fixture(bool fog = false, DoorFlags doorFlags = DoorFlags.None)
     {
-        TerrainDef Terrain(byte id, TerrainFlags flags) => new()
+        TerrainDef Terrain(byte id, TerrainFlags flags)
         {
-            Name = id == 1 ? "Floor" : "Wall", TerrainId = id, Flags = flags,
-            StartingHealth = 100, MaxHealth = 100, GoldValue = 0, ManaGain = 0, MaxManaGain = 0,
-            Damage = 0, MaxHealthTypeTerrainId = id, DestroyedTypeTerrainId = id,
-            Depth = new Fp32(0), NameStringId = 0, TooltipStringId = 0,
-        };
+            return new()
+            {
+                Name = id == 1 ? "Floor" : "Wall",
+                TerrainId = id,
+                Flags = flags,
+                StartingHealth = 100,
+                MaxHealth = 100,
+                GoldValue = 0,
+                ManaGain = 0,
+                MaxManaGain = 0,
+                Damage = 0,
+                MaxHealthTypeTerrainId = id,
+                DestroyedTypeTerrainId = id,
+                Depth = new Fp32(0),
+                NameStringId = 0,
+                TooltipStringId = 0,
+            };
+        }
+
         var workshop = new RoomDef
         {
             Name = "Workshop", RoomId = (byte)RoomTypeId.Workshop, TerrainId = 3, Flags = RoomFlags.PlaceableOnLand,

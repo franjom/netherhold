@@ -25,8 +25,9 @@ public class CommandCodecTests
     private static readonly FpPosition3 F3 = new(new Fp32(12_345), new Fp32(23_456), new Fp32(-345));
     private static readonly PossessionAim Aim = new(F3, new Dk2Angle(1_234), new Dk2Angle(77));
 
-    public static IEnumerable<PlayerCommand> Samples() =>
-    [
+    public static IEnumerable<PlayerCommand> Samples()
+    {
+        return [
         new TagTilesCommand(P, [T, new TilePos(6, 7)], true),
         new BuildRoomCommand(P, RoomTypeId.Treasury, [T, new TilePos(1, 2)])
             { Mode = RoomBuildMode.PlayerWave, Press = new TilePos(9, 9), Release = new TilePos(8, 8) },
@@ -74,6 +75,7 @@ public class CommandCodecTests
         new WithdrawCounterGoldCommand(P, new GoldAmount(1_234_567)),
         new GuiButtonCommand(P, GuiButtonTarget.Trap(3)),
     ];
+    }
 
     [Fact]
     public void EveryCommandType_HasASample()
@@ -141,9 +143,11 @@ public class CommandCodecTests
         return rows;
     }
 
-    internal static IEnumerable<Type> CommandTypes() =>
-        typeof(PlayerCommand).Assembly.GetTypes()
+    internal static IEnumerable<Type> CommandTypes()
+    {
+        return typeof(PlayerCommand).Assembly.GetTypes()
             .Where(t => t.IsSubclassOf(typeof(PlayerCommand)) && !t.IsAbstract);
+    }
 
     private static PlayerCommand RoundTrip(PlayerCommand command)
     {
@@ -159,21 +163,28 @@ public class CommandCodecTests
         return back;
     }
 
-    private static IEnumerable<PropertyInfo> Properties(Type type) =>
-        type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(p => p.Name != "EqualityContract" && p.GetIndexParameters().Length == 0);
-
-    private static bool IsDefault(object? value) => value switch
+    private static IEnumerable<PropertyInfo> Properties(Type type)
     {
-        null => true,
-        IEnumerable list and not string => !list.Cast<object>().Any(),
-        _ => value.GetType().IsValueType && value.Equals(Activator.CreateInstance(value.GetType())),
-    };
+        return type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Where(p => p.Name != "EqualityContract" && p.GetIndexParameters().Length == 0);
+    }
 
-    private static bool SameValue(object? a, object? b) =>
-        a is IEnumerable left and not string && b is IEnumerable right
+    private static bool IsDefault(object? value)
+    {
+        return value switch
+        {
+            null => true,
+            IEnumerable list and not string => !list.Cast<object>().Any(),
+            _ => value.GetType().IsValueType && value.Equals(Activator.CreateInstance(value.GetType())),
+        };
+    }
+
+    private static bool SameValue(object? a, object? b)
+    {
+        return a is IEnumerable left and not string && b is IEnumerable right
             ? left.Cast<object>().SequenceEqual(right.Cast<object>())
             : Equals(a, b);
+    }
 
     private static ulong HashOf(PlayerCommand command)
     {

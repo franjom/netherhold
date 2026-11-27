@@ -167,10 +167,14 @@ public static class StateGraph
     {
         public static readonly ReferencePairComparer Instance = new();
 
-        public bool Equals((object, object) x, (object, object) y) =>
-            ReferenceEquals(x.Item1, y.Item1) && ReferenceEquals(x.Item2, y.Item2);
+        public bool Equals((object, object) x, (object, object) y)
+        {
+            return ReferenceEquals(x.Item1, y.Item1) && ReferenceEquals(x.Item2, y.Item2);
+        }
 
-        public int GetHashCode((object, object) pair) =>
-            HashCode.Combine(RuntimeHelpers.GetHashCode(pair.Item1), RuntimeHelpers.GetHashCode(pair.Item2));
+        public int GetHashCode((object, object) pair)
+        {
+            return HashCode.Combine(RuntimeHelpers.GetHashCode(pair.Item1), RuntimeHelpers.GetHashCode(pair.Item2));
+        }
     }
 }

@@ -26,7 +26,10 @@ internal sealed class OriginalExecutable
     private readonly byte[] _file;
     private readonly SectionHeader[] _sections;
 
-    public static OriginalExecutable Load() => Shared.Value;
+    public static OriginalExecutable Load()
+    {
+        return Shared.Value;
+    }
 
     public uint ImageBase { get; }
 
@@ -66,7 +69,13 @@ internal sealed class OriginalExecutable
         return default;
     }
 
-    public ushort UInt16(uint address) => BitConverter.ToUInt16(At(address, 2));
+    public ushort UInt16(uint address)
+    {
+        return BitConverter.ToUInt16(At(address, 2));
+    }
 
-    public int Int32(uint address) => BitConverter.ToInt32(At(address, 4));
+    public int Int32(uint address)
+    {
+        return BitConverter.ToInt32(At(address, 4));
+    }
 }

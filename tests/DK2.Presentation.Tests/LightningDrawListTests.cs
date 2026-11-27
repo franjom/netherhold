@@ -75,14 +75,23 @@ public class LightningDrawListTests
         Assert.False(draws.NeedsCreatureCrackle(new(5), new(12), 3));
     }
 
-    private static RoomConstructionParticles Effects() =>
-        new(new GameDatabase([], [], [], new GlobalVariables()), 1, () => default);
+    private static RoomConstructionParticles Effects()
+    {
+        return new(new GameDatabase([], [], [], new GlobalVariables()), 1, () => default);
+    }
 
-    private static Vector3 Render(Vector3 p) => new(p.X, p.Z, -p.Y);
-    private static Vector3 Transform(Vector3 p, Matrix4x4 m) => new(
-        m.M11 * p.X + m.M21 * p.Y + m.M31 * p.Z + m.M41,
-        m.M12 * p.X + m.M22 * p.Y + m.M32 * p.Z + m.M42,
-        m.M13 * p.X + m.M23 * p.Y + m.M33 * p.Z + m.M43);
+    private static Vector3 Render(Vector3 p)
+    {
+        return new(p.X, p.Z, -p.Y);
+    }
+
+    private static Vector3 Transform(Vector3 p, Matrix4x4 m)
+    {
+        return new(
+            m.M11 * p.X + m.M21 * p.Y + m.M31 * p.Z + m.M41,
+            m.M12 * p.X + m.M22 * p.Y + m.M32 * p.Z + m.M42,
+            m.M13 * p.X + m.M23 * p.Y + m.M33 * p.Z + m.M43);
+    }
 
     private static void AssertBits(IReadOnlyList<Vector3> expected, IReadOnlyList<Vector3> actual)
     {

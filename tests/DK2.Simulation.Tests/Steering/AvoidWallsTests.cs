@@ -12,9 +12,15 @@ namespace DK2.Simulation.Tests.Steering;
 /// two-unit nudge of <c>escape_stuck_mode</c>.</summary>
 public class AvoidWallsTests
 {
-    private static Fixed16Vector T(double x, double y) => FakeSteeringWorld.Tiles(x, y);
+    private static Fixed16Vector T(double x, double y)
+    {
+        return FakeSteeringWorld.Tiles(x, y);
+    }
 
-    private static FakeSteeringWorld Room() => new("#######", "#.....#", "#.....#", "#.....#", "#######");
+    private static FakeSteeringWorld Room()
+    {
+        return new("#######", "#.....#", "#.....#", "#.....#", "#######");
+    }
 
     private static Fixed16Vector Force(FakeSteeringWorld world, Fixed16Vector pos, Fixed16Vector vel, bool stuck = false)
     {
@@ -24,28 +30,38 @@ public class AvoidWallsTests
     }
 
     [Fact]
-    public void OpenFloorAheadGivesNoForce() =>
+    public void OpenFloorAheadGivesNoForce()
+    {
         Assert.Equal(Fixed16Vector.Zero, Force(Room(), T(3.5, 2.5), new Fixed16Vector(0x1000, 0)));
+    }
 
     /// <summary>Predicted 0.15 tile inside the 0.2 margin of the wall at x = 6: the push is twice
     /// that overshoot, back along x only.</summary>
     [Fact]
-    public void AWallAheadPushesBackTwiceTheOvershootOnItsAxis() =>
+    public void AWallAheadPushesBackTwiceTheOvershootOnItsAxis()
+    {
         Assert.Equal(new Fixed16Vector(-0x5332, 0), Force(Room(), T(5.9, 2.5), new Fixed16Vector(0x1000, 0)));
+    }
 
     [Fact]
-    public void AWallBelowActsOnYAlone() =>
+    public void AWallBelowActsOnYAlone()
+    {
         Assert.Equal(new Fixed16Vector(0, -0x5332), Force(Room(), T(3.5, 3.9), new Fixed16Vector(0, 0x1000)));
+    }
 
     [Fact]
-    public void MovingTowardTheLowSideTheMarginIsInsideTheTileFace() =>
+    public void MovingTowardTheLowSideTheMarginIsInsideTheTileFace()
+    {
         Assert.Equal(new Fixed16Vector(0x5334, 0), Force(Room(), T(1.1, 2.5), new Fixed16Vector(-0x1000, 0)));
+    }
 
     /// <summary>The margin is judged on the prediction, which for a still body is where it stands:
     /// standing 0.05 inside the wall's margin is pushed out like moving into it.</summary>
     [Fact]
-    public void AStillBodyInsideTheMarginIsPushedOutToo() =>
+    public void AStillBodyInsideTheMarginIsPushedOutToo()
+    {
         Assert.Equal(new Fixed16Vector(-0x4CCC, 0), Force(Room(), T(5.95, 2.5), Fixed16Vector.Zero));
+    }
 
     /// <summary>The original's root is the integer square root of the 16.16 discriminant taken
     /// unscaled, so the "hit" lands almost at the corner itself: a body a step away misses (the
@@ -73,8 +89,10 @@ public class AvoidWallsTests
     }
 
     [Fact]
-    public void InEscapeStuckModeTheNudgeIsTwoRawUnitsSideways() =>
+    public void InEscapeStuckModeTheNudgeIsTwoRawUnitsSideways()
+    {
         Assert.Equal(new Fixed16Vector(0, -2), Force(Room(), T(3.5, 2.5), Fixed16Vector.Zero, stuck: true));
+    }
 
     /// <summary>Heading +x, the first side tried is -y. With a wall there and floor on +y the nudge
     /// goes to +y; with both sides walled it goes to -y regardless.</summary>

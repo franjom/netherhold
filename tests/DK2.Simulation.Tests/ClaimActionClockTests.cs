@@ -227,9 +227,23 @@ public sealed class ClaimActionClockTests
     private sealed class ObserveExperience : ICreatureUpdateStep
     {
         public int Experience;
-        public string Name => "ObserveClaimExperience";
-        public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
-        public void Update(SimulationContext context, CreatureState creature) => Experience = creature.ExperiencePoints;
+        public string Name
+        {
+            get
+            {
+                return "ObserveClaimExperience";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            CreatureUpdateSystem.RunAlone(context, this);
+        }
+
+        public void Update(SimulationContext context, CreatureState creature)
+        {
+            Experience = creature.ExperiencePoints;
+        }
     }
 
     [Theory]

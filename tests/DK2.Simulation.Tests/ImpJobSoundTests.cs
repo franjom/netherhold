@@ -34,7 +34,13 @@ public sealed class ImpJobSoundTests
             Sim.ObserveWith(Events);
         }
 
-        public WorldState World => Sim.World;
+        public WorldState World
+        {
+            get
+            {
+                return Sim.World;
+            }
+        }
 
         public void Until(Func<bool> done, int limit)
         {
@@ -55,9 +61,15 @@ public sealed class ImpJobSoundTests
             }
         }
 
-        public bool Saw(string kind) => Events.Events.Any(e => e.Kind == kind);
+        public bool Saw(string kind)
+        {
+            return Events.Events.Any(e => e.Kind == kind);
+        }
 
-        public Heard[] Of(ThingSoundEvent sound) => [.. Sounds.Where(s => s.Sound.Event == sound)];
+        public Heard[] Of(ThingSoundEvent sound)
+        {
+            return [.. Sounds.Where(s => s.Sound.Event == sound)];
+        }
     }
 
     /// <summary>A sound with the imp as the tick ended: its id, where it stood and whether it held a thing.</summary>
@@ -222,8 +234,11 @@ public sealed class ImpJobSoundTests
         return (db, world);
     }
 
-    private static Run CrateRun(GameDatabase db, WorldState world) => new(db, world, new HandSystem(),
+    private static Run CrateRun(GameDatabase db, WorldState world)
+    {
+        return new(db, world, new HandSystem(),
         new CreatureMovementSystem(), new ImpTaskSystem(), new CreatureJobSystem(), new CarriedThingSoundSystem());
+    }
 
     [Fact]
     public void StoringALooseCrateInTheWorkshopRequests326AtTheImpWithItsVoice()

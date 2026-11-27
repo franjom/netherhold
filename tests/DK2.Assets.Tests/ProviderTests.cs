@@ -16,11 +16,16 @@ public class ProviderTests
     private sealed class FakeFiles(params string[] present) : FileAssetProvider.IFileProbe
     {
         private readonly HashSet<string> _present = new(present, StringComparer.OrdinalIgnoreCase);
-        public bool Exists(string path) => _present.Contains(path);
+        public bool Exists(string path)
+        {
+            return _present.Contains(path);
+        }
     }
 
-    private static string PathFor(string root, AssetRef reference, string extension) =>
-        Path.Combine(root, FileAssetProvider.RelativePathWithoutExtension(reference) + extension);
+    private static string PathFor(string root, AssetRef reference, string extension)
+    {
+        return Path.Combine(root, FileAssetProvider.RelativePathWithoutExtension(reference) + extension);
+    }
 
     // ---- The placeholder, which must never fail ----
 

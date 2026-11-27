@@ -67,8 +67,10 @@ public class MpegAudioDecoderTests
     }
 
     [Fact]
-    public void InvalidAudioIsRejected() =>
+    public void InvalidAudioIsRejected()
+    {
         Assert.Throws<InvalidDataException>(() => MpegAudioDecoder.Decode(new byte[4]));
+    }
 
     private static byte[] Payload(string name)
     {

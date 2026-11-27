@@ -9,8 +9,15 @@ namespace DK2.Presentation.Tests;
 public sealed class PossessionHudTests
 {
     private static readonly HudScreen Screen = new(1920, 1080);
-    private static PossessionHudSnapshot Snapshot => new("portrait", 50, new GoldAmount(1350),
+    private static PossessionHudSnapshot Snapshot
+    {
+        get
+        {
+            return new("portrait", 50, new GoldAmount(1350),
         [new("pick", 100, true), new("boot", 25, false)], ["follower"]);
+        }
+    }
+
     [Fact]
     public void PossessionPanelWaitsForLandingAndRespectsTheGuiToggle()
     {
@@ -285,6 +292,8 @@ public sealed class PossessionHudTests
     }
 
     [Fact]
-    public void RawNativeAxisMetricRemainsAvailableWithoutBecomingTheWidescreenPresentationPolicy() =>
+    public void RawNativeAxisMetricRemainsAvailableWithoutBecomingTheWidescreenPresentationPolicy()
+    {
         Assert.Equal(4 / 3f, PossessionHud.NativeXScale(new HudScaleLayout(1920, 1080, 100)), 3);
+    }
 }

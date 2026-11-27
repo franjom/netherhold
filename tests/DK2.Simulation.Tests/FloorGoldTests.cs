@@ -187,8 +187,10 @@ public sealed class FloorGoldTests
     [InlineData(2999, 2)]
     [InlineData(3000, 3)]
     [InlineData(100000, 3)]
-    public void OneTwoOrThreePiles(int gold, int expected) =>
+    public void OneTwoOrThreePiles(int gold, int expected)
+    {
         Assert.Equal(expected, FloorGold.PileCount(gold));
+    }
 
     /// <summary>
     /// The original divides by the pile count with integer division and hands

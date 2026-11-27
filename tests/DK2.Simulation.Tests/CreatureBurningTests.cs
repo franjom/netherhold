@@ -166,8 +166,19 @@ public class CreatureBurningTests
     private sealed class OtherDraw : ICreatureUpdateStep
     {
         public List<int> Order { get; } = [];
-        public string Name => "test_other_draw";
-        public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+        public string Name
+        {
+            get
+            {
+                return "test_other_draw";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            CreatureUpdateSystem.RunAlone(context, this);
+        }
+
         public void Update(SimulationContext context, CreatureState creature)
         {
             Order.Add(creature.Id);
@@ -189,7 +200,14 @@ public class CreatureBurningTests
 
     private sealed class Hit(bool contact) : ISimulationSystem
     {
-        public string Name => "test_hit";
+        public string Name
+        {
+            get
+            {
+                return "test_hit";
+            }
+        }
+
         public void Execute(SimulationContext context)
         {
             CreatureState target = context.World.Creatures[0];
@@ -220,13 +238,23 @@ public class CreatureBurningTests
     private sealed class Draws(params (int Bound, int Value)[] draws) : IRandomAlgorithm
     {
         private int _index;
-        public int Remaining => draws.Length - _index;
+        public int Remaining
+        {
+            get
+            {
+                return draws.Length - _index;
+            }
+        }
+
         public int NextInt(int exclusiveMax)
         {
             (int Bound, int Value) draw = draws[_index++];
             Assert.Equal(draw.Bound, exclusiveMax);
             return draw.Value;
         }
-        public void HashInto(ref Hash64 hash) => hash.Add(_index);
+        public void HashInto(ref Hash64 hash)
+        {
+            hash.Add(_index);
+        }
     }
 }

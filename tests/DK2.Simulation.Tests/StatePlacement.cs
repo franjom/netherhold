@@ -58,19 +58,22 @@ internal static class StatePlacement
         creature.UtilityNewState = resume;
     }
 
-    private static int Standing(CreatureActivity activity) => activity switch
+    private static int Standing(CreatureActivity activity)
     {
-        CreatureActivity.Idle => CreatureStateMachine.Idle,
-        CreatureActivity.Working => 14,
-        CreatureActivity.Sleeping => LairRules.SleepingState,
-        CreatureActivity.Imprisoned => PrisonRules.InTheCellState,
-        CreatureActivity.BeingTortured => TortureRules.TorturedState,
-        CreatureActivity.Leaving => LeavingRules.ChoosingState,
-        CreatureActivity.Fighting => 199,
-        CreatureActivity.Reporting => 254,
-        CreatureActivity.Frozen => 218,
-        CreatureActivity.Stunned => 255,
-        CreatureActivity.Celebrating => 260,
-        _ => throw new ArgumentOutOfRangeException(nameof(activity), activity, "No placement for it yet."),
-    };
+        return activity switch
+        {
+            CreatureActivity.Idle => CreatureStateMachine.Idle,
+            CreatureActivity.Working => 14,
+            CreatureActivity.Sleeping => LairRules.SleepingState,
+            CreatureActivity.Imprisoned => PrisonRules.InTheCellState,
+            CreatureActivity.BeingTortured => TortureRules.TorturedState,
+            CreatureActivity.Leaving => LeavingRules.ChoosingState,
+            CreatureActivity.Fighting => 199,
+            CreatureActivity.Reporting => 254,
+            CreatureActivity.Frozen => 218,
+            CreatureActivity.Stunned => 255,
+            CreatureActivity.Celebrating => 260,
+            _ => throw new ArgumentOutOfRangeException(nameof(activity), activity, "No placement for it yet."),
+        };
+    }
 }

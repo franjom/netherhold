@@ -9,8 +9,10 @@ namespace DK2.Presentation.Tests;
 
 public sealed class ThingNavigationTests
 {
-    private static ThingNavigationEntry Door(int id, byte kind, byte owner = PlayerIds.FirstKeeper) =>
-        new(id, new PlayerId(owner), kind, new TilePos(id, 2));
+    private static ThingNavigationEntry Door(int id, byte kind, byte owner = PlayerIds.FirstKeeper)
+    {
+        return new(id, new PlayerId(owner), kind, new TilePos(id, 2));
+    }
 
     [Fact]
     public void CyclesOneKindInOrderAndWraps()
@@ -54,7 +56,10 @@ public sealed class ThingNavigationTests
     }
 
     private static ThingNavigationEntry Trap(int id, byte kind, bool alarm = false, bool ringing = false,
-        byte owner = PlayerIds.FirstKeeper) => new(id, new PlayerId(owner), kind, new TilePos(id, 4), alarm, ringing);
+        byte owner = PlayerIds.FirstKeeper)
+    {
+        return new(id, new PlayerId(owner), kind, new TilePos(id, 4), alarm, ringing);
+    }
 
     [Fact]
     public void TheAlarmCycleWalksRingingAlarmsAfterTheLastTrap()

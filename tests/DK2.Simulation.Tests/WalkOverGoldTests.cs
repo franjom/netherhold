@@ -18,13 +18,33 @@ public sealed class WalkOverGoldTests
 
     private sealed record Run(GameDatabase Db, WorldState World, GameSimulation Sim)
     {
-        public int Index => (Spot.Y * World.Width) + Spot.X;
-        public ObjectState Pile(int gold) => FloorGold.Drop(World, Db, Index, gold)!;
-        public CreatureState Spawn(byte creatureId, byte owner = Keeper) =>
-            World.SpawnCreature(Db, creatureId, owner, Spot);
-        public void Tick() => Sim.Tick();
-        public ObjectState Chicken(byte owner = PlayerIds.Neutral) =>
-            World.SpawnObject(Db, HatcheryRules.ChickenObjectId, new PlayerId(owner), Index);
+        public int Index
+        {
+            get
+            {
+                return (Spot.Y * World.Width) + Spot.X;
+            }
+        }
+
+        public ObjectState Pile(int gold)
+        {
+            return FloorGold.Drop(World, Db, Index, gold)!;
+        }
+
+        public CreatureState Spawn(byte creatureId, byte owner = Keeper)
+        {
+            return World.SpawnCreature(Db, creatureId, owner, Spot);
+        }
+
+        public void Tick()
+        {
+            Sim.Tick();
+        }
+
+        public ObjectState Chicken(byte owner = PlayerIds.Neutral)
+        {
+            return World.SpawnObject(Db, HatcheryRules.ChickenObjectId, new PlayerId(owner), Index);
+        }
     }
 
     private static Run Start(byte terrain = Dk2TerrainFixture.ClaimedPath)

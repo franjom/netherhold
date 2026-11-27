@@ -19,7 +19,13 @@ public class RoomObstructionTests
 
     private static readonly TilePos Floor = new(3, 3);
 
-    private static GameDatabase Db => Dk2TerrainFixture.Database();
+    private static GameDatabase Db
+    {
+        get
+        {
+            return Dk2TerrainFixture.Database();
+        }
+    }
 
     private static WorldState World(GameDatabase db)
     {
@@ -36,8 +42,10 @@ public class RoomObstructionTests
         tile.Health = db.TerrainById(Dk2TerrainFixture.ClaimedPath).StartingHealth;
     }
 
-    private static RoomPlacement Treasury(GameDatabase db, WorldState world) =>
-        RoomRules.CanBuild(db, world, Floor, db.Room(RoomTypeId.Treasury), Keeper);
+    private static RoomPlacement Treasury(GameDatabase db, WorldState world)
+    {
+        return RoomRules.CanBuild(db, world, Floor, db.Room(RoomTypeId.Treasury), Keeper);
+    }
 
     [Fact]
     public void ARivalsCreatureObstructsAndTheKeepersOwnDoesNot()

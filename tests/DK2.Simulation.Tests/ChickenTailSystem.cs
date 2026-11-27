@@ -8,7 +8,13 @@ namespace DK2.Simulation.Tests;
 /// leave the birds' movement out: an eaten bird, its health zeroed, is removed in it (Q796).</summary>
 internal sealed class ChickenTailSystem : ISimulationSystem
 {
-    public string Name => "chicken tail";
+    public string Name
+    {
+        get
+        {
+            return "chicken tail";
+        }
+    }
 
     public void Execute(SimulationContext context)
     {

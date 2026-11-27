@@ -13,15 +13,20 @@ public sealed class EffectFrameTests
 {
     private static readonly KwdArtResource EmptyArt = new("", 0, new byte[12], 0, 0, 0, 0);
 
-    private static EffectDrawList List() => new(new GameDatabase([], [], [], new GlobalVariables(), effects:
+    private static EffectDrawList List()
+    {
+        return new(new GameDatabase([], [], [], new GlobalVariables(), effects:
         [new EffectDef([])
         {
             Name = "mana", EffectId = 320, ArtResource = EmptyArt, Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0),
             GenerateIds = [], GenerationType = 4, ElementsPerTurn = 1, MinHp = 1, MaxHp = 1, Flags = 0x8000,
         }]), 7, clock: () => default, effectVisible: _ => true, cameraVisible: _ => true, floorHeight: _ => default);
+    }
 
-    private static ViewEffectRequest Mana() =>
-        new(new(320), PlayerIds.FirstKeeper, new FpPosition3(new(0x3000), new(0x5000), new(0x1000)));
+    private static ViewEffectRequest Mana()
+    {
+        return new(new(320), PlayerIds.FirstKeeper, new FpPosition3(new(0x3000), new(0x5000), new(0x1000)));
+    }
 
     [Fact]
     public void AFrameInOrderPassesTheScenesRequestsToTheModelAndAdvances()

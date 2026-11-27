@@ -21,18 +21,37 @@ public sealed class HoverCursorResolverTests
 
     private sealed class Floor(int width, int height) : INavByteGrid
     {
-        public int Width => width;
-        public int Height => height;
-        public byte NavByte(int x, int y) => NavBytes.Floor;
+        public int Width
+        {
+            get
+            {
+                return width;
+            }
+        }
+
+        public int Height
+        {
+            get
+            {
+                return height;
+            }
+        }
+
+        public byte NavByte(int x, int y)
+        {
+            return NavBytes.Floor;
+        }
     }
 
     private sealed record Rig(GameDatabase Database, WorldState World, HudToolState Tools, PlayerInputTranslator Input,
         ClassicHudControls Controls, WorldView View, HandCursorFeedback Cursor, HoverCursorResolver Resolver)
     {
-        public HoverFeedback Resolve(WorldHoverHit? hit = null, bool allowed = true, bool overHud = false, long milliseconds = 0) =>
-            Resolver.Resolve(World, Database, new Floor(World.Width, World.Height),
+        public HoverFeedback Resolve(WorldHoverHit? hit = null, bool allowed = true, bool overHud = false, long milliseconds = 0)
+        {
+            return Resolver.Resolve(World, Database, new Floor(World.Width, World.Height),
                 new HoverCursorInput(hit, Allowed: allowed, OverHud: overHud, PrimaryHeld: false, Gold: 0,
                     Milliseconds: milliseconds, PointerWorld: null));
+        }
     }
 
     private static Rig Build(GameDatabase db, WorldState world)
@@ -203,7 +222,10 @@ public sealed class HoverCursorResolverTests
         world.Player(Keeper).Hand.Add(HandItem.Of(goblin));
     }
 
-    private static WorldHoverHit TileHit(TilePos tile) => new(WorldHoverKind.Tile, tile);
+    private static WorldHoverHit TileHit(TilePos tile)
+    {
+        return new(WorldHoverKind.Tile, tile);
+    }
 
     [InstallFact]
     public void TheSpellRefusalIsTakenBeforeTheHeldIconGate()

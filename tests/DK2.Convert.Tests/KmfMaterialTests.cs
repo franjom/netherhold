@@ -28,8 +28,10 @@ public class KmfMaterialTests(ITestOutputHelper output)
     [InlineData(0x04u, KmfBlend.Additive)] // "ADD"
     [InlineData(0x06u, KmfBlend.Additive)]
     [InlineData(0x05u, KmfBlend.AlphaBlend)] // none ships; the applier issues SRCALPHA after ONE/ONE
-    public void FlagsGiveTheConstructorsBlend(uint flags, KmfBlend expected) =>
+    public void FlagsGiveTheConstructorsBlend(uint flags, KmfBlend expected)
+    {
         Assert.Equal(expected, Material(flags, 0f).Blend);
+    }
 
     [Fact]
     public void BrightnessIsTheLightAMaterialAddsAndAnAdditiveMaterialIsFullyLit()
@@ -47,8 +49,10 @@ public class KmfMaterialTests(ITestOutputHelper output)
     [InlineData(0x00u, false)]
     [InlineData(0x41u, false)] // blended: 0x00581797 skips a state with bits 0x21
     [InlineData(0x44u, false)] // additive likewise
-    public void OnlyAnOpaqueEnvironmentMappedMaterialGetsTheEnvironmentPass(uint flags, bool expected) =>
+    public void OnlyAnOpaqueEnvironmentMappedMaterialGetsTheEnvironmentPass(uint flags, bool expected)
+    {
         Assert.Equal(expected, Material(flags, 0f).HasEnvironmentPass);
+    }
 
     [Fact]
     public void TheEnvironmentPassIsLitByShininessNotBrightness()
@@ -137,6 +141,8 @@ public class KmfMaterialTests(ITestOutputHelper output)
         Assert.DoesNotContain(counts.Keys, flags => (flags & 0x04) != 0 && (flags & 0x39) != 0);
     }
 
-    private static KmfMaterial Material(uint flags, float brightness) =>
-        new("m", ["t"], flags, brightness, 0f, "");
+    private static KmfMaterial Material(uint flags, float brightness)
+    {
+        return new("m", ["t"], flags, brightness, 0f, "");
+    }
 }

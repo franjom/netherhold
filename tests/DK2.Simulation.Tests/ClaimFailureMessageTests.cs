@@ -48,7 +48,13 @@ public class ClaimFailureMessageTests
         }
     }
 
-    private static int TrainState => JobRules.StateFor(JobType.Train)!.Value;
+    private static int TrainState
+    {
+        get
+        {
+            return JobRules.StateFor(JobType.Train)!.Value;
+        }
+    }
 
     /// <summary>Two goblins fill the furnished 3×3 Training Room at (5..7, 1..3); the third's
     /// claim is refused.</summary>
@@ -99,7 +105,13 @@ public class ClaimFailureMessageTests
     /// <summary>Sets each creature to the Training state through the running simulation's hooks.</summary>
     private sealed class ClaimAll(CreatureState[] creatures) : ISimulationSystem
     {
-        public string Name => "claim-all";
+        public string Name
+        {
+            get
+            {
+                return "claim-all";
+            }
+        }
 
         public void Execute(SimulationContext context)
         {

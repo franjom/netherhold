@@ -23,16 +23,33 @@ public class BridgeTests
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte Rival = 4;
 
-    private static RoomTypeId BridgeId => RoomTypeId.WoodenBridge;
+    private static RoomTypeId BridgeId
+    {
+        get
+        {
+            return RoomTypeId.WoodenBridge;
+        }
+    }
 
     private sealed record Run(GameSimulation Sim, ListEventSink Events)
     {
-        public WorldState World => Sim.World;
+        public WorldState World
+        {
+            get
+            {
+                return Sim.World;
+            }
+        }
 
-        public void Tick(params PlayerCommand[] commands) =>
+        public void Tick(params PlayerCommand[] commands)
+        {
             Sim.Tick(commands.Length == 0 ? InputFrame.Empty : InputFrame.Of(commands));
+        }
 
-        public IEnumerable<SimEvent> Of(string kind) => Events.Events.Where(e => e.Kind == kind);
+        public IEnumerable<SimEvent> Of(string kind)
+        {
+            return Events.Events.Where(e => e.Kind == kind);
+        }
     }
 
     private static Run Start(byte hazardTerrainId, TilePos at)

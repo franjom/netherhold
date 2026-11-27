@@ -72,8 +72,10 @@ public class KeeperRetreatStepTests
         }
     }
 
-    private static int[] Lifted(IReadOnlyList<PlayerCommand> commands) =>
-        [.. commands.OfType<TakeCreatureCommand>().Select(c => c.CreatureId)];
+    private static int[] Lifted(IReadOnlyList<PlayerCommand> commands)
+    {
+        return [.. commands.OfType<TakeCreatureCommand>().Select(c => c.CreatureId)];
+    }
 
     [Theory]
     [InlineData(299, true)]

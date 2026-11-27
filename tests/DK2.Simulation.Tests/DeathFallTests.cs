@@ -134,13 +134,25 @@ public class DeathFallTests
         Assert.NotEqual(marked, sim.StateHash());
     }
 
-    private static void InTick(GameSimulation sim, Action<SimulationContext> body) =>
+    private static void InTick(GameSimulation sim, Action<SimulationContext> body)
+    {
         new GameSimulation(sim.Database, sim.World, sim.Rng, [new Picker(body)]).Tick();
+    }
 
     private sealed class Picker(Action<SimulationContext> body) : ISimulationSystem
     {
-        public string Name => "death fall picker";
-        public void Execute(SimulationContext context) => body(context);
+        public string Name
+        {
+            get
+            {
+                return "death fall picker";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            body(context);
+        }
     }
 
     private static (GameSimulation, CreatureState, Dk2Lcg) Setup(uint seed, (int Dx, int Dy)[] open)
@@ -168,15 +180,19 @@ public class DeathFallTests
     [InlineData(5, 1019)]
     [InlineData(29, 995)]
     [InlineData(131, 893)]
-    public void AHitHeadsTheCreatureByTheShotsAngleDistanceFromHalfATurn_ConfirmedInCapture(int shotHeading, int creatureHeading) =>
+    public void AHitHeadsTheCreatureByTheShotsAngleDistanceFromHalfATurn_ConfirmedInCapture(int shotHeading, int creatureHeading)
+    {
         Assert.Equal(creatureHeading, DK2.Simulation.Steering.Bearing.Distance(shotHeading, 0x400));
+    }
 
     // The same arithmetic past half a turn and on it; no capture has these.
     [Theory]
     [InlineData(2035, 1011)]
     [InlineData(1024, 0)]
-    public void TheAngleDistanceFromHalfATurnNeverPassesHalfATurn(int shotHeading, int creatureHeading) =>
+    public void TheAngleDistanceFromHalfATurnNeverPassesHalfATurn(int shotHeading, int creatureHeading)
+    {
         Assert.Equal(creatureHeading, DK2.Simulation.Steering.Bearing.Distance(shotHeading, 0x400));
+    }
 
     // 0x00459850: the Wizard's vector 3 y, 3223 in the shipped record, gives its captured step of 1261
     // and 2966 at heading 893. The two refusals are read from the handler; the captured Thief stays
@@ -266,7 +282,17 @@ public class DeathFallTests
 
     private sealed class Run(Action<SimulationContext> body) : ISimulationSystem
     {
-        public string Name => "test step";
-        public void Execute(SimulationContext context) => body(context);
+        public string Name
+        {
+            get
+            {
+                return "test step";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            body(context);
+        }
     }
 }

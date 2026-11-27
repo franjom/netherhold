@@ -16,7 +16,9 @@ public sealed class PlacementCursorHudTests
 
     private static readonly Vector2 Pointer = new(700.5f, 410.25f);
 
-    public static TheoryData<int, int, PlacementIcon, int, bool, bool, byte, bool, HandCursorKind> Cases() => new()
+    public static TheoryData<int, int, PlacementIcon, int, bool, bool, byte, bool, HandCursorKind> Cases()
+    {
+        return new()
     {
         { 1920, 1080, PlacementIcon.PlaceRoom, -250, false, true, 0, false, HandCursorKind.Point },
         { 1920, 1080, PlacementIcon.PlaceRoom, -250, true, false, 0, false, HandCursorKind.Point },
@@ -35,6 +37,7 @@ public sealed class PlacementCursorHudTests
         { 1920, 1080, PlacementIcon.None, -250, true, true, 0, false, HandCursorKind.Point },
         { 1920, 1080, PlacementIcon.Held, -250, true, true, 0, false, HandCursorKind.HoldThing },
     };
+    }
 
     [Theory]
     [MemberData(nameof(Cases))]
@@ -121,9 +124,20 @@ public sealed class PlacementCursorHudTests
         }
     }
 
-    private static string? SpellName(byte id) => id == 3 ? @"GUI\Spells\possess" : null;
-    private static string? CreatureName(byte id) => id switch { 7 => null, 9 => "", _ => "creature-" + id };
-    private static string? ObjectName(byte id) => "object-" + id;
+    private static string? SpellName(byte id)
+    {
+        return id == 3 ? @"GUI\Spells\possess" : null;
+    }
+
+    private static string? CreatureName(byte id)
+    {
+        return id switch { 7 => null, 9 => "", _ => "creature-" + id };
+    }
+
+    private static string? ObjectName(byte id)
+    {
+        return "object-" + id;
+    }
 
     private static HeldItemStack Held(int count, bool firstIsObject)
     {
@@ -153,7 +167,11 @@ public sealed class PlacementCursorHudTests
         Vector2 anchor = HandCursor.OverlayAnchor(handKind, pointer, screenHeight, overHud);
         float x = anchor.X, y = anchor.Y;
         float scale = height / 1200f, size = 32 * scale;
-        Shown Place(string name, float px, float py, float w, float h, HudColor tint) => new(name, px, py, w, h, tint);
+        Shown Place(string name, float px, float py, float w, float h, HudColor tint)
+        {
+            return new(name, px, py, w, h, tint);
+        }
+
         if (feedback.Icon == PlacementIcon.Held && held != null && held.Icons.Count > 0)
         {
             for (int i = 0; i < held.Icons.Count; i++)

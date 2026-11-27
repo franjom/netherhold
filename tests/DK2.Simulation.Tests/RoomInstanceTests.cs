@@ -27,8 +27,10 @@ public class RoomInstanceTests
     private static readonly GameDatabase Db = Dk2TerrainFixture.Database();
 
     /// <summary>A world with nothing but the fixture's claimed room, so painting is unambiguous.</summary>
-    private static WorldState World() =>
-        WorldState.FromMap(Db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
+    private static WorldState World()
+    {
+        return WorldState.FromMap(Db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
+    }
 
     /// <summary>Paints a solid rectangle of room terrain, the way a keeper building it would.</summary>
     private static void Paint(
@@ -45,9 +47,11 @@ public class RoomInstanceTests
         }
     }
 
-    private static RoomInstance RoomAt(WorldState world, int x, int y) =>
-        RoomIndex.RoomAt(world, Db, (y * world.Width) + x)
+    private static RoomInstance RoomAt(WorldState world, int x, int y)
+    {
+        return RoomIndex.RoomAt(world, Db, (y * world.Width) + x)
         ?? throw new InvalidOperationException($"no room at ({x},{y})");
+    }
 
     // ---- what a room is ---------------------------------------------------
 

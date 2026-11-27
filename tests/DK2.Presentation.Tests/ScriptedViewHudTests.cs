@@ -13,10 +13,16 @@ public sealed class ScriptedViewHudTests
 {
     private static readonly PlayerId Viewer = new(3);
 
-    private static SimEvent Request(ScriptedViewRequest request) => new(default, "t", "scripted_view", "") { ScriptedView = request };
+    private static SimEvent Request(ScriptedViewRequest request)
+    {
+        return new(default, "t", "scripted_view", "") { ScriptedView = request };
+    }
 
-    private static SimEvent Flash(HudFlashTarget target) => Request(new ScriptedViewRequest(ScriptedViewKind.FlashButton,
+    private static SimEvent Flash(HudFlashTarget target)
+    {
+        return Request(new ScriptedViewRequest(ScriptedViewKind.FlashButton,
         PlayerIds.Unowned, 0, default, false, FlashButton: new HudFlashRequest(target, 0, true)));
+    }
 
     [Fact]
     public void ThePlayedHudIsTheScriptedViewsUnderTheHudsOwnGates()
@@ -51,11 +57,16 @@ public sealed class ScriptedViewHudTests
     }
 
     /// <summary>A flash target packs its category in the low byte and its button (the item) in the high byte.</summary>
-    private static HudFlashTarget Item(byte category, byte button) => new((ushort)(category | button << 8));
+    private static HudFlashTarget Item(byte category, byte button)
+    {
+        return new((ushort)(category | button << 8));
+    }
 
-    private static void Choose(HudToolState tools, BottomPanelChoiceKind kind, byte value, PlayerToolMode tool, RoomTypeId room) =>
+    private static void Choose(HudToolState tools, BottomPanelChoiceKind kind, byte value, PlayerToolMode tool, RoomTypeId room)
+    {
         tools.SelectPanelChoice(new BottomPanelSelection(new BottomPanelChoiceKey(kind, value), tool, room),
             new PlayerInputTranslator(), query: null);
+    }
 
     [Fact]
     public void ARoomFlashEndsOnlyWithTheBuildToolOnThatRoom()

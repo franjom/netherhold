@@ -28,8 +28,10 @@ public class KeeperBattleStepTests
         return new KeeperAI(Keeper, tune is null ? p : tune(p), new SimRandom(seed));
     }
 
-    private static CreatureState Fighter(WorldState world, byte owner, int x, int y) =>
-        world.SpawnCreature(Db, KeeperWorld.FighterCreature, owner, new TilePos(x, y));
+    private static CreatureState Fighter(WorldState world, byte owner, int x, int y)
+    {
+        return world.SpawnCreature(Db, KeeperWorld.FighterCreature, owner, new TilePos(x, y));
+    }
 
     /// <summary>Unowned floor west of the keeper's patch, joined to it.</summary>
     private static WorldState World()
@@ -77,8 +79,10 @@ public class KeeperBattleStepTests
         }
     }
 
-    private static CastSpellAtPlaceCommand? Call(IReadOnlyList<PlayerCommand> commands) =>
-        commands.OfType<CastSpellAtPlaceCommand>().SingleOrDefault();
+    private static CastSpellAtPlaceCommand? Call(IReadOnlyList<PlayerCommand> commands)
+    {
+        return commands.OfType<CastSpellAtPlaceCommand>().SingleOrDefault();
+    }
 
     [Fact]
     public void NoFighterClearsTheFightFlagAndImpCreationResumes()
@@ -339,12 +343,15 @@ public class KeeperBattleStepTests
         Assert.Equal(0, keeper.State.CannotAttackCounter);
     }
 
-    private static KeeperAI SpellCaster(byte attackingVsDefensive, byte preference, byte useKeeperSpells = 0, ulong seed = 7) =>
-        new(Keeper, KeeperWorld.Parameters() with
+    private static KeeperAI SpellCaster(byte attackingVsDefensive, byte preference, byte useKeeperSpells = 0, ulong seed = 7)
+    {
+        return new(Keeper, KeeperWorld.Parameters() with
         {
-            UseKeeperSpells = useKeeperSpells, AttackingVsDefensiveSpellPreference = attackingVsDefensive,
+            UseKeeperSpells = useKeeperSpells,
+            AttackingVsDefensiveSpellPreference = attackingVsDefensive,
             SpellPreference = preference,
         }, new SimRandom(seed));
+    }
 
     [Fact]
     public void TheOffensiveArmCastsThunderboltAtTheTargetOwnersCreatureWithinFiveTilesOnTheKeepersLand()

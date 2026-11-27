@@ -176,7 +176,11 @@ public sealed class TriangleDepthOrderTests
         RenderTriangle[] sorted = [.. runs.SelectMany(r => r.Triangles)];
         Assert.Equal(triangles.Count, sorted.Length);
         Assert.True(runs.Count > 2, "The crystal and chasm materials must interleave.");
-        float Depth(RenderTriangle t) => Vector3.Dot(positions[t.A] + positions[t.B] + positions[t.C], forward);
+        float Depth(RenderTriangle t)
+        {
+            return Vector3.Dot(positions[t.A] + positions[t.B] + positions[t.C], forward);
+        }
+
         for (int i = 1; i < sorted.Length; i++)
         {
             Assert.True(Depth(sorted[i - 1]) >= Depth(sorted[i]));

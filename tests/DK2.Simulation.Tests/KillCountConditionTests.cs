@@ -76,20 +76,36 @@ public class KillCountConditionTests
         return world;
     }
 
-    private static void Die(WorldState world, CreatureDef definition, byte owner, byte credited) =>
+    private static void Die(WorldState world, CreatureDef definition, byte owner, byte credited)
+    {
         LevelStatisticsRules.CreditDeath(world, definition, new CreatureState { OwnerPlayerId = owner, Health = 0 }, credited);
+    }
 
-    private static TriggerRecord Condition(ushort id, byte type, ushort child, Dictionary<string, long> parameters) =>
-        new GenericTriggerRecord(new byte[16])
+    private static TriggerRecord Condition(ushort id, byte type, ushort child, Dictionary<string, long> parameters)
+    {
+        return new GenericTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = id, Type = type, RepeatCount = 255,
-            ChildTriggerId = child, NextTriggerId = 0, Parameters = parameters,
+            Body = new byte[8],
+            TriggerId = id,
+            Type = type,
+            RepeatCount = 255,
+            ChildTriggerId = child,
+            NextTriggerId = 0,
+            Parameters = parameters,
         };
+    }
 
-    private static TriggerRecord SetFlag(ushort id, byte flag) =>
-        new ActionTriggerRecord(new byte[16])
+    private static TriggerRecord SetFlag(ushort id, byte flag)
+    {
+        return new ActionTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = id, Type = 7, RepeatCount = 0, ChildTriggerId = 0, NextTriggerId = 0,
+            Body = new byte[8],
+            TriggerId = id,
+            Type = 7,
+            RepeatCount = 0,
+            ChildTriggerId = 0,
+            NextTriggerId = 0,
             Parameters = new Dictionary<string, long> { ["FlagId"] = flag, ["Flag"] = 0x0A, ["Value"] = 1 },
         };
+    }
 }

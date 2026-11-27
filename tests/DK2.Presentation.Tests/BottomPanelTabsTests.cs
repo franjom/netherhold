@@ -108,8 +108,10 @@ public sealed class BottomPanelTabsTests
     // Half a panel: 264-unit cells only up to 2 entries (3 a page), else 6 x 2.
     [InlineData(900, 2, 264, 3, 1)]
     [InlineData(900, 3, 128, 6, 2)]
-    public void TheGridUsesLargeCellsWhileTheEntriesFit(int width, int count, int cell, int columns, int rows) =>
+    public void TheGridUsesLargeCellsWhileTheEntriesFit(int width, int count, int cell, int columns, int rows)
+    {
         Assert.Equal(new BottomPanelGrid(cell, columns, rows), BottomPanelLayout.Grid(width, count));
+    }
 
     [Fact]
     public void SmallCellsFillColumnByColumnAndCarryTheSmallSparkle()

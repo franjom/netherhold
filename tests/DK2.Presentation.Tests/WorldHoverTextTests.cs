@@ -239,8 +239,10 @@ public sealed class WorldHoverTextTests
         DoorState door = world.Doors[0], bar = world.Doors[1];
         TrapState trap = world.Traps[0], post = world.Traps[1];
         var strings = Dk2StringTable.Open(Path.Combine(install, "Data", "Text", "Default", "Text.str"));
-        HoverTextSnapshot Status(PlayerId viewer, WorldHoverKind kind, int id, int x) =>
-            new WorldHoverText(db, strings.Resolve, viewer).Capture(world, new(kind, new TilePos(x, 10), id));
+        HoverTextSnapshot Status(PlayerId viewer, WorldHoverKind kind, int id, int x)
+        {
+            return new WorldHoverText(db, strings.Resolve, viewer).Capture(world, new(kind, new TilePos(x, 10), id));
+        }
 
         HoverTextSnapshot blueprint = Status(me, WorldHoverKind.Door, door.Id, 10);
         Assert.Equal(("Wooden Door Blueprint.  Awaiting construction.", "Wooden Door"), (blueprint.TopStatus, blueprint.TooltipName));

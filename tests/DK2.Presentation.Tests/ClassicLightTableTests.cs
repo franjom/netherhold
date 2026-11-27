@@ -12,9 +12,11 @@ public class ClassicLightTableTests
 {
     private static readonly TilePos Tile = new(0, 0);
     private static ClassicPointLight Source(int identity, float distance = 1, float height = 0)
-        => ClassicPointLight.FromTorch(new TorchView(identity, Tile,
-            (int)((.5f + distance) * Fp32.One), Fp32.One / 2, (int)(height * Fp32.One), yaw: 0,
-            red: identity, green: 0, blue: 0, intensity: 128, radius: 4608, mesh: default));
+    {
+        return ClassicPointLight.FromTorch(new TorchView(identity, Tile,
+                (int)((.5f + distance) * Fp32.One), Fp32.One / 2, (int)(height * Fp32.One), yaw: 0,
+                red: identity, green: 0, blue: 0, intensity: 128, radius: 4608, mesh: default));
+    }
 
     [Fact]
     public void TerrainSourceUsesAuthoredHeightBoostedColourAndNativeDefaults()
@@ -95,5 +97,8 @@ public class ClassicLightTableTests
         Assert.Equal(1, table.StaticCount);
     }
 
-    private static int Id(ClassicPointLight light) => (int)MathF.Round(light.Colour.X * 255);
+    private static int Id(ClassicPointLight light)
+    {
+        return (int)MathF.Round(light.Colour.X * 255);
+    }
 }

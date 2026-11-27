@@ -24,12 +24,27 @@ public sealed class StructureBlocksTests
     private const byte Rival = 4;
     private const byte GoblinId = 7;
 
-    private static int Second => SimulationTiming.TicksPerSecond;
+    private static int Second
+    {
+        get
+        {
+            return SimulationTiming.TicksPerSecond;
+        }
+    }
 
-    private static GameDatabase Db => Dk2TerrainFixture.Database();
+    private static GameDatabase Db
+    {
+        get
+        {
+            return Dk2TerrainFixture.Database();
+        }
+    }
 
-    private static WorldState World(GameDatabase db) => WorldState.FromMap(
+    private static WorldState World(GameDatabase db)
+    {
+        return WorldState.FromMap(
         db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
+    }
 
     /// <summary>Claimed floor, so there is somewhere to walk around a room.</summary>
     private static void Claim(WorldState world, int x0, int y0, int x1, int y1)
@@ -60,8 +75,10 @@ public sealed class StructureBlocksTests
         }
     }
 
-    private static WorldPathGrid Grid(GameDatabase db, WorldState world) =>
-        new(db, world, db.CreatureById(GoblinId));
+    private static WorldPathGrid Grid(GameDatabase db, WorldState world)
+    {
+        return new(db, world, db.CreatureById(GoblinId));
+    }
 
     // ---- the hole ---------------------------------------------------------
 
@@ -642,11 +659,15 @@ public sealed class StructureBlocksTests
         Assert.True((body.Pos - HeartRelativePoint(0, 0)).Length() >= 1 << 15);
     }
 
-    private static DK2.Simulation.Steering.Fixed16Vector HeartRelativePoint(double x, double y) =>
-        new((int)((6.5 + x) * 65536), (int)((6.5 + y) * 65536));
+    private static DK2.Simulation.Steering.Fixed16Vector HeartRelativePoint(double x, double y)
+    {
+        return new((int)((6.5 + x) * 65536), (int)((6.5 + y) * 65536));
+    }
 
-    private static int DistanceToHeartCentre(CreatureState goblin) =>
-        (goblin.Body.Pos - new DK2.Simulation.Steering.Fixed16Vector((6 << 16) + 0x8000, (6 << 16) + 0x8000)).Length();
+    private static int DistanceToHeartCentre(CreatureState goblin)
+    {
+        return (goblin.Body.Pos - new DK2.Simulation.Steering.Fixed16Vector((6 << 16) + 0x8000, (6 << 16) + 0x8000)).Length();
+    }
 
     /// <summary>A 9×7 claimed room holding a 5×5 heart centred on (6,6), and a goblin routed across it.</summary>
     private static (WorldState, Navigation.WorldSteering, CreatureState, GameSimulation) HeartWalk(TilePos from, TilePos to)

@@ -15,8 +15,10 @@ public class KeeperAIPersonalityTests
 {
     private static readonly GameDatabase Db = KeeperWorld.Database();
 
-    private static KeeperAIParameters Of(KeeperPersonality p, string map = "Anywhere") =>
-        KeeperAIPersonality.Parameters(p, map, Db, 80, 64);
+    private static KeeperAIParameters Of(KeeperPersonality p, string map = "Anywhere")
+    {
+        return KeeperAIPersonality.Parameters(p, map, Db, 80, 64);
+    }
 
     [Fact]
     public void EachRowGivesTheTablesValues()

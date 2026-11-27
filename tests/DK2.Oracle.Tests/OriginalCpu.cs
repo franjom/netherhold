@@ -36,11 +36,16 @@ internal static class OriginalCpu
     /// a block it places where the dump leaves room (the dump owns <see cref="Scratch"/>).</summary>
     public const uint Movable = 0xFFFF0000;
 
-    public static string? SkipReason =>
-        Dk2InstallGate.SkipReason
+    public static string? SkipReason
+    {
+        get
+        {
+            return Dk2InstallGate.SkipReason
         ?? (File.Exists(Environment.GetEnvironmentVariable(DllVariable) ?? "")
             ? null
             : $"No Unicorn: set {DllVariable} to a unicorn.dll outside the repository.");
+        }
+    }
 
     /// <summary>Calls each request's cdecl function in order on one emulator; memory a request
     /// writes stays written for the ones after it. With <paramref name="memoryImage"/> (a
@@ -139,7 +144,10 @@ internal static class OriginalCpu
             return line;
         }
 
-        private string Address(uint a) => Scratchy && a >= Movable ? $"s{a - Movable:x}" : a.ToString("x");
+        private string Address(uint a)
+        {
+            return Scratchy && a >= Movable ? $"s{a - Movable:x}" : a.ToString("x");
+        }
     }
 
     /// <summary>What the original did: EAX, EDX and the requested reads on return, or why it
@@ -164,5 +172,8 @@ internal static class OriginalCpu
 /// or without Unicorn.</summary>
 public sealed class OracleFactAttribute : FactAttribute
 {
-    public OracleFactAttribute() => Skip = OriginalCpu.SkipReason;
+    public OracleFactAttribute()
+    {
+        Skip = OriginalCpu.SkipReason;
+    }
 }

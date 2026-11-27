@@ -22,15 +22,31 @@ public sealed class SessionSaveLoadTests : IDisposable
     private readonly string _root = Directory.CreateTempSubdirectory("dk2-session-").FullName;
     private int _profileLoads;
 
-    private string ProfilePath => Path.Combine(_root, "campaign-profile.dk2p");
-    private string SavesDirectory => Path.Combine(_root, "Saves");
+    private string ProfilePath
+    {
+        get
+        {
+            return Path.Combine(_root, "campaign-profile.dk2p");
+        }
+    }
+
+    private string SavesDirectory
+    {
+        get
+        {
+            return Path.Combine(_root, "Saves");
+        }
+    }
 
     public void Dispose()
     {
         try { Directory.Delete(_root, recursive: true); } catch (IOException) { }
     }
 
-    private static byte[] Bytes(CampaignProfile profile) => CampaignProfileFile.Write(profile);
+    private static byte[] Bytes(CampaignProfile profile)
+    {
+        return CampaignProfileFile.Write(profile);
+    }
 
     private static CampaignLevelData Level(string name = "Level5")
     {
@@ -51,18 +67,29 @@ public sealed class SessionSaveLoadTests : IDisposable
         return new CampaignLevelData(name, database, map, level, [], [], []);
     }
 
-    private CampaignProfileStore Store() => new(import: null, () => new DateTime(2026, 11, 16));
+    private CampaignProfileStore Store()
+    {
+        return new(import: null, () => new DateTime(2026, 11, 16));
+    }
 
-    private Action LoadInto(CampaignProfileStore store) => () =>
+    private Action LoadInto(CampaignProfileStore store)
+    {
+        return () =>
     {
         _profileLoads++;
         store.Load(ProfilePath, GameSessionMode.Campaign, FrontEndPage.CampaignResults);
     };
+    }
 
-    private SessionSaver Saver(CampaignProfileStore store) => new(store, LoadInto(store), () => SavedAt);
+    private SessionSaver Saver(CampaignProfileStore store)
+    {
+        return new(store, LoadInto(store), () => SavedAt);
+    }
 
-    private SessionLoader Loader(CampaignProfileStore store, CampaignLevelData level, bool terrainImportsSupported = false) =>
-        new(store, LoadInto(store), _ => level) { TerrainImportsSupported = terrainImportsSupported };
+    private SessionLoader Loader(CampaignProfileStore store, CampaignLevelData level, bool terrainImportsSupported = false)
+    {
+        return new(store, LoadInto(store), _ => level) { TerrainImportsSupported = terrainImportsSupported };
+    }
 
     private SaveSlotsView Saves(string name)
     {
@@ -180,7 +207,9 @@ public sealed class SessionSaveLoadTests : IDisposable
     [InlineData(GameSessionMode.Campaign, FrontEndPage.None, false)]
     [InlineData(GameSessionMode.FrontEnd, FrontEndPage.CampaignResults, false)]
     public void OnlyACampaignLevelReturningToTheResultsIsLaunchedFromTheFrontEnd(GameSessionMode mode, FrontEndPage page, bool launched)
-        => Assert.Equal(launched, new SessionContext("Level1", mode, page).LaunchedFromFrontEnd);
+    {
+        Assert.Equal(launched, new SessionContext("Level1", mode, page).LaunchedFromFrontEnd);
+    }
 
     /// <summary>A level with no rooms has no chain to re-chain, so a load of it hashes as the saved world does.</summary>
     [Fact]
@@ -401,9 +430,11 @@ public sealed class SessionSaveLoadTests : IDisposable
         return simulation;
     }
 
-    private static RoomInstance? PrisonAt(GameSimulation simulation) =>
-        RoomIndex.RoomAt(simulation.World, simulation.Database, (6 * simulation.World.Width) + 6) is { } room
+    private static RoomInstance? PrisonAt(GameSimulation simulation)
+    {
+        return RoomIndex.RoomAt(simulation.World, simulation.Database, (6 * simulation.World.Width) + 6) is { } room
         && room.Definition.TypeId == RoomTypeId.Prison ? room : null;
+    }
 
     private static TilePos DoorOf(GameSimulation simulation)
     {
@@ -411,11 +442,15 @@ public sealed class SessionSaveLoadTests : IDisposable
         return new TilePos(door % simulation.World.Width, door / simulation.World.Width);
     }
 
-    private static TilePos[] ChainOf(GameSimulation simulation) =>
-        [.. SlabChain.Order(simulation.World, PrisonAt(simulation)!).Select(i => new TilePos(i % simulation.World.Width, i / simulation.World.Width))];
+    private static TilePos[] ChainOf(GameSimulation simulation)
+    {
+        return [.. SlabChain.Order(simulation.World, PrisonAt(simulation)!).Select(i => new TilePos(i % simulation.World.Width, i / simulation.World.Width))];
+    }
 
-    private SessionLoader InstallLoader(CampaignProfileStore store, string install) =>
-        new(store, LoadInto(store), name => CampaignLevelData.Load(install, name));
+    private SessionLoader InstallLoader(CampaignProfileStore store, string install)
+    {
+        return new(store, LoadInto(store), name => CampaignLevelData.Load(install, name));
+    }
 
     /// <summary>The owner's DK2 observation (ADR-0241, room-slab-chain.md section 6): a Prison dragged with its door in
     /// the east column, saved and reloaded, has its door in the west column. The load is <see cref="WorldSnapshot.LoadGame"/>,

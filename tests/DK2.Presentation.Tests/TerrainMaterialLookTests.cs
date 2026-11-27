@@ -26,31 +26,39 @@ public class TerrainMaterialLookTests
         Assert.Equal(new Vector3(1, 0, 0), TerrainMaterialLook.RedLight);
     }
 
-    private static (int, int, int) Bytes(Vector3 v) =>
-        ((int)MathF.Round(v.X * 255f), (int)MathF.Round(v.Y * 255f), (int)MathF.Round(v.Z * 255f));
+    private static (int, int, int) Bytes(Vector3 v)
+    {
+        return ((int)MathF.Round(v.X * 255f), (int)MathF.Round(v.Y * 255f), (int)MathF.Round(v.Z * 255f));
+    }
 
     [Theory]
     [InlineData(0f, false)]
     [InlineData(0.25f, false)]
     [InlineData(0.6f, true)]
     [InlineData(1f, true)]
-    public void ATaggedTwinAddsTheTagToItsOwnLightAsUnityDid(float own, bool red) =>
+    public void ATaggedTwinAddsTheTagToItsOwnLightAsUnityDid(float own, bool red)
+    {
         Assert.Equal(Legacy.Tagged(own, red), TerrainMaterialLook.TaggedLight(new Vector3(own), red));
+    }
 
     [Theory]
     [InlineData(0f, 10, 20, 30)]
     [InlineData(0.25f, 255, 0, 1)]
     [InlineData(0.5f, 300, 512, 7)]
-    public void ATintedTwinAddsThePieceColourAsUnityDid(float own, int r, int g, int b) =>
+    public void ATintedTwinAddsThePieceColourAsUnityDid(float own, int r, int g, int b)
+    {
         Assert.Equal(Legacy.Tinted(own, new TerrainLightColour(r, g, b)),
             TerrainMaterialLook.TintedLight(new Vector3(own), new TerrainLightColour(r, g, b)));
+    }
 
     [Theory]
     [InlineData(0)]
     [InlineData(96)]
     [InlineData(255)]
-    public void TheFogAlphaIsThePackedByteOver255(byte packed) =>
+    public void TheFogAlphaIsThePackedByteOver255(byte packed)
+    {
         Assert.Equal(packed / 255f, TerrainMaterialLook.FogAlpha(packed));
+    }
 
     [Fact]
     public void ThePlainLookIsTheRecipesOwn()
@@ -70,8 +78,10 @@ public class TerrainMaterialLookTests
     {
         var own = new Vector3(0.125f, 0.25f, 0.375f);
         var tint = new TerrainLightColour(40, 50, 60);
-        TerrainMaterialLook Look(TerrainMaterialVariant variant, TerrainLightColour t = default) =>
-            TerrainMaterialLook.For(new TerrainMaterialKey(Opaque, variant) { Tint = t }, own);
+        TerrainMaterialLook Look(TerrainMaterialVariant variant, TerrainLightColour t = default)
+        {
+            return TerrainMaterialLook.For(new TerrainMaterialKey(Opaque, variant) { Tint = t }, own);
+        }
 
         Assert.Equal(own, Look(TerrainMaterialVariant.Plain).AddedLight);
         Assert.Equal(own, Look(TerrainMaterialVariant.Fog).AddedLight);

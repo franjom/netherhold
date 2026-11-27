@@ -37,15 +37,22 @@ public class KeeperTrapDoorStepTests
     }
 
     /// <summary>The test world's variables have no door or trap rows to set.</summary>
-    private static void Available(WorldState world, AvailabilityKind kind, int typeId) =>
+    private static void Available(WorldState world, AvailabilityKind kind, int typeId)
+    {
         world.Player(Keeper).Availabilities.Add(new AvailabilityState(kind, typeId, 3));
+    }
 
-    private static KeeperAIParameters Params(byte trapVsDoor = 0, byte doorPreference = 1, byte aggressive = 0, bool boulderOnLong = false) =>
-        KeeperWorld.Parameters() with
+    private static KeeperAIParameters Params(byte trapVsDoor = 0, byte doorPreference = 1, byte aggressive = 0, bool boulderOnLong = false)
+    {
+        return KeeperWorld.Parameters() with
         {
-            TrapAndDoorUsage = 100, TrapVsDoorPreference = trapVsDoor, DoorPreference = doorPreference,
-            AggressiveVsDefensiveTrapPreference = aggressive, BoulderTrapsOnLongCorridors = boulderOnLong,
+            TrapAndDoorUsage = 100,
+            TrapVsDoorPreference = trapVsDoor,
+            DoorPreference = doorPreference,
+            AggressiveVsDefensiveTrapPreference = aggressive,
+            BoulderTrapsOnLongCorridors = boulderOnLong,
         };
+    }
 
     /// <summary>The box's margin as the step draws it: the Workshop, the usage roll, then <c>random(10) - 2</c>.</summary>
     private static int Margin()

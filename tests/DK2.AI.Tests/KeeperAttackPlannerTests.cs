@@ -70,17 +70,28 @@ public class KeeperAttackPlannerTests
         }
     }
 
-    private static KeeperAIParameters Attacker(byte firstEnd = 0, byte firstStart = 2, byte usage = 1, byte wait = 0) =>
-        KeeperWorld.Parameters() with
+    private static KeeperAIParameters Attacker(byte firstEnd = 0, byte firstStart = 2, byte usage = 1, byte wait = 0)
+    {
+        return KeeperWorld.Parameters() with
         {
-            NeverAttack = false, IAMinimumCreatures = 0, IACreatureSkillLevel = 1, IAThreatSuperiority = 100,
-            IAFirstEnd = firstEnd, IAFirstStart = firstStart, CallToArmsUsage = usage, WaitBeforeAttackingAgain = wait,
-            BreachAtXPoints = 1, UseKeeperSpells = 4,
+            NeverAttack = false,
+            IAMinimumCreatures = 0,
+            IACreatureSkillLevel = 1,
+            IAThreatSuperiority = 100,
+            IAFirstEnd = firstEnd,
+            IAFirstStart = firstStart,
+            CallToArmsUsage = usage,
+            WaitBeforeAttackingAgain = wait,
+            BreachAtXPoints = 1,
+            UseKeeperSpells = 4,
         };
+    }
 
     /// <summary>The systems a cast at a place needs to raise the call and the tags need to land.</summary>
-    private static ISimulationSystem[] CallSystems() =>
-        [new TileTagSystem(), new KeeperSpellSystem(), new CreatureMovementSystem(), new ShotSystem(), new CallToArmsSystem()];
+    private static ISimulationSystem[] CallSystems()
+    {
+        return [new TileTagSystem(), new KeeperSpellSystem(), new CreatureMovementSystem(), new ShotSystem(), new CallToArmsSystem()];
+    }
 
     private static CreatureState Fighter(WorldState world, byte owner, int x, int y, int level = 1)
     {

@@ -225,8 +225,10 @@ public class TempleSacrificeTests
     }
 
     /// <summary>A 3×3 Temple of the keeper's round each centre.</summary>
-    private static (GameDatabase Db, WorldState World, GameSimulation Sim) Pools(params TilePos[] centres) =>
-        Setup([.. centres.SelectMany(c => Enumerable.Range(0, 9).Select(k => new TilePos(c.X - 1 + (k % 3), c.Y - 1 + (k / 3))))]);
+    private static (GameDatabase Db, WorldState World, GameSimulation Sim) Pools(params TilePos[] centres)
+    {
+        return Setup([.. centres.SelectMany(c => Enumerable.Range(0, 9).Select(k => new TilePos(c.X - 1 + (k % 3), c.Y - 1 + (k / 3))))]);
+    }
 
     [Fact]
     public void AnOfferingDroppedOnATemplesRimIsNotMade_OnlyInThePool()
@@ -242,8 +244,10 @@ public class TempleSacrificeTests
         Assert.DoesNotContain(world.Creatures, c => c.CreatureTypeId == Dk2TerrainFixture.VampireCreatureId);
     }
 
-    private static SacrificeEntry OneCreatureRecipe(byte input, byte output, byte speech) =>
-        new(1, input, 0, 0, 0, 0, 1, speech, output);
+    private static SacrificeEntry OneCreatureRecipe(byte input, byte output, byte speech)
+    {
+        return new(1, input, 0, 0, 0, 0, 1, speech, output);
+    }
 
     private static (GameDatabase Db, WorldState World, GameSimulation Sim) Setup(
         params TilePos[] temples)

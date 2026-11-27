@@ -121,7 +121,11 @@ public class CreatureAnimationPlayerTests
         public float Phase;
         public void Install(RenderAnimation?[] clips, int resources) { }
         public void Show(AnimationSegment segment) { }
-        public void Upload(AnimationSegment segment, Vector3[] vertices) => throw new InvalidOperationException("Unexpected CPU upload");
+        public void Upload(AnimationSegment segment, Vector3[] vertices)
+        {
+            throw new InvalidOperationException("Unexpected CPU upload");
+        }
+
         public void Pose(AnimationSegment segment, float phase) { Poses++; Phase = phase; }
     }
 
@@ -343,7 +347,10 @@ public class CreatureAnimationPlayerTests
         Assert.Equal(1, player.FootstepCrossing);
     }
 
-    private static RenderAnimation?[] Clips() => [null, new RenderAnimation(KmfReader.Read(AnimatedKmfFixture.TwoFrames())), null];
+    private static RenderAnimation?[] Clips()
+    {
+        return [null, new RenderAnimation(KmfReader.Read(AnimatedKmfFixture.TwoFrames())), null];
+    }
 
     private sealed class Surface : ICreatureAnimationSurface<int>
     {

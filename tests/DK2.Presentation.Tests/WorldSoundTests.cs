@@ -114,10 +114,14 @@ public sealed class WorldSoundTests
     {
         var director = new WorldSoundDirector();
         var chicken = new SoundSourceId(SoundSourceKind.Object, 5);
-        SimEvent Step() => new(default, "test", "thing_sound", "")
+        SimEvent Step()
         {
-            ThingSound = new(chicken, "OBJECT_CHICKEN", ThingSoundEvent.ChickenStep, new(new Fp32(0), new Fp32(0), new Fp32(0)), Alternating: true),
-        };
+            return new(default, "test", "thing_sound", "")
+            {
+                ThingSound = new(chicken, "OBJECT_CHICKEN", ThingSoundEvent.ChickenStep, new(new Fp32(0), new Fp32(0), new Fp32(0)), Alternating: true),
+            };
+        }
+
         var played = new List<bool>();
         for (int i = 0; i < 4; i++)
         {
@@ -129,9 +133,11 @@ public sealed class WorldSoundTests
         Assert.Equal([false, true, false, true], played);
     }
 
-    private static SimEvent Sound(SoundSourceId source, string category, ThingSoundEvent sound) =>
-        new(default, "test", "thing_sound", "")
+    private static SimEvent Sound(SoundSourceId source, string category, ThingSoundEvent sound)
+    {
+        return new(default, "test", "thing_sound", "")
         {
             ThingSound = new(source, category, sound, new(new Fp32(8192), new Fp32(12288), new Fp32(4096))),
         };
+    }
 }

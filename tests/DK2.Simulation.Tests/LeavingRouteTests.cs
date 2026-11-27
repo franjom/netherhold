@@ -51,7 +51,17 @@ public class LeavingRouteTests
 
     private sealed class Probe(Action<SimulationContext> run) : ISimulationSystem
     {
-        public string Name => "leaving route probe";
-        public void Execute(SimulationContext context) => run(context);
+        public string Name
+        {
+            get
+            {
+                return "leaving route probe";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            run(context);
+        }
     }
 }

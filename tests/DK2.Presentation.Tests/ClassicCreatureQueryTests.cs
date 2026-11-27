@@ -11,9 +11,15 @@ namespace DK2.Presentation.Tests;
 public sealed class ClassicCreatureQueryTests
 {
     [Theory]
-    [InlineData(0,0)] [InlineData(63,63)] [InlineData(65,1)] [InlineData(2047,63)]
-    public void QueryRetainsOnlyNativeYawRemainder(ushort yaw,ushort expected)
-        => Assert.Equal(expected,ClassicCreatureQueryRules.FollowHeading(new(yaw)).Value);
+    [InlineData(0, 0)]
+    [InlineData(63, 63)]
+    [InlineData(65, 1)]
+    [InlineData(2047, 63)]
+    public void QueryRetainsOnlyNativeYawRemainder(ushort yaw, ushort expected)
+    {
+        Assert.Equal(expected, ClassicCreatureQueryRules.FollowHeading(new(yaw)).Value);
+    }
+
     [InstallFact]
     public void QueryUsesOwnedCreatureTemplateAndRetainsSnapshotUntilSettledFactsChange()
     {

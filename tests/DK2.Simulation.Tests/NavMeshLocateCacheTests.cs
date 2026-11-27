@@ -40,15 +40,33 @@ public class NavMeshLocateCacheTests
     }
 
     [Fact]
-    public void RestoreLocateCacheRefusesAWrongLength() =>
+    public void RestoreLocateCacheRefusesAWrongLength()
+    {
         Assert.Throws<ArgumentException>(() => NavMesh.Build(new Grid()).RestoreLocateCache(new int[3]));
+    }
 
     private sealed class Grid : INavByteGrid
     {
-        public int Width => 132;
-        public int Height => 132;
-        public byte NavByte(int x, int y) =>
-            (x >= 4 && x < 8 && y >= 4 && y < 8) || (x == 66 && y >= 40 && y < 100)
+        public int Width
+        {
+            get
+            {
+                return 132;
+            }
+        }
+
+        public int Height
+        {
+            get
+            {
+                return 132;
+            }
+        }
+
+        public byte NavByte(int x, int y)
+        {
+            return (x >= 4 && x < 8 && y >= 4 && y < 8) || (x == 66 && y >= 40 && y < 100)
                 ? NavBytes.Solid : NavBytes.Floor;
+        }
     }
 }

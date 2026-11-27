@@ -44,10 +44,19 @@ public class HandTests
     /// seam the owner measured.</summary>
     private static readonly TilePos Seam = new(5, 5);
 
-    private static GameDatabase Db => Dk2TerrainFixture.Database();
+    private static GameDatabase Db
+    {
+        get
+        {
+            return Dk2TerrainFixture.Database();
+        }
+    }
 
-    private static WorldState World(GameDatabase db) => WorldState.FromMap(
+    private static WorldState World(GameDatabase db)
+    {
+        return WorldState.FromMap(
         db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+    }
 
     private static GameSimulation Simulation(
         GameDatabase db, WorldState world, ListEventSink? sink = null)
@@ -70,14 +79,19 @@ public class HandTests
         return sim;
     }
 
-    private static List<HandItem> HandOf(WorldState world) => world.Player(Keeper).Hand;
+    private static List<HandItem> HandOf(WorldState world)
+    {
+        return world.Player(Keeper).Hand;
+    }
 
     /// <summary>
     /// Just the ids, for the assertions that predate the hand holding anything
     /// but creatures (ADR-0075).
     /// </summary>
-    private static List<int> HandIdsOf(WorldState world) =>
-        [.. HandOf(world).Select(h => h.Id)];
+    private static List<int> HandIdsOf(WorldState world)
+    {
+        return [.. HandOf(world).Select(h => h.Id)];
+    }
 
     // ---- picking up -------------------------------------------------------
 
@@ -249,8 +263,10 @@ public class HandTests
         // is 3000 gold over 660 health, so a swing is health x 3000/660 =
         // health x 4.5454 gold; MineGoldHealth is -300 a second.
         GameDatabase db = Db;
-        int Swing(int bonuses) =>
-            TileWorkRules.PerApplication(db, TileWorkKind.MineGold, Rate(bonuses));
+        int Swing(int bonuses)
+        {
+            return TileWorkRules.PerApplication(db, TileWorkKind.MineGold, Rate(bonuses));
+        }
 
         Assert.Equal(-60, Swing(0));    // 272.7 gold — owner read 272-273
         Assert.Equal(-68, Swing(1));    // 309.1 gold — owner read 309-310
@@ -815,8 +831,10 @@ public class HandTests
 
     /// <summary>Efficiency in the 4096ths the work arithmetic uses, from a count
     /// of the two bonuses (ADR-0133): 0 is a plain imp, 1 slapped, 2 both.</summary>
-    private static int Rate(int bonuses) =>
-        EfficiencyRules.BaseModifier + (EfficiencyRules.BonusModifier * bonuses);
+    private static int Rate(int bonuses)
+    {
+        return EfficiencyRules.BaseModifier + (EfficiencyRules.BonusModifier * bonuses);
+    }
 
     private static int FirstSwingGold(int bonuses)
     {
@@ -1399,7 +1417,10 @@ public class HandTests
         Assert.Equal(sim.StateHash(), restored.StateHash());
     }
 
-    private static int Index(WorldState world, TilePos at) => (at.Y * world.Width) + at.X;
+    private static int Index(WorldState world, TilePos at)
+    {
+        return (at.Y * world.Width) + at.X;
+    }
 
     // ---- where a creature may be put down (Q198, ADR-0077) ----------------
 

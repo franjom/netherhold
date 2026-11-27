@@ -33,16 +33,22 @@ public partial class CampaignPlayerTests
         "RRRRRRR",
     ];
 
-    private static PlayerWorkshopOffer TrapOffer(byte id, int cost, bool affordable = true, bool needsWorkshop = false, string? name = null) =>
-        new(PlayerWorkshopKind.Trap, id, name ?? "trap " + id, new GoldAmount(cost), affordable, needsWorkshop);
+    private static PlayerWorkshopOffer TrapOffer(byte id, int cost, bool affordable = true, bool needsWorkshop = false, string? name = null)
+    {
+        return new(PlayerWorkshopKind.Trap, id, name ?? "trap " + id, new GoldAmount(cost), affordable, needsWorkshop);
+    }
 
     private static readonly PlayerWorkshopOffer Boulder = TrapOffer(2, 1000, name: "Boulder Trap"), Gas = TrapOffer(1, 2000, name: "Gas Trap");
 
-    private static List<TilePos> TrapSites(string[] map, params TilePos[] entries) =>
-        PlayerTrapRoutines.Sites(Observe(1, map: map, rooms: []), entries, 3, new HashSet<TilePos>());
+    private static List<TilePos> TrapSites(string[] map, params TilePos[] entries)
+    {
+        return PlayerTrapRoutines.Sites(Observe(1, map: map, rooms: []), entries, 3, new HashSet<TilePos>());
+    }
 
-    private static PlayerAction.PlaceTrap? Placed(CampaignPlayer player, PlayerObservation observation) =>
-        player.Decide(observation).Actions.OfType<PlayerAction.PlaceTrap>().SingleOrDefault();
+    private static PlayerAction.PlaceTrap? Placed(CampaignPlayer player, PlayerObservation observation)
+    {
+        return player.Decide(observation).Actions.OfType<PlayerAction.PlaceTrap>().SingleOrDefault();
+    }
 
     [Fact]
     public void TrapSitesAreCorridorTilesOnTheRouteOutermostFirstThreeApart()
@@ -67,9 +73,11 @@ public partial class CampaignPlayerTests
     }
 
     [Fact]
-    public void ATrapGreyedForWantOfAWorkshopIsNeverChosen() =>
+    public void ATrapGreyedForWantOfAWorkshopIsNeverChosen()
+    {
         Assert.Null(PlayerTrapRoutines.Choose(Observe(1, map: ShortTrapRun, rooms: [], workshop: [TrapOffer(3, 500, needsWorkshop: true)]),
             new TilePos(5, 2), 1000));
+    }
 
     [Fact]
     public void ATrapAlreadyThereKeepsNewSitesThreeTilesAway()

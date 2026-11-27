@@ -13,8 +13,10 @@ public class ClassicTerrainTintTests
     [InlineData(265, 510, 300, 9, 254, 44)]
     public void PieceEntriesKeepOnlyTheLowChannelBytes(int red, int green, int blue,
         int expectedRed, int expectedGreen, int expectedBlue)
-        => Assert.Equal(new TerrainLightColour(expectedRed, expectedGreen, expectedBlue),
-            ClassicTerrainTint.PieceColour(new TerrainLightColour(red, green, blue)));
+    {
+        Assert.Equal(new TerrainLightColour(expectedRed, expectedGreen, expectedBlue),
+                ClassicTerrainTint.PieceColour(new TerrainLightColour(red, green, blue)));
+    }
 
     [Theory]
     [InlineData(TileConstruction.Normal, RoomTypeId.Treasury, false, true)]

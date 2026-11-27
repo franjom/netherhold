@@ -43,10 +43,15 @@ public class HeroLairTrestleTests
         return world;
     }
 
-    private static GameSimulation Simulation(GameDatabase db, WorldState world, uint seed) =>
-        new(db, world, new SimRandom(new Dk2Lcg(seed)), []);
+    private static GameSimulation Simulation(GameDatabase db, WorldState world, uint seed)
+    {
+        return new(db, world, new SimRandom(new Dk2Lcg(seed)), []);
+    }
 
-    private static uint Seed(GameSimulation sim) => ((Dk2Lcg)sim.Rng.Algorithm).Seed;
+    private static uint Seed(GameSimulation sim)
+    {
+        return ((Dk2Lcg)sim.Rng.Algorithm).Seed;
+    }
 
     /// <summary>The seed after the given number of <c>random(4)</c> draws.</summary>
     private static uint After(uint seed, int draws)
@@ -72,8 +77,10 @@ public class HeroLairTrestleTests
         }
     }
 
-    private static List<ObjectState> Trestles(WorldState world) =>
-        [.. world.Objects.Where(o => o.ObjectTypeId == HeroLairRules.TrestleObjectId)];
+    private static List<ObjectState> Trestles(WorldState world)
+    {
+        return [.. world.Objects.Where(o => o.ObjectTypeId == HeroLairRules.TrestleObjectId)];
+    }
 
     [Fact]
     public void WithoutLairGroundTheLevelStartDrawsNothing()

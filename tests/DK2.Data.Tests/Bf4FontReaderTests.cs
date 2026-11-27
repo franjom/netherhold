@@ -93,7 +93,10 @@ public class Bf4FontReaderTests
         Assert.Equal((4, 9, -1, 4, 4), (one.Width, one.Height, one.OffsetX, one.OffsetY, one.Advance));
     }
 
-    private static BitmapGlyph Single(byte[] file) => Assert.Single(Bf4FontReader.Read(file).Glyphs);
+    private static BitmapGlyph Single(byte[] file)
+    {
+        return Assert.Single(Bf4FontReader.Read(file).Glyphs);
+    }
 
     private static byte[] Glyph(char c, int width, int height, uint flags, params byte[] data)
     {

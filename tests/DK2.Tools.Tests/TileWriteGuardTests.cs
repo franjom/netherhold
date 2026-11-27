@@ -22,7 +22,13 @@ namespace DK2.Tools.Tests;
 /// </summary>
 public class TileWriteGuardTests
 {
-    private static string Root => Repo.FindRepoRoot() ?? throw new InvalidOperationException("no repository above the test");
+    private static string Root
+    {
+        get
+        {
+            return Repo.FindRepoRoot() ?? throw new InvalidOperationException("no repository above the test");
+        }
+    }
 
     // A whole-tile write the guard lets through: where it is (file under the repository root, enclosing member) and why.
     private sealed record Allowed(string File, string Member, string Reason);
@@ -144,7 +150,9 @@ public class TileWriteGuardTests
         }
     }
 
-    private static string Wrap(string model, string statements) => "using DK2.Simulation;\n" + model + $$"""
+    private static string Wrap(string model, string statements)
+    {
+        return "using DK2.Simulation;\n" + model + $$"""
 
         public static class Case
         {
@@ -154,13 +162,20 @@ public class TileWriteGuardTests
             }
         }
         """;
+    }
 
     private sealed record Violation(string File, int Line, string Member, string Code)
     {
-        public override string ToString() => $"{File}:{Line} in {Member}: {Code}";
+        public override string ToString()
+        {
+            return $"{File}:{Line} in {Member}: {Code}";
+        }
     }
 
-    private static bool Matches(Allowed allowed, Violation v) => allowed.File == v.File && allowed.Member == v.Member;
+    private static bool Matches(Allowed allowed, Violation v)
+    {
+        return allowed.File == v.File && allowed.Member == v.Member;
+    }
 
     private static List<Violation> Scan(IEnumerable<(string Path, string Text)> sources)
     {
@@ -261,13 +276,15 @@ public class TileWriteGuardTests
     }
 
     // `var tiles = new TileState[n]; tiles[i] = ...`: no world holds that array yet.
-    private static bool IsFreshLocalArray(SemanticModel model, ElementAccessExpressionSyntax element) =>
-        model.GetSymbolInfo(element.Expression).Symbol is ILocalSymbol { RefKind: RefKind.None } local
+    private static bool IsFreshLocalArray(SemanticModel model, ElementAccessExpressionSyntax element)
+    {
+        return model.GetSymbolInfo(element.Expression).Symbol is ILocalSymbol { RefKind: RefKind.None } local
         && local.DeclaringSyntaxReferences.Length == 1
         && local.DeclaringSyntaxReferences[0].GetSyntax() is VariableDeclaratorSyntax
         {
             Initializer.Value: ArrayCreationExpressionSyntax or ImplicitArrayCreationExpressionSyntax or CollectionExpressionSyntax,
         };
+    }
 
     private static bool IsBulkWrite(SemanticModel model, InvocationExpressionSyntax call, INamedTypeSymbol tile)
     {
@@ -292,17 +309,22 @@ public class TileWriteGuardTests
     }
 
     // TileState[], Span<TileState>, ReadOnlySpan<TileState>, List<TileState> and the like.
-    private static bool HoldsTiles(ITypeSymbol? type, INamedTypeSymbol tile) => type switch
+    private static bool HoldsTiles(ITypeSymbol? type, INamedTypeSymbol tile)
     {
-        IArrayTypeSymbol array => SymbolEqualityComparer.Default.Equals(array.ElementType, tile),
-        INamedTypeSymbol named => named.TypeArguments.Any(a => SymbolEqualityComparer.Default.Equals(a, tile)),
-        _ => false,
-    };
+        return type switch
+        {
+            IArrayTypeSymbol array => SymbolEqualityComparer.Default.Equals(array.ElementType, tile),
+            INamedTypeSymbol named => named.TypeArguments.Any(a => SymbolEqualityComparer.Default.Equals(a, tile)),
+            _ => false,
+        };
+    }
 
     // WorldState.CopyFrom copies the whole array and then counts it as one change.
-    private static bool CountsTheBulkWrite(InvocationExpressionSyntax call) =>
-        call.FirstAncestorOrSelf<BaseMethodDeclarationSyntax>() is { } method
+    private static bool CountsTheBulkWrite(InvocationExpressionSyntax call)
+    {
+        return call.FirstAncestorOrSelf<BaseMethodDeclarationSyntax>() is { } method
         && method.DescendantNodes().OfType<InvocationExpressionSyntax>().Any(i => i.Expression.ToString().EndsWith("NoteBulkKeyWrite", StringComparison.Ordinal));
+    }
 
     private static Violation At(SyntaxTree tree, SyntaxNode node, string code)
     {
@@ -318,16 +340,23 @@ public class TileWriteGuardTests
         return new Violation(tree.FilePath, tree.GetLineSpan(node.Span).StartLinePosition.Line + 1, member, code);
     }
 
-    private static IEnumerable<MetadataReference> References() =>
-        ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
+    private static IEnumerable<MetadataReference> References()
+    {
+        return ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
             .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
             .Where(path => Path.GetFileName(path) is var name && (name.StartsWith("System.", StringComparison.Ordinal)
                 || name is "mscorlib.dll" or "netstandard.dll"))
             .Order(StringComparer.Ordinal)
             .Select(path => MetadataReference.CreateFromFile(path));
+    }
 
-    private static string Relative(string root, string path) => Path.GetRelativePath(root, path).Replace(Path.DirectorySeparatorChar, '/');
+    private static string Relative(string root, string path)
+    {
+        return Path.GetRelativePath(root, path).Replace(Path.DirectorySeparatorChar, '/');
+    }
 
-    private static bool IsBuildOutput(string relative) =>
-        relative.Split(['/', '\\']).Any(part => part is "obj" or "bin");
+    private static bool IsBuildOutput(string relative)
+    {
+        return relative.Split(['/', '\\']).Any(part => part is "obj" or "bin");
+    }
 }

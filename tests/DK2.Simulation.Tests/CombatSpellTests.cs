@@ -453,9 +453,13 @@ public class CombatSpellTests
         return (db, world);
     }
 
-    private static CreatureState Spawn(GameDatabase db, WorldState world, byte type, byte owner, int x, int y) =>
-        world.SpawnArrived(db, type, owner, new TilePos(x, y));
+    private static CreatureState Spawn(GameDatabase db, WorldState world, byte type, byte owner, int x, int y)
+    {
+        return world.SpawnArrived(db, type, owner, new TilePos(x, y));
+    }
 
-    private static GameSimulation Combat(GameDatabase db, WorldState world) =>
-        new(db, world, 1, [new CombatSystem(), new PreviousPositionStep(), new CreatureMovementSystem(), new ShotSystem()]);
+    private static GameSimulation Combat(GameDatabase db, WorldState world)
+    {
+        return new(db, world, 1, [new CombatSystem(), new PreviousPositionStep(), new CreatureMovementSystem(), new ShotSystem()]);
+    }
 }

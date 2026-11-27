@@ -27,13 +27,24 @@ public class CreatureNeedsTests
     private const byte GoblinId = 7;
     private const byte VampireId = Dk2TerrainFixture.VampireCreatureId;
 
-    private static GameDatabase Db => Dk2TerrainFixture.Database();
+    private static GameDatabase Db
+    {
+        get
+        {
+            return Dk2TerrainFixture.Database();
+        }
+    }
 
-    private static WorldState World(GameDatabase db) => WorldState.FromMap(
+    private static WorldState World(GameDatabase db)
+    {
+        return WorldState.FromMap(
         db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
+    }
 
-    private static GameSimulation Simulation(GameDatabase db, WorldState world) =>
-        new(db, world, seed: 42, [new CreatureUpdateSystem(new CreatureStatusSystem(), new CreatureEatSystem()), new CreatureHealthSystem()]);
+    private static GameSimulation Simulation(GameDatabase db, WorldState world)
+    {
+        return new(db, world, seed: 42, [new CreatureUpdateSystem(new CreatureStatusSystem(), new CreatureEatSystem()), new CreatureHealthSystem()]);
+    }
 
     private static void Paint(
         GameDatabase db, WorldState world, RoomTypeId type, TilePos at, byte owner)

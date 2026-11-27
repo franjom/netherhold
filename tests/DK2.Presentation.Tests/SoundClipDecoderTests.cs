@@ -15,7 +15,11 @@ public sealed class SoundClipDecoderTests
     private sealed class Assets(Func<ResolvedSound, PcmClip?> clip) : IClassicSoundAssets
     {
         public int Calls;
-        public SoundMaps Maps(SoundCategory category) => new(BankMap.Empty, SfxMap.Empty);
+        public SoundMaps Maps(SoundCategory category)
+        {
+            return new(BankMap.Empty, SfxMap.Empty);
+        }
+
         public PcmClip? Clip(ResolvedSound reference)
         {
             Interlocked.Increment(ref Calls);

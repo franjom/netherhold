@@ -147,8 +147,13 @@ public class RightHandedFrameTests
         return new Vector2(Vector3.Dot(d, camera.X) / depth, Vector3.Dot(d, camera.Y) / depth);
     }
 
-    private static float SignedArea(Vector2 a, Vector2 b, Vector2 c) => ((b.X - a.X) * (c.Y - a.Y)) - ((c.X - a.X) * (b.Y - a.Y));
+    private static float SignedArea(Vector2 a, Vector2 b, Vector2 c)
+    {
+        return ((b.X - a.X) * (c.Y - a.Y)) - ((c.X - a.X) * (b.Y - a.Y));
+    }
 
-    private static void AssertNear(Vector3 expected, Vector3 actual) =>
+    private static void AssertNear(Vector3 expected, Vector3 actual)
+    {
         Assert.True(Vector3.Distance(expected, actual) <= Tolerance, $"expected {expected}, got {actual}");
+    }
 }

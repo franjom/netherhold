@@ -72,8 +72,10 @@ public class KeeperTrainingStepTests
         return creature;
     }
 
-    private static KeeperAIParameters Parameters(byte skill = 1, byte speed = 4) =>
-        KeeperWorld.Parameters(speed: speed) with { IACreatureSkillLevel = skill };
+    private static KeeperAIParameters Parameters(byte skill = 1, byte speed = 4)
+    {
+        return KeeperWorld.Parameters(speed: speed) with { IACreatureSkillLevel = skill };
+    }
 
     /// <summary>Runs the step alone on a fresh capture, returning the allowance left and the commands.</summary>
     private static (int Left, List<PlayerCommand> Commands) Run(
@@ -89,11 +91,15 @@ public class KeeperTrainingStepTests
         return (step.Run(allowance), commands);
     }
 
-    private static int[] Lifted(IEnumerable<PlayerCommand> commands) =>
-        [.. commands.OfType<TakeCreatureCommand>().Select(c => c.CreatureId)];
+    private static int[] Lifted(IEnumerable<PlayerCommand> commands)
+    {
+        return [.. commands.OfType<TakeCreatureCommand>().Select(c => c.CreatureId)];
+    }
 
-    private static TilePos[] Drops(IEnumerable<PlayerCommand> commands) =>
-        [.. commands.OfType<DropCommand>().Select(c => c.Tile)];
+    private static TilePos[] Drops(IEnumerable<PlayerCommand> commands)
+    {
+        return [.. commands.OfType<DropCommand>().Select(c => c.Tile)];
+    }
 
     [Theory]
     [InlineData(PitBar, false)]

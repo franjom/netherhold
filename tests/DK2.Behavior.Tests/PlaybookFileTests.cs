@@ -19,11 +19,19 @@ public class PlaybookFileTests
     private static readonly PlayerId Keeper = new(3);
     private const ulong Hash = 521;
 
-    private static string PlaybookDirectory => Path.Combine(ScenarioCorpus.RepositoryRoot(), KeeperKnowledgeFile.DirectoryName, PlaybookFile.DirectoryName);
+    private static string PlaybookDirectory
+    {
+        get
+        {
+            return Path.Combine(ScenarioCorpus.RepositoryRoot(), KeeperKnowledgeFile.DirectoryName, PlaybookFile.DirectoryName);
+        }
+    }
 
-    private static PlaybookAvailableCommand.Available Generate(string scenario) =>
-        PlaybookAvailableCommand.Generate(new ScenarioRunner(ScenarioCorpus.Database, Dk2InstallGate.Path), ScenarioCorpus.Database,
+    private static PlaybookAvailableCommand.Available Generate(string scenario)
+    {
+        return PlaybookAvailableCommand.Generate(new ScenarioRunner(ScenarioCorpus.Database, Dk2InstallGate.Path), ScenarioCorpus.Database,
             Dk2InstallGate.Path, ScenarioCorpus.Load(scenario), Keeper);
+    }
 
     private static readonly Lazy<PlaybookAvailableCommand.Available> Level2 = new(() => Generate("campaign-player/level2/level2-seed1.yaml"));
 

@@ -210,7 +210,17 @@ public class SlapStateTests
 
     private sealed class Probe(Action<SimulationContext> body) : ISimulationSystem
     {
-        public string Name => "Probe";
-        public void Execute(SimulationContext context) => body(context);
+        public string Name
+        {
+            get
+            {
+                return "Probe";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            body(context);
+        }
     }
 }

@@ -98,8 +98,12 @@ public class WorldViewTests
         var view = new WorldView(database, PlayerIds.FirstKeeper);
         var palette = new MinimapPalette(new uint[37]);
         var markers = new List<MinimapMarker>();
-        bool HasRing(int x, int y, uint colour) => markers.Any(m => m.Kind == MinimapMarkerKind.Ring
+        bool HasRing(int x, int y, uint colour)
+        {
+            return markers.Any(m => m.Kind == MinimapMarkerKind.Ring
             && m.Position.X.Raw == (x << 12) + 0x800 && m.Position.Y.Raw == (y << 12) + 0x800 && m.ColourArgb == colour);
+        }
+
         view.CaptureMinimapMarkers(world, palette, markers);
         Assert.True(HasRing(2, 2, 0xFFDC32FF));
         Assert.False(HasRing(2, 3, 0xFFDC32FF));
@@ -185,7 +189,11 @@ public class WorldViewTests
         world.Tile(at).ClearExploredBy(PlayerIds.FirstKeeper);
         view.CaptureMinimapMarkers(world, palette, markers);
         var location = new FpPosition3(new(own.PosX), new(own.PosY), new(own.PosZ));
-        int CountAtLocation() => markers.Count(m => m.Kind == MinimapMarkerKind.Creature && m.Position == location);
+        int CountAtLocation()
+        {
+            return markers.Count(m => m.Kind == MinimapMarkerKind.Creature && m.Position == location);
+        }
+
         Assert.Equal(1, CountAtLocation());
         Assert.Equal(0xFFFFFFFFu, Assert.Single(markers, m => m.Kind == MinimapMarkerKind.Ring && m.Position == location).ColourArgb);
         world.Tile(at).SetExploredBy(PlayerIds.FirstKeeper);
@@ -514,7 +522,14 @@ public class WorldViewTests
 
     private sealed class StartAndFinishCast(CreatureState caster, CreatureDef definition) : ISimulationSystem
     {
-        public string Name => "start_and_finish_cast";
+        public string Name
+        {
+            get
+            {
+                return "start_and_finish_cast";
+            }
+        }
+
         private bool _started;
         public void Execute(SimulationContext context)
         {
@@ -578,7 +593,14 @@ public class WorldViewTests
 
     private sealed class StartImmediateSwing(CreatureState attacker, CreatureDef definition) : ISimulationSystem
     {
-        public string Name => "start_immediate_swing";
+        public string Name
+        {
+            get
+            {
+                return "start_immediate_swing";
+            }
+        }
+
         private bool _started;
         public void Execute(SimulationContext context)
         {
@@ -595,12 +617,22 @@ public class WorldViewTests
 
     private sealed class ClearSight : DK2.Simulation.Combat.ISightBlocker
     {
-        public bool Blocks(int x, int y) => false;
+        public bool Blocks(int x, int y)
+        {
+            return false;
+        }
     }
 
     private sealed class FinishRangedCast(CreatureState caster, CreatureDef definition) : ISimulationSystem
     {
-        public string Name => "finish_ranged_cast";
+        public string Name
+        {
+            get
+            {
+                return "finish_ranged_cast";
+            }
+        }
+
         public void Execute(SimulationContext context)
         {
             caster.FightTargetKind = DK2.Simulation.Combat.FightTargetKind.Door;
@@ -913,10 +945,12 @@ public class WorldViewTests
     /// be a rule about the reference install, exactly what the simulation's own
     /// rules refuse to be.
     /// </summary>
-    private static byte TerrainIdOf(GameDatabase database, TileView tile) =>
-        database.Terrain.Values
+    private static byte TerrainIdOf(GameDatabase database, TileView tile)
+    {
+        return database.Terrain.Values
             .First(t => AssetRef.ForTerrain(t.Name, t.IsSolid ? AssetKind.Mesh : AssetKind.Texture) == tile.Ground)
             .TerrainId;
+    }
 
     [InstallFact]
     public void HealthIsReportedAsAFractionSoARendererNeedsNoTerrainTable()

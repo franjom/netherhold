@@ -50,12 +50,14 @@ public class CasinoStateTests
         return world;
     }
 
-    private static GameSimulation Simulation(GameDatabase db, WorldState world, params ISimulationSystem[] extra) =>
-        new(db, world, seed: 42,
+    private static GameSimulation Simulation(GameDatabase db, WorldState world, params ISimulationSystem[] extra)
+    {
+        return new(db, world, seed: 42,
         [
             new AutoFurnitureSystem(), new CasinoSystem(), new CreatureMovementSystem(), new CasinoJackpotSystem(),
             new CreatureJobSystem(), .. extra,
         ]);
+    }
 
     private static CreatureState Gambler(GameDatabase db, WorldState world, TilePos at, int purse = 1000)
     {
@@ -68,8 +70,10 @@ public class CasinoStateTests
         return goblin;
     }
 
-    private static RoomInstance Casino(GameDatabase db, WorldState world) =>
-        RoomIndex.Build(world, db).Single(r => r.Definition.TypeId == RoomTypeId.Casino);
+    private static RoomInstance Casino(GameDatabase db, WorldState world)
+    {
+        return RoomIndex.Build(world, db).Single(r => r.Definition.TypeId == RoomTypeId.Casino);
+    }
 
     /// <summary>Runs and gathers the states the creature is seen in, a walk named by its resume.</summary>
     private static HashSet<int> Watch(GameSimulation sim, CreatureState creature, int ticks)
@@ -245,15 +249,19 @@ public class CasinoStateTests
     [InlineData(true, true, true, false, 75, 68)]
     [InlineData(false, true, true, false, 0, 66)]
     [InlineData(false, true, true, true, 75, 68)]
-    public void TheTableActionIsChosenByTheArtAndARollOfAHundred(bool a, bool b, bool d, bool stingy, int roll, int action) =>
+    public void TheTableActionIsChosenByTheArtAndARollOfAHundred(bool a, bool b, bool d, bool stingy, int roll, int action)
+    {
         Assert.Equal(action, CasinoStep.TableAction(a, b, d, stingy, () => roll));
+    }
 
     [Theory]
     [InlineData(true, false, true, 68)]
     [InlineData(true, true, false, 0)]
     [InlineData(false, false, false, 0)]
-    public void WithoutTheSettingsArtOrArtTwentyThereIsNoRollAndActionZeroMeansNone(bool a, bool b, bool d, int action) =>
+    public void WithoutTheSettingsArtOrArtTwentyThereIsNoRollAndActionZeroMeansNone(bool a, bool b, bool d, int action)
+    {
         Assert.Equal(action, CasinoStep.TableAction(a, b, d, stingy: false, () => throw new InvalidOperationException("no roll")));
+    }
 
     // ----------------------------------------------------------------------- art and timing
 
@@ -488,7 +496,11 @@ public class CasinoStateTests
 
     private sealed class Fixed(int value) : IRandomAlgorithm
     {
-        public int NextInt(int exclusiveMax) => Math.Min(value, exclusiveMax - 1);
+        public int NextInt(int exclusiveMax)
+        {
+            return Math.Min(value, exclusiveMax - 1);
+        }
+
         public void HashInto(ref Hash64 hash) { }
     }
 
@@ -586,8 +598,18 @@ public class CasinoStateTests
 
     private sealed class Probe(Action<SimulationContext> body) : ISimulationSystem
     {
-        public string Name => "Probe";
-        public void Execute(SimulationContext context) => body(context);
+        public string Name
+        {
+            get
+            {
+                return "Probe";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            body(context);
+        }
     }
 
     // ----------------------------------------------------------------------- 154 (ADR-0402)
@@ -622,8 +644,10 @@ public class CasinoStateTests
         Assert.DoesNotContain(CasinoStep.ReturningState, order.Skip(back + 2));
     }
 
-    private static ThingSoundRequest[] Sounds(ListEventSink sink) =>
-        [.. sink.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value)];
+    private static ThingSoundRequest[] Sounds(ListEventSink sink)
+    {
+        return [.. sink.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value)];
+    }
 
     /// <summary>147 (<c>0x00456D60</c>) requests <c>0xE1</c> and 149 (<c>0x00456980</c>) requests <c>0xD5</c>, each with the
     /// gambler's handle at its position, on every eighth game second of the state's age while its action runs.

@@ -15,10 +15,19 @@ namespace DK2.Simulation.Tests;
 public class KeeperPayTests
 {
     private const byte Keeper = PlayerIds.FirstKeeper;
-    private static GameDatabase Db => Dk2TerrainFixture.Database();
+    private static GameDatabase Db
+    {
+        get
+        {
+            return Dk2TerrainFixture.Database();
+        }
+    }
 
-    private static WorldState World(GameDatabase db) => WorldState.FromMap(
+    private static WorldState World(GameDatabase db)
+    {
+        return WorldState.FromMap(
         db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+    }
 
     private static void Store(GameDatabase db, WorldState world, RoomTypeId type, int x, int y, int width, int gold)
     {
@@ -30,8 +39,10 @@ public class KeeperPayTests
         }
     }
 
-    private static int Held(GameDatabase db, WorldState world, int x, int y) =>
-        RoomIndex.RoomAt(world, db, y * world.Width + x)!.TileIndices.Sum(i => world.TileAtIndex(i).GoldHeld);
+    private static int Held(GameDatabase db, WorldState world, int x, int y)
+    {
+        return RoomIndex.RoomAt(world, db, y * world.Width + x)!.TileIndices.Sum(i => world.TileAtIndex(i).GoldHeld);
+    }
 
     [Fact]
     public void TheSpendSharesOverTreasuriesPlusOneAndStopsWhenAPassTakesNothing()

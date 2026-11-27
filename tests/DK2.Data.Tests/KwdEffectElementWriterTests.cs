@@ -11,18 +11,22 @@ namespace DK2.Data.Tests;
 public class KwdEffectElementWriterTests
 {
     [Fact]
-    public void EveryDecodedFieldRoundTripsWithoutChangingOtherBytes() =>
+    public void EveryDecodedFieldRoundTripsWithoutChangingOtherBytes()
+    {
         KwdScalarOverlayChecks.Check(KwdRecordType.EffectElements, 182, Read, KwdAdditionalRecords.WriteEffectElementRecord,
             "Name:0:32 ArtResource:20:84 Mass:74:4 AirFriction:78:4 Elasticity:7C:4 MinSpeedXy:80:4 MaxSpeedXy:84:4 " +
             "MinSpeedYz:88:4 MaxSpeedYz:8C:4 MinScale:90:4 MaxScale:94:4 ScaleRatio:98:4 Flags:9C:4 " +
             "EffectElementId:A0:2 MinHp:A2:2 MaxHp:A4:2 DeathElementId:A6:2 HitSolidElementId:A8:2 HitWaterElementId:AA:2 " +
             "HitLavaElementId:AC:2 Red:AE:1 Green:AF:1 Blue:B0:1 RandomColorIndex:B1:1 TableColorIndex:B2:1 " +
             "FadePercentage:B3:1 NextEffectId:B4:2");
+    }
 
     [Fact]
-    public void EveryNestedArtFieldRoundTripsWithoutChangingOtherBytes() =>
+    public void EveryNestedArtFieldRoundTripsWithoutChangingOtherBytes()
+    {
         KwdNestedOverlayChecks.Art(KwdRecordType.EffectElements, 182, 32, Read, KwdAdditionalRecords.WriteEffectElementRecord,
             c => c.ArtResource, (c, art) => c with { ArtResource = art });
+    }
 
     [InstallFact]
     public void EveryShippedEffectElementTypedOverlayIsByteIdentical()
@@ -36,6 +40,9 @@ public class KwdEffectElementWriterTests
         }
     }
 
-    private static EffectElementDef Read(byte[] source) => KwdAdditionalRecords.ParseEffectElements([
+    private static EffectElementDef Read(byte[] source)
+    {
+        return KwdAdditionalRecords.ParseEffectElements([
         new KwdChunk { Type = KwdRecordType.EffectElements, ItemCount = 1, Content = source, HeaderBlock = [] }]).Single();
+    }
 }

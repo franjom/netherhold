@@ -359,10 +359,19 @@ public class DropLandingTests
 
     private sealed class Watch(CreatureState watched, List<(int, bool, int)> seen) : ICreatureUpdateStep
     {
-        public string Name => "watch";
+        public string Name
+        {
+            get
+            {
+                return "watch";
+            }
+        }
+
         public void Execute(SimulationContext context) { }
-        public void Update(SimulationContext context, CreatureState creature) =>
+        public void Update(SimulationContext context, CreatureState creature)
+        {
             seen.Add((creature.Id, Combat.CombatRules.IsAttackable(watched), watched.Dk2StateId));
+        }
     }
 
     private static (GameDatabase, WorldState) World()

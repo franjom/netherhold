@@ -412,30 +412,56 @@ public class DungeonHeartTests
 
     private sealed class HeartMelee(CreatureState attacker) : ISimulationSystem
     {
-        public string Name => "test heart melee";
-        public void Execute(SimulationContext context) => Combat.FightRules.LandBlow(
+        public string Name
+        {
+            get
+            {
+                return "test heart melee";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            Combat.FightRules.LandBlow(
             context, attacker, context.Database.CreatureById(attacker.CreatureTypeId));
+        }
     }
 
     private sealed class HeartShot : ISimulationSystem
     {
-        public string Name => "test heart shot";
-        public void Execute(SimulationContext context) => Combat.ShotRules.ContactDamageHeart(context,
+        public string Name
+        {
+            get
+            {
+                return "test heart shot";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            Combat.ShotRules.ContactDamageHeart(context,
             new ShotState { TargetPlayerId = Keeper, OwnerPlayerId = Rival, Data1 = 300 },
             context.Database.Shots[Dk2TerrainFixture.FireballShotId]);
+        }
     }
 
-    private static WorldState NewWorld(GameDatabase database, GameMode mode = GameMode.Campaign) =>
-        WorldState.FromMap(
+    private static WorldState NewWorld(GameDatabase database, GameMode mode = GameMode.Campaign)
+    {
+        return WorldState.FromMap(
             database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival], gameMode: mode);
+    }
 
-    private static GameSimulation Simulation(GameDatabase database, WorldState world) =>
-        new(database, world, 1, [new DungeonHeartSystem()]);
+    private static GameSimulation Simulation(GameDatabase database, WorldState world)
+    {
+        return new(database, world, 1, [new DungeonHeartSystem()]);
+    }
 
     /// <summary>Runs past the Heart's opening sequence, before which the room's ordinary frame
     /// (regeneration, ruin) does not run (<see cref="HeartIntroRules.SequenceOver"/>).</summary>
-    private static void SkipOpening(GameSimulation sim) =>
+    private static void SkipOpening(GameSimulation sim)
+    {
         sim.Run(HeartIntroRules.SequenceSeconds * SimulationTiming.TicksPerSecond + 3);
+    }
 
     private static void GiveHeart(WorldState world, GameDatabase database, byte player, params TilePos[] tiles)
     {

@@ -13,7 +13,10 @@ namespace DK2.Behavior.Tests;
 /// Gated with [InstallFact].</summary>
 public class WorkshopOnRealDataTests
 {
-    private static GameDatabase Db() => GameDatabaseLoader.LoadForCampaignLevel(Dk2InstallGate.Path, "level3");
+    private static GameDatabase Db()
+    {
+        return GameDatabaseLoader.LoadForCampaignLevel(Dk2InstallGate.Path, "level3");
+    }
 
     /// <summary>Every piece the shipped Workshop places is a machine the finder looks for (15, 16, 46).</summary>
     [InstallFact]

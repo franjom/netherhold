@@ -20,17 +20,25 @@ public sealed class PossessionInputTests
     private const byte MesmerCreatureId = 50;
 
     /// <summary>A Goblin that can be hypnotised, and one immune to Turncoat as well.</summary>
-    private static CreatureDef Mesmer() => Dk2TerrainFixture.Goblin() with
+    private static CreatureDef Mesmer()
     {
-        Name = "Mesmer", CreatureId = MesmerCreatureId,
-        Flags = Dk2TerrainFixture.Goblin().Flags | CreatureFlags.CanBeHypnotized,
-    };
+        return Dk2TerrainFixture.Goblin() with
+        {
+            Name = "Mesmer",
+            CreatureId = MesmerCreatureId,
+            Flags = Dk2TerrainFixture.Goblin().Flags | CreatureFlags.CanBeHypnotized,
+        };
+    }
 
-    private static CreatureDef Stubborn() => Mesmer() with
+    private static CreatureDef Stubborn()
     {
-        Name = "Stubborn", CreatureId = MesmerCreatureId + 1,
-        Flags = Mesmer().Flags | CreatureFlags.IsImmuneToTurncoat,
-    };
+        return Mesmer() with
+        {
+            Name = "Stubborn",
+            CreatureId = MesmerCreatureId + 1,
+            Flags = Mesmer().Flags | CreatureFlags.IsImmuneToTurncoat,
+        };
+    }
 
     private static (GameDatabase Db, WorldState World) Open()
     {
@@ -64,9 +72,15 @@ public sealed class PossessionInputTests
         return sim;
     }
 
-    private static PossessionAim Aim(CreatureState me) => new(new(new(me.PosX), new(me.PosY), new(me.PosZ)), new(East), new(Level));
+    private static PossessionAim Aim(CreatureState me)
+    {
+        return new(new(new(me.PosX), new(me.PosY), new(me.PosZ)), new(East), new(Level));
+    }
 
-    private static void Own(WorldState world, int x, int y, byte owner) => world.Tile(x, y).OwnerPlayerId = owner;
+    private static void Own(WorldState world, int x, int y, byte owner)
+    {
+        world.Tile(x, y).OwnerPlayerId = owner;
+    }
 
     // ------------------------------------------------------------------ sneak
 

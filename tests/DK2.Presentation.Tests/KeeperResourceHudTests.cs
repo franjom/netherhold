@@ -13,8 +13,10 @@ public sealed class KeeperResourceHudTests
     private static readonly HudScreen FullHd = new(1920, 1080);
 
     private static KeeperResourceSnapshot Snapshot(int gold = 0, int mana = 0, int income = 0, int upkeep = 0,
-        HudGaugeFraction heart = default) =>
-        new(new GoldAmount(gold), new ManaAmount(mana), new ManaPerSecond(income), new ManaPerSecond(upkeep), heart);
+        HudGaugeFraction heart = default)
+    {
+        return new(new GoldAmount(gold), new ManaAmount(mana), new ManaPerSecond(income), new ManaPerSecond(upkeep), heart);
+    }
 
     private static HudDraw[] Build(KeeperResourceHud hud, KeeperResourceSnapshot snapshot, HudScreen? screen = null)
     {

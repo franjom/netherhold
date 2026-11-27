@@ -106,8 +106,22 @@ public sealed class LibraryStopRouteTests
 
     private sealed class ResearchTurn : ICreatureUpdateStep
     {
-        public string Name => "Library internal walk";
-        public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
-        public void Update(SimulationContext context, CreatureState creature) => ResearchStep.Turn(context, Name, creature);
+        public string Name
+        {
+            get
+            {
+                return "Library internal walk";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            CreatureUpdateSystem.RunAlone(context, this);
+        }
+
+        public void Update(SimulationContext context, CreatureState creature)
+        {
+            ResearchStep.Turn(context, Name, creature);
+        }
     }
 }

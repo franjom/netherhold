@@ -11,19 +11,26 @@ internal static class AnimatedKmfFixture
     /// <summary>Two frames, each vertex's entries g and g + 1 exact at frames 0 and 1. The
     /// corrupt variant has a third frame, since the drawer (<c>0x00577F10</c>) reads the last
     /// frame through the one before it and never reads the last offset column.</summary>
-    public static byte[] TwoFrames(bool corruptSecondFrame = false) => corruptSecondFrame
+    public static byte[] TwoFrames(bool corruptSecondFrame = false)
+    {
+        return corruptSecondFrame
         ? Build(3, [0, 200, 1, 0, 1, 1, 0, 1, 1], [0, 1, 0, 1, 0, 1])
         : Build(2, [0, 1, 0, 1, 0, 1], [0, 1, 0, 1, 0, 1]);
+    }
 
     /// <summary><see cref="TwoFrames"/> with tagged points, each a packed vertex reference (primitive in the low word,
     /// vertex in the high) and an id.</summary>
-    public static byte[] TwoFramesWithControls(params (uint Vertex, uint Id)[] controls) =>
-        Build(2, [0, 1, 0, 1, 0, 1], [0, 1, 0, 1, 0, 1], controls);
+    public static byte[] TwoFramesWithControls(params (uint Vertex, uint Id)[] controls)
+    {
+        return Build(2, [0, 1, 0, 1, 0, 1], [0, 1, 0, 1, 0, 1], controls);
+    }
 
     /// <summary>Three frames whose middle one is no key: each vertex's entries g and g + 1 are
     /// exact at frames 0 and 2, so frame 1 is halfway between them (<c>0x0057E5B0</c>).</summary>
-    public static byte[] KeyedAtFramesZeroAndTwo() =>
-        Build(3, [0, 0, 1, 0, 0, 1, 0, 0, 1], [0, 2, 0, 2, 0, 2]);
+    public static byte[] KeyedAtFramesZeroAndTwo()
+    {
+        return Build(3, [0, 0, 1, 0, 0, 1, 0, 0, 1], [0, 2, 0, 2, 0, 2]);
+    }
 
     private static byte[] Build(uint frames, byte[] frameOffsets, byte[] keyFrames, (uint Vertex, uint Id)[]? controls = null)
     {
@@ -55,8 +62,16 @@ internal static class AnimatedKmfFixture
         writer.Write(frameOffsets);
         return stream.ToArray();
 
-        void Tag(string value) => writer.Write(Encoding.ASCII.GetBytes(value));
-        void U32(uint value) => writer.Write(value);
+        void Tag(string value)
+        {
+            writer.Write(Encoding.ASCII.GetBytes(value));
+        }
+
+        void U32(uint value)
+        {
+            writer.Write(value);
+        }
+
         void Text(string value)
         {
             writer.Write(Encoding.ASCII.GetBytes(value));

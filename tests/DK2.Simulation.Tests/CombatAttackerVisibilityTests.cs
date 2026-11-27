@@ -102,12 +102,21 @@ public class CombatAttackerVisibilityTests
         return (db, world);
     }
 
-    private static void Run(GameDatabase db, WorldState world, Action<SimulationContext> assertion) =>
+    private static void Run(GameDatabase db, WorldState world, Action<SimulationContext> assertion)
+    {
         new GameSimulation(db, world, 1, [new CheckAcquisition(assertion)]).Tick();
+    }
 
     private sealed class CheckAcquisition(Action<SimulationContext> assertion) : ISimulationSystem
     {
-        public string Name => "registered attacker visibility";
+        public string Name
+        {
+            get
+            {
+                return "registered attacker visibility";
+            }
+        }
+
         public void Execute(SimulationContext context)
         {
             context.Navigation.Refresh();

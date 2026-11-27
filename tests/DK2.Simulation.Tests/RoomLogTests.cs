@@ -16,8 +16,10 @@ namespace DK2.Simulation.Tests;
 /// </summary>
 public class RoomLogTests
 {
-    private static RoomLog Read(string body, long lag = 1, long origin = 1) =>
-        RoomLog.Read(new StringReader(RoomLog.Header + "\n" + body), "test", lag, origin);
+    private static RoomLog Read(string body, long lag = 1, long origin = 1)
+    {
+        return RoomLog.Read(new StringReader(RoomLog.Header + "\n" + body), "test", lag, origin);
+    }
 
     /// <summary>
     /// wall,tick,player,event,room,type,x,y,size,x0,y0,x1,y1,owner. The walk's
@@ -25,12 +27,16 @@ public class RoomLogTests
     /// </summary>
     private static string Row(
         long tick, string ev, int room, int size, int x0, int y0, int x1, int y1,
-        byte player = 3, byte type = 4, byte? owner = null) =>
-        $"0.0,{tick},{player},{ev},{room},{type},{(x0 + x1) / 2},{(y0 + y1) / 2}," +
+        byte player = 3, byte type = 4, byte? owner = null)
+    {
+        return $"0.0,{tick},{player},{ev},{room},{type},{(x0 + x1) / 2},{(y0 + y1) / 2}," +
         $"{size},{x0},{y0},{x1},{y1},{owner ?? player}\n";
+    }
 
-    private static T Only<T>(InputFrame frame) where T : PlayerCommand =>
-        Assert.IsType<T>(Assert.Single(frame.All));
+    private static T Only<T>(InputFrame frame) where T : PlayerCommand
+    {
+        return Assert.IsType<T>(Assert.Single(frame.All));
+    }
 
     // ---- what the log determines -----------------------------------------
 
@@ -181,8 +187,10 @@ public class RoomLogTests
     [InlineData("0.0,41,3,build,7,4,10,20,1,10,20,10,20\n")]
     [InlineData("0.0,41,3,demolish,7,4,10,20,1,10,20,10,20,3\n")]
     [InlineData("0.0,x,3,build,7,4,10,20,1,10,20,10,20,3\n")]
-    public void AMalformedRowIsRefusedRatherThanGuessedAt(string body) =>
+    public void AMalformedRowIsRefusedRatherThanGuessedAt(string body)
+    {
         Assert.Throws<InvalidDataException>(() => Read(body));
+    }
 
     /// <summary>
     /// The room names its own owner and the walk infers one from a stride. When
@@ -201,7 +209,9 @@ public class RoomLogTests
     }
 
     [Fact]
-    public void AFileWithoutTheProbesHeaderIsRefused() =>
+    public void AFileWithoutTheProbesHeaderIsRefused()
+    {
         Assert.Throws<InvalidDataException>(
             () => RoomLog.Read(new StringReader("tick,room\n"), "test"));
+    }
 }

@@ -75,9 +75,12 @@ public sealed class OptionsHudTests
         Assert.Equal(ClassicOptionsAction.None, hud.ActionAt(20, 900));
     }
 
-    private static SaveSlotsView Saves(int count) => new("saves", () => Enumerable.Range(0, count)
+    private static SaveSlotsView Saves(int count)
+    {
+        return new("saves", () => Enumerable.Range(0, count)
         .Select(i => new SavedSessionEntry($"save{i}.dk2save", null,
             new SaveIncompatibleException(SaveIncompatibleReason.Corrupt, "broken " + i))).ToArray());
+    }
 
     private static HudDraw[] Build(SaveLoadHud hud)
     {
@@ -169,8 +172,10 @@ public sealed class OptionsHudTests
     [InlineData(ClassicOptionsAction.ContinueGame, false)]
     [InlineData(ClassicOptionsAction.Back, false)]
     [InlineData(ClassicOptionsAction.None, false)]
-    public void OnlySaveAndLoadRereadTheSaveList(ClassicOptionsAction entry, bool expected) =>
+    public void OnlySaveAndLoadRereadTheSaveList(ClassicOptionsAction entry, bool expected)
+    {
         Assert.Equal(expected, OptionsHud.RefreshesSaves(entry));
+    }
 
     [Fact]
     public void TheBackAndContinueLinesRaiseTheMenusBackAndContinueGameActions()
@@ -250,8 +255,10 @@ public sealed class OptionsHudTests
     [InlineData(ClassicOptionsAction.Cancel, ClassicHudAction.CancelConfirmation)]
     [InlineData(ClassicOptionsAction.Save, ClassicHudAction.OpenSave)]
     [InlineData(ClassicOptionsAction.Load, ClassicHudAction.OpenLoad)]
-    public void AnEntrysPressAppliesItsHudAction(ClassicOptionsAction entry, ClassicHudAction expected) =>
+    public void AnEntrysPressAppliesItsHudAction(ClassicOptionsAction entry, ClassicHudAction expected)
+    {
         Assert.Equal(expected, OptionsHud.HudAction(entry));
+    }
 
     [Fact]
     public void AnEntryMapsToNoHudActionExactlyWhenItsActionIsNone()

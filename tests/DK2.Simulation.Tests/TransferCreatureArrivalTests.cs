@@ -24,7 +24,10 @@ public class TransferCreatureArrivalTests
         return (new GameSimulation(db, world, new SimRandom(new Dk2Lcg(seed)), []), world);
     }
 
-    private static uint Seed(GameSimulation sim) => ((Dk2Lcg)sim.Rng.Algorithm).Seed;
+    private static uint Seed(GameSimulation sim)
+    {
+        return ((Dk2Lcg)sim.Rng.Algorithm).Seed;
+    }
 
     [Fact]
     public void TheArrivalDrawsOneFacingAfterTheCreatureIsMade()

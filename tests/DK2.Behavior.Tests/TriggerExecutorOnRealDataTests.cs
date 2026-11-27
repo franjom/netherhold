@@ -83,7 +83,10 @@ public class TriggerExecutorOnRealDataTests
         simulation.ObserveWith(events);
         ActionPointState point = simulation.World.ActionPoints.Single(a => a.Id == 2);
         var probe = new TilePos((point.StartX + point.EndX) / 2, (point.StartY + point.EndY) / 2);
-        bool Explored() => simulation.World.Tile(probe.X, probe.Y).IsExploredBy(3);
+        bool Explored()
+        {
+            return simulation.World.Tile(probe.X, probe.Y).IsExploredBy(3);
+        }
 
         simulation.Run(53);
         Assert.DoesNotContain(events.Events, e => e.ScriptedView?.Value == 201);
@@ -160,8 +163,10 @@ public class TriggerExecutorOnRealDataTests
             + "so this no longer discriminates the two readings");
     }
 
-    private static bool Solid(GameDatabase database, LevelMap map, int x, int y) =>
-        map.Contains(x, y) && database.TerrainById(map.Tiles[(y * map.Width) + x].TerrainId).IsSolid;
+    private static bool Solid(GameDatabase database, LevelMap map, int x, int y)
+    {
+        return map.Contains(x, y) && database.TerrainById(map.Tiles[(y * map.Width) + x].TerrainId).IsSolid;
+    }
 
     private static IEnumerable<string> TriggerLevels(string install)
     {
@@ -277,8 +282,10 @@ public class TriggerExecutorOnRealDataTests
     // The context is part of the pin, not commentary: the same type number is dispatched
     // by a different arm in each tree, so a census that omits it can stay green while the
     // walk that produced it has moved to a different rule.
-    private static string Census(IEnumerable<TriggerCensusRow> summary) =>
-        string.Join(",", summary.Select(s => $"{s.Tag}:{s.Type}@{s.Context}={s.Count}"));
+    private static string Census(IEnumerable<TriggerCensusRow> summary)
+    {
+        return string.Join(",", summary.Select(s => $"{s.Tag}:{s.Type}@{s.Context}={s.Count}"));
+    }
 
     [InstallFact]
     public void LevelOneTriggerRunIsDeterministicForTheSameSeed()

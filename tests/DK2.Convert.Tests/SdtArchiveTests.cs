@@ -247,11 +247,15 @@ public class SdtArchiveTests
         return stream.ToArray();
     }
 
-    private static ushort U16(byte[] data, int offset) =>
-        BinaryPrimitives.ReadUInt16LittleEndian(data.AsSpan(offset));
+    private static ushort U16(byte[] data, int offset)
+    {
+        return BinaryPrimitives.ReadUInt16LittleEndian(data.AsSpan(offset));
+    }
 
-    private static uint U32(byte[] data, int offset) =>
-        BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(offset));
+    private static uint U32(byte[] data, int offset)
+    {
+        return BinaryPrimitives.ReadUInt32LittleEndian(data.AsSpan(offset));
+    }
 
     private sealed record Sample(string Name, ushort SampleRate, byte BitsPerSample,
         byte Type, uint SampleCountField, byte[] Data);

@@ -24,10 +24,12 @@ public sealed class PossessionVisibilityTests
     }
 
     /// <summary>Every tile within <paramref name="reach"/> of the camera's: a polygon all round.</summary>
-    private static TilePos[] Around(int reach) =>
-        [.. from y in Enumerable.Range(EyeY - reach, (2 * reach) + 1)
+    private static TilePos[] Around(int reach)
+    {
+        return [.. from y in Enumerable.Range(EyeY - reach, (2 * reach) + 1)
             from x in Enumerable.Range(EyeX - reach, (2 * reach) + 1)
             select new TilePos(x, y)];
+    }
 
     private static List<TilePos> Walk(bool[] map, TilePos[] polygon, double eyeX = EyeX + 0.5, double eyeY = EyeY + 0.5)
     {

@@ -50,11 +50,19 @@ public class ClassicCameraControlsTests
         Assert.Equal(expectedRaw / 4096f, result.X);
     }
 
-    private static CameraThing Profile() => new(new byte[84])
+    private static CameraThing Profile()
     {
-        CameraId = 3, Zoom = 40960, MinZoom = 16384, MaxZoom = 53248,
-        Lens = 8192, AnglePitch = 220, Flags = 0x26,
-    };
+        return new(new byte[84])
+        {
+            CameraId = 3,
+            Zoom = 40960,
+            MinZoom = 16384,
+            MaxZoom = 53248,
+            Lens = 8192,
+            AnglePitch = 220,
+            Flags = 0x26,
+        };
+    }
 
     [Theory]
     [InlineData(40960, 840)]

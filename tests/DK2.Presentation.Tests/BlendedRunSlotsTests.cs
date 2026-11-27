@@ -53,9 +53,11 @@ public sealed class BlendedRunSlotsTests
         return eye;
     }
 
-    private static float NearestCentroid(BlendedTerrainStream<TestMaterial> stream, int run, Vector3 eye) =>
-        stream.Runs[run].Triangles.Min(t => Vector3.Distance(
+    private static float NearestCentroid(BlendedTerrainStream<TestMaterial> stream, int run, Vector3 eye)
+    {
+        return stream.Runs[run].Triangles.Min(t => Vector3.Distance(
             (stream.Vertices[t.A].Position + stream.Vertices[t.B].Position + stream.Vertices[t.C].Position) / 3f, eye));
+    }
 
     /// <summary>The slot's indices, read back through its vertices, are the run's triangles in the run's order.</summary>
     private static void AssertDraws(BlendedTerrainStream<TestMaterial> stream, BlendedRunSlots<TestMaterial> slots)
@@ -215,7 +217,11 @@ public sealed class BlendedRunSlotsTests
         // One tilted quad, its two triangles of different materials sharing corner 0; seen from either side, the run that
         // starts at corner 0 changes material.
         var stream = new BlendedTerrainStream<TestMaterial>(material => material.TagOverlay);
-        BlendedVertex V(float x, float y, float z) => new(new Vector3(x, y, z), Vector3.UnitY, default, default, VertexColour.White);
+        BlendedVertex V(float x, float y, float z)
+        {
+            return new(new Vector3(x, y, z), Vector3.UnitY, default, default, VertexColour.White);
+        }
+
         stream.BeginChunk(0, [V(0, 0, 4), V(1, 0, 4), V(1, 1, 8), V(0, 1, 8)]);
         stream.AddChunkTriangles(Water, [0, 1, 2]);
         stream.AddChunkTriangles(Glass, [0, 2, 3]);

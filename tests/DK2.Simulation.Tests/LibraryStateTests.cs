@@ -58,8 +58,10 @@ public class LibraryStateTests
         return world;
     }
 
-    private static GameSimulation Simulation(GameDatabase db, WorldState world, params ISimulationSystem[] extra) =>
-        new(db, world, seed: 42, [new AutoFurnitureSystem(), new CreatureMovementSystem(), new CreatureJobSystem(), .. extra]);
+    private static GameSimulation Simulation(GameDatabase db, WorldState world, params ISimulationSystem[] extra)
+    {
+        return new(db, world, seed: 42, [new AutoFurnitureSystem(), new CreatureMovementSystem(), new CreatureJobSystem(), .. extra]);
+    }
 
     private static CreatureState Researcher(GameDatabase db, WorldState world, TilePos at, int state = ResearchStep.ChoosingState)
     {
@@ -71,8 +73,10 @@ public class LibraryStateTests
         return it;
     }
 
-    private static RoomInstance Library(GameDatabase db, WorldState world) =>
-        RoomIndex.Build(world, db).Single(r => r.Definition.TypeId == RoomTypeId.Library);
+    private static RoomInstance Library(GameDatabase db, WorldState world)
+    {
+        return RoomIndex.Build(world, db).Single(r => r.Definition.TypeId == RoomTypeId.Library);
+    }
 
     private static HashSet<int> Watch(GameSimulation sim, CreatureState creature, int ticks)
     {
@@ -334,8 +338,18 @@ public class LibraryStateTests
 
     private sealed class Probe(Action<SimulationContext> body) : ISimulationSystem
     {
-        public string Name => "Probe";
-        public void Execute(SimulationContext context) => body(context);
+        public string Name
+        {
+            get
+            {
+                return "Probe";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            body(context);
+        }
     }
 
     // ------------------------------------------------------------------- 60 and 62 (ADR-0402)
@@ -435,7 +449,14 @@ public class LibraryStateTests
     private sealed class ChangeNeighbourOnce : ISimulationSystem
     {
         private bool _changed;
-        public string Name => "change Library neighbour";
+        public string Name
+        {
+            get
+            {
+                return "change Library neighbour";
+            }
+        }
+
         public void Execute(SimulationContext context)
         {
             if (_changed)

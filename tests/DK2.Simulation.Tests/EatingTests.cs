@@ -22,10 +22,19 @@ public class EatingTests
     private const int Second = SimulationTiming.TicksPerSecond;
     private const byte GoblinId = 7;
 
-    private static GameDatabase Db => Dk2TerrainFixture.Database();
+    private static GameDatabase Db
+    {
+        get
+        {
+            return Dk2TerrainFixture.Database();
+        }
+    }
 
-    private static WorldState World(GameDatabase db) => WorldState.FromMap(
+    private static WorldState World(GameDatabase db)
+    {
+        return WorldState.FromMap(
         db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
+    }
 
     private static GameSimulation Simulation(
         GameDatabase db, WorldState world, ListEventSink? sink = null)
@@ -82,12 +91,17 @@ public class EatingTests
     }
 
     private static ObjectState Chicken(
-        GameDatabase db, WorldState world, int x, int y, byte owner = Keeper) =>
-        world.SpawnObject(
+        GameDatabase db, WorldState world, int x, int y, byte owner = Keeper)
+    {
+        return world.SpawnObject(
             db, HatcheryRules.ChickenObjectId, owner, (y * world.Width) + x);
+    }
 
     /// <summary>Makes this creature owe exactly one chicken, without waiting three minutes.</summary>
-    private static void MakeHungry(CreatureState creature, int need = 1) => creature.Hungry(need);
+    private static void MakeHungry(CreatureState creature, int need = 1)
+    {
+        creature.Hungry(need);
+    }
 
     // ---- the clock ----------------------------------------------------------
 
@@ -736,8 +750,18 @@ public class EatingTests
 
     private sealed class Probe(Action<SimulationContext> body) : ISimulationSystem
     {
-        public string Name => "Probe";
-        public void Execute(SimulationContext context) => body(context);
+        public string Name
+        {
+            get
+            {
+                return "Probe";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            body(context);
+        }
     }
 
     // 92 finds no bird it may take (the only one is on a coop, 0x00453600) and sets 91 (0x004636F8);

@@ -11,7 +11,9 @@ namespace DK2.Simulation.Tests;
 /// lairless ladder runs in a level that offers the room.</summary>
 internal static class LairOffer
 {
-    public static void Offer(WorldState world, byte player) =>
+    public static void Offer(WorldState world, byte player)
+    {
         world.Player(player).Availabilities.Add(
             new AvailabilityState(AvailabilityKind.Room, (int)RoomTypeId.Lair, RoomNeedRules.Available));
+    }
 }

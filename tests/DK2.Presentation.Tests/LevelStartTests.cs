@@ -17,12 +17,21 @@ public sealed class LevelStartTests
 
     private sealed class Art : IBottomPanelArt
     {
-        public string? Icon(BottomPanelChoiceKey key) => "icon " + key.Value;
-        public string Text(uint id) => "text " + id;
+        public string? Icon(BottomPanelChoiceKey key)
+        {
+            return "icon " + key.Value;
+        }
+
+        public string Text(uint id)
+        {
+            return "text " + id;
+        }
     }
 
-    private static BottomPanelView View() =>
-        new(new GameDatabase([], [], [], new GlobalVariables()), Keeper, (_, name) => name);
+    private static BottomPanelView View()
+    {
+        return new(new GameDatabase([], [], [], new GlobalVariables()), Keeper, (_, name) => name);
+    }
 
     [Fact]
     public void ThePanelStartsWithCreaturesOpenAndNothingClicked()

@@ -149,9 +149,13 @@ public class OriginalFunctionTests
         }
     }
 
-    private static string Describe(Outcome outcome) =>
-        outcome.Fault is { } fault ? $"fault ({fault})" : $"{outcome.Eax}";
+    private static string Describe(Outcome outcome)
+    {
+        return outcome.Fault is { } fault ? $"fault ({fault})" : $"{outcome.Eax}";
+    }
 
-    private static string Report(List<string> mismatches) =>
-        $"{mismatches.Count} mismatches; first:\n" + string.Join("\n", mismatches.Take(15));
+    private static string Report(List<string> mismatches)
+    {
+        return $"{mismatches.Count} mismatches; first:\n" + string.Join("\n", mismatches.Take(15));
+    }
 }

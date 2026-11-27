@@ -16,12 +16,21 @@ public sealed class BottomPanelHudTests
 
     private sealed class Art : IBottomPanelArt
     {
-        public string? Icon(BottomPanelChoiceKey key) => "icon " + key.Value;
-        public string Text(uint id) => "text " + id;
+        public string? Icon(BottomPanelChoiceKey key)
+        {
+            return "icon " + key.Value;
+        }
+
+        public string Text(uint id)
+        {
+            return "text " + id;
+        }
     }
 
-    private static BottomPanelHud Panel() =>
-        new(new Art(), new BottomPanelView(new GameDatabase([], [], [], new GlobalVariables()), PlayerIds.FirstKeeper, (_, name) => name));
+    private static BottomPanelHud Panel()
+    {
+        return new(new Art(), new BottomPanelView(new GameDatabase([], [], [], new GlobalVariables()), PlayerIds.FirstKeeper, (_, name) => name));
+    }
 
     private static HudFrame Build(BottomPanelHud hud, long now = 0)
     {
@@ -208,7 +217,11 @@ public sealed class BottomPanelHudTests
     public void TheTalismanKeepsItsQuartersClockwiseFromTheTopLeft()
     {
         byte[] opaque = [.. Enumerable.Repeat((byte)255, 2 * 2 * 4)];
-        static bool[] Kept(byte[] p) => [p[3] != 0, p[7] != 0, p[11] != 0, p[15] != 0];   // TL, TR, BL, BR
+        static bool[] Kept(byte[] p)
+        {
+            return [p[3] != 0, p[7] != 0, p[11] != 0, p[15] != 0];   // TL, TR, BL, BR
+        }
+
         Assert.Equal([true, false, false, false], Kept(HudImagePixels.Apply(opaque, 2, 2, new HudImage("t", HudImageVariant.TalismanArc, 1))));
         Assert.Equal([true, true, false, false], Kept(HudImagePixels.Apply(opaque, 2, 2, new HudImage("t", HudImageVariant.TalismanArc, 2))));
         Assert.Equal([true, true, false, true], Kept(HudImagePixels.Apply(opaque, 2, 2, new HudImage("t", HudImageVariant.TalismanArc, 3))));

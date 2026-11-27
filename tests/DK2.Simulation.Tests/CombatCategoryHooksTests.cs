@@ -245,8 +245,10 @@ public class CombatCategoryHooksTests
         return (world, new StateHookContext(world, db));
     }
 
-    private static CreatureState Spawn(GameDatabase db, WorldState world, byte type, byte owner, int x, int y) =>
-        world.SpawnCreature(db, type, owner, new TilePos(x, y));
+    private static CreatureState Spawn(GameDatabase db, WorldState world, byte type, byte owner, int x, int y)
+    {
+        return world.SpawnCreature(db, type, owner, new TilePos(x, y));
+    }
 
     /// <summary>Into 199 with a melee engagement on <paramref name="target"/>, registered there.</summary>
     private static void Engage(in StateHookContext hooks, CreatureState me, CreatureState target)

@@ -17,18 +17,33 @@ public sealed class PartyPopSoundTests
 {
     private static readonly KwdArtResource EmptyArt = new("", 0, new byte[12], 0, 0, 0, 0);
 
-    private static EffectDef Effect(uint flags) => new([])
+    private static EffectDef Effect(uint flags)
     {
-        Name = "Fireworks", EffectId = 320, ArtResource = EmptyArt, Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0),
-        GenerateIds = [], GenerationType = 4, ElementsPerTurn = 1, MinHp = 1, MaxHp = 1, Flags = flags,
-    };
+        return new([])
+        {
+            Name = "Fireworks",
+            EffectId = 320,
+            ArtResource = EmptyArt,
+            Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0),
+            GenerateIds = [],
+            GenerationType = 4,
+            ElementsPerTurn = 1,
+            MinHp = 1,
+            MaxHp = 1,
+            Flags = flags,
+        };
+    }
 
-    private static ViewEffectRequest Request() =>
-        new(new(320), PlayerIds.FirstKeeper, new FpPosition3(new(0x3000), new(0x5000), new(0x1000)));
+    private static ViewEffectRequest Request()
+    {
+        return new(new(320), PlayerIds.FirstKeeper, new FpPosition3(new(0x3000), new(0x5000), new(0x1000)));
+    }
 
-    private static RoomConstructionParticles Model(uint flags, Func<bool> explored, Func<bool> inCamera) =>
-        new(new GameDatabase([], [], [], new GlobalVariables(), effects: [Effect(flags)]), 7, () => default,
+    private static RoomConstructionParticles Model(uint flags, Func<bool> explored, Func<bool> inCamera)
+    {
+        return new(new GameDatabase([], [], [], new GlobalVariables(), effects: [Effect(flags)]), 7, () => default,
             effectVisible: _ => explored(), cameraVisible: _ => inCamera(), floorHeight: _ => default);
+    }
 
     [Fact]
     public void TheEffectIsReportedCreatedOnlyWhereDk2sCreationGatesPassAndTheCameraGateIsBypassedByFlag8000()

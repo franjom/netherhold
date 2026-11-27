@@ -14,8 +14,18 @@ public sealed class ImpSecretDoorTests
 {
     private sealed class ChooseOnly(CreatureState asker) : ISimulationSystem
     {
-        public string Name => "choose-only";
-        public void Execute(SimulationContext context) => new ImpTaskSystem().ChooseJob(context, asker);
+        public string Name
+        {
+            get
+            {
+                return "choose-only";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            new ImpTaskSystem().ChooseJob(context, asker);
+        }
     }
 
     private const byte Keeper = PlayerIds.FirstKeeper;

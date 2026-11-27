@@ -108,6 +108,9 @@ public class ClassicInstancePointLightTests
         Assert.Equal(Vector3.Zero, default(ClassicInstancePointLight).ContributionAt(Vector3.Zero, Vector3.UnitY));
     }
 
-    private static ClassicPointLight Light(byte intensity = 128) => ClassicPointLight.FromTorch(
+    private static ClassicPointLight Light(byte intensity = 128)
+    {
+        return ClassicPointLight.FromTorch(
         new TorchView(0, new TilePos(0, 0), 0, 0, 0, 0, 255, 128, 0, intensity, 8192, default));
+    }
 }

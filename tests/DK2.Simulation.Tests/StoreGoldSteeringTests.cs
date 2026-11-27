@@ -198,8 +198,10 @@ public sealed class StoreGoldSteeringTests
         return result;
     }
 
-    private static void Store(GameDatabase db, WorldState world, TilePos at) =>
+    private static void Store(GameDatabase db, WorldState world, TilePos at)
+    {
         RoomRules.Place(db, ref world.Tile(at), db.Room(RoomTypeId.Treasury), PlayerIds.FirstKeeper);
+    }
 
     private static (GameDatabase, WorldState, WorldSteering) Setup()
     {

@@ -89,7 +89,14 @@ public sealed class LairDepartureTests
 
     private sealed class Attempt(CreatureState creature) : ISimulationSystem
     {
-        public string Name => "lair_departure_test";
+        public string Name
+        {
+            get
+            {
+                return "lair_departure_test";
+            }
+        }
+
         public bool Succeeded { get; private set; }
         public void Execute(SimulationContext context)
         {

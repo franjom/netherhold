@@ -346,7 +346,17 @@ public sealed class SummonHornyTests
 
     private sealed class CallbackSystem(Action<SimulationContext> execute) : ISimulationSystem
     {
-        public string Name => "reaper-test";
-        public void Execute(SimulationContext context) => execute(context);
+        public string Name
+        {
+            get
+            {
+                return "reaper-test";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            execute(context);
+        }
     }
 }

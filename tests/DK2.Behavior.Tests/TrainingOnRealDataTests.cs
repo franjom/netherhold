@@ -24,8 +24,10 @@ namespace DK2.Behavior.Tests;
 /// </summary>
 public sealed class TrainingOnRealDataTests
 {
-    private static GameDatabase RealDatabase() =>
-        GameDatabaseLoader.Load(Dk2InstallGate.Path);
+    private static GameDatabase RealDatabase()
+    {
+        return GameDatabaseLoader.Load(Dk2InstallGate.Path);
+    }
 
     [InstallFact]
     public void TheTrainingRateColumnTakesFiveValuesAndMostOfThemTruncate()

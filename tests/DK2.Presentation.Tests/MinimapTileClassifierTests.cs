@@ -30,19 +30,49 @@ public sealed class MinimapTileClassifierTests
         Assert.Empty(input.Translate(press with { PrimaryButton = PointerButtonTransition.Released }, snapshot).All);
     }
 
-    private static TerrainDef Terrain(TerrainFlags flags = 0, ushort gold = 0) => new()
+    private static TerrainDef Terrain(TerrainFlags flags = 0, ushort gold = 0)
     {
-        Name = "Test", TerrainId = 1, Flags = flags, StartingHealth = 10, MaxHealth = 10,
-        GoldValue = gold, ManaGain = 0, MaxManaGain = 0, Damage = 0,
-        MaxHealthTypeTerrainId = 1, DestroyedTypeTerrainId = 1, Depth = new Fp32(0),
-        NameStringId = 0, TooltipStringId = 0,
-    };
+        return new()
+        {
+            Name = "Test",
+            TerrainId = 1,
+            Flags = flags,
+            StartingHealth = 10,
+            MaxHealth = 10,
+            GoldValue = gold,
+            ManaGain = 0,
+            MaxManaGain = 0,
+            Damage = 0,
+            MaxHealthTypeTerrainId = 1,
+            DestroyedTypeTerrainId = 1,
+            Depth = new Fp32(0),
+            NameStringId = 0,
+            TooltipStringId = 0,
+        };
+    }
 
     private sealed class FloorGrid : INavByteGrid
     {
-        public int Width => 1;
-        public int Height => 1;
-        public byte NavByte(int x, int y) => NavBytes.Floor;
+        public int Width
+        {
+            get
+            {
+                return 1;
+            }
+        }
+
+        public int Height
+        {
+            get
+            {
+                return 1;
+            }
+        }
+
+        public byte NavByte(int x, int y)
+        {
+            return NavBytes.Floor;
+        }
     }
 
     [Fact]

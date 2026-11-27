@@ -35,7 +35,10 @@ public sealed class SlabChainTests
             [new RoomBuildSystem(), new RoomSellSystem(), new RoomBuildWaveSystem()]));
     }
 
-    private static RoomTypeId Prison(GameDatabase db) => RoomTypeId.Prison;
+    private static RoomTypeId Prison(GameDatabase db)
+    {
+        return RoomTypeId.Prison;
+    }
 
     private static RoomInstance Drag(GameDatabase db, WorldState world, GameSimulation sim, RoomTypeId type,
         int x1, int y1, int x2, int y2)
@@ -61,11 +64,15 @@ public sealed class SlabChainTests
         }
     }
 
-    private static RoomInstance RoomOn(GameDatabase db, WorldState world, TilePos at) =>
-        RoomIndex.RoomAt(world, db, (at.Y * world.Width) + at.X)!;
+    private static RoomInstance RoomOn(GameDatabase db, WorldState world, TilePos at)
+    {
+        return RoomIndex.RoomAt(world, db, (at.Y * world.Width) + at.X)!;
+    }
 
-    private static TilePos[] Chain(GameDatabase db, WorldState world, TilePos at) =>
-        [.. SlabChain.Order(world, RoomOn(db, world, at)).Select(i => new TilePos(i % world.Width, i / world.Width))];
+    private static TilePos[] Chain(GameDatabase db, WorldState world, TilePos at)
+    {
+        return [.. SlabChain.Order(world, RoomOn(db, world, at)).Select(i => new TilePos(i % world.Width, i / world.Width))];
+    }
 
     private static TilePos Door(GameDatabase db, WorldState world, TilePos at)
     {
@@ -333,8 +340,18 @@ public sealed class SlabChainTests
 
     private sealed class Probe(Action<SimulationContext> act) : ISimulationSystem
     {
-        public string Name => "Probe";
-        public void Execute(SimulationContext context) => act(context);
+        public string Name
+        {
+            get
+            {
+                return "Probe";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            act(context);
+        }
     }
 
     [Fact]

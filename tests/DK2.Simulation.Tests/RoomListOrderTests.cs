@@ -11,7 +11,10 @@ namespace DK2.Simulation.Tests;
 public class RoomListOrderTests
 {
     private static readonly GameDatabase Db = Dk2TerrainFixture.Database();
-    private static WorldState World() => WorldState.FromMap(Db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, (byte)3, (byte)4]);
+    private static WorldState World()
+    {
+        return WorldState.FromMap(Db, Dk2TerrainFixture.Map(), [PlayerIds.Neutral, (byte)3, (byte)4]);
+    }
 
     private static void Build(WorldState world, int x, int y, byte owner = 3)
     {
@@ -30,11 +33,21 @@ public class RoomListOrderTests
 
     private sealed class Probe : ISimulationSystem
     {
-        public string Name => "room order probe";
+        public string Name
+        {
+            get
+            {
+                return "room order probe";
+            }
+        }
+
         public TilePos[] Positions = [];
-        public void Execute(SimulationContext context) => Positions = [.. new RoomCache().Of(context, (byte)3)
+        public void Execute(SimulationContext context)
+        {
+            Positions = [.. new RoomCache().Of(context, (byte)3)
             .Where(r => r.Definition.TypeId == RoomTypeId.Treasury)
             .Select(r => new TilePos(r.MinX, r.MinY))];
+        }
     }
 
     [Fact]
@@ -145,7 +158,14 @@ public class RoomListOrderTests
 
     private sealed class DefeatProbe : ISimulationSystem
     {
-        public string Name => "defeat order probe";
+        public string Name
+        {
+            get
+            {
+                return "defeat order probe";
+            }
+        }
+
         public TilePos[] Positions = [];
         public void Execute(SimulationContext context)
         {

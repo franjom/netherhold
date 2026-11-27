@@ -15,11 +15,21 @@ public class CountedAnimationDurationTests
         return Dk2TerrainFixture.Database().CreatureById(7) with { ArtSlots = slots };
     }
 
-    private static CreatureAnimationTiming WarlockRead => new()
+    private static CreatureAnimationTiming WarlockRead
     {
-        ResourceType = 6, Flags = CreatureAnimationFlags.StartSegment | CreatureAnimationFlags.EndSegment,
-        FrameCount = 58, FramesPerSecond = 30, StartSegmentFrames = 21, EndSegmentFrames = 22,
-    };
+        get
+        {
+            return new()
+            {
+                ResourceType = 6,
+                Flags = CreatureAnimationFlags.StartSegment | CreatureAnimationFlags.EndSegment,
+                FrameCount = 58,
+                FramesPerSecond = 30,
+                StartSegmentFrames = 21,
+                EndSegmentFrames = 22,
+            };
+        }
+    }
 
     [Fact]
     public void CapturedWarlockReadIncludesStartMainEndAndRateClear()

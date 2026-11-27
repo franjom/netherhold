@@ -11,8 +11,10 @@ namespace DK2.Presentation.Tests;
 /// draws with (godot-step3-audit.md, 3a).</summary>
 public class ClassicMaterialRecipeTests
 {
-    private static KmfMaterial Material(uint flags, float brightness, string environment, params string[] textures) =>
-        new("m", textures, flags, brightness, 0.5f, environment);
+    private static KmfMaterial Material(uint flags, float brightness, string environment, params string[] textures)
+    {
+        return new("m", textures, flags, brightness, 0.5f, environment);
+    }
 
     [Fact]
     public void TheTextureIsTheFirstNamedOneElseTheEnvironmentTexture()
@@ -27,13 +29,17 @@ public class ClassicMaterialRecipeTests
     [InlineData(-3, "Brick_DECAY3")]
     [InlineData(1, "Brick_DECAY2")]
     [InlineData(9, "Brick")]
-    public void ATextureAlternativeIsClamped(int index, string texture) =>
+    public void ATextureAlternativeIsClamped(int index, string texture)
+    {
         Assert.Equal(texture, ClassicMaterialRecipe.FromKmf(
             Material(0, 0, "", "Brick_DECAY3", "Brick_DECAY2", "Brick"), index).Texture);
+    }
 
     [Fact]
-    public void NoMaterialIsOpaqueAndUntextured() =>
+    public void NoMaterialIsOpaqueAndUntextured()
+    {
         Assert.Equal(new ClassicMaterialRecipe("", KmfBlend.Opaque, 0f), ClassicMaterialRecipe.FromKmf(null));
+    }
 
     /// <summary>Opaque writes depth; alpha-blended and additive do not, and additive adds no light of its own.</summary>
     [Fact]

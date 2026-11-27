@@ -110,9 +110,11 @@ public sealed class EffectDrawListTests
     [InlineData(5, 12, 7, 3)]
     [InlineData(5, 12, 2, 1)]
     [InlineData(13, 10, 4, 2)]
-    public void AnAnimatedMeshLoopsFromBirthAtItsAuthoredRate(int updates, int framesPerSecond, int frames, int frame) =>
+    public void AnAnimatedMeshLoopsFromBirthAtItsAuthoredRate(int updates, int framesPerSecond, int frames, int frame)
+    {
         Assert.Equal(frame, EffectDrawList.MeshFrame(new ConstructionParticle { Definition = null!, VisualUpdates = updates },
             frames, framesPerSecond));
+    }
 
     [Fact]
     public void AShotBodysMeshFrameIsItsPhase()
@@ -144,8 +146,10 @@ public sealed class EffectDrawListTests
     [InlineData(1, "part", EffectGroupKind.Mesh)]
     [InlineData(1, null, EffectGroupKind.Sprite)]
     [InlineData(3, null, EffectGroupKind.Sprite)]
-    public void ArtTypesFiveAndSixAndMeshEntriesAreMeshes(byte type, string? entry, EffectGroupKind kind) =>
+    public void ArtTypesFiveAndSixAndMeshEntriesAreMeshes(byte type, string? entry, EffectGroupKind kind)
+    {
         Assert.Equal(kind, EffectDrawList.Classify(Element(type), entry));
+    }
 
     [Fact]
     public void TheBlendTable()
@@ -339,17 +343,30 @@ public sealed class EffectDrawListTests
         Assert.Equal(expected.Z, actual.Z, 4);
     }
 
-    private static EffectElementDef Element(byte type, uint flags = 0, ReadOnlyMemory<byte> unknown = default) => new([])
+    private static EffectElementDef Element(byte type, uint flags = 0, ReadOnlyMemory<byte> unknown = default)
     {
-        Name = "spark", ArtResource = new("spark", flags, unknown.IsEmpty ? new byte[12] : unknown, type, 0, 0, 0),
-    };
+        return new([])
+        {
+            Name = "spark",
+            ArtResource = new("spark", flags, unknown.IsEmpty ? new byte[12] : unknown, type, 0, 0, 0),
+        };
+    }
 
     private static ConstructionParticle Particle(bool takesLight, byte red = 40, byte green = 50, byte blue = 60,
-        int scale = 4096) => new()
+        int scale = 4096)
     {
-        Definition = Element(1), TakesLight = takesLight, Red = red, Green = green, Blue = blue,
-        XRaw = 3 * 4096 + 100, YRaw = 5 * 4096 + 200, InitialScale = scale,
-    };
+        return new()
+        {
+            Definition = Element(1),
+            TakesLight = takesLight,
+            Red = red,
+            Green = green,
+            Blue = blue,
+            XRaw = 3 * 4096 + 100,
+            YRaw = 5 * 4096 + 200,
+            InitialScale = scale,
+        };
+    }
 
     private static ClassicLightTable Table()
     {

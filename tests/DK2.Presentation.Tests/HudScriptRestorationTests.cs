@@ -333,12 +333,15 @@ public sealed class HudScriptRestorationTests
         return director;
     }
 
-    private static void StartPath(ScriptedViewDirector director) => director.Emit(
+    private static void StartPath(ScriptedViewDirector director)
+    {
+        director.Emit(
         new SimEvent(default, "test", "path", "")
         {
             ScriptedView = new ScriptedViewRequest(ScriptedViewKind.CameraPath,
                 PlayerIds.FirstKeeper, 1, default, false),
         });
+    }
 
     private static void Letterbox(ScriptedViewDirector director, bool enabled, PlayerId? player = null)
     {

@@ -15,31 +15,63 @@ internal static class ArtTestData
 {
     internal static Dk2ArtCatalogue Catalogue(
         Dictionary<byte, IReadOnlyList<Dk2ArtResource>>? terrains = null,
-        Dictionary<byte, IReadOnlyList<Dk2ArtResource>>? objects = null) => new()
+        Dictionary<byte, IReadOnlyList<Dk2ArtResource>>? objects = null)
     {
-        Terrains = terrains ?? new(),
-        Rooms = new Dictionary<byte, IReadOnlyList<Dk2ArtResource>>(),
-        Creatures = new Dictionary<byte, IReadOnlyList<Dk2ArtResource>>(),
-        Objects = objects ?? new(),
-    };
+        return new()
+        {
+            Terrains = terrains ?? new(),
+            Rooms = new Dictionary<byte, IReadOnlyList<Dk2ArtResource>>(),
+            Creatures = new Dictionary<byte, IReadOnlyList<Dk2ArtResource>>(),
+            Objects = objects ?? new(),
+        };
+    }
 
-    internal static GameDatabase Database(TerrainDef[]? terrain = null, ObjectDef[]? objects = null) =>
-        new(terrain ?? [], [], [], new GlobalVariables(), objects: objects);
-
-    internal static ObjectDef Object(byte id, string name) => new()
+    internal static GameDatabase Database(TerrainDef[]? terrain = null, ObjectDef[]? objects = null)
     {
-        Name = name, ObjectId = id, Flags = default, Hp = 0, ManaValue = 0, RoomCapacity = 0,
-        StartState = 0, PickUpPriority = 0, Width = new Fp32(0), Height = new Fp32(0),
-        Mass = new Fp32(0), Speed = new Fp32(0), NameStringId = 0, TooltipStringId = 0,
-    };
+        return new(terrain ?? [], [], [], new GlobalVariables(), objects: objects);
+    }
 
-    internal static TerrainDef Terrain(byte id, string name, short damage = 0, bool solid = false) => new()
+    internal static ObjectDef Object(byte id, string name)
     {
-        Name = name, TerrainId = id, Flags = solid ? TerrainFlags.Solid : default, StartingHealth = 0,
-        MaxHealth = 0, GoldValue = 0, ManaGain = 0, MaxManaGain = 0, Damage = damage,
-        MaxHealthTypeTerrainId = 0, DestroyedTypeTerrainId = 0, Depth = new Fp32(0),
-        NameStringId = 0, TooltipStringId = 0,
-    };
+        return new()
+        {
+            Name = name,
+            ObjectId = id,
+            Flags = default,
+            Hp = 0,
+            ManaValue = 0,
+            RoomCapacity = 0,
+            StartState = 0,
+            PickUpPriority = 0,
+            Width = new Fp32(0),
+            Height = new Fp32(0),
+            Mass = new Fp32(0),
+            Speed = new Fp32(0),
+            NameStringId = 0,
+            TooltipStringId = 0,
+        };
+    }
+
+    internal static TerrainDef Terrain(byte id, string name, short damage = 0, bool solid = false)
+    {
+        return new()
+        {
+            Name = name,
+            TerrainId = id,
+            Flags = solid ? TerrainFlags.Solid : default,
+            StartingHealth = 0,
+            MaxHealth = 0,
+            GoldValue = 0,
+            ManaGain = 0,
+            MaxManaGain = 0,
+            Damage = damage,
+            MaxHealthTypeTerrainId = 0,
+            DestroyedTypeTerrainId = 0,
+            Depth = new Fp32(0),
+            NameStringId = 0,
+            TooltipStringId = 0,
+        };
+    }
 
     internal sealed class FakeMeshes(params (string Name, byte[] Bytes)[] entries) : IMeshSource
     {
@@ -51,16 +83,21 @@ internal static class ArtTestData
             return index >= 0;
         }
 
-        public byte[] Read(int index) => entries[index].Bytes;
+        public byte[] Read(int index)
+        {
+            return entries[index].Bytes;
+        }
     }
 
     internal sealed class FakeTextures(params string[] names) : ITextureSource
     {
         public List<string> Reads { get; } = [];
 
-        public string Resolve(string textureName) =>
-            names.FirstOrDefault(name => name.Equals(textureName, StringComparison.OrdinalIgnoreCase))
+        public string Resolve(string textureName)
+        {
+            return names.FirstOrDefault(name => name.Equals(textureName, StringComparison.OrdinalIgnoreCase))
             ?? throw new FileNotFoundException($"Engine texture '{textureName}' was not found.");
+        }
 
         public RgbaImage Read(string storedName)
         {

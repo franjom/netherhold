@@ -8,8 +8,10 @@ namespace DK2.Presentation.Tests;
 
 public sealed class FrontEndBriefingImagesTests
 {
-    private static FrontEndPlacedImage[] For(uint mode, uint section, bool secret = false) =>
-        [.. FrontEndBriefingImages.For(mode, section, secret)];
+    private static FrontEndPlacedImage[] For(uint mode, uint section, bool secret = false)
+    {
+        return [.. FrontEndBriefingImages.For(mode, section, secret)];
+    }
 
     [Fact]
     public void TheBriefingPageFramesBothShotsWithItsObjectiveStrips()

@@ -20,7 +20,10 @@ public class RoomWallsTests
 
     /// <summary>A Treasury three wide and four deep inside a ring of Reinforced Wall, its top-left
     /// tile at (X0 + 1, Y0 + 1).</summary>
-    private static Room Treasury(string ring = "Reinforced Wall") => Carve(RoomTypeId.Treasury, ring);
+    private static Room Treasury(string ring = "Reinforced Wall")
+    {
+        return Carve(RoomTypeId.Treasury, ring);
+    }
 
     private static Room Carve(RoomTypeId type, string ring = "Reinforced Wall")
     {

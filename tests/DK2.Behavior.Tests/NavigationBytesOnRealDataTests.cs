@@ -19,7 +19,13 @@ public class NavigationBytesOnRealDataTests
 {
     private static readonly string[] LevelNames = ["Level1", "Level4", "Level8", "Level10", "Level11A", "Level17", "Level18"];
 
-    public static TheoryData<string> Levels => new(LevelNames);
+    public static TheoryData<string> Levels
+    {
+        get
+        {
+            return new(LevelNames);
+        }
+    }
 
     /// <summary>One pass over every level, so the coverage the comparison relies on can be
     /// asserted across them: a level without a DoubleQuad room, a portal or a closed door would
@@ -57,8 +63,10 @@ public class NavigationBytesOnRealDataTests
     {
         GameSimulation simulation = Campaign(level);
         Predicate<RoomDef> wanted = room => room.Construction == TileConstruction.DoubleQuad || room.TypeId == RoomTypeId.Treasury;
-        string Describe(IEnumerable<RoomInstance> rooms) =>
-            string.Join(" | ", rooms.Select(r => $"{r.Definition.TypeId}:{r.OwnerPlayerId}:{string.Join(",", r.TileIndices)}"));
+        string Describe(IEnumerable<RoomInstance> rooms)
+        {
+            return string.Join(" | ", rooms.Select(r => $"{r.Definition.TypeId}:{r.OwnerPlayerId}:{string.Join(",", r.TileIndices)}"));
+        }
 
         Assert.Equal(
             Describe(RoomIndex.Build(simulation.World, simulation.Database).Where(r => wanted(r.Definition))),

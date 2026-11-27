@@ -112,9 +112,34 @@ public sealed class SavedSessionFileTests : IDisposable
 
     private sealed class NonSeekableStream(byte[] bytes) : MemoryStream(bytes)
     {
-        public override bool CanSeek => false;
-        public override long Length => throw new NotSupportedException();
-        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+        public override bool CanSeek
+        {
+            get
+            {
+                return false;
+            }
+        }
+
+        public override long Length
+        {
+            get
+            {
+                throw new NotSupportedException();
+            }
+        }
+
+        public override long Position
+        {
+            get
+            {
+                throw new NotSupportedException();
+            }
+
+            set
+            {
+                throw new NotSupportedException();
+            }
+        }
     }
 
     private byte[] SavedBytes()
@@ -185,11 +210,16 @@ public sealed class SavedSessionFileTests : IDisposable
     [InlineData("")]
     [InlineData("a/b")]
     public void SaveNameCannotEscapeItsDirectory(string name)
-        => Assert.Throws<ArgumentException>(() => SavedSessionFile.PathForName(_directory, name));
+    {
+        Assert.Throws<ArgumentException>(() => SavedSessionFile.PathForName(_directory, name));
+    }
 
-    private static SavedSession Sample() => new(new SavedSessionHeader("Level1", 1, 26,
+    private static SavedSession Sample()
+    {
+        return new(new SavedSessionHeader("Level1", 1, 26,
         new DateTime(2026, 10, 29, 12, 0, 0, DateTimeKind.Utc), "First save"),
         [1, 2, 3], new CampaignProfile { LevelNumber = 2 });
+    }
 
     public void Dispose()
     {

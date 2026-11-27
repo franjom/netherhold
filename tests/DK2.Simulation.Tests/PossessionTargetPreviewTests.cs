@@ -20,11 +20,19 @@ public sealed class PossessionTargetPreviewTests
         me.Heading = 0x200;
         return (db, world, me);
     }
-    private static PossessionTarget Preview(GameDatabase db, WorldState world, CreatureState me, bool melee = true, int slot = 0) =>
-        PossessionRules.PreviewTarget(world, db, new ClearSight(), me,
+    private static PossessionTarget Preview(GameDatabase db, WorldState world, CreatureState me, bool melee = true, int slot = 0)
+    {
+        return PossessionRules.PreviewTarget(world, db, new ClearSight(), me,
             new ActPossessedCreatureCommand(Keeper,
                 new(new(new(me.PosX), new(me.PosY), new(Fp32.One + me.PosZ)), new(0x200), new(0x200)), melee, new(slot)));
-    private sealed class ClearSight : ISightBlocker { public bool Blocks(int x, int y) => false; }
+    }
+
+    private sealed class ClearSight : ISightBlocker {
+        public bool Blocks(int x, int y)
+        {
+            return false;
+        }
+    }
 
     [Fact]
     public void MeleeHighlightsOneTrainingDummyInReach()

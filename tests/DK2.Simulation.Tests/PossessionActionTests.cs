@@ -26,8 +26,10 @@ public sealed class PossessionActionTests
         return (db, world, me, sim);
     }
 
-    private static MovePossessedCreatureCommand Move(int x, int y, int z, ushort heading) =>
-        new(Keeper, new(new(new(x), new(y), new(z)), new(heading)));
+    private static MovePossessedCreatureCommand Move(int x, int y, int z, ushort heading)
+    {
+        return new(Keeper, new(new(new(x), new(y), new(z)), new(heading)));
+    }
 
     [Fact]
     public void MoveInstallsPoseMasksHeadingAndPreservesStateAndJob_StronglyInferredFromBinary()

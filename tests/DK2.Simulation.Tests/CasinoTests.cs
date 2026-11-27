@@ -22,9 +22,21 @@ public class CasinoTests
     private static readonly TilePos LeverAt = new(2, 2);
     private static readonly TilePos Vault = new(5, 3);
 
-    private static int Second => SimulationTiming.TicksPerSecond;
+    private static int Second
+    {
+        get
+        {
+            return SimulationTiming.TicksPerSecond;
+        }
+    }
 
-    private static GameDatabase Db => Dk2TerrainFixture.Database();
+    private static GameDatabase Db
+    {
+        get
+        {
+            return Dk2TerrainFixture.Database();
+        }
+    }
 
     /// <summary>A 3×3 Casino over the fixture's claimed square, (1,1) to (3,3).</summary>
     private static WorldState World(GameDatabase db, int width = 3, int height = 3)
@@ -71,10 +83,15 @@ public class CasinoTests
         return goblin;
     }
 
-    private static ObjectState Lever(WorldState world) =>
-        world.Objects.Single(o => o.ObjectTypeId == AutoFurnitureRules.CasinoLeverObjectId);
+    private static ObjectState Lever(WorldState world)
+    {
+        return world.Objects.Single(o => o.ObjectTypeId == AutoFurnitureRules.CasinoLeverObjectId);
+    }
 
-    private static int Index(WorldState world, TilePos at) => (at.Y * world.Width) + at.X;
+    private static int Index(WorldState world, TilePos at)
+    {
+        return (at.Y * world.Width) + at.X;
+    }
 
     private static void Fund(WorldState world, int amount)
     {
@@ -98,8 +115,10 @@ public class CasinoTests
         Assert.True(done(), "the condition never held");
     }
 
-    private static void Pull(GameSimulation sim, byte player) =>
+    private static void Pull(GameSimulation sim, byte player)
+    {
         sim.Tick(InputFrame.Of(new PullCasinoLeverCommand(player, LeverAt)));
+    }
 
     [Fact]
     public void ACasinosLeverStandsOnTheCentreOfAThreeByThreeAndStartsGenerous()

@@ -88,13 +88,18 @@ public class LegalActionFuzzerTests
         Assert.Throws<ArgumentException>(() => LegalActionFuzzer.Create(new PlayerId(PlayerIds.Good), 1));
     }
 
-    private static RunOptions Fuzzed(ulong seed) => new()
+    private static RunOptions Fuzzed(ulong seed)
     {
-        Controllers = [LegalActionFuzzer.Create(Keeper, seed, intervalTicks: 2)],
-    };
+        return new()
+        {
+            Controllers = [LegalActionFuzzer.Create(Keeper, seed, intervalTicks: 2)],
+        };
+    }
 
-    private static string[] Commands(ScenarioResult result) =>
-        [.. result.ControllerCommandLog.Select(e => $"{e.InputTick}:{e.Command}")];
+    private static string[] Commands(ScenarioResult result)
+    {
+        return [.. result.ControllerCommandLog.Select(e => $"{e.InputTick}:{e.Command}")];
+    }
 
     private static ScenarioResult Level1(RunOptions options)
     {

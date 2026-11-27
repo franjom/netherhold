@@ -134,7 +134,9 @@ public class ScenarioControllerTests
         }
     }
 
-    private static string Yaml(string? commands = null) => $"""
+    private static string Yaml(string? commands = null)
+    {
+        return $"""
         id: controller-probe
         map: chamber_9x9
         seed: 7
@@ -144,4 +146,5 @@ public class ScenarioControllerTests
             - {"{"} id: 3, gold: 0, mana: 0 {"}"}
         {(commands is null ? "" : "commands:\n" + commands)}
         """;
+    }
 }

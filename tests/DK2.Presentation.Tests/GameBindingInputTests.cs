@@ -43,8 +43,10 @@ public class GameBindingInputTests
     [InlineData(15, 0.5)]
     [InlineData(30, 1)]
     [InlineData(60, 2)]
-    public void NativeGammaSliderConvertsToTheRampDivisor(int slider, double gamma) =>
+    public void NativeGammaSliderConvertsToTheRampDivisor(int slider, double gamma)
+    {
         Assert.Equal(gamma, DisplaySettings.RampGamma(slider));
+    }
 
     [Fact]
     public void NoLivePossessedBodyKeepsShortcutsBlockedDuringTheDeathOrReturnView()
@@ -53,7 +55,9 @@ public class GameBindingInputTests
         Assert.Equal(ClassicHudAction.None, Input(scans: 1).HudShortcut(context));
     }
     private static GameBindingInput Input(GameSettings? settings = null, KeyModifiers modifiers = KeyModifiers.None, params int[] scans)
-        => new(settings ?? new GameSettings(), modifiers, s => scans.Contains(s.Value), s => scans.Contains(s.Value));
+    {
+        return new(settings ?? new GameSettings(), modifiers, s => scans.Contains(s.Value), s => scans.Contains(s.Value));
+    }
 
     [Fact]
     public void ReboundHeartReplacesTheDefaultAndRequiresExactModifiers()

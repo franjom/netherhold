@@ -70,7 +70,10 @@ public class ManaRemovalLifecycleTests
         return int.Parse(end < 0 ? e.Detail[start..] : e.Detail[start..end]);
     }
 
-    private static IEnumerable<SimEvent> Of(ListEventSink sink, string kind) => sink.Events.Where(e => e.Kind == kind);
+    private static IEnumerable<SimEvent> Of(ListEventSink sink, string kind)
+    {
+        return sink.Events.Where(e => e.Kind == kind);
+    }
 
     // ---- the end-to-end scenario ---------------------------------------------------------
 

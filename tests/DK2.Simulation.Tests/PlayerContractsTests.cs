@@ -19,10 +19,15 @@ public class PlayerContractsTests
 {
     private static readonly PlayerRunId Run = new("run-a");
 
-    private static PlayerStamp Stamp(long revision = 1) =>
-        new(Run, new PlayerId(3), new GameTick(revision), new PlayerRevision(revision));
+    private static PlayerStamp Stamp(long revision = 1)
+    {
+        return new(Run, new PlayerId(3), new GameTick(revision), new PlayerRevision(revision));
+    }
 
-    private static PlayerThingHandle Handle(int ordinal) => new(new PlayerRevision(1), ordinal);
+    private static PlayerThingHandle Handle(int ordinal)
+    {
+        return new(new PlayerRevision(1), ordinal);
+    }
 
     [Fact]
     public void IdentitiesRejectEmptyMalformedAndNonPositiveValues()
@@ -274,8 +279,10 @@ public class PlayerContractsTests
         Assert.NotEqual(a, a with { BasedOn = Stamp(2) });
     }
 
-    private static Type[] ActionTypes() =>
-        [.. typeof(PlayerAction).Assembly.GetTypes().Where(t => t.IsSubclassOf(typeof(PlayerAction)))];
+    private static Type[] ActionTypes()
+    {
+        return [.. typeof(PlayerAction).Assembly.GetTypes().Where(t => t.IsSubclassOf(typeof(PlayerAction)))];
+    }
 
     /// <summary>Allowed: primitives, enums, string, read-only lists of allowed types, value types from
     /// the engine-neutral id namespaces, and the protocol's own types (whose members are walked).</summary>

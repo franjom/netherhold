@@ -17,11 +17,22 @@ public class PlayerObservationTrapTests
 {
     private const byte Turning = 1, Hidden = 2, OnTile = 3, Plain = 4;
 
-    private static TrapDef Trap(byte id, uint flags, byte selector, int range) => new()
+    private static TrapDef Trap(byte id, uint flags, byte selector, int range)
     {
-        Name = $"trap {id}", TrapId = id, Health = 100, GoldCost = 0, ManufactureRequired = 0, ShotTypeId = 0,
-        ManaUpkeepPerSecond = 0, Flags = flags, TriggerType = selector, RangeTiles = range,
-    };
+        return new()
+        {
+            Name = $"trap {id}",
+            TrapId = id,
+            Health = 100,
+            GoldCost = 0,
+            ManufactureRequired = 0,
+            ShotTypeId = 0,
+            ManaUpkeepPerSecond = 0,
+            Flags = flags,
+            TriggerType = selector,
+            RangeTiles = range,
+        };
+    }
 
     [Fact]
     public void VisibleBuiltEnemyTrapsAreShownWithTheirFindersReach()

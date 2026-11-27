@@ -25,8 +25,10 @@ public class CasinoWinnerSlapTests
         return (new GameSimulation(db, world, seed: 7, [new HandSystem()]), winner);
     }
 
-    private static void Slap(GameSimulation sim, CreatureState winner) =>
+    private static void Slap(GameSimulation sim, CreatureState winner)
+    {
         sim.Tick(InputFrame.Of(new SlapCreatureCommand(3, winner.Id)));
+    }
 
     [Theory]
     [InlineData(3996, 1, 999)]
@@ -162,7 +164,17 @@ public class CasinoWinnerSlapTests
 
     private sealed class Land(ObjectState pile) : ISimulationSystem
     {
-        public string Name => "gold landing test";
-        public void Execute(SimulationContext context) => FloorGoldLandingRules.Land(context, pile);
+        public string Name
+        {
+            get
+            {
+                return "gold landing test";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            FloorGoldLandingRules.Land(context, pile);
+        }
     }
 }

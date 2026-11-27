@@ -175,13 +175,16 @@ public class KwdHostileInputTests
         return record;
     }
 
-    private static KwdChunk Chunk(KwdRecordType type, byte[] header, byte[] content) => new()
+    private static KwdChunk Chunk(KwdRecordType type, byte[] header, byte[] content)
     {
-        Type = type,
-        ItemCount = 0,
-        HeaderBlock = header,
-        Content = content,
-        ContainerHeader = new KwdContainerHeader((uint)(28 + header.Length + content.Length),
+        return new()
+        {
+            Type = type,
+            ItemCount = 0,
+            HeaderBlock = header,
+            Content = content,
+            ContainerHeader = new KwdContainerHeader((uint)(28 + header.Length + content.Length),
             (uint)type + 2, (uint)content.Length, content.Length),
-    };
+        };
+    }
 }

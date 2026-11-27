@@ -15,8 +15,10 @@ namespace DK2.Behavior.Tests;
 /// petals, since enemies' flowers always show (owner, 2026-11-17; schema 8).</summary>
 public class PlayerObservationPrisonerTests
 {
-    private static PlayerObservation Observe(GameDatabase database, WorldState world) =>
-        new PlayerObservationBuilder(database, PlayerObservationTests.Viewer).Capture(world, PlayerObservationTests.Stamp(world), []).Observation;
+    private static PlayerObservation Observe(GameDatabase database, WorldState world)
+    {
+        return new PlayerObservationBuilder(database, PlayerObservationTests.Viewer).Capture(world, PlayerObservationTests.Stamp(world), []).Observation;
+    }
 
     [Fact]
     public void ARivalHeldInTheViewersPrisonIsSeenInTheWorldNeverInTheCreaturePanel()

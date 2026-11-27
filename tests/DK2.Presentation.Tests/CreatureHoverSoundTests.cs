@@ -30,7 +30,10 @@ public sealed class CreatureHoverSoundTests
         return (database, world, goblin);
     }
 
-    private static WorldHoverHit Hit(CreatureState c) => new(WorldHoverKind.Creature, c.Tile, c.Id);
+    private static WorldHoverHit Hit(CreatureState c)
+    {
+        return new(WorldHoverKind.Creature, c.Tile, c.Id);
+    }
 
     [InstallFact]
     public void AnOwnContentCreatureOnATurnThatIsAMultipleOfTwelveAsksCAInItsCategoryWithItsHandleAtItsPosition()

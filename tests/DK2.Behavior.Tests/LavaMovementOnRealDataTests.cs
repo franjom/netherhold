@@ -16,7 +16,10 @@ public class LavaMovementOnRealDataTests
 {
     private readonly Xunit.Abstractions.ITestOutputHelper _output;
 
-    public LavaMovementOnRealDataTests(Xunit.Abstractions.ITestOutputHelper output) => _output = output;
+    public LavaMovementOnRealDataTests(Xunit.Abstractions.ITestOutputHelper output)
+    {
+        _output = output;
+    }
 
     [InstallFact]
     public void Level8StartingSalamandersCanLeaveTheHeartAreaForLava()

@@ -22,7 +22,13 @@ public sealed class CampaignResultFlowTests : IDisposable
     private readonly List<PlayerCommand> _pending = new();
     private int _profileLoads;
 
-    private string ProfilePath => Path.Combine(_root, "campaign-profile.dk2p");
+    private string ProfilePath
+    {
+        get
+        {
+            return Path.Combine(_root, "campaign-profile.dk2p");
+        }
+    }
 
     public void Dispose()
     {
@@ -71,9 +77,11 @@ public sealed class CampaignResultFlowTests : IDisposable
         return new Rig(flow, context, store, hud, simulation);
     }
 
-    private bool Frame(Rig rig, bool path = false, bool space = false, bool escape = false, double now = 0) =>
-        rig.Flow.Update(rig.Simulation.World, rig.Simulation.Database,
+    private bool Frame(Rig rig, bool path = false, bool space = false, bool escape = false, double now = 0)
+    {
+        return rig.Flow.Update(rig.Simulation.World, rig.Simulation.Database,
             new CampaignResultFrame(Viewer, path, now, SpeechPlaying: null, space, escape), _pending);
+    }
 
     private static void End(GameSimulation simulation, byte player, byte status, long tick = 0)
     {
@@ -81,7 +89,10 @@ public sealed class CampaignResultFlowTests : IDisposable
         simulation.World.Player(new PlayerId(player)).StatusTick = new GameTick(tick);
     }
 
-    private CampaignProfile Saved() => CampaignProfileFile.LoadOrCreate(ProfilePath);
+    private CampaignProfile Saved()
+    {
+        return CampaignProfileFile.LoadOrCreate(ProfilePath);
+    }
 
     [Fact]
     public void ALevelNotStartedFromTheMapHasNoResultAndNeverLoadsTheProfile()

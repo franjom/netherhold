@@ -25,9 +25,15 @@ public sealed class FunctionKbTests
 
     const string RecordPath = "docs/research/functions/0050EA70.md";
 
-    static string[] Lines(string text) => text.Replace("\r\n", "\n").Split('\n');
+    static string[] Lines(string text)
+    {
+        return text.Replace("\r\n", "\n").Split('\n');
+    }
 
-    static FunctionRecord Parse(string text, List<string> errors) => FunctionKb.Parse(RecordPath, Lines(text), errors);
+    static FunctionRecord Parse(string text, List<string> errors)
+    {
+        return FunctionKb.Parse(RecordPath, Lines(text), errors);
+    }
 
     [Fact]
     public void ParsesEveryField()
@@ -369,7 +375,9 @@ public sealed class FunctionKbTests
     [InlineData("0x1048F250 is another address", false)]
     [InlineData("a bare 48F250 is not a citation", false)]
     public void CitesMatchesTheAddressInEveryWrittenForm(string text, bool expected)
-        => Assert.Equal(expected, FunctionKb.Cites(text, "0048F250"));
+    {
+        Assert.Equal(expected, FunctionKb.Cites(text, "0048F250"));
+    }
 
     [Fact]
     public void UntouchedCitersSkipTheChangeTheRecordItselfTheIndexAndPlans()

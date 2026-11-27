@@ -22,7 +22,13 @@ public class RescueTests
     private static readonly TilePos Door = new(6, 3);
     private static readonly TilePos Inside = new(7, 3);
 
-    private static GameDatabase Db => Dk2TerrainFixture.Database();
+    private static GameDatabase Db
+    {
+        get
+        {
+            return Dk2TerrainFixture.Database();
+        }
+    }
 
     /// <summary>The keeper's prison at (2..4, 2..4) and Torture Chamber at (7..9, 2..4), a wheel
     /// at (8, 3) with a hero's Goblin captive on it.</summary>
@@ -60,7 +66,10 @@ public class RescueTests
         return (world, victim);
     }
 
-    private static int Index(WorldState world, TilePos at) => (at.Y * world.Width) + at.X;
+    private static int Index(WorldState world, TilePos at)
+    {
+        return (at.Y * world.Width) + at.X;
+    }
 
     private static GameSimulation Simulation(GameDatabase db, WorldState world, ListEventSink sink)
     {

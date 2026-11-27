@@ -128,5 +128,8 @@ public class SgmapTests
         Assert.Contains("indentation", exception.Message);
     }
 
-    private static SgmapDatabase Parse() => SgmapDatabase.Parse(new StringReader(Fixture));
+    private static SgmapDatabase Parse()
+    {
+        return SgmapDatabase.Parse(new StringReader(Fixture));
+    }
 }

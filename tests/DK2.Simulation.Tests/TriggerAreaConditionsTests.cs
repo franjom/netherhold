@@ -402,35 +402,54 @@ public class TriggerAreaConditionsTests
         return new TriggerExecutor(tree, state, world, database).Run(1);
     }
 
-    private static ActionPointThing Point(byte id, ushort root, int x0, int y0, int x1, int y1) =>
-        new(new byte[56])
+    private static ActionPointThing Point(byte id, ushort root, int x0, int y0, int x1, int y1)
+    {
+        return new(new byte[56])
         {
-            StartX = x0, StartY = y0, EndX = x1, EndY = y1,
-            ActionPointId = id, TriggerId = root, Name = "fixture",
+            StartX = x0,
+            StartY = y0,
+            EndX = x1,
+            EndY = y1,
+            ActionPointId = id,
+            TriggerId = root,
+            Name = "fixture",
         };
+    }
 
     private static TriggerRecord Area(
         ushort id,
         byte type,
         Dictionary<string, long> parameters,
         ushort next = 0,
-        byte repeat = 1) =>
-        new GenericTriggerRecord(new byte[16])
+        byte repeat = 1)
+    {
+        return new GenericTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = id, Type = type, RepeatCount = repeat,
-            ChildTriggerId = next == 0 ? Child : (ushort)0, NextTriggerId = next,
+            Body = new byte[8],
+            TriggerId = id,
+            Type = type,
+            RepeatCount = repeat,
+            ChildTriggerId = next == 0 ? Child : (ushort)0,
+            NextTriggerId = next,
             Parameters = parameters,
         };
+    }
 
     /// <summary>The tag-214 marker write. Mode <c>0x0A</c> assigns a literal 1, <c>0x12</c>
     /// adds one, which counts turns for the repeat test.</summary>
-    private static TriggerRecord FlagWrite(byte mode = 0x0A) =>
-        new ActionTriggerRecord(new byte[16])
+    private static TriggerRecord FlagWrite(byte mode = 0x0A)
+    {
+        return new ActionTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = Child, Type = 7,
+            Body = new byte[8],
+            TriggerId = Child,
+            Type = 7,
             Parameters = new Dictionary<string, long>
             {
-                ["FlagId"] = Marker, ["Flag"] = mode, ["Value"] = 1,
+                ["FlagId"] = Marker,
+                ["Flag"] = mode,
+                ["Value"] = 1,
             },
         };
+    }
 }

@@ -43,8 +43,18 @@ public class LocalStrengthTests
 
     private sealed class CaptureContext : ISimulationSystem
     {
-        public string Name => "LocalStrengthTest";
+        public string Name
+        {
+            get
+            {
+                return "LocalStrengthTest";
+            }
+        }
+
         public SimulationContext? Context { get; private set; }
-        public void Execute(SimulationContext context) => Context = context;
+        public void Execute(SimulationContext context)
+        {
+            Context = context;
+        }
     }
 }

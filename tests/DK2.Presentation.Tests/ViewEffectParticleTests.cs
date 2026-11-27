@@ -145,28 +145,44 @@ public class ViewEffectParticleTests
         Assert.All(model.Particles, p => Assert.Equal(8192, p.HeightRaw));
     }
 
-    private static Fp32 ChildFloor(FpPosition3 point) =>
-        new(point.X.Raw == 10240 && point.Y.Raw == 14336 ? 4096 : 8192);
-
-    private static SimEvent Request() => new(new GameTick(0), "view", "effect", "")
+    private static Fp32 ChildFloor(FpPosition3 point)
     {
-        EffectRequest = new ViewEffectRequest(new EffectId(17), PlayerIds.FirstKeeper,
+        return new(point.X.Raw == 10240 && point.Y.Raw == 14336 ? 4096 : 8192);
+    }
+
+    private static SimEvent Request()
+    {
+        return new(new GameTick(0), "view", "effect", "")
+        {
+            EffectRequest = new ViewEffectRequest(new EffectId(17), PlayerIds.FirstKeeper,
             new FpPosition3(new Fp32(10240), new Fp32(14336), new Fp32(0)))
-    };
+        };
+    }
 
     private static GameDatabase Database(uint flags = 0x80,
         (byte Red, byte Green, byte Blue)? authoredColour = null,
         ushort originRange = 0, int elasticity = 0, uint elementFlags = 0, uint keeperArtFlags = 0x2)
     {
         (byte Red, byte Green, byte Blue) colour = authoredColour ?? (70, 80, 130);
-        EffectElementDef Element(ushort id, uint artFlags) => new([])
+        EffectElementDef Element(ushort id, uint artFlags)
         {
-            Name = "element", EffectElementId = id,
-            ArtResource = new KwdArtResource("sprite", artFlags, new byte[12], 3, 0, 0, 0),
-            MinHp = 20, MaxHp = 20, MinScale = 1024, MaxScale = 1024,
-            Red = colour.Red, Green = colour.Green, Blue = colour.Blue,
-            Elasticity = elasticity, Flags = elementFlags
-        };
+            return new([])
+            {
+                Name = "element",
+                EffectElementId = id,
+                ArtResource = new KwdArtResource("sprite", artFlags, new byte[12], 3, 0, 0, 0),
+                MinHp = 20,
+                MaxHp = 20,
+                MinScale = 1024,
+                MaxScale = 1024,
+                Red = colour.Red,
+                Green = colour.Green,
+                Blue = colour.Blue,
+                Elasticity = elasticity,
+                Flags = elementFlags
+            };
+        }
+
         var effect = new EffectDef([])
         {
             EffectId = 17, Name = "bed", ArtResource = new KwdArtResource("", 0, new byte[12], 0, 0, 0, 0),

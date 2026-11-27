@@ -448,7 +448,10 @@ public sealed class PacketLogTests
         finally { File.Delete(path); }
     }
 
-    private static uint Pack(uint x, uint y) => x | y << 16;
+    private static uint Pack(uint x, uint y)
+    {
+        return x | y << 16;
+    }
 
     private static void Turn(List<byte> bytes, uint turn,
         params (uint First, uint Second, uint Third, uint Kind)[] actions)

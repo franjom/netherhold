@@ -19,8 +19,10 @@ public sealed class HudWidgetTextTests
     [InlineData(2309, 0)]
     [InlineData(0x92A, 0)]
     [InlineData(1, 0)]
-    public void TheHoverStatusSwitchMapsQueryToItsCreatureLineAndTheRestToTheNextString(int textId, int status) =>
+    public void TheHoverStatusSwitchMapsQueryToItsCreatureLineAndTheRestToTheNextString(int textId, int status)
+    {
         Assert.Equal(status, HudWidgetText.StatusTextId(textId));
+    }
 
     [Fact]
     public void AWidgetHoverNamesTheWidgetAndPutsItsStatusLineInTheStrip_PopupProducerUnread()

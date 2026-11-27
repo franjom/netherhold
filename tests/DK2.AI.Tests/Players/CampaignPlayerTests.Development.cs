@@ -36,14 +36,18 @@ public partial class CampaignPlayerTests
         new(RoomTypeId.Hatchery, new GoldAmount(50), true),
     ];
 
-    private static PlayerRoomSummary[] CoreOwned(int lair = 9, int treasury = 9, params PlayerRoomSummary[] more) =>
-    [
+    private static PlayerRoomSummary[] CoreOwned(int lair = 9, int treasury = 9, params PlayerRoomSummary[] more)
+    {
+        return [
         new(RoomTypeId.DungeonHeart, 1), new(RoomTypeId.Treasury, treasury), new(RoomTypeId.Lair, lair),
         new(RoomTypeId.Hatchery, 9), .. more,
     ];
+    }
 
-    private static PlayerCreatureSummary[] Goblins(int count) =>
-        [.. Enumerable.Range(0, count).Select(i => new PlayerCreatureSummary(Goblin, new TilePos(5, 5), false))];
+    private static PlayerCreatureSummary[] Goblins(int count)
+    {
+        return [.. Enumerable.Range(0, count).Select(i => new PlayerCreatureSummary(Goblin, new TilePos(5, 5), false))];
+    }
 
     /// <summary>A player whose strategy works the Training Room.</summary>
     private static CampaignPlayer Trainer()
@@ -53,8 +57,10 @@ public partial class CampaignPlayerTests
         return player;
     }
 
-    private static PlayerVisibleThing Creature(int ordinal, int x, int y, CreatureTypeId type, PlayerId? owner = null) =>
-        new(Handle(ordinal), PlayerThingKind.Creature, new TilePos(x, y), owner ?? Me, PlayerThingActions.PickUp, type);
+    private static PlayerVisibleThing Creature(int ordinal, int x, int y, CreatureTypeId type, PlayerId? owner = null)
+    {
+        return new(Handle(ordinal), PlayerThingKind.Creature, new TilePos(x, y), owner ?? Me, PlayerThingActions.PickUp, type);
+    }
 
     [Fact]
     public void AnOutgrownLairGrowsBesideItselfAndIsNotRepeatedWhilePending()
@@ -78,7 +84,10 @@ public partial class CampaignPlayerTests
     [Fact]
     public void ATreasuryGrowsBesideItselfOnceGoldNearsWhatTheHeartAndTreasuriesHold()
     {
-        static CampaignPlayer Banker() => Player(o => o with { GoldPerTreasuryTile = 3000, HeartGold = 16000 });
+        static CampaignPlayer Banker()
+        {
+            return Player(o => o with { GoldPerTreasuryTile = 3000, HeartGold = 16000 });
+        }
         // Heart 16000 + nine tiles x 3000 = 43000; 80% is 34400.
         PlayerDecision full = Banker().Decide(Observe(map: Developed, rooms: CoreOffers, owned: CoreOwned(), gold: 34400));
         PlayerAction.BuildRoom build = Assert.IsType<PlayerAction.BuildRoom>(full.Actions[1]);
@@ -277,8 +286,10 @@ public partial class CampaignPlayerTests
         "RRRRRRR",
     ];
 
-    private static TilePos[] Marks(PlayerDecision decision) =>
-        [.. decision.Actions.OfType<PlayerAction.TagArea>().Select(t => t.From).OrderBy(t => t.Y).ThenBy(t => t.X)];
+    private static TilePos[] Marks(PlayerDecision decision)
+    {
+        return [.. decision.Actions.OfType<PlayerAction.TagArea>().Select(t => t.From).OrderBy(t => t.Y).ThenBy(t => t.X)];
+    }
 
     private static CampaignPlayer Breaching(BreachMode mode)
     {
@@ -325,7 +336,10 @@ public partial class CampaignPlayerTests
         CampaignPlayer player = Player(o => o with { MaxActionsPerDecision = 8 });
         player.Apply(player.Strategy with { Fight = FightMode.Off });
         var seen = new TilePos(9, 5);
-        IEnumerable<TilePos> Marks(PlayerDecision d) => d.Actions.OfType<PlayerAction.TagArea>().Select(t => t.From);
+        IEnumerable<TilePos> Marks(PlayerDecision d)
+        {
+            return d.Actions.OfType<PlayerAction.TagArea>().Select(t => t.From);
+        }
 
         TilePos[] first = [.. Marks(player.Decide(Observe(things: [Creature(0, seen.X, seen.Y, Goblin, Heroes)])))];
         TilePos[] after = [.. Marks(player.Decide(Observe(2)))];

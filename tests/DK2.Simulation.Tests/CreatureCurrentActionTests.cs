@@ -15,7 +15,10 @@ public sealed class CreatureCurrentActionTests
     private static readonly CreatureDef Def = Dk2TerrainFixture.Goblin();
     private static readonly GameTick Now = new(500);
 
-    private static CreatureState Creature() => new() { Id = 1, CreatureTypeId = Def.CreatureId };
+    private static CreatureState Creature()
+    {
+        return new() { Id = 1, CreatureTypeId = Def.CreatureId };
+    }
 
     [Fact]
     public void ACreatureWithNoActionStandInIsNotRunningAnythingAndHasNoIndex()

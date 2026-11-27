@@ -552,7 +552,12 @@ public class ClassicWorldLightCacheTests
     }
 
     private static ClassicPointLight Source(int id, TilePos tile)
-        => ClassicPointLight.FromTerrain(tile, new Fp32(0), new TerrainLightColour(id, 0, 0));
+    {
+        return ClassicPointLight.FromTerrain(tile, new Fp32(0), new TerrainLightColour(id, 0, 0));
+    }
+
     private static int[] Ids(ClassicLightTable table)
-        => [.. table.Lights.ToArray().Select(l => (int)MathF.Round(l.Colour.X * 255))];
+    {
+        return [.. table.Lights.ToArray().Select(l => (int)MathF.Round(l.Colour.X * 255))];
+    }
 }

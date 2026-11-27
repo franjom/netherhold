@@ -104,8 +104,10 @@ public class AvailabilityKindTests
     [InlineData(AvailabilityKind.Trap, 3)]
     [InlineData(AvailabilityKind.Door, 4)]
     [InlineData(AvailabilityKind.Spell, 5)]
-    public void TheKindsKeepTheNumbersTheKwdAndTheHashUse(AvailabilityKind kind, int number) =>
+    public void TheKindsKeepTheNumbersTheKwdAndTheHashUse(AvailabilityKind kind, int number)
+    {
         Assert.Equal(number, (int)kind);
+    }
 
     [Theory]
     [InlineData(ResearchTreeRules.KindRoom, AvailabilityKind.Room)]
@@ -113,8 +115,10 @@ public class AvailabilityKindTests
     [InlineData(ResearchTreeRules.KindTrap, AvailabilityKind.Trap)]
     [InlineData(ResearchTreeRules.KindSpell, AvailabilityKind.Spell)]
     [InlineData(0, AvailabilityKind.None)]
-    public void AResearchKindMapsOntoItsAvailabilityKind(int researchKind, AvailabilityKind expected) =>
+    public void AResearchKindMapsOntoItsAvailabilityKind(int researchKind, AvailabilityKind expected)
+    {
         Assert.Equal(expected, ResearchTreeRules.AvailabilityKindOf(researchKind));
+    }
 }
 
 public class MoveOptionsTests
@@ -126,6 +130,8 @@ public class MoveOptionsTests
     [InlineData(MoveOptions.ExactSpot, 0xD)]
     [InlineData(MoveOptions.CaptiveSpot, 0xD)]
     [InlineData(MoveOptions.Leaving, 0xD)]
-    public void ThePathFlagsFollowOptionBitsThreeToSix(MoveOptions options, int expected) =>
+    public void ThePathFlagsFollowOptionBitsThreeToSix(MoveOptions options, int expected)
+    {
         Assert.Equal((byte)expected, options.PathFlags());
+    }
 }

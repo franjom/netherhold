@@ -28,7 +28,10 @@ namespace DK2.Behavior.Tests;
 /// </summary>
 public class ObjectsOnRealDataTests
 {
-    private static string Install() => Dk2InstallGate.Path;
+    private static string Install()
+    {
+        return Dk2InstallGate.Path;
+    }
 
     // ---- the parse is right -----------------------------------------------
 
@@ -257,8 +260,10 @@ public class ObjectsOnRealDataTests
         // ObjectIds, which is its furniture, and no object is in both sets.
         GameDatabase db = GameDatabaseLoader.Load(Install());
 
-        byte[] With(ObjectFlags flag) =>
-            [.. db.Objects.Values.Where(o => o.Flags.HasFlag(flag)).Select(o => o.ObjectId).Order()];
+        byte[] With(ObjectFlags flag)
+        {
+            return [.. db.Objects.Values.Where(o => o.Flags.HasFlag(flag)).Select(o => o.ObjectId).Order()];
+        }
 
         Assert.Equal([4], With(ObjectFlags.TypeSpellBook));
         Assert.Equal(15, With(ObjectFlags.TypeSpecial).Length);
@@ -577,8 +582,10 @@ public class ObjectsOnRealDataTests
                 $"ForLevel dropped {property.Name}: {before} became {after}");
         }
 
-        static int Count(object? value) =>
-            value is System.Collections.IEnumerable e ? e.Cast<object>().Count() : -1;
+        static int Count(object? value)
+        {
+            return value is System.Collections.IEnumerable e ? e.Cast<object>().Count() : -1;
+        }
     }
 
     /// <summary>

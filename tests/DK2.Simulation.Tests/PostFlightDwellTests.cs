@@ -185,6 +185,8 @@ public class PostFlightDwellTests
         }
     }
 
-    private static CreatureState Spawn(GameDatabase db, WorldState world, byte type, int x, int y) =>
-        world.SpawnCreature(db, type, Keeper, new TilePos(x, y));
+    private static CreatureState Spawn(GameDatabase db, WorldState world, byte type, int x, int y)
+    {
+        return world.SpawnCreature(db, type, Keeper, new TilePos(x, y));
+    }
 }

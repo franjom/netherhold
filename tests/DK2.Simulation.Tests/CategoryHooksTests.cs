@@ -78,15 +78,18 @@ public class CategoryHooksTests
         string[] wrong = [.. CategoryHooks.Slots.Where(Wrong).Select(s => $"{s.Category} {s.Kind} 0x{s.Address:X8}")];
         Assert.True(wrong.Length == 0, string.Join("\n", wrong));
 
-        static bool Wrong(HookSlot s) => string.IsNullOrWhiteSpace(s.Note) || s.Status switch
+        static bool Wrong(HookSlot s)
         {
-            HookStatus.Stub => s.Address != SuccessStub || s.IsDispatched,
-            HookStatus.NotBuilt => s.IsDispatched || s.UpdateArm is not null,
-            // Built or partly built: code of ours runs for it, from SetState or from a system's
-            // update arm, or (an enter) the shared countdown seed is the built part.
-            _ => s.Kind == HookKind.Update ? s.UpdateArm is null
-                : !s.IsDispatched && !s.Note.Contains("countdown seed"),
-        };
+            return string.IsNullOrWhiteSpace(s.Note) || s.Status switch
+            {
+                HookStatus.Stub => s.Address != SuccessStub || s.IsDispatched,
+                HookStatus.NotBuilt => s.IsDispatched || s.UpdateArm is not null,
+                // Built or partly built: code of ours runs for it, from SetState or from a system's
+                // update arm, or (an enter) the shared countdown seed is the built part.
+                _ => s.Kind == HookKind.Update ? s.UpdateArm is null
+                    : !s.IsDispatched && !s.Note.Contains("countdown seed"),
+            };
+        }
     }
 
     [Fact]
@@ -280,5 +283,8 @@ public class CategoryHooksTests
         }
     }
 
-    private static CreatureState Idle() => new() { Id = 1 };
+    private static CreatureState Idle()
+    {
+        return new() { Id = 1 };
+    }
 }

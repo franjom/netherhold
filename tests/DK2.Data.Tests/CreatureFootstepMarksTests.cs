@@ -14,8 +14,10 @@ public sealed class CreatureFootstepMarksTests
 {
     private const int MarksOffset = 0x1323;
 
-    private static KwdChunk Chunk(byte[] record) =>
-        new() { Type = KwdRecordType.Creatures, ItemCount = 1, Content = record, HeaderBlock = [] };
+    private static KwdChunk Chunk(byte[] record)
+    {
+        return new() { Type = KwdRecordType.Creatures, ItemCount = 1, Content = record, HeaderBlock = [] };
+    }
 
     private static byte[] Record(Action<byte[]>? edit = null)
     {

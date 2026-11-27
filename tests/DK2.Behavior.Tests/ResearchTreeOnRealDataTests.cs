@@ -14,7 +14,10 @@ namespace DK2.Behavior.Tests;
 /// keeper spells' shots. docs/research/research-tree.md.</summary>
 public class ResearchTreeOnRealDataTests
 {
-    private static GameDatabase Database() => GameDatabaseLoader.Load(Dk2InstallGate.Path);
+    private static GameDatabase Database()
+    {
+        return GameDatabaseLoader.Load(Dk2InstallGate.Path);
+    }
 
     /// <summary>29 entries, all in GlobalVariables.kwd, in one fixed order: twelve spells, then
     /// six doors, then eleven traps, and no room at all. Create Imp is first.</summary>
@@ -38,8 +41,10 @@ public class ResearchTreeOnRealDataTests
     /// <summary>Every shipped entry costs the same 1000 points. The spell records' own research
     /// times (500 and 1500) are not what the adder compares against.</summary>
     [InstallFact]
-    public void EveryResearchEntryCostsAThousandPoints() =>
+    public void EveryResearchEntryCostsAThousandPoints()
+    {
         Assert.All(Database().Variables.Research, e => Assert.Equal(1000, e.Cost));
+    }
 
     /// <summary>No level file carries an id-17 record, so no level changes the list: the merged
     /// database of every level is the global one.</summary>

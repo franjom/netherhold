@@ -89,9 +89,11 @@ public class ImpStateTests
         Assert.Equal(21, imp.Dk2StateId);
     }
 
-    private static int WorkHeading(GameSimulation sim, CreatureState imp) =>
-        DK2.Simulation.Steering.Bearing.Of(CreatureState.CentreOf(imp.TargetTileIndex % sim.World.Width) - imp.PosX,
+    private static int WorkHeading(GameSimulation sim, CreatureState imp)
+    {
+        return DK2.Simulation.Steering.Bearing.Of(CreatureState.CentreOf(imp.TargetTileIndex % sim.World.Width) - imp.PosX,
             CreatureState.CentreOf(imp.TargetTileIndex / sim.World.Width) - imp.PosY);
+    }
 
     private static List<(int State, int Saved, int Resume)> StatesSeen(
         GameSimulation sim, int ticks, params PlayerCommand[] first)
@@ -318,9 +320,11 @@ public class ImpStateTests
         Assert.DoesNotContain(events.Events, e => e.Kind == "gold_delivered");
     }
 
-    private static int WorkStoreHeading(CreatureState imp) =>
-        DK2.Simulation.Steering.Bearing.Of(CreatureState.CentreOf(imp.Tile.X) - imp.PosX,
+    private static int WorkStoreHeading(CreatureState imp)
+    {
+        return DK2.Simulation.Steering.Bearing.Of(CreatureState.CentreOf(imp.Tile.X) - imp.PosX,
             CreatureState.CentreOf(imp.Tile.Y) - imp.PosY);
+    }
 
     private static (GameSimulation Sim, CreatureState Imp, ListEventSink Events) ReachStoreArrival(
         ushort turnRate = 4096)

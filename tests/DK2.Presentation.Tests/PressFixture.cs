@@ -24,11 +24,21 @@ internal static class PressFixture
         Depth = new Fp32(0), NameStringId = 0, TooltipStringId = 0,
     };
 
-    public static KeeperSpellDef Spell(byte id, byte targetSelector) => new()
+    public static KeeperSpellDef Spell(byte id, byte targetSelector)
     {
-        Name = "Test spell " + id, KeeperSpellId = id, ManaCost = 0, ManaUpkeepPerSecond = 0, ShotTypeId = 0,
-        BonusShotTypeId = 0, CooldownRaw = 0, LocationSelector = 0, TargetSelector = targetSelector,
-    };
+        return new()
+        {
+            Name = "Test spell " + id,
+            KeeperSpellId = id,
+            ManaCost = 0,
+            ManaUpkeepPerSecond = 0,
+            ShotTypeId = 0,
+            BonusShotTypeId = 0,
+            CooldownRaw = 0,
+            LocationSelector = 0,
+            TargetSelector = targetSelector,
+        };
+    }
 
     /// <summary>A synthetic worker, the one creature <see cref="CreatureOverview"/> needs to open; not a claim about DK2's.</summary>
     private static readonly CreatureDef Worker = new()
@@ -59,7 +69,10 @@ internal static class PressFixture
     };
 
     /// <summary>The floor, the worker, <paramref name="spells"/> and the one variable a keeper's player needs.</summary>
-    public static GameDatabase Database(params KeeperSpellDef[] spells) => Database(spells, [], []);
+    public static GameDatabase Database(params KeeperSpellDef[] spells)
+    {
+        return Database(spells, [], []);
+    }
 
     /// <summary>The same, with door and trap definitions.</summary>
     public static GameDatabase Database(KeeperSpellDef[] spells, DoorDef[] doors, TrapDef[] traps)
@@ -70,26 +83,52 @@ internal static class PressFixture
     }
 
     /// <summary>A synthetic door; not a claim about DK2's.</summary>
-    public static DoorDef Door(byte id) => new()
+    public static DoorDef Door(byte id)
     {
-        Name = "Door", DoorId = id, Health = 100, GoldCost = 0, ManufactureRequired = 0, Flags = 0,
-    };
+        return new()
+        {
+            Name = "Door",
+            DoorId = id,
+            Health = 100,
+            GoldCost = 0,
+            ManufactureRequired = 0,
+            Flags = 0,
+        };
+    }
 
     /// <summary>A synthetic trap firing <paramref name="shot"/> (13 is the alarm's); not a claim about DK2's.</summary>
-    public static TrapDef Trap(byte id, byte shot) => new()
+    public static TrapDef Trap(byte id, byte shot)
     {
-        Name = "Trap", TrapId = id, Health = 100, GoldCost = 0, ManufactureRequired = 0, Flags = 0, ShotTypeId = shot,
-        ManaUpkeepPerSecond = 0,
-    };
+        return new()
+        {
+            Name = "Trap",
+            TrapId = id,
+            Health = 100,
+            GoldCost = 0,
+            ManufactureRequired = 0,
+            Flags = 0,
+            ShotTypeId = shot,
+            ManaUpkeepPerSecond = 0,
+        };
+    }
 
     /// <summary>An 8 x 8 floor with the heroes, the neutral player and <see cref="Keeper"/>, who owns no creature.</summary>
-    public static WorldState World(GameDatabase database) => WorldState.FromMap(database,
+    public static WorldState World(GameDatabase database)
+    {
+        return WorldState.FromMap(database,
         new LevelMap(8, 8, [.. Enumerable.Repeat(new MapTile(0, 0, 0, 0), 64)]),
         [PlayerIds.Good, PlayerIds.Neutral, Keeper.Value]);
+    }
 
-    public static BottomPanelView Panel(GameDatabase database) => new(database, Keeper, (_, name) => name);
+    public static BottomPanelView Panel(GameDatabase database)
+    {
+        return new(database, Keeper, (_, name) => name);
+    }
 
-    public static CreatureQueryView Query(GameDatabase database) => new(database, _ => "", Keeper, new NoNames());
+    public static CreatureQueryView Query(GameDatabase database)
+    {
+        return new(database, _ => "", Keeper, new NoNames());
+    }
 
     /// <summary>The install's database and a Goblin of the keeper's on a claimed floor (LocalPickupFeedbackTests' fixture).</summary>
     public static (GameDatabase Database, WorldState World, CreatureState Goblin) Goblin()
@@ -103,7 +142,14 @@ internal static class PressFixture
 
     private sealed class NoNames : IClassicCreatureNames
     {
-        public string Name(CreatureNameIndex index) => "";
-        public string BloodGroup(CreatureBloodGroupIndex index) => "";
+        public string Name(CreatureNameIndex index)
+        {
+            return "";
+        }
+
+        public string BloodGroup(CreatureBloodGroupIndex index)
+        {
+            return "";
+        }
     }
 }

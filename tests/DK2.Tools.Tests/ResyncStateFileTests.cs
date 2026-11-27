@@ -37,13 +37,19 @@ public class ResyncStateFileTests
         finally { File.Delete(path); }
     }
 
-    private static JsonNode Terminal() => JsonNode.Parse("""
+    private static JsonNode Terminal()
+    {
+        return JsonNode.Parse("""
         {"status":0,"killedByPlayer":0,"heartDiedTick":0,"keeperFrameAfterDefeat":false}
         """)!;
+    }
 
-    private static JsonNode Heart() => JsonNode.Parse("""
+    private static JsonNode Heart()
+    {
+        return JsonNode.Parse("""
         {"health":0,"lastAttacker":0,"roomRuined":false,"regenCountdown":0,"roomTag":77}
         """)!;
+    }
 
     [Theory]
     [InlineData("status")]

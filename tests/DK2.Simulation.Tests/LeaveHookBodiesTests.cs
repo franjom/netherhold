@@ -297,9 +297,13 @@ public class LeaveHookBodiesTests
         return db;
     }
 
-    private static void Set(GameDatabase db, VariableTypeId id, int value) =>
+    private static void Set(GameDatabase db, VariableTypeId id, int value)
+    {
         db.Variables.Misc[id] = new MiscVariable(id, value, 0, 0);
+    }
 
-    private static int[] StatesOf(Cat category) =>
-        [.. Enumerable.Range(0, CreatureStateTable.Count).Where(id => CreatureStateTable.Get(id).Category == category)];
+    private static int[] StatesOf(Cat category)
+    {
+        return [.. Enumerable.Range(0, CreatureStateTable.Count).Where(id => CreatureStateTable.Get(id).Category == category)];
+    }
 }

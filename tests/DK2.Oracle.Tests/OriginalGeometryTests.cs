@@ -209,7 +209,11 @@ public class OriginalGeometryTests(ITestOutputHelper log)
 
         IReadOnlyList<Outcome> original = Run([.. inputs.Select(v => new Request(0x004805F0, [(uint)v.Dx, (uint)v.Dy, Out, Out + 4],
             [(Out, 0x55555555), (Out + 4, 0x5555)], [Out, Out + 4]))]);
-        static string Sign(int v) => v > 0 ? "+" : v < 0 ? "-" : "0";
+        static string Sign(int v)
+        {
+            return v > 0 ? "+" : v < 0 ? "-" : "0";
+        }
+
         Check("start side", inputs.Count, i =>
         {
             (int dx, int dy) = inputs[i];

@@ -21,15 +21,19 @@ public sealed class TimeLimitCountdownTests
     [InlineData(180, 6)]
     [InlineData(120, 7)]
     [InlineData(60, 8)]
-    public void TheMinuteMarksSpeakLinesOneToEight_WithoutClearing(int seconds, int soundId) =>
+    public void TheMinuteMarksSpeakLinesOneToEight_WithoutClearing(int seconds, int soundId)
+    {
         Assert.Equal((soundId, false), TimeLimitCountdown.LineFor(seconds * SimulationTiming.TicksPerSecond));
+    }
 
     [Theory]
     [InlineData(10, 9)]
     [InlineData(5, 14)]
     [InlineData(1, 18)]
-    public void TheLastTenSecondsClearTheQueueAndCount(int seconds, int soundId) =>
+    public void TheLastTenSecondsClearTheQueueAndCount(int seconds, int soundId)
+    {
         Assert.Equal((soundId, true), TimeLimitCountdown.LineFor(seconds * SimulationTiming.TicksPerSecond));
+    }
 
     /// <summary>Equality tests only: between the marks, and with no limit, nothing is said.</summary>
     [Theory]
@@ -38,7 +42,10 @@ public sealed class TimeLimitCountdownTests
     [InlineData(41)]
     [InlineData(60 * 4 + 1)]
     [InlineData(3600 * 4)]
-    public void NoLineBetweenTheMarks(int ticks) => Assert.Null(TimeLimitCountdown.LineFor(ticks));
+    public void NoLineBetweenTheMarks(int ticks)
+    {
+        Assert.Null(TimeLimitCountdown.LineFor(ticks));
+    }
 
     /// <summary>The limit counts down at the start of the turn (<c>0x0050A64E</c>); the player tick
     /// after the trigger walk then finds ten seconds left and asks once, for every viewer, for line 9,

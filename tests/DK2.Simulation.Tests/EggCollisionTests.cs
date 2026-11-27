@@ -20,7 +20,10 @@ public class EggCollisionTests
             Bounds.Add(exclusiveMax);
             return exclusiveMax == 2 ? result : 0;
         }
-        public void HashInto(ref Hash64 hash) => hash.Add(Bounds.Count);
+        public void HashInto(ref Hash64 hash)
+        {
+            hash.Add(Bounds.Count);
+        }
     }
 
     private static (GameSimulation Sim, ObjectState Egg, ListEventSink Events, CollisionRandom Rng) Start(

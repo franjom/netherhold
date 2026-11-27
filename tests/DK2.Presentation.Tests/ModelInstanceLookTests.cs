@@ -28,12 +28,14 @@ public sealed class ModelInstanceLookTests
         [default, new(300, 40, 0), new(256, 512, 0), new(1000, 700, 90)];
 
     /// <summary>The look the shader draws a surface with under <paramref name="instance"/>.</summary>
-    private static ObjectMaterialLook Drawn(ObjectMaterialLook look, ModelInstanceLook instance) =>
-        instance.Shape(look) with
+    private static ObjectMaterialLook Drawn(ObjectMaterialLook look, ModelInstanceLook instance)
+    {
+        return instance.Shape(look) with
         {
             AddedLight = look.TakesAddedLight ? look.AddedLight + instance.Tint : look.AddedLight,
             Colour = look.Colour with { W = look.Colour.W * instance.Alpha },
         };
+    }
 
     [Fact]
     public void AnObjectsInstanceIsItsTintedAndFadedLook()

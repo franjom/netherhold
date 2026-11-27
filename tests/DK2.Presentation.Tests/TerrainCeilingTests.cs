@@ -23,7 +23,10 @@ public sealed class TerrainCeilingTests
         return map;
     }
 
-    private static int Nibble(bool[] map, int x, int y) => TerrainCeiling.Nibble(Size, Size, map, x, y);
+    private static int Nibble(bool[] map, int x, int y)
+    {
+        return TerrainCeiling.Nibble(Size, Size, map, x, y);
+    }
 
     /// <summary>One closed tile at (12, 12); the nibble of a tile is the distance from its least
     /// corner to that tile's square: 0 touching, then 4, 5, 8, 8, 11, 12, 12, 14, and 15 past it.</summary>

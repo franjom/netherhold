@@ -74,9 +74,13 @@ public sealed class PossessionFlightTests
         Assert.Equal((7, -7, 3), (flight.State.X, flight.State.Y, flight.State.Pitch));
     }
 
-    private static ClassicCamera Ordinary() => new(
+    private static ClassicCamera Ordinary()
+    {
+        return new(
         new CameraThing(new byte[84]) { Zoom = 40960, MinZoom = 16384, MaxZoom = 53248, Lens = 8192, ViewDistance = 61440, AnglePitch = 220 },
-        new Dk2Angle(0x7F3)) { ReferenceScreenWidth = 1600 };
+        new Dk2Angle(0x7F3))
+        { ReferenceScreenWidth = 1600 };
+    }
 
     [Fact]
     public void TheOrdinaryCamerasStateGivesItsOwnPose()

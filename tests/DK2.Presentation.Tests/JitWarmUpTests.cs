@@ -10,9 +10,15 @@ public sealed class JitWarmUpTests
 
     private static class Untouched
     {
-        static Untouched() => s_initialised++;
+        static Untouched()
+        {
+            s_initialised++;
+        }
 
-        public static int Answer() => 42;
+        public static int Answer()
+        {
+            return 42;
+        }
     }
 
     [Fact]

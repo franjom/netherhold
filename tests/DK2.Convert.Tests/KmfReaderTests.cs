@@ -163,13 +163,15 @@ public class KmfReaderTests
 
     /// <summary>Each first-detail triangle as the texture it samples and its three UVs in raw
     /// 1/32768 units, order-free.</summary>
-    private static List<string> UvTriangles(KmfModel model) =>
-        [.. Assert.IsType<KmfMesh>(model.Mesh).Primitives.SelectMany(primitive =>
+    private static List<string> UvTriangles(KmfModel model)
+    {
+        return [.. Assert.IsType<KmfMesh>(model.Mesh).Primitives.SelectMany(primitive =>
             primitive.IndicesByDetailLevel[0].Chunk(3).Select(triangle =>
                 model.Materials[(int)primitive.MaterialIndex].TextureNames[0] + "|" + string.Join(",", triangle
                     .Select(index => primitive.Vertices[index].TextureCoordinate)
                     .Select(uv => $"{MathF.Round(uv.X * 32768)}:{MathF.Round(uv.Y * 32768)}")
                     .Order(StringComparer.Ordinal))))];
+    }
 
     private static KmfModel ReadFromInstall(string install, string entryName)
     {
@@ -197,8 +199,16 @@ public class KmfReaderTests
         Tag("GEOM"); U32(0); Vector(0, 0, 0); Vector(1, 0, 0); Vector(1, 2, 3);
         return stream.ToArray();
 
-        void Tag(string value) => writer.Write(Encoding.ASCII.GetBytes(value));
-        void U32(uint value) => writer.Write(value);
+        void Tag(string value)
+        {
+            writer.Write(Encoding.ASCII.GetBytes(value));
+        }
+
+        void U32(uint value)
+        {
+            writer.Write(value);
+        }
+
         void Text(string value)
         {
             writer.Write(Encoding.ASCII.GetBytes(value));

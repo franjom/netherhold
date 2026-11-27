@@ -13,19 +13,54 @@ public sealed class PossessionViewTests
     /// <summary>An open map; chosen tiles refuse a step.</summary>
     private sealed class World(params (int X, int Y)[] walls) : IPossessionWorld
     {
-        public int Width => 20;
-        public int Height => 20;
+        public int Width
+        {
+            get
+            {
+                return 20;
+            }
+        }
+
+        public int Height
+        {
+            get
+            {
+                return 20;
+            }
+        }
+
         public bool BlockEverything { get; set; }
-        public bool CanStepTo(int tileX, int tileY) => Array.IndexOf(walls, (tileX, tileY)) < 0;
-        public (int X, int Y) ResolveAgainstThings(int startX, int startY, int wantedX, int wantedY) => (wantedX, wantedY);
-        public bool Blocked(int x, int y) => BlockEverything;
-        public int FloorHeight(int x, int y) => Floor;
-        public bool WetAt(int x, int y) => false;
+        public bool CanStepTo(int tileX, int tileY)
+        {
+            return Array.IndexOf(walls, (tileX, tileY)) < 0;
+        }
+
+        public (int X, int Y) ResolveAgainstThings(int startX, int startY, int wantedX, int wantedY)
+        {
+            return (wantedX, wantedY);
+        }
+
+        public bool Blocked(int x, int y)
+        {
+            return BlockEverything;
+        }
+
+        public int FloorHeight(int x, int y)
+        {
+            return Floor;
+        }
+
+        public bool WetAt(int x, int y)
+        {
+            return false;
+        }
     }
 
     /// <summary>Walk 100, run 200, shuffle 50 a turn: at four turns a second a 100 ms frame's unit is 40, 80 or 20.</summary>
-    private static PossessedBody Body(bool creeping = false, bool flying = false, int waddle = 0, int bob = 0, bool leans = false) =>
-        new(100, 200, 50, creeping, flying, false, false, Width, Eye, waddle, bob, 4, leans, 0);
+    private static PossessedBody Body(bool creeping = false, bool flying = false, int waddle = 0, int bob = 0, bool leans = false)
+    {
+        return new(100, 200, 50, creeping, flying, false, false, Width, Eye, waddle, bob, 4, leans, 0);
+    }
 
     private static PossessionView At(int x, int y, int yaw = 0)
     {

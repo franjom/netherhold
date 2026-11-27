@@ -129,7 +129,14 @@ public sealed class ReinforcementActionStateTests
     private sealed class Once(ISimulationSystem next, Action<SimulationContext> apply) : ISimulationSystem
     {
         private bool _ran;
-        public string Name => "action replacement fixture";
+        public string Name
+        {
+            get
+            {
+                return "action replacement fixture";
+            }
+        }
+
         public void Execute(SimulationContext context)
         {
             if (!_ran)

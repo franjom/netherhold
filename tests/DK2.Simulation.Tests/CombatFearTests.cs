@@ -33,7 +33,14 @@ public class CombatFearTests
 
     private sealed class WithdrawWithoutBattle(CreatureState creature, bool expected = true) : ISimulationSystem
     {
-        public string Name => "withdrawal entry test";
+        public string Name
+        {
+            get
+            {
+                return "withdrawal entry test";
+            }
+        }
+
         public void Execute(SimulationContext context)
         {
             context.Navigation.Refresh();
@@ -291,7 +298,14 @@ public class CombatFearTests
     private sealed class WithdrawCaller(CreatureState creature, TilePos? staged) : ISimulationSystem
     {
         public WithdrawCall Call { get; private set; }
-        public string Name => "withdrawal call";
+        public string Name
+        {
+            get
+            {
+                return "withdrawal call";
+            }
+        }
+
         public void Execute(SimulationContext context)
         {
             context.Navigation.Refresh();
@@ -790,8 +804,10 @@ public class CombatFearTests
         }
     }
 
-    private static CreatureState Spawn(GameDatabase db, WorldState world, byte type, byte owner, int x, int y) =>
-        world.SpawnArrived(db, type, owner, new TilePos(x, y));
+    private static CreatureState Spawn(GameDatabase db, WorldState world, byte type, byte owner, int x, int y)
+    {
+        return world.SpawnArrived(db, type, owner, new TilePos(x, y));
+    }
 
     private static CreatureState Touching(GameDatabase db, WorldState world, byte type, byte owner, CreatureState other, int dy = 0)
     {
@@ -801,6 +817,8 @@ public class CombatFearTests
         return c;
     }
 
-    private static GameSimulation Combat(GameDatabase db, WorldState world) =>
-        new(db, world, 1, [new CombatSystem()]);
+    private static GameSimulation Combat(GameDatabase db, WorldState world)
+    {
+        return new(db, world, 1, [new CombatSystem()]);
+    }
 }

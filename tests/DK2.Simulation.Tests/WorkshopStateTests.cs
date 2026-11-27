@@ -59,11 +59,15 @@ public class WorkshopStateTests
         return it;
     }
 
-    private static RoomInstance Workshop(GameDatabase db, WorldState world) =>
-        RoomIndex.Build(world, db).Single(r => r.Definition.TypeId == RoomTypeId.Workshop);
+    private static RoomInstance Workshop(GameDatabase db, WorldState world)
+    {
+        return RoomIndex.Build(world, db).Single(r => r.Definition.TypeId == RoomTypeId.Workshop);
+    }
 
-    private static GameSimulation Simulation(GameDatabase db, WorldState world) =>
-        new(db, world, seed: 42, [new CreatureMovementSystem(), new CreatureJobSystem()]);
+    private static GameSimulation Simulation(GameDatabase db, WorldState world)
+    {
+        return new(db, world, seed: 42, [new CreatureMovementSystem(), new CreatureJobSystem()]);
+    }
 
     [Fact]
     public void AManufacturerWalksToAMachineFacesItWorksAndChoosesAgain()

@@ -13,8 +13,10 @@ public sealed class CreatureNamePoolTests
     [InlineData(0)]
     [InlineData(16)]
     [InlineData(64)]
-    public void RejectsTruncatedExecutableHeaders(int length) =>
+    public void RejectsTruncatedExecutableHeaders(int length)
+    {
         Assert.Throws<InvalidDataException>(() => CreatureNamePool.Read(new byte[length]));
+    }
 
     [Fact]
     public void RejectsASectionTableOutsideTheFileWithADataError()

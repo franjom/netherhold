@@ -19,9 +19,21 @@ public sealed class ClassicLightPublisherTests
     {
         public readonly List<TilePos> Sets = [], Removes = [];
         public int Flushes;
-        public void Set(ClassicLightTable table) => Sets.Add(table.Tile);
-        public void Remove(TilePos tile) => Removes.Add(tile);
-        public void Flush() => Flushes++;
+        public void Set(ClassicLightTable table)
+        {
+            Sets.Add(table.Tile);
+        }
+
+        public void Remove(TilePos tile)
+        {
+            Removes.Add(tile);
+        }
+
+        public void Flush()
+        {
+            Flushes++;
+        }
+
         public void Reset() { Sets.Clear(); Removes.Clear(); Flushes = 0; }
     }
 
@@ -38,10 +50,15 @@ public sealed class ClassicLightPublisherTests
         tiles.Where(t => (uint)t.X < Size && (uint)t.Y < Size).ToHashSet();
 #pragma warning restore IDE0305
 
-    private static TilePos[] Tiles(ClassicCameraPose pose, float distance, CameraViewport? viewport = null) =>
-        ClassicLightVisibility.EnumerateTiles(ClassicLightVisibility.BuildPolygon(pose, viewport ?? Viewport, distance));
+    private static TilePos[] Tiles(ClassicCameraPose pose, float distance, CameraViewport? viewport = null)
+    {
+        return ClassicLightVisibility.EnumerateTiles(ClassicLightVisibility.BuildPolygon(pose, viewport ?? Viewport, distance));
+    }
 
-    private static ClassicCameraPose Shifted(float x) => TopDown with { Position = TopDown.Position + new Vector3(x, 0, 0) };
+    private static ClassicCameraPose Shifted(float x)
+    {
+        return TopDown with { Position = TopDown.Position + new Vector3(x, 0, 0) };
+    }
 
     // Looking down and north at 45 degrees from 5 above the floor, so its view distance moves its far edge.
     private static readonly ClassicCameraPose Tilted = new(new(40, 5, -20), Vector3.Normalize(new(0, -1, 1)),

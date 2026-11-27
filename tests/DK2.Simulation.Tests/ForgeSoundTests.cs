@@ -86,8 +86,10 @@ public sealed class ForgeSoundTests
         return (events, began);
     }
 
-    private static SimEvent[] Forge(ListEventSink events) =>
-        [.. events.Events.Where(e => e.ThingSound is { Source.Kind: SoundSourceKind.Object } s && (ushort)s.Event == 0x112)];
+    private static SimEvent[] Forge(ListEventSink events)
+    {
+        return [.. events.Events.Where(e => e.ThingSound is { Source.Kind: SoundSourceKind.Object } s && (ushort)s.Event == 0x112)];
+    }
 
     [Fact]
     public void AnAnvilIsHeardOnEveryCallOfTheWorkActionOnceTheHitDelayHasPassedWithItsOwnHandleAndPosition()

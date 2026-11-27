@@ -20,7 +20,10 @@ public class TravelArrivalTests
 
     /// <summary>A walker with the Jack's and the Mistress's footprint, 0x204: a radius of 0x1020, so
     /// Follow_Path's arrival needs 0x810, inside the 0x1000 the progress rounds away.</summary>
-    private static CreatureDef Small() => Dk2TerrainFixture.Goblin() with { Name = "Small", CreatureId = SmallId, FootprintRadius = new Fp32(0x204) };
+    private static CreatureDef Small()
+    {
+        return Dk2TerrainFixture.Goblin() with { Name = "Small", CreatureId = SmallId, FootprintRadius = new Fp32(0x204) };
+    }
 
     private static (GameSimulation Sim, CreatureState Walker) Walk(bool withStep)
     {
@@ -41,8 +44,18 @@ public class TravelArrivalTests
 
     private sealed class Send : ICreatureUpdateStep
     {
-        public string Name => "send";
-        public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+        public string Name
+        {
+            get
+            {
+                return "send";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            CreatureUpdateSystem.RunAlone(context, this);
+        }
 
         public void Update(SimulationContext context, CreatureState creature)
         {
@@ -85,8 +98,18 @@ public class TravelArrivalTests
     /// <summary>Routes one tile east in <paramref name="state"/> and stands the body on the last point.</summary>
     private sealed class Place(int state) : ICreatureUpdateStep
     {
-        public string Name => "place";
-        public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+        public string Name
+        {
+            get
+            {
+                return "place";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            CreatureUpdateSystem.RunAlone(context, this);
+        }
 
         public void Update(SimulationContext context, CreatureState creature)
         {

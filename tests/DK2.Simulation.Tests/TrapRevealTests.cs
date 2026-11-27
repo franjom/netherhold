@@ -16,12 +16,15 @@ public class TrapRevealTests
     private const byte Rival = PlayerIds.FirstKeeper + 1;
     private const byte RevealerId = 60;
 
-    private static CreatureDef Revealer() => Dk2TerrainFixture.Goblin() with
+    private static CreatureDef Revealer()
     {
-        Name = "Revealer",
-        CreatureId = RevealerId,
-        Flags = Dk2TerrainFixture.Goblin().Flags | CreatureFlags.RevealsAdjacentTraps,
-    };
+        return Dk2TerrainFixture.Goblin() with
+        {
+            Name = "Revealer",
+            CreatureId = RevealerId,
+            Flags = Dk2TerrainFixture.Goblin().Flags | CreatureFlags.RevealsAdjacentTraps,
+        };
+    }
 
     private static (GameDatabase db, WorldState world, TrapState spike) Open(byte trapOwner)
     {

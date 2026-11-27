@@ -146,8 +146,10 @@ public class LiquidSurfaceWaveTests
     [InlineData(1f, 30)]
     [InlineData(0.05f, 1)]
     [InlineData(2.0333f, 60)]
-    public void TheFrameCounterRunsAtThirtyASecond(float seconds, int frame) =>
+    public void TheFrameCounterRunsAtThirtyASecond(float seconds, int frame)
+    {
         Assert.Equal(frame, LiquidSurfaceWave.Frame(seconds));
+    }
 
     /// <summary>Each normal is the normalised sum of the unit face normals around it: up for a flat surface, and on a
     /// waved one tilted away from the higher neighbour.</summary>
@@ -223,8 +225,10 @@ public class LiquidSurfaceWaveTests
         Assert.True(field.Water.Version > waterVersion);
     }
 
-    private static TileView Surface(int index, LiquidSurface surface) =>
-        new(new TilePos(index % Width, index / Width), default, default, default, false, false, 0, 1000, surface: surface);
+    private static TileView Surface(int index, LiquidSurface surface)
+    {
+        return new(new TilePos(index % Width, index / Width), default, default, default, false, false, 0, 1000, surface: surface);
+    }
 
     private static LiquidSurface[] Kinds()
     {
@@ -316,9 +320,11 @@ public class LiquidSurfaceWaveTests
             }
         }
 
-        public static float Phase(LiquidSurface kind, int tile, int vertex, int frame) =>
-            kind == LiquidSurface.Water
+        public static float Phase(LiquidSurface kind, int tile, int vertex, int frame)
+        {
+            return kind == LiquidSurface.Water
                 ? (float)Math.Sin(((tile * 0x10000) + (vertex * 0x8000) + (4096 * frame) & 0x1FFFF) * PI / 65536f)
                 : (float)Math.Sin((((vertex * 32) - (tile * 64) + frame) & 127) * PI / 64f);
+        }
     }
 }

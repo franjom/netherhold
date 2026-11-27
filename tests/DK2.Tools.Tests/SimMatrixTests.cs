@@ -13,7 +13,13 @@ namespace DK2.Tools.Tests;
 /// column tables against the world's members, its write rules, and its bytes.</summary>
 public class SimMatrixTests
 {
-    static string Root => Repo.FindRepoRoot() ?? throw new InvalidOperationException("no repository above the test");
+    static string Root
+    {
+        get
+        {
+            return Repo.FindRepoRoot() ?? throw new InvalidOperationException("no repository above the test");
+        }
+    }
 
     // One analysis of the repository for the tests that read it (about five seconds).
     static readonly Lazy<SimMatrixResult> Repository = new(() => SimMatrixAnalysis.Run(Root));
@@ -42,7 +48,10 @@ public class SimMatrixTests
         Assert.All(Repository.Value.Rows.Where(r => r.Row.Parent > 0),
             r => Assert.Contains(Repository.Value.Rows[r.Row.Parent - 1].Row.Name, new[] { "CreatureUpdateSystem", "RoomTickSystem" }));
 
-        static string Name(object o) => o.GetType().FullName!.Replace('+', '.');
+        static string Name(object o)
+        {
+            return o.GetType().FullName!.Replace('+', '.');
+        }
     }
 
     [Fact]
@@ -116,7 +125,10 @@ public class SimMatrixTests
         public static class Caller { public static void Call(IStep step, Holder h) => step.Run(h); }
         """;
 
-    static SourceIndex Compile() => new(SimCompilation.FromText(Sample));
+    static SourceIndex Compile()
+    {
+        return new(SimCompilation.FromText(Sample));
+    }
 
     static MethodSummary Summary(SourceIndex index, string type, string method)
     {
@@ -124,8 +136,10 @@ public class SimMatrixTests
         return MethodWalker.Summarise(symbol, index, _ => false, _ => null);
     }
 
-    static string[] Names(IEnumerable<ISymbol> keys) =>
-        [.. keys.Select(k => $"{k.ContainingType.Name}.{k.Name}").Order(StringComparer.Ordinal)];
+    static string[] Names(IEnumerable<ISymbol> keys)
+    {
+        return [.. keys.Select(k => $"{k.ContainingType.Name}.{k.Name}").Order(StringComparer.Ordinal)];
+    }
 
     [Theory]
     [InlineData("Plain", "Holder.Count")]

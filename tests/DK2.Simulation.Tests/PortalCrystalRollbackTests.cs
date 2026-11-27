@@ -44,8 +44,10 @@ public class PortalCrystalRollbackTests
         Assert.Equal(expected, body.Pos);
     }
 
-    private static Fixed16Vector Point(double x, double y) =>
-        new((int)(x * Fixed16.One), (int)(y * Fixed16.One));
+    private static Fixed16Vector Point(double x, double y)
+    {
+        return new((int)(x * Fixed16.One), (int)(y * Fixed16.One));
+    }
 
     private static WorldSteering Setup(RoomTypeId type)
     {

@@ -211,14 +211,16 @@ public class ArchitectureTests
     /// <summary>A System.Collections type that can be written through: not an array (lookup tables
     /// are readonly arrays by convention) and not a read-only, immutable or frozen collection.</summary>
     private static bool IsMutableCollection(Type type)
-        => !type.IsArray
-           && type.Namespace is { } ns
-           && ns.StartsWith("System.Collections", StringComparison.Ordinal)
-           && !ns.Contains("Immutable", StringComparison.Ordinal)
-           && !ns.Contains("Frozen", StringComparison.Ordinal)
-           && !type.Name.StartsWith("ReadOnly", StringComparison.Ordinal)
-           && !type.Name.StartsWith("IReadOnly", StringComparison.Ordinal)
-           && !type.Name.StartsWith("IEnumerable", StringComparison.Ordinal);
+    {
+        return !type.IsArray
+               && type.Namespace is { } ns
+               && ns.StartsWith("System.Collections", StringComparison.Ordinal)
+               && !ns.Contains("Immutable", StringComparison.Ordinal)
+               && !ns.Contains("Frozen", StringComparison.Ordinal)
+               && !type.Name.StartsWith("ReadOnly", StringComparison.Ordinal)
+               && !type.Name.StartsWith("IReadOnly", StringComparison.Ordinal)
+               && !type.Name.StartsWith("IEnumerable", StringComparison.Ordinal);
+    }
 
     private static string RepositoryRoot()
     {

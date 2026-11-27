@@ -229,7 +229,11 @@ public class Level17KeeperScenarioTests(ITestOutputHelper output)
         Assert.NotEmpty(moves);
         LevelMap map = GameDatabaseLoader.LoadCampaignMap(install, "level17")!;
         byte training = database.RoomById((byte)RoomTypeId.TrainingRoom).TerrainId;
-        bool IsHarkansTraining(TilePos at) => (map[at.X, at.Y].TerrainId, map[at.X, at.Y].PlayerId) == (training, (byte)4);
+        bool IsHarkansTraining(TilePos at)
+        {
+            return (map[at.X, at.Y].TerrainId, map[at.X, at.Y].PlayerId) == (training, (byte)4);
+        }
+
         for (int i = 0; i < moves.Count; i++)
         {
             Assert.IsType<TakeCreatureCommand>(moves[i].Command);

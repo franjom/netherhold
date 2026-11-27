@@ -45,8 +45,10 @@ public class TempleStateTests
         return world;
     }
 
-    private static GameSimulation Simulation(GameDatabase db, WorldState world, int seed = 42) =>
-        new(db, world, seed: (ulong)seed, [new CreatureMovementSystem(), new CreatureJobSystem()]);
+    private static GameSimulation Simulation(GameDatabase db, WorldState world, int seed = 42)
+    {
+        return new(db, world, seed: (ulong)seed, [new CreatureMovementSystem(), new CreatureJobSystem()]);
+    }
 
     private static CreatureState Worshipper(GameDatabase db, WorldState world, TilePos at, int state = TempleStep.EnteringState)
     {
@@ -289,7 +291,14 @@ public class TempleStateTests
 
     private sealed class SummonProbe(CreatureState creature) : ISimulationSystem
     {
-        public string Name => "Probe";
+        public string Name
+        {
+            get
+            {
+                return "Probe";
+            }
+        }
+
         public void Execute(SimulationContext context)
         {
             if (creature.Dk2StateId != TempleStep.SummonedState)
@@ -313,8 +322,10 @@ public class TempleStateTests
         Assert.Equal(new TilePos(3, 3), it.Tile);
     }
 
-    private static ThingSoundRequest[] Sounds(ListEventSink sink) =>
-        [.. sink.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value)];
+    private static ThingSoundRequest[] Sounds(ListEventSink sink)
+    {
+        return [.. sink.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value)];
+    }
 
     /// <summary>State 104 (<c>0x00472D30</c>) requests <c>0xD4</c> with the worshipper's handle when action 27 begins
     /// (it has the prayer art); without the art there is neither action nor sound.</summary>

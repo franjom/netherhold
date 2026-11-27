@@ -30,9 +30,11 @@ public partial class CampaignPlayerTests
         return (things, creatures);
     }
 
-    private static CampaignPlayer Attacker(int party = 4) =>
-        new CampaignPlayer(new CampaignPlayerOptions(Run, Me, [Imp]) { Fearless = [Skeleton] })
+    private static CampaignPlayer Attacker(int party = 4)
+    {
+        return new CampaignPlayer(new CampaignPlayerOptions(Run, Me, [Imp]) { Fearless = [Skeleton] })
             .Also(p => p.Apply(p.Strategy with { AttackAt = Objective, AttackParty = party, CreateImps = 0 }));
+    }
 
     private static PlayerDecision Attack(CampaignPlayer player, int gold = 50_000, int wageBill = 0, params CreatureTypeId[] types)
     {
@@ -40,7 +42,10 @@ public partial class CampaignPlayerTests
         return player.Decide(Observe(map: Dungeon, rooms: [], gold: gold, wageBill: wageBill, things: things, creatures: creatures));
     }
 
-    private static string AttackNote(PlayerDecision decision) => decision.Thoughts.Single(t => t.Routine == "hand").Note;
+    private static string AttackNote(PlayerDecision decision)
+    {
+        return decision.Thoughts.Single(t => t.Routine == "hand").Note;
+    }
 
     [Fact]
     public void TheArmyWaitsForItsPartyThenTheFearlessGoFirst()
@@ -77,13 +82,18 @@ public partial class CampaignPlayerTests
     [Fact]
     public void ThunderboltHitsTheStrongestEnemyInAFightOnOwnGroundWhileTheManaHolds()
     {
-        PlayerVisibleThing Hero(int ordinal, TilePos at, int level) =>
-            new(Handle(ordinal), PlayerThingKind.Creature, at, Heroes, PlayerThingActions.None, Goblin) { Level = level, Petals = 6 };
+        PlayerVisibleThing Hero(int ordinal, TilePos at, int level)
+        {
+            return new(Handle(ordinal), PlayerThingKind.Creature, at, Heroes, PlayerThingActions.None, Goblin) { Level = level, Petals = 6 };
+        }
+
         PlayerVisibleThing weak = Hero(3, new TilePos(4, 3), 2), strong = Hero(4, new TilePos(5, 3), 5), onRock = Hero(6, new TilePos(5, 1), 9);
         var fighter = new PlayerVisibleThing(Handle(5), PlayerThingKind.Creature, new TilePos(5, 4), Me, PlayerThingActions.None, Goblin);
-        PlayerDecision Cast(int mana, params PlayerVisibleThing[] things) =>
-            Player(o => o with { FightStyles = new Dictionary<CreatureTypeId, FightStyle>() }).Also(p => p.Apply(p.Strategy with { EnemyNearTiles = 0 }))
+        PlayerDecision Cast(int mana, params PlayerVisibleThing[] things)
+        {
+            return Player(o => o with { FightStyles = new Dictionary<CreatureTypeId, FightStyle>() }).Also(p => p.Apply(p.Strategy with { EnemyNearTiles = 0 }))
                 .Decide(Observe(map: Dungeon, rooms: [], mana: mana, spells: [Bolt], things: things));
+        }
 
         Assert.Contains(new PlayerAction.CastSpell(6, Target: Handle(4)), Cast(50_000, weak, strong, fighter).Actions);
         // The level 9 on rock is out of reach: Thunderbolt lands only on the caster's own ground.

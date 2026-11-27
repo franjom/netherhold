@@ -18,10 +18,19 @@ public class RoomHealthTests
 
     private static readonly GameDatabase Db = Dk2TerrainFixture.Database();
 
-    private static int PerTile => RoomHealthRules.StartPerTile(Db, Db.Room(RoomTypeId.Treasury));
+    private static int PerTile
+    {
+        get
+        {
+            return RoomHealthRules.StartPerTile(Db, Db.Room(RoomTypeId.Treasury));
+        }
+    }
 
-    private static WorldState World() => WorldState.FromMap(
+    private static WorldState World()
+    {
+        return WorldState.FromMap(
         Db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper, Rival]);
+    }
 
     /// <summary>Lays a treasury tile down the way a build does: terrain first, then the chain.</summary>
     private static void Build(WorldState world, int x, int y, byte owner)
@@ -42,12 +51,16 @@ public class RoomHealthTests
         SlabChain.Changed(world, Db, (y * world.Width) + x, terrainBefore, ownerBefore);
     }
 
-    private static RoomInstance RoomAt(WorldState world, int x, int y) =>
-        RoomIndex.RoomAt(world, Db, (y * world.Width) + x)
+    private static RoomInstance RoomAt(WorldState world, int x, int y)
+    {
+        return RoomIndex.RoomAt(world, Db, (y * world.Width) + x)
         ?? throw new InvalidOperationException($"no room at ({x},{y})");
+    }
 
-    private static int Health(WorldState world, int x, int y) =>
-        RoomHealthRules.Health(world, Db, RoomAt(world, x, y));
+    private static int Health(WorldState world, int x, int y)
+    {
+        return RoomHealthRules.Health(world, Db, RoomAt(world, x, y));
+    }
 
     [Fact]
     public void ARoomStartsAtStartingHealthTimesItsSize_HoweverItWasLaidDown()

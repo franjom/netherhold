@@ -19,20 +19,30 @@ public class GateWalkTests
         public Grid(string[] rows) { _rows = rows; Height = rows.Length; Width = rows[0].Length; }
         public int Width { get; }
         public int Height { get; }
-        public byte NavByte(int x, int y) => _rows[y][x] == '#' ? NavBytes.Solid : NavBytes.Floor;
+        public byte NavByte(int x, int y)
+        {
+            return _rows[y][x] == '#' ? NavBytes.Solid : NavBytes.Floor;
+        }
     }
 
-    private static NavPoint P(int xTiles, int yTiles) => new(xTiles * U, yTiles * U);
+    private static NavPoint P(int xTiles, int yTiles)
+    {
+        return new(xTiles * U, yTiles * U);
+    }
 
-    private static GateRecord Record(NavPoint a, NavPoint b, int selector = 0, NavPoint crossing = default) =>
-        new(a, b, selector) { Crossing = crossing };
+    private static GateRecord Record(NavPoint a, NavPoint b, int selector = 0, NavPoint crossing = default)
+    {
+        return new(a, b, selector) { Crossing = crossing };
+    }
 
     [Theory]
     [InlineData(0, 0, 4, 0, 4)]
     [InlineData(0, 0, 4, 2, 5)]
     [InlineData(0, 0, -2, 4, 5)]
-    public void OctileIsTheLongerAxisPlusHalfTheShorter(int ax, int ay, int bx, int by, int expected) =>
+    public void OctileIsTheLongerAxisPlusHalfTheShorter(int ax, int ay, int bx, int by, int expected)
+    {
         Assert.Equal(expected, GateWalk.Octile(new NavPoint(ax, ay), new NavPoint(bx, by)));
+    }
 
     /// <summary>An L one tile wide: the route leaves the horizontal arm across the edge from the
     /// L's outer corner (4,1) to its inner corner (3,2). The arm's own diagonal (1,1)-(3,2) is dropped

@@ -64,7 +64,14 @@ public class HeartPillarTests
 
     private sealed class FireAtPillar(CreatureState caster) : ISimulationSystem
     {
-        public string Name => "test pillar cast";
+        public string Name
+        {
+            get
+            {
+                return "test pillar cast";
+            }
+        }
+
         public void Execute(SimulationContext context)
         {
             FightRules.FireSpell(context, caster, context.Database.CreatureById(caster.CreatureTypeId));
@@ -148,13 +155,30 @@ public class HeartPillarTests
 
     private sealed class FirePending(CreatureState caster) : ISimulationSystem
     {
-        public string Name => "test pending pillar cast";
-        public void Execute(SimulationContext context) => FightRules.FireSpell(context, caster, context.Database.CreatureById(caster.CreatureTypeId));
+        public string Name
+        {
+            get
+            {
+                return "test pending pillar cast";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            FightRules.FireSpell(context, caster, context.Database.CreatureById(caster.CreatureTypeId));
+        }
     }
 
     private sealed class InvalidAttack(CreatureState caster) : ISimulationSystem
     {
-        public string Name => "test invalid pillar attack";
+        public string Name
+        {
+            get
+            {
+                return "test invalid pillar attack";
+            }
+        }
+
         public void Execute(SimulationContext context)
         {
             CreatureDef definition = context.Database.CreatureById(caster.CreatureTypeId);

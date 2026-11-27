@@ -115,8 +115,10 @@ public sealed class HeartPlatformMovementTests
         Assert.Equal(Point(0, -1.2), steering.ConstrainTarget(Point(-4, 0), Point(0, -1.2)));
     }
 
-    private static Fixed16Vector Point(double x, double y) =>
-        new((int)((6.5 + x) * Fixed16.One), (int)((6.5 + y) * Fixed16.One));
+    private static Fixed16Vector Point(double x, double y)
+    {
+        return new((int)((6.5 + x) * Fixed16.One), (int)((6.5 + y) * Fixed16.One));
+    }
 
     [Fact]
     public void ALoadedGoblinInsideThePlatformCanRouteOutwardOntoTheRim()

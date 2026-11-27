@@ -7,8 +7,10 @@ namespace DK2.Simulation.Tests;
 public class ManaPressureTests
 {
     private static ManaPressureResult Step(ManaPressureState state, uint now,
-        int mana = 0, int net = -7, uint count = 5) =>
-        ManaPressureRules.Advance(state, now, mana, net, count, 4, 100, 10, 4);
+        int mana = 0, int net = -7, uint count = 5)
+    {
+        return ManaPressureRules.Advance(state, now, mana, net, count, 4, 100, 10, 4);
+    }
 
     [Fact]
     public void FourthWarningEnablesRemovalOnTheSamePayment()
@@ -81,8 +83,10 @@ public class ManaPressureTests
     }
 
     private static ManaRemovalCandidate Imp(int id, byte level = 1, bool held = false,
-        bool idle = false, int x = 2048, int y = 2048) =>
-        new(id, 1, level, true, held, idle, x, y);
+        bool idle = false, int x = 2048, int y = 2048)
+    {
+        return new(id, 1, level, true, held, idle, x, y);
+    }
 
     [Fact]
     public void UniqueLowestLevelCanSelectANonImp()

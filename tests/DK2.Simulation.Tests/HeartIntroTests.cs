@@ -65,8 +65,10 @@ public class HeartIntroTests
         Assert.True(HeartIntroRules.SequenceOver(38, database));
     }
 
-    private static WorldState NewWorld(GameDatabase database) =>
-        WorldState.FromMap(database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
+    private static WorldState NewWorld(GameDatabase database)
+    {
+        return WorldState.FromMap(database, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper, Rival]);
+    }
 
     /// <summary>A 5x5 Heart whose top-left tile is (<paramref name="left"/>, <paramref name="top"/>).</summary>
     private static void GiveHeart(WorldState world, GameDatabase database, byte player, int left, int top)

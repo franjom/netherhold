@@ -20,12 +20,24 @@ public sealed class SpellSoundTests
     private const byte Rival = PlayerIds.FirstKeeper + 1;
     private static readonly TilePos At = new(10, 10);
 
-    private static ShotDef Shot(byte id, byte process, string category, uint processFlags, int health = 8) => new(new byte[239])
+    private static ShotDef Shot(byte id, byte process, string category, uint processFlags, int health = 8)
     {
-        Name = "Shot", ShotId = id, MeshResource = new("", 0, default, 0, 0, 0, 0),
-        Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0), SoundCategory = category, Speed = 2048, Radius = 819, Health = (ushort)health,
-        Flags = 4, ShotProcessFlags = processFlags, ProcessType = process, AttackCategory = 6,
-    };
+        return new(new byte[239])
+        {
+            Name = "Shot",
+            ShotId = id,
+            MeshResource = new("", 0, default, 0, 0, 0, 0),
+            Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0),
+            SoundCategory = category,
+            Speed = 2048,
+            Radius = 819,
+            Health = (ushort)health,
+            Flags = 4,
+            ShotProcessFlags = processFlags,
+            ProcessType = process,
+            AttackCategory = 6,
+        };
+    }
 
     private static (GameDatabase Db, WorldState World, CreatureState Target) Setup(string shotCategory, string spellCategory = "KEEPER_SPELL_TEST")
     {
@@ -66,12 +78,16 @@ public sealed class SpellSoundTests
     }
 
     /// <summary>By event and by the kind of thing (a cast's player, a shot's two handles, a Tremor slot): 0xF4 and 0xEF are other things' too.</summary>
-    private static ThingSoundRequest[] Heard(ListEventSink events, ThingSoundEvent sound) =>
-        [.. Sounds(events).Where(s => s.Event == sound
+    private static ThingSoundRequest[] Heard(ListEventSink events, ThingSoundEvent sound)
+    {
+        return [.. Sounds(events).Where(s => s.Event == sound
             && s.Source.Kind is SoundSourceKind.Player or SoundSourceKind.Shot or SoundSourceKind.ShotSecond or SoundSourceKind.Tremor)];
+    }
 
-    private static CastSpellAtPlaceCommand CastTremor() =>
-        new(Keeper, 8, CreatureState.CentreOf(At.X), CreatureState.CentreOf(At.Y));
+    private static CastSpellAtPlaceCommand CastTremor()
+    {
+        return new(Keeper, 8, CreatureState.CentreOf(At.X), CreatureState.CentreOf(At.Y));
+    }
 
     [Fact]
     public void ACastAtAPlaceWhoseShotHasNoCategoryAsksEfInTheSpellsCategoryAtTheCastPointWithHandleZero()
@@ -205,7 +221,11 @@ public sealed class SpellSoundTests
 
     private sealed class MiddleDraw : IRandomAlgorithm
     {
-        public int NextInt(int exclusiveMax) => exclusiveMax / 2;
+        public int NextInt(int exclusiveMax)
+        {
+            return exclusiveMax / 2;
+        }
+
         public void HashInto(ref Hash64 hash) { }
     }
 }

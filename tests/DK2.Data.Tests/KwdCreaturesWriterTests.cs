@@ -14,8 +14,10 @@ namespace DK2.Data.Tests;
 public class KwdCreaturesWriterTests
 {
     [Theory]
-    [InlineData(5449)] [InlineData(5537)]
-    public void EveryDecodedScalarRoundTripsAtBothStridesWithoutTouchingOtherBytes(int stride) =>
+    [InlineData(5449)]
+    [InlineData(5537)]
+    public void EveryDecodedScalarRoundTripsAtBothStridesWithoutTouchingOtherBytes(int stride)
+    {
         KwdScalarOverlayChecks.Check(KwdRecordType.Creatures, stride, Read, KwdCreatures.WriteRecord,
             "Name:0:32 SoundCategory:F56:32 ImpactKind:F76:1 CreatureId:F4B:1 UniqueBaseCreatureId:D3B:1 Flags:EFC:4 Flags2:1545:4 " +
             "EntranceOffsetX:E94:4 EntranceOffsetY:E98:4 PrayerStepX:127B:4 PrayerStepY:127F:4 GetUpStepY:128B:4 DeathFallStepY:1297:4 EntranceFrames:A3C:4 EntranceFramesPerSecond:A40:4 GetUpFrames:940:4 GetUpFramesPerSecond:944:4 " +
@@ -39,6 +41,7 @@ public class KwdCreaturesWriterTests
                 "KnockdownAnimation", "GetUpAnimation", "KnockdownFallbackAnimation", "GetUpFallbackAnimation",
                 "ReaperSummonAnimation", "ReaperSummonFallbackAnimation", "AlternateArt", "ArtSlots", "FootstepMarks"],
             customValues: new Dictionary<string, object> { ["SizeClass"] = 13 });
+    }
 
     [Fact]
     public void FilteredListsEditTheirActiveSourceSlotsAndPreserveEmptySlots()
@@ -98,7 +101,10 @@ public class KwdCreaturesWriterTests
                 }
             }
         }
-        static (int, int)[] PrefFields(int offset) => [(offset, 4), (offset + 4, 2), (offset + 6, 2), (offset + 8, 1)];
+        static (int, int)[] PrefFields(int offset)
+        {
+            return [(offset, 4), (offset + 4, 2), (offset + 6, 2), (offset + 8, 1)];
+        }
     }
 
     [Fact]
@@ -245,8 +251,12 @@ public class KwdCreaturesWriterTests
     /// <summary>Q14: DK2's chunk reader takes a CREATURES record of any size, zero-filled to 5449
     /// (<c>0x0056A250</c>). Ours threw on anything but 5449 or 5537.</summary>
     [Theory]
-    [InlineData(5000)] [InlineData(5600)]
-    public void ARecordOfAnySizeIsRead(int size) => Assert.Equal("a", Read(Source(size)).Name);
+    [InlineData(5000)]
+    [InlineData(5600)]
+    public void ARecordOfAnySizeIsRead(int size)
+    {
+        Assert.Equal("a", Read(Source(size)).Name);
+    }
 
     /// <summary>Q11: a job table's mood and mana words are signed (<c>0x00492320</c>).</summary>
     [Fact]
@@ -264,6 +274,9 @@ public class KwdCreaturesWriterTests
     {
         byte[] source = [.. Enumerable.Repeat((byte)0x5A, size)]; source[0] = (byte)'a'; source[1] = 0; return source;
     }
-    private static CreatureDef Read(byte[] source) => KwdCreatures.Parse([
+    private static CreatureDef Read(byte[] source)
+    {
+        return KwdCreatures.Parse([
         new KwdChunk { Type = KwdRecordType.Creatures, ItemCount = 1, Content = source, HeaderBlock = [] }]).Single();
+    }
 }

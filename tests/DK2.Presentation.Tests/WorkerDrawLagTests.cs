@@ -38,7 +38,10 @@ public class WorkerDrawLagTests
         return [.. drawn];
     }
 
-    private static IEnumerable<double> Steady(int frames, double fps) => Enumerable.Repeat(1 / fps, frames);
+    private static IEnumerable<double> Steady(int frames, double fps)
+    {
+        return Enumerable.Repeat(1 / fps, frames);
+    }
 
     [Fact]
     public void ASteadyFrameRateDrawsEvenlyAcrossEveryTickBoundary()

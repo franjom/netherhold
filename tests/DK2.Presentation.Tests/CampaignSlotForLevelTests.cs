@@ -13,12 +13,17 @@ public sealed class CampaignSlotForLevelTests
     [InlineData("level6B", 7)]
     [InlineData("LEVEL20", 24)]
     [InlineData("Secret5", 30)]
-    public void ALevelOnTheMapGivesItsSlotIgnoringCase(string name, int slot) =>
+    public void ALevelOnTheMapGivesItsSlotIgnoringCase(string name, int slot)
+    {
         Assert.Equal(new CampaignSlot(slot), CampaignSlot.ForLevel(name));
+    }
 
     [Theory]
     [InlineData("MyPetDungeon")]
     [InlineData("")]
     [InlineData(null)]
-    public void ALevelOffTheMapGivesNone(string? name) => Assert.Equal(CampaignSlot.None, CampaignSlot.ForLevel(name));
+    public void ALevelOffTheMapGivesNone(string? name)
+    {
+        Assert.Equal(CampaignSlot.None, CampaignSlot.ForLevel(name));
+    }
 }

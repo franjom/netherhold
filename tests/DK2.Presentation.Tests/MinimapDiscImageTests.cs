@@ -16,8 +16,10 @@ public sealed class MinimapDiscImageTests
     private static readonly byte[] Rock = [10, 20, 30];
     private static readonly MinimapClassGrid Empty = new(Side, Side);
 
-    private static MinimapPalette Palette() =>
-        new(Enumerable.Range(0, 37).Select(i => 0x00400000u + (uint)i * 0x000101).ToArray());
+    private static MinimapPalette Palette()
+    {
+        return new(Enumerable.Range(0, 37).Select(i => 0x00400000u + (uint)i * 0x000101).ToArray());
+    }
 
     private static MinimapDiscImage Disc()
     {
@@ -26,16 +28,27 @@ public sealed class MinimapDiscImageTests
         return new MinimapDiscImage(new RgbaImage(128, 128, pixels));
     }
 
-    private static byte[] Pixel(MinimapDiscImage disc, int x, int y) => disc.Pixels.Slice((y * disc.Diameter + x) * 4, 4).ToArray();
+    private static byte[] Pixel(MinimapDiscImage disc, int x, int y)
+    {
+        return disc.Pixels.Slice((y * disc.Diameter + x) * 4, 4).ToArray();
+    }
 
-    private static byte[] Opaque(uint argb) => [(byte)(argb >> 16), (byte)(argb >> 8), (byte)argb, 255];
+    private static byte[] Opaque(uint argb)
+    {
+        return [(byte)(argb >> 16), (byte)(argb >> 8), (byte)argb, 255];
+    }
 
-    private static FpPosition3 At(float x, float y) => new(new Fp32((int)(x * 4096)), new Fp32((int)(y * 4096)), new Fp32(0));
+    private static FpPosition3 At(float x, float y)
+    {
+        return new(new Fp32((int)(x * 4096)), new Fp32((int)(y * 4096)), new Fp32(0));
+    }
 
     private static void Render(MinimapDiscImage disc, MinimapClassGrid grid, IReadOnlyList<MinimapMarker>? markers = null,
-        ushort heading = 0, MinimapZoom? zoom = null, FpPosition3 focus = default, TilePos? heart = null) =>
+        ushort heading = 0, MinimapZoom? zoom = null, FpPosition3 focus = default, TilePos? heart = null)
+    {
         disc.Render(Diameter, grid, Palette(), markers ?? [], zoom ?? MinimapZoom.WholeMap, focus, new Dk2Angle(heading), heart,
             new GameTick(0));
+    }
 
     [Fact]
     public void TheDiscIsOpaqueInsideTransparentOutsideAndSoftForOnePixelAtTheRim()

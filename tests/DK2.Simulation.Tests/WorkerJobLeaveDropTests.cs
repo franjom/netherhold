@@ -21,10 +21,19 @@ public class WorkerJobLeaveDropTests
     private const int TravelToPoint = 6;
     private const int Second = SimulationTiming.TicksPerSecond;
 
-    private static GameDatabase Db => Dk2TerrainFixture.Database();
+    private static GameDatabase Db
+    {
+        get
+        {
+            return Dk2TerrainFixture.Database();
+        }
+    }
 
-    private static WorldState World(GameDatabase db) => Dk2TerrainFixture.Sellable(WorldState.FromMap(
+    private static WorldState World(GameDatabase db)
+    {
+        return Dk2TerrainFixture.Sellable(WorldState.FromMap(
         db, Dk2TerrainFixture.Map(), [(byte)0, Rival, PlayerIds.Neutral, Keeper]));
+    }
 
     private static void BigPrison(GameDatabase db, WorldState world)
     {
@@ -65,8 +74,18 @@ public class WorkerJobLeaveDropTests
 
     private sealed class Probe(Action<SimulationContext> act) : ISimulationSystem
     {
-        public string Name => "Probe";
-        public void Execute(SimulationContext context) => act(context);
+        public string Name
+        {
+            get
+            {
+                return "Probe";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            act(context);
+        }
     }
 
     private static CreatureState Collapsed(GameDatabase db, WorldState world, TilePos at)

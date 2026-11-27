@@ -120,6 +120,11 @@ public class KwdEditingOwnershipTests
         }
     }
 
-    private static KwdLevelFileSet LevelSet()=>KwdLevelFileSet.Create(new Dictionary<string,IReadOnlyList<KwdChunk>> {
-        ["level.kwd"]=[KwdLevelFileSetTests.Level(["file.kwd"])] });
+    private static KwdLevelFileSet LevelSet()
+    {
+        return KwdLevelFileSet.Create(new Dictionary<string, IReadOnlyList<KwdChunk>>
+        {
+            ["level.kwd"] = [KwdLevelFileSetTests.Level(["file.kwd"])]
+        });
+    }
 }

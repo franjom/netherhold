@@ -36,10 +36,19 @@ public class PrisonTests
     private static readonly TilePos CellC = new(6, 5);
     private static readonly TilePos Floor = new(2, 3);
 
-    private static GameDatabase Db => Dk2TerrainFixture.Database();
+    private static GameDatabase Db
+    {
+        get
+        {
+            return Dk2TerrainFixture.Database();
+        }
+    }
 
-    private static WorldState World(GameDatabase db) => Dk2TerrainFixture.Sellable(WorldState.FromMap(
+    private static WorldState World(GameDatabase db)
+    {
+        return Dk2TerrainFixture.Sellable(WorldState.FromMap(
         db, Dk2TerrainFixture.Map(), [(byte)0, Rival, PlayerIds.Neutral, Keeper]));
+    }
 
     private static GameSimulation Simulation(
         GameDatabase db, WorldState world, ListEventSink? sink = null, ISimulationSystem? last = null)
@@ -146,7 +155,13 @@ public class PrisonTests
     private sealed class FillWhenCarrying(GameDatabase db, CreatureState imp, bool atTheDoor = false) : ISimulationSystem
     {
         private bool _filled;
-        public string Name => "FillWhenCarrying";
+        public string Name
+        {
+            get
+            {
+                return "FillWhenCarrying";
+            }
+        }
 
         /// <summary>With <paramref name="atTheDoor"/>, waits until the imp has set off from the door into the
         /// cell (state 44's walk), so the Prison fills after state 43's own check.</summary>
@@ -362,7 +377,13 @@ public class PrisonTests
     private sealed class UnpaintWhenCarrying(CreatureState imp) : ISimulationSystem
     {
         private bool _done;
-        public string Name => "UnpaintWhenCarrying";
+        public string Name
+        {
+            get
+            {
+                return "UnpaintWhenCarrying";
+            }
+        }
 
         public void Execute(SimulationContext context)
         {
@@ -1532,9 +1553,11 @@ public class PrisonTests
         return captive.Hungry(EatingRules.HungerFill(db, db.CreatureById(GoblinId), captive.Level));
     }
 
-    private static ObjectState Chicken(GameDatabase db, WorldState world, TilePos at) =>
-        world.SpawnObject(
+    private static ObjectState Chicken(GameDatabase db, WorldState world, TilePos at)
+    {
+        return world.SpawnObject(
             db, HatcheryRules.ChickenObjectId, Keeper, (at.Y * world.Width) + at.X);
+    }
 
     [Fact]
     public void AHungryPrisonerWalksToAChickenAndEatsIt()
@@ -2050,12 +2073,18 @@ public class PrisonTests
     private const byte FlourishingId = 12;
 
     /// <summary>A Goblin with a Firefly's Angry animation: type 6, file flag bit 0 clear, 34 frames at 30.</summary>
-    private static GameDatabase FlourishDb() => Dk2TerrainFixture.Database(
+    private static GameDatabase FlourishDb()
+    {
+        return Dk2TerrainFixture.Database(
         Dk2TerrainFixture.Database().CreatureById(GoblinId) with
         {
-            CreatureId = FlourishingId, Name = "Flourisher",
-            AngryArtType = 6, AngryFrames = 34, AngryFramesPerSecond = 30,
+            CreatureId = FlourishingId,
+            Name = "Flourisher",
+            AngryArtType = 6,
+            AngryFrames = 34,
+            AngryFramesPerSecond = 30,
         });
+    }
 
     /// <summary>State 116 sees an Angry type of 1..8 and nothing else: the file's bit 0 does not decide it,
     /// since <c>0x00504D80</c> sets the runtime bit from the type (Q188).</summary>

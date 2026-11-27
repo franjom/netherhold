@@ -25,9 +25,11 @@ public class InputLogTests
     }
 
     private static InputLog Read(
-        string body, long lag = 1, long origin = 1, HashSet<byte>? kinds = null) =>
-        InputLog.Read(
+        string body, long lag = 1, long origin = 1, HashSet<byte>? kinds = null)
+    {
+        return InputLog.Read(
             new StringReader(InputLog.Header + "\n" + body), "test", lag, origin, kinds);
+    }
 
     /// <summary>
     /// wall,tick,player,event,kind,x,y,type,data,id,workers. <c>workers</c> is
@@ -35,11 +37,15 @@ public class InputLogTests
     /// last saw it, which is what tells a finished dig from a dropped mark.
     /// </summary>
     private static string Row(
-        long tick, string ev, byte kind, int x, int y, byte player = 3, int workers = 0) =>
-        $"0.0,{tick},{player},{ev},{kind},{x},{y},{kind},0,1,{workers}\n";
+        long tick, string ev, byte kind, int x, int y, byte player = 3, int workers = 0)
+    {
+        return $"0.0,{tick},{player},{ev},{kind},{x},{y},{kind},0,1,{workers}\n";
+    }
 
-    private static TagTilesCommand Only(InputFrame frame) =>
-        Assert.IsType<TagTilesCommand>(Assert.Single(frame.All));
+    private static TagTilesCommand Only(InputFrame frame)
+    {
+        return Assert.IsType<TagTilesCommand>(Assert.Single(frame.All));
+    }
 
     // ---- what counts as an event -----------------------------------------
 
@@ -286,13 +292,17 @@ public class InputLogTests
     [InlineData("0.0,41,3,tag,1,10,20,1,0,1\n")]
     [InlineData("0.0,41,3,poke,1,10,20,1,0,1,0\n")]
     [InlineData("0.0,x,3,tag,1,10,20,1,0,1,0\n")]
-    public void AMalformedRowIsRefusedRatherThanGuessedAt(string body) =>
+    public void AMalformedRowIsRefusedRatherThanGuessedAt(string body)
+    {
         Assert.Throws<InvalidDataException>(() => Read(body));
+    }
 
     [Fact]
-    public void AFileWithoutTheProbesHeaderIsRefused() =>
+    public void AFileWithoutTheProbesHeaderIsRefused()
+    {
         Assert.Throws<InvalidDataException>(
             () => InputLog.Read(new StringReader("tick,x,y\n"), "test"));
+    }
 
     // ---- against the live capture ----------------------------------------
 

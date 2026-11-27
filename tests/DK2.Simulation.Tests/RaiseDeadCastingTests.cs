@@ -319,8 +319,10 @@ public class RaiseDeadCastingTests
         return (db, world);
     }
 
-    private static CreatureState Spawn(GameDatabase db, WorldState world, byte type, byte owner, int x, int y) =>
-        world.SpawnCreature(db, type, owner, new TilePos(x, y));
+    private static CreatureState Spawn(GameDatabase db, WorldState world, byte type, byte owner, int x, int y)
+    {
+        return world.SpawnCreature(db, type, owner, new TilePos(x, y));
+    }
 
     private static CreatureState Vampire(GameDatabase db, WorldState world, int x, int y, byte type = Dk2TerrainFixture.VampireCreatureId)
     {
@@ -338,6 +340,8 @@ public class RaiseDeadCastingTests
         return dead;
     }
 
-    private static GameSimulation Sim(GameDatabase db, WorldState world) =>
-        new(db, world, 1, [new CreatureStatusSystem(), new CombatSystem(), new CreatureMovementSystem(), new ShotSystem()]);
+    private static GameSimulation Sim(GameDatabase db, WorldState world)
+    {
+        return new(db, world, 1, [new CreatureStatusSystem(), new CombatSystem(), new CreatureMovementSystem(), new ShotSystem()]);
+    }
 }

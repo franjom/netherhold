@@ -11,13 +11,15 @@ namespace DK2.Data.Tests;
 public class KwdTerrainWriterTests
 {
     [Fact]
-    public void EveryDecodedTerrainFieldRoundTripsWithoutTouchingOtherBytes() =>
+    public void EveryDecodedTerrainFieldRoundTripsWithoutTouchingOtherBytes()
+    {
         KwdScalarOverlayChecks.Check(KwdRecordType.Terrain, 552, Read, KwdTerrainRooms.WriteTerrainRecord,
             "Name:0:32 Depth:188:4 TerrainLightHeight:18C:4 Flags:190:4 Damage:194:2 GoldValue:19A:2 ManaGain:19C:2 " +
             "MaxManaGain:19E:2 TooltipStringId:1A0:2 NameStringId:1A2:2 MaxHealthEffectId:1A4:2 DestroyedEffectId:1A6:2 TerrainId:1D6:1 " +
             "StartingHealth:1D7:2 MaxHealthTypeTerrainId:1D9:1 DestroyedTypeTerrainId:1DA:1 TextureVariants:1DE:1 SoundCategory:1DF:32 MaxHealth:1FF:2",
             excludedProperties: ["Wibble", "Lighting"], // compound fields have dedicated overlay tests
             customValues: new Dictionary<string, object> { ["TerrainLightHeight"] = new DK2.Core.Fp32(-12345) });
+    }
 
     [InstallFact]
     public void EveryShippedTerrainTypedOverlayIsByteIdentical()
@@ -37,6 +39,9 @@ public class KwdTerrainWriterTests
         }
     }
 
-    private static TerrainDef Read(byte[] source) => KwdTerrainRooms.ParseTerrain([
+    private static TerrainDef Read(byte[] source)
+    {
+        return KwdTerrainRooms.ParseTerrain([
         new KwdChunk { Type = KwdRecordType.Terrain, ItemCount = 1, Content = source, HeaderBlock = [] }]).Single();
+    }
 }

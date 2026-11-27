@@ -22,8 +22,10 @@ public class KwdCreaturesTests
         return KwdCreatures.Parse(KwdReader.ReadFile(path));
     }
 
-    private static CreatureDef By(List<CreatureDef> all, string name) =>
-        all.Single(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+    private static CreatureDef By(List<CreatureDef> all, string name)
+    {
+        return all.Single(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+    }
 
     [InstallFact]
     public void AllCreatures_Parse_WithContiguousIds()

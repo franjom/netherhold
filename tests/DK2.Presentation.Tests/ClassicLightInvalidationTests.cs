@@ -161,13 +161,19 @@ public class ClassicLightInvalidationTests
     }
 
     private static ClassicLightCacheCell Cell(int id, TilePos source, uint stamp)
-        => new(new[] { Source(id, source) }, default, new(stamp));
+    {
+        return new(new[] { Source(id, source) }, default, new(stamp));
+    }
 
     private static ClassicPointLight Source(int id, TilePos tile)
-        => ClassicPointLight.FromTerrain(tile, new Fp32(0), new TerrainLightColour(id, 0, 0));
+    {
+        return ClassicPointLight.FromTerrain(tile, new Fp32(0), new TerrainLightColour(id, 0, 0));
+    }
 
     private static int[] Ids(ClassicLightTable table)
-        => [.. table.Lights.ToArray().Select(l => (int)MathF.Round(l.Colour.X * 255))];
+    {
+        return [.. table.Lights.ToArray().Select(l => (int)MathF.Round(l.Colour.X * 255))];
+    }
 
     private sealed class Cache : IClassicLightCache
     {

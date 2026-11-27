@@ -83,8 +83,11 @@ public class KwdTriggersWriterTests
         Assert.Equal(9161,count);
     }
 
-    private static TriggerRecord Read(int tag,byte[] payload)=>KwdTriggers.Parse([
+    private static TriggerRecord Read(int tag, byte[] payload)
+    {
+        return KwdTriggers.Parse([
         new KwdChunk { Type=KwdRecordType.Triggers,ItemCount=1,HeaderBlock=[],Content=Image(tag,payload).ToBytes() }]).Single();
+    }
 
     private static KwdRecordImage Image(int tag,byte[] payload)
     {

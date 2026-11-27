@@ -25,12 +25,21 @@ public class RebellionTests
     private const int Second = SimulationTiming.TicksPerSecond;
     private const byte VampireId = Dk2TerrainFixture.VampireCreatureId;
 
-    private static GameDatabase Db => Dk2TerrainFixture.Database();
+    private static GameDatabase Db
+    {
+        get
+        {
+            return Dk2TerrainFixture.Database();
+        }
+    }
 
     /// <summary>With the hero side present, because that is who a rebel defects to and
     /// a world without it has nobody to become.</summary>
-    private static WorldState World(GameDatabase db) => WorldState.FromMap(
+    private static WorldState World(GameDatabase db)
+    {
+        return WorldState.FromMap(
         db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Good, PlayerIds.Neutral, Keeper]);
+    }
 
     private static GameSimulation Simulation(
         GameDatabase db, WorldState world, ListEventSink? sink = null)

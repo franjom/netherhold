@@ -19,9 +19,29 @@ public sealed class EnterHookRefusalTests
     private const byte GoblinId = 7;
     private static readonly TilePos Vault = new(12, 8);
 
-    private static int Second => SimulationTiming.TicksPerSecond;
-    private static int TrainState => JobRules.StateFor(JobType.Train)!.Value;
-    private static int DrinkState => JobRules.StateFor(JobType.Drink)!.Value;
+    private static int Second
+    {
+        get
+        {
+            return SimulationTiming.TicksPerSecond;
+        }
+    }
+
+    private static int TrainState
+    {
+        get
+        {
+            return JobRules.StateFor(JobType.Train)!.Value;
+        }
+    }
+
+    private static int DrinkState
+    {
+        get
+        {
+            return JobRules.StateFor(JobType.Drink)!.Value;
+        }
+    }
 
     /// <summary>Paved ground at (1..12, 1..8) the keeper owns, with a treasury tile holding
     /// <paramref name="gold"/> at (12, 8).</summary>
@@ -61,13 +81,20 @@ public sealed class EnterHookRefusalTests
         }
     }
 
-    private static RoomInstance RoomAt(GameDatabase db, WorldState world, int x, int y) =>
-        RoomIndex.RoomAt(world, db, (y * world.Width) + x)!;
+    private static RoomInstance RoomAt(GameDatabase db, WorldState world, int x, int y)
+    {
+        return RoomIndex.RoomAt(world, db, (y * world.Width) + x)!;
+    }
 
-    private static StateHookContext Hooks(GameDatabase db, WorldState world) => new(world, db);
+    private static StateHookContext Hooks(GameDatabase db, WorldState world)
+    {
+        return new(world, db);
+    }
 
-    private static IEnumerable<PlayerMessage> Unpaid(WorldState world) =>
-        world.Messages.Entries.Where(m => m.Kind == PlayerMessageKind.TrainingUnpaid);
+    private static IEnumerable<PlayerMessage> Unpaid(WorldState world)
+    {
+        return world.Messages.Entries.Where(m => m.Kind == PlayerMessageKind.TrainingUnpaid);
+    }
 
     /// <summary>A Training Room at (5..7, 1..3), one dummy and two places, furnished.</summary>
     private static WorldState TrainingWorld(GameDatabase db, int gold)

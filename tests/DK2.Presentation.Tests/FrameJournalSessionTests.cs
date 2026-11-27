@@ -25,7 +25,10 @@ public sealed class FrameJournalSessionTests : IDisposable
         }
     }
 
-    private FrameJournalSession Session() => new(_logs.Add, _warnings.Add);
+    private FrameJournalSession Session()
+    {
+        return new(_logs.Add, _warnings.Add);
+    }
 
     [Fact]
     public void TheFolderIsNamedByTheUtcClockAndTheLevelOrTheFrontEnd()

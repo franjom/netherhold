@@ -12,7 +12,11 @@ public sealed class RoomNavigationTests
     [Fact]
     public void CyclesWrapsAndResetsAcrossTypesOrRemovedRooms()
     {
-        RoomNavigationEntry Room(RoomTypeId type, int x) => new(new(x, 2), PlayerIds.FirstKeeper, type, new(x, 2));
+        RoomNavigationEntry Room(RoomTypeId type, int x)
+        {
+            return new(new(x, 2), PlayerIds.FirstKeeper, type, new(x, 2));
+        }
+
         RoomNavigationEntry a = Room(RoomTypeId.Lair, 1), b = Room(RoomTypeId.Lair, 3), c = Room(RoomTypeId.Treasury, 5);
         var navigation = new RoomNavigation(PlayerIds.FirstKeeper);
         RoomNavigationEntry[] rooms = [a, b, c];

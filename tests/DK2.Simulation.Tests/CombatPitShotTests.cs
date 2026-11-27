@@ -30,8 +30,17 @@ public sealed class CombatPitShotTests
 
     private sealed class Cast(CreatureState caster) : ISimulationSystem
     {
-        public string Name => nameof(Cast);
-        public void Execute(SimulationContext context) =>
+        public string Name
+        {
+            get
+            {
+                return nameof(Cast);
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
             FightRules.FireSpell(context, caster, context.Database.CreatureById(caster.CreatureTypeId));
+        }
     }
 }

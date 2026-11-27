@@ -360,16 +360,32 @@ public class KeeperHealTests
 
     private sealed class DirectHealthProcess(CreatureState target) : ISimulationSystem
     {
-        public string Name => "direct_health_process";
+        public string Name
+        {
+            get
+            {
+                return "direct_health_process";
+            }
+        }
 
-        public void Execute(SimulationContext context) => ShotRules.ModifyHealth(context,
+        public void Execute(SimulationContext context)
+        {
+            ShotRules.ModifyHealth(context,
             new ShotState { Data1 = 500, OwnerPlayerId = Keeper }, Shot(), target,
             context.Database.CreatureById(target.CreatureTypeId));
+        }
     }
 
     private sealed class Boundary : ISimulationSystem
     {
-        public string Name => "boundary_probe";
+        public string Name
+        {
+            get
+            {
+                return "boundary_probe";
+            }
+        }
+
         public int Result = -1;
         public KeeperSpellRefusal Refusal;
         public void Execute(SimulationContext context)
@@ -423,21 +439,45 @@ public class KeeperHealTests
         Assert.Contains(sink.Events, e => e.Kind == "converted");
     }
 
-    private static KeeperSpellDef Spell() => new()
+    private static KeeperSpellDef Spell()
     {
-        Name = "Heal", KeeperSpellId = KeeperSpellRules.Heal, ManaCost = 5000, ManaUpkeepPerSecond = 0,
-        ShotTypeId = 4, ShotData1 = 16000, BonusShotTypeId = 4, BonusShotData1 = 25000,
-        LocationSelector = 4, TargetSelector = 1, Flags = KeeperSpellFlags.Supportive,
-    };
+        return new()
+        {
+            Name = "Heal",
+            KeeperSpellId = KeeperSpellRules.Heal,
+            ManaCost = 5000,
+            ManaUpkeepPerSecond = 0,
+            ShotTypeId = 4,
+            ShotData1 = 16000,
+            BonusShotTypeId = 4,
+            BonusShotData1 = 25000,
+            LocationSelector = 4,
+            TargetSelector = 1,
+            Flags = KeeperSpellFlags.Supportive,
+        };
+    }
 
     /// <summary>Shots.kwd record 4 as shipped: process 3 on the thing struck, flags 0x23, collide
     /// class 3, 128 health, speed 3686, no death shot.</summary>
-    private static ShotDef Shot() => new(new byte[239])
+    private static ShotDef Shot()
     {
-        Name = "Modify Health", ShotId = 4, MeshResource = new("", 0, default, 0, 0, 0, 0),
-        Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0), SoundCategory = "", Speed = 3686,
-        Radius = 819, Health = 128, Flags = 0x23, ShotProcessFlags = 0x4, CollideType = 3, ProcessType = 3, AttackCategory = 9,
-    };
+        return new(new byte[239])
+        {
+            Name = "Modify Health",
+            ShotId = 4,
+            MeshResource = new("", 0, default, 0, 0, 0, 0),
+            Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0),
+            SoundCategory = "",
+            Speed = 3686,
+            Radius = 819,
+            Health = 128,
+            Flags = 0x23,
+            ShotProcessFlags = 0x4,
+            CollideType = 3,
+            ProcessType = 3,
+            AttackCategory = 9,
+        };
+    }
 
     /// <summary>A Goblin-shaped kind with <c>IsHorny</c>, which target 1's ordinary arm refuses, and
     /// one with <c>OnlyAttackableByHorny</c>, which the health routine refuses.</summary>

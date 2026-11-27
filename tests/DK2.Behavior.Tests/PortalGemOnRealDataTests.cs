@@ -96,8 +96,10 @@ public class PortalGemOnRealDataTests
     [InstallTheory]
     [InlineData("level18")]
     [InlineData("level20")]
-    public void ALevelPlacedGemIsDroppedAtLoad(string name) =>
+    public void ALevelPlacedGemIsDroppedAtLoad(string name)
+    {
         Assert.DoesNotContain(Level(name).World.Objects, o => o.ObjectTypeId == TriggerExecutor.PortalGemObjectId);
+    }
 
     private static GameSimulation Level(string name)
     {

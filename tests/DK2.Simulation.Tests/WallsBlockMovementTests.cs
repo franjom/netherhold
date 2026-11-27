@@ -42,8 +42,10 @@ public class WallsBlockMovementTests
         return [.. tiles];
     }
 
-    private static bool IsSolidAt(GameDatabase database, WorldState world, TilePos p) =>
-        world.Contains(p) && database.TerrainById(world.Tile(p).TerrainId).IsSolid;
+    private static bool IsSolidAt(GameDatabase database, WorldState world, TilePos p)
+    {
+        return world.Contains(p) && database.TerrainById(world.Tile(p).TerrainId).IsSolid;
+    }
 
     /// <summary>
     /// The headline invariant, checked after every tick of a dungeon being dug

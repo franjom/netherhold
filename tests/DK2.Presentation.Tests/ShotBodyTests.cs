@@ -125,9 +125,20 @@ public class ShotBodyTests
             s => Assert.Equal(0u, s.MeshResource.Flags & 0x18));
     }
 
-    private static GameDatabase Database(ShotDef definition) => new([], [], [], new GlobalVariables(), shots: [definition]);
-    private static ShotDef Definition(KwdArtResource art) => new([])
+    private static GameDatabase Database(ShotDef definition)
     {
-        Name = "test", ShotId = 1, MeshResource = art, Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0), SoundCategory = "",
-    };
+        return new([], [], [], new GlobalVariables(), shots: [definition]);
+    }
+
+    private static ShotDef Definition(KwdArtResource art)
+    {
+        return new([])
+        {
+            Name = "test",
+            ShotId = 1,
+            MeshResource = art,
+            Light = new(0, 0, 0, 0, 0, 0, 0, 0, 0),
+            SoundCategory = "",
+        };
+    }
 }

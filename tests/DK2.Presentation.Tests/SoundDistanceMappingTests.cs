@@ -36,8 +36,10 @@ public sealed class SoundDistanceMappingTests
     [InlineData(14f, 0.25f)]
     [InlineData(20f, 4f / 22f)]
     [InlineData(20.01f, 0f)]
-    public void TheFactorIsFullWithinOneTileFallsAsFourOverDPlusTwoAndCutsOffPastTheMaximum(float d, float factor) =>
+    public void TheFactorIsFullWithinOneTileFallsAsFourOverDPlusTwoAndCutsOffPastTheMaximum(float d, float factor)
+    {
         Assert.Equal(factor, new SoundDistanceMapping(2f, 20f, 0.5f).Factor(d), 5);
+    }
 
     [Fact]
     public void TheRolloffCurveFollowsTheFactorThenStepsToSilencePastTheMaximum()

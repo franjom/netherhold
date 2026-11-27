@@ -139,8 +139,16 @@ public class IncrementalTilePassTests
                 + $"{t.Surface} {t.AmbientTint} {t.QuarterAmbientTint}");
         }
 
-        public void CreateTile(int i, in TileView t, in ResolvedAsset g, in ResolvedAsset f) => Tile("create-tile", i, t);
-        public void UpdateTile(int i, in TileView t, in ResolvedAsset g, in ResolvedAsset f) => Tile("update-tile", i, t);
+        public void CreateTile(int i, in TileView t, in ResolvedAsset g, in ResolvedAsset f)
+        {
+            Tile("create-tile", i, t);
+        }
+
+        public void UpdateTile(int i, in TileView t, in ResolvedAsset g, in ResolvedAsset f)
+        {
+            Tile("update-tile", i, t);
+        }
+
         public void CreateCreature(int id, in CreatureView c, in ResolvedAsset m, in ResolvedAsset a) { }
         public void UpdateCreature(int id, in CreatureView c, in ResolvedAsset m, in ResolvedAsset a) { }
         public void RemoveCreature(int id) { }
@@ -150,9 +158,24 @@ public class IncrementalTilePassTests
         public void CreateStructure(StructureId id, in StructureView s, in ResolvedAsset m) { }
         public void UpdateStructure(StructureId id, in StructureView s, in ResolvedAsset m) { }
         public void RemoveStructure(StructureId id) { }
-        public void CreateTorch(int i, in TorchView t, in ResolvedAsset m) => Calls.Add($"create-torch {i}");
-        public void UpdateTorch(int i, in TorchView t, in ResolvedAsset m) => Calls.Add($"update-torch {i}");
-        public void RemoveTorch(int i) => Calls.Add($"remove-torch {i}");
-        public void Flush() => Calls.Add("flush");
+        public void CreateTorch(int i, in TorchView t, in ResolvedAsset m)
+        {
+            Calls.Add($"create-torch {i}");
+        }
+
+        public void UpdateTorch(int i, in TorchView t, in ResolvedAsset m)
+        {
+            Calls.Add($"update-torch {i}");
+        }
+
+        public void RemoveTorch(int i)
+        {
+            Calls.Add($"remove-torch {i}");
+        }
+
+        public void Flush()
+        {
+            Calls.Add("flush");
+        }
     }
 }

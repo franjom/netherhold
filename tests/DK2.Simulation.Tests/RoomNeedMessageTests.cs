@@ -18,8 +18,10 @@ public class RoomNeedMessageTests
     private const int Second = SimulationTiming.TicksPerSecond;
     private static readonly GameDatabase Db = Dk2TerrainFixture.Database();
 
-    private static WorldState World() =>
-        WorldState.FromMap(Db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+    private static WorldState World()
+    {
+        return WorldState.FromMap(Db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+    }
 
     private static void Availability(WorldState world, RoomTypeId room, int value)
     {
@@ -40,8 +42,18 @@ public class RoomNeedMessageTests
 
     private sealed class Probe(Action<SimulationContext> act) : ISimulationSystem
     {
-        public string Name => "Probe";
-        public void Execute(SimulationContext context) => act(context);
+        public string Name
+        {
+            get
+            {
+                return "Probe";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            act(context);
+        }
     }
 
     /// <summary>Runs one tick whose only system is <paramref name="act"/>, and returns what it posted.</summary>
@@ -305,8 +317,10 @@ public class RoomNeedMessageTests
         return posted;
     }
 
-    private static void Put(WorldState world, byte objectId, int x, int y) =>
+    private static void Put(WorldState world, byte objectId, int x, int y)
+    {
         world.SpawnObject(Db, objectId, Keeper, (y * world.Width) + x);
+    }
 
     /// <summary>A one-tile Hatchery at (3, 3), reachable, holding no chicken, stamped at tick 0, that
     /// has laid <paramref name="laid"/> eggs.</summary>

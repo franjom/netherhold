@@ -41,8 +41,15 @@ public sealed class PresentationAllocationTests
 
     private sealed class Art : IBottomPanelArt
     {
-        public string? Icon(BottomPanelChoiceKey key) => null;
-        public string Text(uint id) => PresentationAllocationTests.Text(id);
+        public string? Icon(BottomPanelChoiceKey key)
+        {
+            return null;
+        }
+
+        public string Text(uint id)
+        {
+            return PresentationAllocationTests.Text(id);
+        }
     }
 
     [Fact]
@@ -137,17 +144,60 @@ public sealed class PresentationAllocationTests
     private sealed class Sources(KeeperResourceKind kind) : IHudHoverSources
     {
         public KeeperResourceKind Kind = kind;
-        public int OverviewTextId() => 0;
-        public CreatureOverviewType? OverviewColumn() => null;
-        public HoverTextSnapshot CreatureTypeText(CreatureOverviewType column) => HoverTextSnapshot.Empty;
-        public bool OverMessageTabs() => false;
-        public HoverTextSnapshot MessageTabsText() => HoverTextSnapshot.Empty;
-        public bool OverBattleTab() => false;
-        public HoverTextSnapshot BattleTabText() => HoverTextSnapshot.Empty;
-        public bool OverBottomPanel() => false;
-        public HoverTextSnapshot BottomPanelText() => HoverTextSnapshot.Empty;
-        public ClassicHudAction MinimapControl() => ClassicHudAction.None;
-        public KeeperResourceKind Resource() => Kind;
+        public int OverviewTextId()
+        {
+            return 0;
+        }
+
+        public CreatureOverviewType? OverviewColumn()
+        {
+            return null;
+        }
+
+        public HoverTextSnapshot CreatureTypeText(CreatureOverviewType column)
+        {
+            return HoverTextSnapshot.Empty;
+        }
+
+        public bool OverMessageTabs()
+        {
+            return false;
+        }
+
+        public HoverTextSnapshot MessageTabsText()
+        {
+            return HoverTextSnapshot.Empty;
+        }
+
+        public bool OverBattleTab()
+        {
+            return false;
+        }
+
+        public HoverTextSnapshot BattleTabText()
+        {
+            return HoverTextSnapshot.Empty;
+        }
+
+        public bool OverBottomPanel()
+        {
+            return false;
+        }
+
+        public HoverTextSnapshot BottomPanelText()
+        {
+            return HoverTextSnapshot.Empty;
+        }
+
+        public ClassicHudAction MinimapControl()
+        {
+            return ClassicHudAction.None;
+        }
+
+        public KeeperResourceKind Resource()
+        {
+            return Kind;
+        }
     }
 
     [InstallFact]

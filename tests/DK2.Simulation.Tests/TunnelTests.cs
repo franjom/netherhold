@@ -222,8 +222,10 @@ public class TunnelTests
         return strikes;
     }
 
-    private static int StateOf(CreatureState c) =>
-        c.Dk2StateId is StateShadowTravel.ToPoint or StateShadowTravel.ToRoom ? c.UtilityNewState : c.Dk2StateId;
+    private static int StateOf(CreatureState c)
+    {
+        return c.Dk2StateId is StateShadowTravel.ToPoint or StateShadowTravel.ToRoom ? c.UtilityNewState : c.Dk2StateId;
+    }
 
     private static class StateShadowTravel
     {
@@ -253,7 +255,10 @@ public class TunnelTests
     }
 
     /// <summary>All rock inside the border but a pocket at (3,6) and a 3x3 heart at (10..12, 5..7).</summary>
-    private static (GameDatabase, WorldState) Walled() => Walled(Dk2TerrainFixture.Database());
+    private static (GameDatabase, WorldState) Walled()
+    {
+        return Walled(Dk2TerrainFixture.Database());
+    }
 
     private static (GameDatabase, WorldState) Walled(GameDatabase db)
     {

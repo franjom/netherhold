@@ -16,7 +16,10 @@ public class DocsCommandTests
         return findings;
     }
 
-    private static string[] Repeat(string line, int count) => [.. Enumerable.Repeat(line, count)];
+    private static string[] Repeat(string line, int count)
+    {
+        return [.. Enumerable.Repeat(line, count)];
+    }
 
     [Fact]
     public void CommitBodySkipsTheSubjectBlankLinesCommentsAndCoAuthorTrailers()

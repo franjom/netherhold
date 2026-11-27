@@ -14,7 +14,10 @@ namespace DK2.Behavior.Tests;
 /// Gated with [InstallFact].</summary>
 public class CasinoOnRealDataTests
 {
-    private static GameDatabase Db() => GameDatabaseLoader.LoadForCampaignLevel(Dk2InstallGate.Path, "level3");
+    private static GameDatabase Db()
+    {
+        return GameDatabaseLoader.LoadForCampaignLevel(Dk2InstallGate.Path, "level3");
+    }
 
     [InstallFact]
     public void TheShippedCasinoListsItsTablesInSlotsZeroToTwoAndItsAlcoveInSlotThree()
@@ -46,7 +49,11 @@ public class CasinoOnRealDataTests
         GameDatabase db = Db();
         var drinkers = db.Creatures.Values.Where(c =>
             c.HappyJobs.Concat(c.UnhappyJobs).Concat(c.AngryJobs).Any(j => j.Job == JobType.Drink)).ToList();
-        string[] Missing(Func<CreatureDef, bool> has) => [.. drinkers.Where(c => !has(c)).Select(c => c.Name)];
+        string[] Missing(Func<CreatureDef, bool> has)
+        {
+            return [.. drinkers.Where(c => !has(c)).Select(c => c.Name)];
+        }
+
         string[] heroes = ["King Reginald", "Stone Knight"];
         Assert.Equal(heroes, Missing(c => AnimationTimingRules.ResolvesPresent(c, 19)));
         Assert.Equal(heroes, Missing(c => AnimationTimingRules.ResolvesPresent(c, 28)));

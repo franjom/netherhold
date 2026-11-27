@@ -116,7 +116,14 @@ public class HatcheryStartupTests
 
     private sealed class BuildAtTurn : ISimulationSystem
     {
-        public string Name => "Build test";
+        public string Name
+        {
+            get
+            {
+                return "Build test";
+            }
+        }
+
         public void Execute(SimulationContext context)
         {
             if (context.Tick.Value != 13)
@@ -177,7 +184,10 @@ public class HatcheryStartupTests
         Assert.Equal(0, sim.World.Tile(1, 1).HatcheryStartupIntervalTicks);
     }
 
-    private static bool IsAttempt(SimEvent e) => e.Kind is "egg_laid" or "lay_refused";
+    private static bool IsAttempt(SimEvent e)
+    {
+        return e.Kind is "egg_laid" or "lay_refused";
+    }
 
     private static (GameSimulation Sim, ListEventSink Events) Start(int tiles)
     {

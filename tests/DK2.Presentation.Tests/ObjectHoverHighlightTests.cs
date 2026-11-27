@@ -21,8 +21,10 @@ public sealed class ObjectHoverHighlightTests
     [InlineData(1, 0)]
     [InlineData(2, 1)] // Gold_Spill / Gold_Spill_HIGHLIGHT: the phase 0xFFF draws the second
     [InlineData(4, 3)]
-    public void TheForcedPhaseDrawsTheLastTexture(int textureCount, int expected) =>
+    public void TheForcedPhaseDrawsTheLastTexture(int textureCount, int expected)
+    {
         Assert.Equal(expected, ObjectHoverHighlight.HoverTextureIndex(textureCount));
+    }
 
     [InstallFact]
     public void TheHoverIdTakesOwnPickableObjectsAndLooseGoldOnOwnLand()
@@ -81,7 +83,11 @@ public sealed class ObjectHoverHighlightTests
         Assert.Equal("Hero Portcullis", db.Doors[HoverTint.FlashMode1Type].Name);
         Assert.Equal("Fear Trap", db.Traps[HoverTint.FlashMode1Type].Name);
 
-        bool Covers(WorldHoverKind kind, int id) => HoverTint.CoversBlended(world, new WorldHoverHit(kind, new TilePos(10, 10), id));
+        bool Covers(WorldHoverKind kind, int id)
+        {
+            return HoverTint.CoversBlended(world, new WorldHoverHit(kind, new TilePos(10, 10), id));
+        }
+
         Assert.True(Covers(WorldHoverKind.Door, world.Doors.Single(d => d.DoorId == HoverTint.FlashMode1Type).Id));
         Assert.False(Covers(WorldHoverKind.Door, world.Doors.Single(d => d.DoorId == ordinaryDoor).Id));
         Assert.True(Covers(WorldHoverKind.Trap, world.Traps.Single(t => t.TrapId == HoverTint.FlashMode1Type).Id));

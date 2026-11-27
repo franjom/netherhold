@@ -122,6 +122,8 @@ public sealed class LightningBufferTests
     {
         EqualBits(expected.X, actual.X); EqualBits(expected.Y, actual.Y); EqualBits(expected.Z, actual.Z);
     }
-    private static void EqualBits(float expected, float actual) =>
+    private static void EqualBits(float expected, float actual)
+    {
         Assert.Equal(BitConverter.SingleToInt32Bits(expected), BitConverter.SingleToInt32Bits(actual));
+    }
 }

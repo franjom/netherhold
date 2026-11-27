@@ -14,7 +14,10 @@ public sealed class LatticeDirtyTrackerTests
 {
     private const int Width = 12, Height = 10;
 
-    private static int Index(int x, int y) => (y * Width) + x;
+    private static int Index(int x, int y)
+    {
+        return (y * Width) + x;
+    }
 
     [Fact]
     public void NothingIsTouchedAtFirst()

@@ -184,7 +184,10 @@ public sealed class MessageTabsViewTests
         var world = WorldState.FromMap(db, GameDatabaseLoader.LoadCampaignMap(Dk2InstallGate.Path, "Level1")!,
             [keeper.Value], fogOfWarEnabled: false);
         var view = new MessageTabsView(keeper, db);
-        PlayerMessage Message(PlayerMessageKind kind, int data1, int data2) => new(1, keeper, kind, data1, data2, 0, 0, true, false);
+        PlayerMessage Message(PlayerMessageKind kind, int data1, int data2)
+        {
+            return new(1, keeper, kind, data1, data2, 0, 0, true, false);
+        }
 
         Assert.Equal((5.5f, 6.5f), view.Location(world, Message(PlayerMessageKind.HeartAttacked, 5, 6)));
         Assert.Null(view.Location(world, Message(PlayerMessageKind.CombatStarted, 5, 6)));

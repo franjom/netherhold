@@ -28,8 +28,10 @@ public sealed class RoomTickOrderTests
         }
     }
 
-    private static WorldState World(GameDatabase db) =>
-        WorldState.FromMap(db, Dk2TerrainFixture.Map(30, 30), [(byte)0, PlayerIds.Neutral, Keeper]);
+    private static WorldState World(GameDatabase db)
+    {
+        return WorldState.FromMap(db, Dk2TerrainFixture.Map(30, 30), [(byte)0, PlayerIds.Neutral, Keeper]);
+    }
 
     private static void Build(GameDatabase db, WorldState world, RoomTypeId type, TilePos at, int size = 1)
     {
@@ -45,10 +47,15 @@ public sealed class RoomTickOrderTests
         }
     }
 
-    private static GameSimulation Sim(GameDatabase db, WorldState world, params IRoomTickStep[] steps) =>
-        new(db, world, new SimRandom(new Dk2Lcg(1)), [new RoomTickSystem(steps)]);
+    private static GameSimulation Sim(GameDatabase db, WorldState world, params IRoomTickStep[] steps)
+    {
+        return new(db, world, new SimRandom(new Dk2Lcg(1)), [new RoomTickSystem(steps)]);
+    }
 
-    private static uint SeedOf(GameSimulation sim) => ((Dk2Lcg)sim.Rng.Algorithm).Seed;
+    private static uint SeedOf(GameSimulation sim)
+    {
+        return ((Dk2Lcg)sim.Rng.Algorithm).Seed;
+    }
 
     private static void ZeroTimers(WorldState world, TilePos at)
     {
@@ -56,7 +63,10 @@ public sealed class RoomTickOrderTests
         (t.WorkshopSteamTimer, t.WorkshopLavaSpillTimer, t.WorkshopSmokeTimer, t.WorkshopLavaBubblingTimer) = (0, 0, 0, 0);
     }
 
-    private static int Reload(Oracle oracle) => oracle.Next(16 * Ticks) + (8 * Ticks);
+    private static int Reload(Oracle oracle)
+    {
+        return oracle.Next(16 * Ticks) + (8 * Ticks);
+    }
 
     [Theory]
     [InlineData(false)]

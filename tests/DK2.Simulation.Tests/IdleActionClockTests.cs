@@ -15,10 +15,16 @@ public sealed class IdleActionClockTests
     private const uint ImpIdleFlags = 0x20401;
     private const uint ImpDigFlags = 0x28011;
 
-    private static CreatureAnimationTiming Clip(ushort frames, uint flags) => new()
+    private static CreatureAnimationTiming Clip(ushort frames, uint flags)
     {
-        ResourceType = 6, Flags = (CreatureAnimationFlags)flags, FrameCount = frames, FramesPerSecond = 30,
-    };
+        return new()
+        {
+            ResourceType = 6,
+            Flags = (CreatureAnimationFlags)flags,
+            FrameCount = frames,
+            FramesPerSecond = 30,
+        };
+    }
 
     /// <summary>The Imp's shipped idle art: slots 20 and 31, and IMP-Idle4 at +0x1083.</summary>
     internal static GameDatabase WithImpIdleArt(GameDatabase source)

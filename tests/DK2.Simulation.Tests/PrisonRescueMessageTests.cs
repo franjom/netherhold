@@ -18,8 +18,10 @@ public class PrisonRescueMessageTests
     private const byte GoblinId = 7;
     private static readonly GameDatabase Db = Dk2TerrainFixture.Database();
 
-    private static WorldState World() =>
-        WorldState.FromMap(Db, Dk2TerrainFixture.Map(), [(byte)0, Rival, PlayerIds.Neutral, Keeper]);
+    private static WorldState World()
+    {
+        return WorldState.FromMap(Db, Dk2TerrainFixture.Map(), [(byte)0, Rival, PlayerIds.Neutral, Keeper]);
+    }
 
     private static void Availability(WorldState world, RoomTypeId room, int value)
     {
@@ -55,8 +57,10 @@ public class PrisonRescueMessageTests
         SlabChain.Changed(world, Db, world.TileIndex(new TilePos(x, y)), before, owner);
     }
 
-    private static RoomInstance PrisonAt(WorldState world, int x, int y) =>
-        RoomIndex.Build(world, Db).Single(r => r.Definition.TypeId == RoomTypeId.Prison && r.Contains(world.TileIndex(new TilePos(x, y))));
+    private static RoomInstance PrisonAt(WorldState world, int x, int y)
+    {
+        return RoomIndex.Build(world, Db).Single(r => r.Definition.TypeId == RoomTypeId.Prison && r.Contains(world.TileIndex(new TilePos(x, y))));
+    }
 
     private static CreatureState Fallen(WorldState world, byte owner)
     {
@@ -75,8 +79,10 @@ public class PrisonRescueMessageTests
         return imp;
     }
 
-    private static PlayerMessageKind[] Posted(WorldState world, RoomTypeId room) =>
-        [.. world.Messages.Entries.Where(m => m.Room == room).Select(m => m.Kind)];
+    private static PlayerMessageKind[] Posted(WorldState world, RoomTypeId room)
+    {
+        return [.. world.Messages.Entries.Where(m => m.Room == room).Select(m => m.Kind)];
+    }
 
     // ---- Activation ---------------------------------------------------------------------------
 
@@ -333,8 +339,18 @@ public class PrisonRescueMessageTests
 
     private sealed class Probe(Action<SimulationContext> act) : ISimulationSystem
     {
-        public string Name => "Probe";
-        public void Execute(SimulationContext context) => act(context);
+        public string Name
+        {
+            get
+            {
+                return "Probe";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            act(context);
+        }
     }
 
     [Fact]

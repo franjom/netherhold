@@ -12,8 +12,15 @@ namespace DK2.Presentation.Tests;
 /// sparkles' 16-frame cycle (0x00419DF0).</summary>
 public sealed class BottomPanelFlashTests
 {
-    private static HudFlashTarget Target(byte category, byte button) => new((ushort)(category | button << 8));
-    private static BottomPanelOpenSet Open(BottomPanelCategory category) => BottomPanelOpenSet.Of(category);
+    private static HudFlashTarget Target(byte category, byte button)
+    {
+        return new((ushort)(category | button << 8));
+    }
+
+    private static BottomPanelOpenSet Open(BottomPanelCategory category)
+    {
+        return BottomPanelOpenSet.Of(category);
+    }
 
     [Fact]
     public void ATabTargetFlashesItsTabEvenOpenAndAnItemItsSlotOnlyWhileItsPanelShows()
@@ -44,8 +51,10 @@ public sealed class BottomPanelFlashTests
     [InlineData(500, true)]
     [InlineData(999, true)]
     [InlineData(1000, false)]
-    public void TheDarkHalfIsTheOddHalfSecondOfTheRealClock(long milliseconds, bool dark) =>
+    public void TheDarkHalfIsTheOddHalfSecondOfTheRealClock(long milliseconds, bool dark)
+    {
         Assert.Equal(dark, BottomPanelFlash.Resolve(Target(0, 0xFB), BottomPanelOpenSet.None, milliseconds).Dark);
+    }
 
     [Fact]
     public void UsingTheFlashedItemClearsIt_RoomIdAssumedTheRoomType()
@@ -109,6 +118,8 @@ public sealed class BottomPanelFlashTests
     [InlineData(5, 64)]
     [InlineData(1, 64)]
     [InlineData(4, 64)]
-    public void SparklesAre88UnitsOnALargeSlotAnd64Elsewhere(int widgetBank, int side) =>
+    public void SparklesAre88UnitsOnALargeSlotAnd64Elsewhere(int widgetBank, int side)
+    {
         Assert.Equal(side, BottomPanelSparkles.SizeFor(widgetBank));
+    }
 }

@@ -12,7 +12,10 @@ namespace DK2.Presentation.Tests;
 /// are the shipped Creatures.kwd records read at their fixed offsets: a wrong offset changes a portrait or an order here.</summary>
 public sealed class InstallCreatureOverviewArtTests
 {
-    private static CreatureOverviewType Type(byte id) => new(id);
+    private static CreatureOverviewType Type(byte id)
+    {
+        return new(id);
+    }
 
     [InstallFact]
     public void PortraitsOrdersAndNamesComeFromTheCreatureRecordsAndText()

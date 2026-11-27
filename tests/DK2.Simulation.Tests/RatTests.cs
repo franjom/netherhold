@@ -230,14 +230,24 @@ public class RatTests
     private sealed class Draws(params (int Bound, int Value)[] draws) : IRandomAlgorithm
     {
         private int _index;
-        public int Remaining => draws.Length - _index;
+        public int Remaining
+        {
+            get
+            {
+                return draws.Length - _index;
+            }
+        }
+
         public int NextInt(int exclusiveMax)
         {
             (int Bound, int Value) draw = draws[_index++];
             Assert.Equal(draw.Bound, exclusiveMax);
             return draw.Value;
         }
-        public void HashInto(ref Hash64 hash) => hash.Add(_index);
+        public void HashInto(ref Hash64 hash)
+        {
+            hash.Add(_index);
+        }
     }
 
     [Fact]

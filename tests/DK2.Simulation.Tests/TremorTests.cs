@@ -44,8 +44,10 @@ public sealed class TremorTests
         return (db, world);
     }
 
-    private static CastSpellAtPlaceCommand Cast() =>
-        new(Keeper, 8, CreatureState.CentreOf(At.X), CreatureState.CentreOf(At.Y));
+    private static CastSpellAtPlaceCommand Cast()
+    {
+        return new(Keeper, 8, CreatureState.CentreOf(At.X), CreatureState.CentreOf(At.Y));
+    }
 
     [Theory]
     [InlineData(false)]
@@ -156,7 +158,14 @@ public sealed class TremorTests
     private sealed class Draws(params (int Bound, int Value)[] draws) : IRandomAlgorithm
     {
         private int _next;
-        public int Remaining => draws.Length - _next;
+        public int Remaining
+        {
+            get
+            {
+                return draws.Length - _next;
+            }
+        }
+
         public int NextInt(int exclusiveMax)
         {
             Assert.True(_next < draws.Length, "Unexpected RNG draw.");
@@ -164,7 +173,10 @@ public sealed class TremorTests
             Assert.Equal(draw.Bound, exclusiveMax);
             return draw.Value;
         }
-        public void HashInto(ref Hash64 hash) => hash.Add(_next);
+        public void HashInto(ref Hash64 hash)
+        {
+            hash.Add(_next);
+        }
     }
 
     [Fact]
@@ -257,8 +269,18 @@ public sealed class TremorTests
 
     private sealed class Probe(Action<SimulationContext> action) : ISimulationSystem
     {
-        public string Name => "tremor-world-test-probe";
-        public void Execute(SimulationContext context) => action(context);
+        public string Name
+        {
+            get
+            {
+                return "tremor-world-test-probe";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            action(context);
+        }
     }
 
     [Theory]

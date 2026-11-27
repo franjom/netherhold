@@ -126,8 +126,10 @@ public sealed class DevOverlayModelTests
     [InlineData(8, false, 8.0)]
     [InlineData(1, false, 1.0)]
     [InlineData(16, true, 0.0)]
-    public void TheWantedRateFollowsTheGameSpeed(int speed, bool paused, double expected) =>
+    public void TheWantedRateFollowsTheGameSpeed(int speed, bool paused, double expected)
+    {
         Assert.Equal(expected, DevOverlayModel.TargetTurnsPerSecond(speed, paused));
+    }
 
     [Fact]
     public void AValuePastItsBufferIsCutNotThrown()

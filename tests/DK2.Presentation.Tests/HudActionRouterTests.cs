@@ -18,12 +18,35 @@ public sealed class HudActionRouterTests
     private sealed class Host : IHudActionHost, IPointerGestureHolder
     {
         public readonly List<string> Calls = [];
-        public void NavigatePortal() => Calls.Add("portal");
-        public void NavigateHeart() => Calls.Add("heart");
-        public void NavigateFight() => Calls.Add("fight");
-        public void ZoomMinimap(bool zoomIn, bool zoomOut) => Calls.Add($"zoom {zoomIn} {zoomOut}");
-        public void PostGuiButton(GuiButtonTarget target) => Calls.Add($"post {target}");
-        public void CancelPointerGesture() => Calls.Add("panel cancel");
+        public void NavigatePortal()
+        {
+            Calls.Add("portal");
+        }
+
+        public void NavigateHeart()
+        {
+            Calls.Add("heart");
+        }
+
+        public void NavigateFight()
+        {
+            Calls.Add("fight");
+        }
+
+        public void ZoomMinimap(bool zoomIn, bool zoomOut)
+        {
+            Calls.Add($"zoom {zoomIn} {zoomOut}");
+        }
+
+        public void PostGuiButton(GuiButtonTarget target)
+        {
+            Calls.Add($"post {target}");
+        }
+
+        public void CancelPointerGesture()
+        {
+            Calls.Add("panel cancel");
+        }
     }
 
     private sealed class Rig
@@ -41,12 +64,24 @@ public sealed class HudActionRouterTests
             Drag();
         }
 
-        public void Drag() => Input.Translate(new PlayerIntent(Keeper, PlayerToolMode.BuildRoom, new TilePos(1, 1),
+        public void Drag()
+        {
+            Input.Translate(new PlayerIntent(Keeper, PlayerToolMode.BuildRoom, new TilePos(1, 1),
             PointerButtonTransition.Pressed, RoomTypeId.Treasury), new PlayerInputSnapshot(false));
+        }
 
-        public bool Dragging => Input.DragFrom(PlayerToolMode.BuildRoom) != null;
+        public bool Dragging
+        {
+            get
+            {
+                return Input.DragFrom(PlayerToolMode.BuildRoom) != null;
+            }
+        }
 
-        public void Apply(ClassicHudAction action) => Router.Apply(action, Host, Panel);
+        public void Apply(ClassicHudAction action)
+        {
+            Router.Apply(action, Host, Panel);
+        }
     }
 
     [Theory]

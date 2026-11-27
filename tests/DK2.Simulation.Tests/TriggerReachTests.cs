@@ -176,39 +176,62 @@ public class TriggerReachTests
 
     /// <summary>Type 21 ships no records and has no arm here, so the executor declines
     /// it — which is exactly what this needs.</summary>
-    private static TriggerRecord Declined(ushort id, ushort child = 0, ushort next = 0) =>
-        Condition(id, type: 21, child, next);
+    private static TriggerRecord Declined(ushort id, ushort child = 0, ushort next = 0)
+    {
+        return Condition(id, type: 21, child, next);
+    }
 
     /// <summary>Flag 0 equals 5 — reached, answered <b>false</b>, never descended. Not
     /// type 48: that arm is constant-false only in a <i>player</i> tree, and these run in
     /// a world one, where it is declined instead. The distinction is the whole subject
     /// here, so the helper must not blur it.</summary>
-    private static TriggerRecord Gate(ushort id, ushort child = 0, ushort next = 0) =>
-        new GenericTriggerRecord(new byte[16])
+    private static TriggerRecord Gate(ushort id, ushort child = 0, ushort next = 0)
+    {
+        return new GenericTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = id, Type = 1, RepeatCount = 1,
-            ChildTriggerId = child, NextTriggerId = next,
+            Body = new byte[8],
+            TriggerId = id,
+            Type = 1,
+            RepeatCount = 1,
+            ChildTriggerId = child,
+            NextTriggerId = next,
             Parameters = new Dictionary<string, long>
             {
-                ["Comparison"] = 3, ["FlagId"] = 0, ["Flag"] = 1, ["Value"] = 5,
+                ["Comparison"] = 3,
+                ["FlagId"] = 0,
+                ["Flag"] = 1,
+                ["Value"] = 5,
             },
         };
+    }
 
     /// <summary>Level time at least zero — true on every turn, so the walk descends.
     /// </summary>
-    private static TriggerRecord AlwaysTrue(ushort id, ushort child = 0, ushort next = 0) =>
-        new GenericTriggerRecord(new byte[16])
+    private static TriggerRecord AlwaysTrue(ushort id, ushort child = 0, ushort next = 0)
+    {
+        return new GenericTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = id, Type = 34, RepeatCount = 1,
-            ChildTriggerId = child, NextTriggerId = next,
+            Body = new byte[8],
+            TriggerId = id,
+            Type = 34,
+            RepeatCount = 1,
+            ChildTriggerId = child,
+            NextTriggerId = next,
             Parameters = new Dictionary<string, long> { ["Comparison"] = 5, ["Value"] = 0 },
         };
+    }
 
-    private static TriggerRecord Condition(ushort id, byte type, ushort child, ushort next) =>
-        new GenericTriggerRecord(new byte[16])
+    private static TriggerRecord Condition(ushort id, byte type, ushort child, ushort next)
+    {
+        return new GenericTriggerRecord(new byte[16])
         {
-            Body = new byte[8], TriggerId = id, Type = type, RepeatCount = 1,
-            ChildTriggerId = child, NextTriggerId = next,
+            Body = new byte[8],
+            TriggerId = id,
+            Type = type,
+            RepeatCount = 1,
+            ChildTriggerId = child,
+            NextTriggerId = next,
             Parameters = new Dictionary<string, long> { ["Comparison"] = 3, ["Value"] = 0 },
         };
+    }
 }

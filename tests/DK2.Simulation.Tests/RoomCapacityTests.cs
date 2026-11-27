@@ -18,7 +18,13 @@ public sealed class RoomCapacityTests
     private const byte Keeper = 4;
     private const byte GoblinId = 7;
 
-    private static int Second => SimulationTiming.TicksPerSecond;
+    private static int Second
+    {
+        get
+        {
+            return SimulationTiming.TicksPerSecond;
+        }
+    }
 
     /// <summary>Paved ground at (1..12, 1..8) the keeper owns, and a treasury tile at
     /// (12, 8) to pay for training.</summary>
@@ -61,11 +67,15 @@ public sealed class RoomCapacityTests
         return sim;
     }
 
-    private static RoomInstance RoomAt(GameDatabase db, WorldState world, int x, int y) =>
-        RoomIndex.RoomAt(world, db, (y * world.Width) + x)!;
+    private static RoomInstance RoomAt(GameDatabase db, WorldState world, int x, int y)
+    {
+        return RoomIndex.RoomAt(world, db, (y * world.Width) + x)!;
+    }
 
-    private static bool Training(CreatureState c) =>
-        c.CurrentJob == JobType.Train && c.Activity == CreatureActivity.AtWork;
+    private static bool Training(CreatureState c)
+    {
+        return c.CurrentJob == JobType.Train && c.Activity == CreatureActivity.AtWork;
+    }
 
     [Fact]
     public void ATrainingRoomTooSmallForADummyTrainsNobody()
@@ -204,9 +214,18 @@ public sealed class RoomCapacityTests
 
     // ---- held places: claimed by the enter hook, released by the leave hook (ADR-0309)
 
-    private static int TrainState => JobRules.StateFor(JobType.Train)!.Value;
+    private static int TrainState
+    {
+        get
+        {
+            return JobRules.StateFor(JobType.Train)!.Value;
+        }
+    }
 
-    private static StateHookContext Hooks(GameDatabase db, WorldState world) => new(world, db);
+    private static StateHookContext Hooks(GameDatabase db, WorldState world)
+    {
+        return new(world, db);
+    }
 
     [Fact]
     public void APlaceIsHeldWhereverTheClaimantStandsUntilItLeavesTheCategory()

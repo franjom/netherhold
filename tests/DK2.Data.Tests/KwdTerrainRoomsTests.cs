@@ -17,8 +17,10 @@ public class KwdTerrainRoomsTests
         return editor;
     }
 
-    private static List<TerrainDef> Terrain() =>
-        KwdTerrainRooms.ParseTerrain(KwdReader.ReadFile(Path.Combine(EditorDir(), "Terrain.kwd")));
+    private static List<TerrainDef> Terrain()
+    {
+        return KwdTerrainRooms.ParseTerrain(KwdReader.ReadFile(Path.Combine(EditorDir(), "Terrain.kwd")));
+    }
 
     /// <summary>The torch fields against wall-torches.md §4's table of the shipped file: colour
     /// with the +255 high bits, intensity, height, radius and the torch art switch.</summary>
@@ -26,7 +28,10 @@ public class KwdTerrainRoomsTests
     public void Rooms_CarryTheirWallTorch()
     {
         List<RoomDef> all = Rooms();
-        RoomTorch T(byte id) => all.Single(x => x.RoomId == id).Torch!;
+        RoomTorch T(byte id)
+        {
+            return all.Single(x => x.RoomId == id).Torch!;
+        }
 
         Assert.Equal(new RoomTorch(349, 200, 50, 180, 6144, 6144, "Torch1", true), T(1));
         Assert.Equal(new RoomTorch(193, 165, 103, 128, 6144, 10240, "Torch1", true), T(9));
@@ -54,8 +59,10 @@ public class KwdTerrainRoomsTests
         Assert.Equal(new byte[] { 27, 28, 29, 30, 38, 39 }, by.Where(p => p.Value == "").Select(p => p.Key).Order());
     }
 
-    private static List<RoomDef> Rooms() =>
-        KwdTerrainRooms.ParseRooms(KwdReader.ReadFile(Path.Combine(EditorDir(), "Rooms.kwd")));
+    private static List<RoomDef> Rooms()
+    {
+        return KwdTerrainRooms.ParseRooms(KwdReader.ReadFile(Path.Combine(EditorDir(), "Rooms.kwd")));
+    }
 
     // ---------------- Terrain ----------------
 
@@ -74,7 +81,10 @@ public class KwdTerrainRoomsTests
     public void Terrain_CoreTypes_HaveExpectedProperties()
     {
         List<TerrainDef> all = Terrain();
-        TerrainDef T(byte id) => all.Single(x => x.TerrainId == id);
+        TerrainDef T(byte id)
+        {
+            return all.Single(x => x.TerrainId == id);
+        }
 
         TerrainDef rock = T(2);
         Assert.Equal("Rock", rock.Name);
@@ -103,7 +113,10 @@ public class KwdTerrainRoomsTests
     public void Terrain_TransitionGraph_EncodesDigAndClaimRules()
     {
         List<TerrainDef> all = Terrain();
-        TerrainDef T(byte id) => all.Single(x => x.TerrainId == id);
+        TerrainDef T(byte id)
+        {
+            return all.Single(x => x.TerrainId == id);
+        }
 
         // Rock, when dug out, becomes Dirt Path.
         Assert.Equal("Rock", T(2).Name);
@@ -151,7 +164,10 @@ public class KwdTerrainRoomsTests
     public void RoomIds_MatchAndExtendFlameNaming()
     {
         List<RoomDef> all = Rooms();
-        RoomDef R(RoomTypeId id) => all.Single(x => x.RoomId == (byte)id);
+        RoomDef R(RoomTypeId id)
+        {
+            return all.Single(x => x.RoomId == (byte)id);
+        }
 
         // Ids Flame already knew.
         Assert.Equal("Treasury", R(RoomTypeId.Treasury).Name);
@@ -205,7 +221,11 @@ public class KwdTerrainRoomsTests
     {
         List<RoomDef> all = Rooms();
 
-        RoomDef R(RoomTypeId id) => all.Single(x => x.RoomId == (byte)id);
+        RoomDef R(RoomTypeId id)
+        {
+            return all.Single(x => x.RoomId == (byte)id);
+        }
+
         Assert.Equal(200, R(RoomTypeId.Treasury).Cost);
         Assert.Equal(300, R(RoomTypeId.Lair).Cost);
         Assert.Equal(600, R(RoomTypeId.Library).Cost);

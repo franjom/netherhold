@@ -12,17 +12,19 @@ namespace DK2.Data.Tests;
 public class KwdLevelWriterTests
 {
     [Fact]
-    public void EveryDecodedScalarRoundTripsWithoutChangingOtherBytes() =>
-        KwdScalarOverlayChecks.Check(KwdRecordType.Level,25683+8+72+8,
-            bytes=>KwdLevel.Parse([Chunk(bytes,25683)])!,
-            (row,image)=>KwdLevel.WriteRecord(row,Chunk(image.ToBytes(),25683)),
+    public void EveryDecodedScalarRoundTripsWithoutChangingOtherBytes()
+    {
+        KwdScalarOverlayChecks.Check(KwdRecordType.Level, 25683 + 8 + 72 + 8,
+            bytes => KwdLevel.Parse([Chunk(bytes, 25683)])!,
+            (row, image) => KwdLevel.WriteRecord(row, Chunk(image.ToBytes(), 25683)),
             "Name:0:128 Description:80:2048 Author:880:128 Email:900:128 Information:980:2048 " +
             "TriggerId:1180:2 TicksPerSecond:1182:2 Unknown_1184:1184:520 Flags:638C:2 SoundCategory:638E:32 " +
             "TalismanPieces:63AE:1 PreviousRewards:63AF:4 NextRewards:63B3:4 SoundTrack:63B7:1 TextTableId:63B8:1 " +
             "TitleTextId:63B9:2 PlotTextId:63BB:2 DebriefTextId:63BD:2 ObjectiveTextId:63BF:2 Unknown_63B9:63C1:2 " +
             "SubObjective1TextId:63C3:2 SubObjective2TextId:63C5:2 SubObjective3TextId:63C7:2 SpecialLevelIndex:63C9:2 " +
             "IntroductionOverrideObjects:63CB:8 IntroductionOverrideTextIds:63D3:16 TerrainPath:63E3:32 Unknown_6403:6403:80",
-            ["Messages","Paths","UnknownPathTail"]);
+            ["Messages", "Paths", "UnknownPathTail"]);
+    }
 
     [Theory]
     [InlineData(25603)]

@@ -13,7 +13,10 @@ namespace DK2.Behavior.Tests;
 /// Gated with [InstallFact].</summary>
 public class LibraryOnRealDataTests
 {
-    private static GameDatabase Db() => GameDatabaseLoader.LoadForCampaignLevel(Dk2InstallGate.Path, "level3");
+    private static GameDatabase Db()
+    {
+        return GameDatabaseLoader.LoadForCampaignLevel(Dk2InstallGate.Path, "level3");
+    }
 
     /// <summary>The Book Case is floor furniture (slot 0) and the Library Book wall furniture (slot 3),
     /// so a researcher reads at a bookcase in the room and at a book against a wall.</summary>

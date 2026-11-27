@@ -14,7 +14,9 @@ internal static class EventCounterTree
     public const ushort Root = 5;
     public const byte CountFlag = 1;
 
-    public static TriggerTree For(CreatureTriggerEvent type) => new(
+    public static TriggerTree For(CreatureTriggerEvent type)
+    {
+        return new(
     [
         new GenericTriggerRecord(new byte[16])
         {
@@ -27,4 +29,5 @@ internal static class EventCounterTree
             Parameters = new Dictionary<string, long> { ["FlagId"] = CountFlag, ["Flag"] = 0x12, ["Value"] = 1 },
         },
     ], 0);
+    }
 }

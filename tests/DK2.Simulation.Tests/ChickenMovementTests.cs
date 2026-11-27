@@ -471,7 +471,17 @@ public class ChickenMovementTests
 
     private sealed class ProcessProbe(Action<SimulationContext> action) : ISimulationSystem
     {
-        public string Name => "ProcessProbe";
-        public void Execute(SimulationContext context) => action(context);
+        public string Name
+        {
+            get
+            {
+                return "ProcessProbe";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            action(context);
+        }
     }
 }

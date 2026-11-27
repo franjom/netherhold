@@ -8,7 +8,10 @@ namespace DK2.Presentation.Tests;
 
 public class SpeechQueueTests
 {
-    private static SoundRequest Line(uint id, string bank = "speech_mentor") => new(new SoundCategory(bank), new SoundId(id));
+    private static SoundRequest Line(uint id, string bank = "speech_mentor")
+    {
+        return new(new SoundCategory(bank), new SoundId(id));
+    }
 
     [Fact]
     public void LinesAreFifoAndWaitStrictlyMoreThan1000MillisecondsAfterCompletion()

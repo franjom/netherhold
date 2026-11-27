@@ -140,7 +140,10 @@ public sealed class FrontEndHostTests
         Assert.Null(saved());
     }
 
-    private static ObjectView View(int id) => new(id, 1, new PlayerId(0), new TilePos(0, 0), default, 0, 0, 0, 0, 0, Fp32.One);
+    private static ObjectView View(int id)
+    {
+        return new(id, 1, new PlayerId(0), new TilePos(0, 0), default, 0, 0, 0, 0, 0, Fp32.One);
+    }
 
     [Fact]
     public void ThePickTableMapsPiecesByTheirNumberAndMarkersByTheirSlot()

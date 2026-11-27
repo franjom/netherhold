@@ -430,14 +430,18 @@ public class KeeperAITests
     [InlineData(3, 3, 0)]
     [InlineData(3, 0, 2)]
     [InlineData(3, 2, 1)]
-    public void AFailedSiteSearchTriesPlusOneThenMinusOneThenPlusTwo(int preferred, int current, int next) =>
+    public void AFailedSiteSearchTriesPlusOneThenMinusOneThenPlusTwo(int preferred, int current, int next)
+    {
         Assert.Equal(next, RoomPlanner.NextSearchDirection(current, preferred));
+    }
 
     [Theory]
     [InlineData(0, 2)]
     [InlineData(3, 1)]
-    public void AfterPlusTwoTheSiteSearchReseeds(int preferred, int current) =>
+    public void AfterPlusTwoTheSiteSearchReseeds(int preferred, int current)
+    {
         Assert.Null(RoomPlanner.NextSearchDirection(current, preferred));
+    }
 
     /// <summary>The preferred direction is the defend direction for a room id below 6 and the open
     /// one from 6 on (<c>0x004FCE70</c>, the +0x98 byte against 6).</summary>
@@ -446,8 +450,10 @@ public class KeeperAITests
     [InlineData((byte)RoomTypeId.DungeonHeart, 1)]
     [InlineData((byte)RoomTypeId.Library, 3)]
     [InlineData((byte)RoomTypeId.Prison, 3)]
-    public void ThePreferredDirectionSplitsAtRoomSix(byte room, int expected) =>
+    public void ThePreferredDirectionSplitsAtRoomSix(byte room, int expected)
+    {
         Assert.Equal(expected, RoomPlanner.PreferredDirection(room, new KeeperAIState { DefendDirection = 1, OpenDirection = 3 }));
+    }
 
     [Fact]
     public void PortalSearchUsesOnePoolAndDoesNotRetryAnOutOfAreaCandidate()

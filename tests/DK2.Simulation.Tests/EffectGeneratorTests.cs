@@ -32,10 +32,15 @@ public class EffectGeneratorTests
         return (sim, sink);
     }
 
-    private static uint SeedOf(GameSimulation sim) => ((Dk2Lcg)sim.Rng.Algorithm).Seed;
+    private static uint SeedOf(GameSimulation sim)
+    {
+        return ((Dk2Lcg)sim.Rng.Algorithm).Seed;
+    }
 
-    private static List<ViewEffectRequest> Requests(ListEventSink sink) =>
-        [.. sink.Events.Where(e => e.EffectRequest.HasValue).Select(e => e.EffectRequest!.Value)];
+    private static List<ViewEffectRequest> Requests(ListEventSink sink)
+    {
+        return [.. sink.Events.Where(e => e.EffectRequest.HasValue).Select(e => e.EffectRequest!.Value)];
+    }
 
     /// <summary>The first seed whose slot draw is (or is not) 0, the level-start generator's one effect.</summary>
     private static uint SeedForSlot(bool filled)

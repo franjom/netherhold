@@ -114,10 +114,15 @@ public sealed class ExploreTests
         Assert.Equal(ExploreRules.ExploringState, c.UtilityNewState);
     }
 
-    private static uint SeedOf(SimulationContext context) => ((Dk2Lcg)context.Rng.Algorithm).Seed;
+    private static uint SeedOf(SimulationContext context)
+    {
+        return ((Dk2Lcg)context.Rng.Algorithm).Seed;
+    }
 
-    private static GameSimulation Sim(GameDatabase db, WorldState world, Action<SimulationContext> act) =>
-        new(db, world, new SimRandom(new Dk2Lcg(Seed)), [new Probe(act)]);
+    private static GameSimulation Sim(GameDatabase db, WorldState world, Action<SimulationContext> act)
+    {
+        return new(db, world, new SimRandom(new Dk2Lcg(Seed)), [new Probe(act)]);
+    }
 
     private static (GameDatabase, WorldState) Open()
     {
@@ -150,7 +155,17 @@ public sealed class ExploreTests
 
     private sealed class Probe(Action<SimulationContext> act) : ISimulationSystem
     {
-        public string Name => "Probe";
-        public void Execute(SimulationContext context) => act(context);
+        public string Name
+        {
+            get
+            {
+                return "Probe";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            act(context);
+        }
     }
 }

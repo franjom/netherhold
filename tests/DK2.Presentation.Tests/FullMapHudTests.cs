@@ -14,19 +14,36 @@ public sealed class FullMapHudTests
     private static readonly HudScreen FullHd = new(1920, 1080);
     private static readonly BitmapFont Font = new(10, [new BitmapGlyph('A', 2, 2, 0, 0, 3, [15, 15, 15, 15])]);
 
-    private static MinimapPalette Palette() =>
-        new(Enumerable.Range(0, 37).Select(i => (uint)(i * 0x010203)).ToArray());
+    private static MinimapPalette Palette()
+    {
+        return new(Enumerable.Range(0, 37).Select(i => (uint)(i * 0x010203)).ToArray());
+    }
 
     /// <summary>An 8x8 rock map with a 3x3 treasury from <paramref name="first"/> (2..4 by default) owned by player 2;
     /// keepers 2 and 3, no fog.</summary>
     private static (GameDatabase, WorldState) Map(int first = 2)
     {
-        TerrainDef Terrain(byte id, TerrainFlags flags) => new()
+        TerrainDef Terrain(byte id, TerrainFlags flags)
         {
-            Name = id == 27 ? "Fog Of War" : id == 38 ? "Claim Scan" : "test", TerrainId = id, Flags = flags,
-            StartingHealth = 1, MaxHealth = 1, GoldValue = 0, ManaGain = 0, MaxManaGain = 0, Damage = 0,
-            MaxHealthTypeTerrainId = id, DestroyedTypeTerrainId = id, Depth = new Fp32(0), NameStringId = 0, TooltipStringId = 0,
-        };
+            return new()
+            {
+                Name = id == 27 ? "Fog Of War" : id == 38 ? "Claim Scan" : "test",
+                TerrainId = id,
+                Flags = flags,
+                StartingHealth = 1,
+                MaxHealth = 1,
+                GoldValue = 0,
+                ManaGain = 0,
+                MaxManaGain = 0,
+                Damage = 0,
+                MaxHealthTypeTerrainId = id,
+                DestroyedTypeTerrainId = id,
+                Depth = new Fp32(0),
+                NameStringId = 0,
+                TooltipStringId = 0,
+            };
+        }
+
         var room = new RoomDef
         {
             Name = "test", RoomId = (byte)RoomTypeId.Treasury, TerrainId = 12, Flags = RoomFlags.PlaceableOnLand,
@@ -57,8 +74,10 @@ public sealed class FullMapHudTests
         return (back.Draws.ToArray(), front.Draws.ToArray());
     }
 
-    private static HudRect Pixels(float x, float y, float w, float h) =>
-        new(FullHd.Virtual(x), FullHd.Virtual(y), FullHd.Virtual(w), FullHd.Virtual(h));
+    private static HudRect Pixels(float x, float y, float w, float h)
+    {
+        return new(FullHd.Virtual(x), FullHd.Virtual(y), FullHd.Virtual(w), FullHd.Virtual(h));
+    }
 
     [Fact]
     public void HiddenItDrawsNothingAndShownItBlacksOutTheScreenUnderTheMap()
@@ -158,9 +177,26 @@ public sealed class FullMapHudTests
 
     private sealed class FloorGrid : DK2.Pathfinding.INavByteGrid
     {
-        public int Width => 8;
-        public int Height => 8;
-        public byte NavByte(int x, int y) => 0;
+        public int Width
+        {
+            get
+            {
+                return 8;
+            }
+        }
+
+        public int Height
+        {
+            get
+            {
+                return 8;
+            }
+        }
+
+        public byte NavByte(int x, int y)
+        {
+            return 0;
+        }
     }
 
     [Fact]

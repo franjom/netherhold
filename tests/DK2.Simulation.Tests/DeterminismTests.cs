@@ -138,11 +138,23 @@ public class DeterminismTests
         private readonly Stack<SimulationMarker> _open = new();
         private readonly Dictionary<SimulationMarker, int> _calls = [];
 
-        public int Depth => _open.Count;
+        public int Depth
+        {
+            get
+            {
+                return _open.Count;
+            }
+        }
 
-        public int Calls(SimulationMarker marker) => _calls.GetValueOrDefault(marker);
+        public int Calls(SimulationMarker marker)
+        {
+            return _calls.GetValueOrDefault(marker);
+        }
 
-        public void Begin(SimulationMarker marker) => _open.Push(marker);
+        public void Begin(SimulationMarker marker)
+        {
+            _open.Push(marker);
+        }
 
         public void End(SimulationMarker marker)
         {
@@ -197,7 +209,10 @@ public class DeterminismTests
         Assert.Equal(a.StateHash(), b.StateHash());
     }
 
-    private static InputFrame InputAt(int tick) => tick % 7 == 0
+    private static InputFrame InputAt(int tick)
+    {
+        return tick % 7 == 0
         ? InputFrame.Of(new AddManaCommand((byte)(tick % 3), tick))
         : InputFrame.Empty;
+    }
 }

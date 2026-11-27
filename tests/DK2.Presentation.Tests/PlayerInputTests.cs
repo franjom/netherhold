@@ -199,10 +199,13 @@ public class PlayerInputTests
         TilePos? tile,
         PointerButtonTransition transition,
         PlayerInputSnapshot? snapshot = null,
-        RoomTypeId roomId = default) =>
-        _translator.Translate(
+        RoomTypeId roomId = default)
+    {
+        return _translator.Translate(
             new PlayerIntent(Keeper, tool, tile, transition, roomId),
             snapshot ?? new PlayerInputSnapshot(false));
+    }
+
     /// <summary>Tool mode 5 (0x00407BAE, 0x00408D07, 0x00408EE0): Kill Creatures and Transfer Creature wait
     /// for a creature; Transfer takes only the keeper's own, Kill only another's; the right button cancels.</summary>
     [Theory]
@@ -219,8 +222,11 @@ public class PlayerInputTests
             new PlayerInputTarget(PlayerInputTargetKind.Creature, 40, mine, Own: true),
             new PlayerInputTarget(PlayerInputTargetKind.Creature, 41, theirs, Own: false),
         ]);
-        InputFrame Click(TilePos tile) => _translator.Translate(
+        InputFrame Click(TilePos tile)
+        {
+            return _translator.Translate(
             new PlayerIntent(new PlayerId(Keeper), PlayerToolMode.Hand, tile, PointerButtonTransition.Pressed), snapshot);
+        }
 
         Assert.Empty(Click(box).All);
         Assert.Equal(new SpecialTargeting(9, typeId), _translator.Targeting);

@@ -50,7 +50,10 @@ public sealed class JailBreakTests
         return (db, world);
     }
 
-    private static int Index(WorldState world, TilePos at) => (at.Y * world.Width) + at.X;
+    private static int Index(WorldState world, TilePos at)
+    {
+        return (at.Y * world.Width) + at.X;
+    }
 
     private static CreatureState Prisoner(GameDatabase db, WorldState world, byte owner, TilePos at)
     {
@@ -81,7 +84,10 @@ public sealed class JailBreakTests
         c.PosY = CreatureState.CentreOf(at.Y);
     }
 
-    private static RoomInstance Prison(GameDatabase db, WorldState world) => RoomIndex.RoomAt(world, db, Index(world, Cell))!;
+    private static RoomInstance Prison(GameDatabase db, WorldState world)
+    {
+        return RoomIndex.RoomAt(world, db, Index(world, Cell))!;
+    }
 
     [Fact]
     public void TheDoorIsNorthOfTheFirstFloorTileWhoseThreeNorthernNeighboursAreNotFloor_WestEndForAMapRoomsRowMajorChain()

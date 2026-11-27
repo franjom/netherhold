@@ -10,14 +10,35 @@ public sealed class CombatPitSpectatorCompletionTests
 {
     private sealed class JobProbe(CreatureState watcher, Action<bool> result) : ISimulationSystem
     {
-        public string Name => "SpectatorJobProbe";
-        public void Execute(SimulationContext context) => result(CombatPitSpectatorRules.TakeTheJob(context, Name, watcher));
+        public string Name
+        {
+            get
+            {
+                return "SpectatorJobProbe";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            result(CombatPitSpectatorRules.TakeTheJob(context, Name, watcher));
+        }
     }
 
     private sealed class SpectatorStep : ICreatureUpdateStep
     {
-        public string Name => "SpectatorProbe";
-        public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
+        public string Name
+        {
+            get
+            {
+                return "SpectatorProbe";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            CreatureUpdateSystem.RunAlone(context, this);
+        }
+
         public void Update(SimulationContext context, CreatureState creature)
         {
             if (CombatPitSpectatorRules.IsSpectatorState(creature.Dk2StateId)

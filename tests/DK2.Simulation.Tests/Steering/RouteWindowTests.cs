@@ -9,8 +9,10 @@ namespace DK2.Simulation.Tests.Steering;
 /// <summary>The mover's request and its five-point window (docs/research/steering-behaviours.md §7).</summary>
 public class RouteWindowTests
 {
-    private static Fixed16Vector[] SevenPointsAlongX() =>
-        [.. Enumerable.Range(1, 7).Select(i => FakeSteeringWorld.Tiles(i + 0.5, 0.5))];
+    private static Fixed16Vector[] SevenPointsAlongX()
+    {
+        return [.. Enumerable.Range(1, 7).Select(i => FakeSteeringWorld.Tiles(i + 0.5, 0.5))];
+    }
 
     [Fact]
     public void LoadSplitsARouteIntoTheWindowAndTheTail()

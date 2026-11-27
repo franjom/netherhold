@@ -35,7 +35,10 @@ public class NavMeshBuildTests
         }
         public int Width { get; }
         public int Height { get; }
-        public byte NavByte(int x, int y) => _nav[x, y];
+        public byte NavByte(int x, int y)
+        {
+            return _nav[x, y];
+        }
     }
 
     /// <summary>Triangles on the map, which is every triangle the reset's canvas did not keep.

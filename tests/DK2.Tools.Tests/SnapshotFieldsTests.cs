@@ -39,6 +39,12 @@ public class SnapshotFieldsTests
     private sealed class ThrowingGetter
     {
         public int Stored = 7;
-        public int Computed => throw new InvalidOperationException("Must not be evaluated.");
+        public int Computed
+        {
+            get
+            {
+                throw new InvalidOperationException("Must not be evaluated.");
+            }
+        }
     }
 }

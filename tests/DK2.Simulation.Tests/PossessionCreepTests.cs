@@ -18,10 +18,15 @@ public sealed class PossessionCreepTests
     private const byte CreeperCreatureId = 52;
 
     /// <summary>A Goblin with the shipped per cent, 50; the fixture's own Goblin carries 0.</summary>
-    private static CreatureDef Creeper(int percent = 50) => Dk2TerrainFixture.Goblin() with
+    private static CreatureDef Creeper(int percent = 50)
     {
-        Name = "Creeper", CreatureId = CreeperCreatureId, CreepingDistancePercent = percent,
-    };
+        return Dk2TerrainFixture.Goblin() with
+        {
+            Name = "Creeper",
+            CreatureId = CreeperCreatureId,
+            CreepingDistancePercent = percent,
+        };
+    }
 
     private static (GameDatabase Db, WorldState World, CreatureState Me) Open(int percent = 50)
     {

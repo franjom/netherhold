@@ -156,8 +156,10 @@ public class ShotEffectRequestTests
         }
     }
 
-    private static ViewEffectRequest Request(ListEventSink events, ushort id) =>
-        Assert.Single(events.Events, e => e.EffectRequest?.EffectId == new EffectId(id)).EffectRequest!.Value;
+    private static ViewEffectRequest Request(ListEventSink events, ushort id)
+    {
+        return Assert.Single(events.Events, e => e.EffectRequest?.EffectId == new EffectId(id)).EffectRequest!.Value;
+    }
 
     private static (GameSimulation Simulation, ShotState Shot, ListEventSink Events) Setup(
         uint flags = 4, ushort timedId = 12, byte timedDelay = 2, bool requestTrail = true, byte processType = 0)
@@ -192,7 +194,14 @@ public class ShotEffectRequestTests
 
     private sealed class InitialTrail(ShotState shot, bool requestTrail) : ISimulationSystem
     {
-        public string Name => "test_trail";
+        public string Name
+        {
+            get
+            {
+                return "test_trail";
+            }
+        }
+
         public void Execute(SimulationContext context)
         {
             context.Navigation.Refresh();
@@ -205,7 +214,17 @@ public class ShotEffectRequestTests
 
     private sealed class PrepareNavigation : ISimulationSystem
     {
-        public string Name => "test_navigation";
-        public void Execute(SimulationContext context) => context.Navigation.Refresh();
+        public string Name
+        {
+            get
+            {
+                return "test_navigation";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            context.Navigation.Refresh();
+        }
     }
 }

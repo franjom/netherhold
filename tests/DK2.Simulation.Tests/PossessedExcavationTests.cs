@@ -12,8 +12,10 @@ namespace DK2.Simulation.Tests;
 
 public sealed class PossessedExcavationTests
 {
-    private static ISimulationSystem[] Systems() =>
-        [new PossessionSystem(), new CreatureUpdateSystem(), new TileWorkSystem()];
+    private static ISimulationSystem[] Systems()
+    {
+        return [new PossessionSystem(), new CreatureUpdateSystem(), new TileWorkSystem()];
+    }
 
     private static (GameSimulation Sim, CreatureState Imp) Setup(bool mine = false, bool art = true, int health = 30000)
     {
@@ -55,9 +57,12 @@ public sealed class PossessedExcavationTests
         return (new GameSimulation(db, world, new SimRandom(new Dk2Lcg(1)), Systems()), imp);
     }
 
-    private static InputFrame Press(CreatureState imp, ushort yaw = 0x200) => InputFrame.Of(
+    private static InputFrame Press(CreatureState imp, ushort yaw = 0x200)
+    {
+        return InputFrame.Of(
         new ActPossessedCreatureCommand(PlayerIds.FirstKeeper,
             new(new(new(imp.PosX), new(imp.PosY), new(imp.PosZ)), new(yaw), new(0x200)), true, new(0)));
+    }
 
     [Theory]
     [InlineData(false, 1)]
@@ -239,9 +244,22 @@ public sealed class PossessedExcavationTests
 
     private sealed class ReplacementAttack(byte kind) : ICreatureUpdateStep
     {
-        public string Name => "ReplacementAttack";
-        public void Execute(SimulationContext context) => CreatureUpdateSystem.RunAlone(context, this);
-        public void Update(SimulationContext context, CreatureState creature) =>
+        public string Name
+        {
+            get
+            {
+                return "ReplacementAttack";
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            CreatureUpdateSystem.RunAlone(context, this);
+        }
+
+        public void Update(SimulationContext context, CreatureState creature)
+        {
             FightRules.BeginPossessedAction(context, creature, kind, 0, FightTargetKind.None, CombatRules.NoTarget);
+        }
     }
 }

@@ -36,11 +36,24 @@ public class TerrainLightingViewTests
         Assert.Equal(new TerrainLightColour(red, red == 0 ? 0 : 20, red == 0 ? 0 : 30), tile.AmbientTint);
     }
 
-    private static TerrainDef Definition(byte id, string name, TerrainFlags flags) => new()
+    private static TerrainDef Definition(byte id, string name, TerrainFlags flags)
     {
-        Name = name, TerrainId = id, Flags = flags, StartingHealth = 1, MaxHealth = 1,
-        GoldValue = 0, ManaGain = 0, MaxManaGain = 0, Damage = 0,
-        MaxHealthTypeTerrainId = id, DestroyedTypeTerrainId = id, Depth = new Fp32(0),
-        NameStringId = 0, TooltipStringId = 0,
-    };
+        return new()
+        {
+            Name = name,
+            TerrainId = id,
+            Flags = flags,
+            StartingHealth = 1,
+            MaxHealth = 1,
+            GoldValue = 0,
+            ManaGain = 0,
+            MaxManaGain = 0,
+            Damage = 0,
+            MaxHealthTypeTerrainId = id,
+            DestroyedTypeTerrainId = id,
+            Depth = new Fp32(0),
+            NameStringId = 0,
+            TooltipStringId = 0,
+        };
+    }
 }

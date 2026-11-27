@@ -28,24 +28,50 @@ public class PlayerObservationTests
     internal static readonly TilePos HiddenFloor = new(6, 1), HiddenRoom = new(7, 2), OwnFloor = new(1, 1), Scanned = new(5, 2);
     internal static readonly PlayerRunId Run = new("observation-test");
 
-    internal static PlayerStamp Stamp(WorldState world, long revision = 1) =>
-        new(Run, Viewer, world.CurrentTick, new PlayerRevision(revision));
+    internal static PlayerStamp Stamp(WorldState world, long revision = 1)
+    {
+        return new(Run, Viewer, world.CurrentTick, new PlayerRevision(revision));
+    }
 
     internal static GameDatabase Database()
     {
         GameDatabase basic = ScenarioTests.SyntheticDatabase();
         TerrainDef template = basic.TerrainById(DirtPath);
-        TerrainDef Terrain(byte id, string name, TerrainFlags flags, ushort gold = 0) => template with
+        TerrainDef Terrain(byte id, string name, TerrainFlags flags, ushort gold = 0)
         {
-            TerrainId = id, Name = name, Flags = flags, GoldValue = gold, MaxHealthTypeTerrainId = id, DestroyedTypeTerrainId = id,
-        };
+            return template with
+            {
+                TerrainId = id,
+                Name = name,
+                Flags = flags,
+                GoldValue = gold,
+                MaxHealthTypeTerrainId = id,
+                DestroyedTypeTerrainId = id,
+            };
+        }
+
         CreatureDef imp = basic.CreatureById(Imp);
-        ObjectDef Object(byte id, string name, ObjectFlags flags) => new()
+        ObjectDef Object(byte id, string name, ObjectFlags flags)
         {
-            Name = name, ObjectId = id, Flags = flags, Hp = 1, ManaValue = 0, RoomCapacity = 0, StartState = 0,
-            PickUpPriority = 0, Width = new Fp32(0), Height = new Fp32(0), Mass = new Fp32(0), Speed = new Fp32(0),
-            NameStringId = 0, TooltipStringId = 0,
-        };
+            return new()
+            {
+                Name = name,
+                ObjectId = id,
+                Flags = flags,
+                Hp = 1,
+                ManaValue = 0,
+                RoomCapacity = 0,
+                StartState = 0,
+                PickUpPriority = 0,
+                Width = new Fp32(0),
+                Height = new Fp32(0),
+                Mass = new Fp32(0),
+                Speed = new Fp32(0),
+                NameStringId = 0,
+                TooltipStringId = 0,
+            };
+        }
+
         basic.Variables.Misc[VariableTypeId.MaxNumberOfThingsInHand] = new MiscVariable(VariableTypeId.MaxNumberOfThingsInHand, 8, 0, 0);
         basic.Variables.Misc[VariableTypeId.RubberBandAreaLimit] = new MiscVariable(VariableTypeId.RubberBandAreaLimit, 5, 0, 0);
         return new GameDatabase(
@@ -92,8 +118,10 @@ public class PlayerObservationTests
         return (database, world);
     }
 
-    private static PlayerObservation Observe(GameDatabase database, WorldState world, long revision = 1) =>
-        new PlayerObservationBuilder(database, Viewer).Capture(world, Stamp(world, revision), []).Observation;
+    private static PlayerObservation Observe(GameDatabase database, WorldState world, long revision = 1)
+    {
+        return new PlayerObservationBuilder(database, Viewer).Capture(world, Stamp(world, revision), []).Observation;
+    }
 
     /// <summary>Everything the rival has that the viewer cannot see, including a message posted
     /// before the viewer's own, which advances the shared queue id.</summary>

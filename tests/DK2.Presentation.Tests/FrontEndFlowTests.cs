@@ -80,11 +80,16 @@ public class FrontEndFlowTests
     [InlineData("../Level1")]
     [InlineData("Data/Level1")]
     [InlineData("")]
-    public void RuntimeLevelRequestsRejectPathsInsteadOfLevelNames(string name) =>
+    public void RuntimeLevelRequestsRejectPathsInsteadOfLevelNames(string name)
+    {
         Assert.Throws<ArgumentException>(() => GameSessionRequest.Campaign(name));
+    }
 
-    private static IReadOnlyList<KcsFrame> Frames(int count) => Enumerable.Range(0, count)
+    private static IReadOnlyList<KcsFrame> Frames(int count)
+    {
+        return Enumerable.Range(0, count)
         .Select(i => new KcsFrame(i, 0, -3, new KcsRotation(1, 0, 0, 0, 1, 0, 0, 0, 1), 1, 20000)).ToArray();
+    }
 
     [Theory]
     [InlineData(FrontEndPage.CampaignResults, FrontEndPath.Spare, FrontEndOperation.ResultsFourth)]
@@ -102,6 +107,8 @@ public class FrontEndFlowTests
     }
 
     [Fact]
-    public void ACampaignLevelReturnsToTheCampaignStatisticsPage() =>
+    public void ACampaignLevelReturnsToTheCampaignStatisticsPage()
+    {
         Assert.Equal(FrontEndPage.CampaignResults, GameSessionRequest.Campaign("level1").ReturnPage);
+    }
 }

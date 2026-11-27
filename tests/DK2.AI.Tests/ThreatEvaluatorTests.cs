@@ -14,7 +14,9 @@ public class ThreatEvaluatorTests
     [InlineData(2, 125, 126)]
     [InlineData(2, -125, -126)]
     public void ThreatUsesSignedPercentageExceptAtLevelOne(byte level, short percent, int expected)
-        => Assert.Equal(expected, ThreatEvaluator.CreatureThreat(101, level, percent));
+    {
+        Assert.Equal(expected, ThreatEvaluator.CreatureThreat(101, level, percent));
+    }
 
     [Fact]
     public void RadiusIsStrictAndCircular()
@@ -67,7 +69,11 @@ public class ThreatEvaluatorTests
             new(5, centre, centre, 50, 0, true, 4)
         ];
         PlayerId[] order = [1, 2, 3, 4, 5];
-        bool Allied(PlayerId player) => player.Value is 3 or 5;
+        bool Allied(PlayerId player)
+        {
+            return player.Value is 3 or 5;
+        }
+
         Assert.Equal(new KeeperThreatAssessment(70, 50, 4),
             ThreatEvaluator.Assess(sources, order, Allied, target, false, true));
         Assert.Equal(new KeeperThreatAssessment(20, 30, 2),

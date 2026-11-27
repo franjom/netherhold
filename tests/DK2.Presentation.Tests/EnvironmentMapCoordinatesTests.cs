@@ -34,8 +34,10 @@ public class EnvironmentMapCoordinatesTests
     }
 
     [Fact]
-    public void AZeroEyeSamplesTheCentre() =>
+    public void AZeroEyeSamplesTheCentre()
+    {
         Assert.Equal(new Vector2(0.5f, 0.5f), EnvironmentMapCoordinates.Of(Vector3.Zero, Vector3.UnitZ));
+    }
 
     [Fact]
     public void TheRenderFrameConvertsAsTheRendererDoes()

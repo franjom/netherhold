@@ -32,17 +32,29 @@ public class LairAcquisitionTests
     /// </summary>
     private const byte HeroId = 40;
 
-    private static CreatureDef Hero() => Dk2TerrainFixture.Goblin() with
+    private static CreatureDef Hero()
     {
-        Name = "Test Hero",
-        CreatureId = HeroId,
-        Flags = CreatureFlags.IsGood | CreatureFlags.CanWalkOnWater,
-    };
+        return Dk2TerrainFixture.Goblin() with
+        {
+            Name = "Test Hero",
+            CreatureId = HeroId,
+            Flags = CreatureFlags.IsGood | CreatureFlags.CanWalkOnWater,
+        };
+    }
 
-    private static GameDatabase Db => Dk2TerrainFixture.Database(Hero());
+    private static GameDatabase Db
+    {
+        get
+        {
+            return Dk2TerrainFixture.Database(Hero());
+        }
+    }
 
-    private static WorldState World(GameDatabase db) => WorldState.FromMap(
+    private static WorldState World(GameDatabase db)
+    {
+        return WorldState.FromMap(
         db, Dk2TerrainFixture.Map(), [(byte)0, PlayerIds.Neutral, Keeper]);
+    }
 
     private static GameSimulation Walking(
         GameDatabase db, WorldState world, ListEventSink? sink = null, ulong seed = 42)
@@ -91,7 +103,10 @@ public class LairAcquisitionTests
         }
     }
 
-    private static int Index(WorldState world, int x, int y) => (y * world.Width) + x;
+    private static int Index(WorldState world, int x, int y)
+    {
+        return (y * world.Width) + x;
+    }
 
     private static int IndexOf(IReadOnlyList<SimEvent> events, Func<SimEvent, bool> match)
     {
@@ -890,7 +905,14 @@ public class LairAcquisitionTests
     // idle1->89 and sleep-need scheduling are covered by BedlessSleepNeedTests.
     private sealed class RequestedLairAttempt : ISimulationSystem
     {
-        public string Name => "LairAcquisitionSetup";
+        public string Name
+        {
+            get
+            {
+                return "LairAcquisitionSetup";
+            }
+        }
+
         public bool Requested { get; set; } = true;
         public void Execute(SimulationContext context)
         {
@@ -913,7 +935,14 @@ public class LairAcquisitionTests
 
     private sealed class FirstSlabRandom : IRandomAlgorithm
     {
-        public int NextInt(int exclusiveMax) => 0;
-        public void HashInto(ref Hash64 hash) => hash.Add(0);
+        public int NextInt(int exclusiveMax)
+        {
+            return 0;
+        }
+
+        public void HashInto(ref Hash64 hash)
+        {
+            hash.Add(0);
+        }
     }
 }

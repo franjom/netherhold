@@ -34,7 +34,10 @@ public sealed class SeedOverrideTests : IDisposable
             """);
     }
 
-    public void Dispose() => Directory.Delete(_root, recursive: true);
+    public void Dispose()
+    {
+        Directory.Delete(_root, recursive: true);
+    }
 
     [Fact]
     public void ASeedIsReadAndAMalformedOneIsRefused()
@@ -71,12 +74,16 @@ public sealed class SeedOverrideTests : IDisposable
     [InlineData("--seeds", "x")]
     [InlineData("--seeds", "11-")]
     [InlineData("--seed", "x")]
-    public void AMalformedWatchSeedIsRefused(string flag, string value) =>
+    public void AMalformedWatchSeedIsRefused(string flag, string value)
+    {
         Assert.Null(HarnessCommandLine.WatchJobs(["a.yaml"], ["watch", "dir", flag, value]));
+    }
 
     [Fact]
-    public void WatchRefusesASeedAndASeedRangeTogether() =>
+    public void WatchRefusesASeedAndASeedRangeTogether()
+    {
         Assert.Null(HarnessCommandLine.WatchJobs(["a.yaml"], ["watch", "dir", "--seed", "5", "--seeds", "1-2"]));
+    }
 
     [Fact]
     public void AReplayRefusesAJournalWhoseSeedIsNotTheOneItWouldRun()

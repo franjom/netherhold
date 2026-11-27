@@ -12,7 +12,10 @@ public class FollowPathTests
 {
     private const int FacingPlusX = 0x200;
 
-    private static Fixed16Vector T(double x, double y) => FakeSteeringWorld.Tiles(x, y);
+    private static Fixed16Vector T(double x, double y)
+    {
+        return FakeSteeringWorld.Tiles(x, y);
+    }
 
     private static (SteeringBody body, SteeringMover mover, FakeSteeringWorld world) Setup(
         bool imp, Fixed16Vector pos, params Fixed16Vector[] route)
@@ -32,8 +35,10 @@ public class FollowPathTests
     [InlineData(0x001F, FollowPathRules.RerouteFraction)]
     [InlineData(0x0003, FollowPathRules.EscapeClearFraction)]
     [InlineData(0x8000, 0)]
-    public void TheStuckFractionCountsTheLowFifteenBits(int history, int expected) =>
+    public void TheStuckFractionCountsTheLowFifteenBits(int history, int expected)
+    {
         Assert.Equal(expected, FollowPathRules.StuckFraction((ushort)history));
+    }
 
     [Fact]
     public void WithNoRouteTheForceIsABrake()

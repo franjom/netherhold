@@ -15,11 +15,15 @@ public partial class CampaignPlayerTests
 {
     private static readonly PlayerRoomSummary OwnPrison = new(RoomTypeId.Prison, 9);
 
-    private static PlayerVisibleThing Body(TilePos at, int petals = 1) =>
-        new(Handle(1), PlayerThingKind.Creature, at, Heroes, PlayerThingActions.None, Goblin) { Level = 2, Petals = petals };
+    private static PlayerVisibleThing Body(TilePos at, int petals = 1)
+    {
+        return new(Handle(1), PlayerThingKind.Creature, at, Heroes, PlayerThingActions.None, Goblin) { Level = 2, Petals = petals };
+    }
 
-    private static PlayerVisibleThing OwnImp(TilePos at) =>
-        new(Handle(2), PlayerThingKind.Creature, at, Me, PlayerThingActions.PickUp, Imp);
+    private static PlayerVisibleThing OwnImp(TilePos at)
+    {
+        return new(Handle(2), PlayerThingKind.Creature, at, Me, PlayerThingActions.PickUp, Imp);
+    }
 
     [Fact]
     public void AnImpIsLiftedAndDroppedOnAnEnemyCollapsedOnOwnGround()
@@ -38,9 +42,11 @@ public partial class CampaignPlayerTests
     [Fact]
     public void NoImpGoesWithoutAPrisonOrToAStandingEnemyOrABodyOffOwnGround()
     {
-        PlayerAction.PickUp? Lifted(IReadOnlyList<PlayerRoomSummary> owned, PlayerVisibleThing body, string[]? map = null) =>
-            Player().Decide(Observe(map: map ?? Dungeon, rooms: [], owned: owned, things: [body, OwnImp(new TilePos(7, 7))]))
+        PlayerAction.PickUp? Lifted(IReadOnlyList<PlayerRoomSummary> owned, PlayerVisibleThing body, string[]? map = null)
+        {
+            return Player().Decide(Observe(map: map ?? Dungeon, rooms: [], owned: owned, things: [body, OwnImp(new TilePos(7, 7))]))
                 .Actions.OfType<PlayerAction.PickUp>().FirstOrDefault();
+        }
 
         Assert.Null(Lifted([], Body(new TilePos(3, 3))));                              // no Prison
         Assert.Null(Lifted([OwnPrison], Body(new TilePos(3, 3), petals: 4)));          // standing, not down
@@ -62,9 +68,11 @@ public partial class CampaignPlayerTests
     {
         string[] withCell = [.. Dungeon];
         withCell[3] = "R#.PP....#R";
-        PlayerAction.PickUp? Lifted(string[] map, params PlayerVisibleThing[] things) =>
-            Player().Decide(Observe(map: map, rooms: [], owned: [OwnPrison], things: things))
+        PlayerAction.PickUp? Lifted(string[] map, params PlayerVisibleThing[] things)
+        {
+            return Player().Decide(Observe(map: map, rooms: [], owned: [OwnPrison], things: things))
                 .Actions.OfType<PlayerAction.PickUp>().FirstOrDefault();
+        }
 
         Assert.Null(Lifted(withCell, Body(new TilePos(3, 3)), OwnImp(new TilePos(7, 7))));          // dying in its cell
         // An Imp on the body's tile carries it (a carried body shows at its carrier) or was dropped there.

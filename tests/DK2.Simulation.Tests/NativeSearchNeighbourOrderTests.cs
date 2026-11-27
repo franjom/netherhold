@@ -29,8 +29,25 @@ public class NativeSearchNeighbourOrderTests
 
     private sealed class FloorGrid : INavByteGrid
     {
-        public int Width => 4;
-        public int Height => 4;
-        public byte NavByte(int x, int y) => NavBytes.Floor;
+        public int Width
+        {
+            get
+            {
+                return 4;
+            }
+        }
+
+        public int Height
+        {
+            get
+            {
+                return 4;
+            }
+        }
+
+        public byte NavByte(int x, int y)
+        {
+            return NavBytes.Floor;
+        }
     }
 }

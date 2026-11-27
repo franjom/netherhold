@@ -16,11 +16,15 @@ public sealed class CreatureEventSoundTests
     private const byte Keeper = PlayerIds.FirstKeeper;
     private const byte SummonSpellId = 5;   // SummonHornyTests.Setup's Summon Horny
 
-    private static ThingSoundRequest[] Sounds(ListEventSink sink) =>
-        [.. sink.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value)];
+    private static ThingSoundRequest[] Sounds(ListEventSink sink)
+    {
+        return [.. sink.Events.Where(e => e.ThingSound.HasValue).Select(e => e.ThingSound!.Value)];
+    }
 
-    private static FpPosition3 At(CreatureState creature) =>
-        new(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ));
+    private static FpPosition3 At(CreatureState creature)
+    {
+        return new(new Fp32(creature.PosX), new Fp32(creature.PosY), new Fp32(creature.PosZ));
+    }
 
     /// <summary>State 235 (<c>0x00474740</c>) requests <c>0x32D</c> with the Reaper's handle at its position on its first
     /// update, in the tick it enters 236 (age 1 and age 12 or more both end it).</summary>

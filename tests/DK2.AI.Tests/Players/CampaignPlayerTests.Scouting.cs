@@ -34,14 +34,21 @@ public partial class CampaignPlayerTests
         new(Handle(6), PlayerThingKind.Creature, new TilePos(1, 4), Me, PlayerThingActions.PickUp, creatureType: Imp),
     ];
 
-    private static PlayerVisibleThing ImpAt(TilePos at) => new(Handle(0), PlayerThingKind.Creature, at, Me, PlayerThingActions.PickUp, creatureType: Imp);
+    private static PlayerVisibleThing ImpAt(TilePos at)
+    {
+        return new(Handle(0), PlayerThingKind.Creature, at, Me, PlayerThingActions.PickUp, creatureType: Imp);
+    }
 
     private static PlayerObservation ScoutView(long revision, long tick, int hand = 0, PlayerVisibleThing[]? things = null,
-        PlayerCreatureSummary[]? creatures = null) =>
-        Observe(revision, map: ScoutMap, hand: hand, rooms: [], tick: tick, things: things ?? [], creatures: creatures);
+        PlayerCreatureSummary[]? creatures = null)
+    {
+        return Observe(revision, map: ScoutMap, hand: hand, rooms: [], tick: tick, things: things ?? [], creatures: creatures);
+    }
 
-    private static CampaignPlayer Scouter() =>
-        Player().Also(p => p.Apply(p.Strategy with { Scouts = 1, Dig = DigMode.Off }));
+    private static CampaignPlayer Scouter()
+    {
+        return Player().Also(p => p.Apply(p.Strategy with { Scouts = 1, Dig = DigMode.Off }));
+    }
 
     [Fact]
     public void AnImpIsDroppedOnNeutralFloorAtTheEdgeOfTheKnownGroundAndMovedOnAfterALook()

@@ -77,14 +77,20 @@ public sealed class CallToArmsTests
         return new GameSimulation(db, world, 1, [.. core, .. more]);
     }
 
-    private static CastSpellAtPlaceCommand Cast(TilePos at, byte player = Keeper) =>
-        new(player, CallToArmsRules.SpellId, CreatureState.CentreOf(at.X), CreatureState.CentreOf(at.Y));
+    private static CastSpellAtPlaceCommand Cast(TilePos at, byte player = Keeper)
+    {
+        return new(player, CallToArmsRules.SpellId, CreatureState.CentreOf(at.X), CreatureState.CentreOf(at.Y));
+    }
 
-    private static CreatureState Goblin(WorldState world, GameDatabase db, int x, int y, byte owner = Keeper) =>
-        world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, owner, new TilePos(x, y));
+    private static CreatureState Goblin(WorldState world, GameDatabase db, int x, int y, byte owner = Keeper)
+    {
+        return world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, owner, new TilePos(x, y));
+    }
 
-    private static ObjectState? FlagOf(WorldState world, byte player = Keeper) =>
-        world.ObjectById(world.Player(player).CallToArms.ObjectId);
+    private static ObjectState? FlagOf(WorldState world, byte player = Keeper)
+    {
+        return world.ObjectById(world.Player(player).CallToArms.ObjectId);
+    }
 
     [Fact]
     public void ACastPaysMakesTheFlagRaisesTheCallAndRecruitsTheOwnersNonWorkersOnly()

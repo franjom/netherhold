@@ -204,8 +204,18 @@ public class EaMovieTests
     private sealed class BitWriter
     {
         private readonly StringBuilder _bits = new();
-        public int Count => _bits.Length;
-        public void Put(string bits) => _bits.Append(bits);
+        public int Count
+        {
+            get
+            {
+                return _bits.Length;
+            }
+        }
+
+        public void Put(string bits)
+        {
+            _bits.Append(bits);
+        }
 
         public byte[] ToWords()
         {

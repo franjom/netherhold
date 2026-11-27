@@ -148,8 +148,10 @@ public sealed class InstallEffectSpriteProviderTests
         Assert.NotEqual(effect.Reference, element.Reference);
     }
 
-    private static GameDatabase Database(params EffectElementDef[] elements) =>
-        new([], [], [], new GlobalVariables(), effectElements: elements);
+    private static GameDatabase Database(params EffectElementDef[] elements)
+    {
+        return new([], [], [], new GlobalVariables(), effectElements: elements);
+    }
 
     private static EffectElementDef Element(string name, string texture, byte type, uint flags, int frames)
     {

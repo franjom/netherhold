@@ -71,8 +71,10 @@ public sealed class WorkshopTimerTests
         return world;
     }
 
-    private static GameSimulation Sim(GameDatabase db, WorldState world, params ISimulationSystem[] systems) =>
-        new(db, world, new SimRandom(new Dk2Lcg(1)), systems);
+    private static GameSimulation Sim(GameDatabase db, WorldState world, params ISimulationSystem[] systems)
+    {
+        return new(db, world, new SimRandom(new Dk2Lcg(1)), systems);
+    }
 
     private static GameSimulation TimerSim(GameDatabase db, WorldState world, out ListEventSink sink)
     {
@@ -82,23 +84,40 @@ public sealed class WorkshopTimerTests
         return sim;
     }
 
-    private static uint SeedOf(GameSimulation sim) => ((Dk2Lcg)sim.Rng.Algorithm).Seed;
+    private static uint SeedOf(GameSimulation sim)
+    {
+        return ((Dk2Lcg)sim.Rng.Algorithm).Seed;
+    }
 
-    private static RoomInstance Workshop(GameDatabase db, WorldState world, int tileIndex) =>
-        RoomIndex.RoomAt(world, db, tileIndex)!;
+    private static RoomInstance Workshop(GameDatabase db, WorldState world, int tileIndex)
+    {
+        return RoomIndex.RoomAt(world, db, tileIndex)!;
+    }
 
-    private static ref TileState Lowest(WorldState world, RoomInstance room) => ref world.TileAtIndex(room.TileIndices[0]);
+    private static ref TileState Lowest(WorldState world, RoomInstance room)
+    {
+        return ref world.TileAtIndex(room.TileIndices[0]);
+    }
 
-    private static List<ViewEffectRequest> Requests(ListEventSink sink) =>
-        [.. sink.Events.Where(e => e.EffectRequest.HasValue).Select(e => e.EffectRequest!.Value)];
+    private static List<ViewEffectRequest> Requests(ListEventSink sink)
+    {
+        return [.. sink.Events.Where(e => e.EffectRequest.HasValue).Select(e => e.EffectRequest!.Value)];
+    }
 
-    private static int FloorSlots(WorldState world, RoomInstance room) => AutoFurnitureRules.FloorSlotCount(world, room);
+    private static int FloorSlots(WorldState world, RoomInstance room)
+    {
+        return AutoFurnitureRules.FloorSlotCount(world, room);
+    }
 
-    private static List<int> WallSlots(WorldState world, GameDatabase db, RoomInstance room) =>
-        [.. SlabChain.Order(world, room).Where(t => AutoFurnitureRules.WallSide(world, db, room, t) >= 0)];
+    private static List<int> WallSlots(WorldState world, GameDatabase db, RoomInstance room)
+    {
+        return [.. SlabChain.Order(world, room).Where(t => AutoFurnitureRules.WallSide(world, db, room, t) >= 0)];
+    }
 
-    private static List<ObjectState> Furniture(WorldState world, RoomInstance room) =>
-        [.. world.Objects.Where(o => o.AutoPlaced && room.Contains(o.TileIndex)).OrderByDescending(o => o.Id)];
+    private static List<ObjectState> Furniture(WorldState world, RoomInstance room)
+    {
+        return [.. world.Objects.Where(o => o.AutoPlaced && room.Contains(o.TileIndex)).OrderByDescending(o => o.Id)];
+    }
 
     [Fact]
     public void AZeroTimerReloadsSixteenSecondsDrawnPlusEightAndTheFourRunInDk2sOrderWithTheirSlotAndCountDraws()

@@ -25,13 +25,31 @@ public class PathfindingTests
     {
         private readonly string[] _rows;
 
-        public TextGrid(params string[] rows) => _rows = rows;
+        public TextGrid(params string[] rows)
+        {
+            _rows = rows;
+        }
 
-        public int Width => _rows[0].Length;
-        public int Height => _rows.Length;
+        public int Width
+        {
+            get
+            {
+                return _rows[0].Length;
+            }
+        }
 
-        public bool IsWalkable(int x, int y) =>
-            (uint)x < (uint)Width && (uint)y < (uint)Height && _rows[y][x] != '#';
+        public int Height
+        {
+            get
+            {
+                return _rows.Length;
+            }
+        }
+
+        public bool IsWalkable(int x, int y)
+        {
+            return (uint)x < (uint)Width && (uint)y < (uint)Height && _rows[y][x] != '#';
+        }
     }
 
     private static readonly TextGrid Open = new(
@@ -404,7 +422,10 @@ public class PathfindingTests
             }
             candidates.Add(new TilePos(-1, 3));
             var set = new HashSet<TilePos>(candidates);
-            static bool Goal(TilePos p) => (p.X + p.Y) % 2 == 0;
+            static bool Goal(TilePos p)
+            {
+                return (p.X + p.Y) % 2 == 0;
+            }
 
             for (int fy = 0; fy < grid.Height; fy++)
             {

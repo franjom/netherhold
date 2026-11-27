@@ -112,8 +112,10 @@ public sealed class PlacementCursorTests
     [InlineData(HoverCageTool.Hand, false, true, true)]
     [InlineData(HoverCageTool.SpellOrQuery, false, true, false)]
     [InlineData(HoverCageTool.SpellOrQuery, true, false, true)]
-    public void TheHoverCageShowsPerToolAs0x004096B0Decides(HoverCageTool tool, bool digTaggable, bool handHolds, bool shows) =>
+    public void TheHoverCageShowsPerToolAs0x004096B0Decides(HoverCageTool tool, bool digTaggable, bool handHolds, bool shows)
+    {
         Assert.Equal(shows, PlacementCursor.HoverCageShows(tool, digTaggable, handHolds));
+    }
 
     [Theory]
     [InlineData(HoverCageTool.Hand, true, false, true)]
@@ -122,8 +124,10 @@ public sealed class PlacementCursorTests
     [InlineData(HoverCageTool.Sell, true, false, false)]
     [InlineData(HoverCageTool.Door, false, false, false)]
     [InlineData(HoverCageTool.Room, false, true, true)]
-    public void ADigTileLeavesTheResetsBlueExceptWhereTheArmRewritesIt(HoverCageTool tool, bool dig, bool armValid, bool blue) =>
+    public void ADigTileLeavesTheResetsBlueExceptWhereTheArmRewritesIt(HoverCageTool tool, bool dig, bool armValid, bool blue)
+    {
         Assert.Equal(blue, PlacementCursor.HoverCageBlue(tool, dig, armValid));
+    }
 
     [Fact]
     public void TheHoverCageIsHiddenOnAMapBorderTile()
@@ -217,7 +221,10 @@ public sealed class PlacementCursorTests
         world.Player(keeper).Mana = cost - 1;
         Assert.True(PlacementCursor.CreateImp(world, db, simulation.Navigation, keeper, 4, own).NoGo);
 
-        static (bool, bool, PlacementIcon, byte) Shape(PlacementFeedback f) => (f.Valid, f.NoGo, f.Icon, f.SpellId);
+        static (bool, bool, PlacementIcon, byte) Shape(PlacementFeedback f)
+        {
+            return (f.Valid, f.NoGo, f.Icon, f.SpellId);
+        }
     }
 
     [Fact]
@@ -367,8 +374,10 @@ public sealed class PlacementCursorTests
 
     private const byte ImpType = 1, GoblinType = 7;
 
-    private static void Hold(WorldState world, CreatureState creature) =>
+    private static void Hold(WorldState world, CreatureState creature)
+    {
         HoldBy(world, new PlayerId(creature.OwnerPlayerId), creature);
+    }
 
     private static void HoldBy(WorldState world, PlayerId player, CreatureState creature)
     {

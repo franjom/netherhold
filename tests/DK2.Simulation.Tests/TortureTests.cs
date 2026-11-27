@@ -22,7 +22,13 @@ public class TortureTests
     private static readonly TilePos Wheel = new(8, 3);
     private static readonly TilePos ChamberFloor = new(7, 2);
 
-    private static GameDatabase Db => Dk2TerrainFixture.Database();
+    private static GameDatabase Db
+    {
+        get
+        {
+            return Dk2TerrainFixture.Database();
+        }
+    }
 
     /// <summary>A 3x3 prison at (2..4, 2..4) and a 3x3 Torture Chamber at (7..9, 2..4) with a
     /// wheel in its middle, on paved ground the keeper owns.</summary>
@@ -75,7 +81,10 @@ public class TortureTests
         return sim;
     }
 
-    private static int Index(WorldState world, TilePos at) => (at.Y * world.Width) + at.X;
+    private static int Index(WorldState world, TilePos at)
+    {
+        return (at.Y * world.Width) + at.X;
+    }
 
     private static CreatureState Captive(GameDatabase db, WorldState world)
     {
@@ -322,8 +331,10 @@ public class TortureTests
     // x + y = 10 is even, so the victim turns back 6 a turn.
     private static readonly TilePos RimWheel = new(7, 3);
 
-    private static ViewEffectRequest[] TroughEffects(ListEventSink sink) =>
-        [.. sink.Events.Where(e => e.EffectRequest is { } r && r.EffectId.Value is TortureRules.CoalsEffectId or TortureRules.WaterEffectId).Select(e => e.EffectRequest!.Value)];
+    private static ViewEffectRequest[] TroughEffects(ListEventSink sink)
+    {
+        return [.. sink.Events.Where(e => e.EffectRequest is { } r && r.EffectId.Value is TortureRules.CoalsEffectId or TortureRules.WaterEffectId).Select(e => e.EffectRequest!.Value)];
+    }
 
     private static (GameDatabase Db, WorldState World, CreatureState Captive) OnTheRimWheel(byte trough)
     {

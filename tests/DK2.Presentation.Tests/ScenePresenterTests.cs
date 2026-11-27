@@ -83,14 +83,28 @@ public class ScenePresenterTests
     [Fact]
     public void ChangingOnlyTerrainTintPushesTheTileAgain()
     {
-        TerrainDef Definition(byte id, byte red) => new()
+        TerrainDef Definition(byte id, byte red)
         {
-            Name = "Path", TerrainId = id, Flags = TerrainFlags.AmbientLight,
-            StartingHealth = 1, MaxHealth = 1, GoldValue = 0, ManaGain = 0, MaxManaGain = 0,
-            Damage = 0, MaxHealthTypeTerrainId = id, DestroyedTypeTerrainId = id,
-            Depth = new Fp32(0), NameStringId = 0, TooltipStringId = 0,
-            Lighting = new TerrainLighting(0, 0, 0, red, 0, 0),
-        };
+            return new()
+            {
+                Name = "Path",
+                TerrainId = id,
+                Flags = TerrainFlags.AmbientLight,
+                StartingHealth = 1,
+                MaxHealth = 1,
+                GoldValue = 0,
+                ManaGain = 0,
+                MaxManaGain = 0,
+                Damage = 0,
+                MaxHealthTypeTerrainId = id,
+                DestroyedTypeTerrainId = id,
+                Depth = new Fp32(0),
+                NameStringId = 0,
+                TooltipStringId = 0,
+                Lighting = new TerrainLighting(0, 0, 0, red, 0, 0),
+            };
+        }
+
         var database = new GameDatabase([Definition(1, 10), Definition(2, 20)], [], [], new GlobalVariables());
         var world = WorldState.FromMap(database, new LevelMap(1, 1, [new MapTile(1, 1, 0, 0)]), [1]);
         var target = new RecordingTarget();
@@ -166,17 +180,35 @@ public class ScenePresenterTests
             ObjectRemoves++;
         }
 
-        public void CreateStructure(StructureId id, in StructureView s, in ResolvedAsset m) =>
+        public void CreateStructure(StructureId id, in StructureView s, in ResolvedAsset m)
+        {
             Calls.Add($"create-structure {id} {m.Reference}");
-        public void UpdateStructure(StructureId id, in StructureView s, in ResolvedAsset m) =>
+        }
+
+        public void UpdateStructure(StructureId id, in StructureView s, in ResolvedAsset m)
+        {
             Calls.Add($"update-structure {id} {m.Reference}");
-        public void RemoveStructure(StructureId id) => Calls.Add($"remove-structure {id}");
+        }
 
-        public void CreateTorch(int i, in TorchView t, in ResolvedAsset m) => Calls.Add($"create-torch {i} {m.Reference}");
+        public void RemoveStructure(StructureId id)
+        {
+            Calls.Add($"remove-structure {id}");
+        }
 
-        public void UpdateTorch(int i, in TorchView t, in ResolvedAsset m) => Calls.Add($"update-torch {i}");
+        public void CreateTorch(int i, in TorchView t, in ResolvedAsset m)
+        {
+            Calls.Add($"create-torch {i} {m.Reference}");
+        }
 
-        public void RemoveTorch(int i) => Calls.Add($"remove-torch {i}");
+        public void UpdateTorch(int i, in TorchView t, in ResolvedAsset m)
+        {
+            Calls.Add($"update-torch {i}");
+        }
+
+        public void RemoveTorch(int i)
+        {
+            Calls.Add($"remove-torch {i}");
+        }
 
         public void Flush()
         {

@@ -176,7 +176,17 @@ public sealed class CombatStoppedRouteTests
 
     private sealed class RunRule(Action<SimulationContext> rule) : ISimulationSystem
     {
-        public string Name => nameof(RunRule);
-        public void Execute(SimulationContext context) => rule(context);
+        public string Name
+        {
+            get
+            {
+                return nameof(RunRule);
+            }
+        }
+
+        public void Execute(SimulationContext context)
+        {
+            rule(context);
+        }
     }
 }

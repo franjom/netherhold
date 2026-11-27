@@ -187,7 +187,10 @@ public class SaveLoadingBoundsTests
         Assert.Equal(reason, error.Reason);
     }
 
-    private static byte[] Snapshot() => WorldSnapshot.ToBytes(TestWorld.Simulation());
+    private static byte[] Snapshot()
+    {
+        return WorldSnapshot.ToBytes(TestWorld.Simulation());
+    }
 
     private static byte[] PartySnapshot(out int prefix)
     {

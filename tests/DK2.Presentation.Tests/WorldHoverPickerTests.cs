@@ -16,9 +16,23 @@ public sealed class WorldHoverPickerTests
     private static readonly HoverPickRay Down = new(new(10.5f, 10, -10.5f), -Vector3.UnitY, -Vector3.UnitY);
     private static readonly Vector3 Ground = new(10.5f, TileHeights.Open, -10.5f);
 
-    private static WorldHoverHit Creature(int id, TilePos? tile = null) => new(WorldHoverKind.Creature, tile ?? Pointer, id);
-    private static WorldHoverHit Thing(int id, TilePos? tile = null) => new(WorldHoverKind.Object, tile ?? Pointer, id);
-    private static WorldHoverHit TileHit => new(WorldHoverKind.Tile, Pointer);
+    private static WorldHoverHit Creature(int id, TilePos? tile = null)
+    {
+        return new(WorldHoverKind.Creature, tile ?? Pointer, id);
+    }
+
+    private static WorldHoverHit Thing(int id, TilePos? tile = null)
+    {
+        return new(WorldHoverKind.Object, tile ?? Pointer, id);
+    }
+
+    private static WorldHoverHit TileHit
+    {
+        get
+        {
+            return new(WorldHoverKind.Tile, Pointer);
+        }
+    }
 
     private static WorldHoverPicker Begin(Func<WorldHoverKind, int, bool>? rendered = null,
         Func<WorldHoverKind, int, bool>? fallback = null, Func<WorldHoverHit, bool>? resolves = null, bool objectsOnly = false)

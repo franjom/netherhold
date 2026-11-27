@@ -15,12 +15,15 @@ public class PortalChoiceTests
     private const int One = 0x1000;
     private const byte Keeper = 3;
 
-    private static CreatureDef Creature(byte id, ushort roomId, byte lairObject = 0) =>
-        Dk2TerrainFixture.Database().CreatureById(7) with
+    private static CreatureDef Creature(byte id, ushort roomId, byte lairObject = 0)
+    {
+        return Dk2TerrainFixture.Database().CreatureById(7) with
         {
-            CreatureId = id, LairObjectId = lairObject,
+            CreatureId = id,
+            LairObjectId = lairObject,
             Attractions = [new CreatureAttraction(1, roomId, 0), new CreatureAttraction(0, 0, 0)],
         };
+    }
 
     private static WorldState World(long tick)
     {
@@ -66,8 +69,10 @@ public class PortalChoiceTests
     }
 
     [Fact]
-    public void AFreshBlockZeroesTheWeight_BinaryInferred() =>
+    public void AFreshBlockZeroesTheWeight_BinaryInferred()
+    {
         Assert.Equal(0, PortalChoiceRules.Weighted(3 * One, new EntranceInfoState(5, PortalChoiceRules.Fresh, PortalChoiceRules.Fresh)));
+    }
 
     [Fact]
     public void ALairTypeWeighsOne_AndTheGoblinsLairThree_WhateverIsHeld()

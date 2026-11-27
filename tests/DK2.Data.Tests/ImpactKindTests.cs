@@ -13,7 +13,10 @@ namespace DK2.Data.Tests;
 /// <c>0x340</c>) and the door's <c>+0xB3</c> (file <c>0x226</c>, read earlier). Docs: sound-effects-combat.md section 5.</summary>
 public sealed class ImpactKindTests
 {
-    private static string Editor() => Path.Combine(Dk2InstallGate.Path, "Data", "editor");
+    private static string Editor()
+    {
+        return Path.Combine(Dk2InstallGate.Path, "Data", "editor");
+    }
 
     [InstallFact]
     public void TheShippedCreatureTrapAndObjectSurfaceBytesAreTheOnesAtTheLoadersOffsets()
