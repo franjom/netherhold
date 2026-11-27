@@ -157,3 +157,7 @@ dotnet_diagnostic.IDE0034.severity = warning
 [src/DK2.Convert/**.cs]
 csharp_prefer_simple_default_expression = true
 dotnet_diagnostic.IDE0034.severity = warning
+
+[src/DK2.Presentation/**.cs]
+csharp_prefer_simple_default_expression = true
+dotnet_diagnostic.IDE0034.severity = warning
