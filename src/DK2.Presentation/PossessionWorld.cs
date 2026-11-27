@@ -194,10 +194,10 @@ public sealed class PossessionWorld(GameDatabase database) : IPossessionWorld
     /// computes this in doubles and so does this.</summary>
     public static int TouchDistance(Fixed16Vector point, Fixed16Vector direction, Fixed16Vector centre, int radius)
     {
-        const double Scale = 1.0 / 65536.0;
-        double dx = direction.X * Scale, dy = direction.Y * Scale;
-        double px = (point.X * Scale) - (centre.X * Scale), py = (point.Y * Scale) - (centre.Y * Scale);
-        double r = radius * Scale;
+        const double scale = 1.0 / 65536.0;
+        double dx = direction.X * scale, dy = direction.Y * scale;
+        double px = (point.X * scale) - (centre.X * scale), py = (point.Y * scale) - (centre.Y * scale);
+        double r = radius * scale;
         double a = (dx * dx) + (dy * dy);
         double b = 2.0 * ((px * dx) + (py * dy));
         double c = (px * px) + (py * py) - (r * r);

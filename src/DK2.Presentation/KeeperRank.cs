@@ -25,14 +25,14 @@ public static class KeeperRank
         int averageTimeMinutes, int levelRating)
     {
         // Every constant is a double in the image (0x0066D9A8..0x0066DA00); the training factor is 10/9.
-        const double TenNinths = 10.0 / 9.0;
+        const double tenNinths = 10.0 / 9.0;
         int level = (int)block.CreatureTraining >> 12;
         int hearts = block.DungeonHeartsDestroyed < HeartBonus.Length ? HeartBonus[block.DungeonHeartsDestroyed] : 0;
         int kills = Trunc(133.0 / (block.EnemyCreaturesKilled + (double)block.HeroesDestroyed + 13.3));
         int s = Trunc(-83.0 / (block.CreaturesCommanded + 8.3)) - kills;
         s -= Trunc(33.0 / (block.RoomsTakenOver + 3.3));
         s -= Trunc(67.0 / (block.ItemsManufactured + 6.7));
-        s += Trunc(level * TenNinths - TenNinths) + hearts + 40;
+        s += Trunc(level * tenNinths - tenNinths) + hearts + 40;
         if (block.LevelWon)
         {
             s += 10;

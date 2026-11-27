@@ -303,10 +303,10 @@ public static class HudSector
             return 0;
         }
 
-        const float Pi = 3.14159274f;
-        float sweep = 2 * Pi * percent / 100f;
+        const float pi = 3.14159274f;
+        float sweep = 2 * pi * percent / 100f;
         int corners = 0;
-        while (corners < 4 && Pi / 4 + corners * Pi / 2 < sweep)
+        while (corners < 4 && pi / 4 + corners * pi / 2 < sweep)
         {
             corners++;
         }
