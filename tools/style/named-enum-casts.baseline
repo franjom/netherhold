@@ -135,13 +135,3 @@ DK2.Simulation.Tests|tests/DK2.Simulation.Tests/Dk2TerrainFixture.cs|M:DK2.Simul
 DK2.Simulation.Tests|tests/DK2.Simulation.Tests/RoomLogTests.cs|M:DK2.Simulation.Tests.RoomLogTests.ARectangularPlacementReplaysAsItsExactTiles|global::DK2.Data.Model.RoomTypeId|4|1
 DK2.Simulation.Tests|tests/DK2.Simulation.Tests/SpecialSystemTests.cs|M:DK2.Simulation.Tests.SpecialSystemTests.MakeHappy_004A4BD0_ZeroesTheKeepersCreaturesAngerOnly|global::DK2.Simulation.AngerBucket|0|1
 DK2.Simulation.Tests|tests/DK2.Simulation.Tests/TriggerExecutorTests.cs|M:DK2.Simulation.Tests.TriggerExecutorTests.CreatureActionFifteenSetsAHerosStandingJob|global::DK2.Data.Model.JobType|22|1
-DK2.Simulation|src/DK2.Simulation/ExploreRules.cs|F:DK2.Simulation.ExploreRules.RouteOptions|global::DK2.Simulation.Navigation.MoveOptions|128|1
-DK2.Simulation|src/DK2.Simulation/Systems/ImpTaskSystem.Wander.cs|F:DK2.Simulation.Systems.ImpTaskSystem.WanderRooms|global::DK2.Data.Model.RoomTypeId|10|1
-DK2.Simulation|src/DK2.Simulation/Systems/ImpTaskSystem.Wander.cs|F:DK2.Simulation.Systems.ImpTaskSystem.WanderRooms|global::DK2.Data.Model.RoomTypeId|11|1
-DK2.Simulation|src/DK2.Simulation/Systems/ImpTaskSystem.Wander.cs|F:DK2.Simulation.Systems.ImpTaskSystem.WanderRooms|global::DK2.Data.Model.RoomTypeId|12|1
-DK2.Simulation|src/DK2.Simulation/Systems/ImpTaskSystem.Wander.cs|F:DK2.Simulation.Systems.ImpTaskSystem.WanderRooms|global::DK2.Data.Model.RoomTypeId|13|1
-DK2.Simulation|src/DK2.Simulation/Systems/ImpTaskSystem.Wander.cs|F:DK2.Simulation.Systems.ImpTaskSystem.WanderRooms|global::DK2.Data.Model.RoomTypeId|14|1
-DK2.Simulation|src/DK2.Simulation/Systems/ImpTaskSystem.Wander.cs|F:DK2.Simulation.Systems.ImpTaskSystem.WanderRooms|global::DK2.Data.Model.RoomTypeId|15|1
-DK2.Simulation|src/DK2.Simulation/Systems/ImpTaskSystem.Wander.cs|F:DK2.Simulation.Systems.ImpTaskSystem.WanderRooms|global::DK2.Data.Model.RoomTypeId|16|1
-DK2.Simulation|src/DK2.Simulation/Systems/ImpTaskSystem.Wander.cs|F:DK2.Simulation.Systems.ImpTaskSystem.WanderRooms|global::DK2.Data.Model.RoomTypeId|26|1
-DK2.Simulation|src/DK2.Simulation/Systems/ImpTaskSystem.Wander.cs|F:DK2.Simulation.Systems.ImpTaskSystem.WanderRooms|global::DK2.Data.Model.RoomTypeId|9|1

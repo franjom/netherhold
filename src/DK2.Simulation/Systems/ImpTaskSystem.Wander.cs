@@ -37,8 +37,8 @@ public sealed partial class ImpTaskSystem
     private static readonly RoomTypeId[] WanderRooms =
     [
         RoomTypeId.Treasury, RoomTypeId.Lair, RoomTypeId.Hatchery, RoomTypeId.Library, RoomTypeId.TrainingRoom,
-        (RoomTypeId)9, (RoomTypeId)10, (RoomTypeId)11, (RoomTypeId)12, (RoomTypeId)13, (RoomTypeId)14,
-        (RoomTypeId)15, (RoomTypeId)16, (RoomTypeId)26,
+        RoomTypeId.GuardRoom, RoomTypeId.Workshop, RoomTypeId.Prison, RoomTypeId.TortureChamber, RoomTypeId.Temple, RoomTypeId.Graveyard,
+        RoomTypeId.Casino, RoomTypeId.CombatPit, RoomTypeId.Crypt,
     ];
 
     /// <summary>The wander's states, ahead of the activity switch. True when this tick was theirs.</summary>

@@ -32,7 +32,7 @@ public static class ExploreRules
     /// <summary>The steps the arm grants, state word <c>+0xA7</c>.</summary>
     public const int Steps = 10;
 
-    private const Navigation.MoveOptions RouteOptions = (Navigation.MoveOptions)0x80;
+    private const Navigation.MoveOptions RouteOptions = Navigation.MoveOptions.Loose;
 
     /// <summary>The arm, <c>0x0045A290</c>. False when no try passed or the walk could not start.</summary>
     public static bool Arm(SimulationContext context, CreatureState creature)
