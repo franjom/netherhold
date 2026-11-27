@@ -10,17 +10,21 @@ namespace DK2.Presentation;
 /// (furniture-placement.md section 5; the simulation still keeps these pillars virtual).</summary>
 internal static class RoomPillarLayout
 {
-    internal static ObjectTypeId? ObjectType(RoomTypeId? type) => type switch
+    internal static ObjectTypeId? ObjectType(RoomTypeId? type)
     {
-        RoomTypeId.Treasury => new(76),
-        RoomTypeId.Hatchery => new(78),
-        RoomTypeId.CombatPit => new(79),
-        RoomTypeId.TortureChamber => new(82),
-        RoomTypeId.Graveyard => new(84),
-        RoomTypeId.Casino => new(85),
-        RoomTypeId.Crypt => new(141),
-        _ => null,
-    };
+        return type switch
+        {
+            RoomTypeId.Treasury => new(76),
+            RoomTypeId.Hatchery => new(78),
+            RoomTypeId.CombatPit => new(79),
+            RoomTypeId.TortureChamber => new(82),
+            RoomTypeId.Graveyard => new(84),
+            RoomTypeId.Casino => new(85),
+            RoomTypeId.Crypt => new(141),
+            _ => null,
+        };
+    }
+
     internal static void MarkClosed(WorldState world, GameDatabase database, Span<bool> closed)
     {
         foreach (RoomInstance room in RoomIndex.Build(world, database))

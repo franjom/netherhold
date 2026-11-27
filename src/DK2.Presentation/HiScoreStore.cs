@@ -24,8 +24,10 @@ public sealed class HiScoreStore
 
     /// <summary>The first readable table of <see cref="Path"/> and <see cref="InstallPath"/>, else
     /// <see cref="HiScoreTable.Empty"/>; a file that exists but cannot be read is passed to <paramref name="unreadable"/>.</summary>
-    public IReadOnlyList<HiScoreEntry> Load(Action<string>? unreadable = null) =>
-        Read(Path, unreadable) ?? Read(InstallPath, unreadable) ?? HiScoreTable.Empty;
+    public IReadOnlyList<HiScoreEntry> Load(Action<string>? unreadable = null)
+    {
+        return Read(Path, unreadable) ?? Read(InstallPath, unreadable) ?? HiScoreTable.Empty;
+    }
 
     /// <summary>Writes every table the map changes to <see cref="Path"/>.</summary>
     public void Track(CampaignMapController map)

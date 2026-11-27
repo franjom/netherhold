@@ -32,11 +32,17 @@ public static class EnvironmentMapCoordinates
 
     /// <summary>DK2's frame of a direction given in the renderer's, the inverse of
     /// <c>RenderMesh.ToRenderFrame</c>'s <c>(x, −z, −y)</c>.</summary>
-    public static Vector3 FromRenderFrame(Vector3 render) => new(render.X, -render.Z, -render.Y);
+    public static Vector3 FromRenderFrame(Vector3 render)
+    {
+        return new(render.X, -render.Z, -render.Y);
+    }
 
     /// <summary>A camera-space point in Direct3D's left-handed convention (z into the screen) from
     /// a right-handed view space whose z points out of it, as Unity's does. HYPOTHESIS: that DK2's
     /// camera space is Direct3D's own; the matrix at <c>0x00760AC4</c> was not traced to its
     /// builder, so the axis directions, and with them the sign of v, are unconfirmed.</summary>
-    public static Vector3 FromRightHandedView(Vector3 view) => new(view.X, view.Y, -view.Z);
+    public static Vector3 FromRightHandedView(Vector3 view)
+    {
+        return new(view.X, view.Y, -view.Z);
+    }
 }

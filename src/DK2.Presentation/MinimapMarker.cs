@@ -27,21 +27,31 @@ public static class MinimapMarkerRules
 {
     public const uint ReportingColourArgb = 0xFF9696FF;
 
-    public static MinimapMarker ReportingRing(FpPosition3 position, int distanceTiles, MinimapMapBounds bounds, int mapWidth) =>
-        new(MinimapMarkerKind.Ring, position, ReportingColourArgb, unchecked((byte)distanceTiles) * bounds.Width / mapWidth,
+    public static MinimapMarker ReportingRing(FpPosition3 position, int distanceTiles, MinimapMapBounds bounds, int mapWidth)
+    {
+        return new(MinimapMarkerKind.Ring, position, ReportingColourArgb, unchecked((byte)distanceTiles) * bounds.Width / mapWidth,
             ReportingDistanceTiles: unchecked((byte)distanceTiles));
+    }
 
-    public static MinimapMarker ReportingRectangle(FpPosition3 minimum, FpPosition3 maximum) =>
-        new(MinimapMarkerKind.Rectangle, minimum, ReportingColourArgb, EndPosition: maximum);
+    public static MinimapMarker ReportingRectangle(FpPosition3 minimum, FpPosition3 maximum)
+    {
+        return new(MinimapMarkerKind.Rectangle, minimum, ReportingColourArgb, EndPosition: maximum);
+    }
 
-    public static MinimapMarker PossessionRing(FpPosition3 position, GameTick tick) =>
-        new(MinimapMarkerKind.Ring, position, 0xFFFFFFFF, (int)(tick.Value & 7));
+    public static MinimapMarker PossessionRing(FpPosition3 position, GameTick tick)
+    {
+        return new(MinimapMarkerKind.Ring, position, 0xFFFFFFFF, (int)(tick.Value & 7));
+    }
 
-    public static MinimapMarker AlarmRing(FpPosition3 position, GameTick tick) =>
-        new(MinimapMarkerKind.Ring, position, 0xFFDC32FF, (int)(unchecked((uint)tick.Value) % 30));
+    public static MinimapMarker AlarmRing(FpPosition3 position, GameTick tick)
+    {
+        return new(MinimapMarkerKind.Ring, position, 0xFFDC32FF, (int)(unchecked((uint)tick.Value) % 30));
+    }
 
-    public static bool IsAlarmRingActive(GameTick tick, GameTick rechargeAt) =>
-        unchecked((uint)tick.Value) <= unchecked((uint)rechargeAt.Value);
+    public static bool IsAlarmRingActive(GameTick tick, GameTick rechargeAt)
+    {
+        return unchecked((uint)tick.Value) <= unchecked((uint)rechargeAt.Value);
+    }
 
     public static bool TryCreate(in MinimapMarkerFacts facts, PlayerId viewer, GameTick tick,
         MinimapPalette palette, out MinimapMarker marker)

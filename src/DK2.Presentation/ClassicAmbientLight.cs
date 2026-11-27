@@ -18,13 +18,22 @@ public readonly record struct ClassicAmbientSetting(int Raw)
 public sealed class ClassicAmbientLight
 {
     public ClassicAmbientLight(ClassicAmbientSetting? initialSetting = null)
-        => StoredSetting = initialSetting ?? ClassicAmbientSetting.Default;
+    {
+        StoredSetting = initialSetting ?? ClassicAmbientSetting.Default;
+    }
 
     public ClassicAmbientSetting StoredSetting { get; private set; }
     public float Normalized { get; private set; }
 
-    public void Increase() => Adjust(512);
-    public void Decrease() => Adjust(-512);
+    public void Increase()
+    {
+        Adjust(512);
+    }
+
+    public void Decrease()
+    {
+        Adjust(-512);
+    }
 
     private void Adjust(int delta)
     {

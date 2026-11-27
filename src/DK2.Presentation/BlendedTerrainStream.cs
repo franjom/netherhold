@@ -11,7 +11,13 @@ namespace DK2.Presentation;
 /// <summary>A vertex colour as stored bytes.</summary>
 public readonly record struct VertexColour(byte R, byte G, byte B, byte A)
 {
-    public static VertexColour White => new(255, 255, 255, 255);
+    public static VertexColour White
+    {
+        get
+        {
+            return new(255, 255, 255, 255);
+        }
+    }
 }
 
 /// <summary>One vertex of the blended stream, in the stream's local space of the renderers' frame.</summary>
@@ -33,7 +39,10 @@ public static class BlendedTerrainStream
 
     /// <summary>The order run <paramref name="run"/> draws at, lowest first: a tag overlay's precedes every actor and
     /// flower (order 0) and all other blended terrain. The rest follow the stream from 1.</summary>
-    public static int SortingOrder(int run, bool tagOverlay) => tagOverlay ? run - short.MaxValue : run + 1;
+    public static int SortingOrder(int run, bool tagOverlay)
+    {
+        return tagOverlay ? run - short.MaxValue : run + 1;
+    }
 }
 
 /// <summary>Every chunk's blended terrain triangles, and this frame's blended effect meshes, as one back-to-front stream
@@ -95,19 +104,40 @@ public sealed class BlendedTerrainStream<TMaterial> where TMaterial : class
 
     /// <param name="isTagOverlay">Whether a material is a tag overlay (the dig tag's or the tutorial's additive pass);
     /// asked once per material each time the stream is collected.</param>
-    public BlendedTerrainStream(Func<TMaterial, bool> isTagOverlay) => _isTagOverlay = isTagOverlay;
+    public BlendedTerrainStream(Func<TMaterial, bool> isTagOverlay)
+    {
+        _isTagOverlay = isTagOverlay;
+    }
 
     /// <summary>Where to time the refresh's spans (<see cref="BlendedTerrainStream.Markers"/>).</summary>
     public ISimulationProfiler Profiler { get; set; } = NullSimulationProfiler.Instance;
 
     /// <summary>The runs of the last <see cref="Refresh"/> or <see cref="PlaceItems"/>, back to front.</summary>
-    public IReadOnlyList<TriangleDepthOrderBuffer.Run> Runs => _runs;
+    public IReadOnlyList<TriangleDepthOrderBuffer.Run> Runs
+    {
+        get
+        {
+            return _runs;
+        }
+    }
 
     /// <summary>The collected vertices the runs index, chunks in ascending order and then the effects.</summary>
-    public IReadOnlyList<BlendedVertex> Vertices => _vertices;
+    public IReadOnlyList<BlendedVertex> Vertices
+    {
+        get
+        {
+            return _vertices;
+        }
+    }
 
     /// <summary>How many materials the collected stream uses; a run's material index is below this.</summary>
-    public int MaterialCount => _materials.Count;
+    public int MaterialCount
+    {
+        get
+        {
+            return _materials.Count;
+        }
+    }
 
     /// <summary>Counts the collections; it changes whenever <see cref="Vertices"/> may have.</summary>
     public long GeometryRevision { get; private set; }
@@ -115,12 +145,21 @@ public sealed class BlendedTerrainStream<TMaterial> where TMaterial : class
     /// <summary>Whether the last <see cref="Refresh"/> that rebuilt the runs collected the geometry again.</summary>
     public bool GeometryChanged { get; private set; }
 
-    public TMaterial Material(int index) => _materials[index];
+    public TMaterial Material(int index)
+    {
+        return _materials[index];
+    }
 
-    public bool IsTagOverlay(int materialIndex) => _overlays[materialIndex];
+    public bool IsTagOverlay(int materialIndex)
+    {
+        return _overlays[materialIndex];
+    }
 
     /// <summary><see cref="BlendedTerrainStream.SortingOrder"/> of run <paramref name="run"/> of <see cref="Runs"/>.</summary>
-    public int SortingOrder(int run) => BlendedTerrainStream.SortingOrder(run, _overlays[_runs[run].MaterialIndex]);
+    public int SortingOrder(int run)
+    {
+        return BlendedTerrainStream.SortingOrder(run, _overlays[_runs[run].MaterialIndex]);
+    }
 
     /// <summary>Starts replacing <paramref name="chunk"/>'s blended triangles; <paramref name="vertices"/> are the whole
     /// chunk's, read only where a blended triangle uses them, until <see cref="EndChunk"/>.</summary>
@@ -190,7 +229,10 @@ public sealed class BlendedTerrainStream<TMaterial> where TMaterial : class
         _dirty = true;
     }
 
-    public void BeginEffectFrame() => _effectCount = 0;
+    public void BeginEffectFrame()
+    {
+        _effectCount = 0;
+    }
 
     /// <summary>One blended effect mesh for this frame, in the stream's local space (the adapter fills in absent
     /// normals as up, UVs and light anchors as zero, colours as white); a frame that repeats the last one's effects in
@@ -249,9 +291,11 @@ public sealed class BlendedTerrainStream<TMaterial> where TMaterial : class
     }
 
     /// <summary>Whether <see cref="Refresh"/> would rebuild the runs for this camera, without building its frustum.</summary>
-    public bool NeedsRefresh(Vector3 forward, in Matrix4x4 localToWorld, in Matrix4x4 viewProjection) =>
-        _dirty || _breaksChanged || !Close(forward, _lastForward) || !ViewFrustum.ApproximatelyEqual(localToWorld, _lastMatrix)
+    public bool NeedsRefresh(Vector3 forward, in Matrix4x4 localToWorld, in Matrix4x4 viewProjection)
+    {
+        return _dirty || _breaksChanged || !Close(forward, _lastForward) || !ViewFrustum.ApproximatelyEqual(localToWorld, _lastMatrix)
         || !ViewFrustum.ApproximatelyEqual(viewProjection, _lastViewProjection);
+    }
 
     /// <summary>Rebuilds <see cref="Runs"/> when anything changed since the last call: the geometry, the forward, the
     /// stream's <paramref name="localToWorld"/> or the view (each compared as Unity's <c>==</c> compares), or the items

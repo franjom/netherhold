@@ -22,20 +22,25 @@ public readonly record struct FrontEndPlacedImage(FrontEndBriefingImage Image, i
 public static class FrontEndBriefingImages
 {
     /// <summary>A level's objective shot's front-end image name (<c>Obj_Shots\Level1-0</c>).</summary>
-    public static string ShotArtName(CampaignSlot slot, CampaignObjectiveShot shot) =>
-        "Obj_Shots/" + slot.LevelName + "-" + (int)shot;
+    public static string ShotArtName(CampaignSlot slot, CampaignObjectiveShot shot)
+    {
+        return "Obj_Shots/" + slot.LevelName + "-" + (int)shot;
+    }
 
     /// <summary>The panel strip's front-end image name; null for the shots, which are per level.</summary>
-    public static string? ArtName(FrontEndBriefingImage image) => image switch
+    public static string? ArtName(FrontEndBriefingImage image)
     {
-        FrontEndBriefingImage.Objective00 => "BG_Tiles/BG-Objective-00",
-        FrontEndBriefingImage.Objective01 => "BG_Tiles/BG-Objective-01",
-        FrontEndBriefingImage.Objective02 => "BG_Tiles/BG-Objective-02",
-        FrontEndBriefingImage.Objective03 => "BG_Tiles/BG-Objective-03",
-        FrontEndBriefingImage.Objective04 => "BG_Tiles/BG-Objective-04",
-        FrontEndBriefingImage.Load01 => "BG_Tiles/BG-Load-01",
-        _ => null,
-    };
+        return image switch
+        {
+            FrontEndBriefingImage.Objective00 => "BG_Tiles/BG-Objective-00",
+            FrontEndBriefingImage.Objective01 => "BG_Tiles/BG-Objective-01",
+            FrontEndBriefingImage.Objective02 => "BG_Tiles/BG-Objective-02",
+            FrontEndBriefingImage.Objective03 => "BG_Tiles/BG-Objective-03",
+            FrontEndBriefingImage.Objective04 => "BG_Tiles/BG-Objective-04",
+            FrontEndBriefingImage.Load01 => "BG_Tiles/BG-Load-01",
+            _ => null,
+        };
+    }
 
     /// <summary>Section 2 draws the first shot at (20, 110), then two strips at x 184 (mode 3 instead tiles
     /// BG-Load-01 down x 61). Section 3 draws nothing of its own on a secret or special level (level flags

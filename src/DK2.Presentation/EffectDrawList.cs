@@ -19,7 +19,13 @@ public delegate bool TileLightLookup(TilePos tile, out ClassicLightTable table);
 /// <summary>A drawn effect colour; alpha is always opaque.</summary>
 public readonly record struct EffectColour(byte Red, byte Green, byte Blue)
 {
-    public static EffectColour White => new(255, 255, 255);
+    public static EffectColour White
+    {
+        get
+        {
+            return new(255, 255, 255);
+        }
+    }
 }
 
 /// <summary>How an effect element is drawn: a camera-facing or flat sprite, a mesh (art type 5, or a group
@@ -37,11 +43,14 @@ public readonly record struct EffectBlend(EffectBlendFactor Source, EffectBlendF
 /// lifts the sprite by half its height.</summary>
 public readonly record struct EffectSpriteShape(bool IsFlat, bool StandsOnPoint, float WidthPerScale, float HeightPerScale)
 {
-    public static EffectSpriteShape Of(EffectElementDef definition, EffectSpriteResource resource) => new(
+    public static EffectSpriteShape Of(EffectElementDef definition, EffectSpriteResource resource)
+    {
+        return new(
         IsFlat: (definition.ArtResource.Flags & 0x100) != 0,
         StandsOnPoint: (definition.ArtResource.Flags & 0x40) != 0,
         WidthPerScale: resource.WidthRaw / 4096f,
         HeightPerScale: resource.HeightRaw / 4096f);
+    }
 }
 
 /// <summary>A camera-facing sprite this frame: its centre after the lift and the screen offset, its size and colour.</summary>
@@ -61,9 +70,21 @@ public readonly struct EffectParticleStream
         _effectCount = effects.Count;
     }
 
-    public int Count => _effectCount + _shots.Count;
+    public int Count
+    {
+        get
+        {
+            return _effectCount + _shots.Count;
+        }
+    }
 
-    public ConstructionParticle this[int index] => index < _effectCount ? _effects[index] : _shots[index - _effectCount];
+    public ConstructionParticle this[int index]
+    {
+        get
+        {
+            return index < _effectCount ? _effects[index] : _shots[index - _effectCount];
+        }
+    }
 }
 
 /// <summary>Quads in the render frame (<see cref="RenderWorld"/>), written per frame and reused: four vertices
@@ -78,12 +99,42 @@ public sealed class EffectQuadBuffer
 
     public int VertexCount { get; private set; }
     public int IndexCount { get; private set; }
-    public ReadOnlySpan<Vector3> Vertices => _vertices.AsSpan(0, VertexCount);
-    public ReadOnlySpan<Vector2> Uvs => _uvs.AsSpan(0, VertexCount);
-    public ReadOnlySpan<EffectColour> Colours => _colours.AsSpan(0, VertexCount);
-    public ReadOnlySpan<int> Indices => _indices.AsSpan(0, IndexCount);
+    public ReadOnlySpan<Vector3> Vertices
+    {
+        get
+        {
+            return _vertices.AsSpan(0, VertexCount);
+        }
+    }
 
-    public void Clear() => VertexCount = IndexCount = 0;
+    public ReadOnlySpan<Vector2> Uvs
+    {
+        get
+        {
+            return _uvs.AsSpan(0, VertexCount);
+        }
+    }
+
+    public ReadOnlySpan<EffectColour> Colours
+    {
+        get
+        {
+            return _colours.AsSpan(0, VertexCount);
+        }
+    }
+
+    public ReadOnlySpan<int> Indices
+    {
+        get
+        {
+            return _indices.AsSpan(0, IndexCount);
+        }
+    }
+
+    public void Clear()
+    {
+        VertexCount = IndexCount = 0;
+    }
 
     internal void Add(Vector3 position, Vector2 uv, EffectColour colour)
     {
@@ -163,12 +214,24 @@ public sealed class EffectDrawList
     public float Fraction { get; private set; }
 
     /// <summary>Effects first, then shot bodies.</summary>
-    public EffectParticleStream Particles => new(Model.Particles, ShotBodies.Particles);
+    public EffectParticleStream Particles
+    {
+        get
+        {
+            return new(Model.Particles, ShotBodies.Particles);
+        }
+    }
 
     /// <summary>The shot bodies' generator takes the seed's low 32 bits.</summary>
-    internal static uint ShotSeed(ulong seed) => unchecked((uint)seed);
+    internal static uint ShotSeed(ulong seed)
+    {
+        return unchecked((uint)seed);
+    }
 
-    private static EffectTime ReadClock() => new(Clock.ElapsedMilliseconds);
+    private static EffectTime ReadClock()
+    {
+        return new(Clock.ElapsedMilliseconds);
+    }
 
     /// <summary>Runs the effect updates due by now and returns the instances' lights, then the shot bodies', which the
     /// frame's lighting takes before it is prepared. The list is reused.</summary>
@@ -185,7 +248,10 @@ public sealed class EffectDrawList
         return _lights;
     }
 
-    public void CaptureShots(IReadOnlyList<ShotState> shots, float fraction) => ShotBodies.Capture(shots, fraction);
+    public void CaptureShots(IReadOnlyList<ShotState> shots, float fraction)
+    {
+        ShotBodies.Capture(shots, fraction);
+    }
 
     /// <summary>The key a particle's render resources are cached under: its parent's sprite, else its element's art.</summary>
     public AssetRef GroupKey(ConstructionParticle source)
@@ -215,10 +281,13 @@ public sealed class EffectDrawList
         return meshEntry != null || type == 5 || type == 6 ? EffectGroupKind.Mesh : EffectGroupKind.Sprite;
     }
 
-    public static EffectBlend Blend(EffectSpriteBlend blend) => new(
+    public static EffectBlend Blend(EffectSpriteBlend blend)
+    {
+        return new(
         blend == EffectSpriteBlend.Alpha ? EffectBlendFactor.SourceAlpha : EffectBlendFactor.One,
         blend == EffectSpriteBlend.Additive ? EffectBlendFactor.One
             : blend == EffectSpriteBlend.Alpha ? EffectBlendFactor.OneMinusSourceAlpha : EffectBlendFactor.Zero);
+    }
 
     /// <summary>An animated element's frame rate: the second dword of its descriptor read as frames a second is a
     /// HYPOTHESIS fitted to the Portal Beams (60 frames, 10, a six-second life; no reader of type-6 elements is
@@ -232,21 +301,32 @@ public sealed class EffectDrawList
 
     /// <summary>An animated mesh's frame: shot bodies supply their game-tick phase; other mesh elements loop from
     /// birth at the authored rate, with one visual update per 50 ms.</summary>
-    public static int MeshFrame(ConstructionParticle source, int frameCount, int framesPerSecond) =>
-        source.MeshPhaseRaw.HasValue
+    public static int MeshFrame(ConstructionParticle source, int frameCount, int framesPerSecond)
+    {
+        return source.MeshPhaseRaw.HasValue
             ? ShotBodyParticles.FrameIndex(new Fp32(source.MeshPhaseRaw.Value), frameCount)
             : (source.VisualUpdates * framesPerSecond / 20) % frameCount;
+    }
 
     /// <summary>A particle's drawn point between two updates, in the render frame.</summary>
-    public static Vector3 Position(ConstructionParticle source, float fraction) => RenderWorld.Ground(
+    public static Vector3 Position(ConstructionParticle source, float fraction)
+    {
+        return RenderWorld.Ground(
         PoseInterpolator.Tiles(source.PreviousXRaw, source.XRaw, fraction),
         PoseInterpolator.Tiles(source.PreviousYRaw, source.YRaw, fraction),
         PoseInterpolator.Tiles(source.PreviousHeightRaw, source.HeightRaw, fraction));
+    }
 
     /// <summary>The scale in tiles: a mesh's uniform scale, a sprite's size before its shape's width and height.</summary>
-    public static float Size(ConstructionParticle source) => source.ScaleRaw / 4096f;
+    public static float Size(ConstructionParticle source)
+    {
+        return source.ScaleRaw / 4096f;
+    }
 
-    public static EffectColour Tint(ConstructionParticle source) => new(source.Red, source.Green, source.Blue);
+    public static EffectColour Tint(ConstructionParticle source)
+    {
+        return new(source.Red, source.Green, source.Blue);
+    }
 
     /// <summary>A sprite's colour: an additive sprite's tint alone; a lit one's (art types 1 and 2) tint plus its tile
     /// table's radial light at its point (0x0057F3D0, 0x0057FB80; Q609, ADR-0665). The ambient DK2 adds is RGB 0 at
@@ -371,7 +451,14 @@ public sealed class EffectDrawList
     private sealed class ReferenceComparer : IEqualityComparer<EffectElementDef>
     {
         public static readonly ReferenceComparer Instance = new();
-        public bool Equals(EffectElementDef? x, EffectElementDef? y) => ReferenceEquals(x, y);
-        public int GetHashCode(EffectElementDef obj) => RuntimeHelpers.GetHashCode(obj);
+        public bool Equals(EffectElementDef? x, EffectElementDef? y)
+        {
+            return ReferenceEquals(x, y);
+        }
+
+        public int GetHashCode(EffectElementDef obj)
+        {
+            return RuntimeHelpers.GetHashCode(obj);
+        }
     }
 }

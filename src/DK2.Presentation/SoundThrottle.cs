@@ -33,7 +33,10 @@ public sealed class SoundThrottle
     private int _rotation;
 
     /// <param name="nowMs">The wall clock in milliseconds; it may wrap.</param>
-    public SoundThrottle(uint nowMs) => Reset(nowMs);
+    public SoundThrottle(uint nowMs)
+    {
+        Reset(nowMs);
+    }
 
     public SoundFrameLoad Load { get; private set; }
 

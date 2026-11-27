@@ -57,8 +57,13 @@ public sealed class CampaignLevelData
 
     /// <summary>A fresh simulation of the level with its things placed and its scripts armed
     /// (<see cref="CampaignSimulationFactory"/>); each call builds a new one.</summary>
-    public GameSimulation CreateSimulation(ulong seed, bool fogOfWarEnabled) =>
-        CampaignSimulationFactory.Create(Database, Map, Level, Players, Things, Triggers, seed, fogOfWarEnabled);
+    public GameSimulation CreateSimulation(ulong seed, bool fogOfWarEnabled)
+    {
+        return CampaignSimulationFactory.Create(Database, Map, Level, Players, Things, Triggers, seed, fogOfWarEnabled);
+    }
 
-    private static InvalidOperationException Missing(string level, string what) => new($"the install has no '{level}' {what}.");
+    private static InvalidOperationException Missing(string level, string what)
+    {
+        return new($"the install has no '{level}' {what}.");
+    }
 }

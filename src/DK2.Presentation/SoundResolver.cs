@@ -54,7 +54,13 @@ public readonly record struct SoundDistanceMapping(float Minimum, float Maximum,
 
     /// <summary>The range a rolloff curve spans, in mixer units: a hair past <see cref="Maximum"/>, so the curve can
     /// fall to silence there (an engine curve holds its last value beyond its range).</summary>
-    public float CurveRange => Maximum * 1.01f;
+    public float CurveRange
+    {
+        get
+        {
+            return Maximum * 1.01f;
+        }
+    }
 
     /// <summary><paramref name="into"/>'s points of the rolloff curve over <see cref="CurveRange"/>: x the fraction
     /// of the range, y <see cref="Factor"/>, at 0, at <see cref="Minimum"/> and geometrically spaced out to
@@ -101,12 +107,17 @@ public sealed class SoundResolver(BankMap banks, SfxMap map)
     /// <summary>Whether the group repeats on its own: bit <c>0x08</c> of its flag word (group <c>+0x10</c>) makes the instance flags 6, and flag 4 gives the
     /// voice a repeat count of 9999 (<c>0x0060C960</c>, <c>0x0060CDB0</c>). Only the fireball's and firebomb's <c>0xF2</c> trail has it in the shipped maps: the other
     /// long sounds (flags <c>0x04</c> and <c>0x02</c>) end with their sample and are asked for again by their thing.</summary>
-    public bool IsLooping(SoundId id) =>
-        Group(id) is { Items.Count: > 0 } group
+    public bool IsLooping(SoundId id)
+    {
+        return Group(id) is { Items.Count: > 0 } group
         && (System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(group.Unknown0x08.AsSpan(8)) & 0x08) != 0;
+    }
+
     /// <summary>Whether the group has exactly one item with samples, the only kind <see cref="Resolve"/> plays; a linked or delayed group has its own director.</summary>
-    public bool IsSingleItem(SoundId id) =>
-        Group(id) is { Items.Count: 1 } group && group.Items[0].Sounds.Count > 0;
+    public bool IsSingleItem(SoundId id)
+    {
+        return Group(id) is { Items.Count: 1 } group && group.Items[0].Sounds.Count > 0;
+    }
 
     /// <summary>The voice's distance mapping in mixer units, two to a tile (<c>0x0060E4B0</c>), as <c>SoundInstance_BindVoice</c>
     /// (<c>0x0060CDB0</c>) builds it for QMixer: minimum 2.0 (one tile), maximum the item's float at <c>+0x22</c> raised to 2.1

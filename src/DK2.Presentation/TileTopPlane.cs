@@ -13,12 +13,17 @@ namespace DK2.Presentation;
 public static class TileTopPlane
 {
     /// <summary>The top plane's height of a solid or an open tile.</summary>
-    public static float Height(bool solid) => solid ? TileHeights.Solid : TileHeights.Open;
+    public static float Height(bool solid)
+    {
+        return solid ? TileHeights.Solid : TileHeights.Open;
+    }
 
     /// <summary>Where the ray meets the horizontal plane at <paramref name="height"/>, as Unity's <c>Plane.Raycast</c> and
     /// <c>Ray.GetPoint</c> compute it: false for a ray parallel to the plane or one that meets it behind its origin.</summary>
-    public static bool TryHit(Vector3 origin, Vector3 direction, float height, out Vector3 point) =>
-        TryHit(origin, direction, height, out point, out _);
+    public static bool TryHit(Vector3 origin, Vector3 direction, float height, out Vector3 point)
+    {
+        return TryHit(origin, direction, height, out point, out _);
+    }
 
     /// <inheritdoc cref="TryHit(Vector3, Vector3, float, out Vector3)"/>
     /// <param name="distance">The ray distance to <paramref name="point"/>, as <c>Plane.Raycast</c>'s <c>enter</c>.</param>

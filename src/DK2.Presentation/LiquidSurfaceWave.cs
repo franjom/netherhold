@@ -49,33 +49,92 @@ public sealed class LiquidSurfaceWave
     public LiquidSurface Kind { get; }
 
     /// <summary>The engine texture the surface draws with, opaque.</summary>
-    public string Texture => Kind == LiquidSurface.Water ? WaterTexture : LavaTexture;
+    public string Texture
+    {
+        get
+        {
+            return Kind == LiquidSurface.Water ? WaterTexture : LavaTexture;
+        }
+    }
 
     public int TileCount { get; private set; }
-    public int VertexCount => TileCount * VerticesPerTile;
-    public int IndexCount => TileCount * IndicesPerTile;
+    public int VertexCount
+    {
+        get
+        {
+            return TileCount * VerticesPerTile;
+        }
+    }
+
+    public int IndexCount
+    {
+        get
+        {
+            return TileCount * IndicesPerTile;
+        }
+    }
 
     /// <summary>Bumped by every <see cref="SetTiles"/>: the tiles, the UVs, the light anchors and the triangles are
     /// new, where a <see cref="Wave"/> rewrites only positions and normals.</summary>
     public int Version { get; private set; }
 
-    public Vector3[] Positions => _positions;
-    public Vector3[] Normals => _normals;
+    public Vector3[] Positions
+    {
+        get
+        {
+            return _positions;
+        }
+    }
+
+    public Vector3[] Normals
+    {
+        get
+        {
+            return _normals;
+        }
+    }
 
     /// <summary>Half a texture a vertex step; V falls to the south, as the terrain pieces' V.</summary>
-    public Vector2[] Uvs => _uvs;
+    public Vector2[] Uvs
+    {
+        get
+        {
+            return _uvs;
+        }
+    }
 
     /// <summary>The light table each vertex reads: its tile's index and 1, the terrain kind.</summary>
-    public Vector2[] LightAnchors => _lightAnchors;
+    public Vector2[] LightAnchors
+    {
+        get
+        {
+            return _lightAnchors;
+        }
+    }
 
     /// <summary>Clockwise from above, two triangles a quad: north-west, north-east, south-east; then south-west.</summary>
-    public int[] Triangles => _triangles;
+    public int[] Triangles
+    {
+        get
+        {
+            return _triangles;
+        }
+    }
 
     /// <summary>The tile index of each surface tile, in index order.</summary>
-    public ReadOnlySpan<int> Tiles => new(_tiles, 0, TileCount);
+    public ReadOnlySpan<int> Tiles
+    {
+        get
+        {
+            return new(_tiles, 0, TileCount);
+        }
+    }
 
     /// <summary>DK2's frame counter at <paramref name="seconds"/>.</summary>
-    public static int Frame(float seconds) => (int)(seconds * FramesPerSecond);
+    public static int Frame(float seconds)
+    {
+        return (int)(seconds * FramesPerSecond);
+    }
 
     /// <summary>The longest sine table (lava's): the size a shader's copy of <see cref="Sines"/> needs.</summary>
     public const int MaximumSines = 128;
@@ -87,22 +146,36 @@ public sealed class LiquidSurfaceWave
     /// (tile*<see cref="PhaseTileStep"/> + vertex*<see cref="PhaseVertexStep"/> + frame) &amp; <see cref="PhaseMask"/>:
     /// water's ((tile*0x10000 + vertex*0x8000 + 4096*frame) &amp; 0x1FFFF) is 4096 times its index, as every term is a
     /// multiple of 4096 (and the wrap of an overflowing product keeps its low 17 bits); lava's is DK2's own mask.</summary>
-    public static int PhaseTileStep(LiquidSurface kind) => kind == LiquidSurface.Water ? 16 : -64;
+    public static int PhaseTileStep(LiquidSurface kind)
+    {
+        return kind == LiquidSurface.Water ? 16 : -64;
+    }
 
     /// <inheritdoc cref="PhaseTileStep"/>
-    public static int PhaseVertexStep(LiquidSurface kind) => kind == LiquidSurface.Water ? 8 : 32;
+    public static int PhaseVertexStep(LiquidSurface kind)
+    {
+        return kind == LiquidSurface.Water ? 8 : 32;
+    }
 
     /// <inheritdoc cref="PhaseTileStep"/>
-    public static int PhaseMask(LiquidSurface kind) => kind == LiquidSurface.Water ? 31 : 127;
+    public static int PhaseMask(LiquidSurface kind)
+    {
+        return kind == LiquidSurface.Water ? 31 : 127;
+    }
 
     /// <summary>The index into <see cref="Sines"/> of one axis at vertex step <paramref name="vertex"/> (0 to 2) of tile
     /// coordinate <paramref name="tile"/> at <paramref name="frame"/>: integer steps only, as a shader evaluates them.</summary>
-    public static int PhaseIndex(LiquidSurface kind, int tile, int vertex, int frame) =>
-        ((tile * PhaseTileStep(kind)) + (vertex * PhaseVertexStep(kind)) + frame) & PhaseMask(kind);
+    public static int PhaseIndex(LiquidSurface kind, int tile, int vertex, int frame)
+    {
+        return ((tile * PhaseTileStep(kind)) + (vertex * PhaseVertexStep(kind)) + frame) & PhaseMask(kind);
+    }
 
     /// <summary>The liquid's sine table: entry n is the sine DK2's masked phase n (times 4096 for water) gives,
     /// evaluated once as <see cref="Phase"/> always did, so a shader reading it gets the same floats.</summary>
-    public static ReadOnlySpan<float> Sines(LiquidSurface kind) => kind == LiquidSurface.Water ? WaterSines : LavaSines;
+    public static ReadOnlySpan<float> Sines(LiquidSurface kind)
+    {
+        return kind == LiquidSurface.Water ? WaterSines : LavaSines;
+    }
 
     private static float[] BuildSines(LiquidSurface kind)
     {
@@ -120,22 +193,32 @@ public sealed class LiquidSurfaceWave
     /// <summary>The sine of one axis at vertex step <paramref name="vertex"/> (0 to 2) of tile coordinate
     /// <paramref name="tile"/>: water's ((tile*0x10000 + vertex*0x8000 + 4096*frame) &amp; 0x1FFFF)*pi/65536, lava's
     /// ((vertex*32 - tile*64 + frame) &amp; 127)*pi/64; two tiles a period.</summary>
-    public static float Phase(LiquidSurface kind, int tile, int vertex, int frame) =>
-        Sines(kind)[PhaseIndex(kind, tile, vertex, frame)];
+    public static float Phase(LiquidSurface kind, int tile, int vertex, int frame)
+    {
+        return Sines(kind)[PhaseIndex(kind, tile, vertex, frame)];
+    }
 
     /// <summary>The surface's height above the floor at a vertex whose row and column phases are given: DK2's z (up is
     /// -z) is -0.9 - 0.03*s for water and -0.85 + 0.04*s for lava.</summary>
-    public static float Height(LiquidSurface kind, float row, float column) =>
-        kind == LiquidSurface.Water
+    public static float Height(LiquidSurface kind, float row, float column)
+    {
+        return kind == LiquidSurface.Water
             ? WaterRest + (WaterAmplitude * (row + column))
             : LavaRest - (LavaAmplitude * (row + column));
+    }
 
     /// <summary>The rest height of <see cref="Height"/>.</summary>
-    public static float Rest(LiquidSurface kind) => kind == LiquidSurface.Water ? WaterRest : LavaRest;
+    public static float Rest(LiquidSurface kind)
+    {
+        return kind == LiquidSurface.Water ? WaterRest : LavaRest;
+    }
 
     /// <summary>The amplitude of <see cref="Height"/> with its sign: rest + amplitude*(row + column) is
     /// <see cref="Height"/> to the bit, as a negated product is exact.</summary>
-    public static float SignedAmplitude(LiquidSurface kind) => kind == LiquidSurface.Water ? WaterAmplitude : -LavaAmplitude;
+    public static float SignedAmplitude(LiquidSurface kind)
+    {
+        return kind == LiquidSurface.Water ? WaterAmplitude : -LavaAmplitude;
+    }
 
     /// <summary>One vertex of the wave on its own, as a vertex shader computes it from its grid point and the frame alone:
     /// its tile's nine heights, then the unit normals of the triangles of <see cref="Triangles"/> that share it, summed in
@@ -177,7 +260,13 @@ public sealed class LiquidSurfaceWave
 
     /// <summary>Each vertex's grid point (its tile and its half-tile steps east and south), in vertex order: what a
     /// shader needs to wave it (<see cref="Vertex"/>).</summary>
-    public LiquidGridPoint[] Points => _points;
+    public LiquidGridPoint[] Points
+    {
+        get
+        {
+            return _points;
+        }
+    }
 
     /// <summary>Takes every tile of <paramref name="kinds"/> (a surface kind per tile index) that is this liquid, lays
     /// their grids out and waves them at frame 0.</summary>

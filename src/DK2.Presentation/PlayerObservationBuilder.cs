@@ -96,7 +96,13 @@ public sealed class PlayerObservationBuilder
         _panel = new BottomPanelView(database, player, (_, name) => name);
     }
 
-    public PlayerId Player => _player;
+    public PlayerId Player
+    {
+        get
+        {
+            return _player;
+        }
+    }
 
     /// <summary>What the observation does not yet carry; a run reports these as unchecked coverage.
     /// Phase Intro covers any scripted camera path, mid-level introductions included.</summary>

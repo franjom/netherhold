@@ -20,8 +20,10 @@ public sealed class PossessionHudView
     public PossessionHudView(GameDatabase database, InstallPossessionHudArt art) { _database = database; _art = art; }
 
     public PossessionHudSnapshot? Capture(WorldState world, PlayerId viewer, PossessionControls controls,
-        PossessionCarryState carry = PossessionCarryState.Empty) =>
-        Capture(world, viewer, controls, firstPersonCameraSettled: true, carry);
+        PossessionCarryState carry = PossessionCarryState.Empty)
+    {
+        return Capture(world, viewer, controls, firstPersonCameraSettled: true, carry);
+    }
 
     public PossessionHudSnapshot? Capture(WorldState world, PlayerId viewer, PossessionControls controls,
         bool firstPersonCameraSettled, PossessionCarryState carry = PossessionCarryState.Empty)
@@ -122,9 +124,11 @@ public sealed class PossessionHudView
             new(creature.GoldHeld), icons, followers) { Overlays = overlays, CarriedGoldIcon = _art.GoldIcon };
     }
     /// <summary>Selected is player +0x76 mask 2 (the held-book flag), not the interface action selection.</summary>
-    public static PossessionHudIcon ThrowIcon(PossessionCarryState carry, bool selected) =>
-        new("GUI\\Icons\\1st-person\\" + (carry == PossessionCarryState.HoldingThing ? "throw_imp-mode"
+    public static PossessionHudIcon ThrowIcon(PossessionCarryState carry, bool selected)
+    {
+        return new("GUI\\Icons\\1st-person\\" + (carry == PossessionCarryState.HoldingThing ? "throw_imp-mode"
             : selected ? "throw_book-mode" : "throw-mode"), 100, selected || carry == PossessionCarryState.HoldingThing);
+    }
 
     /// <summary>The HUD recharge getters omit the combat work-rate divisor (0x0048CA10, 0x0048C8B0).</summary>
     public static int Recharge(GameTick now, long stamp, int intervalTicks)

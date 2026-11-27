@@ -14,18 +14,42 @@ namespace DK2.Presentation;
 public readonly record struct ClassicMaterialRecipe(string Texture, KmfBlend Blend, float SelfIllumination)
 {
     /// <summary>Only an opaque draw writes depth: DK2's blended states clear z-write (<c>0x0057C420</c>).</summary>
-    public bool WritesDepth => Blend == KmfBlend.Opaque;
+    public bool WritesDepth
+    {
+        get
+        {
+            return Blend == KmfBlend.Opaque;
+        }
+    }
 
     /// <summary>Alpha-blended or additive: drawn after the opaque terrain, back to front.</summary>
-    public bool IsBlended => Blend != KmfBlend.Opaque;
+    public bool IsBlended
+    {
+        get
+        {
+            return Blend != KmfBlend.Opaque;
+        }
+    }
 
     /// <summary>Whether light added on top of the material changes it (the dig tag, the red highlight, a terrain
     /// tint). An additive material is already drawn at full white, so added light leaves it as it is.</summary>
-    public bool TakesAddedLight => Blend != KmfBlend.Additive;
+    public bool TakesAddedLight
+    {
+        get
+        {
+            return Blend != KmfBlend.Additive;
+        }
+    }
 
     /// <summary>The self-illumination drawn as added light, 0 to 1 a channel; an additive material, already
     /// white, adds none.</summary>
-    public float AddedLight => Blend == KmfBlend.Additive ? 0f : SelfIllumination;
+    public float AddedLight
+    {
+        get
+        {
+            return Blend == KmfBlend.Additive ? 0f : SelfIllumination;
+        }
+    }
 
     /// <summary>A model material's recipe: the first named texture (alternative <paramref name="textureIndex"/>,
     /// clamped to the list), else the environment texture, as the converter orders them; an opaque untextured one

@@ -25,10 +25,38 @@ public enum BlueprintTint : byte { None, Blue, Red }
 public readonly record struct StructureView(StructureId Id, TilePos Tile, PlayerId Owner, AssetRef Mesh,
     int Heading, bool UnderConstruction, int Height)
 {
-    public int PosX => Tile.X * Fp32.One + Fp32.One / 2;
-    public int PosY => Tile.Y * Fp32.One + Fp32.One / 2;
-    public int MeshYaw => (Heading + 0x400) & 0x7FF;
-    public bool LastFrame => Id.Kind == StructureKind.Door;
+    public int PosX
+    {
+        get
+        {
+            return Tile.X * Fp32.One + Fp32.One / 2;
+        }
+    }
+
+    public int PosY
+    {
+        get
+        {
+            return Tile.Y * Fp32.One + Fp32.One / 2;
+        }
+    }
+
+    public int MeshYaw
+    {
+        get
+        {
+            return (Heading + 0x400) & 0x7FF;
+        }
+    }
+
+    public bool LastFrame
+    {
+        get
+        {
+            return Id.Kind == StructureKind.Door;
+        }
+    }
+
     public AssetRef LockMesh { get; init; }
 
     /// <summary>The model's RenderInfo tint, one value for all three channels, added to every vertex's
@@ -41,8 +69,10 @@ public readonly record struct StructureView(StructureId Id, TilePos Tile, Player
     public BlueprintTint Plan { get; init; }
 
     /// <summary>Both are blueprints and only the plan colour differs: a blink, not a new model.</summary>
-    public bool IsBlinkOf(in StructureView other) =>
-        Plan != BlueprintTint.None && other.Plan != BlueprintTint.None && this with { Plan = other.Plan } == other;
+    public bool IsBlinkOf(in StructureView other)
+    {
+        return Plan != BlueprintTint.None && other.Plan != BlueprintTint.None && this with { Plan = other.Plan } == other;
+    }
 }
 
 public sealed partial class WorldView

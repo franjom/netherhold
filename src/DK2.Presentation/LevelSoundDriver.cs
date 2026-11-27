@@ -43,7 +43,13 @@ public sealed class LevelSoundDriver
         _hasAmbience = mixer.HasAmbience;
     }
 
-    public ClassicSoundMixer Mixer => _mixer;
+    public ClassicSoundMixer Mixer
+    {
+        get
+        {
+            return _mixer;
+        }
+    }
 
     /// <summary>The battles and music raises captured from each settled turn; the battle tab reads its records.</summary>
     public MusicWorldObserver Music { get; }
@@ -54,13 +60,17 @@ public sealed class LevelSoundDriver
     /// <summary>The simulation's thing sounds, once <see cref="Observe"/> has put it in the event chain.</summary>
     public WorldSoundDirector? WorldSounds { get; private set; }
 
-    public static SoundCategory LevelSpeechCategory(GameDatabase database) =>
-        new((database ?? throw new ArgumentNullException(nameof(database))).Level?.SoundCategory.ToLowerInvariant()
+    public static SoundCategory LevelSpeechCategory(GameDatabase database)
+    {
+        return new((database ?? throw new ArgumentNullException(nameof(database))).Level?.SoundCategory.ToLowerInvariant()
             ?? SoundCategory.Mentor.Name);
+    }
 
     /// <summary>The sink the simulation observes for its thing sounds, forwarding every event to <paramref name="downstream"/>.</summary>
-    public WorldSoundDirector Observe(ISimulationEventSink? downstream) =>
-        WorldSounds = new WorldSoundDirector(downstream, _viewer);
+    public WorldSoundDirector Observe(ISimulationEventSink? downstream)
+    {
+        return WorldSounds = new WorldSoundDirector(downstream, _viewer);
+    }
 
     /// <summary>Wire music and the scripted view's speech, Mentor lines and skips.</summary>
     public void WireSpeech(ScriptedViewDirector scriptedView)

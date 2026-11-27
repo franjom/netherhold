@@ -20,11 +20,16 @@ public static class MeshOrientation
 {
     /// <summary>A whole mesh turn: a yaw already in the renderer's frame (<see cref="ObjectView.MeshYaw"/>, or an
     /// interpolated one), the pitch about the model's X and the roll about its Y, in 1/2048ths of a turn.</summary>
-    public static RenderEuler Mesh(float meshYaw, float pitch, float roll) =>
-        new(meshYaw * 360f / 2048f, roll * 360f / 2048f, -pitch * 360f / 2048f);
+    public static RenderEuler Mesh(float meshYaw, float pitch, float roll)
+    {
+        return new(meshYaw * 360f / 2048f, roll * 360f / 2048f, -pitch * 360f / 2048f);
+    }
 
     /// <summary>A heading-only turn (structures, wall torches), degrees about Y.</summary>
-    public static float Heading(int yaw) => yaw * 360f / 2048f;
+    public static float Heading(int yaw)
+    {
+        return yaw * 360f / 2048f;
+    }
 
     /// <summary>A construction particle's mesh turn between two ticks: each angle takes the short way round
     /// (<see cref="LerpAngle"/>), then the heading gains the half turn.</summary>

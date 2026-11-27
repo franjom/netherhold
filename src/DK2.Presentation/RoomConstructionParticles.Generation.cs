@@ -10,8 +10,10 @@ namespace DK2.Presentation;
 
 public sealed partial class RoomConstructionParticles
 {
-    private static int FlightHeading(int x, int y) =>
-        (int)(Math.Atan2(x, -y) * 1024 / Math.PI + 2048) & 2047;
+    private static int FlightHeading(int x, int y)
+    {
+        return (int)(Math.Atan2(x, -y) * 1024 / Math.PI + 2048) & 2047;
+    }
 
     private static void AddInheritedVelocity(Emitter child, Emitter? parent, ViewEffectRequest request)
     {
@@ -22,7 +24,10 @@ public sealed partial class RoomConstructionParticles
     }
 
     private static ViewEffectRequest FreeRequest(ViewEffectRequest request, EffectId id,
-        FpPosition3 point, Dk2Angle heading) => new(id, request.Owner, point, heading);
+        FpPosition3 point, Dk2Angle heading)
+    {
+        return new(id, request.Owner, point, heading);
+    }
 
     private void Generate(Emitter emitter)
     {

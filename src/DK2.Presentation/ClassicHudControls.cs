@@ -27,50 +27,116 @@ public sealed class ClassicHudControls
     public ClassicOptionsPage OptionsPage { get; private set; }
     public ClassicSessionAction Confirmation { get; private set; }
     private ClassicSessionAction _sessionAction;
-    public bool GameOptionsVisible => OptionsVisible && OptionsPage == ClassicOptionsPage.GameOptions;
-    public bool ObjectiveVisible => OptionsVisible && OptionsPage == ClassicOptionsPage.Objective;
+    public bool GameOptionsVisible
+    {
+        get
+        {
+            return OptionsVisible && OptionsPage == ClassicOptionsPage.GameOptions;
+        }
+    }
+
+    public bool ObjectiveVisible
+    {
+        get
+        {
+            return OptionsVisible && OptionsPage == ClassicOptionsPage.Objective;
+        }
+    }
+
     /// <summary>Whether the options menu's own page shows (<see cref="OptionsHud"/>): open, and not on the pages other
     /// panels draw (save, load, game options).</summary>
-    public bool OptionsMenuVisible => OptionsVisible && OptionsPage != ClassicOptionsPage.Save
+    public bool OptionsMenuVisible
+    {
+        get
+        {
+            return OptionsVisible && OptionsPage != ClassicOptionsPage.Save
         && OptionsPage != ClassicOptionsPage.Load && !GameOptionsVisible;
+        }
+    }
+
     /// <summary>The options menu's own page under the HUD's visibility: <see cref="OptionsMenuVisible"/> while the normal
     /// HUD shows.</summary>
-    public bool OptionsMenuShown(HudVisibility hud) => hud.ShowNormalHud && OptionsMenuVisible;
+    public bool OptionsMenuShown(HudVisibility hud)
+    {
+        return hud.ShowNormalHud && OptionsMenuVisible;
+    }
+
     /// <summary>The game options pages (<see cref="GameOptionsHud"/>) under the HUD's visibility: <see cref="GameOptionsVisible"/>
     /// while the normal HUD shows.</summary>
-    public bool GameOptionsShown(HudVisibility hud) => hud.ShowNormalHud && GameOptionsVisible;
+    public bool GameOptionsShown(HudVisibility hud)
+    {
+        return hud.ShowNormalHud && GameOptionsVisible;
+    }
+
     /// <summary>A panel that holds the screen is open (the options menu or the full map): the other panels and the world
     /// take no ordinary input.</summary>
-    public bool Modal => OptionsVisible || FullMapVisible;
+    public bool Modal
+    {
+        get
+        {
+            return OptionsVisible || FullMapVisible;
+        }
+    }
+
     /// <summary>Whether the named-save browser shows (<see cref="SaveLoadHud"/>): the options menu open on its save or
     /// load page.</summary>
-    public bool SaveLoadVisible => OptionsVisible && OptionsPage is ClassicOptionsPage.Save or ClassicOptionsPage.Load;
+    public bool SaveLoadVisible
+    {
+        get
+        {
+            return OptionsVisible && OptionsPage is ClassicOptionsPage.Save or ClassicOptionsPage.Load;
+        }
+    }
+
     /// <summary>The in-game save browser follows HUD visibility. It is shown while
     /// <see cref="SaveLoadVisible"/> and the normal HUD shows; saving on the save page, where the name is typed in.</summary>
-    public (bool Shown, bool Saving) SaveLoadPage(HudVisibility hud) =>
-        (hud.ShowNormalHud && SaveLoadVisible, OptionsPage == ClassicOptionsPage.Save);
+    public (bool Shown, bool Saving) SaveLoadPage(HudVisibility hud)
+    {
+        return (hud.ShowNormalHud && SaveLoadVisible, OptionsPage == ClassicOptionsPage.Save);
+    }
+
     /// <summary>The save page's name field takes the keys, so no HUD shortcut fires.</summary>
-    public bool EditingText => OptionsVisible && OptionsPage == ClassicOptionsPage.Save;
+    public bool EditingText
+    {
+        get
+        {
+            return OptionsVisible && OptionsPage == ClassicOptionsPage.Save;
+        }
+    }
+
     /// <summary>No turn runs, and none accrues, while the options menu is open; the bottom panel shows the game paused.</summary>
-    public bool TicksPaused => OptionsVisible;
+    public bool TicksPaused
+    {
+        get
+        {
+            return OptionsVisible;
+        }
+    }
 
     /// <summary>A panel's visibility under <see cref="Modal"/>: shown as <paramref name="hud"/> says, taking input only
     /// while nothing modal is open.</summary>
-    public HudVisibility ModalInput(HudVisibility hud) => new(hud.ShowNormalHud, hud.AllowOrdinaryInput && !Modal);
+    public HudVisibility ModalInput(HudVisibility hud)
+    {
+        return new(hud.ShowNormalHud, hud.AllowOrdinaryInput && !Modal);
+    }
 
     /// <summary>The context the HUD shortcuts are read in (<see cref="GameBindingInput.HudShortcut"/>).</summary>
     /// <param name="camera">The camera's visibility (the scripted view's), before this state's own gates.</param>
     /// <param name="allowOptionsKey">False while a scripted camera path plays, which holds the options key back.</param>
     /// <param name="capturingKey">A key binding is being captured on the controls page.</param>
-    public GameShortcutContext ShortcutContext(HudVisibility camera, bool allowOptionsKey, bool capturingKey) => new()
+    public GameShortcutContext ShortcutContext(HudVisibility camera, bool allowOptionsKey, bool capturingKey)
     {
-        OrdinaryInput = camera.AllowOrdinaryInput && !InputSuppressed,
-        AllowOptionsKey = allowOptionsKey,
-        OptionsVisible = OptionsVisible,
-        FullMapVisible = FullMapVisible,
-        EditingText = EditingText,
-        CapturingKey = capturingKey,
-    };
+        return new()
+        {
+            OrdinaryInput = camera.AllowOrdinaryInput && !InputSuppressed,
+            AllowOptionsKey = allowOptionsKey,
+            OptionsVisible = OptionsVisible,
+            FullMapVisible = FullMapVisible,
+            EditingText = EditingText,
+            CapturingKey = capturingKey,
+        };
+    }
+
     public ClassicSessionAction TakeSessionAction()
     {
         ClassicSessionAction action = _sessionAction;
@@ -80,18 +146,27 @@ public sealed class ClassicHudControls
     public bool FullMapVisible { get; private set; }
     /// <summary>The full map under the camera's visibility (the scripted view's, before this state's own gates, which
     /// hide the normal HUD under the map): <see cref="FullMapVisible"/> while the camera shows the normal HUD.</summary>
-    public bool FullMapShown(HudVisibility camera) => camera.ShowNormalHud && FullMapVisible;
+    public bool FullMapShown(HudVisibility camera)
+    {
+        return camera.ShowNormalHud && FullMapVisible;
+    }
+
     public bool InputSuppressed { get; private set; }
 
     /// <summary>Whether a host acts on a HUD action at all (HudActionRouter's gate): not None, input not
     /// suppressed, and while <see cref="Modal"/> none of the camera's and the minimap's own actions (navigation, the query
     /// and sell corners, zoom), which the host applies itself rather than through <see cref="Apply"/>.</summary>
-    public bool Accepts(ClassicHudAction action) =>
-        action != ClassicHudAction.None && !InputSuppressed
+    public bool Accepts(ClassicHudAction action)
+    {
+        return action != ClassicHudAction.None && !InputSuppressed
         && !(Modal && action is ClassicHudAction.NavigateHeart or ClassicHudAction.NavigatePortal or ClassicHudAction.NavigateFight
             or ClassicHudAction.SelectQuery or ClassicHudAction.SelectSell or ClassicHudAction.ZoomIn or ClassicHudAction.ZoomOut);
+    }
 
-    public void SetGuiVisible(bool visible) => GuiVisible = visible;
+    public void SetGuiVisible(bool visible)
+    {
+        GuiVisible = visible;
+    }
 
     [Dk2Behavior(Confidence.StronglyInferred, "docs/research/hud-visibility.md#result-and-special-player-state-binary-2026-10-24")]
     public void UpdateResult(HudResultState result, CameraModeId camera = default)
@@ -228,8 +303,10 @@ public sealed class ClassicHudControls
         Confirmation = action;
         OptionsPage = ClassicOptionsPage.Confirmation;
     }
-    public HudVisibility Visibility(HudVisibility camera) =>
-        new(camera.ShowNormalHud && GuiVisible && !FullMapVisible, camera.AllowOrdinaryInput && !InputSuppressed);
+    public HudVisibility Visibility(HudVisibility camera)
+    {
+        return new(camera.ShowNormalHud && GuiVisible && !FullMapVisible, camera.AllowOrdinaryInput && !InputSuppressed);
+    }
 }
 
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/minimap-controls.md")]
@@ -276,6 +353,8 @@ public static class ClassicHudControlLayout
             default: target = default; return false;
         }
     }
-    private static bool In(Vector2 p,float left,float top,float right,float bottom) =>
-        p.X >= left && p.X < right && p.Y >= top && p.Y < bottom;
+    private static bool In(Vector2 p, float left, float top, float right, float bottom)
+    {
+        return p.X >= left && p.X < right && p.Y >= top && p.Y < bottom;
+    }
 }

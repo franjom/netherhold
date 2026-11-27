@@ -44,10 +44,19 @@ public static class TerrainCeiling
 
     /// <summary>The 8 triangles of a piece, three vertex indices each, in DK2's order: the diagonal
     /// of each quad alternates with the parity of its row plus its column.</summary>
-    public static ReadOnlySpan<byte> Triangles => TriangleIndices;
+    public static ReadOnlySpan<byte> Triangles
+    {
+        get
+        {
+            return TriangleIndices;
+        }
+    }
 
     /// <summary>The texture coordinate of vertex (r, c): the whole texture once a tile.</summary>
-    public static (float U, float V) Uv(int row, int column) => (column * 0.5f, row * 0.5f);
+    public static (float U, float V) Uv(int row, int column)
+    {
+        return (column * 0.5f, row * 0.5f);
+    }
 
     /// <summary>Marks the tiles a roof treats as wall (<c>0x005091C0</c>): solid terrain, or a tile
     /// holding a pillar object, including the room pillars this remake represents virtually.</summary>
@@ -106,8 +115,10 @@ public static class TerrainCeiling
     }
 
     /// <summary>True when (x, y) gets a roof piece: on the map and not closed.</summary>
-    public static bool Has(int width, int height, ReadOnlySpan<bool> closed, int x, int y) =>
-        (uint)x < (uint)width && (uint)y < (uint)height && !closed[(y * width) + x];
+    public static bool Has(int width, int height, ReadOnlySpan<bool> closed, int x, int y)
+    {
+        return (uint)x < (uint)width && (uint)y < (uint)height && !closed[(y * width) + x];
+    }
 
     /// <summary>The nine heights of tile (x, y)'s piece. Each blends the nibbles of the four tiles
     /// whose least corners are the piece's corners; the centre, and an edge's midpoint when the tile

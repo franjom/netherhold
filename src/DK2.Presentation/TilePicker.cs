@@ -31,8 +31,10 @@ public static class TilePicker
     private const int StepLimit = 4;
 
     /// <summary>The first tile whose column the ray meets at the heights the scene draws (<see cref="TileHeights"/>).</summary>
-    public static TilePos? Pick(in PickRay ray, WorldView view, WorldState world) =>
-        Pick(ray, view, world, TileHeights.Solid, TileHeights.Open);
+    public static TilePos? Pick(in PickRay ray, WorldView view, WorldState world)
+    {
+        return Pick(ray, view, world, TileHeights.Solid, TileHeights.Open);
+    }
 
     /// <summary>
     /// The first tile whose column the ray meets, or null if it meets none.
@@ -106,11 +108,15 @@ public static class TilePicker
         return null;
     }
 
-    private static float Boundary(float origin, float direction, int tile, int step) =>
-        direction == 0f
+    private static float Boundary(float origin, float direction, int tile, int step)
+    {
+        return direction == 0f
             ? float.PositiveInfinity
             : (step > 0 ? tile + 1 - origin : tile - origin) / direction;
+    }
 
-    private static float Span(float direction) =>
-        direction == 0f ? float.PositiveInfinity : MathF.Abs(1f / direction);
+    private static float Span(float direction)
+    {
+        return direction == 0f ? float.PositiveInfinity : MathF.Abs(1f / direction);
+    }
 }

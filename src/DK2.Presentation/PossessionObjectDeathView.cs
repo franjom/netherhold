@@ -10,7 +10,9 @@ namespace DK2.Presentation;
 /// <summary>Camera_SetMode's non-class-6 mode-11 target, 0x0044BA14..0x0044BA62.</summary>
 public static class PossessionObjectDeathView
 {
-    public static CameraFlightState Target(in CameraFlightState current, CameraThing preset, Fp32 floorHeight) =>
-        new(current.X, current.Y, floorHeight.Raw + 0x100, preset.Zoom, preset.Lens, 0,
+    public static CameraFlightState Target(in CameraFlightState current, CameraThing preset, Fp32 floorHeight)
+    {
+        return new(current.X, current.Y, floorHeight.Raw + 0x100, preset.Zoom, preset.Lens, 0,
             current.Yaw & 0x7FF, 400, 200);
+    }
 }

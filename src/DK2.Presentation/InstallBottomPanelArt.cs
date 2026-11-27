@@ -120,14 +120,41 @@ public sealed class InstallBottomPanelArt : IBottomPanelArt, IDisposable
         }
     }
 
-    public string? Icon(BottomPanelChoiceKey key) => _icons.TryGetValue(key, out string? name) ? name : null;
-    public string? UpgradedIcon(BottomPanelChoiceKey key) => _upgradedIcons.TryGetValue(key, out string? name) ? name : null;
+    public string? Icon(BottomPanelChoiceKey key)
+    {
+        return _icons.TryGetValue(key, out string? name) ? name : null;
+    }
+
+    public string? UpgradedIcon(BottomPanelChoiceKey key)
+    {
+        return _upgradedIcons.TryGetValue(key, out string? name) ? name : null;
+    }
+
     /// <summary>The panel order of a spell, door or trap (its record's order byte); otherwise the key's own value.</summary>
-    public int Order(BottomPanelChoiceKey key) => _order.TryGetValue(key, out int order) ? order : key.Value;
-    public string Name(BottomPanelChoiceKey key, string fallback) => _names.TryGetValue(key, out string? name) ? name : fallback;
-    public string Text(uint id) => _strings.Resolve(id);
-    public RgbaImage Image(string name) => _sources.Texture(name);
-    public BitmapFont Font(int screenHeight) => _sources.Font(InterfaceFonts.LegibleFileName(screenHeight));
+    public int Order(BottomPanelChoiceKey key)
+    {
+        return _order.TryGetValue(key, out int order) ? order : key.Value;
+    }
+
+    public string Name(BottomPanelChoiceKey key, string fallback)
+    {
+        return _names.TryGetValue(key, out string? name) ? name : fallback;
+    }
+
+    public string Text(uint id)
+    {
+        return _strings.Resolve(id);
+    }
+
+    public RgbaImage Image(string name)
+    {
+        return _sources.Texture(name);
+    }
+
+    public BitmapFont Font(int screenHeight)
+    {
+        return _sources.Font(InterfaceFonts.LegibleFileName(screenHeight));
+    }
 
     public void Dispose()
     {

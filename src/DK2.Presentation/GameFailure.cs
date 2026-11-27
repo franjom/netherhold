@@ -111,12 +111,17 @@ public static class GameFailureCopy
     }
 
     /// <summary>An error message as a sentence: its first letter capitalised.</summary>
-    private static string Sentence(string text) =>
-        char.IsLower(text[0]) ? char.ToUpperInvariant(text[0]) + text.Substring(1) : text;
+    private static string Sentence(string text)
+    {
+        return char.IsLower(text[0]) ? char.ToUpperInvariant(text[0]) + text.Substring(1) : text;
+    }
 
     /// <summary>Whether a failure screen waits for a choice: only with a display. A run without one (<c>--headless</c>) logs
     /// the failure and quits with <see cref="ExitCode"/>, so a script sees it.</summary>
-    public static bool WaitsForChoice(bool hasDisplay) => hasDisplay;
+    public static bool WaitsForChoice(bool hasDisplay)
+    {
+        return hasDisplay;
+    }
 
     /// <summary>The choice <paramref name="key"/> takes: Enter the first, Esc the Quit; null when the screen has none.</summary>
     public static GameFailureAction? ForKey(GameFailureScreen screen, GameFailureKey key)

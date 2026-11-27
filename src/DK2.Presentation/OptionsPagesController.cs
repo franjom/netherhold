@@ -106,7 +106,10 @@ public sealed class OptionsPagesController
 
         return false;
     }
-    public void CancelKeyCapture() => CapturingAction = null;
+    public void CancelKeyCapture()
+    {
+        CapturingAction = null;
+    }
 
     /// <summary>The slider drag's test sounds (docs/research/sound-effects-interface.md section 4).</summary>
     public SoundRequests Sounds { get; } = new();
@@ -159,7 +162,11 @@ public sealed class OptionsPagesController
         Sounds.Add(new SoundRequest(SoundCategory.None, default, Voice: SliderVoice, Stop: true));
     }
 
-    private static SoundRequest Request(string category, uint id) => new(new SoundCategory(category), new SoundId(id), Voice: SliderVoice);
+    private static SoundRequest Request(string category, uint id)
+    {
+        return new(new SoundCategory(category), new SoundId(id), Voice: SliderVoice);
+    }
+
     public void Enter(FrontEndPage page, OptionsApplicationMode applicationMode = OptionsApplicationMode.FrontEnd)
     {
         if (Page == page && _applicationMode == applicationMode)
@@ -220,24 +227,55 @@ public sealed class OptionsPagesController
 
         return SetWidget(id, id == 133 ? Value(id) % 3 + 1 : Value(id) == 0 ? 1 : 0);
     }
-    public bool Supports(ushort id) => id is 900 or 126 or 133 or 139 or 141 or 143 or 144
+    public bool Supports(ushort id)
+    {
+        return id is 900 or 126 or 133 or 139 or 141 or 143 or 144
         or 676 or 677 or 678 or 154 or 156 or 158 || id == 128 && CreatureShadowsSupported;
-    public (int Minimum, int Maximum) Range(ushort id) => id switch
+    }
+
+    public (int Minimum, int Maximum) Range(ushort id)
     {
-        900 => (50, 200), 126 => (15, 60), 128 => (0, 3), 133 => (1, 3),
-        139 or 141 or 143 or 144 => (0, 100), 154 => (1, 16), 156 or 158 => (5, 20), _ => (0, 1),
-    };
-    public int Value(ushort id) => id switch
+        return id switch
+        {
+            900 => (50, 200),
+            126 => (15, 60),
+            128 => (0, 3),
+            133 => (1, 3),
+            139 or 141 or 143 or 144 => (0, 100),
+            154 => (1, 16),
+            156 or 158 => (5, 20),
+            _ => (0, 1),
+        };
+    }
+
+    public int Value(ushort id)
     {
-        900 => Pending.UiScale, 116 => Pending.WaterTranslucency ? 1 : 0, 118 => Pending.EnvironmentMapping ? 1 : 0,
-        126 => Pending.Gamma, 128 => Pending.ShadowLevel, 133 => Pending.SoundQuality,
-        135 => Pending.Headphones ? 1 : 0, 139 => Pending.MasterVolume, 141 => Pending.SpeechVolume,
-        143 => Pending.MusicVolume, 144 => Pending.SoundEffectVolume, 137 => Pending.QSound ? 1 : 0,
-        674 => Pending.EnvironmentalEffects ? 1 : 0, 676 => Pending.MusicSwitch ? 1 : 0,
-        677 => Pending.SfxSwitch ? 1 : 0, 678 => Pending.SpeechSwitch ? 1 : 0,
-        152 => Pending.InvertMouse ? 1 : 0, 154 => Pending.GameSpeed, 156 => Pending.MouseSensitivity,
-        158 => Pending.ScrollSpeed, _ => 0,
-    };
+        return id switch
+        {
+            900 => Pending.UiScale,
+            116 => Pending.WaterTranslucency ? 1 : 0,
+            118 => Pending.EnvironmentMapping ? 1 : 0,
+            126 => Pending.Gamma,
+            128 => Pending.ShadowLevel,
+            133 => Pending.SoundQuality,
+            135 => Pending.Headphones ? 1 : 0,
+            139 => Pending.MasterVolume,
+            141 => Pending.SpeechVolume,
+            143 => Pending.MusicVolume,
+            144 => Pending.SoundEffectVolume,
+            137 => Pending.QSound ? 1 : 0,
+            674 => Pending.EnvironmentalEffects ? 1 : 0,
+            676 => Pending.MusicSwitch ? 1 : 0,
+            677 => Pending.SfxSwitch ? 1 : 0,
+            678 => Pending.SpeechSwitch ? 1 : 0,
+            152 => Pending.InvertMouse ? 1 : 0,
+            154 => Pending.GameSpeed,
+            156 => Pending.MouseSensitivity,
+            158 => Pending.ScrollSpeed,
+            _ => 0,
+        };
+    }
+
     public bool SetWidget(ushort id, int value)
     {
         if (!Supports(id))

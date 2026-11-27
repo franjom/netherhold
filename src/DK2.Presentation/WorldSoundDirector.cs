@@ -20,7 +20,11 @@ public sealed class WorldSoundDirector(ISimulationEventSink? downstream = null, 
     : ISimulationEventSink
 {
     private readonly ConcurrentQueue<SoundRequest> _pending = new();
-    public bool TryTake(out SoundRequest request) => _pending.TryDequeue(out request);
+    public bool TryTake(out SoundRequest request)
+    {
+        return _pending.TryDequeue(out request);
+    }
+
     private uint _alternator;
     private readonly SoundCategoryNames _categories = new();
 
@@ -52,8 +56,13 @@ public sealed class WorldSoundDirector(ISimulationEventSink? downstream = null, 
     }
 
     /// <summary>A creature's own voice, the one its simulation sounds use: DK2's handle at creature <c>+0x2E</c>.</summary>
-    public static SoundVoiceId CreatureVoice(int creatureId) => VoiceOf(new SoundSourceId(SoundSourceKind.Creature, creatureId));
+    public static SoundVoiceId CreatureVoice(int creatureId)
+    {
+        return VoiceOf(new SoundSourceId(SoundSourceKind.Creature, creatureId));
+    }
 
-    private static SoundVoiceId VoiceOf(SoundSourceId source) =>
-        new(0x80000000u | ((uint)source.Kind << 24) | ((uint)source.Value & 0x00FFFFFFu));
+    private static SoundVoiceId VoiceOf(SoundSourceId source)
+    {
+        return new(0x80000000u | ((uint)source.Kind << 24) | ((uint)source.Value & 0x00FFFFFFu));
+    }
 }

@@ -94,5 +94,8 @@ public static class ScreenColourTables
             table[2 * ChannelSize + i] = Word(b);
         }
     }
-    private static ushort Word(double value) => unchecked((ushort)(int)(65535 * value));
+    private static ushort Word(double value)
+    {
+        return unchecked((ushort)(int)(65535 * value));
+    }
 }

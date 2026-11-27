@@ -42,8 +42,10 @@ public static class InterfaceFonts
         };
     }
 
-    public static string IngameFileName(int baseSize, int screenWidth) =>
-        $"FONT_INGAME{IngamePointSize(baseSize, screenWidth)}.bf4";
+    public static string IngameFileName(int baseSize, int screenWidth)
+    {
+        return $"FONT_INGAME{IngamePointSize(baseSize, screenWidth)}.bf4";
+    }
 
     /// <summary>The shipped in-game sizes, smallest first.</summary>
     public static readonly int[] IngameSizes = [7, 8, 9, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72];
@@ -54,33 +56,47 @@ public static class InterfaceFonts
     /// 1080 and 36 at 1440. DK2 itself keeps size 10 at most widths (<see cref="IngamePointSize"/>),
     /// which the owner found unreadable at high resolutions (2026-10-17).
     /// </summary>
-    public static string LegibleFileName(int screenHeight) => LargestWithin(screenHeight, 40);
+    public static string LegibleFileName(int screenHeight)
+    {
+        return LargestWithin(screenHeight, 40);
+    }
 
     /// <summary>
     /// Our choice, not DK2's: the top status strip and the world hover popup use the largest
     /// shipped in-game size no bigger than a sixtieth of the screen height: 12 at 768, 18 at
     /// 1080 and 24 at 1440. The owner found the subtitle size too large for them (2026-10-19).
     /// </summary>
-    public static string HudTextFileName(int screenHeight) => LargestWithin(screenHeight, 60);
+    public static string HudTextFileName(int screenHeight)
+    {
+        return LargestWithin(screenHeight, 60);
+    }
 
     /// <summary>
     /// Our choice, not DK2's: hover tooltips use the largest shipped size within 1.3 × a 120th of
     /// the screen height, unscaled so the bitmap stays sharp. Half the status strip at the owner's
     /// request (2026-10-19), then about 30% larger (2026-10-20; "doesn't need to be exactly 30%").
     /// </summary>
-    public static string HudTooltipFileName(int screenHeight) => $"FONT_INGAME{HudTooltipFontSize(screenHeight)}.bf4";
+    public static string HudTooltipFileName(int screenHeight)
+    {
+        return $"FONT_INGAME{HudTooltipFontSize(screenHeight)}.bf4";
+    }
 
     /// <summary>Every font the in-game HUD draws with at this screen height: the status strip and
     /// hover popup, the tooltip, the legible panel text, and the message tabs' smaller legible
     /// size (85% of the height).</summary>
-    public static string[] HudFileNames(int screenHeight) =>
-    [
+    public static string[] HudFileNames(int screenHeight)
+    {
+        return [
         HudTextFileName(screenHeight), HudTooltipFileName(screenHeight),
         LegibleFileName(screenHeight), LegibleFileName(screenHeight * 85 / 100),
     ];
+    }
 
     /// <summary>The tooltip's target pixel height: 1.3 × height / 120.</summary>
-    public static float HudTooltipPixels(int screenHeight) => screenHeight * 1.3f / 120f;
+    public static float HudTooltipPixels(int screenHeight)
+    {
+        return screenHeight * 1.3f / 120f;
+    }
 
     /// <summary>The largest shipped size within <see cref="HudTooltipPixels"/>, or the smallest.</summary>
     public static int HudTooltipFontSize(int screenHeight)
@@ -211,18 +227,27 @@ public readonly record struct PlacedBitmapGlyph(BitmapGlyph Glyph, HudRect Rect)
 public static class BitmapTextPlacement
 {
     /// <summary>The wrap width, in font pixels, for a box drawn at a scale.</summary>
-    public static int WrapWidth(float boxWidth, float scale) => (int)MathF.Floor(boxWidth / scale);
+    public static int WrapWidth(float boxWidth, float scale)
+    {
+        return (int)MathF.Floor(boxWidth / scale);
+    }
 
     /// <summary>The placed glyphs, enumerated without allocating.</summary>
     public static PlacedBitmapGlyphs Place(BitmapFont font, HudRect box, IReadOnlyList<BitmapTextLine> lines, float scale,
-        bool centred = true) => new(font, box, lines, scale, centred);
+        bool centred = true)
+    {
+        return new(font, box, lines, scale, centred);
+    }
 }
 
 /// <summary>The glyphs <see cref="BitmapTextPlacement.Place"/> places, as a struct enumerable.</summary>
 public readonly struct PlacedBitmapGlyphs(BitmapFont font, HudRect box, IReadOnlyList<BitmapTextLine> lines, float scale,
     bool centred)
 {
-    public Enumerator GetEnumerator() => new(font, box, lines, scale, centred);
+    public Enumerator GetEnumerator()
+    {
+        return new(font, box, lines, scale, centred);
+    }
 
     public struct Enumerator
     {
@@ -309,7 +334,13 @@ public sealed class BitmapTextBlock
     public float Scale { get; private set; }
 
     /// <summary>The lines shown, wrapped to the box at the scale (<see cref="BitmapTextPlacement.WrapWidth"/>).</summary>
-    public IReadOnlyList<BitmapTextLine> Lines => _lines;
+    public IReadOnlyList<BitmapTextLine> Lines
+    {
+        get
+        {
+            return _lines;
+        }
+    }
 
     /// <summary>Shows <paramref name="text"/> in <paramref name="font"/>, centred in <paramref name="box"/> at
     /// <paramref name="scale"/>; a null font or text shows nothing.</summary>
@@ -350,8 +381,14 @@ public sealed class BitmapTextBlock
     }
 
     /// <summary>The glyphs <see cref="BitmapTextPlacement.Place"/> places for the text shown, while <see cref="Font"/> is set.</summary>
-    public PlacedBitmapGlyphs Glyphs => BitmapTextPlacement.Place(
+    public PlacedBitmapGlyphs Glyphs
+    {
+        get
+        {
+            return BitmapTextPlacement.Place(
         Font ?? throw new InvalidOperationException("No text is shown."), Box, _lines, Scale);
+        }
+    }
 }
 
 /// <summary>
@@ -375,22 +412,34 @@ public static class SubtitleLayout
     }
 
     /// <summary>The win screen's text with speech off: an eighth of the screen high, from 70% down.</summary>
-    public static HudRect WinScreenBox(int screenWidth, int screenHeight) =>
-        new(0f, screenHeight * 0.70f, screenWidth, screenHeight / 8f);
+    public static HudRect WinScreenBox(int screenWidth, int screenHeight)
+    {
+        return new(0f, screenHeight * 0.70f, screenWidth, screenHeight / 8f);
+    }
 
     /// <summary>The level end's prompt (<see cref="CampaignResultFlow.Prompt"/>): a 30-pixel band, its top 60 pixels above
     /// the screen's bottom, across its whole width.</summary>
-    public static HudRect ResultPromptBox(int screenWidth, int screenHeight) => new(0f, screenHeight - 60f, screenWidth, 30f);
+    public static HudRect ResultPromptBox(int screenWidth, int screenHeight)
+    {
+        return new(0f, screenHeight - 60f, screenWidth, 30f);
+    }
 
     /// <summary>The cutscene title card: the whole screen, at <see cref="TitleScale"/>.</summary>
-    public static HudRect TitleBox(int screenWidth, int screenHeight) => new(0, 0, screenWidth, screenHeight);
+    public static HudRect TitleBox(int screenWidth, int screenHeight)
+    {
+        return new(0, 0, screenWidth, screenHeight);
+    }
 
     /// <summary>The TrueType label: the box's band, inset by 5% of the screen width each side, wrapped and centred.</summary>
-    public static HudRect TrueTypeLabel(HudRect box, int screenWidth) =>
-        new(screenWidth * 0.05f, box.Y, screenWidth * 0.9f, box.Height);
+    public static HudRect TrueTypeLabel(HudRect box, int screenWidth)
+    {
+        return new(screenWidth * 0.05f, box.Y, screenWidth * 0.9f, box.Height);
+    }
 
     /// <summary>The TrueType size in pixels: a thirtieth of the screen height times the scale (halves to even), at
     /// least 12.</summary>
-    public static int TrueTypePixelSize(int screenHeight, float scale) =>
-        Math.Max(12, (int)MathF.Round(screenHeight / 30f * scale));
+    public static int TrueTypePixelSize(int screenHeight, float scale)
+    {
+        return Math.Max(12, (int)MathF.Round(screenHeight / 30f * scale));
+    }
 }

@@ -59,22 +59,27 @@ public sealed class PlacementCursorHud
 
     /// <summary>The tool's cursor icon, or null for <see cref="PlacementIcon.Spell"/> (its own art), <see cref="PlacementIcon.Held"/>
     /// and <see cref="PlacementIcon.None"/>.</summary>
-    public static string? IconName(PlacementIcon icon) => icon switch
+    public static string? IconName(PlacementIcon icon)
     {
-        PlacementIcon.PlaceRoom => @"GUI\Cursors\I-Place_Room",
-        PlacementIcon.Sell => @"GUI\Cursors\I-Sell",
-        PlacementIcon.PlaceDoor => @"GUI\Cursors\I-Place_Door",
-        PlacementIcon.PlaceTrap => @"GUI\Cursors\I-Place_Trap",
-        PlacementIcon.Query => @"GUI\Cursors\I-Query",
-        PlacementIcon.Kill => @"GUI\Cursors\I-Kill",
-        PlacementIcon.Transfer => @"GUI\Cursors\I-Transfer",
-        _ => null,
-    };
+        return icon switch
+        {
+            PlacementIcon.PlaceRoom => @"GUI\Cursors\I-Place_Room",
+            PlacementIcon.Sell => @"GUI\Cursors\I-Sell",
+            PlacementIcon.PlaceDoor => @"GUI\Cursors\I-Place_Door",
+            PlacementIcon.PlaceTrap => @"GUI\Cursors\I-Place_Trap",
+            PlacementIcon.Query => @"GUI\Cursors\I-Query",
+            PlacementIcon.Kill => @"GUI\Cursors\I-Kill",
+            PlacementIcon.Transfer => @"GUI\Cursors\I-Transfer",
+            _ => null,
+        };
+    }
 
     /// <summary>The price's digit colour: light red for an affordable cost, red for one that is not, and cyan for a refund
     /// (HYPOTHESIS: 0xFFFFFF80 read assuming the costs' byte order, placement-cursor.md section 3).</summary>
-    public static HudColor PriceColour(int price, bool affordable) =>
-        price > 0 ? new HudColor(128, 255, 255) : affordable ? new HudColor(255, 128, 128) : new HudColor(255, 0, 0);
+    public static HudColor PriceColour(int price, bool affordable)
+    {
+        return price > 0 ? new HudColor(128, 255, 255) : affordable ? new HudColor(255, 128, 128) : new HudColor(255, 0, 0);
+    }
 
     /// <summary>Writes the cursor's draws for one frame into <paramref name="frame"/> (not cleared here).</summary>
     /// <param name="pointer">The pointer in screen pixels from the top left.</param>
@@ -193,11 +198,15 @@ public sealed class PlacementCursorHud
         return count;
     }
 
-    private static void Quad(HudFrame frame, HudScreen screen, string image, float x, float y, float size, HudColor tint) =>
+    private static void Quad(HudFrame frame, HudScreen screen, string image, float x, float y, float size, HudColor tint)
+    {
         frame.Add(new HudDraw(HudDrawKind.Quad, image, Rect(screen, x, y, size), tint));
+    }
 
-    private static HudRect Rect(HudScreen screen, float x, float y, float size) =>
-        new(screen.Virtual(x), screen.Virtual(y), screen.Virtual(size), screen.Virtual(size));
+    private static HudRect Rect(HudScreen screen, float x, float y, float size)
+    {
+        return new(screen.Virtual(x), screen.Virtual(y), screen.Virtual(size), screen.Virtual(size));
+    }
 
     private static string[] Digits(string family)
     {

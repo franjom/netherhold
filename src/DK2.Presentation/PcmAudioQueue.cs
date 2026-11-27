@@ -17,7 +17,14 @@ public sealed class PcmAudioQueue(int sampleRate)
     private long _remaining;
     public long RemainingFrames { get { lock (_gate) { return _remaining; } } }
     /// <summary>The frames per second the queue holds and reads, every queued clip's rate.</summary>
-    public int SampleRate => sampleRate;
+    public int SampleRate
+    {
+        get
+        {
+            return sampleRate;
+        }
+    }
+
     public void Enqueue(PcmClip clip, float gain = 1)
     {
         if (clip.SampleRate != sampleRate || clip.Channels is not (1 or 2) || clip.Samples.Length % clip.Channels != 0)
@@ -27,7 +34,10 @@ public sealed class PcmAudioQueue(int sampleRate)
 
         lock (_gate) { _queued.Enqueue((clip, gain)); _remaining += clip.Samples.Length / clip.Channels; }
     }
-    public void Read(float[] samples) => Read(samples.AsSpan());
+    public void Read(float[] samples)
+    {
+        Read(samples.AsSpan());
+    }
 
     /// <summary>Fills <paramref name="samples"/>, interleaved left and right, from the queued clips, silence past them.</summary>
     public void Read(Span<float> samples)

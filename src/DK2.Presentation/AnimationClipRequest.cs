@@ -21,20 +21,29 @@ public readonly record struct ObjectClipIdentity(AssetRef Mesh, GameTick? Starte
 /// <summary>The rules a renderer follows to start a creature's or an object's clip. Render only.</summary>
 public static class AnimationClipRequest
 {
-    public static CreatureClipIdentity Identity(in CreatureView creature, AssetRef animation) =>
-        new(creature.PlaysAnimation ? animation : default, creature.AnimationStartedAt, creature.AnimationLoops,
+    public static CreatureClipIdentity Identity(in CreatureView creature, AssetRef animation)
+    {
+        return new(creature.PlaysAnimation ? animation : default, creature.AnimationStartedAt, creature.AnimationLoops,
             creature.AnimationDeferred);
+    }
 
-    public static ObjectClipIdentity Identity(in ObjectView pose, AssetRef mesh) =>
-        new(mesh, pose.AnimationStartedAt, pose.AnimationLoops, pose.AddedLight, pose.AnimationInitialPhase);
+    public static ObjectClipIdentity Identity(in ObjectView pose, AssetRef mesh)
+    {
+        return new(mesh, pose.AnimationStartedAt, pose.AnimationLoops, pose.AddedLight, pose.AnimationInitialPhase);
+    }
 
     /// <summary>A deferred clip waits for the playing one to finish (<see cref="RenderAnimationClock.Replace"/>).</summary>
-    public static AnimationReplacement Replacement(in CreatureView creature) =>
-        creature.AnimationDeferred ? AnimationReplacement.Deferred : AnimationReplacement.Immediate;
+    public static AnimationReplacement Replacement(in CreatureView creature)
+    {
+        return creature.AnimationDeferred ? AnimationReplacement.Deferred : AnimationReplacement.Immediate;
+    }
 
     /// <summary>The clip's start on the draw clock (<see cref="PoseInterpolator.DrawSeconds"/>): the turn after the one
     /// it was started in, or now when the view gives no start.</summary>
-    public static double StartSeconds(GameTick? startedAt, double drawSeconds) => startedAt.HasValue
+    public static double StartSeconds(GameTick? startedAt, double drawSeconds)
+    {
+        return startedAt.HasValue
         ? (startedAt.Value.Value + 1d) / SimulationTiming.OriginalTicksPerGameSecond
         : drawSeconds;
+    }
 }

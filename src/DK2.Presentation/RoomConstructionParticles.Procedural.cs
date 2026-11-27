@@ -15,9 +15,11 @@ public sealed partial class RoomConstructionParticles
 {
     private readonly Dictionary<CreatureId, CreatureLightningVisual> _creatureLightning = [];
 
-    public bool ChooseCreatureCrackle(CreatureId creature, GameTick tick, bool animationInstalled) =>
-        _creatureLightning.TryGetValue(creature, out CreatureLightningVisual? visual)
+    public bool ChooseCreatureCrackle(CreatureId creature, GameTick tick, bool animationInstalled)
+    {
+        return _creatureLightning.TryGetValue(creature, out CreatureLightningVisual? visual)
             && visual.Choose(tick, animationInstalled);
+    }
 
     public void CollectProceduralEffects(List<ProceduralEffectView> effects)
     {

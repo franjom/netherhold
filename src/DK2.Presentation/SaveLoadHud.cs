@@ -40,7 +40,13 @@ public sealed class SaveLoadHud
         _font = font ?? throw new ArgumentNullException(nameof(font));
     }
 
-    public bool Visible => _visible && _view != null;
+    public bool Visible
+    {
+        get
+        {
+            return _visible && _view != null;
+        }
+    }
 
     /// <param name="save">Saving: the name is typed in; otherwise the selected save loads.</param>
     /// <param name="frontEnd">The front end's list, which has no title, name or buttons of its own.</param>
@@ -113,7 +119,10 @@ public sealed class SaveLoadHud
     }
 
     /// <summary>Whether a line that takes a press is at a point in virtual units.</summary>
-    public bool Hits(float x, float y) => Visible && LineAt(x, y) >= 0;
+    public bool Hits(float x, float y)
+    {
+        return Visible && LineAt(x, y) >= 0;
+    }
 
     /// <summary>A primary press on a line; true when one took it.</summary>
     public bool PointerDown(float x, float y, int button)
@@ -150,7 +159,13 @@ public sealed class SaveLoadHud
     }
 
     /// <summary>Saves listed at once: 7 in game, 11 in the front end.</summary>
-    private int Lines => _frontEnd ? 11 : 7;
+    private int Lines
+    {
+        get
+        {
+            return _frontEnd ? 11 : 7;
+        }
+    }
 
     private int LineAt(float x, float y)
     {

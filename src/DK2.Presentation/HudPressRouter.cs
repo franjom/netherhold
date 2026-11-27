@@ -15,10 +15,15 @@ namespace DK2.Presentation;
 public readonly record struct HudPress(bool Primary, bool Secondary, bool Shift = false, bool Control = false, bool Alt = false)
 {
     /// <summary>The held modifiers as the gold withdraw reads them (<see cref="KeeperResourceInteraction.WithdrawAmount"/>).</summary>
-    public KeeperResourceModifiers ResourceModifiers =>
-        (Shift ? KeeperResourceModifiers.Shift : KeeperResourceModifiers.None)
+    public KeeperResourceModifiers ResourceModifiers
+    {
+        get
+        {
+            return (Shift ? KeeperResourceModifiers.Shift : KeeperResourceModifiers.None)
         | (Control ? KeeperResourceModifiers.Control : KeeperResourceModifiers.None)
         | (Alt ? KeeperResourceModifiers.Alt : KeeperResourceModifiers.None);
+        }
+    }
 }
 
 /// <summary>What <see cref="HudPressRouter"/> asks of the adapter: the panels' hit tests under the pointer, the HUD action

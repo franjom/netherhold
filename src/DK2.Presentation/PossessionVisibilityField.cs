@@ -29,9 +29,20 @@ public sealed class PossessionVisibilityField
         _solid = new bool[_mask.Length];
     }
     /// <summary>One byte per map tile, row by row: 255 draws it, 0 leaves it out.</summary>
-    public ReadOnlySpan<byte> Mask => _mask;
-    public bool Contains(TilePos tile) => (uint)tile.X < (uint)_width && (uint)tile.Y < (uint)_height
+    public ReadOnlySpan<byte> Mask
+    {
+        get
+        {
+            return _mask;
+        }
+    }
+
+    public bool Contains(TilePos tile)
+    {
+        return (uint)tile.X < (uint)_width && (uint)tile.Y < (uint)_height
         && _mask[(tile.Y * _width) + tile.X] != 0;
+    }
+
     /// <summary>Builds from the world's solid terrain. Doors, pillars, liquids and other things are not blockers.</summary>
     public void Build(WorldState world, GameDatabase database, in ClassicCameraPose pose, CameraViewport viewport, float viewDistance)
     {

@@ -19,5 +19,8 @@ public sealed class FrontEndStartupGate
     }
 
     /// <summary>Reset the startup gate for a new run in the same process.</summary>
-    public void Reset() => Shown = false;
+    public void Reset()
+    {
+        Shown = false;
+    }
 }

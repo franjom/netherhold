@@ -40,18 +40,39 @@ public sealed class CampaignCutsceneRunner(ICampaignCutsceneHost host)
     /// <summary>The title card's text, or null when it has none.</summary>
     public string? Title { get; private set; }
 
-    public bool Playing => Cutscene != null;
+    public bool Playing
+    {
+        get
+        {
+            return Cutscene != null;
+        }
+    }
 
     /// <summary>The title card's voiced line, the Mentor-bank id after the title's text, or null when the card has no title;
     /// a host may decode it ahead (<see cref="ClassicSoundMixer.PrefetchSpeech"/>) so it starts when it is queued.</summary>
-    public SoundId? TitleSpeech => Cutscene != null && Title != null ? new SoundId(Cutscene.TitleTextId + 1) : null;
+    public SoundId? TitleSpeech
+    {
+        get
+        {
+            return Cutscene != null && Title != null ? new SoundId(Cutscene.TitleTextId + 1) : null;
+        }
+    }
 
     /// <summary>The title to draw this frame, or null once the card is over.</summary>
-    public string? VisibleTitle => Cutscene != null && _titlePhase < 3 ? Title : null;
+    public string? VisibleTitle
+    {
+        get
+        {
+            return Cutscene != null && _titlePhase < 3 ? Title : null;
+        }
+    }
 
     /// <summary>The screen is black: from the card until a movie's first picture is up, and between movies, since
     /// nothing else hides the front end beneath.</summary>
-    public bool Blackout(bool movieHasFrame) => Cutscene != null && !movieHasFrame;
+    public bool Blackout(bool movieHasFrame)
+    {
+        return Cutscene != null && !movieHasFrame;
+    }
 
     /// <summary>The cutscene after the profile's won map, if any (<see cref="CampaignCutscene.AfterLevel"/>).</summary>
     /// <param name="install">The install the movies are played from.</param>

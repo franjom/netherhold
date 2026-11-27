@@ -64,5 +64,8 @@ public sealed class TickPacer
     }
 
     /// <summary>Tick <paramref name="index"/> of a frame: the first carries the frame's commands, the rest none.</summary>
-    public static InputFrame InputFor(int index, in InputFrame first) => index == 0 ? first : InputFrame.Empty;
+    public static InputFrame InputFor(int index, in InputFrame first)
+    {
+        return index == 0 ? first : InputFrame.Empty;
+    }
 }

@@ -13,7 +13,10 @@ public static class ClassicKeyNames
     private static readonly string[] Names = Build();
 
     /// <summary>The key's name; "None" for a scan code no key maps to.</summary>
-    public static string Name(KeyScanCode scan) => scan.Value is > 0 and < 256 ? Names[scan.Value] : "None";
+    public static string Name(KeyScanCode scan)
+    {
+        return scan.Value is > 0 and < 256 ? Names[scan.Value] : "None";
+    }
 
     private static string[] Build()
     {

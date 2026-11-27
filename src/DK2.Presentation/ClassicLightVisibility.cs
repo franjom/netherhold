@@ -110,7 +110,10 @@ public static class ClassicLightVisibility
         return boundary.Count;
     }
     private static void Prepend(List<Vector3> points, Vector3 position, Vector3 right, Vector3 down, Vector3 forward,
-        float x, float y, float z) => points.Insert(0, position + right * x + down * y + forward * z);
+        float x, float y, float z)
+    {
+        points.Insert(0, position + right * x + down * y + forward * z);
+    }
 
     public static TilePos[] EnumerateTiles(ReadOnlySpan<TilePos> polygon)
     {
@@ -260,12 +263,20 @@ public static class ClassicLightVisibility
         }
     }
 
-    private static TilePos ToTile(Vector3 point) => new(ToTileCoordinate(point.X), ToTileCoordinate(point.Y));
+    private static TilePos ToTile(Vector3 point)
+    {
+        return new(ToTileCoordinate(point.X), ToTileCoordinate(point.Y));
+    }
 
     // Native x87 keeps both subtractions extended until the final single-precision store.
-    private static int ToTileCoordinate(float value) =>
-        (BitConverter.SingleToInt32Bits((float)((double)value - 0.49998998641967773 + 12582912.0))
+    private static int ToTileCoordinate(float value)
+    {
+        return (BitConverter.SingleToInt32Bits((float)((double)value - 0.49998998641967773 + 12582912.0))
             & 0x7fffff) - 0x400000;
+    }
 
-    private static Vector3 ToNative(Vector3 unity) => new(unity.X, -unity.Z, -unity.Y);
+    private static Vector3 ToNative(Vector3 unity)
+    {
+        return new(unity.X, -unity.Z, -unity.Y);
+    }
 }

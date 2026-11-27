@@ -56,7 +56,11 @@ public sealed class TerrainLattice
     /// </summary>
     public bool HighWalls
     {
-        get => _highWalls;
+        get
+        {
+            return _highWalls;
+        }
+
         set
         {
             if (_highWalls == value)
@@ -79,7 +83,11 @@ public sealed class TerrainLattice
     /// </summary>
     public bool Possession
     {
-        get => _possession;
+        get
+        {
+            return _possession;
+        }
+
         set
         {
             if (_possession == value)
@@ -112,10 +120,16 @@ public sealed class TerrainLattice
     }
 
     /// <summary>Whether the cell of tile (x, y), one of the tiles one beyond the map included, is built (tests).</summary>
-    internal bool IsBuilt(int x, int y) => _built[IndexOf(x, y)];
+    internal bool IsBuilt(int x, int y)
+    {
+        return _built[IndexOf(x, y)];
+    }
 
     /// <summary>Forgets every cell, as a change of <see cref="FullHeight"/> requires.</summary>
-    public void InvalidateAll() => Array.Clear(_built, 0, _built.Length);
+    public void InvalidateAll()
+    {
+        Array.Clear(_built, 0, _built.Length);
+    }
 
     /// <summary>Builds the cells a piece drawn for tile (x0, y0) can reach, so that
     /// <see cref="Deform"/> for that tile reads only the points: a thread other than the world's
@@ -172,7 +186,10 @@ public sealed class TerrainLattice
     }
 
     // Without building: Invalidate going through Cell built each unbuilt cell only to forget it.
-    private int IndexOf(int x, int y) => ((y + 1) * _width) + x + 1;
+    private int IndexOf(int x, int y)
+    {
+        return ((y + 1) * _width) + x + 1;
+    }
 
     // Tile (x, y)'s 20 points (0x005A3590): rest, then lean and wibble on levels 1 to 3.
     private void Build(int x, int y, int index)

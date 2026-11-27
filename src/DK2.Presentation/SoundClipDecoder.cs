@@ -19,10 +19,19 @@ public sealed class SoundClipDecoder
     private readonly ConcurrentQueue<string> _failures = new();
     private long _decodedSamples;
 
-    public SoundClipDecoder(IClassicSoundAssets assets) => _assets = assets ?? throw new ArgumentNullException(nameof(assets));
+    public SoundClipDecoder(IClassicSoundAssets assets)
+    {
+        _assets = assets ?? throw new ArgumentNullException(nameof(assets));
+    }
 
     /// <summary>Samples (16-bit, all channels) this decoder holds decoded, for reporting its memory.</summary>
-    public long DecodedSamples => Interlocked.Read(ref _decodedSamples);
+    public long DecodedSamples
+    {
+        get
+        {
+            return Interlocked.Read(ref _decodedSamples);
+        }
+    }
 
     /// <summary>The clip, when it is decoded (null for an entry with no audio, or one that failed to decode); false
     /// while it is not, after starting its decode on a worker. Allocation-free once the clip is decoded.</summary>
@@ -42,15 +51,23 @@ public sealed class SoundClipDecoder
     }
 
     // Apart from TryGet so that its hit path allocates no closure.
-    private void StartDecode(ResolvedSound reference) => Task.Run(() => Decode(reference));
+    private void StartDecode(ResolvedSound reference)
+    {
+        Task.Run(() => Decode(reference));
+    }
 
     /// <summary>A failure to read or decode a clip since the last call, for the adapter to log; such a clip plays as silence.</summary>
-    public bool TryTakeFailure(out string message) => _failures.TryDequeue(out message!);
+    public bool TryTakeFailure(out string message)
+    {
+        return _failures.TryDequeue(out message!);
+    }
 
     /// <summary>Decodes every sample the <paramref name="categories"/>' groups name, on a worker that reads the maps and
     /// then on up to <paramref name="workers"/> threads; the caller decides whether to wait. Clips already decoded or
     /// decoding are skipped. A category the install does not ship has no samples.</summary>
-    public Task Prefetch(IReadOnlyCollection<SoundCategory> categories, int workers) => Task.Run(() =>
+    public Task Prefetch(IReadOnlyCollection<SoundCategory> categories, int workers)
+    {
+        return Task.Run(() =>
     {
         var samples = new HashSet<ResolvedSound>();
         foreach (SoundCategory category in categories)
@@ -76,10 +93,13 @@ public sealed class SoundClipDecoder
 
         Parallel.ForEach(todo, new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, workers) }, Decode);
     });
+    }
 
     /// <summary>Decodes <paramref name="references"/> on one worker, skipping those decoded or decoding; the caller decides
     /// whether to wait.</summary>
-    public Task Prefetch(IReadOnlyList<ResolvedSound> references) => Task.Run(() =>
+    public Task Prefetch(IReadOnlyList<ResolvedSound> references)
+    {
+        return Task.Run(() =>
     {
         foreach (ResolvedSound reference in references)
         {
@@ -89,6 +109,7 @@ public sealed class SoundClipDecoder
             }
         }
     });
+    }
 
     private void SamplesOf(SoundCategory category, HashSet<ResolvedSound> into)
     {

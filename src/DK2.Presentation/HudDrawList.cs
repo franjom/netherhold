@@ -10,9 +10,15 @@ namespace DK2.Presentation;
 public readonly record struct HudRect(float X, float Y, float Width, float Height)
 {
     /// <summary>Inclusive of the top-left edge, exclusive of the bottom-right (UI Toolkit's and Godot's rule).</summary>
-    public bool Contains(float x, float y) => x >= X && x < X + Width && y >= Y && y < Y + Height;
+    public bool Contains(float x, float y)
+    {
+        return x >= X && x < X + Width && y >= Y && y < Y + Height;
+    }
 
-    public static implicit operator HudRect(BottomPanelRect rect) => new(rect.X, rect.Y, rect.Width, rect.Height);
+    public static implicit operator HudRect(BottomPanelRect rect)
+    {
+        return new(rect.X, rect.Y, rect.Width, rect.Height);
+    }
 }
 
 /// <summary>The HUD's surface in the adapter's local pixels: virtual unit v sits at v * <see cref="Scale"/>.
@@ -22,23 +28,53 @@ public readonly record struct HudScreen(int Width, int Height)
     /// <summary>The width of DK2's 2560 x 1920 reference screen, which a 4:3 screen matches.</summary>
     public const float ReferenceWidth = 2560;
 
-    public float Scale => Height / 1920f;
-    public float VirtualWidth => Width / Scale;
+    public float Scale
+    {
+        get
+        {
+            return Height / 1920f;
+        }
+    }
+
+    public float VirtualWidth
+    {
+        get
+        {
+            return Width / Scale;
+        }
+    }
 
     /// <summary>A reference x (2560 wide) of a group that DK2 places flush with the right edge, moved so the group keeps
     /// its distance from this screen's right edge: DK2 stretches x by width / 2560 (<c>0x0052C5A0</c>), which keeps such
     /// a group ending at the edge, and the remake keeps the art unstretched, so the group moves instead. Unchanged at
     /// 4:3; left-hand groups keep their reference x.</summary>
-    public float FromRight(float referenceX) => referenceX + (VirtualWidth - ReferenceWidth);
+    public float FromRight(float referenceX)
+    {
+        return referenceX + (VirtualWidth - ReferenceWidth);
+    }
+
     /// <summary>Virtual units for a length in local pixels.</summary>
-    public float Virtual(float pixels) => pixels / Scale;
+    public float Virtual(float pixels)
+    {
+        return pixels / Scale;
+    }
 }
 
 /// <summary>An 8-bit RGBA tint multiplied into the image.</summary>
 public readonly record struct HudColor(byte R, byte G, byte B, byte A = 255)
 {
-    public static HudColor White => new(255, 255, 255);
-    public static HudColor Grey(byte level) => new(level, level, level);
+    public static HudColor White
+    {
+        get
+        {
+            return new(255, 255, 255);
+        }
+    }
+
+    public static HudColor Grey(byte level)
+    {
+        return new(level, level, level);
+    }
 }
 
 /// <summary>How a draw combines with what is under it. DK2's render flag 8 is read as additive.</summary>
@@ -88,14 +124,46 @@ public sealed record HudLabel(BitmapFont Font, FrontEndLabelGeometry Geometry)
 public readonly record struct HudImage(string? Path, HudImageVariant Variant = HudImageVariant.None, byte Pieces = 0,
     HudGaugeFraction Gauge = default, HudText? Text = null, HudLabel? Label = null)
 {
-    public bool IsNone => Path is null && Text is null && Label is null;
+    public bool IsNone
+    {
+        get
+        {
+            return Path is null && Text is null && Label is null;
+        }
+    }
+
     /// <summary>Drawn from set text or a label rather than a catalogue image: a renderer makes its pixels itself.</summary>
-    public bool IsGenerated => Text is not null || Label is not null;
+    public bool IsGenerated
+    {
+        get
+        {
+            return Text is not null || Label is not null;
+        }
+    }
+
     /// <summary>The variant's pixels change over time; see <see cref="HudImageVariant.Gauge"/>.</summary>
-    public bool IsLive => Variant == HudImageVariant.Gauge;
+    public bool IsLive
+    {
+        get
+        {
+            return Variant == HudImageVariant.Gauge;
+        }
+    }
+
     /// <summary>This image with its live parameter cleared: the identity a renderer keeps one texture for.</summary>
-    public HudImage Slot => IsLive ? new HudImage(Path, Variant, Pieces) : this;
-    public static implicit operator HudImage(string? path) => new(path);
+    public HudImage Slot
+    {
+        get
+        {
+            return IsLive ? new HudImage(Path, Variant, Pieces) : this;
+        }
+    }
+
+    public static implicit operator HudImage(string? path)
+    {
+        return new(path);
+    }
+
     /// <summary>The generated <c>ToString</c> would print <see cref="Slot"/>, which is this image again: a stack overflow
     /// the first time a failed assertion or a log line formats one.</summary>
     private bool PrintMembers(System.Text.StringBuilder builder)
@@ -113,13 +181,24 @@ public readonly record struct HudImage(string? Path, HudImageVariant Variant = H
 
         return true;
     }
-    public static HudImage Of(HudText text) => new(null, Text: text);
+    public static HudImage Of(HudText text)
+    {
+        return new(null, Text: text);
+    }
+
     /// <summary>The label's bitmap; with <paramref name="glowQuarters"/> from 1 to 4 its glow at that share of
     /// full strength (<see cref="HudImageVariant.Glow"/>), whose rect is the ink box grown by the padding.</summary>
-    public static HudImage Of(HudLabel label, byte glowQuarters = 0) => glowQuarters == 0
+    public static HudImage Of(HudLabel label, byte glowQuarters = 0)
+    {
+        return glowQuarters == 0
         ? new(null, Label: label) : new(null, HudImageVariant.Glow, glowQuarters, Label: label);
+    }
+
     /// <summary>A catalogue image's glow frame: <paramref name="quarters"/> from 1 to 4.</summary>
-    public static HudImage Glowing(string path, byte quarters) => new(path, HudImageVariant.Glow, quarters);
+    public static HudImage Glowing(string path, byte quarters)
+    {
+        return new(path, HudImageVariant.Glow, quarters);
+    }
 }
 
 public enum HudDrawKind : byte
@@ -181,8 +260,10 @@ public static class HudQuads
 
     /// <summary>Covers <paramref name="area"/> with the image repeated at <paramref name="tile"/> square from
     /// its top-left, the last row and column cropped (CSS background-repeat).</summary>
-    public static void Tiled(HudFrame frame, HudImage image, HudRect area, float tile, HudColor tint) =>
+    public static void Tiled(HudFrame frame, HudImage image, HudRect area, float tile, HudColor tint)
+    {
         Tiled(frame, image, area, tile, tile, tint);
+    }
 
     /// <summary>As <see cref="Tiled(HudFrame, HudImage, HudRect, float, HudColor)"/> with a
     /// <paramref name="tileWidth"/> x <paramref name="tileHeight"/> tile.</summary>
@@ -213,13 +294,29 @@ public sealed class HudFrame
     private HudVertex[] _vertices = new HudVertex[64];
     private int _count, _vertexCount;
 
-    public int Count => _count;
-    public ReadOnlySpan<HudDraw> Draws => new(_draws, 0, _count);
+    public int Count
+    {
+        get
+        {
+            return _count;
+        }
+    }
+
+    public ReadOnlySpan<HudDraw> Draws
+    {
+        get
+        {
+            return new(_draws, 0, _count);
+        }
+    }
+
     public void Clear() { _count = 0; _vertexCount = 0; }
 
     /// <summary>A <see cref="HudDrawKind.Triangles"/> draw's vertices; empty for any other kind.</summary>
-    public ReadOnlySpan<HudVertex> Vertices(in HudDraw draw) =>
-        draw.Kind == HudDrawKind.Triangles ? new(_vertices, draw.Vertices.Start, draw.Vertices.Count) : default;
+    public ReadOnlySpan<HudVertex> Vertices(in HudDraw draw)
+    {
+        return draw.Kind == HudDrawKind.Triangles ? new(_vertices, draw.Vertices.Start, draw.Vertices.Count) : default;
+    }
 
     /// <summary>Adds the image mapped over a triangle list, copied into the frame; nothing for an empty list.</summary>
     public void AddTriangles(HudImage image, ReadOnlySpan<HudVertex> triangles, HudColor tint, HudBlend blend = HudBlend.Alpha)
@@ -261,8 +358,11 @@ public sealed class HudFrame
     }
 
     /// <summary>True when both frames would draw the same thing, so a renderer can skip rebuilding.</summary>
-    public bool SameAs(HudFrame other) => Draws.SequenceEqual(other.Draws)
+    public bool SameAs(HudFrame other)
+    {
+        return Draws.SequenceEqual(other.Draws)
         && new ReadOnlySpan<HudVertex>(_vertices, 0, _vertexCount).SequenceEqual(new ReadOnlySpan<HudVertex>(other._vertices, 0, other._vertexCount));
+    }
 
     public void CopyFrom(HudFrame other)
     {

@@ -81,7 +81,10 @@ public sealed class TerrainCeilingField
     }
 
     /// <summary>True when (x, y) gets a roof piece.</summary>
-    public bool Has(int x, int y) => TerrainCeiling.Has(_width, _height, _closed, x, y);
+    public bool Has(int x, int y)
+    {
+        return TerrainCeiling.Has(_width, _height, _closed, x, y);
+    }
 
     /// <summary>The roof's height at half-tile grid point (gx, gy), the plane point (gx/2, gy/2):
     /// what <see cref="TerrainCeiling.Heights"/> gives every piece that has the point, and the same
@@ -120,6 +123,8 @@ public sealed class TerrainCeilingField
         }
     }
 
-    private int Nibble(int x, int y) =>
-        (uint)x < (uint)_width && (uint)y < (uint)_height ? _nibbles[(y * _width) + x] : 0;
+    private int Nibble(int x, int y)
+    {
+        return (uint)x < (uint)_width && (uint)y < (uint)_height ? _nibbles[(y * _width) + x] : 0;
+    }
 }

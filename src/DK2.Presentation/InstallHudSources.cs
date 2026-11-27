@@ -36,16 +36,33 @@ public sealed class InstallHudSources : IDisposable
     public string TextDirectory { get; }
 
     /// <summary>The default <c>Text.str</c>, read on first use.</summary>
-    public Dk2StringTable Strings => _strings ??= Dk2StringTable.Open(Path.Combine(TextDirectory, "Text.str"));
+    public Dk2StringTable Strings
+    {
+        get
+        {
+            return _strings ??= Dk2StringTable.Open(Path.Combine(TextDirectory, "Text.str"));
+        }
+    }
 
     /// <summary>A <c>Text.str</c> string by id; empty when the table has none.</summary>
-    public string Text(uint id) => Strings.TryResolve(id, out string text) ? text : string.Empty;
+    public string Text(uint id)
+    {
+        return Strings.TryResolve(id, out string text) ? text : string.Empty;
+    }
 
     /// <summary>The install's KWD art records, the art provider's when it read them.</summary>
-    public Dk2ArtCatalogue Catalogue => _catalogue ??= Dk2ArtCatalogue.Load(Install);
+    public Dk2ArtCatalogue Catalogue
+    {
+        get
+        {
+            return _catalogue ??= Dk2ArtCatalogue.Load(Install);
+        }
+    }
 
-    public RgbaImage Texture(string name) =>
-        _art != null ? _art.LoadTexture(name) : (_opened ??= EngineTextureArchive.OpenInstall(Install)).Decode(name);
+    public RgbaImage Texture(string name)
+    {
+        return _art != null ? _art.LoadTexture(name) : (_opened ??= EngineTextureArchive.OpenInstall(Install)).Decode(name);
+    }
 
     /// <summary>A BF4 font of the default text directory, read once; a font being read by
     /// <see cref="PrefetchFonts"/> is waited for.</summary>

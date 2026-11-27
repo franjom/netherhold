@@ -13,7 +13,11 @@ public interface IBottomPanelArt
 {
     string? Icon(BottomPanelChoiceKey key);
     /// <summary>An upgraded spell's icon, the record's second art name (file <c>+0x120</c>), or null.</summary>
-    string? UpgradedIcon(BottomPanelChoiceKey key) => null;
+    string? UpgradedIcon(BottomPanelChoiceKey key)
+    {
+        return null;
+    }
+
     string Text(uint id);
 }
 
@@ -158,25 +162,81 @@ public sealed class BottomPanelHud
     public bool GamePaused { get; set; }
     /// <summary>The level script's FLASH_BUTTON target, set by the host each frame.</summary>
     public HudFlashTarget? FlashTarget { get; set; }
-    public SoundRequests Sounds => _tabState.Sounds;
+    public SoundRequests Sounds
+    {
+        get
+        {
+            return _tabState.Sounds;
+        }
+    }
+
     /// <summary>HUD <c>+0x109</c> == 0 (0x004167D0): the strip at the bottom, categories,
     /// creature panels and the Reaper hidden.</summary>
-    public bool Collapsed => _tabState.Collapsed;
+    public bool Collapsed
+    {
+        get
+        {
+            return _tabState.Collapsed;
+        }
+    }
+
     /// <summary>The panels showing (two with a pinned tab), none while collapsed ("closed" for the flash rules).</summary>
-    public BottomPanelOpenSet OpenPanel => _tabState.Open;
-    public bool HasPointerCapture => _captured;
-    public HoverTextSnapshot HoverText => !string.IsNullOrEmpty(_widgetHover.TooltipName) ? _widgetHover
-        : new HoverTextSnapshot(_descriptionText, "", default);
+    public BottomPanelOpenSet OpenPanel
+    {
+        get
+        {
+            return _tabState.Open;
+        }
+    }
+
+    public bool HasPointerCapture
+    {
+        get
+        {
+            return _captured;
+        }
+    }
+
+    public HoverTextSnapshot HoverText
+    {
+        get
+        {
+            return !string.IsNullOrEmpty(_widgetHover.TooltipName) ? _widgetHover
+                : new HoverTextSnapshot(_descriptionText, "", default);
+        }
+    }
 
     /// <summary>Where <paramref name="category"/>'s panel sits (virtual units, 0x00417310), null while it is
     /// closed or the panel is collapsed. Creatures' area is its overview's (menu 5).</summary>
-    public BottomPanelRect? PanelArea(BottomPanelCategory category) =>
-        BottomPanelLayout.PanelOf(category, _tabState.Open, _tabState.Pinned);
+    public BottomPanelRect? PanelArea(BottomPanelCategory category)
+    {
+        return BottomPanelLayout.PanelOf(category, _tabState.Open, _tabState.Pinned);
+    }
 
     // 0x00417170 moves the strip from y 0x5B4 to 0x6EC.
-    private int Drop => Collapsed ? ClassicCamera.CollapsedPanelTop - ClassicCamera.ExpandedPanelTop : 0;
-    public HudRect Bounds => new(472, 1460 + Drop, Math.Max(0, _width - 760), Tall - (1460 + Drop));
-    public HudRect ReaperBounds => new(_width - 288, 1612, 264, 264);
+    private int Drop
+    {
+        get
+        {
+            return Collapsed ? ClassicCamera.CollapsedPanelTop - ClassicCamera.ExpandedPanelTop : 0;
+        }
+    }
+
+    public HudRect Bounds
+    {
+        get
+        {
+            return new(472, 1460 + Drop, Math.Max(0, _width - 760), Tall - (1460 + Drop));
+        }
+    }
+
+    public HudRect ReaperBounds
+    {
+        get
+        {
+            return new(_width - 288, 1612, 264, 264);
+        }
+    }
 
     public void SetVisibility(HudVisibility visibility)
     {
@@ -190,8 +250,11 @@ public sealed class BottomPanelHud
     }
 
     /// <summary>True when a pointer at <paramref name="x"/>, <paramref name="y"/> (virtual units) is the panel's.</summary>
-    public bool ContainsPointer(float x, float y) => _visible && _allowInput &&
+    public bool ContainsPointer(float x, float y)
+    {
+        return _visible && _allowInput &&
         (_captured || Bounds.Contains(x, y) || !Collapsed && ReaperBounds.Contains(x, y));
+    }
 
     public void CancelPointerGesture()
     {
@@ -203,7 +266,10 @@ public sealed class BottomPanelHud
     public void CaptureLost() { _captured = false; _pressed = -1; }
 
     /// <summary>An ordinary (unshifted) click on <paramref name="category"/>'s tab.</summary>
-    public void SelectCategory(BottomPanelCategory category) => ClickTab(category, false);
+    public void SelectCategory(BottomPanelCategory category)
+    {
+        ClickTab(category, false);
+    }
 
     /// <summary>The panel as a level starts: Creatures open. Nobody clicked its tab, so no GUI-button action is raised
     /// and the tab's press sound is dropped.</summary>
@@ -560,7 +626,10 @@ public sealed class BottomPanelHud
     private static readonly HudImage[] Digits = [.. Enumerable.Range(0, 10).Select(n => (HudImage)("GUI\\Spells\\RT-" + n.ToString(CultureInfo.InvariantCulture)))];
     private static readonly HudImage[] SparkleFrames = [.. Enumerable.Range(0, BottomPanelSparkles.Frames).Select(n => (HudImage)("GSparkle" + n.ToString(CultureInfo.InvariantCulture)))];
 
-    private static HudImage Digit(int value) => Digits[value];
+    private static HudImage Digit(int value)
+    {
+        return Digits[value];
+    }
 
     /// <summary>0x00419DF0 advances the sparkles each rendered HUD frame; sparkle i draws GSparkle&lt;frame&gt;
     /// (0..15, frame 0 included), a square of side s at (left + X % width - s/2, top + Y % height - s/2):
@@ -818,7 +887,10 @@ public sealed class BottomPanelHud
         _page[c] = Math.Min(Math.Max(_page[c] + step, 0), _pages[c] - 1);
     }
 
-    private void SetDescription(string text) => _descriptionText = text;
+    private void SetDescription(string text)
+    {
+        _descriptionText = text;
+    }
 
     private void RefreshHover()
     {
@@ -841,15 +913,18 @@ public sealed class BottomPanelHud
     }
 
     /// <summary>The element an action belongs to, or null for an action no element carries.</summary>
-    private int? ElementOf(int action) => action switch
+    private int? ElementOf(int action)
     {
-        ReaperAction => _reaper,
-        ResizeAction => _resize,
-        >= TabAction and < TabAction + 4 => _tabs[action - TabAction],
-        >= PageAction and < PageAction + 2 * MaxPanels => ((action & 1) == 0 ? _previous : _next)[(action - PageAction) / 2],
-        >= 0 and < SlotCount => _icons[action],
-        _ => null,
-    };
+        return action switch
+        {
+            ReaperAction => _reaper,
+            ResizeAction => _resize,
+            >= TabAction and < TabAction + 4 => _tabs[action - TabAction],
+            >= PageAction and < PageAction + 2 * MaxPanels => ((action & 1) == 0 ? _previous : _next)[(action - PageAction) / 2],
+            >= 0 and < SlotCount => _icons[action],
+            _ => null,
+        };
+    }
 
     private int Add(HudDrawKind kind, HudImage image, int action, HudBlend blend)
     {
@@ -861,11 +936,25 @@ public sealed class BottomPanelHud
         return _count++;
     }
 
-    private int Picture(HudImage image, HudBlend blend = HudBlend.Alpha) => Add(HudDrawKind.Quad, image, -1, blend);
-    private int Interactive(HudImage image, int action) => Add(HudDrawKind.Quad, image, action, HudBlend.Alpha);
-    private int Sector() => Add(HudDrawKind.Sector, default, -1, HudBlend.Alpha);
+    private int Picture(HudImage image, HudBlend blend = HudBlend.Alpha)
+    {
+        return Add(HudDrawKind.Quad, image, -1, blend);
+    }
 
-    private void Place(int element, HudRect rect) => _elements[element].Rect = rect;
+    private int Interactive(HudImage image, int action)
+    {
+        return Add(HudDrawKind.Quad, image, action, HudBlend.Alpha);
+    }
+
+    private int Sector()
+    {
+        return Add(HudDrawKind.Sector, default, -1, HudBlend.Alpha);
+    }
+
+    private void Place(int element, HudRect rect)
+    {
+        _elements[element].Rect = rect;
+    }
 
     private void Show(int element, HudRect rect, bool show)
     {
@@ -879,8 +968,10 @@ public sealed class BottomPanelHud
         e.Rect = rect; e.Image = image; e.Tint = tint; e.Percent = percent;
     }
 
-    private BottomPanelRect Dropped(BottomPanelRect rectangle) =>
-        new(rectangle.X, rectangle.Y + Drop, rectangle.Width, rectangle.Height);
+    private BottomPanelRect Dropped(BottomPanelRect rectangle)
+    {
+        return new(rectangle.X, rectangle.Y + Drop, rectangle.Width, rectangle.Height);
+    }
 
     private static readonly HudColor Dark = HudColor.Grey(BottomPanelFlash.DarkTint);
     private static readonly HudColor RechargeTint = HudColor.Grey(0x66);

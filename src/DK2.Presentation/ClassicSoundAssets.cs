@@ -21,7 +21,10 @@ public sealed class InstallClassicSoundAssets : IClassicSoundAssets
     private readonly string _root;
     private readonly Dictionary<SoundCategory, SoundMaps> _maps = new();
     private readonly Dictionary<string, SoundBank> _banks = new(StringComparer.OrdinalIgnoreCase);
-    public InstallClassicSoundAssets(string install) => _root = Path.Combine(install, "Data", "Sound", "SFX");
+    public InstallClassicSoundAssets(string install)
+    {
+        _root = Path.Combine(install, "Data", "Sound", "SFX");
+    }
 
     public SoundMaps Maps(SoundCategory category)
     {

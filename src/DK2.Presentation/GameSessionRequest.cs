@@ -13,7 +13,9 @@ public enum GameSessionMode : byte { Campaign = 1, FrontEnd = 5, ImportedTerrain
 public sealed record GameSessionRequest
 {
     private GameSessionRequest(GameSessionMode mode, string levelName, FrontEndPage returnPage)
-        => (Mode, LevelName, ReturnPage) = (mode, levelName, returnPage);
+    {
+        (Mode, LevelName, ReturnPage) = (mode, levelName, returnPage);
+    }
 
     public GameSessionMode Mode { get; }
     public string LevelName { get; }
@@ -26,7 +28,9 @@ public sealed record GameSessionRequest
     public LevelMap? ImportedTerrain { get; private init; }
 
     public static GameSessionRequest FrontEnd(FrontEndPage returnPage = FrontEndPage.None)
-        => new(GameSessionMode.FrontEnd, "FrontEnd3DLevel", returnPage);
+    {
+        return new(GameSessionMode.FrontEnd, "FrontEnd3DLevel", returnPage);
+    }
 
     public static GameSessionRequest Restart(GameSessionRequest current)
     {
@@ -82,8 +86,10 @@ public sealed record GameSessionRequest
         return ForTerrain(save.Header.LevelName, save.Map);
     }
 
-    private static GameSessionRequest ForTerrain(string levelName, LevelMap terrain) =>
-        new(GameSessionMode.ImportedTerrain, levelName, FrontEndPage.None) { ImportedTerrain = terrain };
+    private static GameSessionRequest ForTerrain(string levelName, LevelMap terrain)
+    {
+        return new(GameSessionMode.ImportedTerrain, levelName, FrontEndPage.None) { ImportedTerrain = terrain };
+    }
 
     /// <summary>The session the options menu's confirmed entry requests
     /// (<c>IHudPressHost.StartSession</c>): Restart starts the running level afresh with its return page, Return to Menu

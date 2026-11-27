@@ -84,8 +84,9 @@ public sealed class ScenePresenter
         public TerrainLightColour AmbientTint { get; }
         public TerrainLightColour QuarterAmbientTint { get; }
 
-        public bool Equals(TileVisual other) =>
-            Ground == other.Ground
+        public bool Equals(TileVisual other)
+        {
+            return Ground == other.Ground
             && Furniture == other.Furniture
             && OwnerPlayerId == other.OwnerPlayerId
             && Tagged == other.Tagged
@@ -107,13 +108,20 @@ public sealed class ScenePresenter
             && Surface == other.Surface
             && AmbientTint == other.AmbientTint
             && QuarterAmbientTint == other.QuarterAmbientTint;
+        }
 
-        public override bool Equals(object? obj) => obj is TileVisual other && Equals(other);
+        public override bool Equals(object? obj)
+        {
+            return obj is TileVisual other && Equals(other);
+        }
 
-        public override int GetHashCode() => HashCode.Combine(
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(
             HashCode.Combine(Ground, Furniture, OwnerPlayerId, Tagged, RedHighlighted), GoldHeld, HealthPermille, Walls, Pieces,
             HashCode.Combine(Explored, HasDoor, RoomFloor, RoomKeys, Bed, Surface, AmbientTint, QuarterAmbientTint),
             HashCode.Combine(Scanned, PointLight, SightFogOverlay, SightFogOpacity, ExtraRoomPiece));
+        }
     }
 
     /// <summary>The part of a creature a renderer can see.</summary>
@@ -163,8 +171,9 @@ public sealed class ScenePresenter
         public bool AnimationPaused { get; }
         public bool AnimationDeferred { get; }
 
-        public bool Equals(CreatureVisual other) =>
-            Mesh == other.Mesh
+        public bool Equals(CreatureVisual other)
+        {
+            return Mesh == other.Mesh
             && Animation == other.Animation
             && PosX == other.PosX
             && PosY == other.PosY
@@ -183,13 +192,20 @@ public sealed class ScenePresenter
             && AnimationMovementSpeed == other.AnimationMovementSpeed
             && AnimationPaused == other.AnimationPaused
             && AnimationDeferred == other.AnimationDeferred;
+        }
 
-        public override bool Equals(object? obj) => obj is CreatureVisual other && Equals(other);
+        public override bool Equals(object? obj)
+        {
+            return obj is CreatureVisual other && Equals(other);
+        }
 
-        public override int GetHashCode() => HashCode.Combine(
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(
             Mesh, Animation, PosX, PosY, OwnerPlayerId, GoldHeld,
             HashCode.Combine(Height, MeshYaw, Pitch, Roll, PreviousPosX, PreviousPosY, PlaysAnimation,
                 HashCode.Combine(AnimationLoops, AnimationStartedAt, AnimationMovementSpeed, AnimationPaused, AnimationDeferred, PreviousHeight)));
+        }
     }
 
     /// <summary>The part of an object a renderer can see.</summary>
@@ -253,8 +269,9 @@ public sealed class ScenePresenter
         public int Heading { get; }
         public int Scale { get; }
 
-        public bool Equals(ObjectVisual other) =>
-            Mesh == other.Mesh
+        public bool Equals(ObjectVisual other)
+        {
+            return Mesh == other.Mesh
             && Tile.Equals(other.Tile)
             && OwnerPlayerId == other.OwnerPlayerId
             && GoldHeld == other.GoldHeld
@@ -271,13 +288,20 @@ public sealed class ScenePresenter
             && AnimationStartedAt == other.AnimationStartedAt && AnimationLoops == other.AnimationLoops
             && HeartVisual == other.HeartVisual && Alpha == other.Alpha && AddedLight == other.AddedLight
             && AnimationInitialPhase == other.AnimationInitialPhase && TexturePhase == other.TexturePhase;
+        }
 
-        public override bool Equals(object? obj) => obj is ObjectVisual other && Equals(other);
+        public override bool Equals(object? obj)
+        {
+            return obj is ObjectVisual other && Equals(other);
+        }
 
-        public override int GetHashCode() => HashCode.Combine(
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(
             Mesh, Tile, OwnerPlayerId, GoldHeld, HashCode.Combine(PosX, PosY, Height, Heading, Scale, Pitch, Roll),
             HashCode.Combine(PreviousPosX, PreviousPosY, PreviousHeading, PlaysAnimation, AnimationStartedAt, AnimationLoops,
                 HashCode.Combine(PreviousHeight, PreviousPitch, PreviousRoll, HeartVisual, Alpha, AddedLight, AnimationInitialPhase, TexturePhase)));
+        }
     }
 
     private readonly WorldView _view;
@@ -893,8 +917,11 @@ public sealed class ScenePresenter
     {
         public static readonly StructureIdOrder Instance = new();
 
-        public int Compare(StructureId left, StructureId right) => left.Kind != right.Kind
+        public int Compare(StructureId left, StructureId right)
+        {
+            return left.Kind != right.Kind
             ? left.Kind.CompareTo(right.Kind) : left.Value.CompareTo(right.Value);
+        }
     }
 
     private void PresentObjects(WorldState world)

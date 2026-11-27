@@ -68,6 +68,8 @@ public static class PngChunks
         return dropped ? kept.ToArray() : png;
     }
 
-    private static bool Is(ReadOnlySpan<byte> type, string name) =>
-        type[0] == name[0] && type[1] == name[1] && type[2] == name[2] && type[3] == name[3];
+    private static bool Is(ReadOnlySpan<byte> type, string name)
+    {
+        return type[0] == name[0] && type[1] == name[1] && type[2] == name[2] && type[3] == name[3];
+    }
 }

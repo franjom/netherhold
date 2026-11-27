@@ -45,7 +45,10 @@ public sealed class HudHoverText
     private HoverTextSnapshot _resource;
 
     /// <param name="resolve">A <c>Text.str</c> string by id.</param>
-    public HudHoverText(Func<uint, string> resolve) => _resolve = resolve ?? throw new ArgumentNullException(nameof(resolve));
+    public HudHoverText(Func<uint, string> resolve)
+    {
+        _resolve = resolve ?? throw new ArgumentNullException(nameof(resolve));
+    }
 
     /// <param name="hud">The panels under the pointer.</param>
     /// <param name="resources">The keeper's resources this frame, for the resource strip's texts.</param>

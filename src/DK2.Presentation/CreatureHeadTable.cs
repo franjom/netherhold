@@ -17,7 +17,10 @@ public sealed class CreatureHeadTable
     private readonly ConcurrentDictionary<CreatureId, Slot> _heads = new();
 
     /// <summary>A creature the scene now draws, with no head yet; one already tracked keeps its head.</summary>
-    public void Add(CreatureId creature) => _heads.GetOrAdd(creature, static _ => new Slot(null));
+    public void Add(CreatureId creature)
+    {
+        _heads.GetOrAdd(creature, static _ => new Slot(null));
+    }
 
     public void Set(CreatureId creature, FpPosition3? head)
     {
@@ -31,9 +34,15 @@ public sealed class CreatureHeadTable
         }
     }
 
-    public void Remove(CreatureId creature) => _heads.TryRemove(creature, out _);
+    public void Remove(CreatureId creature)
+    {
+        _heads.TryRemove(creature, out _);
+    }
 
-    public void Clear() => _heads.Clear();
+    public void Clear()
+    {
+        _heads.Clear();
+    }
 
     /// <summary>An effect's tie to a creature (0x00434E80): gone with its object, else its head as last drawn, or not
     /// found for a clip without one or another point.</summary>

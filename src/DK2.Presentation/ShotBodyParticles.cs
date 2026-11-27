@@ -40,8 +40,21 @@ public sealed class ShotBodyParticles
         }
     }
 
-    public IReadOnlyList<ConstructionParticle> Particles => _particles;
-    public IReadOnlyList<EffectLightView> Lights => _lights;
+    public IReadOnlyList<ConstructionParticle> Particles
+    {
+        get
+        {
+            return _particles;
+        }
+    }
+
+    public IReadOnlyList<EffectLightView> Lights
+    {
+        get
+        {
+            return _lights;
+        }
+    }
 
     public void Capture(IReadOnlyList<ShotState> shots, float fraction)
     {
@@ -106,8 +119,11 @@ public sealed class ShotBodyParticles
             new(previous.Z.Raw + (int)((current.Z.Raw - previous.Z.Raw) * t)));
     }
 
-    public static int FrameIndex(Fp32 phase, int frameCount) => frameCount <= 1 ? 0
+    public static int FrameIndex(Fp32 phase, int frameCount)
+    {
+        return frameCount <= 1 ? 0
         : (int)((long)Math.Clamp(phase.Raw, 0, 4096) * (frameCount - 1) / 4096);
+    }
 
     private ConstructionParticle Create(EffectElementDef element, ShotDef shot)
     {
@@ -154,6 +170,9 @@ public sealed class ShotBodyParticles
         body.MeshPhaseRaw = (art.Flags & 0x80) != 0 ? Math.Min(4096, meshPhase) : meshPhase & 4095;
     }
 
-    private static int Word(KwdArtResource art, int offset) => art.Unknown_0044.Length >= offset + 2
+    private static int Word(KwdArtResource art, int offset)
+    {
+        return art.Unknown_0044.Length >= offset + 2
         ? BinaryPrimitives.ReadUInt16LittleEndian(art.Unknown_0044.Span.Slice(offset, 2)) : 0;
+    }
 }

@@ -21,9 +21,12 @@ public static class PossessionCamera
     /// <summary>The first-person preset in <c>GlobalVariables.kwd</c>.</summary>
     public const ushort PresetId = 2;
 
-    public static PossessionCameraPose Pose(PossessionView view) => new(
+    public static PossessionCameraPose Pose(PossessionView view)
+    {
+        return new(
         ToHost(view.X, view.Y, view.Z), Forward(view.Yaw, view.Pitch),
         (view.Roll >= 0x400 ? view.Roll - 0x800 : view.Roll) * (360f / 2048));
+    }
 
     /// <summary>The whole first-person picture for a host camera: the pose, the preset's field of
     /// view and far plane, and the view axis at the screen's middle (a remake choice). The roll turns
@@ -50,17 +53,25 @@ public static class PossessionCamera
     }
 
     /// <summary>A point in 1/4096 tile, height last, in host axes (<see cref="PartyPopSound"/>'s convention).</summary>
-    public static Vector3 ToHost(int x, int y, int z) => new(x / (float)Fp32.One, z / (float)Fp32.One, -y / (float)Fp32.One);
+    public static Vector3 ToHost(int x, int y, int z)
+    {
+        return new(x / (float)Fp32.One, z / (float)Fp32.One, -y / (float)Fp32.One);
+    }
 
     /// <summary>The vertical field of view, in degrees, of the preset's lens, by the ordinary camera's
     /// own rule (<see cref="ClassicCamera.VerticalFieldOfView"/>): DK2 has one projection and the
     /// first-person lens is half the ordinary one, so the view is very wide. For preset 2 on DK2's
     /// 1600 by 1200 that is 123.9 degrees, 136.4 across (possession-warp.md §2).</summary>
-    public static float VerticalFieldOfView(CameraThing preset, CameraViewport viewport, int? referenceScreenWidth) =>
-        ClassicCamera.VerticalFieldOfView(preset.Lens, viewport, referenceScreenWidth);
+    public static float VerticalFieldOfView(CameraThing preset, CameraViewport viewport, int? referenceScreenWidth)
+    {
+        return ClassicCamera.VerticalFieldOfView(preset.Lens, viewport, referenceScreenWidth);
+    }
 
     /// <summary>The preset's view distance in tiles: 12 for preset 2.</summary>
-    public static float FarClipDistance(CameraThing preset) => preset.ViewDistance / (float)Fp32.One;
+    public static float FarClipDistance(CameraThing preset)
+    {
+        return preset.ViewDistance / (float)Fp32.One;
+    }
 
     /// <summary>The near plane a host gives the possession cameras, in tiles. DK2 has none: its clipper cuts a
     /// triangle only at the four sides of the view, which meet at the eye (<c>0x0058BB60</c>,
@@ -78,8 +89,11 @@ public static class PossessionFootsteps
 {
     public const uint Left = 0x332, Right = 0x333, WetOffset = 5;
 
-    public static SoundRequest? For(string category, in PossessionFootstep step) => category.Length == 0 ? null
+    public static SoundRequest? For(string category, in PossessionFootstep step)
+    {
+        return category.Length == 0 ? null
         : new SoundRequest(new SoundCategory(category.ToLowerInvariant()),
             new SoundId((step.Right ? Right : Left) + (step.Wet ? WetOffset : 0)),
             PossessionCamera.ToHost(step.X, step.Y, step.Z));
+    }
 }

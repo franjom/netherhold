@@ -146,11 +146,16 @@ public sealed class PossessionVisibility
         return inPolygon;
     }
 
-    private bool Blocks(int x, int y) =>
-        (uint)x >= (uint)_width || (uint)y >= (uint)_height || _solid[(y * _width) + x];
+    private bool Blocks(int x, int y)
+    {
+        return (uint)x >= (uint)_width || (uint)y >= (uint)_height || _solid[(y * _width) + x];
+    }
 
     // 2^24 to a turn, zero along +y, growing toward +x; cut toward zero, so a negative angle wraps.
-    private static int Angle(double dx, double dy) => (int)(Math.Atan2(dx, dy) * (Turn / (2 * Math.PI))) & AngleMask;
+    private static int Angle(double dx, double dy)
+    {
+        return (int)(Math.Atan2(dx, dy) * (Turn / (2 * Math.PI))) & AngleMask;
+    }
 
     private static (int Low, int High, bool Wraps) Arc(int a, int b)
     {

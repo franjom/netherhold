@@ -21,7 +21,11 @@ public sealed partial class WorldView
 
     public IReadOnlyList<FrontEndProp> FrontEndScenery
     {
-        get => _frontEndScenery;
+        get
+        {
+            return _frontEndScenery;
+        }
+
         set
         {
             _frontEndScenery = value ?? throw new ArgumentNullException(nameof(value));
@@ -100,14 +104,23 @@ public sealed partial class WorldView
     private GameTick _decorationsTick;
 
     /// <summary>Whether an object id is a decoration of <see cref="Decorations"/>, not the simulation's.</summary>
-    public static bool IsDecoration(int objectId) => objectId < 0;
+    public static bool IsDecoration(int objectId)
+    {
+        return objectId < 0;
+    }
 
     /// <summary>The tile index a decoration id was made from (<see cref="Decoration"/>); −1 for a
     /// simulation object.</summary>
-    public static int DecorationTileIndex(int objectId) => objectId < 0 ? (-objectId - 1) / DecorSlots : -1;
+    public static int DecorationTileIndex(int objectId)
+    {
+        return objectId < 0 ? (-objectId - 1) / DecorSlots : -1;
+    }
 
     /// <summary>Whether a decoration id is a treasury or heart tile's store pile (<see cref="StorePiles"/>).</summary>
-    public static bool IsStorePile(int objectId) => objectId < 0 && (-objectId - 1) % DecorSlots == PileSlot;
+    public static bool IsStorePile(int objectId)
+    {
+        return objectId < 0 && (-objectId - 1) % DecorSlots == PileSlot;
+    }
 
     // Per object type: 0 unknown, 1 no, 2 yes (ObjectHoverHighlight.UsesHoverTexture).
     private readonly byte[] _hoverTexture = new byte[256];
@@ -198,8 +211,11 @@ public sealed partial class WorldView
         return _lightObjects;
     }
 
-    private static bool HasLight(KwdLight? light) => light is { Radius: not 0 }
+    private static bool HasLight(KwdLight? light)
+    {
+        return light is { Radius: not 0 }
         && ((light.Flags & 1) != 0 || (light.Red | light.Green | light.Blue) != 0);
+    }
 
     private void EnsureDecorations(WorldState world)
     {
@@ -259,10 +275,12 @@ public sealed partial class WorldView
 
     private const byte HeroBedId = 6;
 
-    private bool IsMistressBedExit(WorldState world, CreatureState creature) =>
-        creature.Dk2StateId == LairRules.MistressBedExitState
+    private bool IsMistressBedExit(WorldState world, CreatureState creature)
+    {
+        return creature.Dk2StateId == LairRules.MistressBedExitState
         && world.CurrentTick.Value - creature.StateEnteredTick > 1
         && LairRules.BedOf(world, _database, creature) is { ObjectTypeId: LairRules.MistressBedObjectId };
+    }
 
     private bool IsMistressBedEntrance(WorldState world, CreatureState creature)
     {
@@ -278,7 +296,10 @@ public sealed partial class WorldView
 
     /// <summary>Held in a creature's arms by a take-hold (<c>0x0048B4A0</c>): follows its carrier's point.
     /// The Portal Gem, held through <c>0x0048B350</c>, is not drawn at all.</summary>
-    private static bool IsAttached(ObjectState thing) => ObjectCarryRules.IsAttached(thing);
+    private static bool IsAttached(ObjectState thing)
+    {
+        return ObjectCarryRules.IsAttached(thing);
+    }
 
     /// <summary>An object of the simulation, placed.</summary>
     private ObjectView Placed(WorldState world, ObjectState thing, TilePos at)
@@ -489,8 +510,10 @@ public sealed partial class WorldView
 
     /// <summary>A wheel off the floor: drawn <c>0x800</c> up (its <c>+0x99</c> draw offset) and spun
     /// about its own axle, state <c>0x1E</c> writing the floor wheel's turn into <c>+0x68</c>.</summary>
-    private static (int Height, int Roll) WallWheel(WorldState world, int x, int y, int floor) =>
-        (floor + 0x800, TortureWheelHeading(world, x, y));
+    private static (int Height, int Roll) WallWheel(WorldState world, int x, int y, int floor)
+    {
+        return (floor + 0x800, TortureWheelHeading(world, x, y));
+    }
 
     /// <summary><c>0x004F2950</c>: a floor Torture Wheel turns ((x + y) &amp; 3) + 4 a turn, one way
     /// on odd tiles and the other on even ones.</summary>
@@ -535,7 +558,10 @@ public sealed partial class WorldView
         return _wallSides.TryGetValue(tileIndex, out side) ? side : -1;
     }
 
-    private static int Spread(int id, int range) => (int)((unchecked((uint)id * 0x9E3779B1u) >> 8) % (uint)range);
+    private static int Spread(int id, int range)
+    {
+        return (int)((unchecked((uint)id * 0x9E3779B1u) >> 8) % (uint)range);
+    }
 
     private void Decorate(WorldState world, RoomInstance room, in RoomFacts facts, List<ObjectView> into)
     {
@@ -813,12 +839,16 @@ public sealed partial class WorldView
             ? ClassicTerrainTint.PieceColour(lighting.AmbientColour(terrain.Flags)) : default;
     }
 
-    private DungeonHeartVisual? HeartVisual(WorldState world, byte objectTypeId, PlayerId owner, TilePos tile) =>
-        objectTypeId == DungeonHeartId && world.HasPlayer(owner)
+    private DungeonHeartVisual? HeartVisual(WorldState world, byte objectTypeId, PlayerId owner, TilePos tile)
+    {
+        return objectTypeId == DungeonHeartId && world.HasPlayer(owner)
             ? DungeonHeartVisual.FromHealth(currentHealth: world.Player(owner).HeartHealth,
                 maximumHealth: _database[VariableTypeId.DungeonHeartObjectHealth]) with
-                { ManaEffect = RoomAt(world, world.TileIndex(tile)) is { Definition.TypeId: RoomTypeId.DungeonHeart } room
-                    ? room.Definition.CreatedObjectEffectId : EffectId.None } : null;
+            {
+                ManaEffect = RoomAt(world, world.TileIndex(tile)) is { Definition.TypeId: RoomTypeId.DungeonHeart } room
+                    ? room.Definition.CreatedObjectEffectId : EffectId.None
+            } : null;
+    }
 
     private RoomInstance? RoomAt(WorldState world, int tileIndex)
     {
@@ -847,9 +877,11 @@ public sealed partial class WorldView
     }
 
     /// <summary>The creature body's base plane, before relative falling height; not the Portal hole.</summary>
-    public Fp32 CreatureEffectGround(WorldState world, CreatureState creature) =>
-        WaterSpeedRules.IsFlying(_database.CreatureById(creature.CreatureTypeId), creature) ? new(FloorZ)
+    public Fp32 CreatureEffectGround(WorldState world, CreatureState creature)
+    {
+        return WaterSpeedRules.IsFlying(_database.CreatureById(creature.CreatureTypeId), creature) ? new(FloorZ)
             : CreatureGroundHeight(world, new(new(creature.PosX), new(creature.PosY), default));
+    }
 
     /// <summary>Ground for effects and shadows, including Portal holes and the central Heart pit.</summary>
     public Fp32 GroundHeightAt(WorldState world, FpPosition3 point)
@@ -873,9 +905,12 @@ public sealed partial class WorldView
                 }
             }
 
-            bool SameRoom(TilePos neighbour) => world.Contains(neighbour)
+            bool SameRoom(TilePos neighbour)
+            {
+                return world.Contains(neighbour)
                 && world.Tile(neighbour).TerrainId == tile.TerrainId
                 && world.Tile(neighbour).OwnerPlayerId == tile.OwnerPlayerId;
+            }
         }
         return CreatureGroundHeight(world, point);
     }

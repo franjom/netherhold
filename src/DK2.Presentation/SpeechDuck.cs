@@ -11,5 +11,8 @@ namespace DK2.Presentation;
 public static class SpeechDuck
 {
     /// <summary>The setting's whole percent times four over six, unsigned (the multiply by <c>0xAAAAAAAB</c> and shift by two at <c>0x005684AA</c>).</summary>
-    public static int Percent(int setting) => (int)((uint)setting * 4u / 6u);
+    public static int Percent(int setting)
+    {
+        return (int)((uint)setting * 4u / 6u);
+    }
 }

@@ -46,9 +46,21 @@ public readonly struct TorchView : IEquatable<TorchView>
     public int PosY { get; }
 
     /// <summary>The light's RenderInfo offset mounts its mesh on the wall (wall-torches.md §4).</summary>
-    public int MeshPosX => PosX + (Yaw == 0 ? -512 : Yaw == 1024 ? 511 : 0);
+    public int MeshPosX
+    {
+        get
+        {
+            return PosX + (Yaw == 0 ? -512 : Yaw == 1024 ? 511 : 0);
+        }
+    }
 
-    public int MeshPosY => PosY + (Yaw == 512 ? -512 : Yaw == 1536 ? 511 : 0);
+    public int MeshPosY
+    {
+        get
+        {
+            return PosY + (Yaw == 512 ? -512 : Yaw == 1536 ? 511 : 0);
+        }
+    }
 
     /// <summary>Height above the floor, in <see cref="Fp32"/> tile units.</summary>
     public int Height { get; }
@@ -71,16 +83,23 @@ public readonly struct TorchView : IEquatable<TorchView>
     /// <summary>The torch mesh; empty for a light with no mesh.</summary>
     public AssetRef Mesh { get; }
 
-    public bool Equals(TorchView other) =>
-        FloorTileIndex == other.FloorTileIndex && Wall.Equals(other.Wall) && PosX == other.PosX
+    public bool Equals(TorchView other)
+    {
+        return FloorTileIndex == other.FloorTileIndex && Wall.Equals(other.Wall) && PosX == other.PosX
         && PosY == other.PosY && Height == other.Height && Yaw == other.Yaw && Red == other.Red
         && Green == other.Green && Blue == other.Blue && Intensity == other.Intensity
         && Radius == other.Radius && Mesh == other.Mesh;
+    }
 
-    public override bool Equals(object? obj) => obj is TorchView other && Equals(other);
+    public override bool Equals(object? obj)
+    {
+        return obj is TorchView other && Equals(other);
+    }
 
-    public override int GetHashCode() =>
-        HashCode.Combine(FloorTileIndex, Wall, PosX, PosY, Yaw, Red, Green, Blue);
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(FloorTileIndex, Wall, PosX, PosY, Yaw, Red, Green, Blue);
+    }
 }
 
 /// <summary>
@@ -129,8 +148,10 @@ public sealed class TorchLayout
     }
 
     /// <summary>The torch lighting a floor tile, if it has one.</summary>
-    public TorchView? At(int floorTileIndex) =>
-        floorTileIndex >= 0 && floorTileIndex < _torches.Length ? _torches[floorTileIndex] : null;
+    public TorchView? At(int floorTileIndex)
+    {
+        return floorTileIndex >= 0 && floorTileIndex < _torches.Length ? _torches[floorTileIndex] : null;
+    }
 
     /// <summary>
     /// Brings the torches up to the world, and returns the floor tiles whose torch appeared,
@@ -329,16 +350,20 @@ public sealed class TorchLayout
             ((face + 127) << 9) & 0x7FF, red, green, blue, intensity, radius, mesh);
     }
 
-    private (int Red, int Green, int Blue) ColourOf(WorldState world, int x, int y) =>
-        RoomOf(world.Tile(x, y).TerrainId)?.Torch is RoomTorch room
+    private (int Red, int Green, int Blue) ColourOf(WorldState world, int x, int y)
+    {
+        return RoomOf(world.Tile(x, y).TerrainId)?.Torch is RoomTorch room
             ? (room.Red, room.Green, room.Blue)
             : (_defaultRed, _defaultGreen, _defaultBlue);
+    }
 
     /// <summary><c>0x00452D80</c>: a Torch-flagged terrain that is not a door.</summary>
-    private bool Qualifies(WorldState world, int x, int y) =>
-        world.Contains(x, y)
+    private bool Qualifies(WorldState world, int x, int y)
+    {
+        return world.Contains(x, y)
         && ((_database.TerrainById(world.Tile(x, y).TerrainId).Flags & TerrainFlags.Torch) == TerrainFlags.Torch)
         && world.DoorAt(x, y) is null;
+    }
 
     /// <summary>§2 (<c>0x00452F20</c>, <c>0x00452EC0</c>): a N or S face needs the floor's x plus the
     /// phase odd, an E or W face its y plus the phase even. The phase is 0 except on a floor in a
@@ -374,11 +399,15 @@ public sealed class TorchLayout
         return face % 2 == 0 ? ((fx + phase) & 1) == 1 : ((fy + phase) & 1) == 0;
     }
 
-    private bool Solid(WorldState world, int x, int y) =>
-        _database.TerrainById(world.Tile(x, y).TerrainId).IsSolid;
+    private bool Solid(WorldState world, int x, int y)
+    {
+        return _database.TerrainById(world.Tile(x, y).TerrainId).IsSolid;
+    }
 
-    private RoomDef? RoomOf(byte terrainId) =>
-        _database.RoomsByTerrain.TryGetValue(terrainId, out RoomDef? room) ? room : null;
+    private RoomDef? RoomOf(byte terrainId)
+    {
+        return _database.RoomsByTerrain.TryGetValue(terrainId, out RoomDef? room) ? room : null;
+    }
 
     private void Set(int floor, TorchView? torch)
     {
@@ -392,5 +421,8 @@ public sealed class TorchLayout
         _changed.Add(floor);
     }
 
-    private int Variable(VariableTypeId id) => _database.Variables.TryGet(id, out int value) ? value : 0;
+    private int Variable(VariableTypeId id)
+    {
+        return _database.Variables.TryGet(id, out int value) ? value : 0;
+    }
 }

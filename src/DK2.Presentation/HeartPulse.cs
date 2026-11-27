@@ -22,7 +22,10 @@ public sealed class HeartPulse
     private readonly ConcurrentQueue<(PlayerId Owner, Fp32 Step)> _advances = new();
 
     /// <summary>Queues a health change from any thread; the frame applies its phase step.</summary>
-    public void QueueHealthChange(PlayerId owner, DungeonHeartVisual visual) => _advances.Enqueue((owner, visual.PhaseStep));
+    public void QueueHealthChange(PlayerId owner, DungeonHeartVisual visual)
+    {
+        _advances.Enqueue((owner, visual.PhaseStep));
+    }
 
     /// <summary>The next queued change, oldest first; the renderer advances each heart of <paramref name="owner"/>
     /// (<see cref="IsHeartOf"/>) by <paramref name="step"/>.</summary>
@@ -37,7 +40,10 @@ public sealed class HeartPulse
         return false;
     }
 
-    public static bool IsHeartOf(in ObjectView pose, PlayerId owner) => pose.HeartVisual.HasValue && pose.OwnerPlayerId == owner;
+    public static bool IsHeartOf(in ObjectView pose, PlayerId owner)
+    {
+        return pose.HeartVisual.HasValue && pose.OwnerPlayerId == owner;
+    }
 
     public void ClearHealthAdvances()
     {

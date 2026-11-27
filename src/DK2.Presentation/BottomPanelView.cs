@@ -21,8 +21,18 @@ public readonly record struct BottomPanelRect(int X, int Y, int Width, int Heigh
 public static class BottomPanelLayout
 {
     public const int Left = 472, Top = 1600, Span = 1800, Height = 300;
-    public static BottomPanelRect Tab(int index) => new(472 + index * 136, 1460, 128, 128);
-    public static BottomPanelRect Panel => new(Left, Top, Span, Height);
+    public static BottomPanelRect Tab(int index)
+    {
+        return new(472 + index * 136, 1460, 128, 128);
+    }
+
+    public static BottomPanelRect Panel
+    {
+        get
+        {
+            return new(Left, Top, Span, Height);
+        }
+    }
 
     /// <summary><c>0x00417310</c>: the <c>n</c> open category menus share the span, each <c>W = 1800 / n</c>
     /// wide at y 1600, 300 high. An unpinned menu sits at x 472; the pinned one (rank 1) at
@@ -53,11 +63,21 @@ public static class BottomPanelLayout
 
     /// <summary>The page arrows keep their local x (0) and width (64); 0x00417470 sets y 12 and 144,
     /// height 132 (<c>0x84</c>), so each panel carries its own pair at its left edge.</summary>
-    public static BottomPanelRect PreviousPage(BottomPanelRect panel) => new(panel.X, panel.Y + 12, 64, 132);
-    public static BottomPanelRect NextPage(BottomPanelRect panel) => new(panel.X, panel.Y + 144, 64, 132);
+    public static BottomPanelRect PreviousPage(BottomPanelRect panel)
+    {
+        return new(panel.X, panel.Y + 12, 64, 132);
+    }
+
+    public static BottomPanelRect NextPage(BottomPanelRect panel)
+    {
+        return new(panel.X, panel.Y + 144, 64, 132);
+    }
 
     /// <summary>0x00417470 for menu 5, the creature overview: <c>(W − 432) / 116</c> columns, one row.</summary>
-    public static int OverviewColumns(int panelWidth) => Math.Max(0, (panelWidth - 432) / 116);
+    public static int OverviewColumns(int panelWidth)
+    {
+        return Math.Max(0, (panelWidth - 432) / 116);
+    }
 }
 
 /// <summary>Retained display state; no simulation object escapes capture.</summary>
@@ -66,7 +86,14 @@ public sealed class BottomPanelChoice
     internal BottomPanelChoice(BottomPanelChoiceKey key, string name, int cost)
     { Key = key; Name = name; Cost = cost; }
     public BottomPanelChoiceKey Key { get; }
-    public BottomPanelChoiceKind Kind => Key.Kind;
+    public BottomPanelChoiceKind Kind
+    {
+        get
+        {
+            return Key.Kind;
+        }
+    }
+
     public string Name { get; }
     public int Cost { get; internal set; }
     public bool Visible { get; internal set; }
@@ -88,12 +115,18 @@ public sealed class BottomPanelChoice
     public int ObjectId { get; internal set; }
     /// <summary>Recharge, manufacture and research sectors (panel-indicators.md).</summary>
     public BottomPanelSlotIndicators Indicators { get; internal set; }
-    public BottomPanelCategory Category => Kind switch
+    public BottomPanelCategory Category
     {
-        BottomPanelChoiceKind.Room => BottomPanelCategory.Rooms,
-        BottomPanelChoiceKind.Spell or BottomPanelChoiceKind.Special => BottomPanelCategory.Spells,
-        _ => BottomPanelCategory.Workshop,
-    };
+        get
+        {
+            return Kind switch
+            {
+                BottomPanelChoiceKind.Room => BottomPanelCategory.Rooms,
+                BottomPanelChoiceKind.Spell or BottomPanelChoiceKind.Special => BottomPanelCategory.Spells,
+                _ => BottomPanelCategory.Workshop,
+            };
+        }
+    }
 }
 
 /// <summary>Bottom-panel facts captured before worker dispatch. Research: bottom-panel-controls.md.</summary>
@@ -116,7 +149,14 @@ public sealed class BottomPanelView
     private bool _ownedRoomsCaptured;
     private bool _spellsTab, _workshopTab, _workshopDim, _creaturesDim;
     private readonly bool[] _ownedRoomTypes = new bool[256];
-    public IReadOnlyList<BottomPanelChoice> Choices => _choices;
+    public IReadOnlyList<BottomPanelChoice> Choices
+    {
+        get
+        {
+            return _choices;
+        }
+    }
+
     public SoundRequests Sounds { get; } = new();
     private bool _choicePressed;
     private GuiSoundSlot _pressedSlot;
@@ -148,14 +188,26 @@ public sealed class BottomPanelView
     /// after its spells (<c>0x00411140</c>, <c>0x00411790</c>): Libraries in room-list order, each
     /// Library's objects newest first. Every one is drawn at full colour with no cost, selection or
     /// recharge (<c>0x00412FC0</c>'s special arm), its icon the object's GUI icon (runtime art slot 0).</summary>
-    public IReadOnlyList<BottomPanelChoice> StoredSpecials => _specials;
+    public IReadOnlyList<BottomPanelChoice> StoredSpecials
+    {
+        get
+        {
+            return _specials;
+        }
+    }
 
     /// <summary>Whether a click can select a choice with this availability value: it is shown
     /// (not 1) and neither 2 nor 4. The legal-action fuzzer applies the same rule.</summary>
-    public static bool IsSelectable(int availability) => availability is not (1 or 2 or 4);
+    public static bool IsSelectable(int availability)
+    {
+        return availability is not (1 or 2 or 4);
+    }
 
     /// <summary>Traps flagged <c>0x2000</c> have no panel choice.</summary>
-    public static bool IsOnPanel(TrapDef trap) => (trap.Flags & 0x2000) == 0;
+    public static bool IsOnPanel(TrapDef trap)
+    {
+        return (trap.Flags & 0x2000) == 0;
+    }
 
     /// <summary>The choice for a key, or null when the panel has none.</summary>
     public BottomPanelChoice? Choice(BottomPanelChoiceKey key)
@@ -232,12 +284,15 @@ public sealed class BottomPanelView
     /// <summary>The tab updater <c>0x00416E20</c>: Creatures and Rooms always show; Spells shows
     /// when a spell other than 5 and 14 has availability other than 1, and Workshop when a door, or
     /// a trap without definition flag <c>0x2000</c>, does. A hidden tab keeps its place.</summary>
-    public bool TabVisible(BottomPanelCategory category) => category switch
+    public bool TabVisible(BottomPanelCategory category)
     {
-        BottomPanelCategory.Spells => _spellsTab,
-        BottomPanelCategory.Workshop => _workshopTab,
-        _ => true,
-    };
+        return category switch
+        {
+            BottomPanelCategory.Spells => _spellsTab,
+            BottomPanelCategory.Workshop => _workshopTab,
+            _ => true,
+        };
+    }
 
     /// <summary>The tab draw <c>0x00412260</c> tints a tab 50% grey (<c>0xFF808080</c>): Workshop
     /// while its player owns no Workshop (<c>0x004C5FD0(10)</c>), Creatures while player
@@ -246,12 +301,15 @@ public sealed class BottomPanelView
     /// <c>0x004B4E0F</c>) with no worker filter. Level-placed creatures link through the same path
     /// (<c>Creature_Construct</c> 0x004872A0), so this is "owns no creature", Imps included. The owner
     /// remembers the tab grey with only Imps (2026-10-19); that memory is unreconciled.</summary>
-    public bool TabDimmed(BottomPanelCategory category) => category switch
+    public bool TabDimmed(BottomPanelCategory category)
     {
-        BottomPanelCategory.Workshop => _workshopDim,
-        BottomPanelCategory.Creatures => _creaturesDim,
-        _ => false,
-    };
+        return category switch
+        {
+            BottomPanelCategory.Workshop => _workshopDim,
+            BottomPanelCategory.Creatures => _creaturesDim,
+            _ => false,
+        };
+    }
 
     public void Capture(WorldState world)
     {

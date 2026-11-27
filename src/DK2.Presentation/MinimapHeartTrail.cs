@@ -50,7 +50,10 @@ public static class MinimapHeartTrail
         }
         return written;
 
-        int Offset(int tile, int rawFocus) => unchecked(
+        int Offset(int tile, int rawFocus)
+        {
+            return unchecked(
             (tile - (rawFocus >> 12) + 64 / step) * step - ((rawFocus % 4096) >> (12 - zoom.Level)) - 64);
+        }
     }
 }

@@ -90,7 +90,13 @@ public sealed class WinScreen
     /// <summary>The item's tablet (<c>+0x4C6E</c>), drawn while the screen is not done.</summary>
     public RewardTablet Tablet { get; } = new();
     /// <summary>The announcement's text, or null.</summary>
-    public string? Text => Current is { } item ? _speech(item.SpeechTextId) : null;
+    public string? Text
+    {
+        get
+        {
+            return Current is { } item ? _speech(item.SpeechTextId) : null;
+        }
+    }
 
     /// <summary>Slot <c>+0x40</c> (<c>0x0042BE40</c>): the screen starts on its first step.</summary>
     public void Start(double now)

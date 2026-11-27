@@ -22,7 +22,10 @@ public sealed class FlowerDollarClock
     private bool _running;
 
     /// <summary>A non-dollar flower was drawn: the next dollar starts the clip again.</summary>
-    public void Reset() => _running = false;
+    public void Reset()
+    {
+        _running = false;
+    }
 
     /// <summary>The clip phase (0..1) to draw this dollar at, between the last advance and the next.</summary>
     public float Phase(float fraction)
@@ -54,5 +57,8 @@ public sealed class FlowerDollarClock
     }
 
     /// <summary>The fraction a dollar is drawn at: the wall clock's quarter seconds, <c>(seconds·4) mod 1</c>.</summary>
-    public static float Fraction(double unscaledSeconds) => (float)(unscaledSeconds * 4 % 1);
+    public static float Fraction(double unscaledSeconds)
+    {
+        return (float)(unscaledSeconds * 4 % 1);
+    }
 }

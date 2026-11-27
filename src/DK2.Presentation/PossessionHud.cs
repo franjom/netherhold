@@ -26,56 +26,107 @@ public sealed class PossessionHud
 {
     public const string HealthFill = "GUI\\Map\\m-hp";
     public const string GoldIcon = "gui\\rooms\\Treasury";
-    public static HudRect HealthBounds => new(664, 22, 280, 100);
+    public static HudRect HealthBounds
+    {
+        get
+        {
+            return new(664, 22, 280, 100);
+        }
+    }
 
     private readonly record struct Metrics(HudScreen Screen, float XScale, float VisibleHeight)
     {
-        public float X(float value) => value * XScale;
-        public float BottomShift => VisibleHeight - 1920;
-        public bool Valid => Screen.Width > 0 && Screen.Height > 0;
+        public float X(float value)
+        {
+            return value * XScale;
+        }
+
+        public float BottomShift
+        {
+            get
+            {
+                return VisibleHeight - 1920;
+            }
+        }
+
+        public bool Valid
+        {
+            get
+            {
+                return Screen.Width > 0 && Screen.Height > 0;
+            }
+        }
     }
 
-    public static float NativeXScale(HudScaleLayout layout) =>
-        layout.Height <= 0 ? 1 : layout.Width * 1920f / (layout.Height * 2560f);
+    public static float NativeXScale(HudScaleLayout layout)
+    {
+        return layout.Height <= 0 ? 1 : layout.Width * 1920f / (layout.Height * 2560f);
+    }
 
     /// <summary>ADR-0821: preserve the native 4:3 content proportions while extra viewport width remains available to the world.</summary>
-    public static float ContentXScale(HudScaleLayout layout) => Math.Min(1, NativeXScale(layout));
+    public static float ContentXScale(HudScaleLayout layout)
+    {
+        return Math.Min(1, NativeXScale(layout));
+    }
 
-    public static HudVisibility OrdinaryVisibility(HudVisibility ordinary, bool possessionCameraHeld) =>
-        possessionCameraHeld ? new(false, false) : ordinary;
+    public static HudVisibility OrdinaryVisibility(HudVisibility ordinary, bool possessionCameraHeld)
+    {
+        return possessionCameraHeld ? new(false, false) : ordinary;
+    }
 
     public static HudVisibility OrdinaryVisibility(HudVisibility ordinary, bool possessionCameraHeld,
-        bool possessing, bool firstPersonCameraSettled) =>
-        !possessionCameraHeld ? ordinary : new(ordinary.ShowNormalHud && possessing && !firstPersonCameraSettled, false);
+        bool possessing, bool firstPersonCameraSettled)
+    {
+        return !possessionCameraHeld ? ordinary : new(ordinary.ShowNormalHud && possessing && !firstPersonCameraSettled, false);
+    }
 
-    public static HudVisibility OrdinaryVisibility(HudVisibility ordinary, PossessionSession? session) =>
-        session is not { CameraHeld: true } ? ordinary : new(ordinary.ShowNormalHud && session.OrdinaryHudDuringTransition, false);
+    public static HudVisibility OrdinaryVisibility(HudVisibility ordinary, PossessionSession? session)
+    {
+        return session is not { CameraHeld: true } ? ordinary : new(ordinary.ShowNormalHud && session.OrdinaryHudDuringTransition, false);
+    }
 
-    public static GameShortcutContext ShortcutContext(GameShortcutContext ordinary, bool possessionCameraHeld, bool possessing = true) =>
-        ordinary with { Possession = possessionCameraHeld, OrdinaryInput = ordinary.OrdinaryInput && (!possessionCameraHeld || possessing) };
+    public static GameShortcutContext ShortcutContext(GameShortcutContext ordinary, bool possessionCameraHeld, bool possessing = true)
+    {
+        return ordinary with { Possession = possessionCameraHeld, OrdinaryInput = ordinary.OrdinaryInput && (!possessionCameraHeld || possessing) };
+    }
 
     public static GameShortcutContext ShortcutContext(GameShortcutContext ordinary, bool possessionCameraHeld,
-        bool possessing, bool firstPersonCameraSettled) =>
-        ShortcutContext(ordinary, possessionCameraHeld, possessing) with
+        bool possessing, bool firstPersonCameraSettled)
+    {
+        return ShortcutContext(ordinary, possessionCameraHeld, possessing) with
         { OrdinaryInput = ordinary.OrdinaryInput && (!possessionCameraHeld || (possessing && firstPersonCameraSettled)) };
+    }
 
-    public static HudVisibility MinimapVisibility(HudVisibility ordinary, bool possessing, bool possessionCameraHeld = false) =>
-        possessing ? new(ordinary.ShowNormalHud, false) : OrdinaryVisibility(ordinary, possessionCameraHeld);
+    public static HudVisibility MinimapVisibility(HudVisibility ordinary, bool possessing, bool possessionCameraHeld = false)
+    {
+        return possessing ? new(ordinary.ShowNormalHud, false) : OrdinaryVisibility(ordinary, possessionCameraHeld);
+    }
 
-    public static HudVisibility MinimapVisibility(HudVisibility ordinary, PossessionSession? session) =>
-        session is { Possessing: true } ? new(ordinary.ShowNormalHud, false) : OrdinaryVisibility(ordinary, session);
+    public static HudVisibility MinimapVisibility(HudVisibility ordinary, PossessionSession? session)
+    {
+        return session is { Possessing: true } ? new(ordinary.ShowNormalHud, false) : OrdinaryVisibility(ordinary, session);
+    }
 
-    public static bool ShowPanel(bool possessing, HudVisibility ordinary) => possessing && ordinary.ShowNormalHud;
+    public static bool ShowPanel(bool possessing, HudVisibility ordinary)
+    {
+        return possessing && ordinary.ShowNormalHud;
+    }
 
-    public static bool ShowPanel(bool possessing, HudVisibility ordinary, bool firstPersonCameraSettled) =>
-        firstPersonCameraSettled && ShowPanel(possessing, ordinary);
+    public static bool ShowPanel(bool possessing, HudVisibility ordinary, bool firstPersonCameraSettled)
+    {
+        return firstPersonCameraSettled && ShowPanel(possessing, ordinary);
+    }
 
     /// <summary>The mana/Heart corner remains; creature gold replaces the keeper's gold/payday corner.</summary>
-    public static void AppendResourceCorner(HudFrame resourceFrame, HudFrame frame) =>
+    public static void AppendResourceCorner(HudFrame resourceFrame, HudFrame frame)
+    {
         AppendResourceCorner(resourceFrame, frame, 1);
+    }
 
-    public static void AppendResourceCorner(HudScaleLayout layout, HudFrame resourceFrame, HudFrame frame) =>
+    public static void AppendResourceCorner(HudScaleLayout layout, HudFrame resourceFrame, HudFrame frame)
+    {
         AppendResourceCorner(resourceFrame, frame, ContentXScale(layout));
+    }
 
     private static void AppendResourceCorner(HudFrame resourceFrame, HudFrame frame, float xScale)
     {
@@ -104,22 +155,35 @@ public sealed class PossessionHud
         }
     }
 
-    public void Build(HudScreen screen, PossessionHudSnapshot? snapshot, HudFrame frame) =>
+    public void Build(HudScreen screen, PossessionHudSnapshot? snapshot, HudFrame frame)
+    {
         Build(new Metrics(screen, Math.Min(1, screen.VirtualWidth / 2560), 1920), snapshot, frame);
+    }
 
-    public void Build(HudScaleLayout layout, PossessionHudSnapshot? snapshot, HudFrame frame) =>
+    public void Build(HudScaleLayout layout, PossessionHudSnapshot? snapshot, HudFrame frame)
+    {
         Build(Of(layout), snapshot, frame);
+    }
 
-    public void BuildFilters(HudScaleLayout layout, PossessionHudSnapshot? snapshot, HudFrame frame) =>
+    public void BuildFilters(HudScaleLayout layout, PossessionHudSnapshot? snapshot, HudFrame frame)
+    {
         Filters(Of(layout), snapshot, frame);
+    }
 
-    public void BuildCreaturePanel(HudScaleLayout layout, PossessionHudSnapshot? snapshot, HudFrame frame) =>
+    public void BuildCreaturePanel(HudScaleLayout layout, PossessionHudSnapshot? snapshot, HudFrame frame)
+    {
         CreaturePanel(Of(layout), snapshot, frame);
+    }
 
-    public void BuildChrome(HudScaleLayout layout, PossessionHudSnapshot? snapshot, HudFrame frame) =>
+    public void BuildChrome(HudScaleLayout layout, PossessionHudSnapshot? snapshot, HudFrame frame)
+    {
         Chrome(Of(layout), snapshot, frame);
+    }
 
-    private static Metrics Of(HudScaleLayout layout) => new(layout.Screen, ContentXScale(layout), 1920 / layout.Factor);
+    private static Metrics Of(HudScaleLayout layout)
+    {
+        return new(layout.Screen, ContentXScale(layout), 1920 / layout.Factor);
+    }
 
     private static void Build(Metrics metrics, PossessionHudSnapshot? snapshot, HudFrame frame)
     {
@@ -210,9 +274,11 @@ public sealed class PossessionHud
         }
     }
 
-    private static PossessionHudIconRole Role(PossessionHudIcon icon) =>
-        icon.Role == PossessionHudIconRole.TopAction && icon.Image.EndsWith("group-mode", StringComparison.OrdinalIgnoreCase)
+    private static PossessionHudIconRole Role(PossessionHudIcon icon)
+    {
+        return icon.Role == PossessionHudIconRole.TopAction && icon.Image.EndsWith("group-mode", StringComparison.OrdinalIgnoreCase)
             ? PossessionHudIconRole.Group : icon.Role;
+    }
 
     private static void Icon(HudFrame frame, PossessionHudIcon icon, HudRect rect)
     {

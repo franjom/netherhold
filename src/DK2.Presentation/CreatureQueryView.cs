@@ -28,9 +28,15 @@ public sealed class CreatureQueryView
     /// <summary>The last <see cref="Capture"/>'s details, empty before the first.</summary>
     public CreatureQuerySnapshot Snapshot { get; private set; } = CreatureQuerySnapshot.Empty;
 
-    public void Query(CreatureQueryTarget target) => Target = target;
+    public void Query(CreatureQueryTarget target)
+    {
+        Target = target;
+    }
 
-    public void Clear() => Target = CreatureQueryTarget.None;
+    public void Clear()
+    {
+        Target = CreatureQueryTarget.None;
+    }
 
     /// <summary>The details for the target in <paramref name="world"/>, which become <see cref="Snapshot"/>.</summary>
     public CreatureQuerySnapshot Capture(WorldState world)

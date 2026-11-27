@@ -32,15 +32,23 @@ public sealed class ClassicCameraSetup
     public Vector3 StartFocus { get; }
 
     /// <summary>The first preset with <paramref name="mode"/>'s camera id, or null.</summary>
-    public static CameraThing? Preset(IReadOnlyList<CameraThing> presets, ClassicCameraMode mode) => Find(presets, (ushort)mode);
+    public static CameraThing? Preset(IReadOnlyList<CameraThing> presets, ClassicCameraMode mode)
+    {
+        return Find(presets, (ushort)mode);
+    }
 
     /// <summary>The first preset with the possession camera's id (<see cref="PossessionCamera.PresetId"/>), or null.</summary>
-    public static CameraThing? PossessionPreset(IReadOnlyList<CameraThing> presets) => Find(presets, PossessionCamera.PresetId);
+    public static CameraThing? PossessionPreset(IReadOnlyList<CameraThing> presets)
+    {
+        return Find(presets, PossessionCamera.PresetId);
+    }
 
     /// <summary>The preset's zoom-out limit times <paramref name="scale"/>, the scale kept within [1, 2] (1 is DK2's own
     /// bound; a remake option), rounded half to even as Unity's <c>Mathf.RoundToInt</c> does.</summary>
-    public static int ZoomOutLimit(int maxZoom, float scale) =>
-        (int)Math.Round((float)(maxZoom * CameraFocus.Clamp(scale, 1f, 2f)));
+    public static int ZoomOutLimit(int maxZoom, float scale)
+    {
+        return (int)Math.Round((float)(maxZoom * CameraFocus.Clamp(scale, 1f, 2f)));
+    }
 
     /// <summary>The camera, its controls and the start focus for a level <paramref name="mapWidth"/> by
     /// <paramref name="mapHeight"/> tiles; <paramref name="players"/> is null for a level with no player records.</summary>

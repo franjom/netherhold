@@ -52,31 +52,48 @@ public sealed class FrameJournalSession
     public bool Resolved { get; private set; }
 
     /// <summary>Whether the frame journal is open; the host builds a frame's raw sample only then.</summary>
-    public bool Recording => _frames != null;
+    public bool Recording
+    {
+        get
+        {
+            return _frames != null;
+        }
+    }
 
     /// <summary>The session's folder, once opened.</summary>
-    public string? Folder => _folder;
+    public string? Folder
+    {
+        get
+        {
+            return _folder;
+        }
+    }
 
     /// <summary><c>session-yyyyMMdd-HHmmss-fff-front-end</c>, or the level's name in place of <c>front-end</c>.</summary>
-    public static string FolderName(DateTime utcNow, GameSessionMode mode, string levelName) =>
-        $"session-{utcNow.ToString("yyyyMMdd-HHmmss-fff", CultureInfo.InvariantCulture)}-{(mode == GameSessionMode.FrontEnd ? "front-end" : levelName)}";
+    public static string FolderName(DateTime utcNow, GameSessionMode mode, string levelName)
+    {
+        return $"session-{utcNow.ToString("yyyyMMdd-HHmmss-fff", CultureInfo.InvariantCulture)}-{(mode == GameSessionMode.FrontEnd ? "front-end" : levelName)}";
+    }
 
     /// <summary>The shared journal header. The host adds its engine version and any known commit.</summary>
     public static Dictionary<string, string> Header(string source, string keyTable, GameSessionMode mode, string level,
-        ulong seed, PlayerId viewer, bool fogOfWar, bool tickOnWorker, int screenWidth, int screenHeight) => new()
+        ulong seed, PlayerId viewer, bool fogOfWar, bool tickOnWorker, int screenWidth, int screenHeight)
     {
-        ["source"] = source,
-        [KeyTableKey] = keyTable,
-        ["session.mode"] = mode.ToString(),
-        ["level"] = level,
-        ["seed"] = seed.ToString(CultureInfo.InvariantCulture),
-        ["viewing.player"] = viewer.Value.ToString(CultureInfo.InvariantCulture),
-        ["fog.of.war"] = fogOfWar ? "on" : "off",
-        ["tick.on.worker"] = tickOnWorker ? "on" : "off",
-        ["screen"] = $"{screenWidth}x{screenHeight}",
-        ["commit"] = "unknown",
-        ["src.dirty"] = "unknown",
-    };
+        return new()
+        {
+            ["source"] = source,
+            [KeyTableKey] = keyTable,
+            ["session.mode"] = mode.ToString(),
+            ["level"] = level,
+            ["seed"] = seed.ToString(CultureInfo.InvariantCulture),
+            ["viewing.player"] = viewer.Value.ToString(CultureInfo.InvariantCulture),
+            ["fog.of.war"] = fogOfWar ? "on" : "off",
+            ["tick.on.worker"] = tickOnWorker ? "on" : "off",
+            ["screen"] = $"{screenWidth}x{screenHeight}",
+            ["commit"] = "unknown",
+            ["src.dirty"] = "unknown",
+        };
+    }
 
     /// <summary>Resolves the journal once: with a <paramref name="root"/>, creates the session folder under it and opens
     /// the frame journal with the header <paramref name="header"/> builds. A failure warns and leaves the journal off.</summary>

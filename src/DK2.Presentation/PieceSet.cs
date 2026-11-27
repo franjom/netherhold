@@ -24,45 +24,108 @@ public readonly struct PieceSet : IEquatable<PieceSet>
 
     private readonly ulong _bits;
 
-    private PieceSet(ulong bits) => _bits = bits;
+    private PieceSet(ulong bits)
+    {
+        _bits = bits;
+    }
 
-    public bool IsEmpty => _bits == 0;
+    public bool IsEmpty
+    {
+        get
+        {
+            return _bits == 0;
+        }
+    }
 
-    public bool HasQuarters => ((_bits >> PresentShift) & 0xF) != 0;
+    public bool HasQuarters
+    {
+        get
+        {
+            return ((_bits >> PresentShift) & 0xF) != 0;
+        }
+    }
 
     /// <summary>Whether quadrant <paramref name="quadrant"/> holds a piece (a builder may fill only
     /// some, as DoubleQuad's door tile fills one).</summary>
-    public bool HasQuarter(int quadrant) => ((_bits >> (PresentShift + Quadrant(quadrant))) & 1) != 0;
+    public bool HasQuarter(int quadrant)
+    {
+        return ((_bits >> (PresentShift + Quadrant(quadrant))) & 1) != 0;
+    }
 
-    public bool HasWhole => (_bits & WholeBit) != 0;
+    public bool HasWhole
+    {
+        get
+        {
+            return (_bits & WholeBit) != 0;
+        }
+    }
 
-    public int QuarterPiece(int quadrant) => (int)((_bits >> (6 * Quadrant(quadrant))) & 0xF);
+    public int QuarterPiece(int quadrant)
+    {
+        return (int)((_bits >> (6 * Quadrant(quadrant))) & 0xF);
+    }
 
-    public int QuarterRotation(int quadrant) => (int)((_bits >> ((6 * Quadrant(quadrant)) + 4)) & 3);
+    public int QuarterRotation(int quadrant)
+    {
+        return (int)((_bits >> ((6 * Quadrant(quadrant)) + 4)) & 3);
+    }
 
-    public int WholePiece => (int)((_bits >> WholeShift) & 0xF);
+    public int WholePiece
+    {
+        get
+        {
+            return (int)((_bits >> WholeShift) & 0xF);
+        }
+    }
 
-    public int WholeRotation => (int)((_bits >> (WholeShift + 4)) & 3);
+    public int WholeRotation
+    {
+        get
+        {
+            return (int)((_bits >> (WholeShift + 4)) & 3);
+        }
+    }
 
-    internal PieceSet WithQuarter(int quadrant, int piece, int rotation) =>
-        new(_bits | (1ul << (PresentShift + Quadrant(quadrant)))
+    internal PieceSet WithQuarter(int quadrant, int piece, int rotation)
+    {
+        return new(_bits | (1ul << (PresentShift + Quadrant(quadrant)))
             | ((ulong)((piece & 0xF) | ((rotation & 3) << 4)) << (6 * quadrant)));
+    }
 
-    internal PieceSet WithWhole(int piece, int rotation) =>
-        new(_bits | WholeBit | ((ulong)((piece & 0xF) | ((rotation & 3) << 4)) << WholeShift));
+    internal PieceSet WithWhole(int piece, int rotation)
+    {
+        return new(_bits | WholeBit | ((ulong)((piece & 0xF) | ((rotation & 3) << 4)) << WholeShift));
+    }
 
-    private static int Quadrant(int quadrant) =>
-        quadrant is >= 0 and <= 3 ? quadrant : throw new ArgumentOutOfRangeException(nameof(quadrant));
+    private static int Quadrant(int quadrant)
+    {
+        return quadrant is >= 0 and <= 3 ? quadrant : throw new ArgumentOutOfRangeException(nameof(quadrant));
+    }
 
-    public bool Equals(PieceSet other) => _bits == other._bits;
+    public bool Equals(PieceSet other)
+    {
+        return _bits == other._bits;
+    }
 
-    public override bool Equals(object? obj) => obj is PieceSet other && Equals(other);
+    public override bool Equals(object? obj)
+    {
+        return obj is PieceSet other && Equals(other);
+    }
 
-    public override int GetHashCode() => _bits.GetHashCode();
+    public override int GetHashCode()
+    {
+        return _bits.GetHashCode();
+    }
 
-    public static bool operator ==(PieceSet left, PieceSet right) => left.Equals(right);
+    public static bool operator ==(PieceSet left, PieceSet right)
+    {
+        return left.Equals(right);
+    }
 
-    public static bool operator !=(PieceSet left, PieceSet right) => !left.Equals(right);
+    public static bool operator !=(PieceSet left, PieceSet right)
+    {
+        return !left.Equals(right);
+    }
 }
 
 /// <summary>The liquid surface DK2's per-tile pass draws over a tile (<c>0x0043CC30</c>,
@@ -96,8 +159,14 @@ public sealed class RoomPieceKeys
     }
 
     /// <summary>Piece <paramref name="k"/>; empty past the pieces the loader builds.</summary>
-    public AssetRef Piece(int k) => k >= 0 && k < _pieces.Length ? _pieces[k] : default;
+    public AssetRef Piece(int k)
+    {
+        return k >= 0 && k < _pieces.Length ? _pieces[k] : default;
+    }
 
     /// <summary>Every piece the loader builds, for decoding ahead.</summary>
-    public IReadOnlyList<AssetRef> All() => _pieces;
+    public IReadOnlyList<AssetRef> All()
+    {
+        return _pieces;
+    }
 }

@@ -18,13 +18,32 @@ public sealed class PossessionControls
     private const int MeleeBit = 1, SpecialBits = 6;
 
     public byte Selection { get; private set; } = MeleeBit;
-    public bool Melee => (Selection & MeleeBit) != 0;
-    public int Slot => Selection >> 3;
+    public bool Melee
+    {
+        get
+        {
+            return (Selection & MeleeBit) != 0;
+        }
+    }
 
-    public void Reset() => Selection = MeleeBit;
+    public int Slot
+    {
+        get
+        {
+            return Selection >> 3;
+        }
+    }
+
+    public void Reset()
+    {
+        Selection = MeleeBit;
+    }
 
     /// <summary>Binding 6 (<c>0x004058E7</c>): melee on, the slot kept.</summary>
-    public void SelectMelee() => Selection = (byte)((Selection & ~SpecialBits) | MeleeBit);
+    public void SelectMelee()
+    {
+        Selection = (byte)((Selection & ~SpecialBits) | MeleeBit);
+    }
 
     /// <summary>Bindings 7 to 9 (<c>0x0040F9E0</c> with 0 to 2): taken only when the definition has
     /// that spell slot, its spell id is not zero and the creature has reached its level.</summary>
@@ -45,7 +64,11 @@ public sealed class PossessionControls
     }
 
     /// <summary>Binding 12 (<c>0x0040F9E0</c> with 3): the reserved slot, the followers' arm.</summary>
-    public void SelectFollowers() => Selection = PossessedSlot.FollowerArm << 3;
+    public void SelectFollowers()
+    {
+        Selection = PossessedSlot.FollowerArm << 3;
+    }
+
     public static OpenPossessedPrisonCommand? PickLock(WorldState world, GameDatabase database, PlayerId player,
         PossessionView view, CreatureState creature)
     {
@@ -53,8 +76,11 @@ public sealed class PossessionControls
         return PrisonAt(cameraPoint) && PrisonAt(creature.Tile)
             ? new OpenPossessedPrisonCommand(player, creature.Tile) : null;
 
-        bool PrisonAt(TilePos tile) => world.Contains(tile)
+        bool PrisonAt(TilePos tile)
+        {
+            return world.Contains(tile)
             && RoomIndex.RoomAt(world, database, world.TileIndex(tile)) is { Definition.TypeId: RoomTypeId.Prison };
+        }
     }
     /// <summary>Binding 11 selects hypnosis only for kind 5 (<c>0x0040FDA0</c>).</summary>
     public void SelectSecondary(CreatureDef definition)
@@ -65,10 +91,14 @@ public sealed class PossessionControls
         }
     }
     /// <summary>The built immediate primary arms: form, sneak at the camera tile and prayer.</summary>
-    public PlayerCommand? UsePrimary(PlayerId player, PossessionView view, CreatureDef definition) =>
-        UsePrimary(player, view, definition, CreatureId.None, CreatureId.None);
-    public PlayerCommand? UsePrimary(PlayerId player, PossessionView view, CreatureDef definition, CreatureId target, CreatureId source) =>
-        definition.PrimaryAbility switch
+    public PlayerCommand? UsePrimary(PlayerId player, PossessionView view, CreatureDef definition)
+    {
+        return UsePrimary(player, view, definition, CreatureId.None, CreatureId.None);
+    }
+
+    public PlayerCommand? UsePrimary(PlayerId player, PossessionView view, CreatureDef definition, CreatureId target, CreatureId source)
+    {
+        return definition.PrimaryAbility switch
         {
             PossessionAbilityKind.Sneak => new ToggleSneakCommand(player, view.X >> 12, view.Y >> 12),
             PossessionAbilityKind.ToggleFlag11 => new TogglePossessionFormCommand(player),
@@ -76,6 +106,8 @@ public sealed class PossessionControls
             PossessionAbilityKind.Fear => new FrightenPossessedCreatureCommand(player, target, source, new FearAmount(2000)),
             _ => null,
         };
+    }
+
     /// <summary>Sniper's client gate (<c>0x0040FDF0</c>): multiplier above one and an unlocked nonzero slot.</summary>
     public static bool CanToggleSniper(CreatureDef definition, int level)
     {
@@ -95,13 +127,17 @@ public sealed class PossessionControls
         return false;
     }
     /// <summary>Special hypnosis selection takes precedence over the ordinary action-26 fall-through.</summary>
-    public PlayerCommand SubmitFire(PlayerId player, PossessionView view, CreatureDef definition) =>
-        !Melee && (Selection & SpecialBits) == 4 && definition.SecondaryAbility == PossessionAbilityKind.Hypnosis
+    public PlayerCommand SubmitFire(PlayerId player, PossessionView view, CreatureDef definition)
+    {
+        return !Melee && (Selection & SpecialBits) == 4 && definition.SecondaryAbility == PossessionAbilityKind.Hypnosis
             ? new HypnotiseCommand(player, Aim(view)) : Fire(player, view);
+    }
 
     /// <summary><c>0x004100F0</c>'s action 26, from the camera's point and its yaw and pitch.</summary>
-    public ActPossessedCreatureCommand Fire(PlayerId player, PossessionView view) =>
-        new(player, Aim(view), Melee, new PossessedSlot(Slot));
+    public ActPossessedCreatureCommand Fire(PlayerId player, PossessionView view)
+    {
+        return new(player, Aim(view), Melee, new PossessedSlot(Slot));
+    }
 
     /// <summary>The once-a-turn pose of <c>0x004039A0</c>.</summary>
     public static MovePossessedCreatureCommand Pose(PlayerId player, PossessionView view, in PossessedBody body)
@@ -111,7 +147,9 @@ public sealed class PossessionControls
             new PossessionPose(new FpPosition3(new Fp32(x), new Fp32(y), new Fp32(height)), new Dk2Angle((ushort)heading)));
     }
 
-    public static PossessionAim Aim(PossessionView view) =>
-        new(new FpPosition3(new Fp32(view.X), new Fp32(view.Y), new Fp32(view.Z)),
+    public static PossessionAim Aim(PossessionView view)
+    {
+        return new(new FpPosition3(new Fp32(view.X), new Fp32(view.Y), new Fp32(view.Z)),
             new Dk2Angle((ushort)view.Yaw), new Dk2Angle((ushort)view.Pitch));
+    }
 }

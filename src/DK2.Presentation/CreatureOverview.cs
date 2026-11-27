@@ -40,18 +40,36 @@ public sealed class CreatureOverview
     private readonly List<int> _settled=new();
     private CreatureQueryTarget _lastFocus;
     private readonly byte _worker;
-    public IReadOnlyList<CreatureOverviewEntry> Entries => _entries;
-    public CreatureOverviewWorkerCounts WorkerCounts { get; private set; }
-    public int Count(CreatureOverviewType type,CreatureOverviewFilter filter) =>
-        filter==CreatureOverviewFilter.All?_counts[type.Value]:_filteredCounts[type.Value*28+(int)filter];
-    public static int Rows(CreatureOverviewMode mode) => mode==CreatureOverviewMode.Total?1:mode==CreatureOverviewMode.Jobs?4:3;
-    public static CreatureOverviewFilter RowFilter(CreatureOverviewMode mode,int row) => mode switch
+    public IReadOnlyList<CreatureOverviewEntry> Entries
     {
-        CreatureOverviewMode.Jobs => row switch { 0=>CreatureOverviewFilter.Idle,1=>CreatureOverviewFilter.Working,2=>CreatureOverviewFilter.Training,_=>CreatureOverviewFilter.OtherJobs },
-        CreatureOverviewMode.Fighting => row switch { 0=>CreatureOverviewFilter.Fighting,1=>CreatureOverviewFilter.Guarding,_=>CreatureOverviewFilter.OtherFighting },
-        CreatureOverviewMode.Moods => row switch { 0=>CreatureOverviewFilter.Content,1=>CreatureOverviewFilter.Unhappy,_=>CreatureOverviewFilter.Angry },
-        _=>CreatureOverviewFilter.All,
-    };
+        get
+        {
+            return _entries;
+        }
+    }
+
+    public CreatureOverviewWorkerCounts WorkerCounts { get; private set; }
+    public int Count(CreatureOverviewType type, CreatureOverviewFilter filter)
+    {
+        return filter == CreatureOverviewFilter.All ? _counts[type.Value] : _filteredCounts[type.Value * 28 + (int)filter];
+    }
+
+    public static int Rows(CreatureOverviewMode mode)
+    {
+        return mode == CreatureOverviewMode.Total ? 1 : mode == CreatureOverviewMode.Jobs ? 4 : 3;
+    }
+
+    public static CreatureOverviewFilter RowFilter(CreatureOverviewMode mode, int row)
+    {
+        return mode switch
+        {
+            CreatureOverviewMode.Jobs => row switch { 0 => CreatureOverviewFilter.Idle, 1 => CreatureOverviewFilter.Working, 2 => CreatureOverviewFilter.Training, _ => CreatureOverviewFilter.OtherJobs },
+            CreatureOverviewMode.Fighting => row switch { 0 => CreatureOverviewFilter.Fighting, 1 => CreatureOverviewFilter.Guarding, _ => CreatureOverviewFilter.OtherFighting },
+            CreatureOverviewMode.Moods => row switch { 0 => CreatureOverviewFilter.Content, 1 => CreatureOverviewFilter.Unhappy, _ => CreatureOverviewFilter.Angry },
+            _ => CreatureOverviewFilter.All,
+        };
+    }
+
     public CreatureOverview(GameDatabase database,PlayerId viewingPlayer,Func<CreatureOverviewType,string,string> name,
         Func<CreatureOverviewType,int>? order=null)
     {
@@ -61,7 +79,11 @@ public sealed class CreatureOverview
         _worker=definitions.First(d=>(d.Flags&(CreatureFlags.IsEvil|CreatureFlags.IsWorker))==(CreatureFlags.IsEvil|CreatureFlags.IsWorker)).CreatureId;
         _all= [.. definitions.OrderBy(d=>d.CreatureId==_worker?0:1).Select(d=>new CreatureOverviewEntry(new(d.CreatureId),name(new(d.CreatureId),d.Name)))];
     }
-    public void QueuePickupPreview(CreatureQueryTarget target,GameTick appliesAt) => _pending[target.Value]=appliesAt;
+    public void QueuePickupPreview(CreatureQueryTarget target, GameTick appliesAt)
+    {
+        _pending[target.Value] = appliesAt;
+    }
+
     public void Capture(WorldState world)
     {
         _settled.Clear();
@@ -219,7 +241,11 @@ public sealed class CreatureOverview
             _ => activity==(int)filter,
         };
     }
-    private bool Suppressed(CreatureState creature) => creature.InHand || _pending.ContainsKey(creature.Id);
+    private bool Suppressed(CreatureState creature)
+    {
+        return creature.InHand || _pending.ContainsKey(creature.Id);
+    }
+
     private byte ResolvedType(CreatureState creature)
     {
         CreatureDef definition=_database.CreatureById(creature.CreatureTypeId);

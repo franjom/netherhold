@@ -22,8 +22,21 @@ public readonly record struct MinimapColourClass
     }
 
     public ushort Index { get; }
-    public static MinimapColourClass Unknown => new(1);
-    public static MinimapColourClass Tagged => new(13);
+    public static MinimapColourClass Unknown
+    {
+        get
+        {
+            return new(1);
+        }
+    }
+
+    public static MinimapColourClass Tagged
+    {
+        get
+        {
+            return new(13);
+        }
+    }
 }
 
 /// <summary>Native opaque ARGB class banks; class 1 uses the separate rock backdrop.</summary>
@@ -76,7 +89,13 @@ public sealed class MinimapPalette
         return new MinimapPalette(pixels);
     }
 
-    public ReadOnlySpan<uint> Colours => _colours;
+    public ReadOnlySpan<uint> Colours
+    {
+        get
+        {
+            return _colours;
+        }
+    }
 
     public bool AdvanceNeutralCycle(GameTick tick, PlayerId neutralPlayer)
     {

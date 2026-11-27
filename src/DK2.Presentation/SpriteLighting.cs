@@ -20,7 +20,10 @@ public static class SpriteLighting
     /// under bit 0x40. An item flag 2 or 4 (render info <c>+0x5B</c>, an element's copied from its effect's
     /// <c>+0x81</c>) clears it too: only the hover cage's edge bits (<c>0x0043CC30</c>) set one, which ours
     /// does not mirror.</summary>
-    public static bool IsLit(byte artType) => artType is 1 or 2;
+    public static bool IsLit(byte artType)
+    {
+        return artType is 1 or 2;
+    }
 
     public static (byte Red, byte Green, byte Blue) Lit(byte red, byte green, byte blue,
         ReadOnlySpan<ClassicPointLight> lights, Vector3 centre)
@@ -36,6 +39,8 @@ public static class SpriteLighting
 
     /// <summary>The vertex packers' conversion (<c>0x0058B440</c>, <c>0x0058B680</c>): <c>c − 0.49999</c>
     /// rounded to nearest (the 12582912 trick, ties to even), then capped at 255.</summary>
-    private static byte Channel(float value) =>
-        (byte)Math.Clamp((int)MathF.Round(value * 255f - 0.49999f, MidpointRounding.ToEven), 0, 255);
+    private static byte Channel(float value)
+    {
+        return (byte)Math.Clamp((int)MathF.Round(value * 255f - 0.49999f, MidpointRounding.ToEven), 0, 255);
+    }
 }

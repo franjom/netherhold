@@ -204,8 +204,10 @@ public sealed record LaunchArguments(string? Level, ulong? Seed, string? Install
         return new PointerScript(keys);
     }
 
-    private static bool Coordinate(string text, out float value) =>
-        float.TryParse(text, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out value) && float.IsFinite(value);
+    private static bool Coordinate(string text, out float value)
+    {
+        return float.TryParse(text, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out value) && float.IsFinite(value);
+    }
 
     /// <summary>The argument after the first <paramref name="key"/>, or null when the key is absent or last.</summary>
     public static string? Value(IReadOnlyList<string> args, string key)

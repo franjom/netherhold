@@ -42,9 +42,11 @@ public static class GameSessionStarter
 
     /// <summary>An original DK2 save's grid (terrain and ownership, nobody in it) with the default systems; its players are
     /// <see cref="PlayersOf"/>.</summary>
-    public static GameSimulation FromDk2Save(GameDatabase database, LevelMap map, ulong seed, bool fogOfWarEnabled) =>
-        new(database, WorldState.FromMap(database, map, PlayersOf(map), fogOfWarEnabled: fogOfWarEnabled), seed,
+    public static GameSimulation FromDk2Save(GameDatabase database, LevelMap map, ulong seed, bool fogOfWarEnabled)
+    {
+        return new(database, WorldState.FromMap(database, map, PlayersOf(map), fogOfWarEnabled: fogOfWarEnabled), seed,
             SimulationSystems.Default());
+    }
 
     /// <summary>The usual local keeper, or an owner present in the imported grid when that keeper has no tiles.</summary>
     public static PlayerId ImportedSaveViewer(WorldState world, PlayerId preferred)
@@ -102,6 +104,8 @@ public static class GameSessionStarter
     }
 
     /// <summary>The ticks per second the ordinary camera scrolls at: the campaign level's, else the original game's.</summary>
-    public static int CameraTicksPerSecond(CampaignLevelData? campaign) =>
-        campaign?.Level.TicksPerSecond ?? SimulationTiming.OriginalTicksPerGameSecond;
+    public static int CameraTicksPerSecond(CampaignLevelData? campaign)
+    {
+        return campaign?.Level.TicksPerSecond ?? SimulationTiming.OriginalTicksPerGameSecond;
+    }
 }

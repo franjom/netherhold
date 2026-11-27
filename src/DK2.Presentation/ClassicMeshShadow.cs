@@ -20,8 +20,10 @@ public static class ClassicMeshShadow
     public const float MaximumDistance = 2.5f;
 
     /// <summary>The shadow's darkening at a caster-to-light horizontal distance; nonpositive draws none.</summary>
-    public static float Strength(float horizontalDistance, float fadeDistance) =>
-        MathF.Min(.7f, 1.5f * (fadeDistance - horizontalDistance) / fadeDistance);
+    public static float Strength(float horizontalDistance, float fadeDistance)
+    {
+        return MathF.Min(.7f, 1.5f * (fadeDistance - horizontalDistance) / fadeDistance);
+    }
 
     public static bool TryProject(in ClassicShadowCaster caster, in ClassicShadowSource source,
         out ClassicShadowProjection projection)

@@ -36,12 +36,16 @@ public static class PossessionFade
     /// and <paramref name="scaleY"/> are the focal length over half the viewport's width and height
     /// (the first two diagonal terms of a host's projection matrix), so with a host's clip-space
     /// position this is <c>w + (|x| + |y|) / 2</c>. The shape therefore follows the field of view.</summary>
-    public static float Distance(float viewX, float viewY, float depth, float scaleX, float scaleY) =>
-        depth + (0.5f * (MathF.Abs(scaleX * viewX) + MathF.Abs(scaleY * viewY)));
+    public static float Distance(float viewX, float viewY, float depth, float scaleX, float scaleY)
+    {
+        return depth + (0.5f * (MathF.Abs(scaleX * viewX) + MathF.Abs(scaleY * viewY)));
+    }
 
     /// <summary>The share of its lit colour a vertex keeps, 0 to 1.</summary>
-    public static float Brightness(float distance, float viewDistance) =>
-        Math.Clamp(2f * (viewDistance - distance) / viewDistance, 0f, 1f);
+    public static float Brightness(float distance, float viewDistance)
+    {
+        return Math.Clamp(2f * (viewDistance - distance) / viewDistance, 0f, 1f);
+    }
 
     /// <summary>DK2's fade word: <see cref="Full"/> when nothing fades, else 0 to 65535, cut down.</summary>
     public static int Word(float distance, float viewDistance)
@@ -51,9 +55,14 @@ public static class PossessionFade
     }
 
     /// <summary>A colour channel after the fade: <c>(channel * word) &gt;&gt; 16</c>.</summary>
-    public static byte Shade(byte channel, int word) => word >= Full ? channel : (byte)((channel * word) >> 16);
+    public static byte Shade(byte channel, int word)
+    {
+        return word >= Full ? channel : (byte)((channel * word) >> 16);
+    }
 
     /// <summary>True when a triangle is not drawn at all: all three of its vertices are past the view distance.</summary>
-    public static bool Dropped(float distanceA, float distanceB, float distanceC, float viewDistance) =>
-        distanceA > viewDistance && distanceB > viewDistance && distanceC > viewDistance;
+    public static bool Dropped(float distanceA, float distanceB, float distanceC, float viewDistance)
+    {
+        return distanceA > viewDistance && distanceB > viewDistance && distanceC > viewDistance;
+    }
 }

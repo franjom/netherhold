@@ -12,7 +12,10 @@ namespace DK2.Presentation;
 public static class PossessionScene
 {
     /// <summary>The possession cameras' latch as the hosts set it: while the viewer possesses a creature.</summary>
-    public static bool Latched(WorldState world, PlayerId viewer) => world.Player(viewer).PossessedCreatureId != 0;
+    public static bool Latched(WorldState world, PlayerId viewer)
+    {
+        return world.Player(viewer).PossessedCreatureId != 0;
+    }
 
     /// <summary>Gives the latch to the view, whose change presents every tile again, and to the
     /// lattice, which rests the walls at full height (<see cref="TerrainLattice.Possession"/>). Flipping
@@ -34,8 +37,14 @@ public static class PossessionScene
 
     /// <summary>The roof's frame flag is set when either end of a camera move is a possession
     /// mode (0x0044AB60); it does not wait for the creature model to disappear on landing.</summary>
-    public static bool RoofShown(PossessionSession? session) => session is { CameraHeld: true };
+    public static bool RoofShown(PossessionSession? session)
+    {
+        return session is { CameraHeld: true };
+    }
 
     /// <summary>The legacy model-only gate for hosts that do not supply their camera session.</summary>
-    public static bool RoofShown(int hiddenCreatureId) => hiddenCreatureId != 0;
+    public static bool RoofShown(int hiddenCreatureId)
+    {
+        return hiddenCreatureId != 0;
+    }
 }

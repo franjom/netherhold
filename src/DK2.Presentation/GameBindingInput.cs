@@ -23,12 +23,31 @@ public readonly record struct GameShortcutContext
 public readonly struct GameBindingInput(GameSettings settings, KeyModifiers modifiers,
     Func<KeyScanCode, bool> held, Func<KeyScanCode, bool> pressed)
 {
-    public bool Held(GameAction action, bool exactModifiers = false) => Matches(action, held, exactModifiers);
-    public bool Pressed(GameAction action) => Matches(action, pressed, exact: true);
+    public bool Held(GameAction action, bool exactModifiers = false)
+    {
+        return Matches(action, held, exactModifiers);
+    }
+
+    public bool Pressed(GameAction action)
+    {
+        return Matches(action, pressed, exact: true);
+    }
+
     /// <summary>Shift, Control and Alt as held now.</summary>
-    public KeyModifiers Modifiers => modifiers;
+    public KeyModifiers Modifiers
+    {
+        get
+        {
+            return modifiers;
+        }
+    }
+
     /// <summary>Whether a key went down this frame, whatever it is bound to.</summary>
-    public bool KeyPressed(KeyScanCode scan) => pressed(scan);
+    public bool KeyPressed(KeyScanCode scan)
+    {
+        return pressed(scan);
+    }
+
     private bool Matches(GameAction action, Func<KeyScanCode, bool> read, bool exact)
     {
         if (!KeyboardSetup.IsBuilt(action))
@@ -148,9 +167,25 @@ public readonly struct GameBindingInput(GameSettings settings, KeyModifiers modi
             return keys;
         }
     }
-    public bool ZoomIn => Held(GameAction.ZoomIn, true) || Held(GameAction.CameraModifier) && Held(GameAction.ScrollUp);
-    public bool ZoomOut => Held(GameAction.ZoomOut, true) || Held(GameAction.CameraModifier) && Held(GameAction.ScrollDown);
+    public bool ZoomIn
+    {
+        get
+        {
+            return Held(GameAction.ZoomIn, true) || Held(GameAction.CameraModifier) && Held(GameAction.ScrollUp);
+        }
+    }
+
+    public bool ZoomOut
+    {
+        get
+        {
+            return Held(GameAction.ZoomOut, true) || Held(GameAction.CameraModifier) && Held(GameAction.ScrollDown);
+        }
+    }
 
     // Modern host mapping only: the native sensitivity consumer remains unresolved (Q687).
-    public static Vector2 HostPointerDelta(Vector2 delta, int sensitivity) => delta * (Math.Clamp(sensitivity, 5, 20) / 10f);
+    public static Vector2 HostPointerDelta(Vector2 delta, int sensitivity)
+    {
+        return delta * (Math.Clamp(sensitivity, 5, 20) / 10f);
+    }
 }

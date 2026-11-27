@@ -44,10 +44,22 @@ public sealed class CameraScript
         }
     }
 
-    public IReadOnlyList<CameraScriptKey> Keys => _keys;
+    public IReadOnlyList<CameraScriptKey> Keys
+    {
+        get
+        {
+            return _keys;
+        }
+    }
 
     /// <summary>The frame after which the focus no longer moves.</summary>
-    public int LastFrame => _keys[_keys.Length - 1].Frame;
+    public int LastFrame
+    {
+        get
+        {
+            return _keys[_keys.Length - 1].Frame;
+        }
+    }
 
     /// <summary>The focus on <paramref name="frame"/> from <paramref name="origin"/>, in <see cref="CameraFocus"/>'s axes
     /// (y up, z north negated) and kept inside a map <paramref name="mapWidth"/> by <paramref name="mapHeight"/> tiles.
@@ -121,6 +133,8 @@ public sealed class CameraScript
         return new CameraScript(keys);
     }
 
-    private static bool Coordinate(string text, out float value) =>
-        float.TryParse(text, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out value) && float.IsFinite(value);
+    private static bool Coordinate(string text, out float value)
+    {
+        return float.TryParse(text, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out value) && float.IsFinite(value);
+    }
 }

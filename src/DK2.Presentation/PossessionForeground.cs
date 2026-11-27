@@ -28,7 +28,10 @@ public sealed class PossessionForeground
     private float _phase;
     private bool _alternate;
 
-    public static string? Resource(PossessionForegroundKind kind) => (byte)kind is > 0 and < 23 ? Names[(byte)kind] : null;
+    public static string? Resource(PossessionForegroundKind kind)
+    {
+        return (byte)kind is > 0 and < 23 ? Names[(byte)kind] : null;
+    }
 
     public void Begin(PossessionForegroundKind kind, ushort framesPerSecond, long milliseconds)
     {
@@ -104,8 +107,10 @@ public sealed class PossessionForeground
         return sample;
     }
 
-    public static Vector2 Project(Vector3 renderPosition, int width, int height) =>
-        new(width / 2 + renderPosition.X * (width * 1000 / 640), height / 2 - renderPosition.Z * (width * 1000 / 640));
+    public static Vector2 Project(Vector3 renderPosition, int width, int height)
+    {
+        return new(width / 2 + renderPosition.X * (width * 1000 / 640), height / 2 - renderPosition.Z * (width * 1000 / 640));
+    }
 
     public void Build(InstallArtProvider art, int width, int height, long milliseconds, HudFrame frame)
     {

@@ -21,23 +21,29 @@ public sealed record CampaignCutscene(uint TitleTextId, uint SpeechId, IReadOnly
         0x4D, 0x589, 0x59F, 0x59B, 0x5A5, 0x594, 0x592, 0x596, 0x598, 0x5A1, 0x597,
         0x599, 0x58B, 0x586, 0x59D, 0x588, 0x58C, 0x58D, 0x5A3, 0x58E, 0xB1B,
     ];
-    internal static uint TitleAt(int movie) => TitleIds[movie];
+    internal static uint TitleAt(int movie)
+    {
+        return TitleIds[movie];
+    }
 
     /// <summary>The waits around the voiced line (<c>0x0053BA9B</c>, <c>0x0053BB72</c>), in milliseconds.</summary>
     public const int PauseMilliseconds = 250;
 
     /// <summary><c>0x0053C320</c>: map slot to level number (6a/6b → 6, 11a–c → 11, 15a/b → 15); 0 otherwise.</summary>
-    public static int LevelNumber(CampaignSlot slot) => slot.Value switch
+    public static int LevelNumber(CampaignSlot slot)
     {
-        >= 1 and <= 6 => slot.Value,
-        7 => 6,
-        >= 8 and <= 12 => slot.Value - 1,
-        13 or 14 => 11,
-        >= 15 and <= 18 => slot.Value - 3,
-        19 => 15,
-        >= 20 and <= 24 => slot.Value - 4,
-        _ => 0,
-    };
+        return slot.Value switch
+        {
+            >= 1 and <= 6 => slot.Value,
+            7 => 6,
+            >= 8 and <= 12 => slot.Value - 1,
+            13 or 14 => 11,
+            >= 15 and <= 18 => slot.Value - 3,
+            19 => 15,
+            >= 20 and <= 24 => slot.Value - 4,
+            _ => 0,
+        };
+    }
 
     /// <summary>The cutscene <c>0x00534F70</c> plays on re-entering the front end: only after a
     /// campaign session (saved mode 1), not a secret level, with the played slot (below 25) won.

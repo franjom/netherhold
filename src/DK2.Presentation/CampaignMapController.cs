@@ -51,12 +51,27 @@ public sealed class CampaignMapController : IDisposable
     public event Action<IReadOnlyList<HiScoreEntry>>? HiScoresChanged;
     public CampaignSlot Hovered { get; private set; }
     public int Revision { get; private set; }
-    public bool IsAtMap => _session.Page == FrontEndPage.CampaignMap && !_session.PathPlaying;
+    public bool IsAtMap
+    {
+        get
+        {
+            return _session.Page == FrontEndPage.CampaignMap && !_session.PathPlaying;
+        }
+    }
+
     public event Action<CampaignProfile>? ProfileChanged;
     public event Action<CampaignSlot>? LaunchRequested;
 
-    public bool Continue() => BeginMap(Profile);
-    public bool StartNew() => BeginMap(CampaignProgression.NewCampaign(Profile));
+    public bool Continue()
+    {
+        return BeginMap(Profile);
+    }
+
+    public bool StartNew()
+    {
+        return BeginMap(CampaignProgression.NewCampaign(Profile));
+    }
+
     private bool BeginMap(CampaignProfile profile)
     {
         if (_session.PathPlaying || !_session.TryTransition(new(FrontEndPath.EntryToTable, FrontEndState.CampaignMap)))
@@ -153,7 +168,13 @@ public sealed class CampaignMapController : IDisposable
 
         LaunchRequested.Invoke(Briefing.Slot); return true;
     }
-    public bool CanLaunch => LaunchRequested is not null && Briefing is not null;
+    public bool CanLaunch
+    {
+        get
+        {
+            return LaunchRequested is not null && Briefing is not null;
+        }
+    }
 
     /// <summary>The statistics page's accept, dispatcher 0x55: Level Number moves on after a win; a
     /// won map whose Total Evil Rating qualifies opens name entry on page 18 (0x0053E320), else
@@ -250,8 +271,15 @@ public sealed class CampaignMapController : IDisposable
         int phase = slot.IsCampaign ? _markerPhases[slot.Value - 1] : 0;
         return new(visible, new Fp32(phase), 0);
     }
-    private bool IsMapStation => IsAtMap || _session.Page is FrontEndPage.Briefing or FrontEndPage.CampaignResults
+    private bool IsMapStation
+    {
+        get
+        {
+            return IsAtMap || _session.Page is FrontEndPage.Briefing or FrontEndPage.CampaignResults
         || _session.Path is FrontEndPath.EntryToTable or FrontEndPath.TableToBriefing or FrontEndPath.BriefingToTable;
+        }
+    }
+
     private void EnterMap()
     {
         _entered = _session.Now; _blink = 0xfff; _introPending = true; Hovered = CampaignSlot.None;
@@ -371,7 +399,11 @@ public sealed class CampaignMapController : IDisposable
         [13] = [20], [14] = [20], [15] = [20], [16] = [16, 20],
         [21] = [21, 22], [22] = [22],
     };
-    private static IReadOnlyList<int> RouteSlots(byte level) => Routes.TryGetValue(level, out int[]? slots) ? slots : [];
+    private static IReadOnlyList<int> RouteSlots(byte level)
+    {
+        return Routes.TryGetValue(level, out int[]? slots) ? slots : [];
+    }
+
     public void Dispose()
     { _session.OperationRequested -= OnOperation; _session.Updated -= AdvanceVisuals; }
 }

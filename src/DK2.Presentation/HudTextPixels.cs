@@ -253,7 +253,10 @@ public static class HudTextPixels
     }
 
     /// <summary>Where a line's pen starts: 0, or half the gap to the widest line when centred.</summary>
-    private static int Indent(HudText text, BitmapTextLine line, int widest) => text.Centred ? (widest - line.Width) / 2 : 0;
+    private static int Indent(HudText text, BitmapTextLine line, int widest)
+    {
+        return text.Centred ? (widest - line.Width) / 2 : 0;
+    }
 }
 
 /// <summary>A part of a glyph drawn into a <see cref="HudText"/> image: the glyph's pixels from
@@ -262,7 +265,9 @@ public static class HudTextPixels
 public readonly record struct HudTextPiece(BitmapGlyph Glyph, int SourceX, int SourceY, int X, int Y, int Width, int Height)
 {
     /// <summary>The piece's alpha at image pixel (x, y): the glyph's coverage x 17, 0 outside the piece.</summary>
-    public byte Alpha(int x, int y) =>
-        x < X || y < Y || x >= X + Width || y >= Y + Height ? (byte)0
+    public byte Alpha(int x, int y)
+    {
+        return x < X || y < Y || x >= X + Width || y >= Y + Height ? (byte)0
             : (byte)(Glyph.Pixels[(SourceY + y - Y) * Glyph.Width + SourceX + x - X] * 17);
+    }
 }

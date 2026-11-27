@@ -66,7 +66,10 @@ public sealed class InstallTerrainPieces : ITerrainPieceSource
     private readonly InstallArtProvider _art;
     private readonly Dictionary<(AssetRef, int), TerrainPiece?> _pieces = new();
 
-    public InstallTerrainPieces(InstallArtProvider art) => _art = art ?? throw new ArgumentNullException(nameof(art));
+    public InstallTerrainPieces(InstallArtProvider art)
+    {
+        _art = art ?? throw new ArgumentNullException(nameof(art));
+    }
 
     public TerrainPiece? Piece(AssetRef key, int textureIndex = -1)
     {
@@ -87,5 +90,8 @@ public sealed class InstallTerrainPieces : ITerrainPieceSource
     }
 
     /// <summary>Forgets every piece.</summary>
-    public void Clear() => _pieces.Clear();
+    public void Clear()
+    {
+        _pieces.Clear();
+    }
 }

@@ -15,7 +15,21 @@ public readonly record struct SoundRequest(SoundCategory Category, SoundId Id, V
 public sealed class SoundRequests
 {
     private readonly List<SoundRequest> _pending = new();
-    public IReadOnlyList<SoundRequest> Pending => _pending;
-    public void Add(SoundRequest request) => _pending.Add(request);
-    public void Clear() => _pending.Clear();
+    public IReadOnlyList<SoundRequest> Pending
+    {
+        get
+        {
+            return _pending;
+        }
+    }
+
+    public void Add(SoundRequest request)
+    {
+        _pending.Add(request);
+    }
+
+    public void Clear()
+    {
+        _pending.Clear();
+    }
 }

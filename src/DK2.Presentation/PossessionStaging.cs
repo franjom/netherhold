@@ -17,8 +17,10 @@ public static class PossessionStaging
     /// <summary>Marks the viewer's first creature possessed, with the fields the Possession spell's
     /// strike leaves (<see cref="PossessionRules.Strike"/>); null, with nothing written, when the
     /// viewer already possesses a creature or owns none the strike would take.</summary>
-    public static CreatureState? PossessFirst(WorldState world, PlayerId viewer) =>
-        PossessFirst(world, viewer, default, static (_, _) => { });
+    public static CreatureState? PossessFirst(WorldState world, PlayerId viewer)
+    {
+        return PossessFirst(world, viewer, default, static (_, _) => { });
+    }
 
     /// <summary>Prepares the ordinary view over the selected creature before possession is latched.
     /// The check's host places the supplied focus and submits any staged native cast effect.</summary>

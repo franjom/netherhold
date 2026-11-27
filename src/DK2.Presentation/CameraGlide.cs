@@ -17,19 +17,27 @@ public static class CameraFocus
     /// <summary>A tile's centre at <paramref name="focusHeight"/>, kept inside a map
     /// <paramref name="mapWidth"/> by <paramref name="mapHeight"/> tiles: the target of a glide (action 26, 0x00442650)
     /// and of the full map's left press. On the room-goto path (0x00415B30) DK2 drops an off-map point first; ours clamps.</summary>
-    public static Vector3 TileCentre(TilePos tile, float focusHeight, float mapWidth, float mapHeight) => new(
+    public static Vector3 TileCentre(TilePos tile, float focusHeight, float mapWidth, float mapHeight)
+    {
+        return new(
         Clamp(tile.X + 0.5f, 0, mapWidth - RawUnit), focusHeight,
         Clamp(-tile.Y - 0.5f, -mapHeight + RawUnit, 0));
+    }
 
     /// <summary>The focus over a fixed-point map point (a creature's position), at <paramref name="focusHeight"/>.</summary>
-    public static Vector3 Over(Fp32 x, Fp32 y, float focusHeight) =>
-        new(x.Raw / (float)Fp32.One, focusHeight, -y.Raw / (float)Fp32.One);
+    public static Vector3 Over(Fp32 x, Fp32 y, float focusHeight)
+    {
+        return new(x.Raw / (float)Fp32.One, focusHeight, -y.Raw / (float)Fp32.One);
+    }
 
     /// <summary>The ordinary camera's pan bounds on a map of that size: the focus height fixed at raw 4095, the maximum
     /// edges exclusive by one raw unit (classic-camera.md §7).</summary>
-    public static CameraFocusBounds Bounds(int mapWidth, int mapHeight) => new(
+    public static CameraFocusBounds Bounds(int mapWidth, int mapHeight)
+    {
+        return new(
         new Vector3(0, 4095f / Fp32.One, -mapHeight + RawUnit),
         new Vector3(mapWidth - RawUnit, 4095f / Fp32.One, 0));
+    }
 
     /// <summary>Clamps as Unity's <c>Mathf.Clamp</c> does: the minimum first, so an empty range gives the minimum, not a throw.</summary>
     internal static float Clamp(float value, float minimum, float maximum)
@@ -57,10 +65,22 @@ public sealed class CameraGlide
     private double _start, _milliseconds;
 
     /// <summary>Whether a glide is still running.</summary>
-    public bool Active => _milliseconds > 0;
+    public bool Active
+    {
+        get
+        {
+            return _milliseconds > 0;
+        }
+    }
 
     /// <summary>Where the last glide started goes.</summary>
-    public Vector3 Target => _to;
+    public Vector3 Target
+    {
+        get
+        {
+            return _to;
+        }
+    }
 
     /// <summary>Starts a glide from <paramref name="focus"/> to <paramref name="tile"/>'s centre
     /// (<see cref="CameraFocus.TileCentre"/> at the focus's height) on a map <paramref name="mapWidth"/> by
@@ -74,7 +94,10 @@ public sealed class CameraGlide
     }
 
     /// <summary>Ends the glide where the focus is (a jump or a follow takes the focus over).</summary>
-    public void Stop() => _milliseconds = 0;
+    public void Stop()
+    {
+        _milliseconds = 0;
+    }
 
     /// <summary>The focus at <paramref name="nowMilliseconds"/>: <paramref name="focus"/> unchanged with no glide, else
     /// the straight line from the start to the target; the glide ends on reaching it.</summary>

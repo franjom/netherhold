@@ -22,7 +22,10 @@ public enum HoverCageTool { Hand, Room, Sell, Door, Trap, SpellOrQuery }
 /// <summary>A half-open tile rectangle, <c>(X0, Y0)</c> inclusive to <c>(X1, Y1)</c> exclusive.</summary>
 public readonly record struct TileRectangle(int X0, int Y0, int X1, int Y1)
 {
-    public bool Contains(int x, int y) => x >= X0 && x < X1 && y >= Y0 && y < Y1;
+    public bool Contains(int x, int y)
+    {
+        return x >= X0 && x < X1 && y >= Y0 && y < Y1;
+    }
 }
 
 /// <summary>One frame of placement feedback: the selection cage (null draws none), blue when
@@ -35,7 +38,13 @@ public readonly record struct PlacementFeedback(
     TileRectangle? Cage, bool Valid, int Price, PlacementIcon Icon, bool NoGo, bool Affordable, byte SpellId = 0,
     bool Dispose = false)
 {
-    public static PlacementFeedback None => default;
+    public static PlacementFeedback None
+    {
+        get
+        {
+            return default;
+        }
+    }
 }
 
 /// <summary>DK2's per-frame placement cursor (docs/research/placement-cursor.md): the tool arms
@@ -49,8 +58,11 @@ public static class PlacementCursor
     /// <c>RubberBandAreaLimit</c> from the anchor on an axis is pulled back to anchor ± limit.</summary>
     public static TilePos ClampDrag(TilePos anchor, TilePos end, int limit)
     {
-        static int Axis(int from, int to, int limit) =>
-            Math.Abs(to - from) <= limit ? to : from + Math.Sign(to - from) * limit;
+        static int Axis(int from, int to, int limit)
+        {
+            return Math.Abs(to - from) <= limit ? to : from + Math.Sign(to - from) * limit;
+        }
+
         return new TilePos(Axis(anchor.X, end.X, limit), Axis(anchor.Y, end.Y, limit));
     }
 
@@ -80,25 +92,32 @@ public static class PlacementCursor
     /// it per tool (placement-cursor.md §2a): always in room, sell, door and trap mode; in Hand mode
     /// while the hand holds something or over a dig-taggable tile; with a keeper spell or Query only
     /// over a dig-taggable tile. Its Options, view-mode, over-GUI and camera gates are the caller's.</summary>
-    public static bool HoverCageShows(HoverCageTool tool, bool digTaggable, bool handHolds) => tool switch
+    public static bool HoverCageShows(HoverCageTool tool, bool digTaggable, bool handHolds)
     {
-        HoverCageTool.Room or HoverCageTool.Sell or HoverCageTool.Door or HoverCageTool.Trap => true,
-        HoverCageTool.Hand => digTaggable || handHolds,
-        _ => digTaggable,
-    };
+        return tool switch
+        {
+            HoverCageTool.Room or HoverCageTool.Sell or HoverCageTool.Door or HoverCageTool.Trap => true,
+            HoverCageTool.Hand => digTaggable || handHolds,
+            _ => digTaggable,
+        };
+    }
 
     /// <summary>The hover cage's colour (bridge <c>+0x36</c> = interface <c>+0x132E</c> bit 0x10). The
     /// reset in <c>0x0040BBE0</c> sets 0x10; over a dig-taggable tile the Hand and room arms return
     /// before touching it and the spell and Query arms never write it, so those cages are blue. Sell,
     /// door and trap rewrite it from their own validity.</summary>
-    public static bool HoverCageBlue(HoverCageTool tool, bool digTaggable, bool armValid) =>
-        digTaggable && tool is HoverCageTool.Hand or HoverCageTool.Room or HoverCageTool.SpellOrQuery || armValid;
+    public static bool HoverCageBlue(HoverCageTool tool, bool digTaggable, bool armValid)
+    {
+        return digTaggable && tool is HoverCageTool.Hand or HoverCageTool.Room or HoverCageTool.SpellOrQuery || armValid;
+    }
 
     /// <summary>The hover cage on <paramref name="at"/>, or none on a map-border tile, where
     /// <c>Presentation_Update</c> (<c>0x0043B220</c>) clears the Hand light's cage bit.</summary>
-    public static TileRectangle? HoverCage(TilePos at, int width, int height) =>
-        at.X <= 0 || at.Y <= 0 || at.X >= width - 1 || at.Y >= height - 1
+    public static TileRectangle? HoverCage(TilePos at, int width, int height)
+    {
+        return at.X <= 0 || at.Y <= 0 || at.X >= width - 1 || at.Y >= height - 1
             ? null : new TileRectangle(at.X, at.Y, at.X + 1, at.Y + 1);
+    }
 
     /// <summary>Hand mode with something held (<c>0x0040AE80</c>): the 1×1 drop cage on the hovered tile,
     /// red when the top item may not be dropped there, and the held-item icons beside the hand
@@ -133,8 +152,10 @@ public static class PlacementCursor
     }
 
     /// <summary>The rubber-band limit, its low byte as <c>0x006F2900</c> is read.</summary>
-    public static int RubberBandLimit(GameDatabase database) =>
-        database[VariableTypeId.RubberBandAreaLimit] & 0xFF;
+    public static int RubberBandLimit(GameDatabase database)
+    {
+        return database[VariableTypeId.RubberBandAreaLimit] & 0xFF;
+    }
 
     /// <summary>Room build (<c>0x0040B210</c>). Hovering, no cage and the hovered tile is priced;
     /// dragging, the clamped rectangle is caged and priced at the room's per-tile price times
@@ -342,17 +363,25 @@ public static class PlacementCursor
         return SpellIcon(spellId, valid);
     }
 
-    private static PlacementFeedback SpellIcon(byte spellId, bool valid) =>
-        new PlacementFeedback(null, valid, 0, PlacementIcon.Spell, !valid, true, spellId);
+    private static PlacementFeedback SpellIcon(byte spellId, bool valid)
+    {
+        return new PlacementFeedback(null, valid, 0, PlacementIcon.Spell, !valid, true, spellId);
+    }
 
     /// <summary>Query, mode 10 (<c>0x0040BB60</c>): the I-Query icon only. The arm writes neither the
     /// No Go bit nor the price; over the GUI <c>0x0040CAE0</c> still sets No Go (the caller's).</summary>
-    public static PlacementFeedback Query() => new PlacementFeedback(null, true, 0, PlacementIcon.Query, false, true);
+    public static PlacementFeedback Query()
+    {
+        return new PlacementFeedback(null, true, 0, PlacementIcon.Query, false, true);
+    }
 
     /// <summary>Mode 5, a special waiting for its creature: <c>0x0040BBE0</c> has no arm for it, so no
     /// cage and no validity; <c>0x0040CAE0</c> draws I-Kill (subtype <c>0x7F</c>) or I-Transfer (<c>0x8C</c>).</summary>
-    public static PlacementFeedback Targeting(in SpecialTargeting targeting) => new PlacementFeedback(null, true, 0,
+    public static PlacementFeedback Targeting(in SpecialTargeting targeting)
+    {
+        return new PlacementFeedback(null, true, 0,
         targeting.TypeId == SpecialTargeting.KillCreatures ? PlacementIcon.Kill : PlacementIcon.Transfer, false, true);
+    }
 
     /// <summary>Trap (<c>0x0040B4F0</c>): as <see cref="Door"/> with the trap's <c>GoldCost</c>.</summary>
     public static PlacementFeedback Trap(WorldState world, GameDatabase database, PlayerId player, TrapDef trap,

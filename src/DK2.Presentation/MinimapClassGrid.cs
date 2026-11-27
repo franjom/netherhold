@@ -45,9 +45,29 @@ public sealed class MinimapClassGrid
 
     public int Width { get; }
     public int Height { get; }
-    public ReadOnlySpan<MinimapColourClass> Cells => _cells;
-    public ReadOnlySpan<MinimapTileChange> Changes => _changes.AsSpan(0, _changeCount);
-    public MinimapColourClass this[TilePos position] => _cells[IndexOf(position)];
+    public ReadOnlySpan<MinimapColourClass> Cells
+    {
+        get
+        {
+            return _cells;
+        }
+    }
+
+    public ReadOnlySpan<MinimapTileChange> Changes
+    {
+        get
+        {
+            return _changes.AsSpan(0, _changeCount);
+        }
+    }
+
+    public MinimapColourClass this[TilePos position]
+    {
+        get
+        {
+            return _cells[IndexOf(position)];
+        }
+    }
 
     public bool Set(TilePos position, MinimapColourClass colourClass)
     {

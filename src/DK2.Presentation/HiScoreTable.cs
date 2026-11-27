@@ -20,7 +20,10 @@ public static class HiScoreTable
         Array.AsReadOnly(Enumerable.Range(0, Rows).Select(_ => new HiScoreEntry(0, "", "")).ToArray());
 
     /// <summary>A score qualifies when it is at least the tenth row's.</summary>
-    public static bool Qualifies(IReadOnlyList<HiScoreEntry> rows, uint rating) => rows[Rows - 1].EvilRating <= rating;
+    public static bool Qualifies(IReadOnlyList<HiScoreEntry> rows, uint rating)
+    {
+        return rows[Rows - 1].EvilRating <= rating;
+    }
 
     /// <summary>The first row whose score the new one meets or beats.</summary>
     public static int Position(IReadOnlyList<HiScoreEntry> rows, uint rating)

@@ -12,13 +12,19 @@ public sealed partial class RoomConstructionParticles
 {
     // Generation-zero stationary sprite art: footprints (flat) and the room-border flame. Parent
     // motion and the other generation handlers need their own native evidence before use.
-    private static bool HasDirectSprite(EffectDef effect) => effect.GenerationType == 0
+    private static bool HasDirectSprite(EffectDef effect)
+    {
+        return effect.GenerationType == 0
         && effect.ArtResource.Type is 2 or 3
         && effect.Mass == 0 && effect.MinSpeedXy == 0 && effect.MaxSpeedXy == 0
         && effect.MinSpeedYz == 0 && effect.MaxSpeedYz == 0;
+    }
 
-    private static bool SupportsEffect(EffectDef effect) => effect.GenerationType is 3 or 4 or 6 or 14 or 18
+    private static bool SupportsEffect(EffectDef effect)
+    {
+        return effect.GenerationType is 3 or 4 or 6 or 14 or 18
         || HasDirectSprite(effect) || effect.GenerationType == 0 && effect.ArtResource.Type == 7;
+    }
 
     /// <summary>The parent's own sprite (<c>0x004347E0</c>'s art arm), born at the instance's point
     /// with its lifetime. Its size follows the first of definition flags 2 (MaxScale shrinking to
@@ -99,7 +105,9 @@ public sealed partial class RoomConstructionParticles
     /// <c>+0x290</c>, or for the neutral player the cycling one through <c>+0x298</c>
     /// (<c>0x0050F880</c>: palette number <c>floor(ms / 100) % 7 + 1</c> of the wall clock).
     /// Unlike an element's, no channel is raised to 48.</summary>
-    private (byte Red, byte Green, byte Blue) ParentColour(PlayerId owner) =>
-        ClassicKeeperPalette.Colour(owner.Value == PlayerIds.Neutral
+    private (byte Red, byte Green, byte Blue) ParentColour(PlayerId owner)
+    {
+        return ClassicKeeperPalette.Colour(owner.Value == PlayerIds.Neutral
             ? new PlayerId((byte)(_clock().Milliseconds / 100 % 7 + 1)) : owner);
+    }
 }

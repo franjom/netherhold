@@ -46,8 +46,10 @@ public static class LauncherWindowSizes
         return fitting;
     }
 
-    public static bool Fits(LauncherWindowSize size, int screenWidth, int screenHeight) =>
-        size.Width <= screenWidth && size.Height + FrameAllowance <= screenHeight;
+    public static bool Fits(LauncherWindowSize size, int screenWidth, int screenHeight)
+    {
+        return size.Width <= screenWidth && size.Height + FrameAllowance <= screenHeight;
+    }
 
     /// <summary>The largest 16:9 size within <see cref="DefaultPercent"/> of the screen on each side (1600 x 900 on a
     /// 1920 x 1080 screen), else the smallest 16:9 size.</summary>
@@ -102,6 +104,8 @@ public static class LauncherWindowSizes
         return scale;
     }
 
-    private static bool Larger(LauncherWindowSize a, LauncherWindowSize b) =>
-        a.Width > b.Width || (a.Width == b.Width && a.Height > b.Height);
+    private static bool Larger(LauncherWindowSize a, LauncherWindowSize b)
+    {
+        return a.Width > b.Width || (a.Width == b.Width && a.Height > b.Height);
+    }
 }

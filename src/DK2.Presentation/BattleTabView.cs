@@ -35,13 +35,16 @@ public readonly record struct BattleTabClick(ClassicHudAction HudAction, PlayerC
 /// on its own and the positions are static, so a hidden button leaves its gap.</summary>
 public readonly record struct BattleTabSnapshot(bool Battle, bool CallToArms, bool Alarm)
 {
-    public bool Shows(BattleTabButton button) => button switch
+    public bool Shows(BattleTabButton button)
     {
-        BattleTabButton.Battle => Battle,
-        BattleTabButton.CallToArms => CallToArms,
-        BattleTabButton.Alarm => Alarm,
-        _ => false,
-    };
+        return button switch
+        {
+            BattleTabButton.Battle => Battle,
+            BattleTabButton.CallToArms => CallToArms,
+            BattleTabButton.Alarm => Alarm,
+            _ => false,
+        };
+    }
 }
 
 /// <summary>Menu 43 as DK2's HUD runs it (docs/research/battle-tab.md): where its buttons sit,
@@ -76,39 +79,52 @@ public static class BattleTabView
         ["GUI\\Icons\\a-alarm-00", "GUI\\Icons\\a-alarm-01", "GUI\\Icons\\a-alarm-02", "GUI\\Icons\\a-alarm-03"];
 
     /// <summary>A button's left edge in the menu (its static widget record).</summary>
-    public static int LocalX(BattleTabButton button) => button switch
+    public static int LocalX(BattleTabButton button)
     {
-        BattleTabButton.Battle => 0,
-        BattleTabButton.CallToArms => 136,
-        BattleTabButton.Alarm => 264,
-        _ => throw new ArgumentOutOfRangeException(nameof(button)),
-    };
+        return button switch
+        {
+            BattleTabButton.Battle => 0,
+            BattleTabButton.CallToArms => 136,
+            BattleTabButton.Alarm => 264,
+            _ => throw new ArgumentOutOfRangeException(nameof(button)),
+        };
+    }
 
     /// <summary>The menu's top in the reference screen: <see cref="MenuY"/>, dropped with the panel when it is
     /// collapsed.</summary>
-    public static int MenuTop(bool collapsed) =>
-        MenuY + (collapsed ? ClassicCamera.CollapsedPanelTop - ClassicCamera.ExpandedPanelTop : 0);
+    public static int MenuTop(bool collapsed)
+    {
+        return MenuY + (collapsed ? ClassicCamera.CollapsedPanelTop - ClassicCamera.ExpandedPanelTop : 0);
+    }
 
     /// <summary>The menu's left edge on <paramref name="screen"/>: 480 wide at <see cref="MenuX"/>, it ends at the
     /// reference's right edge, so it stays flush right on a wider or narrower screen (<see cref="HudScreen.FromRight"/>),
     /// over the bottom panel's metal rail end, which sits the same way.</summary>
-    public static float MenuLeft(HudScreen screen) => screen.FromRight(MenuX);
+    public static float MenuLeft(HudScreen screen)
+    {
+        return screen.FromRight(MenuX);
+    }
 
     /// <summary>A button's square in native virtual units (1920 high) on <paramref name="screen"/>.</summary>
-    public static HudRect Rect(BattleTabButton button, bool collapsed, HudScreen screen) =>
-        new(MenuLeft(screen) + LocalX(button), MenuTop(collapsed), ButtonSize, ButtonSize);
+    public static HudRect Rect(BattleTabButton button, bool collapsed, HudScreen screen)
+    {
+        return new(MenuLeft(screen) + LocalX(button), MenuTop(collapsed), ButtonSize, ButtonSize);
+    }
 
     /// <summary>A press's action. The blades and the
     /// alarm take only the right click (their records have no left-click callback), the cancel both.</summary>
     /// <param name="mouse">0 left, 1 right.</param>
-    public static BattleTabAction Action(BattleTabButton button, int mouse) => (button, mouse) switch
+    public static BattleTabAction Action(BattleTabButton button, int mouse)
     {
-        (BattleTabButton.Battle, 1) => BattleTabAction.ZoomToBattle,
-        (BattleTabButton.CallToArms, 0) => BattleTabAction.CancelCallToArms,
-        (BattleTabButton.CallToArms, 1) => BattleTabAction.GoToCallToArms,
-        (BattleTabButton.Alarm, 1) => BattleTabAction.NextAlarm,
-        _ => BattleTabAction.None,
-    };
+        return (button, mouse) switch
+        {
+            (BattleTabButton.Battle, 1) => BattleTabAction.ZoomToBattle,
+            (BattleTabButton.CallToArms, 0) => BattleTabAction.CancelCallToArms,
+            (BattleTabButton.CallToArms, 1) => BattleTabAction.GoToCallToArms,
+            (BattleTabButton.Alarm, 1) => BattleTabAction.NextAlarm,
+            _ => BattleTabAction.None,
+        };
+    }
 
     /// <summary>A press on menu 43:
     /// nothing while input is suppressed or a menu is modal; otherwise <see cref="Action"/>'s, the blades' zoom as the F
@@ -157,25 +173,39 @@ public static class BattleTabView
     }
 
     /// <summary>Every art name the menu draws, for preloading and the install check.</summary>
-    public static IEnumerable<string> AllArt => BattleArt.Concat(CallToArmsArt).Concat(AlarmArt);
+    public static IEnumerable<string> AllArt
+    {
+        get
+        {
+            return BattleArt.Concat(CallToArmsArt).Concat(AlarmArt);
+        }
+    }
 
     /// <summary>The phase for a real-clock time in milliseconds.</summary>
-    public static int Phase(long milliseconds) => (int)(milliseconds / PhaseMilliseconds);
+    public static int Phase(long milliseconds)
+    {
+        return (int)(milliseconds / PhaseMilliseconds);
+    }
 
     /// <summary><c>0x00412AF3..0x00412BA7</c>: the blades and the alarm cycle four frames, art +
     /// (phase &amp; 3); the cancel alternates two, art + ((phase &gt;&gt; 1) &amp; 1).</summary>
-    public static string Art(BattleTabButton button, int phase) => button switch
+    public static string Art(BattleTabButton button, int phase)
     {
-        BattleTabButton.Battle => BattleArt[phase & 3],
-        BattleTabButton.CallToArms => CallToArmsArt[(phase >> 1) & 1],
-        BattleTabButton.Alarm => AlarmArt[phase & 3],
-        _ => throw new ArgumentOutOfRangeException(nameof(button)),
-    };
+        return button switch
+        {
+            BattleTabButton.Battle => BattleArt[phase & 3],
+            BattleTabButton.CallToArms => CallToArmsArt[(phase >> 1) & 1],
+            BattleTabButton.Alarm => AlarmArt[phase & 3],
+            _ => throw new ArgumentOutOfRangeException(nameof(button)),
+        };
+    }
 
     /// <summary>The three frame callbacks for <paramref name="viewer"/>.</summary>
     public static BattleTabSnapshot Capture(WorldState world, GameDatabase database, PlayerId viewer,
-        IReadOnlyList<BattleViewSnapshot> battles) =>
-        new(BattleShows(battles, viewer), CallToArmsShows(world, viewer), AlarmShows(world, database, viewer));
+        IReadOnlyList<BattleViewSnapshot> battles)
+    {
+        return new(BattleShows(battles, viewer), CallToArmsShows(world, viewer), AlarmShows(world, database, viewer));
+    }
 
     /// <summary><c>0x004269D0</c>: any live battle record holding a creature of the viewer.</summary>
     public static bool BattleShows(IReadOnlyList<BattleViewSnapshot> battles, PlayerId viewer)
@@ -207,13 +237,17 @@ public static class BattleTabView
     }
 
     /// <summary>The cancel's right click (<c>0x00426830</c>): the call's tile, while the call is on.</summary>
-    public static TilePos? CallToArmsTile(WorldState world, PlayerId viewer) =>
-        world.HasPlayer(viewer) && world.Player(viewer).CallToArms is { On: true } call ? call.Tile : null;
+    public static TilePos? CallToArmsTile(WorldState world, PlayerId viewer)
+    {
+        return world.HasPlayer(viewer) && world.Player(viewer).CallToArms is { On: true } call ? call.Tile : null;
+    }
 
     /// <summary><c>0x00426B90</c>: any trap of the viewer whose shot is the alarm's and whose
     /// recharge deadline the turn has not passed (<c>0x004AA2F0</c>).</summary>
-    public static bool AlarmShows(WorldState world, GameDatabase database, PlayerId viewer) =>
-        AlarmShows(world.Traps, database, viewer, world.CurrentTick);
+    public static bool AlarmShows(WorldState world, GameDatabase database, PlayerId viewer)
+    {
+        return AlarmShows(world.Traps, database, viewer, world.CurrentTick);
+    }
 
     public static bool AlarmShows(IReadOnlyList<TrapState> traps, GameDatabase database, PlayerId viewer, GameTick tick)
     {
@@ -244,11 +278,15 @@ public static class BattleTabView
         }
     }
 
-    public static bool IsAlarm(GameDatabase database, TrapState trap) =>
-        database.Traps.TryGetValue(trap.TrapId, out TrapDef? definition) && definition.ShotTypeId == AlarmShotTypeId;
+    public static bool IsAlarm(GameDatabase database, TrapState trap)
+    {
+        return database.Traps.TryGetValue(trap.TrapId, out TrapDef? definition) && definition.ShotTypeId == AlarmShotTypeId;
+    }
 
-    public static bool Ringing(TrapState trap, GameTick tick) =>
-        MinimapMarkerRules.IsAlarmRingActive(tick, new GameTick(trap.RechargeAt));
+    public static bool Ringing(TrapState trap, GameTick tick)
+    {
+        return MinimapMarkerRules.IsAlarmRingActive(tick, new GameTick(trap.RechargeAt));
+    }
 }
 
 /// <summary>Menu 43's hover text: over the blades,
@@ -261,7 +299,10 @@ public sealed class BattleTabHoverText
     private HoverTextSnapshot _battle;
 
     /// <param name="text">A <c>Text.str</c> string by id.</param>
-    public BattleTabHoverText(Func<uint, string> text) => _text = text ?? throw new ArgumentNullException(nameof(text));
+    public BattleTabHoverText(Func<uint, string> text)
+    {
+        _text = text ?? throw new ArgumentNullException(nameof(text));
+    }
 
     public HoverTextSnapshot For(BattleTabButton hovered)
     {

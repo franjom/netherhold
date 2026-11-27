@@ -47,7 +47,13 @@ public readonly record struct HudGaugeFraction(int Value, int Maximum)
     }
 
     /// <summary>The largest angle a partly filled gauge covers.</summary>
-    public double Limit => Math.PI * 2 * Value / Maximum;
+    public double Limit
+    {
+        get
+        {
+            return Math.PI * 2 * Value / Maximum;
+        }
+    }
 }
 
 /// <summary>Settled resource facts; the renderer never reads a running world.</summary>

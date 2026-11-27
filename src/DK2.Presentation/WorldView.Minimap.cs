@@ -194,7 +194,10 @@ public sealed partial class WorldView
         }
     }
 
-    private int ReportingDistance(VariableTypeId variable) => _database.Variables.TryGet(variable, out int distance) ? distance : 0;
+    private int ReportingDistance(VariableTypeId variable)
+    {
+        return _database.Variables.TryGet(variable, out int distance) ? distance : 0;
+    }
 
     /// <summary>The middle of the box round the viewer's heart tiles, kept as it was when none is left. With the room sweep
     /// it is the box round the viewer's rooms on the heart terrain (a room is a run of one terrain and one owner, so those
@@ -247,6 +250,8 @@ public sealed partial class WorldView
         }
     }
 
-    private static FpPosition3 TileCentre(TilePos position) =>
-        new(new((position.X << 12) + 0x800), new((position.Y << 12) + 0x800), new(0));
+    private static FpPosition3 TileCentre(TilePos position)
+    {
+        return new(new((position.X << 12) + 0x800), new((position.Y << 12) + 0x800), new(0));
+    }
 }

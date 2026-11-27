@@ -22,8 +22,10 @@ public static class PoseInterpolator
     private const int TurnMask = 2047;
 
     /// <summary>The draw clock in game seconds: the tick plus the frame's fraction of it, four ticks a second.</summary>
-    public static double DrawSeconds(GameTick tick, float fraction) =>
-        (tick.Value + (double)Clamp01(fraction)) / SimulationTiming.OriginalTicksPerGameSecond;
+    public static double DrawSeconds(GameTick tick, float fraction)
+    {
+        return (tick.Value + (double)Clamp01(fraction)) / SimulationTiming.OriginalTicksPerGameSecond;
+    }
 
     public static float Clamp01(float value)
     {
@@ -42,17 +44,26 @@ public static class PoseInterpolator
         return (from + (current - from) * Clamp01(fraction)) / Fp32.One;
     }
 
-    public static DrawPoint Position(in CreatureView pose, float fraction) => new(
+    public static DrawPoint Position(in CreatureView pose, float fraction)
+    {
+        return new(
         Tiles(pose.PreviousPosX, pose.PosX, fraction), Tiles(pose.PreviousPosY, pose.PosY, fraction),
         Tiles(pose.PreviousHeight, pose.Height, fraction));
+    }
 
-    public static DrawPoint Position(in ObjectView pose, float fraction) => new(
+    public static DrawPoint Position(in ObjectView pose, float fraction)
+    {
+        return new(
         Tiles(pose.PreviousPosX, pose.PosX, fraction), Tiles(pose.PreviousPosY, pose.PosY, fraction),
         Tiles(pose.PreviousHeight, pose.Height, fraction));
+    }
 
     /// <summary>The signed turn from <paramref name="previous"/> to <paramref name="current"/> the short way round,
     /// −1024 to 1023 in 1/2048ths of a turn.</summary>
-    public static int ShortestArc(int previous, int current) => ((current - previous + HalfTurn) & TurnMask) - HalfTurn;
+    public static int ShortestArc(int previous, int current)
+    {
+        return ((current - previous + HalfTurn) & TurnMask) - HalfTurn;
+    }
 
     /// <summary>An object's turns between two ticks: heading, pitch and roll each the short way round, the heading
     /// from <see cref="ObjectView.PreviousHeading"/> plus the half turn of <see cref="ObjectView.MeshYaw"/>. The

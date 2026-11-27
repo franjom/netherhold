@@ -38,7 +38,13 @@ public sealed class CampaignResultFlow
     }
 
     /// <summary>The session's <see cref="SessionContext.LaunchedFromFrontEnd"/>: only such a level has a result here.</summary>
-    public bool LaunchedFromFrontEnd => _context.LaunchedFromFrontEnd;
+    public bool LaunchedFromFrontEnd
+    {
+        get
+        {
+            return _context.LaunchedFromFrontEnd;
+        }
+    }
 
     /// <summary>The level's ticks per game second, which the statistics' times are read in.</summary>
     public int LevelTicksPerSecond { get; set; }
@@ -193,8 +199,10 @@ public sealed class CampaignResultFlow
         _profiles.Save();
     }
 
-    private static bool Before(ref PlayerState a, ref PlayerState b) =>
-        a.StatusTick.Value < b.StatusTick.Value || a.StatusTick.Value == b.StatusTick.Value && a.PlayerId.Value < b.PlayerId.Value;
+    private static bool Before(ref PlayerState a, ref PlayerState b)
+    {
+        return a.StatusTick.Value < b.StatusTick.Value || a.StatusTick.Value == b.StatusTick.Value && a.PlayerId.Value < b.PlayerId.Value;
+    }
 
     /// <summary>The won campaign result's keys (<c>0x004054F0</c>) and the win screen's update (<c>0x0042C390</c>).
     /// Space leaves unless a continue is pending; Escape continues at once when the screen is done (or there is none),

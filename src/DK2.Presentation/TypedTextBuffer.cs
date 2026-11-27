@@ -30,10 +30,22 @@ public sealed class TypedTextBuffer
     }
 
     /// <summary>This frame's characters.</summary>
-    public ReadOnlySpan<char> Text => new(_chars, 0, _count);
+    public ReadOnlySpan<char> Text
+    {
+        get
+        {
+            return new(_chars, 0, _count);
+        }
+    }
 
     /// <summary>Whether a key overflowed it this frame; no more is taken until <see cref="Clear"/>.</summary>
-    public bool Full => _full;
+    public bool Full
+    {
+        get
+        {
+            return _full;
+        }
+    }
 
     /// <summary>Takes a pressed key's text. A key that types nothing (code point 0, a lone surrogate, beyond U+10FFFF) is
     /// ignored. Returns false when the key's characters do not fit, which closes the buffer for the frame.</summary>

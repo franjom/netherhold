@@ -132,8 +132,10 @@ public static class TileHoverOutline
     }
 
     /// <summary>Unity's <c>Vector3.Cross</c>, component by component, so the ribbon keeps Unity's floats.</summary>
-    private static Vector3 Cross(Vector3 l, Vector3 r) =>
-        new(l.Y * r.Z - l.Z * r.Y, l.Z * r.X - l.X * r.Z, l.X * r.Y - l.Y * r.X);
+    private static Vector3 Cross(Vector3 l, Vector3 r)
+    {
+        return new(l.Y * r.Z - l.Z * r.Y, l.Z * r.X - l.X * r.Z, l.X * r.Y - l.Y * r.X);
+    }
 
     /// <summary>Unity's <c>Vector3.normalized</c>: zero at a length of 1e-5 or less (an eye on the segment's line).</summary>
     private static Vector3 UnitOrZero(Vector3 v)
@@ -154,9 +156,30 @@ public sealed class TileHoverRibbon
     private Vector2[] _uvs = new Vector2[64];
     private int[] _indices = new int[96];
 
-    public ReadOnlySpan<Vector3> Positions => _positions.AsSpan(0, VertexCount);
-    public ReadOnlySpan<Vector2> Uvs => _uvs.AsSpan(0, VertexCount);
-    public ReadOnlySpan<int> Indices => _indices.AsSpan(0, IndexCount);
+    public ReadOnlySpan<Vector3> Positions
+    {
+        get
+        {
+            return _positions.AsSpan(0, VertexCount);
+        }
+    }
+
+    public ReadOnlySpan<Vector2> Uvs
+    {
+        get
+        {
+            return _uvs.AsSpan(0, VertexCount);
+        }
+    }
+
+    public ReadOnlySpan<int> Indices
+    {
+        get
+        {
+            return _indices.AsSpan(0, IndexCount);
+        }
+    }
+
     public int VertexCount { get; private set; }
     public int IndexCount { get; private set; }
     /// <summary>The ribbon's additive RGB, 0 to 1.</summary>

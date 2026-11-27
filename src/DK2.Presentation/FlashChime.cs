@@ -27,5 +27,8 @@ public sealed class FlashChime
 
     /// <summary>The request, nonpositional and without a handle, in the table category of the widget's sound slot: <c>0x006AC8C4</c> plus the slot times 0x30 (tabs 1 to 4, slots 5 and 6).
     /// A slot with no category asks nothing.</summary>
-    public static SoundRequest Request(GuiSoundSlot slot) => new(GuiSoundSlots.CategoryOf(slot), new SoundId(EventId));
+    public static SoundRequest Request(GuiSoundSlot slot)
+    {
+        return new(GuiSoundSlots.CategoryOf(slot), new SoundId(EventId));
+    }
 }

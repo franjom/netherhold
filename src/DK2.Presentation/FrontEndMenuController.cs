@@ -32,9 +32,23 @@ public sealed class FrontEndMenuController : IDisposable
         _hitBounds = hitBounds ?? throw new ArgumentNullException(nameof(hitBounds));
         _session.PageChanged += PageChanged;
     }
-    public FrontEndPage Page => _session.Page;
+    public FrontEndPage Page
+    {
+        get
+        {
+            return _session.Page;
+        }
+    }
+
     public FrontEndDialog? Dialog { get; private set; }
-    public IReadOnlyList<FrontEndWidget> Widgets => FrontEndPages.Find(Page)?.Widgets ?? Array.Empty<FrontEndWidget>();
+    public IReadOnlyList<FrontEndWidget> Widgets
+    {
+        get
+        {
+            return FrontEndPages.Find(Page)?.Widgets ?? Array.Empty<FrontEndWidget>();
+        }
+    }
+
     public event Action? QuitRequested;
     public event Action<FrontEndSoundRequest>? SoundRequested;
     public SoundRequests Sounds { get; } = new();
@@ -46,10 +60,17 @@ public sealed class FrontEndMenuController : IDisposable
     }
     public FrontEndMovieGallery? Movies { get; private set; }
     public event Action<string>? MovieRequested;
-    public void SetMovieGallery(FrontEndMovieGallery gallery) => Movies = gallery;
+    public void SetMovieGallery(FrontEndMovieGallery gallery)
+    {
+        Movies = gallery;
+    }
+
     public event Action<string>? LoadRequested;
     public SaveSlotsView? Saves { get; private set; }
-    public void SetSaveBrowser(SaveSlotsView view) => Saves = view;
+    public void SetSaveBrowser(SaveSlotsView view)
+    {
+        Saves = view;
+    }
 
     public bool IsEnabled(FrontEndWidget widget)
     {
@@ -302,5 +323,8 @@ public sealed class FrontEndMenuController : IDisposable
             Dialog = null;
         }
     }
-    public void Dispose() => _session.PageChanged -= PageChanged;
+    public void Dispose()
+    {
+        _session.PageChanged -= PageChanged;
+    }
 }

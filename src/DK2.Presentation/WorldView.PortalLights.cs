@@ -43,8 +43,10 @@ public sealed partial class WorldView
         }
     }
 
-    private bool IsEntrance(WorldState world, TilePos tile) =>
-        _database.RoomByTerrain(world.Tile(tile).TerrainId)?.TypeId is RoomTypeId.Portal or RoomTypeId.HeroPortal;
+    private bool IsEntrance(WorldState world, TilePos tile)
+    {
+        return _database.RoomByTerrain(world.Tile(tile).TerrainId)?.TypeId is RoomTypeId.Portal or RoomTypeId.HeroPortal;
+    }
 
     private void CaptureLoadedPortals(WorldState world)
     {

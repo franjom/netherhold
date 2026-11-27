@@ -21,9 +21,11 @@ public readonly record struct ObjectMaterialLook(string Texture, KmfBlend Blend,
     public const int HoverTwinQueueOffset = 1;
 
     /// <summary>The recipe's own look: an additive recipe at full white, any other with its self-illumination added.</summary>
-    public static ObjectMaterialLook Own(in ClassicMaterialRecipe recipe) =>
-        new(recipe.Texture ?? "", recipe.Blend, recipe.WritesDepth, recipe.Blend == KmfBlend.Additive, Vector4.One,
+    public static ObjectMaterialLook Own(in ClassicMaterialRecipe recipe)
+    {
+        return new(recipe.Texture ?? "", recipe.Blend, recipe.WritesDepth, recipe.Blend == KmfBlend.Additive, Vector4.One,
             new Vector3(recipe.AddedLight));
+    }
 
     /// <summary>The additive pass DK2 draws a second time over an environment-mapped opaque material's triangles
     /// (<see cref="KmfMaterial.HasEnvironmentPass"/>, <c>0x00581797</c>, <c>0x005851E0</c>): the environment texture,
@@ -52,11 +54,16 @@ public readonly record struct ObjectMaterialLook(string Texture, KmfBlend Blend,
 
     /// <summary>The red pass of the Hand's hover and of a burning creature (<see cref="HoverOverlayPlan"/>): RedTexture's
     /// <see cref="TerrainMaterialLook.HoverOverlayColour"/>, additive, unlit, no depth write, as the tutorial's red plan.</summary>
-    public static ObjectMaterialLook HoverOverlay() => Blueprint(red: true);
+    public static ObjectMaterialLook HoverOverlay()
+    {
+        return Blueprint(red: true);
+    }
 
     /// <summary>The terrain overlay a plan draws as: the dig tag's, or the tutorial's red.</summary>
-    public static TerrainMaterialVariant BlueprintOverlay(bool red) =>
-        red ? TerrainMaterialVariant.RedTagOverlay : TerrainMaterialVariant.TagOverlay;
+    public static TerrainMaterialVariant BlueprintOverlay(bool red)
+    {
+        return red ? TerrainMaterialVariant.RedTagOverlay : TerrainMaterialVariant.TagOverlay;
+    }
 
     /// <summary>The material's texture at <see cref="ObjectHoverHighlight.HoverTextureIndex"/>, drawn
     /// <see cref="HoverTwinQueueOffset"/> later over a hovered gold object; null where that is the first texture.</summary>
@@ -68,13 +75,21 @@ public readonly record struct ObjectMaterialLook(string Texture, KmfBlend Blend,
 
     /// <summary>Whether light added on top changes it: not an environment pass, lit through its own colour, nor a
     /// full-light draw (an additive material or a plan).</summary>
-    public bool TakesAddedLight => !EnvironmentMapped && !FullLight;
+    public bool TakesAddedLight
+    {
+        get
+        {
+            return !EnvironmentMapped && !FullLight;
+        }
+    }
 
     /// <summary>Lit by an object's terrain light more (<see cref="TerrainMaterialLook.TintedLight"/>); a tint cut to zero
     /// adds nothing.</summary>
-    public ObjectMaterialLook Tinted(TerrainLightColour tint) =>
-        !TakesAddedLight || ClassicTerrainTint.PieceColour(tint) == default ? this
+    public ObjectMaterialLook Tinted(TerrainLightColour tint)
+    {
+        return !TakesAddedLight || ClassicTerrainTint.PieceColour(tint) == default ? this
             : this with { AddedLight = TerrainMaterialLook.TintedLight(AddedLight, tint) };
+    }
 
     /// <summary>The light <see cref="Tinted"/> adds to a look that takes added light: the tint cut to a piece's bytes,
     /// over 255; zero for a tint cut to zero. An engine adding it per drawn thing shares one material across tints.</summary>
@@ -85,13 +100,18 @@ public readonly record struct ObjectMaterialLook(string Texture, KmfBlend Blend,
     }
 
     /// <summary>The light <see cref="InstanceTinted"/> adds to a look that takes added light: the RGB over 255.</summary>
-    public static Vector3 InstanceTintLight(byte red, byte green, byte blue) => new(red / 255f, green / 255f, blue / 255f);
+    public static Vector3 InstanceTintLight(byte red, byte green, byte blue)
+    {
+        return new(red / 255f, green / 255f, blue / 255f);
+    }
 
     /// <summary>Lit by a RenderInfo tint more, the element's RGB over 255 (<c>0x00580480</c>, <c>0x00581BE0</c>): an
     /// effect element's tint, or a built door's grey <see cref="WorldView.BuiltDoorTint"/>.</summary>
-    public ObjectMaterialLook InstanceTinted(byte red, byte green, byte blue) =>
-        !TakesAddedLight || (red | green | blue) == 0 ? this
+    public ObjectMaterialLook InstanceTinted(byte red, byte green, byte blue)
+    {
+        return !TakesAddedLight || (red | green | blue) == 0 ? this
             : this with { AddedLight = AddedLight + InstanceTintLight(red, green, blue) };
+    }
 
     /// <summary>Drawn at <paramref name="alpha"/> (object <c>+0x8F</c>; 255 as it is, 0 not drawn, <see cref="IsDrawn"/>):
     /// alpha-blended and still writing depth, since the Heart's Arches and Big Steps fade in as several objects that DK2
@@ -115,14 +135,22 @@ public readonly record struct ObjectMaterialLook(string Texture, KmfBlend Blend,
     /// <summary>The look <see cref="Faded"/> draws with at any alpha below 255, its colour's alpha kept: alpha-blended,
     /// writing depth. An engine multiplying the fade's alpha (<see cref="FadeAlpha"/>) per drawn thing shares one
     /// material across alphas. An environment pass keeps its look; faded, it draws black.</summary>
-    public ObjectMaterialLook FadeShape() =>
-        EnvironmentMapped ? this : this with { Blend = KmfBlend.AlphaBlend, WritesDepth = true };
+    public ObjectMaterialLook FadeShape()
+    {
+        return EnvironmentMapped ? this : this with { Blend = KmfBlend.AlphaBlend, WritesDepth = true };
+    }
 
     /// <summary>A fade's alpha as <see cref="Faded"/> writes it into the colour.</summary>
-    public static float FadeAlpha(byte alpha) => alpha / 255f;
+    public static float FadeAlpha(byte alpha)
+    {
+        return alpha / 255f;
+    }
 
     /// <summary>Whether a model at <paramref name="alpha"/> draws at all.</summary>
-    public static bool IsDrawn(byte alpha) => alpha > 0;
+    public static bool IsDrawn(byte alpha)
+    {
+        return alpha > 0;
+    }
 }
 
 /// <summary>One draw of a model: the submesh it draws and how it looks.</summary>
@@ -164,6 +192,8 @@ public static class ObjectModelPasses
 
     /// <summary>A material at a texture phase (a Heart's decay, an object's <see cref="ObjectView.TexturePhase"/>): the
     /// texture <see cref="DungeonHeartVisual.TextureIndex"/> picks from its list.</summary>
-    public static ClassicMaterialRecipe TexturePhase(KmfMaterial? kmf, Fp32 phase) =>
-        ClassicMaterialRecipe.FromKmf(kmf, kmf is null ? 0 : DungeonHeartVisual.TextureIndex(phase, kmf.TextureNames.Count));
+    public static ClassicMaterialRecipe TexturePhase(KmfMaterial? kmf, Fp32 phase)
+    {
+        return ClassicMaterialRecipe.FromKmf(kmf, kmf is null ? 0 : DungeonHeartVisual.TextureIndex(phase, kmf.TextureNames.Count));
+    }
 }

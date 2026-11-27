@@ -320,7 +320,10 @@ public sealed class MessageTabsHud
     }
 
     /// <summary>Whether something of the panel's is under the point, so the adapter routes the pointer here.</summary>
-    public bool Hits(float x, float y) => HitAction(x, y) >= 0;
+    public bool Hits(float x, float y)
+    {
+        return HitAction(x, y) >= 0;
+    }
 
     private void Leave()
     {
@@ -449,7 +452,10 @@ public sealed class MessageTabsHud
     }
 
     /// <summary>0x00427980's second square: the room definition's art 0, the bottom panel's icon.</summary>
-    private HudImage RoomIcon(byte room) => _art.Icon(new BottomPanelChoiceKey(BottomPanelChoiceKind.Room, room));
+    private HudImage RoomIcon(byte room)
+    {
+        return _art.Icon(new BottomPanelChoiceKey(BottomPanelChoiceKind.Room, room));
+    }
 
     /// <summary>0x004274C0: the holder's name (player <c>+0xEEA</c>) in the widget moved 160 in and
     /// 16 down (2 when the screen is 300 high), seen through a window 260 wide (<c>0x104</c>).</summary>
@@ -653,13 +659,26 @@ public sealed class MessageTabsHud
         _hits.Add((action, rect));
     }
 
-    private static void Quad(HudFrame frame, HudImage image, HudRect rect) =>
+    private static void Quad(HudFrame frame, HudImage image, HudRect rect)
+    {
         frame.Add(new HudDraw(HudDrawKind.Quad, image, rect, HudColor.White));
+    }
 
     /// <summary>A native virtual length in local pixels, unrounded, as the adapter measured text wraps.</summary>
-    private float V(int value) => value * _screen.Height / 1920f;
-    private float Px(float pixels) => _screen.Virtual(pixels);
-    private static string Invariant(int value) => value.ToString(CultureInfo.InvariantCulture);
+    private float V(int value)
+    {
+        return value * _screen.Height / 1920f;
+    }
+
+    private float Px(float pixels)
+    {
+        return _screen.Virtual(pixels);
+    }
+
+    private static string Invariant(int value)
+    {
+        return value.ToString(CultureInfo.InvariantCulture);
+    }
 
     private static string[,] Names()
     {

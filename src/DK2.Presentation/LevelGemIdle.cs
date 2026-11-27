@@ -35,29 +35,45 @@ public static class LevelGemIdle
     /// <summary>DK2's turn number during our current tick: <c>CurrentTick + 1</c>, the convention of
     /// <c>0x00517490</c> (ADR-0119) that <c>HandRules</c> and the job system use. The bob, spin and
     /// effect cadence below all take this turn.</summary>
-    public static long Turn(WorldState world) =>
-        (world ?? throw new ArgumentNullException(nameof(world))).CurrentTick.Value + 1;
+    public static long Turn(WorldState world)
+    {
+        return (world ?? throw new ArgumentNullException(nameof(world))).CurrentTick.Value + 1;
+    }
 
     /// <summary>Whether a Portal Gem is in a carrier's arms and so not drawn as an object. The pick-up
     /// (<c>0x0048B350</c>) takes the thing off its tile chain (<c>0x004B4F60</c>) and the per-tile pass
     /// that draws things (<c>0x0043CC30</c>) walks those chains; the carrier shows it only through the
     /// gem-dust trail. Ours never moves a carried gem, so drawing it would leave it on the floor
     /// where it was made (Level 5's intro, Q623). Other carried things stay drawn: their draw is unread.</summary>
-    public static bool IsInCarrierArms(ObjectState thing) =>
-        thing.CarriedByCreatureId >= 0 && thing.ObjectTypeId == TriggerExecutor.PortalGemObjectId;
+    public static bool IsInCarrierArms(ObjectState thing)
+    {
+        return thing.CarriedByCreatureId >= 0 && thing.ObjectTypeId == TriggerExecutor.PortalGemObjectId;
+    }
 
     /// <summary>Whether a definition runs this process: it starts in state 50.</summary>
-    public static bool Applies(ObjectDef? definition) => definition is { StartState: ProcessState };
+    public static bool Applies(ObjectDef? definition)
+    {
+        return definition is { StartState: ProcessState };
+    }
 
     /// <summary>The height the process moves the object to on turn <paramref name="turn"/>.</summary>
-    public static int Height(long turn) => BaseHeight + Bob[(int)(turn & 15)];
+    public static int Height(long turn)
+    {
+        return BaseHeight + Bob[(int)(turn & 15)];
+    }
 
     /// <summary>The heading after <paramref name="turn"/> turns of spin from <paramref name="start"/>.</summary>
-    public static int Heading(int start, long turn) => (int)((start + turn * SpinPerTurn) & 0x7FF);
+    public static int Heading(int start, long turn)
+    {
+        return (int)((start + turn * SpinPerTurn) & 0x7FF);
+    }
 
     /// <summary>Whether the idle effect is created on this turn: <c>turn % DAT_006F2590 == 0</c>,
     /// the turns in a game second.</summary>
-    public static bool EmitsOn(long turn) => turn % SimulationTiming.TicksPerSecond == 0;
+    public static bool EmitsOn(long turn)
+    {
+        return turn % SimulationTiming.TicksPerSecond == 0;
+    }
 }
 
 /// <summary>Collects the idle effects loose level gems create (<see cref="LevelGemIdle"/>), once
@@ -67,8 +83,10 @@ public sealed class LevelGemIdleEffects
     private readonly GameDatabase _database;
     private long _lastTurn = -1;
 
-    public LevelGemIdleEffects(GameDatabase database) =>
+    public LevelGemIdleEffects(GameDatabase database)
+    {
         _database = database ?? throw new ArgumentNullException(nameof(database));
+    }
 
     /// <summary>Adds to <paramref name="into"/> each effect created on the turns after the last call
     /// up to the world's current one (<see cref="LevelGemIdle.Turn"/>). Untied: ours places the effect at the gem's centre and lets

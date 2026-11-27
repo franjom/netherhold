@@ -11,14 +11,46 @@ namespace DK2.Presentation;
 public readonly record struct BottomPanelOpenSet
 {
     private readonly byte _mask;
-    private BottomPanelOpenSet(byte mask) => _mask = mask;
+    private BottomPanelOpenSet(byte mask)
+    {
+        _mask = mask;
+    }
 
-    public static BottomPanelOpenSet None => default;
-    public static BottomPanelOpenSet Of(BottomPanelCategory category) => new((byte)(1 << (int)category));
-    public bool Contains(BottomPanelCategory category) => (_mask & 1 << (int)category) != 0;
-    public BottomPanelOpenSet With(BottomPanelCategory category) => new((byte)(_mask | 1 << (int)category));
-    public BottomPanelOpenSet Without(BottomPanelCategory category) => new((byte)(_mask & ~(1 << (int)category)));
-    public int Count => (_mask & 1) + (_mask >> 1 & 1) + (_mask >> 2 & 1) + (_mask >> 3 & 1);
+    public static BottomPanelOpenSet None
+    {
+        get
+        {
+            return default;
+        }
+    }
+
+    public static BottomPanelOpenSet Of(BottomPanelCategory category)
+    {
+        return new((byte)(1 << (int)category));
+    }
+
+    public bool Contains(BottomPanelCategory category)
+    {
+        return (_mask & 1 << (int)category) != 0;
+    }
+
+    public BottomPanelOpenSet With(BottomPanelCategory category)
+    {
+        return new((byte)(_mask | 1 << (int)category));
+    }
+
+    public BottomPanelOpenSet Without(BottomPanelCategory category)
+    {
+        return new((byte)(_mask & ~(1 << (int)category)));
+    }
+
+    public int Count
+    {
+        get
+        {
+            return (_mask & 1) + (_mask >> 1 & 1) + (_mask >> 2 & 1) + (_mask >> 3 & 1);
+        }
+    }
 }
 
 /// <summary>Tab clicks and pinning, <c>0x00416C20</c> (tab-alerts.md section 3). Interface <c>+0x5F</c> is
@@ -34,11 +66,16 @@ public sealed class BottomPanelTabs
         Collapsed = !Collapsed;
         Sounds.Add(new SoundRequest(new SoundCategory("gui_button_size"), new SoundId(Collapsed ? 0x135u : 0x134u)));
     }
-    private static SoundCategory CategorySound(BottomPanelCategory category) => new(category switch
+    private static SoundCategory CategorySound(BottomPanelCategory category)
     {
-        BottomPanelCategory.Rooms => "gui_button_tab_rooms", BottomPanelCategory.Spells => "gui_button_tab_spells",
-        BottomPanelCategory.Workshop => "gui_button_tab_workshop", _ => "gui_button_tab_creature",
-    });
+        return new(category switch
+        {
+            BottomPanelCategory.Rooms => "gui_button_tab_rooms",
+            BottomPanelCategory.Spells => "gui_button_tab_spells",
+            BottomPanelCategory.Workshop => "gui_button_tab_workshop",
+            _ => "gui_button_tab_creature",
+        });
+    }
 
     public BottomPanelCategory? Pinned { get; private set; }
 
@@ -46,7 +83,13 @@ public sealed class BottomPanelTabs
     public bool Collapsed { get; set; }
 
     /// <summary>The menus showing: the remembered set while expanded, none while collapsed.</summary>
-    public BottomPanelOpenSet Open => Collapsed ? BottomPanelOpenSet.None : _remembered;
+    public BottomPanelOpenSet Open
+    {
+        get
+        {
+            return Collapsed ? BottomPanelOpenSet.None : _remembered;
+        }
+    }
 
     /// <summary>A click on tab <paramref name="category"/>. <paramref name="shiftOnly"/> is the modifier mask
     /// <c>0x005B2A50</c> equal to 1: Shift without Ctrl or Alt. Returns true when the click expanded a
@@ -95,16 +138,37 @@ public readonly record struct BottomPanelGrid(int Cell, int Columns, int Rows)
 {
     public const int LargeCell = 264, SmallCell = 128;
 
-    public int PageSize => Columns * Rows;
+    public int PageSize
+    {
+        get
+        {
+            return Columns * Rows;
+        }
+    }
 
     /// <summary>Slot widget <c>+0x3C</c>: <c>(cell != 128) + 5</c>, so 6 for 264-unit cells and 5 for
     /// 128-unit cells. The flash draws 88-unit sparkles on a 6 (<c>0x00412FC0</c>).</summary>
-    public int WidgetBank => Cell == SmallCell ? 5 : 6;
+    public int WidgetBank
+    {
+        get
+        {
+            return Cell == SmallCell ? 5 : 6;
+        }
+    }
 
     /// <summary>The same slot as a name: 5 is <c>GUI_BUTTON_ICON</c> (128-unit cells), 6 <c>GUI_BUTTON_ICON_LARGE</c> (264-unit cells).</summary>
-    public GuiSoundSlot SoundSlot => Cell == SmallCell ? GuiSoundSlot.Icon : GuiSoundSlot.IconLarge;
+    public GuiSoundSlot SoundSlot
+    {
+        get
+        {
+            return Cell == SmallCell ? GuiSoundSlot.Icon : GuiSoundSlot.IconLarge;
+        }
+    }
 
-    public int Pages(int count) => PageSize <= 0 ? 1 : Math.Max(1, (count + PageSize - 1) / PageSize);
+    public int Pages(int count)
+    {
+        return PageSize <= 0 ? 1 : Math.Max(1, (count + PageSize - 1) / PageSize);
+    }
 
     /// <summary>Page slot <paramref name="index"/> (column-major: down the rows first) at
     /// <c>x = 76 + (cell+8)·col</c>, <c>y = 12 + (cell+8)·row</c> inside <paramref name="panel"/>.</summary>

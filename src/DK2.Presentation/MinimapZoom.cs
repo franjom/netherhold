@@ -10,20 +10,45 @@ public readonly record struct MinimapRasterPoint(int X, int Y);
 
 public static class MinimapControlLayout
 {
-    public static bool IsMap(System.Numerics.Vector2 point) =>
-        point.X >= 24 && point.X < 166.4f && point.Y >= 601.6f && point.Y < 726.4f
+    public static bool IsMap(System.Numerics.Vector2 point)
+    {
+        return point.X >= 24 && point.X < 166.4f && point.Y >= 601.6f && point.Y < 726.4f
         && !(point.Y < 616 && (point.X < 40 || point.X >= 155.2f));
+    }
 
-    public static bool IsMagnifier(System.Numerics.Vector2 point) =>
-        point.X >= 153.6f && point.X < 185.6f && point.Y >= 729.6f && point.Y < 761.6f;
+    public static bool IsMagnifier(System.Numerics.Vector2 point)
+    {
+        return point.X >= 153.6f && point.X < 185.6f && point.Y >= 729.6f && point.Y < 761.6f;
+    }
 }
 
 public readonly record struct MinimapZoom
 {
     public int Level { get; }
-    public bool IsWholeMap => Level == -1;
-    public int PixelsPerTile => IsWholeMap ? 0 : 1 << Level;
-    public static MinimapZoom WholeMap => new(-1);
+    public bool IsWholeMap
+    {
+        get
+        {
+            return Level == -1;
+        }
+    }
+
+    public int PixelsPerTile
+    {
+        get
+        {
+            return IsWholeMap ? 0 : 1 << Level;
+        }
+    }
+
+    public static MinimapZoom WholeMap
+    {
+        get
+        {
+            return new(-1);
+        }
+    }
+
     public MinimapZoom(int level)
     {
         if (level < -1 || level > 4)
@@ -33,8 +58,16 @@ public readonly record struct MinimapZoom
 
         Level = level;
     }
-    public MinimapZoom ZoomIn() => new(Math.Min(Level + 1, 4));
-    public MinimapZoom ZoomOut() => new(Math.Max(Level - 1, -1));
+    public MinimapZoom ZoomIn()
+    {
+        return new(Math.Min(Level + 1, 4));
+    }
+
+    public MinimapZoom ZoomOut()
+    {
+        return new(Math.Max(Level - 1, -1));
+    }
+
     public MinimapRasterPoint RasterOrigin(FpPosition3 focus)
     {
         if (IsWholeMap)

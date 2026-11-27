@@ -129,7 +129,13 @@ public sealed class TerrainChunkScheduler
     public double FlushBudgetMilliseconds { get; set; } = DefaultFlushBudgetMilliseconds;
 
     /// <summary>How many chunks the last <see cref="Flush"/> left for a later one.</summary>
-    public int PendingChunks => _dirtyCount;
+    public int PendingChunks
+    {
+        get
+        {
+            return _dirtyCount;
+        }
+    }
 
     /// <summary>What the last <see cref="Flush"/> spent on the calling thread.</summary>
     public double LastFlushMilliseconds { get; private set; }
@@ -141,7 +147,10 @@ public sealed class TerrainChunkScheduler
     /// Set it before the first <see cref="Flush"/>.</summary>
     public ITerrainChunkPacker? Packer { get; set; }
 
-    public int ChunkOf(int tileIndex) => (tileIndex / _width / ChunkSize * _chunksX) + (tileIndex % _width / ChunkSize);
+    public int ChunkOf(int tileIndex)
+    {
+        return (tileIndex / _width / ChunkSize * _chunksX) + (tileIndex % _width / ChunkSize);
+    }
 
     /// <summary>Takes a pushed tile; false when it draws no terrain. With a lattice the change forgets its cells and
     /// marks the tiles within <see cref="StaleReach"/> stale; without, the tile alone if it draws or drew. A change of
@@ -304,13 +313,22 @@ public sealed class TerrainChunkScheduler
     }
 
     /// <summary>Whether tile <paramref name="tileIndex"/> waits for a build (tests).</summary>
-    internal bool IsStale(int tileIndex) => _stale[tileIndex];
+    internal bool IsStale(int tileIndex)
+    {
+        return _stale[tileIndex];
+    }
 
     /// <summary>Whether chunk <paramref name="chunk"/> waits for an upload (tests).</summary>
-    internal bool IsDirty(int chunk) => _dirty[chunk];
+    internal bool IsDirty(int chunk)
+    {
+        return _dirty[chunk];
+    }
 
     /// <summary>Waits for a running build without taking it over, so the next flush finds it complete (tests).</summary>
-    internal void WaitForBuild() => _buildTask?.Wait();
+    internal void WaitForBuild()
+    {
+        _buildTask?.Wait();
+    }
 
     /// <summary>Holds a pool build until set, so a test can flush while it runs.</summary>
     internal ManualResetEventSlim? BuildGate { get; set; }
@@ -319,7 +337,13 @@ public sealed class TerrainChunkScheduler
     internal static readonly TimeSpan BuildGateTimeout = TimeSpan.FromSeconds(10);
 
     /// <summary>Whether a pool build has been started and not yet taken over (tests).</summary>
-    internal bool IsBuilding => _buildTask != null;
+    internal bool IsBuilding
+    {
+        get
+        {
+            return _buildTask != null;
+        }
+    }
 
     private void MarkNeighboursStale(int tileIndex)
     {

@@ -21,14 +21,32 @@ public readonly record struct PlayerActionResolution
         Refusal = refusal;
     }
 
-    public IReadOnlyList<PlayerCommand> Commands => _commands ?? [];
+    public IReadOnlyList<PlayerCommand> Commands
+    {
+        get
+        {
+            return _commands ?? [];
+        }
+    }
+
     public PlayerRefusalReason Refusal { get; }
-    public bool Admitted => Refusal == PlayerRefusalReason.None;
+    public bool Admitted
+    {
+        get
+        {
+            return Refusal == PlayerRefusalReason.None;
+        }
+    }
 
-    public static PlayerActionResolution Of(PlayerCommand command) => new([command], PlayerRefusalReason.None);
+    public static PlayerActionResolution Of(PlayerCommand command)
+    {
+        return new([command], PlayerRefusalReason.None);
+    }
 
-    public static PlayerActionResolution Refused(PlayerRefusalReason reason) =>
-        reason == PlayerRefusalReason.None ? throw new ArgumentException("A refusal needs a reason.", nameof(reason)) : new(null, reason);
+    public static PlayerActionResolution Refused(PlayerRefusalReason reason)
+    {
+        return reason == PlayerRefusalReason.None ? throw new ArgumentException("A refusal needs a reason.", nameof(reason)) : new(null, reason);
+    }
 }
 
 /// <summary>
@@ -55,7 +73,13 @@ public sealed class PlayerActionAdapter
         _rubberBand = PlacementCursor.RubberBandLimit(database);
     }
 
-    public PlayerId Player => _player;
+    public PlayerId Player
+    {
+        get
+        {
+            return _player;
+        }
+    }
 
     public PlayerActionResolution Resolve(PlayerObservationCapture capture, PlayerAction action)
     {

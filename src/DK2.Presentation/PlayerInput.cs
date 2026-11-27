@@ -79,12 +79,17 @@ public readonly record struct SpecialTargeting(int ObjectId, byte TypeId)
 {
     public const byte KillCreatures = 127, TransferCreature = 140;
 
-    public static bool Needs(byte typeId) => typeId is KillCreatures or TransferCreature;
+    public static bool Needs(byte typeId)
+    {
+        return typeId is KillCreatures or TransferCreature;
+    }
 
     /// <summary><c>0x00408D07</c>: Transfer Creature takes an own creature (hover kind 2), Kill
     /// Creatures any other (kind 3).</summary>
-    public bool Accepts(in PlayerInputTarget creature) =>
-        creature.Kind == PlayerInputTargetKind.Creature && creature.Own == (TypeId == TransferCreature);
+    public bool Accepts(in PlayerInputTarget creature)
+    {
+        return creature.Kind == PlayerInputTargetKind.Creature && creature.Own == (TypeId == TransferCreature);
+    }
 }
 
 /// <summary>The small, immutable part of the presented world needed to interpret a click.</summary>
@@ -247,14 +252,20 @@ public sealed class PlayerInputSnapshot
 public sealed class PlayerInputTranslator
 {
     private DragStart? _drag;
-    public void CancelPointerGesture() => _drag = null;
+    public void CancelPointerGesture()
+    {
+        _drag = null;
+    }
 
     /// <summary>The special waiting for its creature, or null (tool mode 5).</summary>
     public SpecialTargeting? Targeting { get; private set; }
 
     /// <summary>Hud_CancelSelectedTool (<c>0x004094C0</c>), which every tool selector calls first,
     /// Query and the panel's spells included: a pending special is dropped.</summary>
-    public void CancelTool() => Targeting = null;
+    public void CancelTool()
+    {
+        Targeting = null;
+    }
 
     /// <summary>SpellPanel_ActivateSpecial (<c>0x0040A280</c>), a stored special clicked in the spells
     /// panel: action 88 with a zero word, or for 127 and 140 the same targeting mode as the hand, which
@@ -295,8 +306,10 @@ public sealed class PlayerInputTranslator
     }
 
     /// <inheritdoc cref="ChooseStoredSpecial(PlayerId, int, byte, BottomPanelView)"/>
-    public PlayerCommand? ChooseStoredSpecial(PlayerId playerId, BottomPanelChoice special, BottomPanelView panel) =>
-        ChooseStoredSpecial(playerId, (special ?? throw new ArgumentNullException(nameof(special))).ObjectId, special.Key.Value, panel);
+    public PlayerCommand? ChooseStoredSpecial(PlayerId playerId, BottomPanelChoice special, BottomPanelView panel)
+    {
+        return ChooseStoredSpecial(playerId, (special ?? throw new ArgumentNullException(nameof(special))).ObjectId, special.Key.Value, panel);
+    }
 
     /// <summary>The release clamps' limit, the database's <c>RubberBandAreaLimit</c>: the room release
     /// pulls the end toward the anchor (<see cref="PlacementCursor.ClampDrag"/>), the sell release
@@ -414,33 +427,49 @@ public sealed class PlayerInputTranslator
     }
 
     /// <summary>Where an unfinished drag with <paramref name="tool"/> began; null with none.</summary>
-    public TilePos? DragFrom(PlayerToolMode tool) => _drag is DragStart drag && drag.Tool == tool ? drag.Tile : null;
+    public TilePos? DragFrom(PlayerToolMode tool)
+    {
+        return _drag is DragStart drag && drag.Tool == tool ? drag.Tile : null;
+    }
 
-    public bool? ExcavationPreviewTagged => _drag is DragStart drag
+    public bool? ExcavationPreviewTagged
+    {
+        get
+        {
+            return _drag is DragStart drag
         && drag.Tool is PlayerToolMode.Hand or PlayerToolMode.TagTiles or PlayerToolMode.UntagTiles
             ? drag.Tagged : null;
+        }
+    }
 
-    private static bool IsDragTool(PlayerToolMode tool) =>
-        tool is PlayerToolMode.TagTiles or PlayerToolMode.UntagTiles or
-            PlayerToolMode.BuildRoom or PlayerToolMode.SellRoom;
-
-    private static PlayerCommand? Drag(in DragStart drag, TilePos end) => drag.Tool switch
+    private static bool IsDragTool(PlayerToolMode tool)
     {
-        PlayerToolMode.Hand =>
-            TagTilesCommand.Rect(drag.PlayerId, drag.Tile.X, drag.Tile.Y, end.X, end.Y, drag.Tagged),
-        PlayerToolMode.TagTiles =>
-            TagTilesCommand.Rect(drag.PlayerId, drag.Tile.X, drag.Tile.Y, end.X, end.Y),
-        PlayerToolMode.UntagTiles =>
-            TagTilesCommand.Rect(drag.PlayerId, drag.Tile.X, drag.Tile.Y, end.X, end.Y, tagged: false),
-        PlayerToolMode.BuildRoom =>
-            BuildRoomCommand.Rect(drag.PlayerId, drag.RoomId, drag.Tile.X, drag.Tile.Y, end.X, end.Y),
-        PlayerToolMode.SellRoom =>
-            SellRoomCommand.Rect(drag.PlayerId, drag.Tile.X, drag.Tile.Y, end.X, end.Y),
-        _ => null,
-    };
+        return tool is PlayerToolMode.TagTiles or PlayerToolMode.UntagTiles or
+            PlayerToolMode.BuildRoom or PlayerToolMode.SellRoom;
+    }
 
-    private static PlayerCommand SellArea(in DragStart drag, TileRectangle area) =>
-        SellRoomCommand.Rect(drag.PlayerId, area.X0, area.Y0, area.X1 - 1, area.Y1 - 1);
+    private static PlayerCommand? Drag(in DragStart drag, TilePos end)
+    {
+        return drag.Tool switch
+        {
+            PlayerToolMode.Hand =>
+                TagTilesCommand.Rect(drag.PlayerId, drag.Tile.X, drag.Tile.Y, end.X, end.Y, drag.Tagged),
+            PlayerToolMode.TagTiles =>
+                TagTilesCommand.Rect(drag.PlayerId, drag.Tile.X, drag.Tile.Y, end.X, end.Y),
+            PlayerToolMode.UntagTiles =>
+                TagTilesCommand.Rect(drag.PlayerId, drag.Tile.X, drag.Tile.Y, end.X, end.Y, tagged: false),
+            PlayerToolMode.BuildRoom =>
+                BuildRoomCommand.Rect(drag.PlayerId, drag.RoomId, drag.Tile.X, drag.Tile.Y, end.X, end.Y),
+            PlayerToolMode.SellRoom =>
+                SellRoomCommand.Rect(drag.PlayerId, drag.Tile.X, drag.Tile.Y, end.X, end.Y),
+            _ => null,
+        };
+    }
+
+    private static PlayerCommand SellArea(in DragStart drag, TileRectangle area)
+    {
+        return SellRoomCommand.Rect(drag.PlayerId, area.X0, area.Y0, area.X1 - 1, area.Y1 - 1);
+    }
 
     private static PlayerCommand? Click(in PlayerIntent intent, PlayerInputSnapshot snapshot)
     {

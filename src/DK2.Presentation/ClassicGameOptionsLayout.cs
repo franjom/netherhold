@@ -117,5 +117,8 @@ public static class ClassicGameOptionsLayout
                 new(4, 20u, new(512f, 512f, 496f, 28.8f), InGameOptionsWidgetKind.Back, InGameOptionsPage.UserCameras, new(0), false),
             },
         };
-    public static IReadOnlyList<InGameOptionsWidget> ForPage(InGameOptionsPage page) => Pages[page];
+    public static IReadOnlyList<InGameOptionsWidget> ForPage(InGameOptionsPage page)
+    {
+        return Pages[page];
+    }
 }

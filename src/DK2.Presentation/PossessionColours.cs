@@ -53,7 +53,11 @@ public sealed class PossessionColours
         Change.Start(ScreenColourKind.Damage, clockMilliseconds, 125);
         Change.Queue(_own, 250);
     }
-    public void Thaw(long clockMilliseconds) => Change.Start(_own, clockMilliseconds, 500);
+    public void Thaw(long clockMilliseconds)
+    {
+        Change.Start(_own, clockMilliseconds, 500);
+    }
+
     public void Death(long clockMilliseconds)
     {
         _entryEnd = null;

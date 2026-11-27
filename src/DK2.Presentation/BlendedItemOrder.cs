@@ -28,8 +28,10 @@ public readonly record struct BlendedItemRect(float MinX, float MinY, float MaxX
     public static readonly BlendedItemRect Nowhere = new(float.PositiveInfinity, float.PositiveInfinity,
         float.NegativeInfinity, float.NegativeInfinity);
 
-    public bool Overlaps(in BlendedItemRect other) =>
-        MinX <= other.MaxX && other.MinX <= MaxX && MinY <= other.MaxY && other.MinY <= MaxY;
+    public bool Overlaps(in BlendedItemRect other)
+    {
+        return MinX <= other.MaxX && other.MinX <= MaxX && MinY <= other.MaxY && other.MinY <= MaxY;
+    }
 
     /// <summary>A box in normalised device coordinates around everything within <paramref name="radius"/> of
     /// <paramref name="centre"/> under <paramref name="viewProjection"/> (column vectors, <see cref="ViewFrustum.ViewProjection"/>,
@@ -53,10 +55,16 @@ public readonly record struct BlendedItemRect(float MinX, float MinY, float MaxX
             Math.Max((x + dx) / near, (x + dx) / far), Math.Max((y + dy) / near, (y + dy) / far));
     }
 
-    private static float Length(float x, float y, float z) => MathF.Sqrt(x * x + y * y + z * z);
+    private static float Length(float x, float y, float z)
+    {
+        return MathF.Sqrt(x * x + y * y + z * z);
+    }
 
-    public BlendedItemRect Union(in BlendedItemRect other) => new(Math.Min(MinX, other.MinX), Math.Min(MinY, other.MinY),
+    public BlendedItemRect Union(in BlendedItemRect other)
+    {
+        return new(Math.Min(MinX, other.MinX), Math.Min(MinY, other.MinY),
         Math.Max(MaxX, other.MaxX), Math.Max(MaxY, other.MaxY));
+    }
 }
 
 /// <summary>One draw of <see cref="BlendedItemOrder"/>: <see cref="Count"/> items of one batch, starting at
@@ -117,16 +125,40 @@ public sealed class BlendedItemOrder
     private const int BarrierBatch = int.MinValue;
 
     /// <summary>The draws of the last <see cref="Order"/>, back to front.</summary>
-    public IReadOnlyList<BlendedItemSegment> Segments => _segments;
+    public IReadOnlyList<BlendedItemSegment> Segments
+    {
+        get
+        {
+            return _segments;
+        }
+    }
 
     /// <summary>The item indices (as <see cref="Add"/> returned them) of the last <see cref="Order"/>, draw by draw.</summary>
-    public ReadOnlySpan<int> Items => new(_items, 0, _count);
+    public ReadOnlySpan<int> Items
+    {
+        get
+        {
+            return new(_items, 0, _count);
+        }
+    }
 
     /// <summary>How many items are added since <see cref="ClearItems"/>.</summary>
-    public int ItemCount => _count;
+    public int ItemCount
+    {
+        get
+        {
+            return _count;
+        }
+    }
 
     /// <summary>How many runs are set.</summary>
-    public int RunCount => _runCount;
+    public int RunCount
+    {
+        get
+        {
+            return _runCount;
+        }
+    }
 
     /// <summary>The eye's distance from the renderer's sort pivot (Godot's origin): with the keys, the magnitude a sort
     /// depth is rounded at (<see cref="MinimumGap"/>).</summary>
@@ -172,7 +204,10 @@ public sealed class BlendedItemOrder
     }
 
     /// <summary>Forgets the runs; set them again with <see cref="AddRun"/> after each re-sort of the stream.</summary>
-    public void ClearRuns() => _runCount = 0;
+    public void ClearRuns()
+    {
+        _runCount = 0;
+    }
 
     /// <summary>Adds the next run's key, back to front: each must be below the one before
     /// (<see cref="BlendedRunSlot{TMaterial}.Distance"/> of the non-overlay runs of <see cref="BlendedRunSlots{TMaterial}.Drawn"/>).
@@ -221,7 +256,10 @@ public sealed class BlendedItemOrder
 
     /// <summary><see cref="Add(int, float, BlendedItemBlend, in BlendedItemRect)"/> for an item that may cover the whole
     /// screen.</summary>
-    public int Add(int batch, float distance, BlendedItemBlend blend) => Add(batch, distance, blend, BlendedItemRect.Everywhere);
+    public int Add(int batch, float distance, BlendedItemBlend blend)
+    {
+        return Add(batch, distance, blend, BlendedItemRect.Everywhere);
+    }
 
     /// <summary>Adds a blended thing the renderer sorts on its own at <paramref name="distance"/> from the eye (in the
     /// renderer's own measure), covering at most <paramref name="rect"/> of the screen and blending as

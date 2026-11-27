@@ -83,13 +83,24 @@ public sealed class FrameTelemetry
     public int Dropped { get; private set; }
 
     /// <summary>Seconds from the first frame to the last recorded one.</summary>
-    public double PlaySeconds => Count > 0 ? _rows[Count - 1].Seconds : 0;
+    public double PlaySeconds
+    {
+        get
+        {
+            return Count > 0 ? _rows[Count - 1].Seconds : 0;
+        }
+    }
 
     /// <summary>True when <paramref name="directory"/> already holds a capture: a recorder never writes over one.</summary>
-    public static bool HoldsCapture(string directory) =>
-        File.Exists(Path.Combine(directory, FramesFile)) || File.Exists(Path.Combine(directory, MetadataFile));
+    public static bool HoldsCapture(string directory)
+    {
+        return File.Exists(Path.Combine(directory, FramesFile)) || File.Exists(Path.Combine(directory, MetadataFile));
+    }
 
-    public double Milliseconds(long started, long now) => (now - started) * 1000.0 / _frequency;
+    public double Milliseconds(long started, long now)
+    {
+        return (now - started) * 1000.0 / _frequency;
+    }
 
     /// <summary>At the top of a frame. The first call starts the play clock; the interval is from the previous call.</summary>
     public void BeginFrame(long now, int gen0Collections)

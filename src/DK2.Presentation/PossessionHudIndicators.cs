@@ -109,6 +109,8 @@ public sealed class PossessionHudIndicators
             new(window.X - screen.Virtual(_scroll), window.Y, screen.Virtual(size.Width), screen.Virtual(size.Height)), window, HudColor.White);
     }
 
-    private static void Quad(HudFrame frame, HudImage image, HudRect rect) =>
+    private static void Quad(HudFrame frame, HudImage image, HudRect rect)
+    {
         frame.Add(new(HudDrawKind.Quad, image, rect, HudColor.White));
+    }
 }

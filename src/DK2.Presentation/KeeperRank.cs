@@ -71,5 +71,8 @@ public static class KeeperRank
         return 2900;
     }
 
-    private static int Trunc(double value) => (int)value;
+    private static int Trunc(double value)
+    {
+        return (int)value;
+    }
 }

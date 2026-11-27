@@ -9,14 +9,20 @@ namespace DK2.Presentation;
 /// <summary>Piece-entry colour boundaries; see classic-lighting.md section2.</summary>
 public static class ClassicTerrainTint
 {
-    public static TerrainLightColour PieceColour(TerrainLightColour colour) => new(
+    public static TerrainLightColour PieceColour(TerrainLightColour colour)
+    {
+        return new(
         colour.Red & 255, colour.Green & 255, colour.Blue & 255);
+    }
 
     public static TerrainLightColour RoomQuarterColour(TileConstruction construction,
-        RoomTypeId room, bool overLava, TerrainLightColour colour) => construction switch
+        RoomTypeId room, bool overLava, TerrainLightColour colour)
+    {
+        return construction switch
         {
             TileConstruction.Normal or TileConstruction.DoubleQuad => colour,
             TileConstruction.QuadConstruction when room == RoomTypeId.WoodenBridge && overLava => colour,
             _ => default,
         };
+    }
 }

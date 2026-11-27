@@ -40,11 +40,21 @@ public sealed class BattleFlyIn
     public BattleFlyIn() { }
 
     /// <param name="tabletPointCount">The mesh's control points, used to size the tablet's reusable sparkle buffer.</param>
-    public BattleFlyIn(int tabletPointCount) => _tablet.ReserveSparkles(tabletPointCount);
+    public BattleFlyIn(int tabletPointCount)
+    {
+        _tablet.ReserveSparkles(tabletPointCount);
+    }
 
     /// <summary>The latch <c>+0x4D75</c>: a fly-in is running.</summary>
     public bool Running { get; private set; }
-    public RewardTablet Tablet => _tablet;
+    public RewardTablet Tablet
+    {
+        get
+        {
+            return _tablet;
+        }
+    }
+
     public SoundRequests Sounds { get; } = new();
 
     /// <summary><c>0x0042C0D0</c>: refused while one runs; else the start sound, the latch and the

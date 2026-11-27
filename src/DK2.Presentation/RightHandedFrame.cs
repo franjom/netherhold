@@ -14,25 +14,42 @@ namespace DK2.Presentation;
 /// so the same index order faces the same way. S is its own inverse, so the same calls bring a ray back.</remarks>
 public static class RightHandedFrame
 {
-    public static Vector3 Point(Vector3 point) => new(point.X, point.Y, -point.Z);
+    public static Vector3 Point(Vector3 point)
+    {
+        return new(point.X, point.Y, -point.Z);
+    }
 
-    public static Vector3 Normal(Vector3 normal) => new(normal.X, normal.Y, -normal.Z);
+    public static Vector3 Normal(Vector3 normal)
+    {
+        return new(normal.X, normal.Y, -normal.Z);
+    }
 
-    public static Vector3 Direction(Vector3 direction) => new(direction.X, direction.Y, -direction.Z);
+    public static Vector3 Direction(Vector3 direction)
+    {
+        return new(direction.X, direction.Y, -direction.Z);
+    }
 
     /// <summary>S·R·S for a rotation (or any linear part) R; a translation row is mirrored as a point.</summary>
-    public static Matrix4x4 Rotation(Matrix4x4 r) => new(
+    public static Matrix4x4 Rotation(Matrix4x4 r)
+    {
+        return new(
         r.M11, r.M12, -r.M13, r.M14,
         r.M21, r.M22, -r.M23, r.M24,
         -r.M31, -r.M32, r.M33, -r.M34,
         r.M41, r.M42, -r.M43, r.M44);
+    }
 
     /// <summary>S·R·S as a quaternion: the axis mirrored and the angle reversed.</summary>
-    public static Quaternion Rotation(Quaternion q) => new(-q.X, -q.Y, q.Z, q.W);
+    public static Quaternion Rotation(Quaternion q)
+    {
+        return new(-q.X, -q.Y, q.Z, q.W);
+    }
 
     /// <summary>A ray between the frames, either way.</summary>
-    public static (Vector3 Origin, Vector3 Direction) Ray(Vector3 origin, Vector3 direction) =>
-        (Point(origin), Direction(direction));
+    public static (Vector3 Origin, Vector3 Direction) Ray(Vector3 origin, Vector3 direction)
+    {
+        return (Point(origin), Direction(direction));
+    }
 
     /// <summary>A camera at <paramref name="pose"/>: its origin and its basis columns, X right, Y up and Z back (the
     /// view looks down -Z), as the left-handed engine's look rotation (forward, up) orthonormalises them.</summary>

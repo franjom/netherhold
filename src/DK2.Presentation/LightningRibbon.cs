@@ -85,8 +85,15 @@ public sealed record LightningRibbon(IReadOnlyList<Vector3> Vertices, IReadOnlyL
         return new(vertices, uvs, triangles);
     }
 
-    private static Vector3 Normal(Vector3 value) => value.LengthSquared() > 1e-12f
+    private static Vector3 Normal(Vector3 value)
+    {
+        return value.LengthSquared() > 1e-12f
         ? Vector3.Normalize(value) : Vector3.Zero;
-    private static Vector3 Project(Vector3 point) => new(point.X / Math.Max(.1f, point.Z),
-        point.Y / Math.Max(.1f, point.Z), 0);
+    }
+
+    private static Vector3 Project(Vector3 point)
+    {
+        return new(point.X / Math.Max(.1f, point.Z),
+            point.Y / Math.Max(.1f, point.Z), 0);
+    }
 }

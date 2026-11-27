@@ -50,6 +50,16 @@ public sealed class FrontEndMovieGallery
     }
     public IReadOnlyList<MovieGalleryEntry> Entries { get; private set; } = Array.Empty<MovieGalleryEntry>();
     public int FirstRow { get; private set; }
-    public IReadOnlyList<MovieGalleryEntry> Visible => Entries.Skip(FirstRow).Take(5).ToArray();
-    public void ScrollTo(int first) => FirstRow = Math.Clamp(first, 0, Entries.Count - 5);
+    public IReadOnlyList<MovieGalleryEntry> Visible
+    {
+        get
+        {
+            return Entries.Skip(FirstRow).Take(5).ToArray();
+        }
+    }
+
+    public void ScrollTo(int first)
+    {
+        FirstRow = Math.Clamp(first, 0, Entries.Count - 5);
+    }
 }

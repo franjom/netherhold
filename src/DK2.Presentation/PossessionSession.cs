@@ -73,35 +73,95 @@ public sealed class PossessionSession : ITurnPoseSource
         _sniper = new PossessionSniper(_preset);
     }
 
-    public bool Possessing => _possessed != null;
+    public bool Possessing
+    {
+        get
+        {
+            return _possessed != null;
+        }
+    }
 
     /// <summary>The camera is the possession's: in first person, or on the timed move to or from it.</summary>
-    public bool CameraHeld => Possessing || _ending != Ending.None;
+    public bool CameraHeld
+    {
+        get
+        {
+            return Possessing || _ending != Ending.None;
+        }
+    }
+
     /// <summary>Ordinary HUD display during entry or a live first-person return, excluding the death-view route.</summary>
-    public bool OrdinaryHudDuringTransition => _flight.Active && (Possessing || (_ending == Ending.Out && _returnFromFirstPerson));
+    public bool OrdinaryHudDuringTransition
+    {
+        get
+        {
+            return _flight.Active && (Possessing || (_ending == Ending.Out && _returnFromFirstPerson));
+        }
+    }
+
     /// <summary>The camera is at rest in first person or the death view; flights to and from the ordinary view
     /// do not take the possession-only draw rules (possession-warp.md section 8.1).</summary>
-    public bool SettledPossessionCamera => !_flight.Active && (Possessing || _ending == Ending.Dead);
+    public bool SettledPossessionCamera
+    {
+        get
+        {
+            return !_flight.Active && (Possessing || _ending == Ending.Dead);
+        }
+    }
+
     /// <summary>The possession camera's capped visibility distance, in tiles, for its fade and tile walk.</summary>
-    public float PossessionViewDistance => Possessing
+    public float PossessionViewDistance
+    {
+        get
+        {
+            return Possessing
         ? PossessionFade.ViewDistance(_preset.Zoom, _sniper.ViewDistance, possessionCamera: true)
         : PossessionFade.ViewDistance(_flight.Target.Zoom, _flight.Target.ViewDistance, possessionCamera: true);
+        }
+    }
 
     /// <summary>The id of the creature whose own model is left out of the picture, or 0. DK2 clears
     /// the thing's draw bit (<c>+0xF3</c> bit 0) when the move into first person lands
     /// (<c>Camera_CommitMode</c>, <c>0x0044BD70</c>) and sets it again as the move out is asked for
     /// (<c>Camera_RequestMode</c>, <c>0x0044A5D0</c>). A request for the death view does not set it, and
     /// hides the body it is given at once (<c>0x0044BA0A</c>), so the body stays out until the move back.</summary>
-    public int HiddenCreatureId => Possessing ? (_flight.Active ? 0 : _possessed!.Id)
+    public int HiddenCreatureId
+    {
+        get
+        {
+            return Possessing ? (_flight.Active ? 0 : _possessed!.Id)
         : _ending is Ending.Dying or Ending.Dead ? _bodyId : 0;
+        }
+    }
 
     /// <summary>The pointer is hidden and held at the window's middle: a remake choice for mouse look.</summary>
     public bool PointerLockWanted { get; private set; }
 
-    public PossessionView View => _view;
-    public PossessionControls Controls => _controls;
+    public PossessionView View
+    {
+        get
+        {
+            return _view;
+        }
+    }
+
+    public PossessionControls Controls
+    {
+        get
+        {
+            return _controls;
+        }
+    }
+
     public PossessionForeground Foreground { get; } = new();
-    public PossessionFlight Flight => _flight;
+    public PossessionFlight Flight
+    {
+        get
+        {
+            return _flight;
+        }
+    }
+
     public PossessionColours Colours { get; } = new();
 
     /// <summary>One frame. <paramref name="ordinary"/> is the ordinary camera the timed moves start
@@ -309,7 +369,10 @@ public sealed class PossessionSession : ITurnPoseSource
 
         uint pressed = held & ~_held;
         _held = held;
-        bool Pressed(GameAction action) => (pressed & (1u << (int)action)) != 0;
+        bool Pressed(GameAction action)
+        {
+            return (pressed & (1u << (int)action)) != 0;
+        }
 
         if (Pressed(GameAction.Melee))
         {
@@ -446,8 +509,10 @@ public sealed class PossessionSession : ITurnPoseSource
 
     /// <summary>The once-a-turn pose (<c>0x004039A0</c>, sent in camera mode 2 only), or null: the
     /// host puts it first among the commands of the input frame about to be handed to a turn.</summary>
-    public PlayerCommand? TurnPose(PlayerId viewer) =>
-        Possessing && !_flight.Active ? PossessionControls.Pose(viewer, _view, _world!.Body()) : null;
+    public PlayerCommand? TurnPose(PlayerId viewer)
+    {
+        return Possessing && !_flight.Active ? PossessionControls.Pose(viewer, _view, _world!.Body()) : null;
+    }
 
     /// <summary>The picture, when the camera is the possession's: the timed move's from the ordinary
     /// camera's own pose formula, else the first-person one.</summary>
@@ -502,5 +567,8 @@ public sealed class PossessionSession : ITurnPoseSource
             _colourSource.PossessionColourChanged += OnColour;
         }
     }
-    private void OnColour(PossessionColourEvent notification) => _colourEvents.Enqueue(notification);
+    private void OnColour(PossessionColourEvent notification)
+    {
+        _colourEvents.Enqueue(notification);
+    }
 }

@@ -66,19 +66,49 @@ public sealed class GameOptionsHud
     }
 
     public InGameOptionsController Model { get; }
-    public bool Visible => _visible;
+    public bool Visible
+    {
+        get
+        {
+            return _visible;
+        }
+    }
+
     /// <summary>A press is held (a slider, the key list's arrow or thumb): the adapter keeps the pointer.</summary>
-    public bool Holding => _hold != Hold.None;
+    public bool Holding
+    {
+        get
+        {
+            return _hold != Hold.None;
+        }
+    }
+
     /// <summary>The key list's scroll state, for automation.</summary>
-    public TextScrollBar KeyScroll => _keyScroll;
+    public TextScrollBar KeyScroll
+    {
+        get
+        {
+            return _keyScroll;
+        }
+    }
+
     /// <summary>The key list's row height in 1024x768 units.</summary>
-    public float KeyLine => _keyLine;
+    public float KeyLine
+    {
+        get
+        {
+            return _keyLine;
+        }
+    }
 
     /// <summary>A press on a key row began capturing a key: the adapter gives the panel keyboard focus.</summary>
     public event Action? KeyCaptureStarted;
 
     /// <summary>Every catalogue image the pages draw, to preload.</summary>
-    public static IEnumerable<HudImage> Images() => [SliderTrack, SliderLeft, SliderRight, SliderThumb, Up, Down, Track, Thumb];
+    public static IEnumerable<HudImage> Images()
+    {
+        return [SliderTrack, SliderLeft, SliderRight, SliderThumb, Up, Down, Track, Thumb];
+    }
 
     public void Show(bool visible)
     {
@@ -204,10 +234,13 @@ public sealed class GameOptionsHud
     }
 
     /// <summary>Sound quality cycles 1443 / 281 / 1442; headphones 1465 / 111; the rest on 109 / off 110.</summary>
-    private string SettingText(ushort id) => id == 133
+    private string SettingText(ushort id)
+    {
+        return id == 133
         ? _text(new uint[] { 0, 1443, 281, 1442 }[Model.Settings.Pending.SoundQuality])
         : id == 135 ? _text(Model.Settings.Pending.Headphones ? 1465u : 111u)
         : _text(Model.Settings.Value(id) == 0 ? 110u : 109u);
+    }
 
     private void KeyRows(HudScreen screen, BitmapFont font, FrontEndRect bounds, bool reset)
     {
@@ -312,7 +345,10 @@ public sealed class GameOptionsHud
     }
 
     /// <summary>Whether a press there would land on something, or the pointer is held by one.</summary>
-    public bool Hits(float x, float y) => _visible && (_hold != Hold.None || HitAt(x, y) >= 0);
+    public bool Hits(float x, float y)
+    {
+        return _visible && (_hold != Hold.None || HitAt(x, y) >= 0);
+    }
 
     /// <summary>A primary press; true when the panel took it.</summary>
     public bool PointerDown(float x, float y, int button)
@@ -355,7 +391,10 @@ public sealed class GameOptionsHud
 
     /// <summary>While the pages show, binds this frame's key to the row being captured
     /// (<see cref="OptionsPagesController.CapturePressedKey"/>). Returns whether one was bound.</summary>
-    public bool CaptureKey(GameBindingInput keys) => _visible && Model.Settings.CapturePressedKey(keys);
+    public bool CaptureKey(GameBindingInput keys)
+    {
+        return _visible && Model.Settings.CapturePressedKey(keys);
+    }
 
     /// <summary>A held slider follows the pointer; the key list's held thumb drags the list.</summary>
     public void PointerMove(float x, float y)
@@ -370,7 +409,10 @@ public sealed class GameOptionsHud
         }
     }
 
-    public void PointerUp() => Release();
+    public void PointerUp()
+    {
+        Release();
+    }
 
     private void Release()
     {
@@ -469,9 +511,23 @@ public sealed class GameOptionsHud
         return -1;
     }
 
-    private static float U(HudScreen screen, int pixels) => screen.Virtual(pixels) / Unit;
-    private static bool Contains(FrontEndRect r, float x, float y) => x >= r.X && x < r.X + r.Width && y >= r.Y && y < r.Y + r.Height;
-    private static HudRect Virtual(FrontEndRect r) => new(r.X * Unit, r.Y * Unit, r.Width * Unit, r.Height * Unit);
-    private static void Quad(HudFrame frame, HudImage image, FrontEndRect rect, HudColor tint) =>
+    private static float U(HudScreen screen, int pixels)
+    {
+        return screen.Virtual(pixels) / Unit;
+    }
+
+    private static bool Contains(FrontEndRect r, float x, float y)
+    {
+        return x >= r.X && x < r.X + r.Width && y >= r.Y && y < r.Y + r.Height;
+    }
+
+    private static HudRect Virtual(FrontEndRect r)
+    {
+        return new(r.X * Unit, r.Y * Unit, r.Width * Unit, r.Height * Unit);
+    }
+
+    private static void Quad(HudFrame frame, HudImage image, FrontEndRect rect, HudColor tint)
+    {
         frame.Add(new HudDraw(HudDrawKind.Quad, image, Virtual(rect), tint));
+    }
 }

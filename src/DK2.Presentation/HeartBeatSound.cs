@@ -19,16 +19,22 @@ public static class HeartBeatSound
     public const uint EventId = 0x150;
 
     /// <summary>The category name, empty when the heart room has none.</summary>
-    public static string CategoryOf(GameDatabase database) =>
-        database.Rooms.TryGetValue(RoomTypeId.DungeonHeart, out RoomDef? room)
+    public static string CategoryOf(GameDatabase database)
+    {
+        return database.Rooms.TryGetValue(RoomTypeId.DungeonHeart, out RoomDef? room)
             ? database.TerrainById(room.TerrainId).SoundCategory : "";
+    }
 
-    public static SoundRequest? For(string category, in ObjectView heart) =>
-        For(category.Length == 0 ? SoundCategory.None : new SoundCategory(category.ToLowerInvariant()), heart);
+    public static SoundRequest? For(string category, in ObjectView heart)
+    {
+        return For(category.Length == 0 ? SoundCategory.None : new SoundCategory(category.ToLowerInvariant()), heart);
+    }
 
     /// <summary>As the overload with the data's name, with its category already made, so a beat allocates nothing.</summary>
-    public static SoundRequest? For(SoundCategory category, in ObjectView heart) =>
-        category.IsNone ? null
+    public static SoundRequest? For(SoundCategory category, in ObjectView heart)
+    {
+        return category.IsNone ? null
             : new SoundRequest(category, new SoundId(EventId),
                 new Vector3(heart.PosX / 4096f, heart.Height / 4096f, -heart.PosY / 4096f));
+    }
 }

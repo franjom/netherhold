@@ -91,7 +91,10 @@ public sealed class ClassicLightPublisher
 
     /// <summary>A table was written to the sink outside the frame, so the next frame publishes even when the cache's
     /// tables are unchanged.</summary>
-    public void MarkTablesWritten() => _tablesNeedPublication = true;
+    public void MarkTablesWritten()
+    {
+        _tablesNeedPublication = true;
+    }
 
     /// <summary>Prepares the cache's frame for the tiles <paramref name="pose"/> sees, joined with those
     /// <paramref name="second"/> sees at <see cref="SecondCameraViewDistance"/>. Each camera's tiles are found again only

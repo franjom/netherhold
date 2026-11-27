@@ -13,24 +13,32 @@ public readonly record struct ClassicOptionsEntry(ClassicOptionsAction Action,ui
 public static class ClassicOptionsLayout
 {
     public const uint TitleTextId = 94;
-    public static IReadOnlyList<ClassicOptionsEntry> ForPage(ClassicOptionsPage page) => page switch
+    public static IReadOnlyList<ClassicOptionsEntry> ForPage(ClassicOptionsPage page)
     {
-        ClassicOptionsPage.Objective => ObjectiveEntries,
-        ClassicOptionsPage.Exit => ExitEntries,
-        ClassicOptionsPage.Confirmation => ConfirmationEntries,
-        _ => Entries,
-    };
-    public static uint TitleFor(ClassicOptionsPage page, ClassicSessionAction confirmation) => page switch
-    {
-        ClassicOptionsPage.Exit => 1266,
-        ClassicOptionsPage.Confirmation => confirmation switch
+        return page switch
         {
-            ClassicSessionAction.Restart => 1269,
-            ClassicSessionAction.ReturnToMenu => 12,
-            _ => 13,
-        },
-        _ => TitleTextId,
-    };
+            ClassicOptionsPage.Objective => ObjectiveEntries,
+            ClassicOptionsPage.Exit => ExitEntries,
+            ClassicOptionsPage.Confirmation => ConfirmationEntries,
+            _ => Entries,
+        };
+    }
+
+    public static uint TitleFor(ClassicOptionsPage page, ClassicSessionAction confirmation)
+    {
+        return page switch
+        {
+            ClassicOptionsPage.Exit => 1266,
+            ClassicOptionsPage.Confirmation => confirmation switch
+            {
+                ClassicSessionAction.Restart => 1269,
+                ClassicSessionAction.ReturnToMenu => 12,
+                _ => 13,
+            },
+            _ => TitleTextId,
+        };
+    }
+
     private static IReadOnlyList<ClassicOptionsEntry> ExitEntries { get; } = new ClassicOptionsEntry[]
     {
         new(ClassicOptionsAction.ReturnToMenu,12,8,136,1008),

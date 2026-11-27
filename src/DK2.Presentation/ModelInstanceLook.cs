@@ -20,19 +20,38 @@ public readonly record struct ModelInstanceLook(Vector3 Tint, float Alpha)
     public static readonly ModelInstanceLook None = new(Vector3.Zero, 1f);
 
     /// <summary>An object at its terrain tint (an object view's added light) and its alpha (object <c>+0x8F</c>).</summary>
-    public static ModelInstanceLook Object(TerrainLightColour tint, byte alpha) =>
-        new(ObjectMaterialLook.TintLight(tint), ObjectMaterialLook.FadeAlpha(alpha));
+    public static ModelInstanceLook Object(TerrainLightColour tint, byte alpha)
+    {
+        return new(ObjectMaterialLook.TintLight(tint), ObjectMaterialLook.FadeAlpha(alpha));
+    }
 
     /// <summary>A structure at its RenderInfo tint, or nothing when its plan replaces its looks.</summary>
-    public static ModelInstanceLook Structure(byte instanceTint, bool plan) =>
-        plan ? None : new(ObjectMaterialLook.InstanceTintLight(instanceTint, instanceTint, instanceTint), 1f);
+    public static ModelInstanceLook Structure(byte instanceTint, bool plan)
+    {
+        return plan ? None : new(ObjectMaterialLook.InstanceTintLight(instanceTint, instanceTint, instanceTint), 1f);
+    }
 
     /// <summary>Whether the model fades: its looks blend (<see cref="Shape"/>).</summary>
-    public bool Faded => Alpha < 1f;
+    public bool Faded
+    {
+        get
+        {
+            return Alpha < 1f;
+        }
+    }
 
     /// <summary>Whether its environment passes draw: a faded one draws black, adding nothing (<see cref="ObjectMaterialLook.Faded"/>).</summary>
-    public bool EnvironmentDrawn => !Faded;
+    public bool EnvironmentDrawn
+    {
+        get
+        {
+            return !Faded;
+        }
+    }
 
     /// <summary>The look a surface's material draws with under this instance: the fade's blend when faded.</summary>
-    public ObjectMaterialLook Shape(in ObjectMaterialLook look) => Faded ? look.FadeShape() : look;
+    public ObjectMaterialLook Shape(in ObjectMaterialLook look)
+    {
+        return Faded ? look.FadeShape() : look;
+    }
 }

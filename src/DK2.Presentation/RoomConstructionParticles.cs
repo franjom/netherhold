@@ -115,7 +115,13 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         _lastUpdateMilliseconds = _clock().Milliseconds;
     }
 
-    public IReadOnlyList<ConstructionParticle> Particles => _particles;
+    public IReadOnlyList<ConstructionParticle> Particles
+    {
+        get
+        {
+            return _particles;
+        }
+    }
 
     // The styles this model was built with, for the tests of the adapters' choice (EffectDrawList).
     internal TerrainDebrisStyle TerrainDebris { get; }
@@ -216,10 +222,12 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         }
     }
 
-    private bool AllowsEffect(ViewEffectRequest request, EffectDef definition) =>
-        request.Visibility == EffectVisibility.Ungated
+    private bool AllowsEffect(ViewEffectRequest request, EffectDef definition)
+    {
+        return request.Visibility == EffectVisibility.Ungated
         || ((_effectVisible == null || _effectVisible(request))
             && ((definition.Flags & 0x8000) != 0 || _cameraVisible == null || _cameraVisible(request)));
+    }
 
     private bool HeartPlugBlocksMana(ViewEffectRequest request)
     {
@@ -440,7 +448,10 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         }
     }
 
-    private static int OriginHeight(ushort raw) => unchecked((short)raw) * 16;
+    private static int OriginHeight(ushort raw)
+    {
+        return unchecked((short)raw) * 16;
+    }
 
     /// <summary>The type-4 origin draw (<c>0x00435660</c>): a point within the effect's origin ring,
     /// raised by its height range, about <paramref name="around"/>.</summary>
@@ -600,7 +611,10 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         return particle;
     }
 
-    public float Advance() => AdvanceTo(_clock());
+    public float Advance()
+    {
+        return AdvanceTo(_clock());
+    }
 
     /// <summary>Runs one 50 ms update now, as if the last ran 50 ms earlier: a request that must
     /// show in the next frame (the Heart's plug lid before the first) gets its first wave at once.
@@ -914,7 +928,10 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         particle.FallPhaseRaw = (particle.FallPhaseRaw + 64) & 2047;
     }
 
-    private static int Trig(int heading) => (int)(Math.Sin((heading & 2047) * Math.PI / 1024) * 65536);
+    private static int Trig(int heading)
+    {
+        return (int)(Math.Sin((heading & 2047) * Math.PI / 1024) * 65536);
+    }
 
     private static (byte Red, byte Green, byte Blue) KeeperColour(PlayerId owner)
     {
@@ -1002,29 +1019,58 @@ public sealed partial class RoomConstructionParticles : ISimulationEventSink
         }
     }
 
-    private int DrawExclusive(int minimum, int maximum) => maximum <= minimum
+    private int DrawExclusive(int minimum, int maximum)
+    {
+        return maximum <= minimum
         ? minimum : minimum + _random.NextInt(maximum - minimum);
+    }
 
-    private Dk2Angle DrawAngularOffset(int count) => count <= 0
+    private Dk2Angle DrawAngularOffset(int count)
+    {
+        return count <= 0
         ? default : new((ushort)((_random.NextInt(count) - count / 2) & 2047));
+    }
 
-    private int DrawInclusive(int minimum, int maximum) => maximum <= minimum
+    private int DrawInclusive(int minimum, int maximum)
+    {
+        return maximum <= minimum
         ? minimum : _random.NextInt(minimum, maximum);
+    }
 }
 
 /// <summary>What the view knows of an effect's tied creature this update: whether it still exists,
 /// and its tagged point in native position units when found.</summary>
 public readonly record struct EffectAttachment(bool CreatureExists, FpPosition3? Point)
 {
-    public static EffectAttachment Gone => default;
-    public static EffectAttachment At(FpPosition3 point) => new(true, point);
-    public static EffectAttachment NotFound => new(true, null);
-    public static EffectAttachment AtPreviousBody(CreatureState? creature, Fp32 groundHeight) =>
-        creature == null || CreatureDeathRules.IsCorpse(creature) ? Gone
+    public static EffectAttachment Gone
+    {
+        get
+        {
+            return default;
+        }
+    }
+
+    public static EffectAttachment At(FpPosition3 point)
+    {
+        return new(true, point);
+    }
+
+    public static EffectAttachment NotFound
+    {
+        get
+        {
+            return new(true, null);
+        }
+    }
+
+    public static EffectAttachment AtPreviousBody(CreatureState? creature, Fp32 groundHeight)
+    {
+        return creature == null || CreatureDeathRules.IsCorpse(creature) ? Gone
             : At(new FpPosition3(new Fp32(creature.LastPosX), new Fp32(creature.LastPosY),
                 // A height the simulation owns is already on its floor (Q795): ordinary floor plus it.
                 new Fp32((CreaturePhysicsRules.OwnsHeight(creature) ? FloorHeightRules.Ordinary : groundHeight.Raw)
                     + creature.LastPosZ)));
+    }
 }
 
 /// <summary>An effect instance's light this update: its descriptor, the instance's owner and point
@@ -1107,17 +1153,32 @@ public sealed class ConstructionParticle
     }
     internal int? TexturePhaseRawOverride;
     public int? MeshPhaseRaw { get; internal set; }
-    public float RemainingSpriteLifetimeFraction => 1f - Math.Min(PhaseRaw, 4095) / 4096f;
-    public int ScaleRaw => _parentScaleStep != 0 ? ParentScale()
-        : (Definition.Flags & 6) == 0 ? InitialScale
-        : ScaleIncrement >= 0 ? Math.Min(ScaleTarget, InitialScale + ScaleIncrement * VisualUpdates)
-        : Math.Max(ScaleTarget, InitialScale + ScaleIncrement * VisualUpdates);
+    public float RemainingSpriteLifetimeFraction
+    {
+        get
+        {
+            return 1f - Math.Min(PhaseRaw, 4095) / 4096f;
+        }
+    }
+
+    public int ScaleRaw
+    {
+        get
+        {
+            return _parentScaleStep != 0 ? ParentScale()
+                : (Definition.Flags & 6) == 0 ? InitialScale
+                : ScaleIncrement >= 0 ? Math.Min(ScaleTarget, InitialScale + ScaleIncrement * VisualUpdates)
+                : Math.Max(ScaleTarget, InitialScale + ScaleIncrement * VisualUpdates);
+        }
+    }
 
     private int _parentScaleStep, _parentScaleSteps;
     private bool _parentScaleReturns;
 
-    internal void SetParentScaleRamp(int step, int steps, bool returns) =>
+    internal void SetParentScaleRamp(int step, int steps, bool returns)
+    {
         (_parentScaleStep, _parentScaleSteps, _parentScaleReturns) = (step, steps, returns);
+    }
 
     /// <summary>A parent sprite's size after <see cref="VisualUpdates"/> steps of <c>0x004B3B40</c>:
     /// it moves by the step and stops on the target; a rise with the return bit (render info

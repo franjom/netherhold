@@ -33,10 +33,16 @@ public sealed class MessageTextTables
     }
 
     /// <summary>A message string reference's text, or null (<see cref="Resolve(int, Dk2StringTable?, Dk2StringTable?, Dk2StringTable?)"/>).</summary>
-    public string? Resolve(int reference) => Resolve(reference, _speech, _text, _level);
+    public string? Resolve(int reference)
+    {
+        return Resolve(reference, _speech, _text, _level);
+    }
 
     /// <summary>A line of the level's briefing table, or null.</summary>
-    public string? Briefing(int line) => _briefing != null && _briefing.TryResolve((uint)line, out string text) ? text : null;
+    public string? Briefing(int line)
+    {
+        return _briefing != null && _briefing.TryResolve((uint)line, out string text) ? text : null;
+    }
 
     /// <summary>A message string reference (0x004C51D0): below -10000 Speech.str entry -10000 - ref,
     /// -128..-1 the level's table entry -1 - ref, a positive one Text.str.</summary>

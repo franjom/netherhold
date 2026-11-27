@@ -17,7 +17,13 @@ public sealed class MinimapDiscGeometry
 {
     private readonly List<MinimapDiscQuad> _quads = new();
     private readonly MinimapRasterPoint[] _trail = new MinimapRasterPoint[MinimapHeartTrail.MaximumDots];
-    public IReadOnlyList<MinimapDiscQuad> Quads => _quads;
+    public IReadOnlyList<MinimapDiscQuad> Quads
+    {
+        get
+        {
+            return _quads;
+        }
+    }
 
     public void Build(MinimapClassGrid grid, IReadOnlyList<MinimapMarker> markers, MinimapZoom zoom,
         FpPosition3 focus, TilePos? heart, GameTick tick)
@@ -55,10 +61,24 @@ public sealed class MinimapDiscGeometry
             FocusY = zoom.IsWholeMap ? 0 : focus.Y.Raw >> (12 - Level);
         }
 
-        public bool WholeMap => Level < 0;
+        public bool WholeMap
+        {
+            get
+            {
+                return Level < 0;
+            }
+        }
+
         /// <summary>A tile's raster corner in the whole-map fit.</summary>
-        public int FitX(int tile) => tile * Fit.Width / Width + Fit.Left;
-        public int FitY(int tile) => tile * Fit.Height / Height + Fit.Top;
+        public int FitX(int tile)
+        {
+            return tile * Fit.Width / Width + Fit.Left;
+        }
+
+        public int FitY(int tile)
+        {
+            return tile * Fit.Height / Height + Fit.Top;
+        }
     }
 
     private static bool Place(MinimapMarker marker, MapRaster map, out MinimapDiscQuad shape)

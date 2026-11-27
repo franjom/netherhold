@@ -19,7 +19,14 @@ public sealed class LightningStaging
     public CreatureId Caster { get; }
     public CreatureId Target { get; }
     public TilePos Focus { get; }
-    public Dk2Angle CameraTurn => new(1024);
+    public Dk2Angle CameraTurn
+    {
+        get
+        {
+            return new(1024);
+        }
+    }
+
     public TilePos TargetTile { get; }
     private LightningStaging(PlayerId viewer, CreatureTypeId targetType, CreatureId caster, CreatureId target, TilePos focus,
         TilePos targetTile, GameTick thunderboltAfter)
@@ -167,8 +174,10 @@ public sealed class LightningStaging
         commands.Add(command);
         return true;
     }
-    private static bool DryFloor(WorldState world, GameDatabase database, PlayerId viewer, TilePos tile) =>
-        world.Contains(tile) && world.Tile(tile).OwnerPlayerId == viewer
+    private static bool DryFloor(WorldState world, GameDatabase database, PlayerId viewer, TilePos tile)
+    {
+        return world.Contains(tile) && world.Tile(tile).OwnerPlayerId == viewer
         && database.Terrain.TryGetValue(world.Tile(tile).TerrainId, out TerrainDef? terrain)
         && (terrain.Flags & (TerrainFlags.Solid | TerrainFlags.Water | TerrainFlags.Lava)) == 0;
+    }
 }

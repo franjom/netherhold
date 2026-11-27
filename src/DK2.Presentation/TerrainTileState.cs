@@ -13,8 +13,9 @@ namespace DK2.Presentation;
 public static class TerrainTileState
 {
     /// <summary>Whether only texel state changed; fog still uses its material path.</summary>
-    public static bool GeometryEquals(in TileView a, in TileView b) =>
-        a.Position == b.Position && a.Ground == b.Ground && a.Furniture == b.Furniture && a.OwnerPlayerId == b.OwnerPlayerId
+    public static bool GeometryEquals(in TileView a, in TileView b)
+    {
+        return a.Position == b.Position && a.Ground == b.Ground && a.Furniture == b.Furniture && a.OwnerPlayerId == b.OwnerPlayerId
         && a.Solid == b.Solid && a.GoldHeld == b.GoldHeld && a.HealthPermille == b.HealthPermille
         && a.Walls.Equals(b.Walls) && a.Pieces.Equals(b.Pieces) && Equals(a.PieceKeys, b.PieceKeys)
         && a.Explored == b.Explored && a.HasDoor == b.HasDoor && a.RoomFloor.Equals(b.RoomFloor)
@@ -22,9 +23,13 @@ public static class TerrainTileState
         && a.Surface == b.Surface && a.Scanned == b.Scanned && a.PointLight == b.PointLight
         && a.SightFogOverlay == b.SightFogOverlay && a.SightFogOpacity == b.SightFogOpacity
         && a.FaceTexture == b.FaceTexture && a.ExtraRoomPiece == b.ExtraRoomPiece;
+    }
 
-    public static Vector4 Encode(in TileView tile) => new(Pack(tile.AmbientTint), Pack(tile.QuarterAmbientTint),
+    public static Vector4 Encode(in TileView tile)
+    {
+        return new(Pack(tile.AmbientTint), Pack(tile.QuarterAmbientTint),
         (tile.Tagged ? 1 : 0) | (tile.RedHighlighted ? 2 : 0), tile.SightFogOpacity);
+    }
 
     public static TerrainLightColour DecodeColour(float packed)
     {
@@ -55,9 +60,14 @@ public static class TerrainTileState
         return added + new Vector3(colour.Red / 255f, colour.Green / 255f, colour.Blue / 255f);
     }
 
-    public static Vector3 Overlay(Vector4 own, Vector4 tag) => ((int)own.Z & 2) != 0
+    public static Vector3 Overlay(Vector4 own, Vector4 tag)
+    {
+        return ((int)own.Z & 2) != 0
         ? TerrainMaterialLook.HoverOverlayColour : ((int)tag.Z & 1) != 0 ? TerrainMaterialLook.TagOverlayColour : Vector3.Zero;
+    }
 
-    private static int Pack(TerrainLightColour colour) =>
-        (colour.Red & 255) | ((colour.Green & 255) << 8) | ((colour.Blue & 255) << 16);
+    private static int Pack(TerrainLightColour colour)
+    {
+        return (colour.Red & 255) | ((colour.Green & 255) << 8) | ((colour.Blue & 255) << 16);
+    }
 }

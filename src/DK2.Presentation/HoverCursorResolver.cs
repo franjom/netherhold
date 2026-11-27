@@ -30,7 +30,13 @@ public readonly record struct HoverFeedback(HandCursorKind Cursor, PlacementFeed
     SoundRequest? HoverSound, bool Tinted, bool TintBlended)
 {
     /// <summary>How far right of the pointer the hover tooltip clears the hand (<see cref="HandCursor.Reach"/>); 80 with no cursor.</summary>
-    public float TooltipReach => Cursor == HandCursorKind.Default ? 80 : HandCursor.Reach(Cursor);
+    public float TooltipReach
+    {
+        get
+        {
+            return Cursor == HandCursorKind.Default ? 80 : HandCursor.Reach(Cursor);
+        }
+    }
 }
 
 /// <summary>Resolves cursor feedback after the hover pick: from the
@@ -77,7 +83,10 @@ public sealed class HoverCursorResolver
 
     /// <summary>Whether the objects-only key counts for the pick: no menu is modal and ordinary input is on. The pick takes
     /// objects only while this holds and the key is held with exact modifiers, which the adapter reads only then.</summary>
-    public static bool ObjectsOnlyKeyCounts(HudVisibility visibility, bool modal) => !modal && visibility.AllowOrdinaryInput;
+    public static bool ObjectsOnlyKeyCounts(HudVisibility visibility, bool modal)
+    {
+        return !modal && visibility.AllowOrdinaryInput;
+    }
 
     /// <summary>The Hand's light follows the pick (0x0043B220, <see cref="ClassicPointLight.FromHand"/>).
     /// Over a thing it sits at the thing's position: the pick's output x and y are unread, and only

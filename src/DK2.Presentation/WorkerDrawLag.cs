@@ -43,14 +43,29 @@ public sealed class WorkerDrawLag
     }
 
     /// <summary>One frame's advance of the tick clock at the rate observed, in ticks.</summary>
-    public double Frame => _frameTicks;
+    public double Frame
+    {
+        get
+        {
+            return _frameTicks;
+        }
+    }
 
     /// <summary>The lag, in ticks: one frame at the rate observed, plus the tick's wall time when the
     /// frame runs beside the tick; at most one tick.</summary>
-    public double Lag => Math.Min(_frameTicks + _tickTicks, 1);
+    public double Lag
+    {
+        get
+        {
+            return Math.Min(_frameTicks + _tickTicks, 1);
+        }
+    }
 
     /// <summary>How far the drawn world is from its last presented tick toward the next, for the
     /// creature interpolation and the camera path: the debt after this frame's ticks were taken,
     /// plus the ticks started and not yet presented, less the lag, within the known interval.</summary>
-    public double Fraction(double debt, int ticksPending) => Math.Clamp(debt + ticksPending - Lag, 0, 1);
+    public double Fraction(double debt, int ticksPending)
+    {
+        return Math.Clamp(debt + ticksPending - Lag, 0, 1);
+    }
 }

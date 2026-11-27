@@ -95,10 +95,12 @@ public static class FrontEndScenery
 
                 ObjectView View(byte type, AssetRef key, int heading, int offsetX = 0x800, bool animated = false,
                     Fp32 phase = default, bool retainLight = true)
-                    => new(-1_000_000 - props.Count, type, owner, tile, key, 0,
-                        tile.X * Fp32.One + offsetX, tile.Y * Fp32.One + 0x800, Fp32.One, heading, Fp32.One,
-                        playsAnimation: animated, light: retainLight && database.ObjectById(type)?.Light is { Radius: > 0 } light ? light : null,
-                        animationInitialPhase: phase);
+                {
+                    return new(-1_000_000 - props.Count, type, owner, tile, key, 0,
+                                        tile.X * Fp32.One + offsetX, tile.Y * Fp32.One + 0x800, Fp32.One, heading, Fp32.One,
+                                        playsAnimation: animated, light: retainLight && database.ObjectById(type)?.Light is { Radius: > 0 } light ? light : null,
+                                        animationInitialPhase: phase);
+                }
             }
         }
         return props.AsReadOnly();

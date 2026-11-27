@@ -41,8 +41,18 @@ public sealed class FullMapHud
         _mapWidth = mapWidth; _mapHeight = mapHeight;
     }
 
-    public bool Visible => _visible;
-    public void SetVisible(bool visible) => _visible = visible;
+    public bool Visible
+    {
+        get
+        {
+            return _visible;
+        }
+    }
+
+    public void SetVisible(bool visible)
+    {
+        _visible = visible;
+    }
 
     /// <summary>Turns on the legend, in the legible font for a screen height, when both its font and the players'
     /// names are given, and the hovered room's icon when <paramref name="roomIcons"/>.</summary>
@@ -53,22 +63,30 @@ public sealed class FullMapHud
         _roomIcons = roomIcons; _legendHeight = 0;
     }
 
-    public ClassicFullMapLayout Layout(int screenWidth, int screenHeight) =>
-        ClassicFullMapLayout.Fit(screenWidth, screenHeight, _mapWidth, _mapHeight);
+    public ClassicFullMapLayout Layout(int screenWidth, int screenHeight)
+    {
+        return ClassicFullMapLayout.Fit(screenWidth, screenHeight, _mapWidth, _mapHeight);
+    }
 
     /// <summary>What a mouse press does while the map is open: the left
     /// button sends the camera to the tile under the pointer and closes the map, else the right button closes it. The
     /// open map takes every press, acted on or not.</summary>
-    public static FullMapPress Press(bool primary, bool secondary) =>
-        primary ? FullMapPress.GoToTile : secondary ? FullMapPress.Close : FullMapPress.None;
+    public static FullMapPress Press(bool primary, bool secondary)
+    {
+        return primary ? FullMapPress.GoToTile : secondary ? FullMapPress.Close : FullMapPress.None;
+    }
 
     /// <summary>The HUD action a press applies: every acting press closes the map.</summary>
-    public static ClassicHudAction Action(FullMapPress press) =>
-        press == FullMapPress.None ? ClassicHudAction.None : ClassicHudAction.ToggleFullMap;
+    public static ClassicHudAction Action(FullMapPress press)
+    {
+        return press == FullMapPress.None ? ClassicHudAction.None : ClassicHudAction.ToggleFullMap;
+    }
 
     /// <summary>The tile under a screen pixel, measured from the top-left.</summary>
-    public TilePos ResolvePointer(int screenWidth, int screenHeight, Vector2 pixel) =>
-        Layout(screenWidth, screenHeight).ResolveTile(pixel);
+    public TilePos ResolvePointer(int screenWidth, int screenHeight, Vector2 pixel)
+    {
+        return Layout(screenWidth, screenHeight).ResolveTile(pixel);
+    }
 
     /// <summary>The hovered room and every visible creature; call while the simulation is joined.</summary>
     public void Capture(WorldState world, GameDatabase database, PlayerId viewer, TilePos hovered)
@@ -111,8 +129,10 @@ public sealed class FullMapHud
         }
     }
 
-    private static bool Explored(WorldState world, TilePos tile, PlayerId viewer) =>
-        world.Contains(tile) && (!world.FogOfWarEnabled || world.Tile(tile).IsExploredBy(viewer));
+    private static bool Explored(WorldState world, TilePos tile, PlayerId viewer)
+    {
+        return world.Contains(tile) && (!world.FogOfWarEnabled || world.Tile(tile).IsExploredBy(viewer));
+    }
 
     /// <param name="screen">The screen in pixels; its virtual units are what the frames hold.</param>
     /// <param name="back">Under the engine's map image and preview: the black backdrop.</param>
@@ -193,5 +213,8 @@ public sealed class FullMapHud
         }
     }
 
-    private static HudColor Colour(uint argb) => new((byte)(argb >> 16), (byte)(argb >> 8), (byte)argb, (byte)(argb >> 24));
+    private static HudColor Colour(uint argb)
+    {
+        return new((byte)(argb >> 16), (byte)(argb >> 8), (byte)argb, (byte)(argb >> 24));
+    }
 }

@@ -32,8 +32,11 @@ public readonly record struct ClassicFullMapLayout(Vector2 Origin, Vector2 Size,
 
         return new(new(left + (width-fittedWidth)/2, top + (height-fittedHeight)/2),new(fittedWidth,fittedHeight),mapWidth,mapHeight);
     }
-    public TilePos ResolveTile(Vector2 screenPoint) => new(
-        (int)((screenPoint.X-Origin.X)*MapWidth/Size.X), (int)((screenPoint.Y-Origin.Y)*MapHeight/Size.Y));
+    public TilePos ResolveTile(Vector2 screenPoint)
+    {
+        return new(
+        (int)((screenPoint.X - Origin.X) * MapWidth / Size.X), (int)((screenPoint.Y - Origin.Y) * MapHeight / Size.Y));
+    }
 
     public FullMapPreview Preview(int screenWidth, int screenHeight, Vector2 screenPoint)
     {

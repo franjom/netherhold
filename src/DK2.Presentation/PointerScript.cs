@@ -26,10 +26,37 @@ public readonly record struct PointerScriptKey(int Frame, float X, float Y, Poin
 public readonly record struct PointerScriptSample(Vector2 Position, PointerScriptButtons Changes, bool PrimaryHeld,
     bool SecondaryHeld)
 {
-    public bool PrimaryDown => (Changes & PointerScriptButtons.PrimaryDown) != 0;
-    public bool PrimaryUp => (Changes & PointerScriptButtons.PrimaryUp) != 0;
-    public bool SecondaryDown => (Changes & PointerScriptButtons.SecondaryDown) != 0;
-    public bool SecondaryUp => (Changes & PointerScriptButtons.SecondaryUp) != 0;
+    public bool PrimaryDown
+    {
+        get
+        {
+            return (Changes & PointerScriptButtons.PrimaryDown) != 0;
+        }
+    }
+
+    public bool PrimaryUp
+    {
+        get
+        {
+            return (Changes & PointerScriptButtons.PrimaryUp) != 0;
+        }
+    }
+
+    public bool SecondaryDown
+    {
+        get
+        {
+            return (Changes & PointerScriptButtons.SecondaryDown) != 0;
+        }
+    }
+
+    public bool SecondaryUp
+    {
+        get
+        {
+            return (Changes & PointerScriptButtons.SecondaryUp) != 0;
+        }
+    }
 }
 
 /// <summary>A scripted pointer path that stands in for the OS pointer, so a capture never moves the owner's cursor (step-3
@@ -65,7 +92,13 @@ public sealed class PointerScript
         }
     }
 
-    public IReadOnlyList<PointerScriptKey> Keys => _keys;
+    public IReadOnlyList<PointerScriptKey> Keys
+    {
+        get
+        {
+            return _keys;
+        }
+    }
 
     /// <summary>The pointer on <paramref name="frame"/>. Allocation-free.</summary>
     public PointerScriptSample At(int frame)

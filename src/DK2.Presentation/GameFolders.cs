@@ -19,14 +19,41 @@ public sealed record GameFolders(string Root)
     public string? SavesDirectory { get; init; }
     public string? HiScoresFile { get; init; }
 
-    public string Profile => Named(ProfileFile) ?? Path.Combine(Root, ProfileFileName);
+    public string Profile
+    {
+        get
+        {
+            return Named(ProfileFile) ?? Path.Combine(Root, ProfileFileName);
+        }
+    }
 
-    public string Settings => Named(SettingsFile)
+    public string Settings
+    {
+        get
+        {
+            return Named(SettingsFile)
         ?? Path.Combine(Path.GetDirectoryName(Path.GetFullPath(Profile)) ?? Root, SettingsFileName);
+        }
+    }
 
-    public string Saves => Named(SavesDirectory) ?? Path.Combine(Root, SavesFolderName);
+    public string Saves
+    {
+        get
+        {
+            return Named(SavesDirectory) ?? Path.Combine(Root, SavesFolderName);
+        }
+    }
 
-    public string HiScores => Named(HiScoresFile) ?? Path.Combine(Root, HiScoresFileName);
+    public string HiScores
+    {
+        get
+        {
+            return Named(HiScoresFile) ?? Path.Combine(Root, HiScoresFileName);
+        }
+    }
 
-    private static string? Named(string? path) => string.IsNullOrWhiteSpace(path) ? null : path;
+    private static string? Named(string? path)
+    {
+        return string.IsNullOrWhiteSpace(path) ? null : path;
+    }
 }

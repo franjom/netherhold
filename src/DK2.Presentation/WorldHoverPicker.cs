@@ -65,7 +65,10 @@ public sealed class WorldHoverPicker
     }
 
     /// <summary>The hover on the pointer's tile: a pick keeps its kind and entity and takes the tile under the pointer.</summary>
-    public static WorldHoverHit OnPointerTile(WorldHoverHit pick, TilePos tile) => new(pick.Kind, tile, pick.EntityId);
+    public static WorldHoverHit OnPointerTile(WorldHoverHit pick, TilePos tile)
+    {
+        return new(pick.Kind, tile, pick.EntityId);
+    }
 
     /// <summary>Starts a frame's pick on <paramref name="tile"/>; <paramref name="frustum"/> is the view
     /// <see cref="TryAdmit"/> culls by, none culling nothing.</summary>
@@ -90,11 +93,16 @@ public sealed class WorldHoverPicker
 
     /// <summary>The rendered stage offers creatures and doors and traps always, and objects that are hover targets
     /// (<see cref="ObjectHoverHighlight.IsHoverTarget"/>).</summary>
-    public static bool OffersObject(int objectId, byte objectTypeId) => ObjectHoverHighlight.IsHoverTarget(objectId, objectTypeId);
+    public static bool OffersObject(int objectId, byte objectTypeId)
+    {
+        return ObjectHoverHighlight.IsHoverTarget(objectId, objectTypeId);
+    }
 
     /// <summary>The hit a door or trap offers.</summary>
-    public static WorldHoverHit StructureHit(StructureId structure, TilePos tile) =>
-        new(structure.Kind == StructureKind.Door ? WorldHoverKind.Door : WorldHoverKind.Trap, tile, structure.Value);
+    public static WorldHoverHit StructureHit(StructureId structure, TilePos tile)
+    {
+        return new(structure.Kind == StructureKind.Door ? WorldHoverKind.Door : WorldHoverKind.Trap, tile, structure.Value);
+    }
 
     /// <summary>The screen-circle test on a candidate's bounding sphere: false when the camera looks away from the ray
     /// or the circle misses the pointer.</summary>
@@ -182,20 +190,29 @@ public sealed class WorldHoverPicker
 
     /// <summary>Whether the sweep looks at a creature on <paramref name="tile"/>: not with objects only, and only in the
     /// 3×3 tiles around the pointer's.</summary>
-    public bool SweepsCreature(TilePos tile) => !_objectsOnly && InSweep(tile);
+    public bool SweepsCreature(TilePos tile)
+    {
+        return !_objectsOnly && InSweep(tile);
+    }
 
     /// <summary>Whether the sweep looks at an object: a hover target in the 3×3 tiles around the pointer's.</summary>
-    public bool SweepsObject(int objectId, byte objectTypeId, TilePos tile) =>
-        ObjectHoverHighlight.IsHoverTarget(objectId, objectTypeId) && InSweep(tile);
+    public bool SweepsObject(int objectId, byte objectTypeId, TilePos tile)
+    {
+        return ObjectHoverHighlight.IsHoverTarget(objectId, objectTypeId) && InSweep(tile);
+    }
 
     /// <summary>Adds a drawn creature the sweep looks at, in the scene's order; <paramref name="position"/> is where it
     /// is drawn.</summary>
-    public void AddSweepCreature(int creatureId, TilePos tile, Vector3 position) =>
+    public void AddSweepCreature(int creatureId, TilePos tile, Vector3 position)
+    {
         _sweepCreatures.Add(new SweepEntry(creatureId, tile, position));
+    }
 
     /// <inheritdoc cref="AddSweepCreature"/>
-    public void AddSweepObject(int objectId, TilePos tile, Vector3 position) =>
+    public void AddSweepObject(int objectId, TilePos tile, Vector3 position)
+    {
         _sweepObjects.Add(new SweepEntry(objectId, tile, position));
+    }
 
     /// <summary>The sweep's hover. Tiles are taken row by row from the top left; on each, the first creature within half a
     /// tile of the pointer that the fallback admits wins outright, and the objects it admits compete by distance (the
@@ -274,19 +291,41 @@ public sealed class WorldHoverPicker
         return distance > 0f;
     }
 
-    private bool InSweep(TilePos tile) => Math.Abs(tile.X - _tile.X) <= 1 && Math.Abs(tile.Y - _tile.Y) <= 1;
+    private bool InSweep(TilePos tile)
+    {
+        return Math.Abs(tile.X - _tile.X) <= 1 && Math.Abs(tile.Y - _tile.Y) <= 1;
+    }
 
-    private Vector3 PointAlong(float distance) => new(_ray.Origin.X + (_ray.Direction.X * distance),
+    private Vector3 PointAlong(float distance)
+    {
+        return new(_ray.Origin.X + (_ray.Direction.X * distance),
         _ray.Origin.Y + (_ray.Direction.Y * distance), _ray.Origin.Z + (_ray.Direction.Z * distance));
+    }
 
-    private static int Distance(FpPosition3 pointer, Vector3 position) =>
-        HandHoverDistance.Between(pointer, new FpPosition3(new Fp32((int)(position.X * Fp32.One)),
+    private static int Distance(FpPosition3 pointer, Vector3 position)
+    {
+        return HandHoverDistance.Between(pointer, new FpPosition3(new Fp32((int)(position.X * Fp32.One)),
             new Fp32((int)(-position.Z * Fp32.One)), new Fp32(0)));
+    }
 
     // Unity's Vector3 arithmetic, term by term, so a pick decides as the adapter's float steps did.
-    private static float Dot(Vector3 a, Vector3 b) => (a.X * b.X) + (a.Y * b.Y) + (a.Z * b.Z);
-    private static float SquaredLength(Vector3 a) => (a.X * a.X) + (a.Y * a.Y) + (a.Z * a.Z);
-    private static Vector3 Subtract(Vector3 a, Vector3 b) => new(a.X - b.X, a.Y - b.Y, a.Z - b.Z);
-    private static Vector3 Cross(Vector3 a, Vector3 b) =>
-        new((a.Y * b.Z) - (a.Z * b.Y), (a.Z * b.X) - (a.X * b.Z), (a.X * b.Y) - (a.Y * b.X));
+    private static float Dot(Vector3 a, Vector3 b)
+    {
+        return (a.X * b.X) + (a.Y * b.Y) + (a.Z * b.Z);
+    }
+
+    private static float SquaredLength(Vector3 a)
+    {
+        return (a.X * a.X) + (a.Y * a.Y) + (a.Z * a.Z);
+    }
+
+    private static Vector3 Subtract(Vector3 a, Vector3 b)
+    {
+        return new(a.X - b.X, a.Y - b.Y, a.Z - b.Z);
+    }
+
+    private static Vector3 Cross(Vector3 a, Vector3 b)
+    {
+        return new((a.Y * b.Z) - (a.Z * b.Y), (a.Z * b.X) - (a.X * b.Z), (a.X * b.Y) - (a.Y * b.X));
+    }
 }

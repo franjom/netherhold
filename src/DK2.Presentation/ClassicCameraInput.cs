@@ -63,13 +63,17 @@ public static class ClassicCameraInput
 
     /// <summary>A frame's length in seconds as the <see cref="TimeSpan"/> <see cref="ClassicCameraControls.Advance"/>
     /// takes, rounded to the nearest 100 ns tick.</summary>
-    public static TimeSpan FrameTime(double seconds) =>
-        TimeSpan.FromTicks((long)Math.Round(seconds * TimeSpan.TicksPerSecond));
+    public static TimeSpan FrameTime(double seconds)
+    {
+        return TimeSpan.FromTicks((long)Math.Round(seconds * TimeSpan.TicksPerSecond));
+    }
 
     /// <summary>The native pointer delta (right and down) between two y-up host positions, scaled by the mouse sensitivity
     /// (<see cref="GameBindingInput.HostPointerDelta"/>).</summary>
-    public static Vector2 PointerDelta(Vector2 previous, Vector2 current, int mouseSensitivity) =>
-        GameBindingInput.HostPointerDelta(new Vector2(current.X - previous.X, previous.Y - current.Y), mouseSensitivity);
+    public static Vector2 PointerDelta(Vector2 previous, Vector2 current, int mouseSensitivity)
+    {
+        return GameBindingInput.HostPointerDelta(new Vector2(current.X - previous.X, previous.Y - current.Y), mouseSensitivity);
+    }
 
     /// <summary>One frame of the ordinary camera: the pan by the bound keys and the edges, then one zoom step (the wheel
     /// away from the HUD, or the zoom keys), then the held-button rotate or zoom by the pointer's move since

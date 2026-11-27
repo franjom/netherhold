@@ -39,11 +39,20 @@ public sealed class InstallFrontEndSources : IFrontEndMenuSources, IDisposable
     /// <summary>The shared text and font reader the menu's strings and fonts come from.</summary>
     public InstallHudSources Hud { get; }
 
-    public string Text(uint id) => Hud.Text(id);
+    public string Text(uint id)
+    {
+        return Hud.Text(id);
+    }
 
-    public BitmapFont Font(FrontEndFont font) => Hud.Font(font.FileName);
+    public BitmapFont Font(FrontEndFont font)
+    {
+        return Hud.Font(font.FileName);
+    }
 
-    public CampaignBriefing Briefing(CampaignSlot slot) => CampaignBriefingLoader.Load(Hud.Install, slot);
+    public CampaignBriefing Briefing(CampaignSlot slot)
+    {
+        return CampaignBriefingLoader.Load(Hud.Install, slot);
+    }
 
     /// <summary>A front-end image's pixels by name (no extension), read once.</summary>
     public RgbaImage Load(string name)

@@ -24,8 +24,22 @@ public sealed class ClassicCamera
 {
     private readonly CameraThing _profile;
     private Dk2Angle _yaw;
-    internal Dk2Angle Yaw => _yaw;
-    internal bool PanLocked => (_profile.Flags & 0x40) != 0;
+    internal Dk2Angle Yaw
+    {
+        get
+        {
+            return _yaw;
+        }
+    }
+
+    internal bool PanLocked
+    {
+        get
+        {
+            return (_profile.Flags & 0x40) != 0;
+        }
+    }
+
     public Fp32 Zoom { get; private set; }
 
     /// <summary>The bottom panel's top, virtual units of 1920, expanded and collapsed (0x00417170).</summary>
@@ -35,7 +49,10 @@ public sealed class ClassicCamera
     /// middle of the 3D viewport, which 0x00417170 ends 0x98 below the panel's top (at detail 4 and
     /// up; lower detail ends it 0x84 higher), the whole screen once that passes the bottom. Expanded
     /// that is 806 of 1920, 504 rows of 1200, matching the owner's captures (classic-camera.md §2).</summary>
-    public static float ProjectionCentreFromTop(int panelTop) => Math.Min(1920, panelTop + 0x98) / 2f / 1920f;
+    public static float ProjectionCentreFromTop(int panelTop)
+    {
+        return Math.Min(1920, panelTop + 0x98) / 2f / 1920f;
+    }
 
     /// <summary>The current panel's <see cref="ProjectionCentreFromTop"/>; the expanded panel's by default.</summary>
     public float ProjectionCentre { get; set; } = ProjectionCentreFromTop(ExpandedPanelTop);
@@ -45,13 +62,22 @@ public sealed class ClassicCamera
     /// Null keeps DK2's fixed pixel lens and resolution-dependent distance. The runner uses1600,
     /// matching the owner's native recording; see classic-camera.md section8.</summary>
     public int? ReferenceScreenWidth { get; init; }
-    public float NativeViewDistance => Math.Max(_profile.ViewDistance / (float)Fp32.One, 2f * (float)Zoom.ToDouble());
+    public float NativeViewDistance
+    {
+        get
+        {
+            return Math.Max(_profile.ViewDistance / (float)Fp32.One, 2f * (float)Zoom.ToDouble());
+        }
+    }
 
     /// <summary>The reset camera's yaw, preserved on entry to dungeon mode (classic-camera.md section4).</summary>
     public static readonly Dk2Angle LevelStartYaw = new(256);
 
     /// <summary>Startup command7's requested focus, before active-bound clamping (classic-camera.md section4).</summary>
-    public static Vector3 LevelStartFocus(TilePos tile) => new(tile.X + .5f, 1f, -tile.Y - .5f);
+    public static Vector3 LevelStartFocus(TilePos tile)
+    {
+        return new(tile.X + .5f, 1f, -tile.Y - .5f);
+    }
 
     /// <summary>The level's starting focus for a viewer comes from the player record's camera
     /// tile (<see cref="LevelStartFocus(TilePos)"/>), else, with no records or none for the viewer, the map's centre.</summary>
@@ -88,11 +114,20 @@ public sealed class ClassicCamera
         SetZoom(new Fp32(profile.Zoom));
     }
 
-    public void SetZoom(Fp32 zoom) =>
+    public void SetZoom(Fp32 zoom)
+    {
         Zoom = new Fp32(Math.Clamp(zoom.Raw, _profile.MinZoom, _profile.MaxZoom - 1));
+    }
 
-    public void ZoomIn() => StepZoom(242);
-    public void ZoomOut() => StepZoom(270);
+    public void ZoomIn()
+    {
+        StepZoom(242);
+    }
+
+    public void ZoomOut()
+    {
+        StepZoom(270);
+    }
 
     private void StepZoom(int numerator)
     {
@@ -123,30 +158,45 @@ public sealed class ClassicCamera
             sine * screenDirection.X + cosine * screenDirection.Y);
     }
 
-    public ClassicCameraPose Pose(Vector3 focus, CameraViewport viewport) => Pose(focus, State(focus), viewport, 0);
+    public ClassicCameraPose Pose(Vector3 focus, CameraViewport viewport)
+    {
+        return Pose(focus, State(focus), viewport, 0);
+    }
 
     /// <summary>The camera's own values at <paramref name="focus"/>, as a timed move starts from them.</summary>
-    public CameraFlightState State(Vector3 focus) => new(
+    public CameraFlightState State(Vector3 focus)
+    {
+        return new(
         (int)MathF.Round(focus.X * Fp32.One), (int)MathF.Round(-focus.Z * Fp32.One), (int)MathF.Round(focus.Y * Fp32.One),
         Zoom.Raw, _profile.Lens, _profile.ViewDistance, _yaw.Value, _profile.AnglePitch, _profile.AngleRoll);
+    }
 
     /// <summary>Where <c>Camera_SetMode</c>'s ordinary arm (<c>0x0044AFA0</c>-<c>0x0044B0F0</c>) sends a
     /// camera coming from <paramref name="from"/>: over the same point, at the zoom the ordinary mode
     /// was left with, the yaw rounded to a multiple of 8 (0x800 for the last four, as in DK2), the
     /// preset's pitch, roll, lens and view distance. The focus height is the caller's; DK2 takes the preset's.</summary>
-    public CameraFlightState Return(in CameraFlightState from, int focusHeight) => new(
+    public CameraFlightState Return(in CameraFlightState from, int focusHeight)
+    {
+        return new(
         from.X, from.Y, focusHeight, Zoom.Raw, _profile.Lens, _profile.ViewDistance,
         (from.Yaw + 4) & 0xFFF8, _profile.AnglePitch, _profile.AngleRoll);
+    }
 
     /// <summary>Takes the yaw a timed move ended on, whatever the preset locks.</summary>
-    public void Face(Dk2Angle yaw) => _yaw = new Dk2Angle((ushort)(yaw.Value & 2047));
+    public void Face(Dk2Angle yaw)
+    {
+        _yaw = new Dk2Angle((ushort)(yaw.Value & 2047));
+    }
 
     /// <summary>The pose of any camera state. The field of view is the state's lens through DK2's one
     /// projection (possession-warp.md §2). <paramref name="firstPersonShare"/> runs from 0, this
     /// camera's own view axis above the screen's middle, to 1, the first-person one at the middle:
     /// that offset is the only difference a move between them blends.</summary>
-    public ClassicCameraPose Pose(in CameraFlightState state, CameraViewport viewport, float firstPersonShare) => Pose(
+    public ClassicCameraPose Pose(in CameraFlightState state, CameraViewport viewport, float firstPersonShare)
+    {
+        return Pose(
         new Vector3(state.X / (float)Fp32.One, state.Z / (float)Fp32.One, -state.Y / (float)Fp32.One), state, viewport, firstPersonShare);
+    }
 
     private ClassicCameraPose Pose(Vector3 focus, in CameraFlightState state, CameraViewport viewport, float firstPersonShare)
     {
@@ -191,6 +241,13 @@ public sealed class ClassicCamera
         return (float)(2 * Math.Atan(viewport.Height / (2.0 * focalPixels)) * 180 / Math.PI);
     }
 
-    private static float Radians(Dk2Angle angle) => angle.Value * ((float)Math.PI / 1024);
-    private static Vector3 ToUnity(Vector3 engine) => new(engine.X, -engine.Z, -engine.Y);
+    private static float Radians(Dk2Angle angle)
+    {
+        return angle.Value * ((float)Math.PI / 1024);
+    }
+
+    private static Vector3 ToUnity(Vector3 engine)
+    {
+        return new(engine.X, -engine.Z, -engine.Y);
+    }
 }

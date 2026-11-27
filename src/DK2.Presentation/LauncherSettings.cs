@@ -22,11 +22,19 @@ public readonly record struct LauncherWindowSize(int Width, int Height)
     public const int MinimumSide = 320, MaximumSide = 16384;
 
     /// <summary>Exactly 16:9.</summary>
-    public bool IsWide => Width * 9 == Height * 16;
+    public bool IsWide
+    {
+        get
+        {
+            return Width * 9 == Height * 16;
+        }
+    }
 
     /// <summary>The dropdown's text, e.g. "1600 × 900".</summary>
-    public override string ToString() =>
-        Width.ToString(CultureInfo.InvariantCulture) + " × " + Height.ToString(CultureInfo.InvariantCulture);
+    public override string ToString()
+    {
+        return Width.ToString(CultureInfo.InvariantCulture) + " × " + Height.ToString(CultureInfo.InvariantCulture);
+    }
 }
 
 /// <summary>What the launcher saves (the tester's install, the menu font, the screen and whether to start straight into
@@ -97,29 +105,41 @@ public sealed record LauncherSettings
         return text.ToString();
     }
 
-    private static string? Blank(string value) => value.Length == 0 ? null : value;
-
-    private static string ScreenName(LauncherScreenMode mode) => mode switch
+    private static string? Blank(string value)
     {
-        LauncherScreenMode.FullScreen => "full_screen",
-        LauncherScreenMode.FullScreenWindow => "full_screen_window",
-        _ => "window",
-    };
+        return value.Length == 0 ? null : value;
+    }
 
-    private static LauncherScreenMode? ParseScreen(string value) => value.ToLowerInvariant() switch
+    private static string ScreenName(LauncherScreenMode mode)
     {
-        "window" => LauncherScreenMode.Window,
-        "full_screen" => LauncherScreenMode.FullScreen,
-        "full_screen_window" => LauncherScreenMode.FullScreenWindow,
-        _ => null,
-    };
+        return mode switch
+        {
+            LauncherScreenMode.FullScreen => "full_screen",
+            LauncherScreenMode.FullScreenWindow => "full_screen_window",
+            _ => "window",
+        };
+    }
 
-    private static bool? ParseBool(string value) => value.ToLowerInvariant() switch
+    private static LauncherScreenMode? ParseScreen(string value)
     {
-        "true" => true,
-        "false" => false,
-        _ => null,
-    };
+        return value.ToLowerInvariant() switch
+        {
+            "window" => LauncherScreenMode.Window,
+            "full_screen" => LauncherScreenMode.FullScreen,
+            "full_screen_window" => LauncherScreenMode.FullScreenWindow,
+            _ => null,
+        };
+    }
+
+    private static bool? ParseBool(string value)
+    {
+        return value.ToLowerInvariant() switch
+        {
+            "true" => true,
+            "false" => false,
+            _ => null,
+        };
+    }
 
     private static LauncherWindowSize? ParseSize(string value)
     {
@@ -133,9 +153,11 @@ public sealed record LauncherSettings
             ? new LauncherWindowSize(width, height) : null;
     }
 
-    private static int? Side(string text) =>
-        int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out int side)
+    private static int? Side(string text)
+    {
+        return int.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out int side)
         && side >= LauncherWindowSize.MinimumSide && side <= LauncherWindowSize.MaximumSide ? side : null;
+    }
 }
 
 /// <summary>Where the launcher's settings live and how they are read and written: <c>launcher.cfg</c> in the engine's
@@ -157,8 +179,10 @@ public static class LauncherSettingsFile
 
     /// <summary>The saved settings; a missing file is <see cref="LauncherSettings.Default"/>. An unreadable one throws
     /// <see cref="IOException"/> or <see cref="UnauthorizedAccessException"/> for the caller to report.</summary>
-    public static LauncherSettings Load(string path) =>
-        File.Exists(path) ? LauncherSettings.Parse(File.ReadAllText(path, Encoding.UTF8)) : LauncherSettings.Default;
+    public static LauncherSettings Load(string path)
+    {
+        return File.Exists(path) ? LauncherSettings.Parse(File.ReadAllText(path, Encoding.UTF8)) : LauncherSettings.Default;
+    }
 
     public static void Save(string path, LauncherSettings settings)
     {

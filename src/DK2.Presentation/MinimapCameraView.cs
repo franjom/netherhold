@@ -17,8 +17,11 @@ public readonly record struct MinimapCameraView(Vector3 Position, Vector3 Forwar
     float Aspect, float ProjectionCentreShift)
 {
     /// <summary>The view of a classic camera pose drawn on <paramref name="viewport"/>.</summary>
-    public static MinimapCameraView Of(in ClassicCameraPose pose, CameraViewport viewport) => new(pose.Position, pose.Forward,
+    public static MinimapCameraView Of(in ClassicCameraPose pose, CameraViewport viewport)
+    {
+        return new(pose.Position, pose.Forward,
         pose.Up, pose.VerticalFieldOfView, viewport.Width / (float)viewport.Height, pose.ProjectionCentreShift);
+    }
 
     /// <summary>A forward this close to vertical has no horizontal direction of its own.</summary>
     private const float VerticalForward = 1e-4f;
@@ -38,11 +41,19 @@ public readonly record struct MinimapCameraView(Vector3 Position, Vector3 Forwar
 
     /// <summary>The heading the minimap turns by: <see cref="YawDegrees"/> x 2048 / 360, rounded half to even as Unity's
     /// <c>Mathf.RoundToInt</c> does, unmasked.</summary>
-    public Dk2Angle Heading => HeadingOf(YawDegrees);
+    public Dk2Angle Heading
+    {
+        get
+        {
+            return HeadingOf(YawDegrees);
+        }
+    }
 
     /// <inheritdoc cref="Heading"/>
-    public static Dk2Angle HeadingOf(float yawDegrees) =>
-        new(unchecked((ushort)(int)Math.Round(yawDegrees * (2048f / 360))));
+    public static Dk2Angle HeadingOf(float yawDegrees)
+    {
+        return new(unchecked((ushort)(int)Math.Round(yawDegrees * (2048f / 360))));
+    }
 
     /// <summary>The ray through viewport point (<paramref name="x"/>, <paramref name="y"/>), 0 to 1 from the bottom left,
     /// as Unity's <c>ViewportPointToRay</c> casts it through the off-centre frustum; the direction is unit length.</summary>
@@ -57,8 +68,10 @@ public readonly record struct MinimapCameraView(Vector3 Position, Vector3 Forwar
     }
 
     /// <summary>Where the viewport's centre meets the floor plane; false when its ray misses it.</summary>
-    public bool TryFloorCentre(out Vector3 point) =>
-        TileTopPlane.TryHit(Position, RayDirection(.5f, .5f), TileHeights.Floor, out point);
+    public bool TryFloorCentre(out Vector3 point)
+    {
+        return TileTopPlane.TryHit(Position, RayDirection(.5f, .5f), TileHeights.Floor, out point);
+    }
 
     /// <summary>The viewport's corners on the floor plane in map tiles (x east, y south), in the order
     /// <see cref="MinimapCameraFootprint.TryBuild"/> takes: top left, top right, bottom right, bottom left. False when

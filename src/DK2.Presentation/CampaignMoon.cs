@@ -7,7 +7,10 @@ namespace DK2.Presentation;
 /// <summary>The local startup clock's native lunation gate, independent of simulation ticks.</summary>
 public static class CampaignMoon
 {
-    public static bool IsSecretFiveAvailable(float phase) => !(phase > -.95f && phase < .95f);
+    public static bool IsSecretFiveAvailable(float phase)
+    {
+        return !(phase > -.95f && phase < .95f);
+    }
 
     public static float PhaseAt(DateTime localClock)
     {

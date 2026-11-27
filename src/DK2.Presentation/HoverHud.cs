@@ -69,7 +69,10 @@ public sealed class HoverHud
     }
 
     /// <summary>The wooden bar: the whole width, behind the Heart, mana and gold panels, as in DK2.</summary>
-    public HudRect BarBounds(HudScreen screen) => new(0, StatusTop, screen.VirtualWidth, StatusHeight(screen));
+    public HudRect BarBounds(HudScreen screen)
+    {
+        return new(0, StatusTop, screen.VirtualWidth, StatusHeight(screen));
+    }
 
     /// <summary>The status line's strip, right of the resource panels (1020 units, floored to pixels).</summary>
     public HudRect StatusBounds(HudScreen screen)
@@ -79,15 +82,26 @@ public sealed class HoverHud
     }
 
     /// <summary>The bar, as last built, takes the pointer away from the world.</summary>
-    public bool ContainsPointer(float x, float y) =>
-        _visible && _allowInput && _screen.Height > 0 && BarBounds(_screen).Contains(x, y);
+    public bool ContainsPointer(float x, float y)
+    {
+        return _visible && _allowInput && _screen.Height > 0 && BarBounds(_screen).Contains(x, y);
+    }
 
     /// <summary>8/768 of the screen down: 20 virtual units.</summary>
-    private static float StatusTop => 20;
+    private static float StatusTop
+    {
+        get
+        {
+            return 20;
+        }
+    }
 
     /// <summary>22/480 of the screen (88 units), or the status font's line plus 12 pixels if taller; 12 for
     /// the line before the font is loaded.</summary>
-    private float StatusHeight(HudScreen screen) => Math.Max(88, screen.Virtual((_statusFont?.LineHeight ?? 12) + 12));
+    private float StatusHeight(HudScreen screen)
+    {
+        return Math.Max(88, screen.Virtual((_statusFont?.LineHeight ?? 12) + 12));
+    }
 
     /// <param name="screen">The HUD surface; its <see cref="HudScreen.Height"/> also picks the fonts.</param>
     /// <param name="bottom">The panel's bottom edge in virtual units (less than 1920 when the UI is scaled up).</param>

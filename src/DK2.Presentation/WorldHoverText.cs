@@ -16,7 +16,13 @@ public enum WorldHoverKind { None, Tile, Creature, Object, Door, Trap, Widget }
 public readonly record struct WorldHoverHit(WorldHoverKind Kind, TilePos Tile, int EntityId = 0);
 public readonly record struct HoverTextSnapshot(string TopStatus, string TooltipName, WorldHoverHit Hit)
 {
-    public static HoverTextSnapshot Empty => new("", "", default);
+    public static HoverTextSnapshot Empty
+    {
+        get
+        {
+            return new("", "", default);
+        }
+    }
 }
 
 /// <summary>Captures localized hover text while the simulation is settled; see world-hover-text.md.</summary>
@@ -339,12 +345,23 @@ public sealed class WorldHoverText
     /// <summary>The Lord of the Land, creature 29 (0x1D), whose status name <c>0x0048D880</c> takes from
     /// level strings 2866..2879 or 3079 before it tests <c>def+0x895</c>.</summary>
     private const int LordOfTheLandCreatureId = 29;
-    public static uint LordNameTextId(GameMode mode, CampaignSlot playedSlot) => mode != GameMode.Campaign ? 3079u : playedSlot.Value switch
+    public static uint LordNameTextId(GameMode mode, CampaignSlot playedSlot)
     {
-        >= 1 and <= 5 => 2865u + playedSlot.Value,
-        6 or 7 => 2871, 8 => 2872, 9 => 2873, 10 => 2874, 11 => 2875,
-        15 => 2876, 17 => 2877, 18 or 19 => 2878, 20 => 2879, _ => 3079,
-    };
+        return mode != GameMode.Campaign ? 3079u : playedSlot.Value switch
+        {
+            >= 1 and <= 5 => 2865u + playedSlot.Value,
+            6 or 7 => 2871,
+            8 => 2872,
+            9 => 2873,
+            10 => 2874,
+            11 => 2875,
+            15 => 2876,
+            17 => 2877,
+            18 or 19 => 2878,
+            20 => 2879,
+            _ => 3079,
+        };
+    }
 
     private HoverTextSnapshot Room(WorldState world, RoomInstance room, WorldHoverHit hit)
     {
@@ -526,8 +543,10 @@ public sealed class WorldHoverText
         _tokens[38] = Number(RoomCapacityRules.Occupants(world, room)); _tokens[39] = Number(capacity);
     }
 
-    private static bool RoomContainsObject(RoomInstance room, ObjectState obj) =>
-        !obj.InHand && obj.CarriedByCreatureId < 0 && obj.OwnerPlayerId == room.OwnerPlayerId && room.Contains(obj.TileIndex);
+    private static bool RoomContainsObject(RoomInstance room, ObjectState obj)
+    {
+        return !obj.InHand && obj.CarriedByCreatureId < 0 && obj.OwnerPlayerId == room.OwnerPlayerId && room.Contains(obj.TileIndex);
+    }
 
     public static int ActionStringId(int stateId, int utilityNewState)
     {
@@ -549,7 +568,10 @@ public sealed class WorldHoverText
         return state.LabelStringId == 0 ? 2599 : state.LabelStringId;
     }
 
-    private static string Number(int value) => value.ToString(CultureInfo.InvariantCulture);
+    private static string Number(int value)
+    {
+        return value.ToString(CultureInfo.InvariantCulture);
+    }
 
     /// <summary><see cref="Substitute(string, IReadOnlyDictionary{int, string})"/> for the one token a text carries,
     /// without the dictionary: the same output, for a caller that builds a single string.</summary>

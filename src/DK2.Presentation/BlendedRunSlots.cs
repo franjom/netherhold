@@ -39,14 +39,32 @@ public sealed class BlendedRunSlots<TMaterial> where TMaterial : class
 
     /// <summary>Every slot made so far, by <see cref="BlendedRunSlot{TMaterial}.Id"/>; those not in <see cref="Drawn"/>
     /// are hidden.</summary>
-    public IReadOnlyList<BlendedRunSlot<TMaterial>> Slots => _slots;
+    public IReadOnlyList<BlendedRunSlot<TMaterial>> Slots
+    {
+        get
+        {
+            return _slots;
+        }
+    }
 
     /// <summary>The last <see cref="Update"/>'s slots, one per run of the stream, back to front.</summary>
-    public IReadOnlyList<BlendedRunSlot<TMaterial>> Drawn => _drawn;
+    public IReadOnlyList<BlendedRunSlot<TMaterial>> Drawn
+    {
+        get
+        {
+            return _drawn;
+        }
+    }
 
     /// <summary>The stream's vertices as of the last <see cref="Update"/>, which <see cref="BlendedRunSlot{TMaterial}.Vertices"/>
     /// number.</summary>
-    public ReadOnlySpan<BlendedVertex> Vertices => new(_vertices, 0, _vertexCount);
+    public ReadOnlySpan<BlendedVertex> Vertices
+    {
+        get
+        {
+            return new(_vertices, 0, _vertexCount);
+        }
+    }
 
     /// <summary>Fills a slot for each of <paramref name="stream"/>'s runs and keys it for <paramref name="eye"/>, in the
     /// stream's local space (the world, when its matrix is the identity). Call after each refresh that rebuilt the runs.
@@ -203,16 +221,34 @@ public sealed class BlendedRunSlot<TMaterial> where TMaterial : class
     public bool Drawn { get; internal set; }
 
     /// <summary>The stream vertex each slot vertex holds.</summary>
-    public IReadOnlyList<int> Vertices => _vertices;
+    public IReadOnlyList<int> Vertices
+    {
+        get
+        {
+            return _vertices;
+        }
+    }
 
-    public int VertexCount => _vertices.Count;
+    public int VertexCount
+    {
+        get
+        {
+            return _vertices.Count;
+        }
+    }
 
     /// <summary>The first slot vertex the last update added: the renderer uploads from here to <see cref="VertexCount"/>
     /// (0 when the slot started again).</summary>
     public int FirstNewVertex { get; private set; }
 
     /// <summary>The run's triangles as slot vertex indices, three a triangle, in the run's order.</summary>
-    public ReadOnlySpan<int> Indices => new(_indices, 0, IndexCount);
+    public ReadOnlySpan<int> Indices
+    {
+        get
+        {
+            return new(_indices, 0, IndexCount);
+        }
+    }
 
     public int IndexCount { get; private set; }
 

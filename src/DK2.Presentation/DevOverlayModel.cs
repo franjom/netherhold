@@ -97,16 +97,37 @@ public sealed class DevOverlayModel
         }
     }
 
-    public int RowCount => _count;
+    public int RowCount
+    {
+        get
+        {
+            return _count;
+        }
+    }
 
-    public DevOverlayRowKind Kind(int row) => _kinds[row];
+    public DevOverlayRowKind Kind(int row)
+    {
+        return _kinds[row];
+    }
 
-    public string Label(int row) => _labels[row];
+    public string Label(int row)
+    {
+        return _labels[row];
+    }
 
-    public ReadOnlySpan<char> Value(int row) => new(_values[row], 0, _lengths[row]);
+    public ReadOnlySpan<char> Value(int row)
+    {
+        return new(_values[row], 0, _lengths[row]);
+    }
 
     /// <summary>Whether a state hash is shown (<see cref="SetHash"/>).</summary>
-    public bool HashKnown => _hashKnown;
+    public bool HashKnown
+    {
+        get
+        {
+            return _hashKnown;
+        }
+    }
 
     /// <summary>The level's player names (<see cref="PlayerNames.From"/>), each asked once and kept.</summary>
     public void UsePlayerNames(Func<byte, string> playerName)
@@ -186,7 +207,10 @@ public sealed class DevOverlayModel
     }
 
     /// <summary>Forgets the hash, as when the session it was computed for ends.</summary>
-    public void ClearHash() => _hashKnown = false;
+    public void ClearHash()
+    {
+        _hashKnown = false;
+    }
 
     /// <summary>Rebuilds every row from <paramref name="facts"/> and the last full window's times (the running window's
     /// before the first is full).</summary>
@@ -280,11 +304,15 @@ public sealed class DevOverlayModel
 
     /// <summary>The turns a second the pacer aims for: <see cref="SimulationTiming.TicksPerSecond"/> at game speed 4, in
     /// proportion to the setting (<see cref="TickPacer.Accrue"/>), none while paused.</summary>
-    public static double TargetTurnsPerSecond(int gameSpeed, bool paused) =>
-        paused ? 0 : SimulationTiming.TicksPerSecond * (gameSpeed / 4.0);
+    public static double TargetTurnsPerSecond(int gameSpeed, bool paused)
+    {
+        return paused ? 0 : SimulationTiming.TicksPerSecond * (gameSpeed / 4.0);
+    }
 
-    private string PlayerName(byte id) =>
-        _playerNames[id] ??= _playerName?.Invoke(id) ?? "Player";
+    private string PlayerName(byte id)
+    {
+        return _playerNames[id] ??= _playerName?.Invoke(id) ?? "Player";
+    }
 
     private string PageName(FrontEndPage page)
     {
@@ -298,11 +326,20 @@ public sealed class DevOverlayModel
         return name;
     }
 
-    private void Heading(string text) => Start(DevOverlayRowKind.Heading, text);
+    private void Heading(string text)
+    {
+        Start(DevOverlayRowKind.Heading, text);
+    }
 
-    private void Hint(string text) => Start(DevOverlayRowKind.Hint, text);
+    private void Hint(string text)
+    {
+        Start(DevOverlayRowKind.Hint, text);
+    }
 
-    private RowBuilder Row(string label) => Start(DevOverlayRowKind.Row, label);
+    private RowBuilder Row(string label)
+    {
+        return Start(DevOverlayRowKind.Row, label);
+    }
 
     private RowBuilder Start(DevOverlayRowKind kind, string label)
     {

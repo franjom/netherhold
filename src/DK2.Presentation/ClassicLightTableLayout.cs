@@ -18,10 +18,16 @@ public static class ClassicLightTableLayout
     public const int TilesPerTextureRow = MaximumTextureWidth / TexelsPerTile;
 
     /// <summary>A layer's width in texels for a map <paramref name="mapWidth"/> tiles wide.</summary>
-    public static int LayerWidth(int mapWidth) => Math.Min(Positive(mapWidth), TilesPerTextureRow) * TexelsPerTile;
+    public static int LayerWidth(int mapWidth)
+    {
+        return Math.Min(Positive(mapWidth), TilesPerTextureRow) * TexelsPerTile;
+    }
 
     /// <summary>A layer's height in texel rows for a map <paramref name="mapWidth"/> tiles wide.</summary>
-    public static int LayerHeight(int mapWidth) => (Positive(mapWidth) + TilesPerTextureRow - 1) / TilesPerTextureRow;
+    public static int LayerHeight(int mapWidth)
+    {
+        return (Positive(mapWidth) + TilesPerTextureRow - 1) / TilesPerTextureRow;
+    }
 
     /// <summary>The texel <paramref name="texel"/> of <paramref name="tile"/>'s table: its column, its row within the layer,
     /// and the layer (the tile's row).</summary>
@@ -48,5 +54,8 @@ public static class ClassicLightTableLayout
         return (((layer * LayerHeight(mapWidth)) + row) * width + x) * 4;
     }
 
-    private static int Positive(int width) => width > 0 ? width : throw new ArgumentOutOfRangeException(nameof(width));
+    private static int Positive(int width)
+    {
+        return width > 0 ? width : throw new ArgumentOutOfRangeException(nameof(width));
+    }
 }

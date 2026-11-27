@@ -11,7 +11,13 @@ namespace DK2.Presentation;
 /// or nothing, and whether this is the dark half of the second.</summary>
 public readonly record struct BottomPanelFlashState(BottomPanelCategory? Tab, BottomPanelChoiceKey? Slot, bool Dark)
 {
-    public static BottomPanelFlashState None => default;
+    public static BottomPanelFlashState None
+    {
+        get
+        {
+            return default;
+        }
+    }
 }
 
 /// <summary>The bottom panel's scripted flash (docs/research/tab-alerts.md): one global target,
@@ -58,9 +64,12 @@ public static class BottomPanelFlash
     }
 
     private static BottomPanelFlashState Item(BottomPanelChoiceKind kind, BottomPanelCategory panel, byte id,
-        BottomPanelOpenSet open, bool dark) => open.Contains(panel)
+        BottomPanelOpenSet open, bool dark)
+    {
+        return open.Contains(panel)
         ? new BottomPanelFlashState(null, new BottomPanelChoiceKey(kind, id), dark)
         : new BottomPanelFlashState(panel, null, dark);
+    }
 
     /// <summary><c>0x00426F30</c> and the slot clicks: the flash ends once the flashed item is the
     /// active tool (room tool with that room, door, trap or spell choice, or the Sell tool for button
@@ -96,7 +105,11 @@ public sealed class BottomPanelSparkles
     /// <summary>The sparkle's side for a widget whose <c>+0x3C</c> is <paramref name="widgetBank"/>:
     /// 88 units on a 6 (264-unit slots, <see cref="BottomPanelGrid.WidgetBank"/>), else 64 (tabs carry
     /// 1..4, 128-unit slots 5).</summary>
-    public static int SizeFor(int widgetBank) => widgetBank == 6 ? LargeSize : Size;
+    public static int SizeFor(int widgetBank)
+    {
+        return widgetBank == 6 ? LargeSize : Size;
+    }
+
     private readonly byte[] _frame = new byte[Count], _x = new byte[Count], _y = new byte[Count];
     private readonly Dk2Lcg _random;
 
@@ -112,9 +125,20 @@ public sealed class BottomPanelSparkles
         }
     }
 
-    public int Frame(int index) => _frame[index];
-    public int X(int index) => _x[index];
-    public int Y(int index) => _y[index];
+    public int Frame(int index)
+    {
+        return _frame[index];
+    }
+
+    public int X(int index)
+    {
+        return _x[index];
+    }
+
+    public int Y(int index)
+    {
+        return _y[index];
+    }
 
     /// <summary>One rendered HUD frame.</summary>
     public void Advance()

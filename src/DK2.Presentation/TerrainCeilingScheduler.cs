@@ -63,13 +63,28 @@ public sealed class TerrainCeilingScheduler
         Clear();
     }
 
-    public int ChunkCount => _dirty.Length;
+    public int ChunkCount
+    {
+        get
+        {
+            return _dirty.Length;
+        }
+    }
 
     /// <summary>True while a chunk waits for <see cref="TryBuild"/>.</summary>
-    public bool AnyDirty => _dirtyCount > 0;
+    public bool AnyDirty
+    {
+        get
+        {
+            return _dirtyCount > 0;
+        }
+    }
 
     /// <summary>A presented tile changed, which may have changed the lattice around it.</summary>
-    public void TileChanged(int x, int y) => MarkDirty(x, y, TerrainCeiling.BendReach);
+    public void TileChanged(int x, int y)
+    {
+        MarkDirty(x, y, TerrainCeiling.BendReach);
+    }
 
     /// <summary>Reads the world's closed tiles once a turn and marks the chunks a tile that opened or
     /// closed reaches. Call where the world may be read; true when a chunk is to be built.</summary>

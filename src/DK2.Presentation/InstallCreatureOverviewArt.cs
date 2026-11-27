@@ -55,14 +55,26 @@ public sealed class InstallCreatureOverviewArt
         }
     }
 
-    public RgbaImage Image(string path) => _image(path);
+    public RgbaImage Image(string path)
+    {
+        return _image(path);
+    }
 
     /// <summary>The type's portrait catalogue image (record <c>+0xD40</c>).</summary>
-    public string Portrait(CreatureOverviewType type) => _portraits[type.Value];
+    public string Portrait(CreatureOverviewType type)
+    {
+        return _portraits[type.Value];
+    }
 
     /// <summary>The type's <c>Text.str</c> name.</summary>
-    public string Name(CreatureOverviewType type, string fallback) => _text(_database.CreatureById(type.Value).NameStringId);
+    public string Name(CreatureOverviewType type, string fallback)
+    {
+        return _text(_database.CreatureById(type.Value).NameStringId);
+    }
 
     /// <summary>The type's overview order (record byte <c>+0xCF6</c>).</summary>
-    public int Order(CreatureOverviewType type) => _order[type.Value];
+    public int Order(CreatureOverviewType type)
+    {
+        return _order[type.Value];
+    }
 }

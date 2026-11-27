@@ -17,7 +17,10 @@ public sealed class BattleTabHud
     private HudScreen _screen = new(2560, 1920);
 
     /// <param name="text">A <c>Text.str</c> string by id.</param>
-    public BattleTabHud(Func<uint, string> text) => _text = new BattleTabHoverText(text);
+    public BattleTabHud(Func<uint, string> text)
+    {
+        _text = new BattleTabHoverText(text);
+    }
 
     /// <summary>A shown button and the mouse button (0 left, 1 right) that pressed it.</summary>
     public event Action<BattleTabButton, int>? Clicked;
@@ -72,10 +75,16 @@ public sealed class BattleTabHud
     }
 
     /// <summary>Whether the point is the menu's while it takes input, so a host keeps it from the world.</summary>
-    public bool ContainsPointer(float x, float y) => _allowInput && ButtonAt(x, y) != BattleTabButton.None;
+    public bool ContainsPointer(float x, float y)
+    {
+        return _allowInput && ButtonAt(x, y) != BattleTabButton.None;
+    }
 
     /// <summary>The status line and name for the button under the point (<see cref="BattleTabHoverText"/>).</summary>
-    public HoverTextSnapshot HoverText(float x, float y) => _text.For(ButtonAt(x, y));
+    public HoverTextSnapshot HoverText(float x, float y)
+    {
+        return _text.For(ButtonAt(x, y));
+    }
 
     /// <summary>A mouse press at a point in virtual units; true when the menu took it.</summary>
     /// <param name="mouse">0 left, 1 right, 2 middle.</param>

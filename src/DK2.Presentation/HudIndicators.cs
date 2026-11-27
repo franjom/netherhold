@@ -24,22 +24,44 @@ public readonly record struct HudIndicatorSnapshot(
     bool TimeRemaining, int TimeLimitTurns, bool Score, int ScoreValue, bool HeroesKilled, int HeroesDestroyed,
     byte HolderPlayerId, bool SlapsRemaining, int SlapsLeft, byte NextRoomTypeId)
 {
-    public bool CurrentHolder => HolderPlayerId != 0;
-    public bool NextRoom => NextRoomTypeId != 0 && NextRoomTypeId < 0x1A;
+    public bool CurrentHolder
+    {
+        get
+        {
+            return HolderPlayerId != 0;
+        }
+    }
+
+    public bool NextRoom
+    {
+        get
+        {
+            return NextRoomTypeId != 0 && NextRoomTypeId < 0x1A;
+        }
+    }
 
     /// <summary>Interface <c>+0x10C2</c>: any indicator shows, so menu40 sits 168 above the strip, not 40.</summary>
-    public bool Any => TimeRemaining || Score || CurrentHolder || HeroesKilled || SlapsRemaining || NextRoom;
-
-    public bool Shows(HudIndicator indicator) => indicator switch
+    public bool Any
     {
-        HudIndicator.TimeRemaining => TimeRemaining,
-        HudIndicator.Score => Score,
-        HudIndicator.CurrentHolder => CurrentHolder,
-        HudIndicator.HeroesKilled => HeroesKilled,
-        HudIndicator.SlapsRemaining => SlapsRemaining,
-        HudIndicator.NextRoom => NextRoom,
-        _ => false,
-    };
+        get
+        {
+            return TimeRemaining || Score || CurrentHolder || HeroesKilled || SlapsRemaining || NextRoom;
+        }
+    }
+
+    public bool Shows(HudIndicator indicator)
+    {
+        return indicator switch
+        {
+            HudIndicator.TimeRemaining => TimeRemaining,
+            HudIndicator.Score => Score,
+            HudIndicator.CurrentHolder => CurrentHolder,
+            HudIndicator.HeroesKilled => HeroesKilled,
+            HudIndicator.SlapsRemaining => SlapsRemaining,
+            HudIndicator.NextRoom => NextRoom,
+            _ => false,
+        };
+    }
 
     /// <summary>The tests 0x00427BA0 makes, for <paramref name="viewer"/>: the local player whose
     /// slaps (<c>+0xEE6</c>) and HeroesDestroyed (<c>+0x14A</c>) the boxes count.</summary>
@@ -89,7 +111,10 @@ public static class HudIndicatorLayout
 {
     public const int Left = 20, FirstTop = 1332, RowHeight = 128;
     /// <summary>The indicator menus' widths (static records 0x00693C70.., 72 bytes apart).</summary>
-    public static int Width(HudIndicator indicator) => indicator >= HudIndicator.SlapsRemaining ? 256 : 444;
+    public static int Width(HudIndicator indicator)
+    {
+        return indicator >= HudIndicator.SlapsRemaining ? 256 : 444;
+    }
 
     private static readonly HudIndicator[] Order =
     [
@@ -176,9 +201,15 @@ public static class HudIndicatorLayout
         return parts;
     }
 
-    private static string Digit(uint value) => ((char)('0' + value)).ToString();
+    private static string Digit(uint value)
+    {
+        return ((char)('0' + value)).ToString();
+    }
 
     /// <summary>0x00415650 with right alignment: the left edge, in advances, of a run of
     /// <paramref name="length"/> characters right-aligned to <paramref name="slots"/>.</summary>
-    public static int AlignedStart(int length, int slots) => Math.Max(0, slots - length);
+    public static int AlignedStart(int length, int slots)
+    {
+        return Math.Max(0, slots - length);
+    }
 }

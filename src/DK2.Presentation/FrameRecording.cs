@@ -78,18 +78,31 @@ public sealed class FrameRecording
         _moving = new bool[capacity];
     }
 
-    public int Capacity => _moving.Length;
+    public int Capacity
+    {
+        get
+        {
+            return _moving.Length;
+        }
+    }
+
     public int Count { get; private set; }
     public int Dropped { get; private set; }
 
-    public static string MetricName(FrameMetric metric) => Names[(int)metric];
-
-    public static string PhaseName(FramePhase phase) => phase switch
+    public static string MetricName(FrameMetric metric)
     {
-        FramePhase.Still => "still",
-        FramePhase.Moving => "moving",
-        _ => "all",
-    };
+        return Names[(int)metric];
+    }
+
+    public static string PhaseName(FramePhase phase)
+    {
+        return phase switch
+        {
+            FramePhase.Still => "still",
+            FramePhase.Moving => "moving",
+            _ => "all",
+        };
+    }
 
     /// <summary>The next frame's row, indexed by <see cref="FrameMetric"/>, for the caller to fill; empty once full (the
     /// frame is counted in <see cref="Dropped"/>). Allocation-free.</summary>
@@ -109,9 +122,15 @@ public sealed class FrameRecording
         return row;
     }
 
-    public double Value(int frame, FrameMetric metric) => _values[frame * MetricCount + (int)metric];
+    public double Value(int frame, FrameMetric metric)
+    {
+        return _values[frame * MetricCount + (int)metric];
+    }
 
-    public bool Moving(int frame) => _moving[frame];
+    public bool Moving(int frame)
+    {
+        return _moving[frame];
+    }
 
     public FrameStatistics Statistics(FramePhase phase, FrameMetric metric)
     {
@@ -242,8 +261,10 @@ public sealed class FrameRecording
         return json.ToString();
     }
 
-    private bool InPhase(int frame, FramePhase phase) =>
-        phase == FramePhase.All || _moving[frame] == (phase == FramePhase.Moving);
+    private bool InPhase(int frame, FramePhase phase)
+    {
+        return phase == FramePhase.All || _moving[frame] == (phase == FramePhase.Moving);
+    }
 
     private static double Rank(double[] sorted, int count, int percent)
     {
@@ -251,8 +272,10 @@ public sealed class FrameRecording
         return sorted[Math.Min(count - 1, Math.Max(0, index))];
     }
 
-    private static string Number(double value) =>
-        double.IsNaN(value) || double.IsInfinity(value) ? "null" : value.ToString("R", CultureInfo.InvariantCulture);
+    private static string Number(double value)
+    {
+        return double.IsNaN(value) || double.IsInfinity(value) ? "null" : value.ToString("R", CultureInfo.InvariantCulture);
+    }
 
     private static string Quote(string text)
     {

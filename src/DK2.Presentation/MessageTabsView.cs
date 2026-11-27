@@ -55,7 +55,14 @@ public sealed class MessageTabsView
     }
     private readonly HashSet<uint> _heard = new();
     private readonly bool[] _slidingSlots = new bool[RecordsExamined];
-    public IReadOnlyList<MessageTab> Tabs => _tabs;
+    public IReadOnlyList<MessageTab> Tabs
+    {
+        get
+        {
+            return _tabs;
+        }
+    }
+
     /// <summary>The message menu40 shows, or null when it is closed.</summary>
     public PlayerMessage? Open { get; private set; }
     /// <summary>A slot index the pointer is over, or -1; set by the host before <see cref="Capture"/>.</summary>
@@ -64,8 +71,10 @@ public sealed class MessageTabsView
     /// <summary>0x00423BD0 each frame: the first eight of the viewer's records, oldest first, give a
     /// tab while NeedsTab is set and the interface has not dismissed them. Slot n sits at
     /// (n + 1) * 88 (Review Objective is at 0; the Ally button, mode 3 only, is not built).</summary>
-    public void Capture(WorldState world, long nowMilliseconds) =>
+    public void Capture(WorldState world, long nowMilliseconds)
+    {
         Capture(world, nowMilliseconds, new HudVisibility(true, true));
+    }
 
     public void Capture(WorldState world, long nowMilliseconds, HudVisibility visibility)
     {
@@ -147,7 +156,10 @@ public sealed class MessageTabsView
     }
 
     /// <summary>A record of the viewer's seen at the last capture, or null.</summary>
-    public PlayerMessage? MessageById(uint id) => _live.TryGetValue(id, out PlayerMessage message) ? message : null;
+    public PlayerMessage? MessageById(uint id)
+    {
+        return _live.TryGetValue(id, out PlayerMessage message) ? message : null;
+    }
 
     /// <summary>0x00423F50, a left click: the message is opened (its flash stops) and menu40 shows it.</summary>
     public void OpenTab(int slot)
@@ -189,21 +201,29 @@ public sealed class MessageTabsView
     }
 
     /// <summary>menu40's tick button: close only.</summary>
-    public void CloseOpen() => Open = null;
+    public void CloseOpen()
+    {
+        Open = null;
+    }
 
     /// <summary>The message's string reference (record <c>+0x0F</c>): its type's row, or for a type
     /// with a variant list the variant its Data1 names.</summary>
-    public static int StringReference(PlayerMessage message) => message.Kind switch
+    public static int StringReference(PlayerMessage message)
     {
-        PlayerMessageKind.ScriptedSpeech => unchecked(-message.Data1),
-        PlayerMessageKind.CreatureIntroduction => unchecked(-message.Data2),
-        _ => MessageTypeTable.StringReference((int)message.Kind, message.Data1),
-    };
+        return message.Kind switch
+        {
+            PlayerMessageKind.ScriptedSpeech => unchecked(-message.Data1),
+            PlayerMessageKind.CreatureIntroduction => unchecked(-message.Data2),
+            _ => MessageTypeTable.StringReference((int)message.Kind, message.Data1),
+        };
+    }
 
     /// <summary>The reference a tabbed message was given when first seen, as DK2 fixes it at post
     /// (<c>0x004C4600</c>); else <see cref="StringReference(PlayerMessage)"/>.</summary>
-    public int Reference(PlayerMessage message) =>
-        _references.TryGetValue(message.Id, out int reference) ? reference : StringReference(message);
+    public int Reference(PlayerMessage message)
+    {
+        return _references.TryGetValue(message.Id, out int reference) ? reference : StringReference(message);
+    }
 
     /// <summary>Where menu40's goto button sends the view (<c>0x004C4BE0</c>, then <c>0x004C3DC0</c>), in
     /// tiles of DK2's plane, or null when the button hides (<c>0x00424660</c>). By DK2 type: a tile in
@@ -263,9 +283,11 @@ public sealed class MessageTabsView
     private GameTick _locatedTick;
     private (float X, float Y)? _located;
 
-    private static (float, float)? CreatureAt(WorldState world, int id) =>
-        world.CreatureById(id) is CreatureState creature
+    private static (float, float)? CreatureAt(WorldState world, int id)
+    {
+        return world.CreatureById(id) is CreatureState creature
             ? (creature.PosX / (float)DK2.Core.Fp32.One, creature.PosY / (float)DK2.Core.Fp32.One) : null;
+    }
 
     private (float, float)? RoomAt(WorldState world, int firstSlab)
     {

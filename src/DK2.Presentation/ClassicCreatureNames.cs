@@ -19,7 +19,18 @@ public interface IClassicCreatureNames
 public sealed class InstallClassicCreatureNames : IClassicCreatureNames
 {
     private readonly CreatureNamePool _pool;
-    public InstallClassicCreatureNames(string install) => _pool = CreatureNamePool.Open(Path.Combine(install, "DKII.EXE"));
-    public string Name(CreatureNameIndex index) => _pool.Name(index);
-    public string BloodGroup(CreatureBloodGroupIndex index) => _pool.BloodGroup(index);
+    public InstallClassicCreatureNames(string install)
+    {
+        _pool = CreatureNamePool.Open(Path.Combine(install, "DKII.EXE"));
+    }
+
+    public string Name(CreatureNameIndex index)
+    {
+        return _pool.Name(index);
+    }
+
+    public string BloodGroup(CreatureBloodGroupIndex index)
+    {
+        return _pool.BloodGroup(index);
+    }
 }

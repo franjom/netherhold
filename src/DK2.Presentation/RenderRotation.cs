@@ -16,11 +16,16 @@ public static class RenderRotation
     private const float Radians = MathF.PI / 180f;
 
     /// <summary>Yaw · roll · pitch, applied to a point as <see cref="Vector3.Transform(Vector3, Quaternion)"/>.</summary>
-    public static Quaternion Of(in RenderEuler turn) =>
-        Heading(turn.Yaw)
+    public static Quaternion Of(in RenderEuler turn)
+    {
+        return Heading(turn.Yaw)
         * Quaternion.CreateFromAxisAngle(Vector3.UnitZ, turn.Roll * Radians)
         * Quaternion.CreateFromAxisAngle(Vector3.UnitX, turn.Pitch * Radians);
+    }
 
     /// <summary>A heading-only turn, <paramref name="yawDegrees"/> about Y.</summary>
-    public static Quaternion Heading(float yawDegrees) => Quaternion.CreateFromAxisAngle(Vector3.UnitY, yawDegrees * Radians);
+    public static Quaternion Heading(float yawDegrees)
+    {
+        return Quaternion.CreateFromAxisAngle(Vector3.UnitY, yawDegrees * Radians);
+    }
 }

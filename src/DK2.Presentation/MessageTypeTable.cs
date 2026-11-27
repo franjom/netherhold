@@ -38,7 +38,10 @@ public static class MessageTypeTable
     }
 
     /// <summary>The tab's graphic family, 1..6 (row field <c>+6</c>; 0 reads as 1).</summary>
-    public static int Graphic(int type) => (uint)type < Count && Graphics[type] != 0 ? Graphics[type] : 1;
+    public static int Graphic(int type)
+    {
+        return (uint)type < Count && Graphics[type] != 0 ? Graphics[type] : 1;
+    }
 
     private static readonly int[] Strings =
     [

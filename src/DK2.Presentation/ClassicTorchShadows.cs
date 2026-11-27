@@ -21,14 +21,33 @@ public sealed class ClassicShadowSourceSelector
     private int _count;
 
     /// <summary>The selected sources, at most <see cref="ClassicMeshShadow.MaximumSources"/>.</summary>
-    public int Count => Math.Min(_count, ClassicMeshShadow.MaximumSources);
+    public int Count
+    {
+        get
+        {
+            return Math.Min(_count, ClassicMeshShadow.MaximumSources);
+        }
+    }
 
     /// <summary>The fade distance every selected source's strength uses.</summary>
-    public float FadeDistance => _count > ClassicMeshShadow.MaximumSources
+    public float FadeDistance
+    {
+        get
+        {
+            return _count > ClassicMeshShadow.MaximumSources
         ? MathF.Sqrt(_distances[ClassicMeshShadow.MaximumSources]) : ClassicMeshShadow.MaximumDistance;
+        }
+    }
 
-    public Vector3 Source(int index) => _nearest[index];
-    public int SourceKey(int index) => _keys[index];
+    public Vector3 Source(int index)
+    {
+        return _nearest[index];
+    }
+
+    public int SourceKey(int index)
+    {
+        return _keys[index];
+    }
 
     public void Begin(Vector3 casterCentre)
     {
@@ -94,7 +113,10 @@ public static class ClassicTorchShadowSlots
 
     public static int Choose(Vector3 focus, ReadOnlySpan<int> keys, ReadOnlySpan<Vector3> positions, float reach,
 #pragma warning disable IDE0301 // Preserve the existing empty-span lowering of the forwarding overload.
-        Span<int> chosen) => Choose(focus, keys, positions, reach, ReadOnlySpan<int>.Empty, 0f, chosen);
+        Span<int> chosen)
+    {
+        return Choose(focus, keys, positions, reach, ReadOnlySpan<int>.Empty, 0f, chosen);
+    }
 #pragma warning restore IDE0301
 
     public static int Choose(Vector3 focus, ReadOnlySpan<int> keys, ReadOnlySpan<Vector3> positions, float reach,

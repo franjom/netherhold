@@ -85,5 +85,8 @@ public static class MinimapCameraFootprint
         }
     }
 
-    private static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
+    private static bool Finite(float value)
+    {
+        return !float.IsNaN(value) && !float.IsInfinity(value);
+    }
 }

@@ -28,8 +28,10 @@ public readonly record struct CameraPathPose(
     /// <summary>The front end's vertical field of view, degrees, on a screen <paramref name="screenWidth"/> by
     /// <paramref name="screenHeight"/>: DK2 drew the front end on a 4:3 screen, so a wider screen keeps the 4:3 vertical
     /// extent (the map's castle sits at its top edge) and shows more at the sides, and a narrower one keeps the horizontal.</summary>
-    public float FrontEndVerticalFieldOfView(int screenWidth, int screenHeight) =>
-        VerticalFieldOfView(Math.Min(screenWidth, screenHeight * 4 / 3), screenHeight);
+    public float FrontEndVerticalFieldOfView(int screenWidth, int screenHeight)
+    {
+        return VerticalFieldOfView(Math.Min(screenWidth, screenHeight * 4 / 3), screenHeight);
+    }
 }
 
 /// <summary>One scripted camera path, played as DK2's camera mode 0x12 plays it
@@ -131,8 +133,15 @@ public sealed class CameraPathPlayback
             Lerp(a.FieldOfView, b.FieldOfView, t), Lerp(a.ViewDistance, b.ViewDistance, t) * 0.002f);
     }
 
-    private static float Lerp(float a, float b, float t) => (b - a) * t + a;
-    private static Vector3 ToUnity(Vector3 engine) => new(engine.X, -engine.Z, -engine.Y);
+    private static float Lerp(float a, float b, float t)
+    {
+        return (b - a) * t + a;
+    }
+
+    private static Vector3 ToUnity(Vector3 engine)
+    {
+        return new(engine.X, -engine.Z, -engine.Y);
+    }
 }
 
 /// <summary>The camera's counted letterbox (<c>0x0044D320</c>, camera-paths.md section 4): each
@@ -145,7 +154,14 @@ public sealed class CinematicLetterbox
     public const float BarFraction = 0.125f;
 
     private int _count;
-    public int RequestCount => _count;
+    public int RequestCount
+    {
+        get
+        {
+            return _count;
+        }
+    }
+
     private float _from;
     private float _to;
     private double _start;
@@ -155,7 +171,10 @@ public sealed class CinematicLetterbox
     private double _sampledAt = double.NaN;
     private float _bar;
 
-    internal void SetInitialMode(CameraModeId mode) => _mode = mode;
+    internal void SetInitialMode(CameraModeId mode)
+    {
+        _mode = mode;
+    }
 
     /// <summary>The bar height, a fraction of the screen height, at <paramref name="now"/>.</summary>
     public float Bar(double now)
@@ -186,7 +205,13 @@ public sealed class CinematicLetterbox
         return _from + (_to - _from) * (float)(elapsed / _duration);
     }
 
-    public bool Raised => _count != 0;
+    public bool Raised
+    {
+        get
+        {
+            return _count != 0;
+        }
+    }
 
     /// <summary>Camera_SetMode retargets the full viewport without consulting the request count.</summary>
     public void ChangeMode(CameraModeId from, CameraModeId to, double now)

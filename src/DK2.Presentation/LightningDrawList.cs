@@ -33,9 +33,30 @@ public sealed class LightningDrawList
     private readonly List<int> _triangles = new();
     private Matrix4x4 _view, _camera;
     private bool _hasCamera;
-    public IReadOnlyList<Vector3> Vertices => _vertices;
-    public IReadOnlyList<Vector2> Uvs => _uvs;
-    public IReadOnlyList<int> Triangles => _triangles;
+    public IReadOnlyList<Vector3> Vertices
+    {
+        get
+        {
+            return _vertices;
+        }
+    }
+
+    public IReadOnlyList<Vector2> Uvs
+    {
+        get
+        {
+            return _uvs;
+        }
+    }
+
+    public IReadOnlyList<int> Triangles
+    {
+        get
+        {
+            return _triangles;
+        }
+    }
+
     public LightningDrawList(RoomConstructionParticles effects, uint seed, ILightningCameraTransform? nativeCamera = null)
     {
         _nativeCamera = nativeCamera;
@@ -289,10 +310,21 @@ public sealed class LightningDrawList
         }
     }
     // Keep Unity MultiplyPoint3x4's scalar operation order; SIMD Transform can round differently.
-    private static Vector3 Transform(Vector3 p, Matrix4x4 m) => new(
+    private static Vector3 Transform(Vector3 p, Matrix4x4 m)
+    {
+        return new(
         m.M11 * p.X + m.M21 * p.Y + m.M31 * p.Z + m.M41,
         m.M12 * p.X + m.M22 * p.Y + m.M32 * p.Z + m.M42,
         m.M13 * p.X + m.M23 * p.Y + m.M33 * p.Z + m.M43);
-    private static float Lerp(float a, float b, float fraction) => a + (b - a) * Math.Clamp(fraction, 0, 1);
-    private static Vector3 Tiles(FpPosition3 p) => new(p.X.Raw / 4096f, p.Y.Raw / 4096f, p.Z.Raw / 4096f);
+    }
+
+    private static float Lerp(float a, float b, float fraction)
+    {
+        return a + (b - a) * Math.Clamp(fraction, 0, 1);
+    }
+
+    private static Vector3 Tiles(FpPosition3 p)
+    {
+        return new(p.X.Raw / 4096f, p.Y.Raw / 4096f, p.Z.Raw / 4096f);
+    }
 }

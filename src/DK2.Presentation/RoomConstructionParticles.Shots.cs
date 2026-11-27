@@ -13,8 +13,18 @@ namespace DK2.Presentation;
 /// the effect where it was when the view rejects the candidate point.</summary>
 public readonly record struct ShotEffectAttachment(bool ShotExists, FpPosition3? Point, FpPosition3? Aim)
 {
-    public static ShotEffectAttachment Gone => default;
-    public static ShotEffectAttachment At(FpPosition3 point, FpPosition3 aim) => new(true, point, aim);
+    public static ShotEffectAttachment Gone
+    {
+        get
+        {
+            return default;
+        }
+    }
+
+    public static ShotEffectAttachment At(FpPosition3 point, FpPosition3 aim)
+    {
+        return new(true, point, aim);
+    }
 
     public static ShotEffectAttachment Resolve(WorldState world, WorldSteering navigation, ShotId id, float fraction)
     {

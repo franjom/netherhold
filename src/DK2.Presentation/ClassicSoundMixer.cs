@@ -70,22 +70,60 @@ public sealed class ClassicSoundMixer : IDisposable
     /// <summary>Raised when a request starts on a source, with the sample it plays (the speech line's too): the adapters' sound
     /// log (Godot's <c>--sound-log</c>). Nothing subscribes in play.</summary>
     public event Action<SoundRequest, ResolvedSound>? Started;
-    public bool MusicEnabled => _musicOn;
-    public bool SpeechEnabled => _speechOn;
+    public bool MusicEnabled
+    {
+        get
+        {
+            return _musicOn;
+        }
+    }
+
+    public bool SpeechEnabled
+    {
+        get
+        {
+            return _speechOn;
+        }
+    }
 
     /// <summary>The line playing now, or null; subtitles are timed by it (<see cref="ScriptedViewDirector.SetSpeechPlayback"/>).</summary>
-    public SoundRequest? CurrentSpeech => _speech.Engine.IsPlaying ? _speechQueue.Current : null;
+    public SoundRequest? CurrentSpeech
+    {
+        get
+        {
+            return _speech.Engine.IsPlaying ? _speechQueue.Current : null;
+        }
+    }
 
     /// <summary>Whether a line plays, decodes or waits its turn.</summary>
-    public bool SpeechBusy => _speechQueue.Current.HasValue || _speechQueue.WaitingCount > 0;
+    public bool SpeechBusy
+    {
+        get
+        {
+            return _speechQueue.Current.HasValue || _speechQueue.WaitingCount > 0;
+        }
+    }
 
     /// <summary>The camera's point in the view's space, which a placed source and a distance-volume request measure from;
     /// none plays a placed source at the listener at full volume.</summary>
     public Vector3? ListenerFocus { get; set; }
 
     /// <summary>While a speech line plays DK2 runs music and effects at two thirds of their settings, set when the line is asked and restored when it ends (<c>0x00568490</c>, <c>0x005681D0</c>).</summary>
-    private float MusicVolume => (_ducked ? SpeechDuck.Percent(_musicPercent) : _musicPercent) / 100f;
-    private float EffectVolume => (_ducked ? SpeechDuck.Percent(_effectPercent) : _effectPercent) / 100f;
+    private float MusicVolume
+    {
+        get
+        {
+            return (_ducked ? SpeechDuck.Percent(_musicPercent) : _musicPercent) / 100f;
+        }
+    }
+
+    private float EffectVolume
+    {
+        get
+        {
+            return (_ducked ? SpeechDuck.Percent(_effectPercent) : _effectPercent) / 100f;
+        }
+    }
 
     /// <summary>The level's music (group 343, 344 or 345 by its track) and ambience bed (group 341), each a linked group
     /// streamed segment by segment (docs/research/music.md).</summary>
@@ -274,7 +312,10 @@ public sealed class ClassicSoundMixer : IDisposable
         ApplyVolumes();
     }
 
-    private static float Clamp01(float value) => value < 0 ? 0 : value > 1 ? 1 : value;
+    private static float Clamp01(float value)
+    {
+        return value < 0 ? 0 : value > 1 ? 1 : value;
+    }
 
     private void ApplyVolumes()
     {
@@ -288,7 +329,10 @@ public sealed class ClassicSoundMixer : IDisposable
         _ambience?.Stream.SetVolume(_effectsOn ? _master * EffectVolume : 0);
     }
 
-    private float EffectGain(Source source) => _effectsOn ? _master * EffectVolume * source.AnchorGain * source.DistanceGain : 0;
+    private float EffectGain(Source source)
+    {
+        return _effectsOn ? _master * EffectVolume * source.AnchorGain * source.DistanceGain : 0;
+    }
 
     /// <summary>Plays and clears <paramref name="requests"/>.</summary>
     public void Play(SoundRequests requests)
@@ -466,10 +510,19 @@ public sealed class ClassicSoundMixer : IDisposable
     }
 
     /// <summary>Decodes the level's likely clips on workers while it loads (<see cref="LevelSoundPrefetch"/>).</summary>
-    public Task Prefetch(IReadOnlyCollection<SoundCategory> categories, int workers) => _decoder.Prefetch(categories, workers);
+    public Task Prefetch(IReadOnlyCollection<SoundCategory> categories, int workers)
+    {
+        return _decoder.Prefetch(categories, workers);
+    }
 
     /// <summary>Megabytes of 16-bit samples decoded so far, for the startup log.</summary>
-    public double DecodedMegabytes => _decoder.DecodedSamples * 2 / (1024d * 1024d);
+    public double DecodedMegabytes
+    {
+        get
+        {
+            return _decoder.DecodedSamples * 2 / (1024d * 1024d);
+        }
+    }
 
     private void Start(in SoundRequest request, ResolvedSound reference, PcmClip clip, SoundResolver resolver, SoundPriority priority)
     {
@@ -532,11 +585,16 @@ public sealed class ClassicSoundMixer : IDisposable
         source.PlaceEngine(offset);
     }
 
-    private SoundCategory Category(string name) => _categories.Of(name);
+    private SoundCategory Category(string name)
+    {
+        return _categories.Of(name);
+    }
 
     /// <summary>Whether a category has an ambient group (<c>0x2EA</c>) this player can play: one item with samples.</summary>
-    public bool HasAmbience(string category) =>
-        !string.IsNullOrEmpty(category) && Resolver(Category(category)).IsSingleItem(new SoundId(0x2EA));
+    public bool HasAmbience(string category)
+    {
+        return !string.IsNullOrEmpty(category) && Resolver(Category(category)).IsSingleItem(new SoundId(0x2EA));
+    }
 
     /// <summary>The service's ambient pass (<c>0x00609A30</c>): each emitter's category plays group <c>0x2EA</c> with its own voice,
     /// moved to the emitter's point while it plays and asked again once the sample ends (DK2's dead handle is dropped and the next

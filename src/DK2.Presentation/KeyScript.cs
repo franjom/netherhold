@@ -17,9 +17,18 @@ public sealed class KeyScript
 {
     private readonly KeyScriptKey[] _keys;
 
-    private KeyScript(KeyScriptKey[] keys) => _keys = keys;
+    private KeyScript(KeyScriptKey[] keys)
+    {
+        _keys = keys;
+    }
 
-    public IReadOnlyList<KeyScriptKey> Keys => _keys;
+    public IReadOnlyList<KeyScriptKey> Keys
+    {
+        get
+        {
+            return _keys;
+        }
+    }
 
     /// <summary>The script from its text, or null when the text is empty or any tap is malformed.</summary>
     public static KeyScript? Parse(string? text)

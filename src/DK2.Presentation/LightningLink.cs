@@ -56,7 +56,11 @@ public sealed class CreatureLightningVisual
     private GameTick? _lastChooserTick;
     private GameTick _expiresAt;
     private bool _crackle;
-    public void Ignite(GameTick tick) => _expiresAt = new(tick.Value + 20);
+    public void Ignite(GameTick tick)
+    {
+        _expiresAt = new(tick.Value + 20);
+    }
+
     public bool Choose(GameTick tick, bool animationInstalled)
     {
         if (_lastChooserTick != tick)

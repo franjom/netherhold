@@ -28,11 +28,22 @@ public readonly struct ViewFrustum
     }
 
     /// <summary>The plane at <paramref name="index"/>, 0 to 5 in the order above.</summary>
-    public Plane this[int index] => index switch
+    public Plane this[int index]
     {
-        0 => _left, 1 => _right, 2 => _bottom, 3 => _top, 4 => _near, 5 => _far,
-        _ => throw new ArgumentOutOfRangeException(nameof(index)),
-    };
+        get
+        {
+            return index switch
+            {
+                0 => _left,
+                1 => _right,
+                2 => _bottom,
+                3 => _top,
+                4 => _near,
+                5 => _far,
+                _ => throw new ArgumentOutOfRangeException(nameof(index)),
+            };
+        }
+    }
 
     /// <summary>The planes of a view-projection (Gribb and Hartmann: the fourth row plus or minus each other row),
     /// normalised.</summary>
@@ -72,9 +83,11 @@ public readonly struct ViewFrustum
     }
 
     /// <summary>True when one plane has all three points more than <see cref="CullMargin"/> outside it.</summary>
-    public bool Excludes(Vector3 a, Vector3 b, Vector3 c) =>
-        Outside(_left, a, b, c) || Outside(_right, a, b, c) || Outside(_bottom, a, b, c)
+    public bool Excludes(Vector3 a, Vector3 b, Vector3 c)
+    {
+        return Outside(_left, a, b, c) || Outside(_right, a, b, c) || Outside(_bottom, a, b, c)
         || Outside(_top, a, b, c) || Outside(_near, a, b, c) || Outside(_far, a, b, c);
+    }
 
     /// <summary>True when the box lies wholly outside one plane: the centre's distance plus the extents projected on the
     /// plane's normal below zero (Unity's <c>GeometryUtility.TestPlanesAABB</c> test; a box touching a plane is kept, our
@@ -96,17 +109,25 @@ public readonly struct ViewFrustum
 
     /// <summary>Unity's <c>Matrix4x4 ==</c> on <see cref="ViewProjection"/>: each column's squared difference below
     /// 1e-10 (<c>Vector4 ==</c>).</summary>
-    public bool SameView(in ViewFrustum other) => ApproximatelyEqual(ViewProjection, other.ViewProjection);
+    public bool SameView(in ViewFrustum other)
+    {
+        return ApproximatelyEqual(ViewProjection, other.ViewProjection);
+    }
 
     /// <summary>Unity's <c>Matrix4x4 ==</c>, column by column.</summary>
-    public static bool ApproximatelyEqual(in Matrix4x4 a, in Matrix4x4 b) =>
-        Close(a.M11 - b.M11, a.M21 - b.M21, a.M31 - b.M31, a.M41 - b.M41)
+    public static bool ApproximatelyEqual(in Matrix4x4 a, in Matrix4x4 b)
+    {
+        return Close(a.M11 - b.M11, a.M21 - b.M21, a.M31 - b.M31, a.M41 - b.M41)
         && Close(a.M12 - b.M12, a.M22 - b.M22, a.M32 - b.M32, a.M42 - b.M42)
         && Close(a.M13 - b.M13, a.M23 - b.M23, a.M33 - b.M33, a.M43 - b.M43)
         && Close(a.M14 - b.M14, a.M24 - b.M24, a.M34 - b.M34, a.M44 - b.M44);
+    }
 
     // Unity's Vector4 ==: the squared length of the difference below kEpsilon squared.
-    private static bool Close(float x, float y, float z, float w) => x * x + y * y + z * z + w * w < 9.99999944E-11f;
+    private static bool Close(float x, float y, float z, float w)
+    {
+        return x * x + y * y + z * z + w * w < 9.99999944E-11f;
+    }
 
     private static bool Outside(in Plane plane, Vector3 a, Vector3 b, Vector3 c)
     {

@@ -37,8 +37,10 @@ public sealed class CampaignProfileStore
 
     /// <summary>Whether entering the front end re-applies the won map's branch row. Ours repairs only on the
     /// campaign-results page; see 0x00534F70's record for the return states DK2 reaches it from.</summary>
-    public static bool RepairsAfterLevel(GameSessionMode mode, FrontEndPage returnPage) =>
-        mode == GameSessionMode.FrontEnd && returnPage == FrontEndPage.CampaignResults;
+    public static bool RepairsAfterLevel(GameSessionMode mode, FrontEndPage returnPage)
+    {
+        return mode == GameSessionMode.FrontEnd && returnPage == FrontEndPage.CampaignResults;
+    }
 
     /// <summary>Reads the file, or creates it from the import; opens a map if none is open, repairs after a level
     /// (<see cref="RepairsAfterLevel"/>), writes the file back only if either changed it, and samples the moon.</summary>

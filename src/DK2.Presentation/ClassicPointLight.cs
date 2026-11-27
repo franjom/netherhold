@@ -28,19 +28,25 @@ public readonly record struct ClassicPointLight
     public ClassicLightFlags Flags { get; }
 
     public static ClassicPointLight FromTerrain(TilePos tile, Fp32 height, TerrainLightColour colour)
-        => new(new Vector3(tile.X + .5f, height.Raw / (float)Fp32.One, -tile.Y - .5f),
-            new Vector3(colour.Red / 255f, colour.Green / 255f, colour.Blue / 255f),
-            intensity: 1, radius: 4608f / Fp32.One, ClassicLightFlags.Terrain);
+    {
+        return new(new Vector3(tile.X + .5f, height.Raw / (float)Fp32.One, -tile.Y - .5f),
+                new Vector3(colour.Red / 255f, colour.Green / 255f, colour.Blue / 255f),
+                intensity: 1, radius: 4608f / Fp32.One, ClassicLightFlags.Terrain);
+    }
 
     public static ClassicPointLight FromPortal(TilePos tile, TerrainLightColour colour, bool cheapLighting = false)
-        => new(new Vector3(tile.X + .5f, 2000f / Fp32.One, -tile.Y - .5f),
-            new Vector3(colour.Red / 255f, colour.Green / 255f, colour.Blue / 255f),
-            intensity: 1, radius: 0x2780 / (float)Fp32.One,
-            cheapLighting ? ClassicLightFlags.CheapObject : ClassicLightFlags.NormalObject);
+    {
+        return new(new Vector3(tile.X + .5f, 2000f / Fp32.One, -tile.Y - .5f),
+                new Vector3(colour.Red / 255f, colour.Green / 255f, colour.Blue / 255f),
+                intensity: 1, radius: 0x2780 / (float)Fp32.One,
+                cheapLighting ? ClassicLightFlags.CheapObject : ClassicLightFlags.NormalObject);
+    }
 
     /// <summary>The existing vertex-light reference uses the cheap torch classification.</summary>
     public static ClassicPointLight FromTorch(in TorchView torch)
-        => FromTorch(torch, ClassicLightFlags.CheapTorch);
+    {
+        return FromTorch(torch, ClassicLightFlags.CheapTorch);
+    }
 
     public static ClassicPointLight FromTorch(in TorchView torch, ClassicLightFlags flags)
     {
@@ -75,8 +81,10 @@ public readonly record struct ClassicPointLight
     /// intensity 0x80), at the instance's point, its colour scaled by the fade ramp's
     /// <paramref name="effect"/> step as <c>0x0043A2E0</c> scales it (base × step / steps).</summary>
     public static ClassicPointLight? FromEffect(in EffectLightView effect, bool cheapLighting = false)
-        => FromDescriptor(effect.Light, effect.Owner, effect.PosX, effect.PosY, effect.Height,
-            intensity: 128, effect.RampStep, effect.RampSteps, cheapLighting);
+    {
+        return FromDescriptor(effect.Light, effect.Owner, effect.PosX, effect.PosY, effect.Height,
+                intensity: 128, effect.RampStep, effect.RampSteps, cheapLighting);
+    }
 
     /// <summary>The Hand's light, startup handle <c>+0x33E</c>: made by <c>0x00447D50</c> through bridge
     /// slot <c>+0xA4</c> with RGB 511, intensity 255 and radius <c>0x1C00</c>, then moved each

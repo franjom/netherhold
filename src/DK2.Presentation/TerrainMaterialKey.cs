@@ -34,7 +34,13 @@ public readonly record struct TerrainMaterialKey(
     ClassicMaterialRecipe Recipe, TerrainMaterialVariant Variant, TerrainLightColour Tint = default, byte FogOpacity = 0)
 {
     /// <summary>The additive pass drawn a second time over a tagged or red-highlighted piece.</summary>
-    public bool IsOverlay => Variant is TerrainMaterialVariant.TagOverlay or TerrainMaterialVariant.RedTagOverlay;
+    public bool IsOverlay
+    {
+        get
+        {
+            return Variant is TerrainMaterialVariant.TagOverlay or TerrainMaterialVariant.RedTagOverlay;
+        }
+    }
 
     /// <summary>The key a piece material takes on a tile: the sight fog's faded twin first, then the red highlight's
     /// and the tag's lit twins, then the terrain light's tinted one. Added light leaves an additive recipe as it is
@@ -68,6 +74,8 @@ public readonly record struct TerrainMaterialKey(
     }
 
     /// <summary>The additive overlay drawn again over a tagged (<paramref name="red"/> false) or red-highlighted piece.</summary>
-    public static TerrainMaterialKey Overlay(bool red) =>
-        new(default, red ? TerrainMaterialVariant.RedTagOverlay : TerrainMaterialVariant.TagOverlay);
+    public static TerrainMaterialKey Overlay(bool red)
+    {
+        return new(default, red ? TerrainMaterialVariant.RedTagOverlay : TerrainMaterialVariant.TagOverlay);
+    }
 }

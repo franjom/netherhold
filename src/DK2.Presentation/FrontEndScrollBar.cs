@@ -28,17 +28,28 @@ public sealed class FrontEndScrollBar
     private ScrollBarPart _held;
     private bool _wasDown;
 
-    public FrontEndScrollBar(FrontEndRect rect) => Rect = rect;
+    public FrontEndScrollBar(FrontEndRect rect)
+    {
+        Rect = rect;
+    }
 
     /// <summary>0x0052A0D0: right of the list by its record byte <c>+5</c>, the list's height,
     /// <see cref="TextScrollBar.Width"/> wide; 0x00552420 may then set another width and height, keeping
     /// the place.</summary>
-    public static FrontEndScrollBar Beside(FrontEndRect list, int gap, int width = TextScrollBar.Width, int height = 0) =>
-        new(new FrontEndRect(list.X + list.Width + gap, list.Y, width, height > 0 ? height : list.Height));
+    public static FrontEndScrollBar Beside(FrontEndRect list, int gap, int width = TextScrollBar.Width, int height = 0)
+    {
+        return new(new FrontEndRect(list.X + list.Width + gap, list.Y, width, height > 0 ? height : list.Height));
+    }
 
     public FrontEndRect Rect { get; }
     public TextScrollBar Bar { get; } = new();
-    public FrontEndRect Screen => ToScreen(Rect);
+    public FrontEndRect Screen
+    {
+        get
+        {
+            return ToScreen(Rect);
+        }
+    }
 
     /// <summary>The thumb (0x00529160), in 640 × 480 units.</summary>
     public FrontEndRect ThumbRect()

@@ -66,7 +66,10 @@ public sealed class CreatureOverviewHud
         return images;
     }
 
-    private float X(float value) => value - BottomPanelLayout.Left + _left;
+    private float X(float value)
+    {
+        return value - BottomPanelLayout.Left + _left;
+    }
 
     /// <param name="screenPixelWidth">The screen's width in pixels: under 640 the counts use the low-res digits.</param>
     /// <param name="area">The Creatures panel's place (BottomPanelHud's panel area), null while it is closed.</param>
@@ -182,15 +185,33 @@ public sealed class CreatureOverviewHud
         Quad(frame, ModeFrames[(int)Mode], new HudRect(X(840), 1612, 64, 264));
     }
 
-    private int Pages => Math.Max(1, (Math.Max(0, _view.Entries.Count - 1) + _columns - 1) / _columns);
+    private int Pages
+    {
+        get
+        {
+            return Math.Max(1, (Math.Max(0, _view.Entries.Count - 1) + _columns - 1) / _columns);
+        }
+    }
 
     /// <summary>Column 0 is the first entry; the others page through the rest.</summary>
-    private int Entry(int column) => column == 0 ? 0 : 1 + _page * _columns + column - 1;
+    private int Entry(int column)
+    {
+        return column == 0 ? 0 : 1 + _page * _columns + column - 1;
+    }
 
     /// <summary>An ordinary column's widgets stack rows of 244 / 64 / 84 / 84 units by mode (0x00418BC0).</summary>
-    private int RowStep => Mode == CreatureOverviewMode.Jobs ? 64 : 84;
+    private int RowStep
+    {
+        get
+        {
+            return Mode == CreatureOverviewMode.Jobs ? 64 : 84;
+        }
+    }
 
-    private int Row(float y) => Math.Min(CreatureOverview.Rows(Mode) - 1, Math.Max(0, (int)((y - 1616) / RowStep)));
+    private int Row(float y)
+    {
+        return Math.Min(CreatureOverview.Rows(Mode) - 1, Math.Max(0, (int)((y - 1616) / RowStep)));
+    }
 
     private void Digits(HudFrame frame, int value, float centre, float top)
     {
@@ -210,14 +231,27 @@ public sealed class CreatureOverviewHud
         }
     }
 
-    private static void Quad(HudFrame frame, HudImage image, HudRect rect) =>
+    private static void Quad(HudFrame frame, HudImage image, HudRect rect)
+    {
         frame.Add(new HudDraw(HudDrawKind.Quad, image, rect, HudColor.White));
+    }
 
     // Menu 6 sits at (472,1600); its widget rectangles are local (records 0x00690078..0x00690348).
-    private HudRect ModeRect(int mode) => new(X(472 + 220), 1600 + 16 + 64 * mode, 44, 52);
-    private HudRect WorkerCountRect(int row) => new(X(472 + 72), 1600 + 12 + 64 * row, 120, 64);
-    private HudRect HitRect(int column) => column == 0 ? new HudRect(X(544), 1612, 120, 256)
-        : new HudRect(X(924 + (column - 1) * 136), 1616, 108, 244);
+    private HudRect ModeRect(int mode)
+    {
+        return new(X(472 + 220), 1600 + 16 + 64 * mode, 44, 52);
+    }
+
+    private HudRect WorkerCountRect(int row)
+    {
+        return new(X(472 + 72), 1600 + 12 + 64 * row, 120, 64);
+    }
+
+    private HudRect HitRect(int column)
+    {
+        return column == 0 ? new HudRect(X(544), 1612, 120, 256)
+            : new HudRect(X(924 + (column - 1) * 136), 1616, 108, 244);
+    }
 
     /// <summary>The hovered widget's text id (record +0x30): the worker row icons 2308..2314 and the mode
     /// selectors 2316..2322; 0 for none.</summary>
@@ -274,7 +308,10 @@ public sealed class CreatureOverviewHud
         return null;
     }
 
-    public bool ContainsPointer(float x, float y) => _visible && new HudRect(X(472), 1600, _areaWidth, 320).Contains(x, y);
+    public bool ContainsPointer(float x, float y)
+    {
+        return _visible && new HudRect(X(472), 1600, _areaWidth, 320).Contains(x, y);
+    }
 
     /// <summary>A press: a mode button or a page strip changes the panel and returns false; a worker row or a
     /// column returns the pickup or focus it asks for. Of the modifier keys held, Shift alone picks the lowest level and

@@ -18,8 +18,10 @@ public static class PartyPopSound
 {
     public const uint EventId = 0x344;
 
-    public static SoundRequest? For(in ViewEffectRequest effect) =>
-        effect.EffectId.Value != CasinoJackpotRules.PartyEffectId ? null
+    public static SoundRequest? For(in ViewEffectRequest effect)
+    {
+        return effect.EffectId.Value != CasinoJackpotRules.PartyEffectId ? null
             : new SoundRequest(new SoundCategory("effects"), new SoundId(EventId),
                 new Vector3(effect.Position.X.Raw / 4096f, effect.Position.Z.Raw / 4096f, -effect.Position.Y.Raw / 4096f));
+    }
 }

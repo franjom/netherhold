@@ -38,49 +38,116 @@ public readonly struct TerrainPieces : IEquatable<TerrainPieces>
 
     private readonly uint _bits;
 
-    private TerrainPieces(uint bits) => _bits = bits;
+    private TerrainPieces(uint bits)
+    {
+        _bits = bits;
+    }
 
-    public bool IsEmpty => _bits == 0;
+    public bool IsEmpty
+    {
+        get
+        {
+            return _bits == 0;
+        }
+    }
 
-    public bool HasFace(int side) =>
-        side is >= 0 and <= 3 ? (_bits & (1u << side)) != 0 : throw new ArgumentOutOfRangeException(nameof(side));
+    public bool HasFace(int side)
+    {
+        return side is >= 0 and <= 3 ? (_bits & (1u << side)) != 0 : throw new ArgumentOutOfRangeException(nameof(side));
+    }
 
-    public bool HasTop => (_bits & TopBit) != 0;
+    public bool HasTop
+    {
+        get
+        {
+            return (_bits & TopBit) != 0;
+        }
+    }
 
-    public bool HasFloor => (_bits & FloorBit) != 0;
+    public bool HasFloor
+    {
+        get
+        {
+            return (_bits & FloorBit) != 0;
+        }
+    }
 
-    public QuarterKind Quarters => (QuarterKind)((_bits >> KindShift) & 3);
+    public QuarterKind Quarters
+    {
+        get
+        {
+            return (QuarterKind)((_bits >> KindShift) & 3);
+        }
+    }
 
     /// <summary>The player set the quarters come from: the owner's id − 1; 0 for
     /// <see cref="QuarterKind.HeroLair"/>, which has one set.</summary>
-    public int QuarterSet => (int)((_bits >> SetShift) & 7);
+    public int QuarterSet
+    {
+        get
+        {
+            return (int)((_bits >> SetShift) & 7);
+        }
+    }
 
     /// <summary>Quadrant <paramref name="quadrant"/>'s piece, 0..4.</summary>
-    public int QuarterPiece(int quadrant) => quadrant is >= 0 and <= 3
+    public int QuarterPiece(int quadrant)
+    {
+        return quadrant is >= 0 and <= 3
         ? (int)((_bits >> (PieceShift + (3 * quadrant))) & 7)
         : throw new ArgumentOutOfRangeException(nameof(quadrant));
+    }
 
     /// <summary>The rotation a quadrant's piece is drawn at (fixed per quadrant).</summary>
-    public static int QuarterRotation(int quadrant) => QuadrantRotations[quadrant];
+    public static int QuarterRotation(int quadrant)
+    {
+        return QuadrantRotations[quadrant];
+    }
 
-    internal TerrainPieces WithFace(int side) => new(_bits | (1u << side));
+    internal TerrainPieces WithFace(int side)
+    {
+        return new(_bits | (1u << side));
+    }
 
-    internal TerrainPieces WithTop() => new(_bits | TopBit);
+    internal TerrainPieces WithTop()
+    {
+        return new(_bits | TopBit);
+    }
 
-    internal TerrainPieces WithFloor() => new(_bits | FloorBit);
+    internal TerrainPieces WithFloor()
+    {
+        return new(_bits | FloorBit);
+    }
 
-    internal TerrainPieces WithQuarters(QuarterKind kind, int set, int pieces) =>
-        new(_bits | ((uint)kind << KindShift) | ((uint)pieces << PieceShift) | ((uint)set << SetShift));
+    internal TerrainPieces WithQuarters(QuarterKind kind, int set, int pieces)
+    {
+        return new(_bits | ((uint)kind << KindShift) | ((uint)pieces << PieceShift) | ((uint)set << SetShift));
+    }
 
-    public bool Equals(TerrainPieces other) => _bits == other._bits;
+    public bool Equals(TerrainPieces other)
+    {
+        return _bits == other._bits;
+    }
 
-    public override bool Equals(object? obj) => obj is TerrainPieces other && Equals(other);
+    public override bool Equals(object? obj)
+    {
+        return obj is TerrainPieces other && Equals(other);
+    }
 
-    public override int GetHashCode() => (int)_bits;
+    public override int GetHashCode()
+    {
+        return (int)_bits;
+    }
 
-    public static bool operator ==(TerrainPieces left, TerrainPieces right) => left.Equals(right);
+    public static bool operator ==(TerrainPieces left, TerrainPieces right)
+    {
+        return left.Equals(right);
+    }
 
-    public static bool operator !=(TerrainPieces left, TerrainPieces right) => !left.Equals(right);
+    public static bool operator !=(TerrainPieces left, TerrainPieces right)
+    {
+        return !left.Equals(right);
+    }
 }
 
 /// <summary>A terrain's piece keys (<see cref="AssetCatalogue.ForTerrainPieces"/>), one shared
@@ -135,18 +202,29 @@ public sealed class TerrainPieceKeys
     public AssetRef TopTagged { get; }
     public AssetRef Floor { get; }
 
-    public AssetRef Quarter(int set, int piece) => _quarters[(set * AssetCatalogue.ClaimedPieces) + piece];
+    public AssetRef Quarter(int set, int piece)
+    {
+        return _quarters[(set * AssetCatalogue.ClaimedPieces) + piece];
+    }
 
     /// <summary>The Hero Lair's floor quarter <paramref name="piece"/> (0..4); empty for any other terrain.</summary>
-    public AssetRef HeroLairQuarter(int piece) => piece >= 0 && piece < _heroLair.Length ? _heroLair[piece] : default;
+    public AssetRef HeroLairQuarter(int piece)
+    {
+        return piece >= 0 && piece < _heroLair.Length ? _heroLair[piece] : default;
+    }
 
     /// <summary>A hero-owned wall's face piece 4..8 (<see cref="TileView.Walls"/>); empty otherwise.</summary>
-    public AssetRef HeroFace(int piece) =>
-        piece >= AssetCatalogue.FirstHeroWallPiece && piece < AssetCatalogue.FirstHeroWallPiece + _heroFaces.Length
+    public AssetRef HeroFace(int piece)
+    {
+        return piece >= AssetCatalogue.FirstHeroWallPiece && piece < AssetCatalogue.FirstHeroWallPiece + _heroFaces.Length
             ? _heroFaces[piece - AssetCatalogue.FirstHeroWallPiece] : default;
+    }
 
     /// <summary>A water or lava terrain's bed piece 0..7.</summary>
-    public AssetRef Bed(int k) => _beds[k];
+    public AssetRef Bed(int k)
+    {
+        return _beds[k];
+    }
 
     /// <summary>Every key the set can draw, for decoding ahead; not <see cref="TopTagged"/>, which
     /// nothing draws. Keys the install lacks are among them.</summary>

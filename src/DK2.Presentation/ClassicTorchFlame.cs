@@ -11,13 +11,23 @@ namespace DK2.Presentation;
 /// <summary>The common wall-flame sprite, separate from the mounted torch model.</summary>
 public static class ClassicTorchFlame
 {
-    public static AssetRef Asset => AssetRef.ForObject("wall_torch", AssetKind.Effect, "flame");
+    public static AssetRef Asset
+    {
+        get
+        {
+            return AssetRef.ForObject("wall_torch", AssetKind.Effect, "flame");
+        }
+    }
+
     public const int SizeRaw = 1024;
 
-    public static FpPosition3 Position(in TorchView torch) => new(
+    public static FpPosition3 Position(in TorchView torch)
+    {
+        return new(
         new Fp32(torch.MeshPosX + (torch.Yaw == 0 ? 512 : torch.Yaw == 1024 ? -512 : 0)),
         new Fp32(torch.MeshPosY + (torch.Yaw == 512 ? 512 : torch.Yaw == 1536 ? -512 : 0)),
         new Fp32(torch.Height + 1200));
+    }
 
     /// <summary>The flame's centre in the renderers' frame: <see cref="Position"/> bent by the lattice of the torch's wall
     /// (<see cref="TerrainLattice.Deform"/>, in DK2's frame, z down) when there is one.</summary>
@@ -53,8 +63,14 @@ public sealed class ClassicTorchFlamePhases
     }
 
     /// <summary>Forgets a gone torch; lit again, it draws a new offset.</summary>
-    public bool Remove(int floorTileIndex) => _offsets.Remove(floorTileIndex);
+    public bool Remove(int floorTileIndex)
+    {
+        return _offsets.Remove(floorTileIndex);
+    }
 
     /// <summary>Forgets every torch; the generator runs on, so torches seen again draw new offsets.</summary>
-    public void Clear() => _offsets.Clear();
+    public void Clear()
+    {
+        _offsets.Clear();
+    }
 }

@@ -14,7 +14,10 @@ public static class FrontEndMoviePaths
 {
     public const string BullfrogIntro = "Data/Movies/BullfrogIntro.tgq", Intro = "Data/Movies/Intro.tgq";
 
-    public static string Of(FrontEndMovie movie) => movie == FrontEndMovie.BullfrogIntro ? BullfrogIntro : Intro;
+    public static string Of(FrontEndMovie movie)
+    {
+        return movie == FrontEndMovie.BullfrogIntro ? BullfrogIntro : Intro;
+    }
 }
 
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/front-end-menus.md#2-start-up-sequence")]
@@ -48,7 +51,10 @@ public sealed class FrontEndStartup
             Stage = FrontEndStartupStage.Done;
         }
     }
-    public void Skip() => MovieFinished();
+    public void Skip()
+    {
+        MovieFinished();
+    }
 }
 
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/front-end-menus.md#2-start-up-sequence")]
@@ -56,7 +62,11 @@ public sealed class FrontEndAttract
 {
     private TimeSpan _now, _lastInput;
     private FrontEndMovie _next;
-    public void Reset(TimeSpan now) => _lastInput = now;
+    public void Reset(TimeSpan now)
+    {
+        _lastInput = now;
+    }
+
     public FrontEndMovie? Update(TimeSpan now, FrontEndPage page, bool pointerMoved, bool keyPressed = false)
     {
         if (now < _now)

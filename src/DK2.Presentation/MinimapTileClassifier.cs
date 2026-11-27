@@ -76,5 +76,8 @@ public static class MinimapTileClassifier
         return new MinimapColourClass((ushort)(TileWorkRules.HealsIntoAnother(terrain) ? 2 : 0));
     }
 
-    private static MinimapColourClass OwnedClass(int bank, PlayerId owner) => new((ushort)(bank + owner.Value));
+    private static MinimapColourClass OwnedClass(int bank, PlayerId owner)
+    {
+        return new((ushort)(bank + owner.Value));
+    }
 }

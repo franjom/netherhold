@@ -73,7 +73,10 @@ public sealed class SceneFrame
     private readonly Dictionary<CreatureId, CreatureView> _poses = new();
     private readonly GemSparkleGate _gemSparkles = new();
 
-    public SceneFrame(ISceneFrameHost host) => _host = host ?? throw new ArgumentNullException(nameof(host));
+    public SceneFrame(ISceneFrameHost host)
+    {
+        _host = host ?? throw new ArgumentNullException(nameof(host));
+    }
 
     /// <summary>The draw clock in game seconds as last set (<see cref="SetFrameTime"/>, <see cref="Draw"/>).</summary>
     public double DrawSeconds { get; private set; }
@@ -85,10 +88,19 @@ public sealed class SceneFrame
     public CreatureId HiddenCreature { get; set; }
 
     /// <summary>The drawn creatures' last views, in the order a frame draws them.</summary>
-    public SceneCreatures Creatures => new(_poses);
+    public SceneCreatures Creatures
+    {
+        get
+        {
+            return new(_poses);
+        }
+    }
 
     /// <summary>The draw clock for the clips the coming present starts.</summary>
-    public void SetFrameTime(GameTick tick, float fraction) => DrawSeconds = PoseInterpolator.DrawSeconds(tick, fraction);
+    public void SetFrameTime(GameTick tick, float fraction)
+    {
+        DrawSeconds = PoseInterpolator.DrawSeconds(tick, fraction);
+    }
 
     /// <summary>A creature the scene has a model for; one already tracked keeps its head.</summary>
     public void Add(CreatureId creature, in CreatureView pose)
@@ -98,7 +110,10 @@ public sealed class SceneFrame
     }
 
     /// <summary>A drawn creature's new view.</summary>
-    public void Set(CreatureId creature, in CreatureView pose) => _poses[creature] = pose;
+    public void Set(CreatureId creature, in CreatureView pose)
+    {
+        _poses[creature] = pose;
+    }
 
     /// <summary>A creature no longer drawn; <paramref name="keepHead"/> keeps its head for a new look of the same creature,
     /// so a tied effect is not let go.</summary>
@@ -178,13 +193,34 @@ public readonly struct SceneCreatures
 {
     private readonly Dictionary<CreatureId, CreatureView> _poses;
 
-    internal SceneCreatures(Dictionary<CreatureId, CreatureView> poses) => _poses = poses;
+    internal SceneCreatures(Dictionary<CreatureId, CreatureView> poses)
+    {
+        _poses = poses;
+    }
 
-    public int Count => _poses.Count;
+    public int Count
+    {
+        get
+        {
+            return _poses.Count;
+        }
+    }
 
-    public CreatureView this[CreatureId creature] => _poses[creature];
+    public CreatureView this[CreatureId creature]
+    {
+        get
+        {
+            return _poses[creature];
+        }
+    }
 
-    public bool TryGetValue(CreatureId creature, out CreatureView pose) => _poses.TryGetValue(creature, out pose);
+    public bool TryGetValue(CreatureId creature, out CreatureView pose)
+    {
+        return _poses.TryGetValue(creature, out pose);
+    }
 
-    public Dictionary<CreatureId, CreatureView>.Enumerator GetEnumerator() => _poses.GetEnumerator();
+    public Dictionary<CreatureId, CreatureView>.Enumerator GetEnumerator()
+    {
+        return _poses.GetEnumerator();
+    }
 }

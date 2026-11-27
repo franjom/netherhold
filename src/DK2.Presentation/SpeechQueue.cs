@@ -13,7 +13,14 @@ public sealed class SpeechQueue
     private readonly Queue<SoundRequest> _waiting = new();
     private long? _lastEndedMilliseconds;
     public SoundRequest? Current { get; private set; }
-    public int WaitingCount => _waiting.Count;
+    public int WaitingCount
+    {
+        get
+        {
+            return _waiting.Count;
+        }
+    }
+
     public bool Enqueue(SoundRequest line)
     {
         if (line.Id.Value == 0 || string.IsNullOrEmpty(line.Category.Name))
@@ -29,7 +36,11 @@ public sealed class SpeechQueue
         _waiting.Enqueue(line);
         return true;
     }
-    public void ClearWaiting() => _waiting.Clear();
+    public void ClearWaiting()
+    {
+        _waiting.Clear();
+    }
+
     public void Stop(long nowMilliseconds)
     {
         _waiting.Clear(); Current = null; _lastEndedMilliseconds = nowMilliseconds;

@@ -181,7 +181,13 @@ public sealed class FrameInputJournal
     /// <summary>From the end record; null when the journal was cut short.</summary>
     public long? FramesWritten { get; }
     public string? EndReason { get; }
-    public bool Truncated => FramesWritten is null;
+    public bool Truncated
+    {
+        get
+        {
+            return FramesWritten is null;
+        }
+    }
 
     /// <summary>Reads every whole record. Fails on a wrong magic or format version, a cut-off
     /// header and an unknown record or command; a record cut off by the end of the stream ends the read.</summary>
@@ -305,34 +311,37 @@ public sealed class FrameInputJournal
         }
     }
 
-    private static FrameInputRecord Decode(BinaryReader r) => new()
+    private static FrameInputRecord Decode(BinaryReader r)
     {
-        Frame = r.ReadInt64(),
-        UnscaledDeltaSeconds = r.ReadDouble(),
-        Mode = (FrameInputMode)r.ReadByte(),
-        TickAtStart = r.ReadBoolean() ? new GameTick(r.ReadInt64()) : null,
-        TicksRun = r.ReadInt32(),
-        CommandsHandedToTick = r.ReadInt32(),
-        TickDebtAfter = r.ReadDouble(),
-        PointerX = r.ReadSingle(),
-        PointerY = r.ReadSingle(),
-        ButtonsHeld = (FrameMouseButtons)r.ReadByte(),
-        ButtonsDown = (FrameMouseButtons)r.ReadByte(),
-        ButtonsUp = (FrameMouseButtons)r.ReadByte(),
-        WheelX = r.ReadSingle(),
-        WheelY = r.ReadSingle(),
-        PanHorizontal = r.ReadSingle(),
-        PanVertical = r.ReadSingle(),
-        TypedText = r.ReadString(),
-        KeysDown = ReadKeys(r),
-        KeysUp = ReadKeys(r),
-        KeysHeld = ReadKeys(r),
-        Hud = (FrameHudFlags)r.ReadByte(),
-        ActiveTool = (PlayerToolMode)r.ReadByte(),
-        Intents = Repeat(r, IntentMinBytes, ReadIntent),
-        Commands = Repeat(r, 1 + CommandCodec.MinBytes,
+        return new()
+        {
+            Frame = r.ReadInt64(),
+            UnscaledDeltaSeconds = r.ReadDouble(),
+            Mode = (FrameInputMode)r.ReadByte(),
+            TickAtStart = r.ReadBoolean() ? new GameTick(r.ReadInt64()) : null,
+            TicksRun = r.ReadInt32(),
+            CommandsHandedToTick = r.ReadInt32(),
+            TickDebtAfter = r.ReadDouble(),
+            PointerX = r.ReadSingle(),
+            PointerY = r.ReadSingle(),
+            ButtonsHeld = (FrameMouseButtons)r.ReadByte(),
+            ButtonsDown = (FrameMouseButtons)r.ReadByte(),
+            ButtonsUp = (FrameMouseButtons)r.ReadByte(),
+            WheelX = r.ReadSingle(),
+            WheelY = r.ReadSingle(),
+            PanHorizontal = r.ReadSingle(),
+            PanVertical = r.ReadSingle(),
+            TypedText = r.ReadString(),
+            KeysDown = ReadKeys(r),
+            KeysUp = ReadKeys(r),
+            KeysHeld = ReadKeys(r),
+            Hud = (FrameHudFlags)r.ReadByte(),
+            ActiveTool = (PlayerToolMode)r.ReadByte(),
+            Intents = Repeat(r, IntentMinBytes, ReadIntent),
+            Commands = Repeat(r, 1 + CommandCodec.MinBytes,
             b => new QueuedCommand((CommandQueuedWhen)b.ReadByte(), CommandCodec.Read(b))),
-    };
+        };
+    }
 
     private static void Keys(BinaryWriter w, IReadOnlyList<HostKey> keys)
     {
@@ -343,7 +352,10 @@ public sealed class FrameInputJournal
         }
     }
 
-    private static HostKey[] ReadKeys(BinaryReader r) => Repeat(r, sizeof(int), b => new HostKey(b.ReadInt32()));
+    private static HostKey[] ReadKeys(BinaryReader r)
+    {
+        return Repeat(r, sizeof(int), b => new HostKey(b.ReadInt32()));
+    }
 
     /// <summary>Player, tool, tile flag, primary button and room: the fields every intent writes.</summary>
     private const int IntentMinBytes = 5;

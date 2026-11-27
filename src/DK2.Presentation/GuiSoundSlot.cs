@@ -16,25 +16,31 @@ public enum GuiSoundSlot : byte
 public static class GuiSoundSlots
 {
     /// <summary>The category the table names for the slot; <see cref="GuiSoundSlot.None"/> has none, so a request in it plays nothing.</summary>
-    public static SoundCategory CategoryOf(GuiSoundSlot slot) => slot switch
+    public static SoundCategory CategoryOf(GuiSoundSlot slot)
     {
-        GuiSoundSlot.TabRooms => new SoundCategory("gui_button_tab_rooms"),
-        GuiSoundSlot.TabSpells => new SoundCategory("gui_button_tab_spells"),
-        GuiSoundSlot.TabWorkshop => new SoundCategory("gui_button_tab_workshop"),
-        GuiSoundSlot.TabCreature => new SoundCategory("gui_button_tab_creature"),
-        GuiSoundSlot.Icon => new SoundCategory("gui_button_icon"),
-        GuiSoundSlot.IconLarge => new SoundCategory("gui_button_icon_large"),
-        GuiSoundSlot.Size => new SoundCategory("gui_button_size"),
-        _ => SoundCategory.None,
-    };
+        return slot switch
+        {
+            GuiSoundSlot.TabRooms => new SoundCategory("gui_button_tab_rooms"),
+            GuiSoundSlot.TabSpells => new SoundCategory("gui_button_tab_spells"),
+            GuiSoundSlot.TabWorkshop => new SoundCategory("gui_button_tab_workshop"),
+            GuiSoundSlot.TabCreature => new SoundCategory("gui_button_tab_creature"),
+            GuiSoundSlot.Icon => new SoundCategory("gui_button_icon"),
+            GuiSoundSlot.IconLarge => new SoundCategory("gui_button_icon_large"),
+            GuiSoundSlot.Size => new SoundCategory("gui_button_size"),
+            _ => SoundCategory.None,
+        };
+    }
 
     /// <summary>The tab of a bottom-panel category (tabs carry slots 1 to 4: Rooms, Spells, Workshop, Creatures).</summary>
-    public static GuiSoundSlot OfTab(BottomPanelCategory category) => category switch
+    public static GuiSoundSlot OfTab(BottomPanelCategory category)
     {
-        BottomPanelCategory.Rooms => GuiSoundSlot.TabRooms,
-        BottomPanelCategory.Spells => GuiSoundSlot.TabSpells,
-        BottomPanelCategory.Workshop => GuiSoundSlot.TabWorkshop,
-        BottomPanelCategory.Creatures => GuiSoundSlot.TabCreature,
-        _ => GuiSoundSlot.None,
-    };
+        return category switch
+        {
+            BottomPanelCategory.Rooms => GuiSoundSlot.TabRooms,
+            BottomPanelCategory.Spells => GuiSoundSlot.TabSpells,
+            BottomPanelCategory.Workshop => GuiSoundSlot.TabWorkshop,
+            BottomPanelCategory.Creatures => GuiSoundSlot.TabCreature,
+            _ => GuiSoundSlot.None,
+        };
+    }
 }

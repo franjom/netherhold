@@ -49,19 +49,32 @@ public static class KeeperResourceInteraction
         return KeeperResourceKind.None;
     }
 
-    public static int TooltipTextId(KeeperResourceKind kind) => kind switch
+    public static int TooltipTextId(KeeperResourceKind kind)
     {
-        KeeperResourceKind.Heart => 2139, KeeperResourceKind.Mana => 2133,
-        KeeperResourceKind.Payday => 2143, KeeperResourceKind.Gold => 2141, _ => 0,
-    };
+        return kind switch
+        {
+            KeeperResourceKind.Heart => 2139,
+            KeeperResourceKind.Mana => 2133,
+            KeeperResourceKind.Payday => 2143,
+            KeeperResourceKind.Gold => 2141,
+            _ => 0,
+        };
+    }
 
-    public static GoldAmount WithdrawAmount(KeeperResourceModifiers modifiers) => new(modifiers switch
+    public static GoldAmount WithdrawAmount(KeeperResourceModifiers modifiers)
     {
-        KeeperResourceModifiers.Shift => 1000, KeeperResourceModifiers.Control => 10000, _ => 100,
-    });
+        return new(modifiers switch
+        {
+            KeeperResourceModifiers.Shift => 1000,
+            KeeperResourceModifiers.Control => 10000,
+            _ => 100,
+        });
+    }
 
     public static WithdrawCounterGoldCommand Withdraw(PlayerId player, KeeperResourceModifiers modifiers)
-        => new(player, WithdrawAmount(modifiers));
+    {
+        return new(player, WithdrawAmount(modifiers));
+    }
 
     public static HoverTextSnapshot ResourceHover(KeeperResourceSnapshot snapshot, KeeperResourceKind kind,
         Func<uint, string> resolve)
@@ -90,5 +103,7 @@ public static class KeeperResourceInteraction
     }
 
     private static bool Inside(Vector2 point, int x, int y, int width, int height)
-        => point.X >= x && point.Y >= y && point.X < x + width && point.Y < y + height;
+    {
+        return point.X >= x && point.Y >= y && point.X < x + width && point.Y < y + height;
+    }
 }

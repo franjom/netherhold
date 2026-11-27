@@ -33,21 +33,32 @@ public sealed class HeldItemStack
     private readonly List<HeldIcon> _icons = new(MaxIcons);
 
     /// <summary>The icons, the top of the hand first.</summary>
-    public IReadOnlyList<HeldIcon> Icons => _icons;
+    public IReadOnlyList<HeldIcon> Icons
+    {
+        get
+        {
+            return _icons;
+        }
+    }
 
     /// <summary>Whether the hand holds more than <see cref="MaxIcons"/> things.</summary>
     public bool More { get; private set; }
 
     /// <summary>Icon <paramref name="index"/>'s offset from the anchor in DK2's unscaled pixels, from the
     /// table <c>0x0040AA40</c> fills at <c>0x006CE910</c>; <see cref="MaxIcons"/> is the overflow icon's.</summary>
-    public static (int X, int Y) Offset(int index) =>
-        index >= MaxIcons ? (128, 32) : (32 * (index % 4), 32 * (index / 4));
+    public static (int X, int Y) Offset(int index)
+    {
+        return index >= MaxIcons ? (128, 32) : (32 * (index % 4), 32 * (index / 4));
+    }
 
     /// <summary>Reads the authoritative hand, last slot first. The overload also draws local
     /// pending pickups first and excludes items with queued drops (interface list +0x142).
     /// A dead body would take a slot and draw nothing; our hand holds none.</summary>
     public void Refresh(WorldState world, PlayerId player)
-        => Refresh(world, player, null);
+    {
+        Refresh(world, player, null);
+    }
+
     public void Refresh(WorldState world, PlayerId player, LocalPickupFeedback? pending)
     {
         if (world is null)

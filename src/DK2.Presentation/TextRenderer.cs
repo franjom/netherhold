@@ -67,8 +67,10 @@ public sealed class TextRenderer
     /// <summary>
     /// Renders the whole world.
     /// </summary>
-    public string Render(WorldState world) =>
-        Render(world, 0, 0, world?.Width ?? 0, world?.Height ?? 0);
+    public string Render(WorldState world)
+    {
+        return Render(world, 0, 0, world?.Width ?? 0, world?.Height ?? 0);
+    }
 
     /// <summary>Renders a rectangle of the world, clipped to it.
     /// <para>Precedence, highest first: a creature, then an object, then a dig mark, then gold,
@@ -146,8 +148,10 @@ public sealed class TextRenderer
     /// The glyph for one object: gold draws as gold, and everything else draws
     /// as furniture.
     /// </summary>
-    public char GlyphFor(ObjectView instance) =>
-        instance.GoldHeld > 0 ? GoldGlyph : ObjectGlyph;
+    public char GlyphFor(ObjectView instance)
+    {
+        return instance.GoldHeld > 0 ? GoldGlyph : ObjectGlyph;
+    }
 
     /// <summary>
     /// The glyph for one tile.
@@ -197,19 +201,23 @@ public sealed class TextRenderer
     /// keepers, so extending this into letters would buy nothing and would cost
     /// the disjointness the room alphabet depends on.</para>
     /// </summary>
-    public static char PlayerGlyph(PlayerId playerId) => playerId.Value switch
+    public static char PlayerGlyph(PlayerId playerId)
     {
-        0 => UnownedFloorGlyph,
-        <= 9 => (char)('0' + playerId.Value),
-        _ => UnknownPlayerGlyph,
-    };
+        return playerId.Value switch
+        {
+            0 => UnownedFloorGlyph,
+            <= 9 => (char)('0' + playerId.Value),
+            _ => UnknownPlayerGlyph,
+        };
+    }
 
     /// <summary>
     /// The legend for a rendering, so a scenario log is readable without this
     /// file open beside it.
     /// </summary>
-    public static string Legend() =>
-        $"'{OutsideGlyph}' outside   '{UnownedFloorGlyph}' unowned floor   " +
+    public static string Legend()
+    {
+        return $"'{OutsideGlyph}' outside   '{UnownedFloorGlyph}' unowned floor   " +
         $"1-9 floor owned by that keeper   '{TaggedGlyph}' marked for digging   " +
         $"'{GoldGlyph}' gold (stored in the tile, or a pile on it)   " +
         $"'{ObjectGlyph}' an object standing here (a bed, a coop, an egg)   " +
@@ -219,4 +227,5 @@ public sealed class TextRenderer
         $"A-Z room furniture (one per room type). " +
         "Wall and room characters are derived from the asset key's stable hash, " +
         "so a given type is always the same character.";
+    }
 }

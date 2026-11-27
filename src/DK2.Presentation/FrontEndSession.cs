@@ -22,12 +22,47 @@ public sealed class FrontEndSession
         _flow = new FrontEndFlow(returnPage);
     }
 
-    public TimeSpan Now => _now;
+    public TimeSpan Now
+    {
+        get
+        {
+            return _now;
+        }
+    }
+
     public FrontEndPage Page { get; private set; }
-    public bool PathPlaying => _path is { Finished: false };
-    public FrontEndPath? Path => _path is null ? null : (FrontEndPath)_path.PathId;
-    public CameraPathPose? Pose => _path?.Pose();
-    public FrontEndState State => _flow.State;
+    public bool PathPlaying
+    {
+        get
+        {
+            return _path is { Finished: false };
+        }
+    }
+
+    public FrontEndPath? Path
+    {
+        get
+        {
+            return _path is null ? null : (FrontEndPath)_path.PathId;
+        }
+    }
+
+    public CameraPathPose? Pose
+    {
+        get
+        {
+            return _path?.Pose();
+        }
+    }
+
+    public FrontEndState State
+    {
+        get
+        {
+            return _flow.State;
+        }
+    }
+
     public event Action<FrontEndOperation>? OperationRequested;
     public event Action<FrontEndPage>? PageChanged;
     public event Action<TimeSpan>? Updated;
@@ -114,5 +149,7 @@ public sealed class FrontEndSession
     }
 
     private static CameraPathPlayback NewPath(FrontEndPath path, IReadOnlyList<KcsFrame> frames)
-        => new((int)path, frames, new TilePos(3, 12));
+    {
+        return new((int)path, frames, new TilePos(3, 12));
+    }
 }

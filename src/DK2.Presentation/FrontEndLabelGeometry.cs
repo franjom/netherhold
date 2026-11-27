@@ -12,7 +12,10 @@ public sealed record FrontEndGlyph(char Character, FrontEndRect InkBounds, Front
 public sealed class FrontEndLabelGeometry
 {
     private FrontEndLabelGeometry(FrontEndRect ink, int advance, int lineHeight, int canvasHeight, IReadOnlyList<FrontEndGlyph> glyphs)
-        => (InkBounds, Advance, LineHeight, CanvasHeight, Glyphs) = (ink, advance, lineHeight, canvasHeight, glyphs);
+    {
+        (InkBounds, Advance, LineHeight, CanvasHeight, Glyphs) = (ink, advance, lineHeight, canvasHeight, glyphs);
+    }
+
     public FrontEndRect InkBounds { get; }
     public int Advance { get; }
     public int LineHeight { get; }

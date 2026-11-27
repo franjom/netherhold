@@ -25,18 +25,59 @@ public sealed class TerrainTileGeometry
     private Vector2[] _uvs = new Vector2[32], _stateSources = new Vector2[32];
 
     /// <summary>The key of each slot, in the tile's first-use order; <see cref="KeyCount"/> are in use.</summary>
-    public TerrainMaterialKey[] Keys => _keys;
+    public TerrainMaterialKey[] Keys
+    {
+        get
+        {
+            return _keys;
+        }
+    }
+
     public int KeyCount { get; private set; }
 
     /// <summary>Each slot's triangles, three indices a triangle.</summary>
-    public TerrainIndexList[] Triangles => _triangles;
+    public TerrainIndexList[] Triangles
+    {
+        get
+        {
+            return _triangles;
+        }
+    }
 
     /// <summary><see cref="VertexCount"/> of each are in use.</summary>
-    public Vector3[] Positions => _positions;
-    public Vector3[] Normals => _normals;
-    public Vector2[] Uvs => _uvs;
+    public Vector3[] Positions
+    {
+        get
+        {
+            return _positions;
+        }
+    }
+
+    public Vector3[] Normals
+    {
+        get
+        {
+            return _normals;
+        }
+    }
+
+    public Vector2[] Uvs
+    {
+        get
+        {
+            return _uvs;
+        }
+    }
+
     /// <summary>Each vertex's tag source tile and tint source tile; -1 disables, -2-tile selects quarter tint.</summary>
-    public Vector2[] StateSources => _stateSources;
+    public Vector2[] StateSources
+    {
+        get
+        {
+            return _stateSources;
+        }
+    }
+
     public int VertexCount { get; internal set; }
 
     /// <summary>The light table every vertex of the tile reads: the tile's index and 1, the terrain kind.</summary>
@@ -94,10 +135,20 @@ public sealed class TerrainIndexList
     private int[] _items = new int[16];
 
     /// <summary><see cref="Count"/> of them are in use.</summary>
-    public int[] Items => _items;
+    public int[] Items
+    {
+        get
+        {
+            return _items;
+        }
+    }
+
     public int Count { get; internal set; }
 
-    public ReadOnlySpan<int> AsSpan() => new(_items, 0, Count);
+    public ReadOnlySpan<int> AsSpan()
+    {
+        return new(_items, 0, Count);
+    }
 
     internal void Add(int value)
     {

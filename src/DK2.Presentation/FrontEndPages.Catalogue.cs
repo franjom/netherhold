@@ -7,8 +7,9 @@ namespace DK2.Presentation;
 // Transcribed facts: DKII.EXE page pointer table 0x006AE4E0 and its 0x50-byte widget records.
 public static partial class FrontEndPages
 {
-    private static FrontEndPageDefinition[] CreateCatalogue() =>
-    [
+    private static FrontEndPageDefinition[] CreateCatalogue()
+    {
+        return [
         new((FrontEndPage)1, new(0, 0, 2560, 1920), new(0, 0, 2560, 1920), 0x00000000, 0x00000000, 1, Array.AsReadOnly(new FrontEndWidget[]
         {
             new(new(590), 7, new(628, 0, 1304, 472), new(0, 0, 0, 0), 0, new((FrontEndActionKind)0x00000000, new(0x00000000, 0x00000000)), new((FrontEndActionKind)0x00000000, new(0x00000000, 0x00000000)), (FrontEndPage)0, false, 0u, (FrontEndDrawKind)0x005367D0, 0x00000000, 0x00000000, 0, 0x00000000, 0x00000000),
@@ -508,4 +509,5 @@ public static partial class FrontEndPages
             new(new(565), 0, new(2336, 1688, 192, 192), new(0, 0, 192, 192), 0, new((FrontEndActionKind)0x005306F0, new(0x00000000, 0x0000005F)), new((FrontEndActionKind)0x00000000, new(0x00000000, 0x0000005F)), (FrontEndPage)0, true, 0u, (FrontEndDrawKind)0x00535F50, 0x00000000, 0x00000000, 35, 0x00000000, 0x00000000),
         })),
     ];
+    }
 }

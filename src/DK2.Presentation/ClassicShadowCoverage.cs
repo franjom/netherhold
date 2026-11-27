@@ -76,9 +76,13 @@ public static class ClassicShadowCoverage
         }
     }
 
-    private static bool Contains(Vector2 a, Vector2 b, Vector2 c, Vector2 p) =>
-        Edge(a, b, p) >= 0 && Edge(b, c, p) >= 0 && Edge(c, a, p) >= 0;
+    private static bool Contains(Vector2 a, Vector2 b, Vector2 c, Vector2 p)
+    {
+        return Edge(a, b, p) >= 0 && Edge(b, c, p) >= 0 && Edge(c, a, p) >= 0;
+    }
 
-    private static float Edge(Vector2 a, Vector2 b, Vector2 p) =>
-        (b.X - a.X) * (p.Y - a.Y) - (b.Y - a.Y) * (p.X - a.X);
+    private static float Edge(Vector2 a, Vector2 b, Vector2 p)
+    {
+        return (b.X - a.X) * (p.Y - a.Y) - (b.Y - a.Y) * (p.X - a.X);
+    }
 }

@@ -27,8 +27,15 @@ public sealed class PortalCentreLights
     private readonly List<PortalLightView> _lights = new();
     private long _anchorMilliseconds;
 
-    public PortalCentreLights(EffectTime start) => _anchorMilliseconds = start.Milliseconds;
-    public void Create(TilePos tile) => _sources.Add(new Source(tile));
+    public PortalCentreLights(EffectTime start)
+    {
+        _anchorMilliseconds = start.Milliseconds;
+    }
+
+    public void Create(TilePos tile)
+    {
+        _sources.Add(new Source(tile));
+    }
 
     public IReadOnlyList<PortalLightView> Advance(EffectTime now, bool cheapLighting = false)
     {

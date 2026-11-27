@@ -30,11 +30,30 @@ public sealed class PossessionFlight
     private long _start, _last, _end;
 
     public bool Active { get; private set; }
-    public CameraFlightState State => _state;
-    public CameraFlightState Target => _target;
+    public CameraFlightState State
+    {
+        get
+        {
+            return _state;
+        }
+    }
+
+    public CameraFlightState Target
+    {
+        get
+        {
+            return _target;
+        }
+    }
 
     /// <summary>The share of the move's time that has passed, 0 to 1.</summary>
-    public float Progress => !Active ? 1 : (_last - _start) / (float)(_end - _start);
+    public float Progress
+    {
+        get
+        {
+            return !Active ? 1 : (_last - _start) / (float)(_end - _start);
+        }
+    }
 
     public void Start(in CameraFlightState from, in CameraFlightState to, long nowMilliseconds, int duration = BetweenClasses)
     {
@@ -49,7 +68,10 @@ public sealed class PossessionFlight
         }
     }
 
-    public void Cancel() => Active = false;
+    public void Cancel()
+    {
+        Active = false;
+    }
 
     /// <summary>One frame. True on the frame the move lands, when the state is the target's.</summary>
     public bool Step(long nowMilliseconds)
@@ -82,16 +104,23 @@ public sealed class PossessionFlight
         return false;
     }
 
-    private static int Toward(int value, int target, int elapsed, int remaining) =>
-        unchecked((target - value) * elapsed / remaining + value);
+    private static int Toward(int value, int target, int elapsed, int remaining)
+    {
+        return unchecked((target - value) * elapsed / remaining + value);
+    }
 
     // The gap is the 11-bit difference with its sign: at most half a turn either way.
-    private static int Turn(int value, int target, int elapsed, int remaining) =>
-        (value + (((target - value) << 21) >> 21) * elapsed / remaining) & AngleMask;
+    private static int Turn(int value, int target, int elapsed, int remaining)
+    {
+        return (value + (((target - value) << 21) >> 21) * elapsed / remaining) & AngleMask;
+    }
 
     /// <summary>The first-person camera at <paramref name="view"/>: on the eye, with the preset's
     /// zoom, lens and view distance (preset 2: zoom 0). The preset's own limits on the three and the
     /// halved view distance of a creature whose byte <c>+0x36F</c> is 0x2D are not applied.</summary>
-    public static CameraFlightState FirstPerson(PossessionView view, CameraThing preset) => new(
+    public static CameraFlightState FirstPerson(PossessionView view, CameraThing preset)
+    {
+        return new(
         view.X, view.Y, view.Z, preset.Zoom, preset.Lens, preset.ViewDistance, view.Yaw, view.Pitch, view.Roll);
+    }
 }

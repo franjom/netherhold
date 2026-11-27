@@ -15,7 +15,10 @@ public sealed class LightningRandom(uint seed)
         _seed = unchecked(_seed * 0x343FD + 0x269EC3);
         return (int)((_seed >> 16) & 0x7FFF);
     }
-    internal float Symmetric() => (Next15() - 16384) / 16384f;
+    internal float Symmetric()
+    {
+        return (Next15() - 16384) / 16384f;
+    }
 }
 
 /// <summary>One thinned ribbon path in view-space tiles, with subdivision diagnostics.</summary>
@@ -28,7 +31,14 @@ public enum LightningAmplitude { Shot = 192, Creature = 256 }
 public sealed class LightningPathBuffer
 {
     internal List<Vector3> Points { get; } = new();
-    public IReadOnlyList<Vector3> Nodes => Points;
+    public IReadOnlyList<Vector3> Nodes
+    {
+        get
+        {
+            return Points;
+        }
+    }
+
     public int SubdivisionNodeCount { get; internal set; }
     public float SubdivisionMaximumSegmentLength { get; internal set; }
 }
@@ -166,8 +176,19 @@ public sealed class LightningBolts(uint seed)
         }
     }
 
-    private Vector3 Jitter(float scale) => new(_random.Symmetric() * scale,
+    private Vector3 Jitter(float scale)
+    {
+        return new(_random.Symmetric() * scale,
         _random.Symmetric() * scale, _random.Symmetric() * scale);
-    private static bool Finite(Vector3 point) => Finite(point.X) && Finite(point.Y) && Finite(point.Z);
-    private static bool Finite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
+    }
+
+    private static bool Finite(Vector3 point)
+    {
+        return Finite(point.X) && Finite(point.Y) && Finite(point.Z);
+    }
+
+    private static bool Finite(float value)
+    {
+        return !float.IsNaN(value) && !float.IsInfinity(value);
+    }
 }

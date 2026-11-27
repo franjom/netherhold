@@ -86,9 +86,29 @@ public sealed class TabletDrawList
     }
 
     public TabletMesh Mesh { get; }
-    public ReadOnlySpan<TabletVertex> Vertices => _vertices.AsSpan(0, _vertexCount);
-    public ReadOnlySpan<TabletBatch> Batches => _batches.AsSpan(0, _batchCount);
-    public ReadOnlySpan<TabletSparkleQuad> Sparkles => _sparkles.AsSpan(0, _sparkleCount);
+    public ReadOnlySpan<TabletVertex> Vertices
+    {
+        get
+        {
+            return _vertices.AsSpan(0, _vertexCount);
+        }
+    }
+
+    public ReadOnlySpan<TabletBatch> Batches
+    {
+        get
+        {
+            return _batches.AsSpan(0, _batchCount);
+        }
+    }
+
+    public ReadOnlySpan<TabletSparkleQuad> Sparkles
+    {
+        get
+        {
+            return _sparkles.AsSpan(0, _sparkleCount);
+        }
+    }
 
     /// <param name="itemId">The reward item, which picks the front's texture frame.</param>
     /// <param name="originX">The tablet's origin in screen pixels from the left.</param>
@@ -144,6 +164,8 @@ public sealed class TabletDrawList
         }
     }
 
-    private void Add(KmfVertex vertex, Vector3 at, float cx, float cy, float unit) =>
+    private void Add(KmfVertex vertex, Vector3 at, float cx, float cy, float unit)
+    {
         _vertices[_vertexCount++] = new TabletVertex(cx + at.X * unit, cy + at.Y * unit, vertex.TextureCoordinate.X, vertex.TextureCoordinate.Y);
+    }
 }

@@ -20,7 +20,13 @@ public interface ITurnPoseSource
 /// holds the options key back), and the latest action 26 glide target.</summary>
 public readonly record struct FrameScriptInput(bool PathWasPlaying, TilePos? Glide)
 {
-    public bool AllowOptionsKey => !PathWasPlaying;
+    public bool AllowOptionsKey
+    {
+        get
+        {
+            return !PathWasPlaying;
+        }
+    }
 }
 
 /// <summary>The frame's ticks: how many, the input of the first (every queued command, or none), and the real time the
@@ -28,7 +34,10 @@ public readonly record struct FrameScriptInput(bool PathWasPlaying, TilePos? Gli
 public readonly record struct FrameTicks(int Count, InputFrame FirstInput, bool Accrued, double Advance)
 {
     /// <summary>Tick <paramref name="index"/>'s input: the first carries the frame's commands, the rest none.</summary>
-    public InputFrame InputFor(int index) => TickPacer.InputFor(index, FirstInput);
+    public InputFrame InputFor(int index)
+    {
+        return TickPacer.InputFor(index, FirstInput);
+    }
 }
 
 /// <summary>

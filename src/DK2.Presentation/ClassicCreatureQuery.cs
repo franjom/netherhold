@@ -10,21 +10,38 @@ namespace DK2.Presentation;
 
 public readonly record struct CreatureQueryTarget(int Value)
 {
-    public static CreatureQueryTarget None => new(0);
+    public static CreatureQueryTarget None
+    {
+        get
+        {
+            return new(0);
+        }
+    }
 }
 public readonly record struct CreatureQuerySnapshot(CreatureQueryTarget Target,string Text,FpPosition3 Position)
 {
-    public static CreatureQuerySnapshot Empty => new(CreatureQueryTarget.None,"",default);
+    public static CreatureQuerySnapshot Empty
+    {
+        get
+        {
+            return new(CreatureQueryTarget.None, "", default);
+        }
+    }
 }
 [Dk2Behavior(Confidence.StronglyInferred,"docs/research/minimap-controls.md")]
 public static class ClassicCreatureQueryRules
 {
-    public static Dk2Angle FollowHeading(Dk2Angle yaw) => new((ushort)(yaw.Value % 64));
+    public static Dk2Angle FollowHeading(Dk2Angle yaw)
+    {
+        return new((ushort)(yaw.Value % 64));
+    }
 
     /// <summary>Whether the camera follows the queried creature this frame: the query tool holds a target, no camera path
     /// plays and no menu is modal.</summary>
-    public static bool Follows(bool queryTool, CreatureQueryTarget target, bool pathPlaying, bool modal) =>
-        queryTool && target != CreatureQueryTarget.None && !pathPlaying && !modal;
+    public static bool Follows(bool queryTool, CreatureQueryTarget target, bool pathPlaying, bool modal)
+    {
+        return queryTool && target != CreatureQueryTarget.None && !pathPlaying && !modal;
+    }
 
     /// <summary>The query click's turn: the camera's yaw becomes <see cref="FollowHeading"/>'s, unless the preset locks
     /// rotation (<see cref="ClassicCamera.Rotate"/>).</summary>

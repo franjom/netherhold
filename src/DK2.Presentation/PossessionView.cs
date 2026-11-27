@@ -85,7 +85,10 @@ public sealed class PossessionView
 
     /// <summary>The pose game action 25 carries: the camera's X and Y, the definition's eye height as
     /// the height (never the camera's own), and the camera's yaw as the heading.</summary>
-    public (int X, int Y, int Height, int Heading) Pose(in PossessedBody body) => (X, Y, body.EyeHeight & 0xFFFF, Yaw);
+    public (int X, int Y, int Height, int Heading) Pose(in PossessedBody body)
+    {
+        return (X, Y, body.EyeHeight & 0xFFFF, Yaw);
+    }
 
     /// <summary>One frame of <c>0x0040E910</c>, then the pitch limit <c>Camera_Update</c> applies.
     /// <paramref name="mouseX"/> and <paramref name="mouseY"/> are the frame's mouse deltas.</summary>
@@ -281,7 +284,13 @@ public sealed class PossessionView
 
     /// <summary>A signed divide by two to the <paramref name="shift"/> that truncates toward zero, as
     /// DK2's compiler wrote it.</summary>
-    private static int Over(int value, int shift) => (value + ((value >> 31) & ((1 << shift) - 1))) >> shift;
+    private static int Over(int value, int shift)
+    {
+        return (value + ((value >> 31) & ((1 << shift) - 1))) >> shift;
+    }
 
-    private static int Over4096(int value) => Over(value, 12);
+    private static int Over4096(int value)
+    {
+        return Over(value, 12);
+    }
 }

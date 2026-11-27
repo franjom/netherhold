@@ -24,7 +24,13 @@ public sealed class FrameInputRecorder
     private int _handed;
 
     /// <summary>The frame begun and not yet ended, with what it has gathered so far; null between frames.</summary>
-    public FrameInputRecord? Open => _frame == null ? null : Gathered(_frame);
+    public FrameInputRecord? Open
+    {
+        get
+        {
+            return _frame == null ? null : Gathered(_frame);
+        }
+    }
 
     /// <summary>Starts a frame from the host's raw sample. Commands queued since the last frame
     /// ended came from callbacks between frames.</summary>
@@ -98,6 +104,8 @@ public sealed class FrameInputRecorder
         _seen = pending.Count;
     }
 
-    private FrameInputRecord Gathered(FrameInputRecord frame) =>
-        frame with { Intents = _intents.ToArray(), Commands = _commands.ToArray(), CommandsHandedToTick = _handed };
+    private FrameInputRecord Gathered(FrameInputRecord frame)
+    {
+        return frame with { Intents = _intents.ToArray(), Commands = _commands.ToArray(), CommandsHandedToTick = _handed };
+    }
 }

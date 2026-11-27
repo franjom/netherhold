@@ -29,5 +29,8 @@ public sealed class GemSparkleGate
         return true;
     }
 
-    public void Forget(CreatureId creature) => _quanta.Remove(creature);
+    public void Forget(CreatureId creature)
+    {
+        _quanta.Remove(creature);
+    }
 }

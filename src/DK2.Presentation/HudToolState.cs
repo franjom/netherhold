@@ -206,19 +206,25 @@ public sealed class HudToolState
     }
 
     /// <summary>The keeper spell a posted command casts, for the cast cursor: Create Imp's 4, a spell's id, else null.</summary>
-    public static byte? CastSpellId(PlayerCommand command) => command switch
+    public static byte? CastSpellId(PlayerCommand command)
     {
-        CreateImpCommand => 4,
-        CastSpellAtPlaceCommand place => place.SpellId,
-        CastSpellOnCreatureCommand creature => creature.SpellId,
-        _ => null,
-    };
+        return command switch
+        {
+            CreateImpCommand => 4,
+            CastSpellAtPlaceCommand place => place.SpellId,
+            CastSpellOnCreatureCommand creature => creature.SpellId,
+            _ => null,
+        };
+    }
 
     /// <summary>A keeper spell is the selected tool, DK2's mode 8: Create Imp's own tool or a spell
     /// chosen from the panel.</summary>
-    public bool SpellArmed(PlayerInputTranslator input) => ActiveTool == PlayerToolMode.CreateImp
+    public bool SpellArmed(PlayerInputTranslator input)
+    {
+        return ActiveTool == PlayerToolMode.CreateImp
         || ActiveTool == PlayerToolMode.Hand && !QueryTool && input.Targeting is null
             && PanelChoice is BottomPanelChoiceKey { Kind: BottomPanelChoiceKind.Spell };
+    }
 
     /// <summary>The active tool as 0x004096B0 sees it; null for tools DK2's cursor has no mode for.</summary>
     public HoverCageTool? CageTool

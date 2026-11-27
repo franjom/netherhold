@@ -150,6 +150,8 @@ public sealed record CampaignResults(IReadOnlyList<CampaignResultCell> Cells, ui
     /// reference units, 12 × 113 pixels at 640 × 480.</summary>
     public const int ScrollBarWidth = 12 * 4, ScrollBarHeight = 0x71 * 4;
 
-    private static FrontEndRect Box(float left, float top, float right, float bottom) =>
-        new(left * 4, top * 4, (right - left) * 4, (bottom - top) * 4);
+    private static FrontEndRect Box(float left, float top, float right, float bottom)
+    {
+        return new(left * 4, top * 4, (right - left) * 4, (bottom - top) * 4);
+    }
 }

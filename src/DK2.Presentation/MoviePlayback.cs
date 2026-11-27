@@ -97,20 +97,56 @@ public sealed class MoviePlayback : IDisposable
 
     /// <summary>The picture's shape on screen, width over height: each pixel is doubled horizontally and lines are not
     /// (<c>0x005AABF0</c>), so 320x480 shows at 640x480 proportions, centred and scaled uniformly to fit.</summary>
-    public float DisplayAspect => Height == 0 ? 4f / 3f : 2f * Width / Height;
+    public float DisplayAspect
+    {
+        get
+        {
+            return Height == 0 ? 4f / 3f : 2f * Width / Height;
+        }
+    }
 
-    public bool HasAudio => _audio != null;
+    public bool HasAudio
+    {
+        get
+        {
+            return _audio != null;
+        }
+    }
 
     /// <summary>The rate <see cref="ReadAudio"/> delivers at, stereo frames a second.</summary>
-    public int SampleRate => _timeline.Movie.SampleRate;
+    public int SampleRate
+    {
+        get
+        {
+            return _timeline.Movie.SampleRate;
+        }
+    }
 
-    public int FrameCount => _timeline.VideoFrames.Count;
+    public int FrameCount
+    {
+        get
+        {
+            return _timeline.VideoFrames.Count;
+        }
+    }
 
     /// <summary>The frame on screen, -1 before the first.</summary>
-    public int ShownFrame => _shown;
+    public int ShownFrame
+    {
+        get
+        {
+            return _shown;
+        }
+    }
 
     /// <summary>A picture is up; until then the adapter keeps the screen black.</summary>
-    public bool HasFrame => _framesShown > 0;
+    public bool HasFrame
+    {
+        get
+        {
+            return _framesShown > 0;
+        }
+    }
 
     /// <summary>The movie ended, was skipped, or failed (<see cref="Failure"/>); the adapter stops it.</summary>
     public bool Finished { get; private set; }
@@ -121,14 +157,23 @@ public sealed class MoviePlayback : IDisposable
     public string? Failure { get; private set; }
 
     /// <summary>The shown frame, top-down RGBA, <see cref="Width"/> x <see cref="Height"/>.</summary>
-    public ReadOnlySpan<byte> Pixels => _shownPixels;
+    public ReadOnlySpan<byte> Pixels
+    {
+        get
+        {
+            return _shownPixels;
+        }
+    }
 
     /// <summary>The sample frame of the movie's audio the speakers' clock is at, as last passed to <see cref="Update"/>.</summary>
     public long PlayedAudioFrame { get; private set; } = -1;
 
     /// <summary>Esc, Enter, Space or a mouse button ends a movie (<c>0x0053C270</c>, <c>0x0053C2A0</c>); Unity's player also
     /// took the keypad's Enter.</summary>
-    public static bool Skips(MovieInput input) => input != MovieInput.Other;
+    public static bool Skips(MovieInput input)
+    {
+        return input != MovieInput.Other;
+    }
 
     /// <summary>Ends the movie when <paramref name="input"/> skips it; true if it did.</summary>
     public bool Press(MovieInput input)
@@ -247,13 +292,46 @@ public sealed class MoviePlayback : IDisposable
                FormattableString.Invariant($"({_lagMsMin:F1} to {_lagMsMax:F1} ms), drift {_lagMsLast - _lagMsFirst:F1} ms first to last frame");
     }
 
-    public double DecodeMsAverage => _framesShown == 0 ? 0 : _decodeMsSum / _framesShown;
-    public double DecodeMsMax => _decodeMsMax;
-    public int FramesShown => _framesShown;
-    public int FramesDropped => _framesDropped;
+    public double DecodeMsAverage
+    {
+        get
+        {
+            return _framesShown == 0 ? 0 : _decodeMsSum / _framesShown;
+        }
+    }
+
+    public double DecodeMsMax
+    {
+        get
+        {
+            return _decodeMsMax;
+        }
+    }
+
+    public int FramesShown
+    {
+        get
+        {
+            return _framesShown;
+        }
+    }
+
+    public int FramesDropped
+    {
+        get
+        {
+            return _framesDropped;
+        }
+    }
 
     /// <summary>Lateness of the last shown frame minus the first's, in milliseconds of audio.</summary>
-    public double LagDriftMs => _framesShown == 0 ? 0 : _lagMsLast - _lagMsFirst;
+    public double LagDriftMs
+    {
+        get
+        {
+            return _framesShown == 0 ? 0 : _lagMsLast - _lagMsFirst;
+        }
+    }
 
     // The worker owns _aheadPixels and the decoder while _decoded is reset; the frame thread waits for it before
     // touching either.

@@ -17,7 +17,10 @@ public enum ClassicCameraKeys
 
 public readonly record struct CameraFocusBounds(Vector3 Minimum, Vector3 Maximum)
 {
-    public Vector3 Clamp(Vector3 focus) => Vector3.Clamp(focus, Minimum, Maximum);
+    public Vector3 Clamp(Vector3 focus)
+    {
+        return Vector3.Clamp(focus, Minimum, Maximum);
+    }
 }
 
 /// <summary>Ordinary-view keyboard and edge scrolling; evidence in classic-camera.md §7.</summary>
@@ -25,10 +28,28 @@ public sealed class ClassicCameraControls
 {
     private readonly ClassicCamera _camera;
     /// <summary>The camera these controls turn and zoom.</summary>
-    internal ClassicCamera Camera => _camera;
+    internal ClassicCamera Camera
+    {
+        get
+        {
+            return _camera;
+        }
+    }
+
     private readonly int _ticksPerSecond;
     private int _scrollSpeed;
-    public int ScrollSpeed { get => _scrollSpeed; set => _scrollSpeed = Math.Clamp(value, 5, 20); }
+    public int ScrollSpeed
+    {
+        get
+        {
+            return _scrollSpeed;
+        }
+
+        set
+        {
+            _scrollSpeed = Math.Clamp(value, 5, 20);
+        }
+    }
     private readonly CameraFocusBounds? _bounds;
     private int _horizontalCoast, _verticalCoast;
     private long _fractionalMillisecondTicks;

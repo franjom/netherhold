@@ -32,7 +32,10 @@ public readonly record struct SightRegion
     public TilePos Lower { get; }
     public TilePos Upper { get; }
 
-    public bool IsVisible(TilePos position, GameTick now) => Alpha(position, now) != byte.MaxValue;
+    public bool IsVisible(TilePos position, GameTick now)
+    {
+        return Alpha(position, now) != byte.MaxValue;
+    }
 
     public byte FogOpacity(TilePos position, GameTick now)
     {

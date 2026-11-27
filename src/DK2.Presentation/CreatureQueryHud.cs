@@ -28,9 +28,15 @@ public sealed class CreatureQueryHud
     private bool _overflow, _visible;
 
     /// <param name="font">The legible font for a screen height.</param>
-    public CreatureQueryHud(Func<int, BitmapFont> font) => _font = font ?? throw new ArgumentNullException(nameof(font));
+    public CreatureQueryHud(Func<int, BitmapFont> font)
+    {
+        _font = font ?? throw new ArgumentNullException(nameof(font));
+    }
 
-    public static IEnumerable<HudImage> Images() => [Up, Track, Thumb, Down];
+    public static IEnumerable<HudImage> Images()
+    {
+        return [Up, Track, Thumb, Down];
+    }
 
     /// <param name="otherPanelOpen">A modal panel is open: the details hide.</param>
     public void Build(HudScreen screen, CreatureQuerySnapshot snapshot, HudVisibility visibility, bool otherPanelOpen, HudFrame frame)
@@ -80,10 +86,14 @@ public sealed class CreatureQueryHud
         _size = HudTextPixels.Measure(_text);
     }
 
-    private static void Quad(HudFrame frame, HudImage image, HudRect rect) =>
+    private static void Quad(HudFrame frame, HudImage image, HudRect rect)
+    {
         frame.Add(new HudDraw(HudDrawKind.Quad, image, rect, HudColor.White));
+    }
 
     /// <summary>Whether the last built frame showed the details and the pointer is over them.</summary>
-    public bool ContainsPointer(float x, float y, HudVisibility visibility) =>
-        _visible && visibility.ShowNormalHud && visibility.AllowOrdinaryInput && Hit.Contains(x, y);
+    public bool ContainsPointer(float x, float y, HudVisibility visibility)
+    {
+        return _visible && visibility.ShowNormalHud && visibility.AllowOrdinaryInput && Hit.Contains(x, y);
+    }
 }

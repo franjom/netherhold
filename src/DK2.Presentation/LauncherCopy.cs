@@ -45,24 +45,30 @@ public static class LauncherCopy
     public const string ChooseInstall = "Choose the Dungeon Keeper 2 folder";
     public const string ChooseFont = "Choose a menu font";
 
-    public static LauncherMessage Install(Dk2InstallCheck check) => check switch
+    public static LauncherMessage Install(Dk2InstallCheck check)
     {
-        Dk2InstallCheck.Found => new("Found Dungeon Keeper 2.", LauncherTone.Ready),
-        Dk2InstallCheck.NoData => new("This folder has DKII.EXE but no Data folder. Choose the folder the game was installed to.",
-            LauncherTone.Problem),
-        Dk2InstallCheck.NoGame => new("This folder has no DKII.EXE. Choose the folder the game was installed to.",
-            LauncherTone.Problem),
-        _ => new("Choose the folder that holds DKII.EXE and the Data folder.", LauncherTone.Plain),
-    };
+        return check switch
+        {
+            Dk2InstallCheck.Found => new("Found Dungeon Keeper 2.", LauncherTone.Ready),
+            Dk2InstallCheck.NoData => new("This folder has DKII.EXE but no Data folder. Choose the folder the game was installed to.",
+                LauncherTone.Problem),
+            Dk2InstallCheck.NoGame => new("This folder has no DKII.EXE. Choose the folder the game was installed to.",
+                LauncherTone.Problem),
+            _ => new("Choose the folder that holds DKII.EXE and the Data folder.", LauncherTone.Plain),
+        };
+    }
 
     /// <summary>Without a face the front end draws its labels, and both scenes their subtitles, in DK2's own bitmap font.</summary>
-    public static LauncherMessage Font(LauncherFontCheck check) => check switch
+    public static LauncherMessage Font(LauncherFontCheck check)
     {
-        LauncherFontCheck.Found => new("The menu's labels and the subtitles will use this font.", LauncherTone.Ready),
-        LauncherFontCheck.Missing => new("There is no file at this path.", LauncherTone.Problem),
-        LauncherFontCheck.NotAFont => new("Choose a TrueType or OpenType font (.ttf or .otf).", LauncherTone.Problem),
-        _ => new("Leave this empty and the menu and the subtitles use the game's own lettering.", LauncherTone.Plain),
-    };
+        return check switch
+        {
+            LauncherFontCheck.Found => new("The menu's labels and the subtitles will use this font.", LauncherTone.Ready),
+            LauncherFontCheck.Missing => new("There is no file at this path.", LauncherTone.Problem),
+            LauncherFontCheck.NotAFont => new("Choose a TrueType or OpenType font (.ttf or .otf).", LauncherTone.Problem),
+            _ => new("Leave this empty and the menu and the subtitles use the game's own lettering.", LauncherTone.Plain),
+        };
+    }
 
     public static LauncherFontCheck CheckFont(string? path, Func<string, bool> fileExists)
     {

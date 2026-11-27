@@ -17,9 +17,23 @@ public sealed class ScreenColourChange
     private int _read, _count, _length;
     private long _startMs;
     public double Gamma { get; private set; } = 1;
-    public IReadOnlyList<ushort> Current => _current;
+    public IReadOnlyList<ushort> Current
+    {
+        get
+        {
+            return _current;
+        }
+    }
+
     public bool Running { get; private set; }
-    public int QueuedCount => _count - _read;
+    public int QueuedCount
+    {
+        get
+        {
+            return _count - _read;
+        }
+    }
+
     public ScreenColourChange()
     {
         ScreenColourTables.Build(ScreenColourKind.Normal, Gamma, _current);

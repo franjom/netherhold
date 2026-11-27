@@ -38,9 +38,21 @@ public sealed class OptionsHud
         }
     }
 
-    private IReadOnlyList<ClassicOptionsEntry> Entries => ClassicOptionsLayout.ForPage(_page);
+    private IReadOnlyList<ClassicOptionsEntry> Entries
+    {
+        get
+        {
+            return ClassicOptionsLayout.ForPage(_page);
+        }
+    }
 
-    public bool Visible => _visible;
+    public bool Visible
+    {
+        get
+        {
+            return _visible;
+        }
+    }
 
     /// <summary>An unsupported action's entry is greyed and takes no press.</summary>
     public void SetSupported(ClassicOptionsAction action, bool supported)
@@ -51,34 +63,46 @@ public sealed class OptionsHud
     }
 
     /// <summary>Whether an entry with this action takes a press; never for <see cref="ClassicOptionsAction.None"/>.</summary>
-    public bool Supported(ClassicOptionsAction action) => action != ClassicOptionsAction.None && _supported[(int)action];
+    public bool Supported(ClassicOptionsAction action)
+    {
+        return action != ClassicOptionsAction.None && _supported[(int)action];
+    }
 
-    public void SetVisible(bool visible) => _visible = visible;
+    public void SetVisible(bool visible)
+    {
+        _visible = visible;
+    }
 
     /// <summary>The <see cref="ClassicHudControls"/> action a press on an entry applies; none for a title or nothing.
     /// Save and Load open their pages; the host also refreshes its save list for them (<see cref="RefreshesSaves"/>).
     /// The save browser's Back and Continue lines (<see cref="SaveLoadHud"/>) apply the <see cref="ClassicOptionsAction.Back"/>
     /// and <see cref="ClassicOptionsAction.ContinueGame"/> entries' actions.</summary>
-    public static ClassicHudAction HudAction(ClassicOptionsAction action) => action switch
+    public static ClassicHudAction HudAction(ClassicOptionsAction action)
     {
-        ClassicOptionsAction.ContinueGame => ClassicHudAction.ToggleOptions,
-        ClassicOptionsAction.GameOptions => ClassicHudAction.OpenGameOptions,
-        ClassicOptionsAction.LevelObjective => ClassicHudAction.ShowObjective,
-        ClassicOptionsAction.Back => ClassicHudAction.BackToOptions,
-        ClassicOptionsAction.RestartLevel => ClassicHudAction.RestartLevel,
-        ClassicOptionsAction.EndGame => ClassicHudAction.EndGame,
-        ClassicOptionsAction.ReturnToMenu => ClassicHudAction.ReturnToMenu,
-        ClassicOptionsAction.QuitGame => ClassicHudAction.QuitGame,
-        ClassicOptionsAction.Confirm => ClassicHudAction.Confirm,
-        ClassicOptionsAction.Cancel => ClassicHudAction.CancelConfirmation,
-        ClassicOptionsAction.Save => ClassicHudAction.OpenSave,
-        ClassicOptionsAction.Load => ClassicHudAction.OpenLoad,
-        _ => ClassicHudAction.None,
-    };
+        return action switch
+        {
+            ClassicOptionsAction.ContinueGame => ClassicHudAction.ToggleOptions,
+            ClassicOptionsAction.GameOptions => ClassicHudAction.OpenGameOptions,
+            ClassicOptionsAction.LevelObjective => ClassicHudAction.ShowObjective,
+            ClassicOptionsAction.Back => ClassicHudAction.BackToOptions,
+            ClassicOptionsAction.RestartLevel => ClassicHudAction.RestartLevel,
+            ClassicOptionsAction.EndGame => ClassicHudAction.EndGame,
+            ClassicOptionsAction.ReturnToMenu => ClassicHudAction.ReturnToMenu,
+            ClassicOptionsAction.QuitGame => ClassicHudAction.QuitGame,
+            ClassicOptionsAction.Confirm => ClassicHudAction.Confirm,
+            ClassicOptionsAction.Cancel => ClassicHudAction.CancelConfirmation,
+            ClassicOptionsAction.Save => ClassicHudAction.OpenSave,
+            ClassicOptionsAction.Load => ClassicHudAction.OpenLoad,
+            _ => ClassicHudAction.None,
+        };
+    }
 
     /// <summary>Whether a press on an entry rereads the save list (<see cref="SaveSlotsView.Refresh"/>) before its page
     /// opens: Save and Load.</summary>
-    public static bool RefreshesSaves(ClassicOptionsAction action) => action is ClassicOptionsAction.Save or ClassicOptionsAction.Load;
+    public static bool RefreshesSaves(ClassicOptionsAction action)
+    {
+        return action is ClassicOptionsAction.Save or ClassicOptionsAction.Load;
+    }
 
     public void SetPage(ClassicOptionsPage page, ClassicSessionAction confirmation)
     {

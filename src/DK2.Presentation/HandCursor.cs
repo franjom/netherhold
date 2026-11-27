@@ -45,31 +45,36 @@ public static class HandCursor
             || database.TerrainById(state.TerrainId).IsTaggable;
     }
 
-    public static HandCursorKind ForHover(bool tileTarget, bool excavationEligible, bool pickupEligible) =>
-        tileTarget && excavationEligible ? HandCursorKind.Dig
-            : pickupEligible ? HandCursorKind.Pickup : HandCursorKind.Point;
-
-    public static HandCursorSprite Sprite(HandCursorKind kind) => kind switch
+    public static HandCursorKind ForHover(bool tileTarget, bool excavationEligible, bool pickupEligible)
     {
-        HandCursorKind.Point => new("Point.png", new(82, 53), new(2, 17), FrameCount: 41, FramesPerSecond: 30),
-        HandCursorKind.SmallPoint => new("SmallPoint.png", new(42, 20), new(2, 2), FrameCount: 1, FramesPerSecond: 1),
-        HandCursorKind.Pickup => new("Idle.png", new(83, 39), new(2, 4), FrameCount: 1, FramesPerSecond: 30),
-        HandCursorKind.Dig => new("PickAxeHold.png", new(84, 86), new(4, 51), FrameCount: 1, FramesPerSecond: 1),
-        HandCursorKind.Tag => new("PickAxeTag.png", new(88, 65), new(7, 30), FrameCount: 1, FramesPerSecond: 30),
-        HandCursorKind.Tagging => new("PickAxeHoldTagging.png", new(88, 65), new(7, 30), FrameCount: 1, FramesPerSecond: 1),
-        HandCursorKind.HoldThing => new("HoldThing.png", new(74, 70), new(8, 42), FrameCount: 1, FramesPerSecond: 15),
-        HandCursorKind.DropThing => new("DropThing.png", new(88, 103), new(2, 64), FrameCount: 14, FramesPerSecond: 30),
-        HandCursorKind.HoldGold => new("HoldGold.png", new(63, 43), new(-18, 7), FrameCount: 1, FramesPerSecond: 15),
-        HandCursorKind.DropGold => new("DropGold.png", new(87, 95), new(5, 59), FrameCount: 16, FramesPerSecond: 30),
-        HandCursorKind.Slap => new("Slap.png", new(126, 99), new(2, 64), FrameCount: 15, FramesPerSecond: 30),
-        // State 12, which a keeper spell's tool (mode 8, 0x0040B7F0) requests on the middle channel:
-        // its record in 0x0068F638 is state 3's, the pointing finger.
-        HandCursorKind.SpellPoint => new("Idle.png", new(83, 39), new(2, 4), FrameCount: 1, FramesPerSecond: 30),
-        // State 13, the cast: the click that posts a cast asks it, and its callback (0x0040E5E0) asks state 12 back
-        // once its frames are done.
-        HandCursorKind.SpellCast => new("SpellCast.png", new(87, 104), new(1, 65), FrameCount: 12, FramesPerSecond: 30),
-        _ => throw new ArgumentOutOfRangeException(nameof(kind)),
-    };
+        return tileTarget && excavationEligible ? HandCursorKind.Dig
+            : pickupEligible ? HandCursorKind.Pickup : HandCursorKind.Point;
+    }
+
+    public static HandCursorSprite Sprite(HandCursorKind kind)
+    {
+        return kind switch
+        {
+            HandCursorKind.Point => new("Point.png", new(82, 53), new(2, 17), FrameCount: 41, FramesPerSecond: 30),
+            HandCursorKind.SmallPoint => new("SmallPoint.png", new(42, 20), new(2, 2), FrameCount: 1, FramesPerSecond: 1),
+            HandCursorKind.Pickup => new("Idle.png", new(83, 39), new(2, 4), FrameCount: 1, FramesPerSecond: 30),
+            HandCursorKind.Dig => new("PickAxeHold.png", new(84, 86), new(4, 51), FrameCount: 1, FramesPerSecond: 1),
+            HandCursorKind.Tag => new("PickAxeTag.png", new(88, 65), new(7, 30), FrameCount: 1, FramesPerSecond: 30),
+            HandCursorKind.Tagging => new("PickAxeHoldTagging.png", new(88, 65), new(7, 30), FrameCount: 1, FramesPerSecond: 1),
+            HandCursorKind.HoldThing => new("HoldThing.png", new(74, 70), new(8, 42), FrameCount: 1, FramesPerSecond: 15),
+            HandCursorKind.DropThing => new("DropThing.png", new(88, 103), new(2, 64), FrameCount: 14, FramesPerSecond: 30),
+            HandCursorKind.HoldGold => new("HoldGold.png", new(63, 43), new(-18, 7), FrameCount: 1, FramesPerSecond: 15),
+            HandCursorKind.DropGold => new("DropGold.png", new(87, 95), new(5, 59), FrameCount: 16, FramesPerSecond: 30),
+            HandCursorKind.Slap => new("Slap.png", new(126, 99), new(2, 64), FrameCount: 15, FramesPerSecond: 30),
+            // State 12, which a keeper spell's tool (mode 8, 0x0040B7F0) requests on the middle channel:
+            // its record in 0x0068F638 is state 3's, the pointing finger.
+            HandCursorKind.SpellPoint => new("Idle.png", new(83, 39), new(2, 4), FrameCount: 1, FramesPerSecond: 30),
+            // State 13, the cast: the click that posts a cast asks it, and its callback (0x0040E5E0) asks state 12 back
+            // once its frames are done.
+            HandCursorKind.SpellCast => new("SpellCast.png", new(87, 104), new(1, 65), FrameCount: 12, FramesPerSecond: 30),
+            _ => throw new ArgumentOutOfRangeException(nameof(kind)),
+        };
+    }
 
     // Point.png frame 0's claw tip, the claws at rest: the opaque pixel (alpha > 0) furthest along
     // (-1, 0.25), left and slightly down, the way the claws point. Checked against the shipped sheet
@@ -234,11 +239,15 @@ public sealed class HandCursorFeedback
         return holding ? gold ? HandCursorKind.HoldGold : HandCursorKind.HoldThing : hover;
     }
 
-    private long FrameOf(long milliseconds) =>
-        Math.Max(0, milliseconds - _startedAt) * HandCursor.Sprite(HandCursorKind.Slap).FramesPerSecond / 1000;
+    private long FrameOf(long milliseconds)
+    {
+        return Math.Max(0, milliseconds - _startedAt) * HandCursor.Sprite(HandCursorKind.Slap).FramesPerSecond / 1000;
+    }
 
-    private static SoundRequest HandSound(uint id, FpPosition2 at) =>
-        new(HandCategory, new SoundId(id), new Vector3(at.X.Raw / 4096f, 2f, -at.Y.Raw / 4096f));
+    private static SoundRequest HandSound(uint id, FpPosition2 at)
+    {
+        return new(HandCategory, new SoundId(id), new Vector3(at.X.Raw / 4096f, 2f, -at.Y.Raw / 4096f));
+    }
 }
 
 /// <summary>Cursor state 13 after a cast click: <c>Hand_Click</c> (<c>0x004075E0</c>, mode 8) asks it once it has
@@ -259,7 +268,10 @@ public sealed class SpellCastCursor
         }
     }
 
-    public void Cancel() => _startedAt = -1;
+    public void Cancel()
+    {
+        _startedAt = -1;
+    }
 
     /// <summary>Whether the cast hand is still playing at <paramref name="milliseconds"/>; once it is done it clears.</summary>
     public bool Showing(long milliseconds)
@@ -284,7 +296,11 @@ public sealed class HandCursorAnimation
 {
     private HandCursorKind _kind;
     private long _startedAt;
-    public void Reset() => _kind = HandCursorKind.Default;
+    public void Reset()
+    {
+        _kind = HandCursorKind.Default;
+    }
+
     public int Advance(HandCursorKind kind, long milliseconds)
     {
         if (_kind != kind) { _kind = kind; _startedAt = milliseconds; }

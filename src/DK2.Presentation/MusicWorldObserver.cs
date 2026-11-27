@@ -11,7 +11,13 @@ namespace DK2.Presentation;
 
 public readonly record struct BattleViewSlot(int Value)
 {
-    public static BattleViewSlot None => new(-1);
+    public static BattleViewSlot None
+    {
+        get
+        {
+            return new(-1);
+        }
+    }
 }
 public readonly record struct BattleViewSnapshot(BattleViewSlot Slot, TilePos Centre, PlayerMask Owners, int MemberCount);
 
@@ -30,7 +36,13 @@ public sealed class MusicWorldObserver(PlayerId viewer, MusicDirector music)
     private long _lastTick = -1;
     private readonly BattleViewSnapshot[] _snapshots = new BattleViewSnapshot[8];
     private IReadOnlyList<BattleViewSnapshot>? _snapshotView;
-    public IReadOnlyList<BattleViewSnapshot> Battles => _snapshotView ??= Array.AsReadOnly(_snapshots);
+    public IReadOnlyList<BattleViewSnapshot> Battles
+    {
+        get
+        {
+            return _snapshotView ??= Array.AsReadOnly(_snapshots);
+        }
+    }
 
     /// <summary>How many times one of the viewer's creatures has joined a battle that held none of the
     /// viewer's: each is a call of the fly-in (<c>0x00504FB0</c> → interface slot <c>+0x4C</c>,
@@ -217,9 +229,11 @@ public sealed class MusicWorldObserver(PlayerId viewer, MusicDirector music)
         return false;
     }
 
-    private static bool Fighting(CreatureState creature) =>
-        CreatureStateMachine.UpdatingCategory(creature) == CreatureStateCategory.Combat
+    private static bool Fighting(CreatureState creature)
+    {
+        return CreatureStateMachine.UpdatingCategory(creature) == CreatureStateCategory.Combat
         && creature.Dk2StateId != 202 && creature.UtilityNewState != 202 && !creature.CombatPitFighter;
+    }
 
     private static void Recenter(Battle battle, WorldState world)
     {

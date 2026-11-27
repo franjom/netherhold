@@ -29,7 +29,10 @@ public sealed class ThingNavigation
     private readonly PlayerId _viewer;
     private int _last;
 
-    public ThingNavigation(PlayerId viewer) => _viewer = viewer;
+    public ThingNavigation(PlayerId viewer)
+    {
+        _viewer = viewer;
+    }
 
     /// <summary>The doors for <see cref="Next"/>, newest first (<c>0x00416150</c> walks the per-player list, which
     /// <c>Thing_LinkToOwner</c> <c>0x004B4C30</c> links at the head; ours is descending id), blueprints included, into
@@ -160,5 +163,8 @@ public sealed class ThingNavigation
         return things[chosen].Focus;
     }
 
-    private bool Matches(ThingNavigationEntry thing, byte kind) => thing.Owner == _viewer && thing.Kind == kind;
+    private bool Matches(ThingNavigationEntry thing, byte kind)
+    {
+        return thing.Owner == _viewer && thing.Kind == kind;
+    }
 }

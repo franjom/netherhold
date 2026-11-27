@@ -60,11 +60,17 @@ public static class HudLabelPixels
     /// <summary>The glow frame at <paramref name="quarters"/> (1 to 4) of full strength over an already padded image:
     /// the native dilation and blur (<see cref="FrontEndLabelGlow"/>, 0x005524F0), its alpha scaled by quarters / 4,
     /// as 0x0054FD20 builds frames 0-3.</summary>
-    public static RgbaImage GlowFrame(RgbaImage padded, int quarters) => Quarter(Glow(padded), quarters);
+    public static RgbaImage GlowFrame(RgbaImage padded, int quarters)
+    {
+        return Quarter(Glow(padded), quarters);
+    }
 
     /// <summary>The full-strength glow over an already padded image. It is the costly part, the same for every
     /// quarter, so a renderer computes it once per label and takes the quarters from it.</summary>
-    public static RgbaImage Glow(RgbaImage padded) => FrontEndLabelGlow.Create(padded);
+    public static RgbaImage Glow(RgbaImage padded)
+    {
+        return FrontEndLabelGlow.Create(padded);
+    }
 
     /// <summary>A copy of a full-strength glow with its alpha scaled by <paramref name="quarters"/> / 4.</summary>
     public static RgbaImage Quarter(RgbaImage full, int quarters)

@@ -75,9 +75,23 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
     public ClassicLightFrame Frame { get; private set; }
     /// <summary>Whether the last preparation reused the same ordered visible light tables.</summary>
     public bool TablesUnchanged { get; private set; }
-    public ReadOnlySpan<ClassicLightTable> VisibleTables => _visibleTables.AsSpan(0, _visibleCount);
-    public void SetTerrain(TilePos tile, ClassicPointLight? light) => SetSource(_terrain, tile, light);
-    public void SetTorch(TilePos tile, ClassicPointLight? light) => SetSource(_torches, tile, light);
+    public ReadOnlySpan<ClassicLightTable> VisibleTables
+    {
+        get
+        {
+            return _visibleTables.AsSpan(0, _visibleCount);
+        }
+    }
+
+    public void SetTerrain(TilePos tile, ClassicPointLight? light)
+    {
+        SetSource(_terrain, tile, light);
+    }
+
+    public void SetTorch(TilePos tile, ClassicPointLight? light)
+    {
+        SetSource(_torches, tile, light);
+    }
 
     public void UpdatePortalLights(IReadOnlyList<PortalLightView> lights)
     {
@@ -375,8 +389,15 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
         }
     }
 
-    public ClassicLightCacheCell GetCell(TilePos tile) => Contains(tile) ? _cells[tile.Y * _width + tile.X] : default;
-    public bool IsVisible(TilePos tile) => _visible.Contains(tile);
+    public ClassicLightCacheCell GetCell(TilePos tile)
+    {
+        return Contains(tile) ? _cells[tile.Y * _width + tile.X] : default;
+    }
+
+    public bool IsVisible(TilePos tile)
+    {
+        return _visible.Contains(tile);
+    }
 
     /// <summary>The light table a visible tile was given by the last <see cref="PrepareFrame"/>; false
     /// for a tile not drawn this frame, whose table may be stale.</summary>
@@ -409,7 +430,10 @@ public sealed class ClassicWorldLightCache : IClassicLightCache
         _dirty[index] = true;
     }
 
-    private bool Contains(TilePos tile) => (uint)tile.X < (uint)_width && (uint)tile.Y < (uint)_height;
+    private bool Contains(TilePos tile)
+    {
+        return (uint)tile.X < (uint)_width && (uint)tile.Y < (uint)_height;
+    }
 
     private void PrepareCell(TilePos tile)
     {

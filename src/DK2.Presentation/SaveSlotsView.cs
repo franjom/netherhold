@@ -19,7 +19,14 @@ public sealed class SaveSlotsView
     public string Directory { get; }
     public IReadOnlyList<SavedSessionEntry> Entries { get; private set; } = Array.Empty<SavedSessionEntry>();
     public int SelectedIndex { get; private set; } = -1;
-    public SavedSessionEntry? Selected => SelectedIndex >= 0 && SelectedIndex < Entries.Count ? Entries[SelectedIndex] : null;
+    public SavedSessionEntry? Selected
+    {
+        get
+        {
+            return SelectedIndex >= 0 && SelectedIndex < Entries.Count ? Entries[SelectedIndex] : null;
+        }
+    }
+
     public string Name { get; private set; } = "";
     public int Revision { get; private set; }
     public void Refresh()

@@ -41,7 +41,13 @@ public sealed class MinimapDiscImage
     /// <summary>The side of the last render, in pixels; 0 before the first.</summary>
     public int Diameter { get; private set; }
     /// <summary>Diameter x diameter RGBA pixels, rows top to bottom.</summary>
-    public ReadOnlySpan<byte> Pixels => _pixels.AsSpan(0, Diameter * Diameter * 4);
+    public ReadOnlySpan<byte> Pixels
+    {
+        get
+        {
+            return _pixels.AsSpan(0, Diameter * Diameter * 4);
+        }
+    }
 
     /// <summary>Draws the disc.</summary>
     /// <param name="diameter">The side in pixels (<see cref="MinimapHud.DiscPixels"/>).</param>
@@ -109,14 +115,37 @@ public sealed class MinimapDiscImage
 
         public Turn(float sin, float cos, int diameter) { Sin = sin; Cos = cos; Diameter = diameter; Step = Raster / diameter; }
 
-        public float Disc(int pixel) => (pixel + .5f) * 2 / Diameter - 1;
-        public float RasterX(float x, float y) => (Cos * x - Sin * y) * Half + Half;
-        public float RasterY(float x, float y) => (Sin * x + Cos * y) * Half + Half;
+        public float Disc(int pixel)
+        {
+            return (pixel + .5f) * 2 / Diameter - 1;
+        }
+
+        public float RasterX(float x, float y)
+        {
+            return (Cos * x - Sin * y) * Half + Half;
+        }
+
+        public float RasterY(float x, float y)
+        {
+            return (Sin * x + Cos * y) * Half + Half;
+        }
+
         /// <summary>The display pixel whose centre a raster point falls on, unrounded.</summary>
-        public float PixelX(float rx, float ry) => ((Cos * (rx - Half) + Sin * (ry - Half)) / Half + 1) * Diameter / 2 - .5f;
-        public float PixelY(float rx, float ry) => ((-Sin * (rx - Half) + Cos * (ry - Half)) / Half + 1) * Diameter / 2 - .5f;
+        public float PixelX(float rx, float ry)
+        {
+            return ((Cos * (rx - Half) + Sin * (ry - Half)) / Half + 1) * Diameter / 2 - .5f;
+        }
+
+        public float PixelY(float rx, float ry)
+        {
+            return ((-Sin * (rx - Half) + Cos * (ry - Half)) / Half + 1) * Diameter / 2 - .5f;
+        }
+
         /// <summary>A value's per-pixel change (<c>fwidth</c>) from its gradient in raster units.</summary>
-        public float Width(float gx, float gy) => (MathF.Abs(Cos * gx + Sin * gy) + MathF.Abs(-Sin * gx + Cos * gy)) * Step;
+        public float Width(float gx, float gy)
+        {
+            return (MathF.Abs(Cos * gx + Sin * gy) + MathF.Abs(-Sin * gx + Cos * gy)) * Step;
+        }
 
         /// <summary>The disc's coverage at a point in [-1, 1]: one pixel of soft rim inside the unit circle.</summary>
         public float Coverage(float x, float y)
@@ -149,10 +178,24 @@ public sealed class MinimapDiscImage
             FocusY = zoom.IsWholeMap ? 0 : focus.Y.Raw >> (12 - Level);
         }
 
-        public bool WholeMap => Level < 0;
+        public bool WholeMap
+        {
+            get
+            {
+                return Level < 0;
+            }
+        }
+
         /// <summary>A tile's raster corner in the whole-map fit.</summary>
-        public int FitX(int tile) => tile * Fit.Width / Width + Fit.Left;
-        public int FitY(int tile) => tile * Fit.Height / Height + Fit.Top;
+        public int FitX(int tile)
+        {
+            return tile * Fit.Width / Width + Fit.Left;
+        }
+
+        public int FitY(int tile)
+        {
+            return tile * Fit.Height / Height + Fit.Top;
+        }
     }
 
     private void DrawTiles(Turn turn, MapRaster map, MinimapClassGrid grid, MinimapPalette palette)

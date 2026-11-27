@@ -57,7 +57,10 @@ public sealed class TextScrollBar
 
     /// <summary>The track between the arrows: <c>h − 2w</c>, the arrow squares being the bar's width
     /// (<c>h − 128</c> for menu40's 64-wide bar).</summary>
-    public static int Track(int height, int width = Arrow) => height - 2 * width;
+    public static int Track(int height, int width = Arrow)
+    {
+        return height - 2 * width;
+    }
 
     /// <summary>0x00529160 / 0x0052A1F0: the thumb's top and length along a bar <paramref name="width"/>
     /// wide, relative to its top: <c>len = max(16, T / (R + 1))</c>, <c>top = w + pos·(T − len) / R</c>.</summary>

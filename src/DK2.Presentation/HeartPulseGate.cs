@@ -23,5 +23,8 @@ public sealed class HeartPulseGate
         return true;
     }
 
-    public static bool CanEmit(GameTick tick) => tick.Value > HeartIntroRules.SequenceSeconds * SimulationTiming.OriginalTicksPerGameSecond;
+    public static bool CanEmit(GameTick tick)
+    {
+        return tick.Value > HeartIntroRules.SequenceSeconds * SimulationTiming.OriginalTicksPerGameSecond;
+    }
 }

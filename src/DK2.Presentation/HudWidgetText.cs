@@ -27,27 +27,36 @@ public static class HudWidgetText
     public const int ResizePanel = 2161;
 
     /// <summary>Category tab <paramref name="category"/>, widgets <c>0x00690C58</c> + 80·i.</summary>
-    public static int Tab(BottomPanelCategory category) => 2153 + 2 * (int)category;
+    public static int Tab(BottomPanelCategory category)
+    {
+        return 2153 + 2 * (int)category;
+    }
 
     /// <summary><c>0x0042DB60</c>'s status string for a widget text id; 0 when it has no case.</summary>
-    public static int StatusTextId(int textId) => textId switch
+    public static int StatusTextId(int textId)
     {
-        QueryCorner => 2795,
-        SellCorner or ZoomCorner or OptionsCorner or ResizePanel or 2153 or 2155 or 2157 or 2159 => textId + 1,
-        // The creature panel's worker rows (2308..2314), mode selectors (2316..2322) and the rest of
-        // the even run to 0x928.
-        >= 0x904 and <= 0x928 when textId % 2 == 0 => textId + 1,
-        _ => 0,
-    };
+        return textId switch
+        {
+            QueryCorner => 2795,
+            SellCorner or ZoomCorner or OptionsCorner or ResizePanel or 2153 or 2155 or 2157 or 2159 => textId + 1,
+            // The creature panel's worker rows (2308..2314), mode selectors (2316..2322) and the rest of
+            // the even run to 0x928.
+            >= 0x904 and <= 0x928 when textId % 2 == 0 => textId + 1,
+            _ => 0,
+        };
+    }
 
-    public static int? ForAction(ClassicHudAction action) => action switch
+    public static int? ForAction(ClassicHudAction action)
     {
-        ClassicHudAction.SelectQuery => QueryCorner,
-        ClassicHudAction.SelectSell => SellCorner,
-        ClassicHudAction.ZoomIn or ClassicHudAction.ZoomOut => ZoomCorner,
-        ClassicHudAction.ToggleOptions => OptionsCorner,
-        _ => null,
-    };
+        return action switch
+        {
+            ClassicHudAction.SelectQuery => QueryCorner,
+            ClassicHudAction.SelectSell => SellCorner,
+            ClassicHudAction.ZoomIn or ClassicHudAction.ZoomOut => ZoomCorner,
+            ClassicHudAction.ToggleOptions => OptionsCorner,
+            _ => null,
+        };
+    }
 
     public static HoverTextSnapshot Hover(int textId, Func<uint, string> resolve)
     {

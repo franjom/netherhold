@@ -21,7 +21,13 @@ public sealed record SessionContext(string LevelName, GameSessionMode Mode, Fron
     public CampaignCarry CarryApplied { get; set; }
 
     /// <summary>A campaign level started from the front end's map, which records its result in the profile.</summary>
-    public bool LaunchedFromFrontEnd => StartedFromFrontEnd(Mode, ReturnPage);
+    public bool LaunchedFromFrontEnd
+    {
+        get
+        {
+            return StartedFromFrontEnd(Mode, ReturnPage);
+        }
+    }
 
     /// <summary>The session a level scene starts from the request that replaced the last scene: a
     /// loaded save or a restart (<paramref name="resumed"/>) first, then the campaign map's launch (<paramref name="launched"/>),
@@ -42,8 +48,10 @@ public sealed record SessionContext(string LevelName, GameSessionMode Mode, Fron
     }
 
     /// <summary><see cref="LaunchedFromFrontEnd"/> for a session's mode and return page.</summary>
-    public static bool StartedFromFrontEnd(GameSessionMode mode, FrontEndPage returnPage) =>
-        mode == GameSessionMode.Campaign && returnPage == FrontEndPage.CampaignResults;
+    public static bool StartedFromFrontEnd(GameSessionMode mode, FrontEndPage returnPage)
+    {
+        return mode == GameSessionMode.Campaign && returnPage == FrontEndPage.CampaignResults;
+    }
 
     /// <summary>Plays the profile's played slot when it names this level; a profile that names another map (edited
     /// between sessions) records nothing.</summary>

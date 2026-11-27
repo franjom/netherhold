@@ -16,21 +16,29 @@ public sealed class PossessionHighlight
     private WorldSight? _sight;
     private readonly HeartSites _hearts = new();
 
-    public static bool EntryPointerFeedback(bool possessing, bool firstPersonCameraSettled, HudVisibility ordinary) =>
-        possessing && !firstPersonCameraSettled && ordinary.ShowNormalHud;
+    public static bool EntryPointerFeedback(bool possessing, bool firstPersonCameraSettled, HudVisibility ordinary)
+    {
+        return possessing && !firstPersonCameraSettled && ordinary.ShowNormalHud;
+    }
 
-    public static bool TransitionPointerFeedback(PossessionSession? session, HudVisibility ordinary) =>
-        session is { CameraHeld: true, SettledPossessionCamera: false }
+    public static bool TransitionPointerFeedback(PossessionSession? session, HudVisibility ordinary)
+    {
+        return session is { CameraHeld: true, SettledPossessionCamera: false }
             && PossessionHud.OrdinaryVisibility(ordinary, session).ShowNormalHud;
+    }
 
-    public static WorldHoverHit? EntryPointerTarget(WorldHoverHit? pointerHit, bool entering, bool ordinaryTargetAllowed) =>
-        entering && ordinaryTargetAllowed && pointerHit is { Kind: WorldHoverKind.Creature or WorldHoverKind.Object or WorldHoverKind.Door or WorldHoverKind.Trap }
+    public static WorldHoverHit? EntryPointerTarget(WorldHoverHit? pointerHit, bool entering, bool ordinaryTargetAllowed)
+    {
+        return entering && ordinaryTargetAllowed && pointerHit is { Kind: WorldHoverKind.Creature or WorldHoverKind.Object or WorldHoverKind.Door or WorldHoverKind.Trap }
             ? pointerHit : null;
+    }
 
     public static WorldHoverHit? EntryPointerTarget(WorldHoverHit? pointerHit, bool entering,
-        bool ordinaryTargetAllowed, bool spellTargetAllowed) =>
-        EntryPointerTarget(pointerHit, entering, ordinaryTargetAllowed
+        bool ordinaryTargetAllowed, bool spellTargetAllowed)
+    {
+        return EntryPointerTarget(pointerHit, entering, ordinaryTargetAllowed
             || (spellTargetAllowed && pointerHit is { Kind: WorldHoverKind.Creature }));
+    }
 
     public WorldHoverHit? Capture(WorldState world, GameDatabase database, PlayerId viewer, PossessionSession session)
     {

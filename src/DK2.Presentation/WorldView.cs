@@ -162,7 +162,13 @@ public readonly struct TileView
 
     /// <summary>Whether the classic tile fill draws this tile as bright as explored ground: explored, scanned (Sight, the
     /// claim scan) or carrying its own light (owner, 2026-10-21).</summary>
-    public bool LitAsExplored => Explored || Scanned || PointLight.HasValue;
+    public bool LitAsExplored
+    {
+        get
+        {
+            return Explored || Scanned || PointLight.HasValue;
+        }
+    }
 
     public AssetRef SightFogOverlay { get; }
     public byte SightFogOpacity { get; }
@@ -172,7 +178,13 @@ public readonly struct TileView
     /// Brick at 3).</summary>
     public int FaceTexture { get; }
 
-    public bool IsRoom => !Furniture.IsEmpty;
+    public bool IsRoom
+    {
+        get
+        {
+            return !Furniture.IsEmpty;
+        }
+    }
 }
 
 /// <summary>
@@ -301,7 +313,13 @@ public readonly struct CreatureView
     public int GoldHeld { get; }
 
     /// <summary>The tile it is standing in.</summary>
-    public TilePos Tile => new(PosX / Fp32.One, PosY / Fp32.One);
+    public TilePos Tile
+    {
+        get
+        {
+            return new(PosX / Fp32.One, PosY / Fp32.One);
+        }
+    }
 }
 
 /// <summary>
@@ -370,7 +388,13 @@ public readonly struct ObjectView
 
     /// <summary>Yaw in the renderer's frame: DK2's row-vector rotation and (x, −z, −y)
     /// conversion give +(heading + half a turn); object-drawing.md §4.</summary>
-    public int MeshYaw => (Heading + 0x400) & 0x7FF;
+    public int MeshYaw
+    {
+        get
+        {
+            return (Heading + 0x400) & 0x7FF;
+        }
+    }
 
     /// <summary>Uniform scale, <see cref="Fp32.One"/> for 1 (RenderInfo <c>+4</c>, <c>+8</c>).</summary>
     public int Scale { get; }
@@ -392,13 +416,31 @@ public readonly struct ObjectView
     public DungeonHeartVisual? HeartVisual { get; }
 
     /// <summary>The texture phase a renderer draws: a Heart's decay phase, else <see cref="TexturePhase"/>.</summary>
-    public Fp32? DrawnTexturePhase => HeartVisual.HasValue ? HeartVisual.Value.DecayPhase : TexturePhase;
+    public Fp32? DrawnTexturePhase
+    {
+        get
+        {
+            return HeartVisual.HasValue ? HeartVisual.Value.DecayPhase : TexturePhase;
+        }
+    }
 
     /// <summary><see cref="Scale"/> in model units, 1 for <see cref="Fp32.One"/>.</summary>
-    public float MeshScale => Scale / (float)Fp32.One;
+    public float MeshScale
+    {
+        get
+        {
+            return Scale / (float)Fp32.One;
+        }
+    }
 
     /// <summary>The vertical scale: <see cref="MeshScale"/> times a Heart's <see cref="DungeonHeartVisual.VerticalScale"/>.</summary>
-    public float MeshScaleY => MeshScale * (HeartVisual?.VerticalScale.Raw ?? Fp32.One) / Fp32.One;
+    public float MeshScaleY
+    {
+        get
+        {
+            return MeshScale * (HeartVisual?.VerticalScale.Raw ?? Fp32.One) / Fp32.One;
+        }
+    }
 
     /// <summary>The model's alpha, 0 to 255 (object <c>+0x8F</c>): 255 but for the local player's
     /// Heart Arches and Big Steps during the Heart's opening sequence (<see cref="HeartIntroRules"/>).</summary>
@@ -570,7 +612,13 @@ public sealed partial class WorldView
     private bool _previewing;
     private uint _lastHighlightMilliseconds;
     private bool _highlightPhase;
-    public bool TerrainHighlightPhase => _highlightPhase;
+    public bool TerrainHighlightPhase
+    {
+        get
+        {
+            return _highlightPhase;
+        }
+    }
 
     public void AdvanceTerrainHighlights(EffectTime time)
     {
@@ -700,8 +748,10 @@ public sealed partial class WorldView
         return true;
     }
 
-    private bool AdmitsUnexplored(WorldState world, TilePos position) =>
-        _possessionView || (_sightRegion?.IsVisible(position, world.CurrentTick) ?? false);
+    private bool AdmitsUnexplored(WorldState world, TilePos position)
+    {
+        return _possessionView || (_sightRegion?.IsVisible(position, world.CurrentTick) ?? false);
+    }
 
     private bool ShowsTag(in TileState tile, TerrainDef terrain, int x, int y)
     {
@@ -1006,17 +1056,23 @@ public sealed partial class WorldView
         return ClassicPointLight.FromTerrain(new TilePos(x, y), height, colour);
     }
 
-    private int ClaimScanChannel(VariableTypeId id, int fallback) =>
-        _database.Variables.TryGet(id, out int value) ? value : fallback;
+    private int ClaimScanChannel(VariableTypeId id, int fallback)
+    {
+        return _database.Variables.TryGet(id, out int value) ? value : fallback;
+    }
 
     /// <summary>The per-tile pass's liquid arm (<c>0x0043D1C5..0x0043D394</c>): water and lava
     /// terrain draw their surface; a bridge draws water's over water and none over lava.</summary>
-    private RoomPieceKeys? RoomKeysOf(WorldState world, in TileState tile) =>
-        IsRuinedHeart(world, tile) ? _destroyedHeartKeys[tile.TerrainId]
+    private RoomPieceKeys? RoomKeysOf(WorldState world, in TileState tile)
+    {
+        return IsRuinedHeart(world, tile) ? _destroyedHeartKeys[tile.TerrainId]
         : _roomKeys.TryGetValue(tile.TerrainId, out RoomPieceKeys? keys) ? keys : null;
+    }
 
-    private bool IsRuinedHeart(WorldState world, in TileState tile) =>
-        _destroyedHeartKeys.ContainsKey(tile.TerrainId) && tile.RoomRuined;
+    private bool IsRuinedHeart(WorldState world, in TileState tile)
+    {
+        return _destroyedHeartKeys.ContainsKey(tile.TerrainId) && tile.RoomRuined;
+    }
 
     private LiquidSurface SurfaceOf(in TileState tile, TerrainDef terrain)
     {
@@ -1154,7 +1210,10 @@ public sealed partial class WorldView
         return pieces;
     }
 
-    private static PieceSet Coded(byte code) => default(PieceSet).WithWhole(code >> 4, code & 3);
+    private static PieceSet Coded(byte code)
+    {
+        return default(PieceSet).WithWhole(code >> 4, code & 3);
+    }
 
     /// <summary>The 3×3 cell <c>0x004EF730</c>: cx + 3·cy, cx 0 where the west tile is not this
     /// room, else 1 where the east one is, else 2 (cy from north and south); null, writing nothing,
@@ -1212,11 +1271,13 @@ public sealed partial class WorldView
     }
 
     private AssetRef FrontEndEntranceCap(WorldState world, int x, int y)
-        => _database.RoomsByTerrain.TryGetValue(world.Tile(new TilePos(x, y)).TerrainId, out RoomDef? definition)
-            && definition.Construction == TileConstruction.HeroGateFrontEndTile
-            && FactsAt(world, x, y) is { } room
-            && x == room.FirstX + 1 && y == room.FirstY + 5
-            ? FrontEndAssets.EntranceCap(_database.Room(RoomTypeId.HeroGateFrontEnd).Name) : default;
+    {
+        return _database.RoomsByTerrain.TryGetValue(world.Tile(new TilePos(x, y)).TerrainId, out RoomDef? definition)
+                && definition.Construction == TileConstruction.HeroGateFrontEndTile
+                && FactsAt(world, x, y) is { } room
+                && x == room.FirstX + 1 && y == room.FirstY + 5
+                ? FrontEndAssets.EntranceCap(_database.Room(RoomTypeId.HeroGateFrontEnd).Name) : default;
+    }
 
     /// <summary>The 2×2 hero gate (<c>0x004F0070</c>, <c>0x00446800</c>): piece dx + 2·dy whole at
     /// rotation 0 by the tile's offset from the room's first slab (table <c>0x0066DD88</c>); a tile
@@ -1377,10 +1438,12 @@ public sealed partial class WorldView
     }
 
     /// <summary>A quadrant's (first, diagonal, last) bits of directions 2q − 2, 2q − 1, 2q.</summary>
-    private static int QuadrantIndex(int mask, int q) =>
-        (((mask >> ((2 * q + 6) & 7)) & 1) << 2)
+    private static int QuadrantIndex(int mask, int q)
+    {
+        return (((mask >> ((2 * q + 6) & 7)) & 1) << 2)
         | (((mask >> ((2 * q + 7) & 7)) & 1) << 1)
         | ((mask >> (2 * q)) & 1);
+    }
 
     /// <summary>
     /// The liquid bed <c>0x0043E440</c> (room-floors-and-liquids.md §3) under a water or lava
@@ -1459,11 +1522,13 @@ public sealed partial class WorldView
             _floorSlot = floorSlot;
         }
 
-        public bool Same(in TileRoomFacts other) =>
-            _inRoom == other._inRoom && _floorSlot == other._floorSlot
+        public bool Same(in TileRoomFacts other)
+        {
+            return _inRoom == other._inRoom && _floorSlot == other._floorSlot
             && _facts.FirstX == other._facts.FirstX && _facts.FirstY == other._facts.FirstY
             && _facts.DoorTile == other._facts.DoorTile && _facts.PhaseNorthSouth == other._facts.PhaseNorthSouth
             && _facts.PhaseEastWest == other._facts.PhaseEastWest;
+        }
     }
 
     /// <summary>All <see cref="TileAt"/> reads of the room facts for one tile: its own room's facts
@@ -1507,9 +1572,11 @@ public sealed partial class WorldView
     /// a tick outside the Sight region's span: the only clock it reads (<see cref="SightRegion.Alpha"/>,
     /// opaque before its start and after its duration). Room facts are per tick too, but the
     /// presenter compares those itself (<see cref="RoomFactsOf"/>).</summary>
-    internal bool TileViewsFollowTick(GameTick tick) =>
-        _sightRegion is SightRegion region && tick.Value - region.Start.Value is var elapsed
+    internal bool TileViewsFollowTick(GameTick tick)
+    {
+        return _sightRegion is SightRegion region && tick.Value - region.Start.Value is var elapsed
         && elapsed >= 0 && elapsed <= region.DurationTicks;
+    }
 
     private RoomFacts? FactsAt(WorldState world, int x, int y)
     {
@@ -1616,13 +1683,17 @@ public sealed partial class WorldView
     /// builder's prelude (<c>0x0043E8FC</c>) and the room wall chooser read the bit. Ours derives it
     /// from the marker: each of the command's seven senders writes the marker with the same value
     /// (record 004434F0, which also lists where a restored game can part the two).</para></summary>
-    private bool IsHiddenSecretDoor(WorldState world, int x, int y) =>
-        world.Tile(x, y).SecretDoor && world.DoorAt(x, y) is { } door && door.PlayerId != _viewingPlayerId;
+    private bool IsHiddenSecretDoor(WorldState world, int x, int y)
+    {
+        return world.Tile(x, y).SecretDoor && world.DoorAt(x, y) is { } door && door.PlayerId != _viewingPlayerId;
+    }
 
     /// <summary>The terrain a tile is drawn as, which is its own except for
     /// <see cref="IsHiddenSecretDoor"/>.</summary>
-    private byte ShownTerrainId(WorldState world, int x, int y) =>
-        IsHiddenSecretDoor(world, x, y) ? ReinforcedWallTerrainId : world.Tile(x, y).TerrainId;
+    private byte ShownTerrainId(WorldState world, int x, int y)
+    {
+        return IsHiddenSecretDoor(world, x, y) ? ReinforcedWallTerrainId : world.Tile(x, y).TerrainId;
+    }
 
     /// <summary>
     /// The plain terrain builder <c>0x0043E860</c> (floor-and-terrain-pieces.md §5): a solid tile
@@ -1719,8 +1790,10 @@ public sealed partial class WorldView
 
     /// <summary>A PlayerColouredWall owned by the hero player <c>[0x006F254C]</c>, whose faces
     /// 0x0043E860 takes from the hero wall pieces (0x0043F335..0x0043FC21).</summary>
-    private static bool IsHeroWall(in TileState tile, TerrainFlags flags) =>
-        (flags & TerrainFlags.PlayerColouredWall) != 0 && tile.OwnerPlayerId == PlayerIds.Good;
+    private static bool IsHeroWall(in TileState tile, TerrainFlags flags)
+    {
+        return (flags & TerrainFlags.PlayerColouredWall) != 0 && tile.OwnerPlayerId == PlayerIds.Good;
+    }
 
     private RoomWalls WallsOrHeroFacesOf(WorldState world, int x, int y, in TileState tile, TerrainDef terrain)
     {
@@ -1817,7 +1890,10 @@ public sealed partial class WorldView
         return packed;
     }
 
-    private bool IsSolid(WorldState world, int x, int y) => _solidById[ShownTerrainId(world, x, y)];
+    private bool IsSolid(WorldState world, int x, int y)
+    {
+        return _solidById[ShownTerrainId(world, x, y)];
+    }
 
     // DK2's eight directions N, NE, E, SE, S, SW, W, NW (0x006BC370).
     private static readonly int[] Dx8 = [0, 1, 1, 1, 0, -1, -1, -1];
@@ -1912,8 +1988,10 @@ public sealed partial class WorldView
         return behind.IsSolid && ((behind.Flags & TerrainFlags.AllowRoomWalls) == TerrainFlags.AllowRoomWalls);
     }
 
-    private bool TakesRoomWalls(WorldState world, int x, int y) =>
-        ((_database.TerrainById(ShownTerrainId(world, x, y)).Flags & TerrainFlags.AllowRoomWalls) == TerrainFlags.AllowRoomWalls);
+    private bool TakesRoomWalls(WorldState world, int x, int y)
+    {
+        return ((_database.TerrainById(ShownTerrainId(world, x, y)).Flags & TerrainFlags.AllowRoomWalls) == TerrainFlags.AllowRoomWalls);
+    }
 
     /// <summary>Every creature, in the simulation's own order (which is spawn order).</summary>
     public IEnumerable<CreatureView> Creatures(WorldState world)
@@ -2107,9 +2185,11 @@ public sealed partial class WorldView
         }
     }
 
-    private static bool IsBedExitPose(CreatureState creature, GameTick tick) =>
-        creature.Dk2StateId == ImpStates.Wandering && creature.LastBedExitTick.Value >= 0
+    private static bool IsBedExitPose(CreatureState creature, GameTick tick)
+    {
+        return creature.Dk2StateId == ImpStates.Wandering && creature.LastBedExitTick.Value >= 0
         && creature.LastBedExitTick.Value == tick.Value - 1;
+    }
 
     /// <summary>
     /// The animation key for a creature's current activity.
@@ -2205,17 +2285,19 @@ public sealed partial class WorldView
 
     // Enable only the existing source mappings whose action is represented by this view.
     // Other job actions still need their own art slots and clocks.
-    public bool PlaysMappedAnimation(CreatureState creature, GameTick tick) =>
-        creature.Dk2StateId is DropLandingRules.LandingState or PortalRules.JoiningState || IsTrainingAnimation(creature)
+    public bool PlaysMappedAnimation(CreatureState creature, GameTick tick)
+    {
+        return creature.Dk2StateId is DropLandingRules.LandingState or PortalRules.JoiningState || IsTrainingAnimation(creature)
         || IsMeleeAnimation(creature, tick) || IsCastAnimation(creature, tick)
         || IsEatingAnimation(creature) || IsDropRecoveryAnimation(creature) || IsWorkshopWorkAnimation(creature, tick) || creature.Activity switch
-    {
-        CreatureActivity.Idle or CreatureActivity.Sleeping or CreatureActivity.Dying or CreatureActivity.Fighting
-            or CreatureActivity.BeingTortured => true,
-        CreatureActivity.Working => creature.LastTaskKind is ImpTaskKind.Excavate or ImpTaskKind.Mine
-            or ImpTaskKind.Claim or ImpTaskKind.Reinforce or ImpTaskKind.Fix,
-        _ => IsTravelAnimation(creature),
-    };
+        {
+            CreatureActivity.Idle or CreatureActivity.Sleeping or CreatureActivity.Dying or CreatureActivity.Fighting
+                or CreatureActivity.BeingTortured => true,
+            CreatureActivity.Working => creature.LastTaskKind is ImpTaskKind.Excavate or ImpTaskKind.Mine
+                or ImpTaskKind.Claim or ImpTaskKind.Reinforce or ImpTaskKind.Fix,
+            _ => IsTravelAnimation(creature),
+        };
+    }
 
     private readonly Dictionary<byte, int> _meleeHoldTicks = [];
     private void PrunePortalPoses(WorldState world)
@@ -2287,42 +2369,63 @@ public sealed partial class WorldView
         return true;
     }
 
-    private static bool IsDropRecoveryAnimation(CreatureState creature) =>
-        creature.Dk2StateId is DropLandingRules.StunnedState or DropLandingRules.GettingUpState;
-    private static bool IsTrainingAnimation(CreatureState creature) =>
-        creature.CurrentJob == JobType.Train && creature.TrainingActionId != 0
-        && creature.TrainingActionStartedTick >= 0 && !creature.InHand
-        && CreatureStateMachine.UpdatingCategory(creature) == CreatureStateCategory.Training;
-    private bool IsDeferredLanding(CreatureState creature) =>
-        creature.Dk2StateId == DropLandingRules.LandingState
-        && (_database.CreatureById(creature.CreatureTypeId).Flags & (CreatureFlags.IsWorker | CreatureFlags.IsEvil))
-            != (CreatureFlags.IsWorker | CreatureFlags.IsEvil);
+    private static bool IsDropRecoveryAnimation(CreatureState creature)
+    {
+        return creature.Dk2StateId is DropLandingRules.StunnedState or DropLandingRules.GettingUpState;
+    }
+
+    private static bool IsTrainingAnimation(CreatureState creature)
+    {
+        return creature.CurrentJob == JobType.Train && creature.TrainingActionId != 0
+            && creature.TrainingActionStartedTick >= 0 && !creature.InHand
+            && CreatureStateMachine.UpdatingCategory(creature) == CreatureStateCategory.Training;
+    }
+
+    private bool IsDeferredLanding(CreatureState creature)
+    {
+        return creature.Dk2StateId == DropLandingRules.LandingState
+            && (_database.CreatureById(creature.CreatureTypeId).Flags & (CreatureFlags.IsWorker | CreatureFlags.IsEvil))
+                != (CreatureFlags.IsWorker | CreatureFlags.IsEvil);
+    }
+
     /// <summary>Action 32 runs in state 65 (<c>0x00470860</c>): the manufacturer plays art slot 22, or the melee swing
     /// DK2 falls back to when the creature has none (<c>0x00494880</c>), from the turn state 64 begins the action,
     /// which is state 65's entry, to its end (<see cref="WorkshopStep"/>; ADR-0685).</summary>
-    private static bool IsWorkshopWorkAnimation(CreatureState creature, GameTick tick) =>
-        creature.Dk2StateId == WorkshopStep.WorkingState && !creature.InHand
+    private static bool IsWorkshopWorkAnimation(CreatureState creature, GameTick tick)
+    {
+        return creature.Dk2StateId == WorkshopStep.WorkingState && !creature.InHand
         && tick.Value < creature.ActionUntilTick;
-    private static bool IsEatingAnimation(CreatureState creature) =>
-        creature.Dk2StateId is EatingRules.AfterMealState or PrisonRules.AfterEatingState;
+    }
+
+    private static bool IsEatingAnimation(CreatureState creature)
+    {
+        return creature.Dk2StateId is EatingRules.AfterMealState or PrisonRules.AfterEatingState;
+    }
+
     private readonly Dictionary<byte, int> _castHoldTicks = [];
     /// <summary>A worker plays its slot-32 jump (imp-jump(iw)) for the one update the chooser sees it in state 214:
     /// the update after its creation, whose physical pass drops it to the floor. 0x0048BE50's 214 arm installs the
     /// clip at once, and on the next update the landing's state 11 installs the standing pose at once, so only the
     /// clip's opening frames show (imp-create-position.md, "State 214 animation"). The creation turn keeps the
     /// ordinary pose.</summary>
-    private bool IsCreationJump(CreatureState creature, GameTick tick) =>
-        creature.Dk2StateId == ImpCreationRules.FallingState && creature.StateEnteredTick >= 0
+    private bool IsCreationJump(CreatureState creature, GameTick tick)
+    {
+        return creature.Dk2StateId == ImpCreationRules.FallingState && creature.StateEnteredTick >= 0
         && tick.Value == creature.StateEnteredTick + 1 && IsWorker(creature);
+    }
 
-    private bool IsWorker(CreatureState creature) =>
-        (_database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) != 0;
+    private bool IsWorker(CreatureState creature)
+    {
+        return (_database.CreatureById(creature.CreatureTypeId).Flags & CreatureFlags.IsWorker) != 0;
+    }
 
     /// <summary>The turn of creation: <see cref="ImpCreationRules"/> starts both heights at the birth height and its
     /// first step moves the previous one.</summary>
-    private static bool IsCreationTurn(CreatureState creature) =>
-        creature.PosZ == ImpCreationRules.BirthHeightAboveFloor && creature.LastPosZ == ImpCreationRules.BirthHeightAboveFloor
+    private static bool IsCreationTurn(CreatureState creature)
+    {
+        return creature.PosZ == ImpCreationRules.BirthHeightAboveFloor && creature.LastPosZ == ImpCreationRules.BirthHeightAboveFloor
         && creature.CreationVelocityZ == 0;
+    }
 
     /// <summary>HYPOTHESIS: the worker arm makes the creature at shot Z + 0x20, which construction copies into the
     /// previous position +0xF6, then moves only the current one to Z + 0x800; drawn from previous to current, the
@@ -2390,20 +2493,23 @@ public sealed partial class WorldView
         return elapsed >= 0 && elapsed < hold;
     }
 
-    private static bool IsTravelAnimation(CreatureState creature) => creature.Activity switch
+    private static bool IsTravelAnimation(CreatureState creature)
     {
-        CreatureActivity.Fighting => creature.HasRoute,
-        CreatureActivity.AtWork or CreatureActivity.PitFighting or CreatureActivity.Idle or CreatureActivity.Following => creature.HasRoute
-            && creature.Dk2StateId is 6 or 7,
-        CreatureActivity.MovingToJob or CreatureActivity.DeliveringGold or CreatureActivity.GoingToSleep
-            or CreatureActivity.Leaving or CreatureActivity.FetchingGold or CreatureActivity.SeekingLair
-            or CreatureActivity.FetchingBody or CreatureActivity.CarryingBody or CreatureActivity.FetchingObject
-            or CreatureActivity.CarryingObject or CreatureActivity.SeekingFood or CreatureActivity.FetchingChicken
-            or CreatureActivity.SeekingWages or CreatureActivity.GoingToJob or CreatureActivity.Fleeing
-            or CreatureActivity.Withdrawing or CreatureActivity.GoingToBody or CreatureActivity.Rescuing
-            or CreatureActivity.HeedingCallToArms or CreatureActivity.Imprisoned => creature.HasRoute,
-        _ => false,
-    };
+        return creature.Activity switch
+        {
+            CreatureActivity.Fighting => creature.HasRoute,
+            CreatureActivity.AtWork or CreatureActivity.PitFighting or CreatureActivity.Idle or CreatureActivity.Following => creature.HasRoute
+                && creature.Dk2StateId is 6 or 7,
+            CreatureActivity.MovingToJob or CreatureActivity.DeliveringGold or CreatureActivity.GoingToSleep
+                or CreatureActivity.Leaving or CreatureActivity.FetchingGold or CreatureActivity.SeekingLair
+                or CreatureActivity.FetchingBody or CreatureActivity.CarryingBody or CreatureActivity.FetchingObject
+                or CreatureActivity.CarryingObject or CreatureActivity.SeekingFood or CreatureActivity.FetchingChicken
+                or CreatureActivity.SeekingWages or CreatureActivity.GoingToJob or CreatureActivity.Fleeing
+                or CreatureActivity.Withdrawing or CreatureActivity.GoingToBody or CreatureActivity.Rescuing
+                or CreatureActivity.HeedingCallToArms or CreatureActivity.Imprisoned => creature.HasRoute,
+            _ => false,
+        };
+    }
 
     private static Fp32 MovementAnimationSpeed(CreatureState creature)
     {
@@ -2423,55 +2529,58 @@ public sealed partial class WorldView
     /// reflection over the enum name, so adding an activity without deciding its
     /// animation does not compile.
     /// </summary>
-    public static string ActivityKeySegment(CreatureActivity activity) => activity switch
+    public static string ActivityKeySegment(CreatureActivity activity)
     {
-        CreatureActivity.Idle => "idle",
-        CreatureActivity.MovingToJob => "moving_to_job",
-        CreatureActivity.Working => "working",
-        CreatureActivity.DeliveringGold => "delivering_gold",
-        CreatureActivity.GoingToSleep => "going_to_sleep",
-        CreatureActivity.Sleeping => "sleeping",
-        CreatureActivity.Dying => "dying",
-        CreatureActivity.Leaving => "leaving",
-        CreatureActivity.FetchingGold => "fetching_gold",
-        CreatureActivity.SeekingLair => "seeking_lair",
-        CreatureActivity.Dead => "dead",
-        CreatureActivity.FetchingBody => "fetching_body",
-        CreatureActivity.CarryingBody => "carrying_body",
-        CreatureActivity.Imprisoned => "imprisoned",
-        CreatureActivity.FetchingObject => "fetching_object",
-        CreatureActivity.CarryingObject => "carrying_object",
-        CreatureActivity.SeekingFood => "seeking_food",
-        CreatureActivity.FetchingChicken => "fetching_chicken",
-        CreatureActivity.SeekingWages => "seeking_wages",
-        CreatureActivity.GoingToJob => "going_to_job",
-        CreatureActivity.AtWork => "at_work",
-        CreatureActivity.Fighting => "fighting",
-        CreatureActivity.Fleeing => "fleeing",
-        CreatureActivity.Withdrawing => "withdrawing",
-        CreatureActivity.RaisingAlarm => "raising_alarm",
-        CreatureActivity.Reporting => "reporting",
-        CreatureActivity.Frozen => "frozen",
-        CreatureActivity.Stunned => "stunned",
-        CreatureActivity.Celebrating => "celebrating",
-        CreatureActivity.CollectingWinnings => "collecting_winnings",
-        CreatureActivity.GoingToBody => "going_to_body",
-        CreatureActivity.BeingTortured => "being_tortured",
-        CreatureActivity.Rescuing => "rescuing",
-        CreatureActivity.PitFighting => "pit_fighting",
-        CreatureActivity.HeedingCallToArms => "heeding_call_to_arms",
-        CreatureActivity.BeingLifted => "being_lifted",
-        CreatureActivity.Chicken => "chicken",
-        CreatureActivity.JackInTheBox => "jack_in_the_box",
-        CreatureActivity.UnbuiltHandler => "unbuilt_handler",
-        CreatureActivity.ReaperArriving => "reaper_arriving",
-        CreatureActivity.Slapped => "slapped",
-        CreatureActivity.Following => "following",
-        CreatureActivity.Arriving => "arriving",
-        CreatureActivity.RunningFromThreat => "running_from_threat",
-        _ => throw new ArgumentOutOfRangeException(
-            nameof(activity), activity, "No animation key for this activity."),
-    };
+        return activity switch
+        {
+            CreatureActivity.Idle => "idle",
+            CreatureActivity.MovingToJob => "moving_to_job",
+            CreatureActivity.Working => "working",
+            CreatureActivity.DeliveringGold => "delivering_gold",
+            CreatureActivity.GoingToSleep => "going_to_sleep",
+            CreatureActivity.Sleeping => "sleeping",
+            CreatureActivity.Dying => "dying",
+            CreatureActivity.Leaving => "leaving",
+            CreatureActivity.FetchingGold => "fetching_gold",
+            CreatureActivity.SeekingLair => "seeking_lair",
+            CreatureActivity.Dead => "dead",
+            CreatureActivity.FetchingBody => "fetching_body",
+            CreatureActivity.CarryingBody => "carrying_body",
+            CreatureActivity.Imprisoned => "imprisoned",
+            CreatureActivity.FetchingObject => "fetching_object",
+            CreatureActivity.CarryingObject => "carrying_object",
+            CreatureActivity.SeekingFood => "seeking_food",
+            CreatureActivity.FetchingChicken => "fetching_chicken",
+            CreatureActivity.SeekingWages => "seeking_wages",
+            CreatureActivity.GoingToJob => "going_to_job",
+            CreatureActivity.AtWork => "at_work",
+            CreatureActivity.Fighting => "fighting",
+            CreatureActivity.Fleeing => "fleeing",
+            CreatureActivity.Withdrawing => "withdrawing",
+            CreatureActivity.RaisingAlarm => "raising_alarm",
+            CreatureActivity.Reporting => "reporting",
+            CreatureActivity.Frozen => "frozen",
+            CreatureActivity.Stunned => "stunned",
+            CreatureActivity.Celebrating => "celebrating",
+            CreatureActivity.CollectingWinnings => "collecting_winnings",
+            CreatureActivity.GoingToBody => "going_to_body",
+            CreatureActivity.BeingTortured => "being_tortured",
+            CreatureActivity.Rescuing => "rescuing",
+            CreatureActivity.PitFighting => "pit_fighting",
+            CreatureActivity.HeedingCallToArms => "heeding_call_to_arms",
+            CreatureActivity.BeingLifted => "being_lifted",
+            CreatureActivity.Chicken => "chicken",
+            CreatureActivity.JackInTheBox => "jack_in_the_box",
+            CreatureActivity.UnbuiltHandler => "unbuilt_handler",
+            CreatureActivity.ReaperArriving => "reaper_arriving",
+            CreatureActivity.Slapped => "slapped",
+            CreatureActivity.Following => "following",
+            CreatureActivity.Arriving => "arriving",
+            CreatureActivity.RunningFromThreat => "running_from_threat",
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(activity), activity, "No animation key for this activity."),
+        };
+    }
 
     private static int HealthPermille(int health, int maxHealth)
     {
@@ -2504,5 +2613,8 @@ public sealed partial class WorldView
         return world.Tile(position).IsExploredBy(_viewingPlayerId) || AdmitsUnexplored(world, position);
     }
 
-    private bool IsVisible(WorldState world, TilePos position) => CanShowTile(world, position);
+    private bool IsVisible(WorldState world, TilePos position)
+    {
+        return CanShowTile(world, position);
+    }
 }

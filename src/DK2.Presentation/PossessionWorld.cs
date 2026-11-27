@@ -26,10 +26,37 @@ public sealed class PossessionWorld(GameDatabase database) : IPossessionWorld
     private CreatureDef? _definition;
     private byte[] _nav = [];
 
-    public int Width => World.Width;
-    public int Height => World.Height;
-    private WorldState World => _world ?? throw new InvalidOperationException("No world is bound.");
-    private CreatureState Creature => _creature ?? throw new InvalidOperationException("No creature is bound.");
+    public int Width
+    {
+        get
+        {
+            return World.Width;
+        }
+    }
+
+    public int Height
+    {
+        get
+        {
+            return World.Height;
+        }
+    }
+
+    private WorldState World
+    {
+        get
+        {
+            return _world ?? throw new InvalidOperationException("No world is bound.");
+        }
+    }
+
+    private CreatureState Creature
+    {
+        get
+        {
+            return _creature ?? throw new InvalidOperationException("No creature is bound.");
+        }
+    }
 
     public void Bind(WorldState world, CreatureState creature)
     {
@@ -85,7 +112,13 @@ public sealed class PossessionWorld(GameDatabase database) : IPossessionWorld
     }
 
     /// <summary>A frozen creature (<c>+0x447</c>) takes no step and no attack.</summary>
-    public bool Frozen => Creature.FrozenTicks != 0;
+    public bool Frozen
+    {
+        get
+        {
+            return Creature.FrozenTicks != 0;
+        }
+    }
 
     /// <summary><c>0x0040F6B0</c>: not solid; when the two navigation bytes differ and the creature
     /// does not stand in a doorway, a step the cost function allows (doors respected when the
@@ -233,11 +266,18 @@ public sealed class PossessionWorld(GameDatabase database) : IPossessionWorld
         return false;
     }
 
-    public int FloorHeight(int x, int y) => FloorHeightRules.At(World, database, x, y);
+    public int FloorHeight(int x, int y)
+    {
+        return FloorHeightRules.At(World, database, x, y);
+    }
 
-    public bool WetAt(int x, int y) =>
-        World.Contains(x >> 12, y >> 12) && database.TerrainById(World.Tile(x >> 12, y >> 12).TerrainId).IsWater;
+    public bool WetAt(int x, int y)
+    {
+        return World.Contains(x >> 12, y >> 12) && database.TerrainById(World.Tile(x >> 12, y >> 12).TerrainId).IsWater;
+    }
 
-    private byte Nav(int tileX, int tileY) =>
-        World.Contains(tileX, tileY) && _nav.Length != 0 ? _nav[(tileY * World.Width) + tileX] : NavBytes.Solid;
+    private byte Nav(int tileX, int tileY)
+    {
+        return World.Contains(tileX, tileY) && _nav.Length != 0 ? _nav[(tileY * World.Width) + tileX] : NavBytes.Solid;
+    }
 }

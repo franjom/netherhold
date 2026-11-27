@@ -99,12 +99,17 @@ public static class StatusFlowerRules
 
     /// <summary>Whether the ring is drawn during the countdown (0x0048F0F0): the second half of each
     /// game second, <c>turn mod rate ≥ rate/2</c>.</summary>
-    public static bool CountdownRingOn(GameTick turn) =>
-        (uint)turn.Value % SimulationTiming.TicksPerSecond >= SimulationTiming.TicksPerSecond >> 1;
+    public static bool CountdownRingOn(GameTick turn)
+    {
+        return (uint)turn.Value % SimulationTiming.TicksPerSecond >= SimulationTiming.TicksPerSecond >> 1;
+    }
 
     /// <summary>The icons the loader sizes at 0x2000 rather than 0x1000 (0x00596850, table 0x006BE580
     /// entries 0, 6 and 10).</summary>
-    public static bool IsLargeIcon(string icon) => icon is "Imprison" or "Objective" or "Objective-2";
+    public static bool IsLargeIcon(string icon)
+    {
+        return icon is "Imprison" or "Objective" or "Objective-2";
+    }
 
     /// <summary>A flower sprite's width and height in tiles (0x0059C360): the overlay scale (0x400, or
     /// 0x200 while possessing; 0x005953D0) times the descriptor size (0x1000, or 0x2000 for
@@ -145,14 +150,18 @@ public static class StatusFlowerRules
     /// <summary>The refusals we can map: an own creature whose definition is Horny (<c>+0x686</c>
     /// bit 0x4000), states 0xC1 and 0x110 (<c>+0x25E</c>), in a hand (<c>+0x3E6</c> bit 0), and a
     /// creature with no state, our model's corpse; how DK2's dead body answers the overlay is unread.</summary>
-    public static bool NeverShows(CreatureDef definition, CreatureState creature, PlayerId viewer) =>
-        (creature.OwnerPlayerId == viewer && (definition.Flags & CreatureFlags.IsHorny) != 0)
+    public static bool NeverShows(CreatureDef definition, CreatureState creature, PlayerId viewer)
+    {
+        return (creature.OwnerPlayerId == viewer && (definition.Flags & CreatureFlags.IsHorny) != 0)
         || creature.Dk2StateId is PortalRules.JoiningState or UnreadRefusedState
         || HandRules.IsHeld(creature) || !CreatureStateMachine.HasState(creature);
+    }
 
     /// <summary>0x0048E830's health test, <c>health &lt; max·100/600</c> in unsigned arithmetic.</summary>
-    public static bool BelowSixthHealth(int health, int maxHealth) =>
-        health < (int)((uint)maxHealth * 100u / 600u);
+    public static bool BelowSixthHealth(int health, int maxHealth)
+    {
+        return health < (int)((uint)maxHealth * 100u / 600u);
+    }
 
     /// <summary>The petal ring, <c>H-0n</c>: entry <c>clamp(1 − trunc(−4·health/max), 0, 5)</c> of the
     /// array the loader fills with H-05 first (0x00596850), so six petals at full health, one fewer
@@ -248,30 +257,37 @@ public static class StatusFlowerCentre
         ["SJ-Mistreat", "SJ-Hungry", "SJ-Rest", "SJ-Busy", "SJ-PayDay", "SJ-Mistreat"];
 
     /// <summary>The level badge, <c>SL-01</c>..<c>SL-10</c>.</summary>
-    public static string LevelIcon(int level) => Levels[Math.Clamp(level, 1, 10) - 1];
+    public static string LevelIcon(int level)
+    {
+        return Levels[Math.Clamp(level, 1, 10) - 1];
+    }
 
     /// <summary>The mode after <paramref name="mode"/> (0x00596410). From the level: a hero shows
     /// its status or stays; others show a status, else an Imp shows its job unless idle-like
     /// (states 6–12, 0x31, 0x32), else the mood when unhappy or angry, else the job. The mood is
     /// followed by the anger reason (or the job when content again); the rest return to the level.</summary>
-    public static StatusFlowerMode Next(StatusFlowerMode mode, in StatusFlowerCentreFacts facts) => mode switch
+    public static StatusFlowerMode Next(StatusFlowerMode mode, in StatusFlowerCentreFacts facts)
     {
-        StatusFlowerMode.Level when facts.Hero =>
-            facts.Status != null ? StatusFlowerMode.Status : StatusFlowerMode.Level,
-        StatusFlowerMode.Level when facts.Status != null => StatusFlowerMode.Status,
-        StatusFlowerMode.Level when facts.Imp =>
-            facts.StateId is >= 6 and <= 12 or 0x31 or 0x32 ? StatusFlowerMode.Level : StatusFlowerMode.Job,
-        StatusFlowerMode.Level => facts.MoodBand != 0 ? StatusFlowerMode.Mood : StatusFlowerMode.Job,
-        StatusFlowerMode.Mood => facts.MoodBand == 0 ? StatusFlowerMode.Job : StatusFlowerMode.AngerReason,
-        _ => StatusFlowerMode.Level,
-    };
+        return mode switch
+        {
+            StatusFlowerMode.Level when facts.Hero =>
+                facts.Status != null ? StatusFlowerMode.Status : StatusFlowerMode.Level,
+            StatusFlowerMode.Level when facts.Status != null => StatusFlowerMode.Status,
+            StatusFlowerMode.Level when facts.Imp =>
+                facts.StateId is >= 6 and <= 12 or 0x31 or 0x32 ? StatusFlowerMode.Level : StatusFlowerMode.Job,
+            StatusFlowerMode.Level => facts.MoodBand != 0 ? StatusFlowerMode.Mood : StatusFlowerMode.Job,
+            StatusFlowerMode.Mood => facts.MoodBand == 0 ? StatusFlowerMode.Job : StatusFlowerMode.AngerReason,
+            _ => StatusFlowerMode.Level,
+        };
+    }
 
     /// <summary>The texture for <paramref name="mode"/> (0x00596590) and whether the experience
     /// wedge is drawn: only when the mode is the level once chosen, so a status mode with no
     /// status draws the badge plain. A job mode with no job falls back to the level (0x00596FC0
     /// resets the mode).</summary>
-    public static (string Icon, StatusFlowerMode Mode) Icon(StatusFlowerMode mode, in StatusFlowerCentreFacts facts) =>
-        mode switch
+    public static (string Icon, StatusFlowerMode Mode) Icon(StatusFlowerMode mode, in StatusFlowerCentreFacts facts)
+    {
+        return mode switch
         {
             StatusFlowerMode.Mood => (Moods[Math.Clamp(facts.MoodBand, 0, 2)], mode),
             StatusFlowerMode.AngerReason => (facts.MoodBand != 0 ? AngerReasons[(int)facts.LargestAnger] : AngerReasons[0], mode),
@@ -279,6 +295,7 @@ public static class StatusFlowerCentre
             StatusFlowerMode.Status => (facts.Status ?? LevelIcon(facts.Level), mode),
             _ => (LevelIcon(facts.Level), StatusFlowerMode.Level),
         };
+    }
 
     /// <summary>The status icon (0x00597270), the icon table at renderer <c>+0x124</c> indexed by
     /// its kind. A hero takes it from the world slot that holds it (trigger action 42): value 2
@@ -324,13 +341,17 @@ public static class StatusFlowerCentre
     /// <summary>Our stand-in for <c>+0x3E6</c> bit 14 (<c>Leaving</c>): states 194–196. DK2 sets the
     /// bit on entering 194 (0x00459DE0) and a rebellion clears it; we keep no bit, so a leaver that
     /// is moved out of those states loses the icon here and not in DK2.</summary>
-    public static bool IsLeaving(CreatureState creature) =>
-        creature.Dk2StateId is >= LeavingRules.ChoosingState and <= LeavingRules.SackedState;
+    public static bool IsLeaving(CreatureState creature)
+    {
+        return creature.Dk2StateId is >= LeavingRules.ChoosingState and <= LeavingRules.SackedState;
+    }
 
     /// <summary>0x0048B5C0: the carried thing (<c>+0x3C3</c>) is an object of type 0x1C, the Portal Gem.</summary>
-    public static bool CarriesPortalGem(WorldState world, CreatureState creature) =>
-        creature.CarriedObjectId >= 0
+    public static bool CarriesPortalGem(WorldState world, CreatureState creature)
+    {
+        return creature.CarriedObjectId >= 0
         && world.ObjectById(creature.CarriedObjectId)?.ObjectTypeId == TriggerExecutor.PortalGemObjectId;
+    }
 
     /// <summary>The job icon (0x00596FC0): No_Go within 5 s of a drop on a room, else by resolved
     /// category, worker states by id; null where DK2 falls back to the level.</summary>
@@ -418,7 +439,13 @@ public sealed class StatusFlowers
         _viewer = viewingPlayer;
     }
 
-    public IReadOnlyList<StatusFlower> Shown => _shown;
+    public IReadOnlyList<StatusFlower> Shown
+    {
+        get
+        {
+            return _shown;
+        }
+    }
 
     /// <summary>Call once a frame with the settled world. <paramref name="hovered"/> is the Hand's
     /// hover target, stamped like Presentation_Update's 0x0043B7F1: shown while

@@ -31,7 +31,13 @@ public sealed class FullMapImage
     public int Width { get; }
     public int Height { get; }
     /// <summary>Width x height RGBA pixels, rows top to bottom; transparent until the first <see cref="Update"/>.</summary>
-    public ReadOnlySpan<byte> Pixels => _pixels;
+    public ReadOnlySpan<byte> Pixels
+    {
+        get
+        {
+            return _pixels;
+        }
+    }
 
     /// <summary>Recolours every pixel from the grid and the palette (its neutral cycle included).</summary>
     /// <returns>Whether any pixel changed, so an unchanged image need not be uploaded.</returns>

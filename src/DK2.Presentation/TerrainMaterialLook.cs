@@ -33,7 +33,10 @@ public readonly record struct TerrainMaterialLook(
     public static readonly Vector3 RedLight = new(1f, 0f, 0f);
 
     /// <summary>A tagged or red-highlighted twin's added light: the tag's (or full red) plus the material's own.</summary>
-    public static Vector3 TaggedLight(Vector3 own, bool red) => (red ? RedLight : TagTint) + own;
+    public static Vector3 TaggedLight(Vector3 own, bool red)
+    {
+        return (red ? RedLight : TagTint) + own;
+    }
 
     /// <summary>A tinted twin's added light: the material's own plus the tint cut to a piece's bytes
     /// (<see cref="ClassicTerrainTint.PieceColour"/>).</summary>
@@ -44,12 +47,18 @@ public readonly record struct TerrainMaterialLook(
     }
 
     /// <summary>The sight fog's packed alpha as the material colour's alpha.</summary>
-    public static float FogAlpha(byte packed) => packed / 255f;
+    public static float FogAlpha(byte packed)
+    {
+        return packed / 255f;
+    }
 
     /// <summary>The look of each variant: the recipe's own; the tagged, red and tinted twins adding their light (an
     /// additive recipe and a tint cut to zero keep the plain look); the sight fog's alpha-blended twin, no depth write,
     /// keeping its own light; the overlays' flat colour, additive.</summary>
-    public static TerrainMaterialLook For(in TerrainMaterialKey key) => For(key, new Vector3(key.Recipe.AddedLight));
+    public static TerrainMaterialLook For(in TerrainMaterialKey key)
+    {
+        return For(key, new Vector3(key.Recipe.AddedLight));
+    }
 
     /// <summary><see cref="For(in TerrainMaterialKey)"/> for an engine material whose own added light is
     /// <paramref name="own"/> rather than the recipe's grey self-illumination.</summary>
@@ -76,6 +85,8 @@ public readonly record struct TerrainMaterialLook(
         }
     }
 
-    private static TerrainMaterialLook Overlay(Vector3 colour) =>
-        new("", KmfBlend.Additive, false, true, new Vector4(colour, 1f), Vector3.Zero);
+    private static TerrainMaterialLook Overlay(Vector3 colour)
+    {
+        return new("", KmfBlend.Additive, false, true, new Vector4(colour, 1f), Vector3.Zero);
+    }
 }

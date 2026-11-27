@@ -23,8 +23,19 @@ public sealed class LocalPickupFeedback
     private readonly List<Pending> _pending = [];
     private readonly List<(PlayerId Player, CreatureId Creature, long Milliseconds)> _dust = [];
     public event Action<ViewEffectRequest>? DustRequested;
-    public int Count => _pending.Count;
-    public bool Contains(CreatureId creatureId) => _pending.Exists(p => p.Id == creatureId.Value);
+    public int Count
+    {
+        get
+        {
+            return _pending.Count;
+        }
+    }
+
+    public bool Contains(CreatureId creatureId)
+    {
+        return _pending.Exists(p => p.Id == creatureId.Value);
+    }
+
     public bool TryQueue(WorldState world, GameDatabase database, PlayerId player, CreatureId creatureId, long milliseconds)
     {
         Advance(world, milliseconds);
@@ -109,8 +120,12 @@ public sealed class LocalPickupFeedback
             }
         }
     }
-    public bool HidesHeld(PlayerId player, HandItem item) => !item.IsObject
+    public bool HidesHeld(PlayerId player, HandItem item)
+    {
+        return !item.IsObject
         && _pending.Exists(p => p.Player == player && p.Id == item.Id && p.Drop is not null);
+    }
+
     public bool HasVisiblePendingItems(WorldState world, PlayerId player)
     {
         foreach (HeldIcon icon in Icons(world, player))
@@ -157,8 +172,12 @@ public sealed class LocalPickupFeedback
         return item.IsObject && world.ObjectById(item.Id) is ObjectState thing
             && thing.ObjectTypeId is 1 or 2 or 3;
     }
-    private static bool IsHeld(WorldState world, Pending pending) => world.HasPlayer(pending.Player)
+    private static bool IsHeld(WorldState world, Pending pending)
+    {
+        return world.HasPlayer(pending.Player)
         && world.Player(pending.Player).Hand.Exists(item => !item.IsObject && item.Id == pending.Id);
+    }
+
     internal bool ConsumeDust(ViewEffectRequest request)
     {
         if (request.EffectId.Value != MovementDustSystem.FootDustEffectId || request.SourceCreatureId == CreatureId.None)

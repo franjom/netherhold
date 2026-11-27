@@ -31,7 +31,10 @@ public static class FrontEndBox
     public const int VirtualPerUnit = 4;
 
     /// <summary>Screen pixels per 640 x 480 unit: the largest scale at which the whole box fits.</summary>
-    public static float Scale(int screenWidth, int screenHeight) => Math.Min(screenWidth / (float)Width, screenHeight / (float)Height);
+    public static float Scale(int screenWidth, int screenHeight)
+    {
+        return Math.Min(screenWidth / (float)Width, screenHeight / (float)Height);
+    }
 
     /// <summary>The centred box's top-left corner in screen pixels from the top-left (not rounded).</summary>
     public static (float Left, float Top) Origin(int screenWidth, int screenHeight)
@@ -111,10 +114,22 @@ public sealed partial class FrontEndMenuHud : IDisposable
     public FrontEndMenuController Model { get; }
 
     /// <summary>The page whose labels are laid out now.</summary>
-    public FrontEndPage ShownPage => _shown;
+    public FrontEndPage ShownPage
+    {
+        get
+        {
+            return _shown;
+        }
+    }
 
     /// <summary>Whether any label is laid out; false before the first page appears.</summary>
-    public bool HasLabels => _labels.Count != 0;
+    public bool HasLabels
+    {
+        get
+        {
+            return _labels.Count != 0;
+        }
+    }
 
     /// <summary>A widget's pointer region in 640 x 480 units: its hit rectangle, and for a label also only its
     /// text's canvas grown by 8.</summary>
@@ -128,10 +143,16 @@ public sealed partial class FrontEndMenuHud : IDisposable
     }
 
     /// <summary>Where a label's glyphs are inked, in 640 x 480 units.</summary>
-    public FrontEndRect LabelInkBounds(FrontEndWidgetId id) => _labels[id].Ink;
+    public FrontEndRect LabelInkBounds(FrontEndWidgetId id)
+    {
+        return _labels[id].Ink;
+    }
 
     /// <summary>The label a widget shows, for a renderer-side check; null when it has none.</summary>
-    public HudLabel? LabelOf(FrontEndWidgetId id) => _labels.TryGetValue(id, out Label? label) ? label.Image.Label : null;
+    public HudLabel? LabelOf(FrontEndWidgetId id)
+    {
+        return _labels.TryGetValue(id, out Label? label) ? label.Image.Label : null;
+    }
 
     private FrontEndRect PageRect()
     {
@@ -174,18 +195,32 @@ public sealed partial class FrontEndMenuHud : IDisposable
         return size;
     }
 
-    private (int Width, int Height) RequireSize(string name) =>
-        Size(name) ?? throw new FileNotFoundException("Front-end image " + name + " is not in the install.", name);
+    private (int Width, int Height) RequireSize(string name)
+    {
+        return Size(name) ?? throw new FileNotFoundException("Front-end image " + name + " is not in the install.", name);
+    }
 
     /// <summary>The briefing and the statistics arrive a frame after their page appears (0x0053C3C0).</summary>
-    private bool ContentChanged => !ReferenceEquals(_shownOptions, Model.Options?.Pending) || _shownKeysFirst != _keysFirst
+    private bool ContentChanged
+    {
+        get
+        {
+            return !ReferenceEquals(_shownOptions, Model.Options?.Pending) || _shownKeysFirst != _keysFirst
         || _shownCapturing != Model.Options?.CapturingAction || !ReferenceEquals(_shownBriefing, Model.Campaign?.Briefing)
         || !ReferenceEquals(_shownResults, Model.Campaign?.Results)
         || Model.Page == FrontEndPage.HighScores && !ReferenceEquals(_shownScores, Model.Campaign?.HiScores)
         || _shownFirstRow != ResultsFirstRow
         || Model.Page == FrontEndPage.Movies && _shownMovieRow != Model.Movies?.FirstRow;
+        }
+    }
 
-    private int ResultsFirstRow => _resultsBar?.Bar.Position ?? 0;
+    private int ResultsFirstRow
+    {
+        get
+        {
+            return _resultsBar?.Bar.Position ?? 0;
+        }
+    }
 
     /// <summary>Lays the labels out again when the page changed or its content arrived. Cheap otherwise; call it
     /// before reading input and again before <see cref="Build"/>.</summary>
@@ -444,7 +479,11 @@ public sealed partial class FrontEndMenuHud : IDisposable
     private void AddHiScoreLabels(FrontEndWidget row, CampaignMapController campaign)
     {
         FrontEndRect band = row.DrawRect;
-        FrontEndRect Column(float from, float to) => new FrontEndRect(from * 4, band.Y, (to - from) * 4, band.Height);
+        FrontEndRect Column(float from, float to)
+        {
+            return new FrontEndRect(from * 4, band.Y, (to - from) * 4, band.Height);
+        }
+
         if (row.DrawArgument1 == 10)
         {
             uint header = ColourIndex(FrontEndTextColour.Value);
@@ -493,17 +532,22 @@ public sealed partial class FrontEndMenuHud : IDisposable
         }
     }
 
-    private void ResultCell(CampaignResultText text, bool clip) =>
-        Cell(text.Rect, text.Text ?? _sources.Text(text.TextId), ColourIndex(text.Colour), text.Alignment, FrontEndVerticalAlignment.Top, clip);
-
-    private static uint ColourIndex(FrontEndTextColour colour) => colour switch
+    private void ResultCell(CampaignResultText text, bool clip)
     {
-        FrontEndTextColour.Value => 4,
-        FrontEndTextColour.Grey => 3,
-        FrontEndTextColour.Rank => 5,
-        FrontEndTextColour.Red => 6,
-        _ => 0,
-    };
+        Cell(text.Rect, text.Text ?? _sources.Text(text.TextId), ColourIndex(text.Colour), text.Alignment, FrontEndVerticalAlignment.Top, clip);
+    }
+
+    private static uint ColourIndex(FrontEndTextColour colour)
+    {
+        return colour switch
+        {
+            FrontEndTextColour.Value => 4,
+            FrontEndTextColour.Grey => 3,
+            FrontEndTextColour.Rank => 5,
+            FrontEndTextColour.Red => 6,
+            _ => 0,
+        };
+    }
 
     /// <summary>Writes the page into <paramref name="frame"/>, back to front: briefing pictures, every widget's label,
     /// glow and art, the lists' scroll bars, then the settings pages' sliders and toggles. Allocates nothing once
@@ -647,8 +691,13 @@ public sealed partial class FrontEndMenuHud : IDisposable
     }
 
     /// <summary>A 640 x 480 rectangle in virtual units.</summary>
-    private static HudRect Virtual(FrontEndRect r) =>
-        new(r.X * FrontEndBox.VirtualPerUnit, r.Y * FrontEndBox.VirtualPerUnit, r.Width * FrontEndBox.VirtualPerUnit, r.Height * FrontEndBox.VirtualPerUnit);
+    private static HudRect Virtual(FrontEndRect r)
+    {
+        return new(r.X * FrontEndBox.VirtualPerUnit, r.Y * FrontEndBox.VirtualPerUnit, r.Width * FrontEndBox.VirtualPerUnit, r.Height * FrontEndBox.VirtualPerUnit);
+    }
 
-    public void Dispose() => Model.Dispose();
+    public void Dispose()
+    {
+        Model.Dispose();
+    }
 }

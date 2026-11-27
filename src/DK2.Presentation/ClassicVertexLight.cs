@@ -12,12 +12,28 @@ namespace DK2.Presentation;
 public readonly record struct ClassicTileLightSource(Vector4 PositionRadiusSquared, Vector3 Colour, uint IntensityFlags)
 {
     /// <summary>Packed intensity and flags: <c>round(I x 128) | flags &lt;&lt; 8</c>.</summary>
-    public static ClassicTileLightSource Of(in ClassicPointLight light) => new(
+    public static ClassicTileLightSource Of(in ClassicPointLight light)
+    {
+        return new(
         new Vector4(light.Position.X, light.Position.Y, light.Position.Z, light.Radius * light.Radius), light.Colour,
         (uint)Math.Round(light.Intensity * 128f) | ((uint)light.Flags << 8));
+    }
 
-    public uint Flags => IntensityFlags >> 8;
-    public float Intensity => (IntensityFlags & 255u) / 128f;
+    public uint Flags
+    {
+        get
+        {
+            return IntensityFlags >> 8;
+        }
+    }
+
+    public float Intensity
+    {
+        get
+        {
+            return (IntensityFlags & 255u) / 128f;
+        }
+    }
 }
 
 /// <summary>What one vertex brings to <see cref="ClassicVertexLight.TableSum"/>: its object-space position and normal, the
@@ -136,23 +152,37 @@ public static class ClassicVertexLight
 
     /// <summary>The light as the vertex passes it on: each channel floored to 1/255 (with Unity's 0.00001 nudge) and
     /// clamped to 0..1.</summary>
-    public static Vector3 PackedDiffuse(Vector3 sum) => new(Pack(sum.X), Pack(sum.Y), Pack(sum.Z));
+    public static Vector3 PackedDiffuse(Vector3 sum)
+    {
+        return new(Pack(sum.X), Pack(sum.Y), Pack(sum.Z));
+    }
 
-    private static float Pack(float channel) => Math.Min((float)Math.Floor((channel > 0f ? channel : 0f) * 255f + 0.00001f), 255f) / 255f;
+    private static float Pack(float channel)
+    {
+        return Math.Min((float)Math.Floor((channel > 0f ? channel : 0f) * 255f + 0.00001f), 255f) / 255f;
+    }
 
     /// <summary>A dot product summed left to right, as the shaders write it (no SIMD reordering).</summary>
-    private static float Dot(Vector3 a, Vector3 b) => a.X * b.X + a.Y * b.Y + a.Z * b.Z;
+    private static float Dot(Vector3 a, Vector3 b)
+    {
+        return a.X * b.X + a.Y * b.Y + a.Z * b.Z;
+    }
 
     /// <summary>The object's basis applied to a direction: <c>mul((float3x3)ObjectToWorld, v)</c>, each row of the
     /// column-vector basis (a column of the row-vector <paramref name="m"/>) dotted with it.</summary>
-    private static Vector3 Basis(in Matrix4x4 m, Vector3 v) => new(
+    private static Vector3 Basis(in Matrix4x4 m, Vector3 v)
+    {
+        return new(
         m.M11 * v.X + m.M21 * v.Y + m.M31 * v.Z,
         m.M12 * v.X + m.M22 * v.Y + m.M32 * v.Z,
         m.M13 * v.X + m.M23 * v.Y + m.M33 * v.Z);
+    }
 
     /// <summary>The distance bin, <c>round(d² x 16 - 0.49999)</c> to even in float.</summary>
-    private static int Bin(float distanceSquared) =>
-        (int)Math.Round((double)(distanceSquared * 16f - 0.49999f), MidpointRounding.ToEven);
+    private static int Bin(float distanceSquared)
+    {
+        return (int)Math.Round((double)(distanceSquared * 16f - 0.49999f), MidpointRounding.ToEven);
+    }
 
     private static bool Point(Vector3 vertex, Vector3 normal, Vector4 light, Vector3 colour, float intensity, out Vector3 contribution)
     {

@@ -12,10 +12,22 @@ namespace DK2.Presentation;
 /// Hand's pick (<see cref="WorldHoverPicker.TryAdmit"/>).</summary>
 public readonly record struct PickBox(Vector3 Min, Vector3 Max)
 {
-    public Vector3 Centre => new((Min.X + Max.X) * .5f, (Min.Y + Max.Y) * .5f, (Min.Z + Max.Z) * .5f);
+    public Vector3 Centre
+    {
+        get
+        {
+            return new((Min.X + Max.X) * .5f, (Min.Y + Max.Y) * .5f, (Min.Z + Max.Z) * .5f);
+        }
+    }
 
     /// <summary>Half the size on each axis.</summary>
-    public Vector3 Extents => new((Max.X - Min.X) * .5f, (Max.Y - Min.Y) * .5f, (Max.Z - Min.Z) * .5f);
+    public Vector3 Extents
+    {
+        get
+        {
+            return new((Max.X - Min.X) * .5f, (Max.Y - Min.Y) * .5f, (Max.Z - Min.Z) * .5f);
+        }
+    }
 
     /// <summary>The box around <paramref name="points"/>; an empty list gives the empty box at the origin.</summary>
     public static PickBox Around(IReadOnlyList<Vector3> points)
@@ -95,7 +107,13 @@ public readonly record struct PickBox(Vector3 Min, Vector3 Max)
 public readonly record struct PickSphere(Vector3 Centre, float Radius)
 {
     /// <summary>Whether the pick uses it: a sphere of no radius leaves the renderer bounds to stand in (Unity's UV2 test).</summary>
-    public bool Usable => Radius > 0f;
+    public bool Usable
+    {
+        get
+        {
+            return Radius > 0f;
+        }
+    }
 
     /// <summary>The model's sphere: an animation's first frame, else its mesh (the bounds Unity's <c>ClassicMeshes</c> writes
     /// into UV2); null for a model with neither.</summary>
@@ -111,12 +129,16 @@ public readonly record struct PickSphere(Vector3 Centre, float Radius)
     }
 
     /// <summary>The radius drawn at <paramref name="scale"/>: times its largest absolute axis.</summary>
-    public static float ScaledRadius(float radius, Vector3 scale) =>
-        radius * Math.Max(Math.Abs(scale.X), Math.Max(Math.Abs(scale.Y), Math.Abs(scale.Z)));
+    public static float ScaledRadius(float radius, Vector3 scale)
+    {
+        return radius * Math.Max(Math.Abs(scale.X), Math.Max(Math.Abs(scale.Y), Math.Abs(scale.Z)));
+    }
 
     /// <summary>The sphere of a model drawn at <paramref name="position"/>, <paramref name="turn"/> and <paramref name="scale"/>.</summary>
-    public PickSphere Placed(Vector3 position, Quaternion turn, Vector3 scale) =>
-        new(position + Vector3.Transform(Centre * scale, turn), ScaledRadius(Radius, scale));
+    public PickSphere Placed(Vector3 position, Quaternion turn, Vector3 scale)
+    {
+        return new(position + Vector3.Transform(Centre * scale, turn), ScaledRadius(Radius, scale));
+    }
 }
 
 /// <summary>The Hand's triangle test on a drawn model, in model coordinates.</summary>

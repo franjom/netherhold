@@ -51,14 +51,18 @@ public static class ObjectHoverHighlight
     /// <summary>The texture a material with <paramref name="textureCount"/> textures draws while
     /// hovered: the phase-to-texture rule (<see cref="DungeonHeartVisual.TextureIndex"/>) at
     /// <see cref="HoverTexturePhase"/>, the last one.</summary>
-    public static int HoverTextureIndex(int textureCount) =>
-        DungeonHeartVisual.TextureIndex(HoverTexturePhase, textureCount);
+    public static int HoverTextureIndex(int textureCount)
+    {
+        return DungeonHeartVisual.TextureIndex(HoverTexturePhase, textureCount);
+    }
 
     /// <summary>Whether a drawn object may be the pick: any simulation object, or the store pile
     /// decoration that stands for DK2's Gold Pile 1 (SHOT0228 and SHOT0230 hover it). Other
     /// decorations stay out of the pick, as before.</summary>
-    public static bool IsHoverTarget(int objectId, byte objectTypeId) =>
-        objectId > 0 || (WorldView.IsDecoration(objectId) && objectTypeId == StorePileObjectId);
+    public static bool IsHoverTarget(int objectId, byte objectTypeId)
+    {
+        return objectId > 0 || (WorldView.IsDecoration(objectId) && objectTypeId == StorePileObjectId);
+    }
 }
 
 /// <summary>Which pick becomes the Hand's hover id, the thing Presentation_Update tints red
@@ -68,10 +72,12 @@ public static class HoverTint
     /// <summary>An object is published when its definition has CanBePickedUp or CanBeSlapped
     /// (<c>+0xF4</c> &amp; 0x300) and it is the viewer's, or it is loose gold (type 1 or 2) on the
     /// viewer's tile (<c>0x0049CBB0</c>). STRONGLY INFERRED.</summary>
-    public static bool ObjectPublished(ObjectDef? definition, byte objectTypeId, byte owner, byte tileOwner, PlayerId viewer) =>
-        definition is not null
+    public static bool ObjectPublished(ObjectDef? definition, byte objectTypeId, byte owner, byte tileOwner, PlayerId viewer)
+    {
+        return definition is not null
         && (definition.Flags & (ObjectFlags.CanBePickedUp | ObjectFlags.CanBeSlapped)) != 0
         && (owner == viewer.Value || (objectTypeId is 1 or 2 && tileOwner == viewer.Value));
+    }
 
     /// <summary>The flash override's door/trap mode (<c>0x0043BEF8</c>..<c>0x0043BF1A</c>): a trap or door
     /// whose type (<c>+0xF6</c>) is 8 — the Fear Trap, the Hero Portcullis — gets mode 1, draw flags
@@ -112,7 +118,10 @@ public static class HoverTint
     /// hold 0x400 (static 0x00581583..0x00581597, animated 0x00584FC9..0x00584FE3). CONFIRMED by the
     /// binary and by the owner (2026-10-23): the gold spill cards and a creature's translucent parts
     /// stay untinted.</summary>
-    public static bool DrawsOverlay(bool blended, bool flag0x400) => !blended || flag0x400;
+    public static bool DrawsOverlay(bool blended, bool flag0x400)
+    {
+        return !blended || flag0x400;
+    }
 
     /// <summary>Whether the hit is tinted for <paramref name="viewer"/>.
     /// <list type="bullet">

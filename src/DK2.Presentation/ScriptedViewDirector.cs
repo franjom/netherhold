@@ -31,8 +31,15 @@ public sealed class ScriptedViewDirector(
     public int PendingCameraJitters { get; private set; }
     public FpPosition3 CameraJitter { get; private set; }
     /// <summary>One render frame's horizontal offset in the shared world frame; paths suppress shake.</summary>
-    public System.Numerics.Vector3 RenderCameraJitter => PathPlaying ? default : new(
+    public System.Numerics.Vector3 RenderCameraJitter
+    {
+        get
+        {
+            return PathPlaying ? default : new(
         CameraJitter.X.Raw / (float)Fp32.One, 0, -CameraJitter.Y.Raw / (float)Fp32.One);
+        }
+    }
+
     private CameraPathPlayback? _path;
     private TilePos? _move;
     private double _now;
@@ -62,7 +69,14 @@ public sealed class ScriptedViewDirector(
         downstream?.Emit(simEvent);
     }
 
-    public bool PathPlaying => _path is not null;
+    public bool PathPlaying
+    {
+        get
+        {
+            return _path is not null;
+        }
+    }
+
     public event Action<bool>? GuiVisibilityRequested;
 
     /// <summary>The win screen asked for (interface slot <c>+0x40</c>).</summary>
@@ -78,10 +92,30 @@ public sealed class ScriptedViewDirector(
 
     /// <summary>The creature game action 17 has the camera follow, 0 for none.</summary>
     public int FollowedCreatureId { get; private set; }
-    public int LetterboxRequestCount => _letterbox.RequestCount;
-    public HudFlashTarget? ActiveFlashTarget => _flash?.Target;
-    public KeeperResourceFlash ResourceFlash => _flash?.Target == HudFlashTarget.Mana ? KeeperResourceFlash.Mana
-        : _flash?.Target == HudFlashTarget.Gold ? KeeperResourceFlash.Gold : KeeperResourceFlash.None;
+    public int LetterboxRequestCount
+    {
+        get
+        {
+            return _letterbox.RequestCount;
+        }
+    }
+
+    public HudFlashTarget? ActiveFlashTarget
+    {
+        get
+        {
+            return _flash?.Target;
+        }
+    }
+
+    public KeeperResourceFlash ResourceFlash
+    {
+        get
+        {
+            return _flash?.Target == HudFlashTarget.Mana ? KeeperResourceFlash.Mana
+                : _flash?.Target == HudFlashTarget.Gold ? KeeperResourceFlash.Gold : KeeperResourceFlash.None;
+        }
+    }
 
     public void ClearFlash(HudFlashTarget target)
     {
@@ -90,13 +124,18 @@ public sealed class ScriptedViewDirector(
             _flash = null;
         }
     }
-    public HudVisibility HudFor(ClassicCameraMode normalMode) => HudVisibilityRules.ForCamera(
+    public HudVisibility HudFor(ClassicCameraMode normalMode)
+    {
+        return HudVisibilityRules.ForCamera(
         PathPlaying ? CameraModeId.ScriptedPath : new((ushort)normalMode), _letterbox.RequestCount);
+    }
 
     /// <summary>The visibility of the game's HUD during a scripted view: this view's camera visibility
     /// (<see cref="HudFor"/>: hidden while a path plays or the letterbox is asked for) under the HUD's own gates.</summary>
-    public HudVisibility PlayedHud(ClassicHudControls controls, ClassicCameraMode normalMode) =>
-        (controls ?? throw new ArgumentNullException(nameof(controls))).Visibility(HudFor(normalMode));
+    public HudVisibility PlayedHud(ClassicHudControls controls, ClassicCameraMode normalMode)
+    {
+        return (controls ?? throw new ArgumentNullException(nameof(controls))).Visibility(HudFor(normalMode));
+    }
 
     /// <summary>FLASH_BUTTON on the bottom panel (tab-alerts.md), once per drawn frame: the flash is dropped once its
     /// item is in use (<see cref="BottomPanelFlash.ClearedByUse"/>), and the target left is the one to draw.</summary>
@@ -117,13 +156,31 @@ public sealed class ScriptedViewDirector(
     }
 
     /// <summary>The path on screen, or null.</summary>
-    public int? PathId => _path?.PathId;
+    public int? PathId
+    {
+        get
+        {
+            return _path?.PathId;
+        }
+    }
 
     /// <summary>The path's camera this frame, or null when the ordinary camera has the view.</summary>
-    public CameraPathPose? Pose => _path?.Pose();
+    public CameraPathPose? Pose
+    {
+        get
+        {
+            return _path?.Pose();
+        }
+    }
 
     /// <summary>Each letterbox bar's height as a fraction of the screen's.</summary>
-    public float LetterboxBar => _letterbox.Bar(_now);
+    public float LetterboxBar
+    {
+        get
+        {
+            return _letterbox.Bar(_now);
+        }
+    }
 
     /// <summary>The subtitle to draw: DK2 draws one only while the camera is on a path
     /// (<c>0x00403FB0</c>), in the bottom bar.</summary>
@@ -151,8 +208,10 @@ public sealed class ScriptedViewDirector(
 
     /// <summary><c>0x0044A270(0)</c>: a move lasts a tenth of the summed squares of its
     /// quarter-unit offsets, 25.6 ms per square tile, and at most 500 ms.</summary>
-    public static double GlideMilliseconds(float tilesX, float tilesY) =>
-        Math.Min(25.6 * (tilesX * tilesX + tilesY * tilesY), 500);
+    public static double GlideMilliseconds(float tilesX, float tilesY)
+    {
+        return Math.Min(25.6 * (tilesX * tilesX + tilesY * tilesY), 500);
+    }
 
     /// <param name="nowMilliseconds">The wall clock, for the letterbox and the subtitles.</param>
     /// <param name="renderTick">The drawn world's tick plus its fraction toward the next, for

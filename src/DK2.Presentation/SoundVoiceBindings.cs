@@ -8,7 +8,13 @@ namespace DK2.Presentation;
 
 public readonly record struct SoundVoiceId(uint Value)
 {
-    public static SoundVoiceId None => default;
+    public static SoundVoiceId None
+    {
+        get
+        {
+            return default;
+        }
+    }
 }
 
 /// <summary>Tracks exclusive ownership of pooled sources; assigning a source always revokes its old voice.</summary>
@@ -59,6 +65,8 @@ public sealed class SoundVoiceBindings<TSource> where TSource : class
         }
     }
 
-    public bool CanRetain(SoundVoiceId voice, SoundPriority priority, Func<TSource, bool> playing) =>
-        _voices.TryGetValue(voice, out (SoundId Sound, SoundPriority Priority, TSource Source) found) && found.Priority.Value >= priority.Value && playing(found.Source);
+    public bool CanRetain(SoundVoiceId voice, SoundPriority priority, Func<TSource, bool> playing)
+    {
+        return _voices.TryGetValue(voice, out (SoundId Sound, SoundPriority Priority, TSource Source) found) && found.Priority.Value >= priority.Value && playing(found.Source);
+    }
 }

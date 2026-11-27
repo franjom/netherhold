@@ -70,10 +70,19 @@ public sealed class FrontEndStation
     public IReadOnlyList<FrontEndProp> BaseScenery { get; }
 
     /// <summary>The campaign slot each map piece and marker picks, by view id.</summary>
-    public IReadOnlyDictionary<int, CampaignSlot> PickSlots => _pickSlots;
+    public IReadOnlyDictionary<int, CampaignSlot> PickSlots
+    {
+        get
+        {
+            return _pickSlots;
+        }
+    }
 
     /// <summary>The slot a picked view id selects, or <see cref="CampaignSlot.None"/> for anything else.</summary>
-    public CampaignSlot SlotOf(int viewId) => _pickSlots.TryGetValue(viewId, out CampaignSlot slot) ? slot : CampaignSlot.None;
+    public CampaignSlot SlotOf(int viewId)
+    {
+        return _pickSlots.TryGetValue(viewId, out CampaignSlot slot) ? slot : CampaignSlot.None;
+    }
 
     /// <summary>When the map's revision changes, update the view from the map's projection of the
     /// base scenery (<see cref="FrontEndScenery.ApplyCampaignMap"/>); returns whether it did, so the caller presents again.</summary>

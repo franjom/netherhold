@@ -23,7 +23,10 @@ public sealed class HoverOverlayPlan
     private readonly HashSet<int> _redCreatures = new();
 
     /// <summary>Starts a frame: no creature is red yet.</summary>
-    public void BeginFrame() => _redCreatures.Clear();
+    public void BeginFrame()
+    {
+        _redCreatures.Clear();
+    }
 
     /// <summary>Plans a draw of <paramref name="hit"/>; false when it draws nothing, a creature already red this frame
     /// whose draw does not cover blended materials.</summary>
@@ -36,19 +39,25 @@ public sealed class HoverOverlayPlan
 
     /// <summary>Whether a hit of <paramref name="kind"/> has a model the overlay draws over: a creature, an object, a door
     /// or a trap.</summary>
-    public static bool Overlays(WorldHoverKind kind) =>
-        kind is WorldHoverKind.Creature or WorldHoverKind.Object or WorldHoverKind.Door or WorldHoverKind.Trap;
+    public static bool Overlays(WorldHoverKind kind)
+    {
+        return kind is WorldHoverKind.Creature or WorldHoverKind.Object or WorldHoverKind.Door or WorldHoverKind.Trap;
+    }
 
     /// <summary>Whether the draw swaps textures: an object whose art has the hover texture (flag 0x10000,
     /// <see cref="ObjectView.HoverTexture"/>); each submesh then swaps where its material has a twin
     /// (<see cref="ObjectMaterialLook.HoverTwin"/>).</summary>
-    public static bool Swaps(in HoverOverlayDraw draw, bool hoverTexture) =>
-        draw.Hit.Kind == WorldHoverKind.Object && hoverTexture;
+    public static bool Swaps(in HoverOverlayDraw draw, bool hoverTexture)
+    {
+        return draw.Hit.Kind == WorldHoverKind.Object && hoverTexture;
+    }
 
     /// <summary>What one submesh draws: the swap when its hover texture exists, the red pass unless the creature is
     /// already red and the material is not blended, and only where <see cref="HoverTint.DrawsOverlay"/> lets it.</summary>
-    public static HoverSubmeshDraw Submesh(in HoverOverlayDraw draw, bool swapAvailable, bool blended) =>
-        new(swapAvailable, (!draw.RedAlreadyDrawn || blended) && HoverTint.DrawsOverlay(blended, draw.CoversBlended));
+    public static HoverSubmeshDraw Submesh(in HoverOverlayDraw draw, bool swapAvailable, bool blended)
+    {
+        return new(swapAvailable, (!draw.RedAlreadyDrawn || blended) && HoverTint.DrawsOverlay(blended, draw.CoversBlended));
+    }
 
     /// <summary>Records a drawn overlay: a creature is red for the rest of the frame.</summary>
     public void Drawn(in HoverOverlayDraw draw)

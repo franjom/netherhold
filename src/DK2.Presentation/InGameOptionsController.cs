@@ -9,7 +9,10 @@ public sealed class InGameOptionsController
 {
     private readonly ClassicHudControls _hud;
     public InGameOptionsController(ClassicHudControls hud, OptionsPagesController settings)
-        => (_hud, Settings) = (hud, settings);
+    {
+        (_hud, Settings) = (hud, settings);
+    }
+
     public OptionsPagesController Settings { get; }
     public InGameOptionsPage Page { get; private set; }
     public void Open()
@@ -58,5 +61,8 @@ public sealed class InGameOptionsController
 
         Page = InGameOptionsPage.None;
     }
-    public bool CanNavigate(InGameOptionsPage page) => page is InGameOptionsPage.Graphics or InGameOptionsPage.Sound or InGameOptionsPage.Controls or InGameOptionsPage.Keyboard;
+    public bool CanNavigate(InGameOptionsPage page)
+    {
+        return page is InGameOptionsPage.Graphics or InGameOptionsPage.Sound or InGameOptionsPage.Controls or InGameOptionsPage.Keyboard;
+    }
 }

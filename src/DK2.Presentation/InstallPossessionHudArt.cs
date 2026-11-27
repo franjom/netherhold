@@ -34,13 +34,28 @@ public sealed class InstallPossessionHudArt
 
             for (int at = 0; at < chunk.Content.Length; at += size)
             {
-                string Name(int offset) => Encoding.ASCII.GetString(chunk.Content, at + offset, 64).TrimEnd('\0');
+                string Name(int offset)
+                {
+                    return Encoding.ASCII.GetString(chunk.Content, at + offset, 64).TrimEnd('\0');
+                }
+
                 _creatures[new(chunk.Content[at + 0xF4B])] = (Name(0xC44), Name(0xD40), Name(0x1027));
             }
         }
     }
 
-    public string Icon(CreatureOverviewType type) => _creatures.TryGetValue(type, out (string Icon, string Portrait, string Melee) art) ? art.Icon : "";
-    public string Portrait(CreatureOverviewType type) => _creatures.TryGetValue(type, out (string Icon, string Portrait, string Melee) art) ? art.Portrait : "";
-    public string Melee(CreatureOverviewType type) => _creatures.TryGetValue(type, out (string Icon, string Portrait, string Melee) art) ? art.Melee : "";
+    public string Icon(CreatureOverviewType type)
+    {
+        return _creatures.TryGetValue(type, out (string Icon, string Portrait, string Melee) art) ? art.Icon : "";
+    }
+
+    public string Portrait(CreatureOverviewType type)
+    {
+        return _creatures.TryGetValue(type, out (string Icon, string Portrait, string Melee) art) ? art.Portrait : "";
+    }
+
+    public string Melee(CreatureOverviewType type)
+    {
+        return _creatures.TryGetValue(type, out (string Icon, string Portrait, string Melee) art) ? art.Melee : "";
+    }
 }

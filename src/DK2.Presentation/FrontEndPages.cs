@@ -8,9 +8,21 @@ public readonly record struct FrontEndWidgetId(ushort Value);
 public readonly record struct FrontEndPoint(float X, float Y);
 public readonly record struct FrontEndRect(float X, float Y, float Width, float Height)
 {
-    public bool Contains(FrontEndPoint point) => point.X >= X && point.X < X + Width && point.Y >= Y && point.Y < Y + Height;
-    public FrontEndRect Scale(float x, float y) => new(X * x, Y * y, Width * x, Height * y);
-    public FrontEndRect Inflate(float padding) => new(X - padding, Y - padding, Width + 2 * padding, Height + 2 * padding);
+    public bool Contains(FrontEndPoint point)
+    {
+        return point.X >= X && point.X < X + Width && point.Y >= Y && point.Y < Y + Height;
+    }
+
+    public FrontEndRect Scale(float x, float y)
+    {
+        return new(X * x, Y * y, Width * x, Height * y);
+    }
+
+    public FrontEndRect Inflate(float padding)
+    {
+        return new(X - padding, Y - padding, Width + 2 * padding, Height + 2 * padding);
+    }
+
     public FrontEndRect Intersect(FrontEndRect other)
     {
         float x = Math.Max(X, other.X), y = Math.Max(Y, other.Y);
@@ -31,10 +43,37 @@ public enum FrontEndDrawKind : uint
 public enum FrontEndTextAlignment : byte { Left, Right, Centre, Wrapped }
 public readonly record struct FrontEndActionArguments(uint Pages, uint Commands)
 {
-    public FrontEndPage CurrentPage => (FrontEndPage)(Pages & 0xffff);
-    public FrontEndPage NextPage => (FrontEndPage)(Pages >> 16);
-    public ushort Command => (ushort)Commands;
-    public ushort HighCommand => (ushort)(Commands >> 16);
+    public FrontEndPage CurrentPage
+    {
+        get
+        {
+            return (FrontEndPage)(Pages & 0xffff);
+        }
+    }
+
+    public FrontEndPage NextPage
+    {
+        get
+        {
+            return (FrontEndPage)(Pages >> 16);
+        }
+    }
+
+    public ushort Command
+    {
+        get
+        {
+            return (ushort)Commands;
+        }
+    }
+
+    public ushort HighCommand
+    {
+        get
+        {
+            return (ushort)(Commands >> 16);
+        }
+    }
 }
 public readonly record struct FrontEndAction(FrontEndActionKind Kind, FrontEndActionArguments Arguments);
 
@@ -44,7 +83,14 @@ public sealed record FrontEndWidget(FrontEndWidgetId Id, byte NativeType, FrontE
     uint TextId, FrontEndDrawKind Draw, uint DrawArgument1, uint DrawArgument2, ushort SoundSlot,
     uint NativeFrameCallback, uint NativeArt)
 {
-    public FrontEndTextAlignment Alignment => (FrontEndTextAlignment)(DrawArgument2 & 0xffff);
+    public FrontEndTextAlignment Alignment
+    {
+        get
+        {
+            return (FrontEndTextAlignment)(DrawArgument2 & 0xffff);
+        }
+    }
+
     public FrontEndRect ReferenceRect(FrontEndRect parent)
     {
         float x = (Anchor & 2) != 0 ? parent.X + parent.Width - DrawRect.X - DrawRect.Width : parent.X + DrawRect.X;
@@ -58,7 +104,11 @@ public sealed record FrontEndPageDefinition(FrontEndPage Id, FrontEndRect DrawRe
 public static partial class FrontEndPages
 {
     public static IReadOnlyList<FrontEndPageDefinition> All { get; } = Array.AsReadOnly(CreateCatalogue());
-    public static FrontEndPageDefinition Get(FrontEndPage id) => All.First(p => p.Id == id);
+    public static FrontEndPageDefinition Get(FrontEndPage id)
+    {
+        return All.First(p => p.Id == id);
+    }
+
     public static FrontEndPageDefinition? Find(FrontEndPage id)
     {
         // A loop, not LINQ: the menu looks its page up every frame and a closure here would allocate each time.

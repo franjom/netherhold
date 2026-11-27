@@ -15,15 +15,30 @@ public sealed class MusicDirector
 {
     private int _musicIntensity;
     public MusicLevel Level { get; private set; } = MusicLevel.Silent;
-    public int Intensity => Of(Level);
-    public void Set(MusicLevel level) => Level = level;
+    public int Intensity
+    {
+        get
+        {
+            return Of(Level);
+        }
+    }
+
+    public void Set(MusicLevel level)
+    {
+        Level = level;
+    }
+
     public void Raise(MusicLevel level) { if ((uint)level > (uint)Level)
         {
             Level = level;
         }
     }
-    public static int Of(MusicLevel level) => level switch
-    { MusicLevel.Raid => 20, MusicLevel.Battle => 40, MusicLevel.LargeBattle => 60, MusicLevel.Reaper => 80, _ => 0 };
+    public static int Of(MusicLevel level)
+    {
+        return level switch
+        { MusicLevel.Raid => 20, MusicLevel.Battle => 40, MusicLevel.LargeBattle => 60, MusicLevel.Reaper => 80, _ => 0 };
+    }
+
     public MusicFrame AdvanceFrame(bool musicEnabled, int soundQuality)
     {
         if (musicEnabled)

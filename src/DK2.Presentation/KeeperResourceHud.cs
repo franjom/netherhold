@@ -83,17 +83,28 @@ public sealed class KeeperResourceHud
     }
 
     /// <summary>The strip's lower edge, in local pixels: 68 lines of DK2's 768.</summary>
-    public static float Bottom(HudScreen screen) => 68 * screen.Height / 768f;
+    public static float Bottom(HudScreen screen)
+    {
+        return 68 * screen.Height / 768f;
+    }
 
     /// <summary>The area the strip claims from the world, in virtual units.</summary>
-    public static HudRect Bounds(HudScreen screen) =>
-        new(0, 0, screen.Virtual(Math.Min(screen.Width, V(screen, 1020))), screen.Virtual(Bottom(screen)));
+    public static HudRect Bounds(HudScreen screen)
+    {
+        return new(0, 0, screen.Virtual(Math.Min(screen.Width, V(screen, 1020))), screen.Virtual(Bottom(screen)));
+    }
 
-    public bool ContainsPointer(HudScreen screen, float x, float y) => _visible && _allowInput && Bounds(screen).Contains(x, y);
+    public bool ContainsPointer(HudScreen screen, float x, float y)
+    {
+        return _visible && _allowInput && Bounds(screen).Contains(x, y);
+    }
 
-    public KeeperResourceKind ResourceAt(HudScreen screen, float x, float y) => !_visible || !_allowInput
+    public KeeperResourceKind ResourceAt(HudScreen screen, float x, float y)
+    {
+        return !_visible || !_allowInput
         ? KeeperResourceKind.None
         : KeeperResourceInteraction.HitTest(new Vector2(x * screen.Scale, y * screen.Scale), screen.Height);
+    }
 
     /// <summary>Writes the strip's draws for this frame into <paramref name="frame"/>; nothing while hidden,
     /// when the animation does not advance either.</summary>
@@ -154,7 +165,10 @@ public sealed class KeeperResourceHud
     }
 
     /// <summary>A native virtual coordinate in whole local pixels, floored.</summary>
-    private static int V(HudScreen screen, int coordinate) => (int)Math.Floor(coordinate * screen.Height / 1920f);
+    private static int V(HudScreen screen, int coordinate)
+    {
+        return (int)Math.Floor(coordinate * screen.Height / 1920f);
+    }
 
     private void Place(HudScreen screen, int element, float x, float y, float width, float height)
     {

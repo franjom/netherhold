@@ -51,9 +51,11 @@ public sealed class TerrainTileBuilder
     }
 
     /// <summary>Whether a tile draws terrain here at all.</summary>
-    public static bool Draws(in TileView tile) =>
-        (!tile.Pieces.IsEmpty && tile.PieceKeys != null) || tile.RoomKeys != null || tile.BedKeys != null
+    public static bool Draws(in TileView tile)
+    {
+        return (!tile.Pieces.IsEmpty && tile.PieceKeys != null) || tile.RoomKeys != null || tile.BedKeys != null
         || !tile.SightFogOverlay.IsEmpty;
+    }
 
     /// <summary>Phase one of tile (<paramref name="x"/>, <paramref name="y"/>): its pieces placed and each triangle
     /// group's <see cref="TerrainMaterialKey"/> chosen, in the tile's first-use order, and the lattice cells the bend
@@ -162,13 +164,16 @@ public sealed class TerrainTileBuilder
     }
 
     /// <summary>A quarter turn per step about the vertical, clockwise from above: north (0, 0, 1) to east (1, 0, 0).</summary>
-    internal static Vector3 Turn(Vector3 v, int rotation) => (rotation & 3) switch
+    internal static Vector3 Turn(Vector3 v, int rotation)
     {
-        0 => v,
-        1 => new Vector3(v.Z, v.Y, -v.X),
-        2 => new Vector3(-v.X, v.Y, -v.Z),
-        _ => new Vector3(-v.Z, v.Y, v.X),
-    };
+        return (rotation & 3) switch
+        {
+            0 => v,
+            1 => new Vector3(v.Z, v.Y, -v.X),
+            2 => new Vector3(-v.X, v.Y, -v.Z),
+            _ => new Vector3(-v.Z, v.Y, v.X),
+        };
+    }
 
     private void AddTile(TerrainTileGeometry geometry, TileView[] tiles, int x, int y, in TileView tile)
     {
@@ -292,7 +297,10 @@ public sealed class TerrainTileBuilder
         }
     }
 
-    internal static int SwapHeroHalf(int piece) => piece == 4 ? 5 : piece == 5 ? 4 : piece;
+    internal static int SwapHeroHalf(int piece)
+    {
+        return piece == 4 ? 5 : piece == 5 ? 4 : piece;
+    }
 
     /// <summary>A piece list's quarters and whole piece, from a room's pieces or a liquid's or bridge's bed. A liquid's
     /// surface is not drawn here.</summary>
@@ -330,12 +338,20 @@ public sealed class TerrainTileBuilder
         return nx >= 0 && ny >= 0 && nx < _width && ny < _height ? tiles[(ny * _width) + nx].AmbientTint : default;
     }
 
-    private static AssetRef Key(RoomPieceKeys? room, TerrainPieceKeys? bed, int k) => room != null ? room.Piece(k) : bed!.Bed(k);
+    private static AssetRef Key(RoomPieceKeys? room, TerrainPieceKeys? bed, int k)
+    {
+        return room != null ? room.Piece(k) : bed!.Bed(k);
+    }
 
-    private static Vector3 Centre(int x, int y) => RenderWorld.Ground(x + 0.5f, y + 0.5f);
+    private static Vector3 Centre(int x, int y)
+    {
+        return RenderWorld.Ground(x + 0.5f, y + 0.5f);
+    }
 
-    private static Vector3 Quadrant(Vector3 centre, int quadrant) =>
-        centre + new Vector3(QuadrantCentres[quadrant].X, 0f, QuadrantCentres[quadrant].Y);
+    private static Vector3 Quadrant(Vector3 centre, int quadrant)
+    {
+        return centre + new Vector3(QuadrantCentres[quadrant].X, 0f, QuadrantCentres[quadrant].Y);
+    }
 
     /// <summary>Places one piece and keys each of its triangle groups (<see cref="TerrainMaterialKey.For"/>); a tagged
     /// or red piece draws a second time, additively (tag-highlight.md).</summary>

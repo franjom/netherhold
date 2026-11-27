@@ -62,17 +62,69 @@ public sealed class MinimapHud
     }
 
     public MinimapPalette Palette { get; }
-    public MinimapClassGrid Grid => _grid;
-    /// <summary>The markers of the last capture, for the GPU disc.</summary>
-    public IReadOnlyList<MinimapMarker> Markers => _markers;
-    public int MapWidth => _grid.Width;
-    public int MapHeight => _grid.Height;
-    public MinimapZoom Zoom => _zoom;
-    public HudVisibility Visibility => _visibility;
+    public MinimapClassGrid Grid
+    {
+        get
+        {
+            return _grid;
+        }
+    }
 
-    public void SetVisibility(HudVisibility visibility) => _visibility = visibility;
-    public void ZoomIn() => _zoom = _zoom.ZoomIn();
-    public void ZoomOut() => _zoom = _zoom.ZoomOut();
+    /// <summary>The markers of the last capture, for the GPU disc.</summary>
+    public IReadOnlyList<MinimapMarker> Markers
+    {
+        get
+        {
+            return _markers;
+        }
+    }
+
+    public int MapWidth
+    {
+        get
+        {
+            return _grid.Width;
+        }
+    }
+
+    public int MapHeight
+    {
+        get
+        {
+            return _grid.Height;
+        }
+    }
+
+    public MinimapZoom Zoom
+    {
+        get
+        {
+            return _zoom;
+        }
+    }
+
+    public HudVisibility Visibility
+    {
+        get
+        {
+            return _visibility;
+        }
+    }
+
+    public void SetVisibility(HudVisibility visibility)
+    {
+        _visibility = visibility;
+    }
+
+    public void ZoomIn()
+    {
+        _zoom = _zoom.ZoomIn();
+    }
+
+    public void ZoomOut()
+    {
+        _zoom = _zoom.ZoomOut();
+    }
 
     /// <summary>A corner's art file, in the engine-texture archive.</summary>
     public static string CornerArt(MinimapCorner corner, bool active)
@@ -109,7 +161,10 @@ public sealed class MinimapHud
         return corners;
     }
 
-    private static Vector2 Reference(float x, float y) => new(x / Unit, y / Unit);
+    private static Vector2 Reference(float x, float y)
+    {
+        return new(x / Unit, y / Unit);
+    }
 
     /// <summary>The corner action a press at a point in virtual units takes; None while the HUD or input is off.</summary>
     public ClassicHudAction CornerPress(float x, float y, bool primary, bool secondary)
@@ -123,8 +178,10 @@ public sealed class MinimapHud
     }
 
     /// <summary>The corner control under a point, for its tooltip; None off the corners.</summary>
-    public ClassicHudAction HoveredControl(float x, float y) =>
-        _visibility.ShowNormalHud ? ClassicHudControlLayout.ActionAt(Reference(x, y), false) : ClassicHudAction.None;
+    public ClassicHudAction HoveredControl(float x, float y)
+    {
+        return _visibility.ShowNormalHud ? ClassicHudControlLayout.ActionAt(Reference(x, y), false) : ClassicHudAction.None;
+    }
 
     /// <summary>A press on the magnifier zooms: in on the primary button, out on the secondary.</summary>
     public bool ZoomPress(float x, float y, bool primary, bool secondary)
@@ -165,9 +222,11 @@ public sealed class MinimapHud
 
     /// <summary>Whether a point in virtual units is on the minimap: 8..192 across, from 584 down to the screen's
     /// bottom edge, in 1024x768 units.</summary>
-    public bool ContainsPointer(float x, float y) =>
-        _visibility.ShowNormalHud && _visibility.AllowOrdinaryInput
+    public bool ContainsPointer(float x, float y)
+    {
+        return _visibility.ShowNormalHud && _visibility.AllowOrdinaryInput
         && x >= 8 * Unit && x < 192 * Unit && y > 584 * Unit && y <= 768 * Unit;
+    }
 
     /// <summary>The drawn camera, whose footprint the whole-map disc shows (<see cref="MinimapCameraFootprint"/>, turned by
     /// the camera's yaw), cut to the disc's circle. Null, or a corner ray that misses
@@ -234,16 +293,23 @@ public sealed class MinimapHud
 
     /// <summary>A camera focus in the adapters' world space (x east, y up, z the negated tile row) as the fixed-point map
     /// position the minimap centres on and navigates from.</summary>
-    public static FpPosition3 FixedFocus(Vector3 focus) =>
-        new(new Fp32((int)(focus.X * Fp32.One)), new Fp32((int)(-focus.Z * Fp32.One)), new Fp32(0));
+    public static FpPosition3 FixedFocus(Vector3 focus)
+    {
+        return new(new Fp32((int)(focus.X * Fp32.One)), new Fp32((int)(-focus.Z * Fp32.One)), new Fp32(0));
+    }
 
     /// <summary>The disc's side in screen pixels for a screen height and HUD scale factor, at least 1 and at most 4096: the
     /// resolution the engine draws it at, stretched over <see cref="Disc"/>.</summary>
-    public static int DiscPixels(int screenHeight, float factor) =>
-        Math.Clamp((int)MathF.Ceiling(Disc.Width / 2.5f * screenHeight / 768f * factor), 1, 4096);
+    public static int DiscPixels(int screenHeight, float factor)
+    {
+        return Math.Clamp((int)MathF.Ceiling(Disc.Width / 2.5f * screenHeight / 768f * factor), 1, 4096);
+    }
 
     /// <summary>The possession camera's disc, bottom anchored on the shared presentation content plane.</summary>
-    public static HudRect PossessionDisc(HudScaleLayout layout) => PossessionRect(Disc, layout);
+    public static HudRect PossessionDisc(HudScaleLayout layout)
+    {
+        return PossessionRect(Disc, layout);
+    }
 
     /// <summary>The possession frame has empty corner panels and accepts no corner hover state.</summary>
     public void BuildPossession(HudScaleLayout layout, Dk2Angle heading, HudFrame frame)

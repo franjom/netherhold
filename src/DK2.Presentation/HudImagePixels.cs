@@ -96,11 +96,15 @@ public static class HudImagePixels
 
     /// <summary>A gauge pixel's centre from the image's centre as the gauge mask measures it: <paramref name="row"/>
     /// counts from the top of the stored image and, as the class remarks, y from its bottom.</summary>
-    public static Vector2 GaugeOffset(int x, int row, int width, int height) =>
-        new(x + .5f - width / 2f, height / 2f - (height - 1 - row) - .5f);
+    public static Vector2 GaugeOffset(int x, int row, int width, int height)
+    {
+        return new(x + .5f - width / 2f, height / 2f - (height - 1 - row) - .5f);
+    }
 
-    private static float Repeat(float t, float length) =>
-        Math.Min(Math.Max(t - (float)Math.Floor(t / length) * length, 0f), length);
+    private static float Repeat(float t, float length)
+    {
+        return Math.Min(Math.Max(t - (float)Math.Floor(t / length) * length, 0f), length);
+    }
 
     /// <summary>For a renderer with only alpha blending: colour scaled to full brightness and the brightest
     /// channel as alpha, so over a dark ground the draw adds about what an additive draw would.</summary>

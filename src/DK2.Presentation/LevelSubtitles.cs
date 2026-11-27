@@ -13,10 +13,16 @@ public sealed class LevelSubtitles
 {
     private readonly Dk2StringTable? _table;
 
-    private LevelSubtitles(Dk2StringTable? table) => _table = table;
+    private LevelSubtitles(Dk2StringTable? table)
+    {
+        _table = table;
+    }
 
     /// <summary>The install's default-language text folder, where the level tables, Speech.str and the fonts are.</summary>
-    public static string TextFolder(string install) => Path.Combine(install, "Data", "Text", "Default");
+    public static string TextFolder(string install)
+    {
+        return Path.Combine(install, "Data", "Text", "Default");
+    }
 
     /// <param name="warn">Told why a table that exists could not be read.</param>
     public static LevelSubtitles Open(string install, int textTableId, Action<string>? warn = null)
@@ -39,6 +45,8 @@ public sealed class LevelSubtitles
     }
 
     /// <summary>Line <paramref name="line"/>'s text, or null.</summary>
-    public string? Line(int line) =>
-        _table != null && line >= 0 && line < _table.Entries.Count ? _table.Entries[line].Value : null;
+    public string? Line(int line)
+    {
+        return _table != null && line >= 0 && line < _table.Entries.Count ? _table.Entries[line].Value : null;
+    }
 }

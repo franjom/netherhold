@@ -141,5 +141,7 @@ public sealed class FrontEndFlow(FrontEndPage returnPage = FrontEndPage.None)
     }
 
     private FrontEndStep Results(FrontEndPath path, FrontEndPage page, FrontEndOperation operation)
-        => BeginTransition(new(path, FrontEndState.Idle)) with { ShowPage = page, Operation = operation };
+    {
+        return BeginTransition(new(path, FrontEndState.Idle)) with { ShowPage = page, Operation = operation };
+    }
 }

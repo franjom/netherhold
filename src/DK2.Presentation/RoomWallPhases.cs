@@ -81,6 +81,8 @@ public static class RoomWallPhases
         return ((terrain.Flags & TerrainFlags.AllowRoomWalls) == TerrainFlags.AllowRoomWalls) && (!solid || terrain.IsSolid);
     }
 
-    private static bool InRoom(WorldState world, RoomInstance room, int x, int y) =>
-        world.Contains(x, y) && room.Contains((y * world.Width) + x);
+    private static bool InRoom(WorldState world, RoomInstance room, int x, int y)
+    {
+        return world.Contains(x, y) && room.Contains((y * world.Width) + x);
+    }
 }

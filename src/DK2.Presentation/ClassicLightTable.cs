@@ -15,12 +15,30 @@ public sealed class ClassicLightTable
     private readonly float[] _distancesSquared = new float[MaximumSources];
     private TilePos _tile;
 
-    public ClassicLightTable(TilePos tile) => _tile = tile;
-    public TilePos Tile => _tile;
+    public ClassicLightTable(TilePos tile)
+    {
+        _tile = tile;
+    }
+
+    public TilePos Tile
+    {
+        get
+        {
+            return _tile;
+        }
+    }
+
     public int StaticCount { get; private set; }
     public int Count { get; private set; }
     public ClassicLightFrame StaticFrame { get; private set; }
-    public ReadOnlySpan<ClassicPointLight> Lights => _lights.AsSpan(0, Count);
+    public ReadOnlySpan<ClassicPointLight> Lights
+    {
+        get
+        {
+            return _lights.AsSpan(0, Count);
+        }
+    }
+
     internal ulong Revision { get; private set; }
 
     /// <summary>Replaces static candidates in encounter order and invalidates the gathered cache stamp.</summary>
@@ -46,7 +64,10 @@ public sealed class ClassicLightTable
         StaticFrame = default;
     }
 
-    internal void CompleteStatic(ClassicLightFrame frame) => StaticFrame = frame;
+    internal void CompleteStatic(ClassicLightFrame frame)
+    {
+        StaticFrame = frame;
+    }
 
     /// <summary>A freed neighbour cell's sources are gone: the static selection empties but keeps
     /// its stamp (<c>0x00576010</c>). The binary zeroes only the static count; zeroing Count too is

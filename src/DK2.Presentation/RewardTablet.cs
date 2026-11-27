@@ -74,11 +74,20 @@ public sealed class RewardTablet
     public int Angle { get; private set; }
     /// <summary><c>+0x4B</c>: the item's tablet has finished.</summary>
     public bool Done { get; private set; }
-    public ReadOnlySpan<Sparkle> Sparkles => _sparkles.AsSpan(0, _sparkleCount);
+    public ReadOnlySpan<Sparkle> Sparkles
+    {
+        get
+        {
+            return _sparkles.AsSpan(0, _sparkleCount);
+        }
+    }
 
     // Count just after spawning, before the oldest sparkles lose their last frame.
-    internal static int SparkleCapacityFor(int pointCount) => checked(pointCount * SparklesPerPointPerFrame *
+    internal static int SparkleCapacityFor(int pointCount)
+    {
+        return checked(pointCount * SparklesPerPointPerFrame *
         (MinimumSparkleLifeFrames + SparkleRandomLimit / SparkleRandomBucketSize - 1));
+    }
 
     internal void ReserveSparkles(int pointCount)
     {
@@ -133,7 +142,10 @@ public sealed class RewardTablet
 
     /// <summary>A mesh point relative to the centre in screen pixels (y down): turned, then scaled by
     /// <see cref="Scale"/> × 4096 (<c>0x00577DC0</c>; z is depth).</summary>
-    public Vector3 Project(Vector3 point, in Matrix4x4 turn) => Vector3.Transform(point, turn) * (Scale * PixelsPerUnit);
+    public Vector3 Project(Vector3 point, in Matrix4x4 turn)
+    {
+        return Vector3.Transform(point, turn) * (Scale * PixelsPerUnit);
+    }
 
     /// <summary>One drawn frame: <c>0x0042F040</c>'s sparkles, then <c>0x0042EE80</c>'s step. DK2 draws
     /// between the two (<c>0x0042F430</c>, then the step at <c>0x0042F43B</c>); a caller that draws
