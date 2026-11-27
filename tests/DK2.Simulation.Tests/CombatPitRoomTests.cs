@@ -152,13 +152,14 @@ public sealed class CombatPitRoomTests
     [Fact]
     public void OnlyTheTransitionFromSeveralStandingToOneWithADownCreaturePostsMessageNine()
     {
+        const int expectedMessageKind = 9;
         (GameSimulation sim, _, CreatureState second) = Setup();
         sim.Tick();
         Assert.Empty(sim.World.Messages.Entries);
         StatePlacement.Place(second, CreatureDeathRules.DyingState);
         sim.Tick();
         PlayerMessage message = Assert.Single(sim.World.Messages.Entries);
-        Assert.Equal((PlayerMessageKind)9, message.Kind);
+        Assert.Equal((PlayerMessageKind)expectedMessageKind, message.Kind);
         sim.Tick();
         Assert.Single(sim.World.Messages.Entries);
     }

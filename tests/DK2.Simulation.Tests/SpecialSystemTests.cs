@@ -216,7 +216,7 @@ public sealed class SpecialSystemTests
         CreatureState mine = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, PlayerIds.FirstKeeper, new TilePos(2, 2));
         CreatureState theirs = world.SpawnCreature(db, Dk2TerrainFixture.GoblinCreatureId, 1, new TilePos(2, 2));
         mine.Anger[AngerBucket.Treatment] = 30000;
-        mine.Anger[(AngerBucket)0] = 500;
+        mine.Anger[AngerBucket.Company] = 500;
         theirs.Anger[AngerBucket.Treatment] = 30000;
 
         Use(sim, world, db, Dk2TerrainFixture.MakeHappySpecialObjectId);

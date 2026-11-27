@@ -2224,7 +2224,7 @@ public class TriggerExecutorTests
         Assert.Equal((JobType.KillPlayer, (byte)3, 2), (hero.GoodJob, hero.GoodJobPlayerId, hero.GoodJobActionPointId));
         Assert.Equal(CreatureStateMachine.Idle, hero.Dk2StateId);
         Assert.Equal((byte)0, keepers.GoodJobPlayerId);
-        Assert.Equal(((JobType)22, (byte)4, 9), (kept.GoodJob, kept.GoodJobPlayerId, kept.GoodJobActionPointId));
+        Assert.Equal((JobType.Wait, (byte)4, 9), (kept.GoodJob, kept.GoodJobPlayerId, kept.GoodJobActionPointId));
         Assert.Empty(run.Partial);
         Assert.Equal(3, run.CreatureActions.Count);
     }

@@ -279,7 +279,7 @@ public class ObjectsOnRealDataTests
         {
             foreach (byte id in room.ObjectIds.Where(o => o != 0))
             {
-                Assert.Equal((ObjectFlags)0, db.ObjectById(id)!.Flags & carried);
+                Assert.Equal(ObjectFlags.None, db.ObjectById(id)!.Flags & carried);
             }
         }
     }

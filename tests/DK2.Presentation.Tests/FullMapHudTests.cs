@@ -224,7 +224,7 @@ public sealed class FullMapHudTests
             Assert.Null(ClassicFullMapMarkers.RoomArt((RoomTypeId)unlisted));
         }
 
-        Assert.Equal("gui\\rooms\\Bridge_Wooden", ClassicFullMapMarkers.RoomArt((RoomTypeId)22));
+        Assert.Equal("gui\\rooms\\Bridge_Wooden", ClassicFullMapMarkers.RoomArt(RoomTypeId.HeroStoneBridge));
         Assert.Null(ClassicFullMapMarkers.RoomArt((RoomTypeId)200));
     }
 }

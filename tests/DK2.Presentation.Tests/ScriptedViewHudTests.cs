@@ -100,7 +100,7 @@ public sealed class ScriptedViewHudTests
         director.Update(0, 0);
 
         // The room with that number on the build tool, another kind with that number, and another item leave it lit.
-        Choose(tools, BottomPanelChoiceKind.Room, 6, PlayerToolMode.BuildRoom, (RoomTypeId)6);
+        Choose(tools, BottomPanelChoiceKind.Room, 6, PlayerToolMode.BuildRoom, RoomTypeId.Library);
         Assert.Equal(flash, director.PanelFlash(tools, BottomPanelOpenSet.None));
         Choose(tools, kind == BottomPanelChoiceKind.Spell ? BottomPanelChoiceKind.Door : BottomPanelChoiceKind.Spell, 6,
             PlayerToolMode.Hand, RoomTypeId.Treasury);

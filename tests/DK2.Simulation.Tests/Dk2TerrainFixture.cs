@@ -512,7 +512,7 @@ internal static class Dk2TerrainFixture
         {
             Name = "Book Case",
             ObjectId = BookCaseObjectId,
-            Flags = (ObjectFlags)0u,
+            Flags = ObjectFlags.None,
             Hp = 1,
             ManaValue = 0,
             RoomCapacity = 0,
@@ -529,7 +529,7 @@ internal static class Dk2TerrainFixture
         {
             Name = "Library Book",
             ObjectId = LibraryBookObjectId,
-            Flags = (ObjectFlags)0u,
+            Flags = ObjectFlags.None,
             Hp = 1,
             ManaValue = 0,
             RoomCapacity = 0,
@@ -635,7 +635,7 @@ internal static class Dk2TerrainFixture
         {
             Name = "Chicken Coop",
             ObjectId = HatcheryRules.CoopObjectId,
-            Flags = (ObjectFlags)0x00004000u,   // Obstacle
+            Flags = ObjectFlags.Obstacle,   // Obstacle
             Hp = 1,
             ManaValue = 0,
             RoomCapacity = 0,

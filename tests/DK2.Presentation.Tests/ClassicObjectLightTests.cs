@@ -23,13 +23,14 @@ public class ClassicObjectLightTests
     [Fact]
     public void ArchesAutoEnableHighColourBitsAndUseNativeRadiusIntensityAndMode()
     {
+        const int objectFlags = 0x191, cheapObjectFlags = 0x95;
         ClassicPointLight light = ClassicPointLight.FromObject(Object(1))!.Value;
         Assert.Equal(new Vector3(5.5f, 4.75f, -5.5f), light.Position);
         Assert.Equal(new Vector3(500f / 255, 500f / 255, 460f / 255), light.Colour);
         Assert.Equal(6826f / Fp32.One, light.Radius);
         Assert.Equal(180f / 128, light.Intensity);
-        Assert.Equal((ClassicLightFlags)0x191, light.Flags);
-        Assert.Equal((ClassicLightFlags)0x95, ClassicPointLight.FromObject(Object(1), cheapLighting: true)!.Value.Flags);
+        Assert.Equal((ClassicLightFlags)objectFlags, light.Flags);
+        Assert.Equal((ClassicLightFlags)cheapObjectFlags, ClassicPointLight.FromObject(Object(1), cheapLighting: true)!.Value.Flags);
     }
 
     [Fact]

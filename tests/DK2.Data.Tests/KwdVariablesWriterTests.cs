@@ -82,7 +82,7 @@ public class KwdVariablesWriterTests
     public void RefusesAnEntryThatDoesNotMatchTheTemplateShape(int id)
     {
         var image = new KwdRecordImage(KwdRecordType.Variables, Cell(id));
-        Assert.Throws<InvalidDataException>(() => KwdVariables.WriteRecord(new MiscVariable((VariableTypeId)3, 1, 2, 3), image));
+        Assert.Throws<InvalidDataException>(() => KwdVariables.WriteRecord(new MiscVariable(VariableTypeId.EntranceGenerationSpeedSeconds, 1, 2, 3), image));
     }
 
     [Fact]

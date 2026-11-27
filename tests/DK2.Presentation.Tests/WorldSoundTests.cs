@@ -35,7 +35,7 @@ public sealed class WorldSoundTests
         director.Emit(Sound(new SoundSourceId(SoundSourceKind.Creature, 7), "CREATURE_IMP", ThingSoundEvent.BattleCall));
         director.Emit(Sound(new SoundSourceId(SoundSourceKind.Object, 7), "OBJECT_GOLD", (ThingSoundEvent)0xC4));
         director.Emit(Sound(new SoundSourceId(SoundSourceKind.Door, 7), "DOOR_WOOD", (ThingSoundEvent)0xC4));
-        director.Emit(Sound(new SoundSourceId(SoundSourceKind.Room, 7), "ROOM_DUNGEON_HEART", (ThingSoundEvent)0x329));
+        director.Emit(Sound(new SoundSourceId(SoundSourceKind.Room, 7), "ROOM_DUNGEON_HEART", ThingSoundEvent.HeartDamaged));
         director.Emit(Sound(new SoundSourceId(SoundSourceKind.Player, 7), "ROOM_DUNGEON_HEART", (ThingSoundEvent)0xF4));
         director.Emit(Sound(new SoundSourceId(SoundSourceKind.Shot, 7), "SPELL_FIREBALL", ThingSoundEvent.SpellCast));
         director.Emit(Sound(new SoundSourceId(SoundSourceKind.ShotSecond, 7), "SPELL_FIREBALL", ThingSoundEvent.ShotMadeSecond));   // a shot's second handle

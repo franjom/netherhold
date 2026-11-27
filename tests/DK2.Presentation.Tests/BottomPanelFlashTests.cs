@@ -59,9 +59,9 @@ public sealed class BottomPanelFlashTests
     [Fact]
     public void UsingTheFlashedItemClearsIt_RoomIdAssumedTheRoomType()
     {
-        Assert.True(BottomPanelFlash.ClearedByUse(Target(1, 2), PlayerToolMode.BuildRoom, (RoomTypeId)2, null, BottomPanelOpenSet.None));
-        Assert.False(BottomPanelFlash.ClearedByUse(Target(1, 2), PlayerToolMode.BuildRoom, (RoomTypeId)4, null, BottomPanelOpenSet.None));
-        Assert.False(BottomPanelFlash.ClearedByUse(Target(1, 2), PlayerToolMode.Hand, (RoomTypeId)2, null, BottomPanelOpenSet.None));
+        Assert.True(BottomPanelFlash.ClearedByUse(Target(1, 2), PlayerToolMode.BuildRoom, RoomTypeId.Lair, null, BottomPanelOpenSet.None));
+        Assert.False(BottomPanelFlash.ClearedByUse(Target(1, 2), PlayerToolMode.BuildRoom, RoomTypeId.Hatchery, null, BottomPanelOpenSet.None));
+        Assert.False(BottomPanelFlash.ClearedByUse(Target(1, 2), PlayerToolMode.Hand, RoomTypeId.Lair, null, BottomPanelOpenSet.None));
         var trap = new BottomPanelChoiceKey(BottomPanelChoiceKind.Trap, 3);
         Assert.True(BottomPanelFlash.ClearedByUse(Target(4, 3), PlayerToolMode.Hand, 0, trap, BottomPanelOpenSet.None));
         Assert.True(BottomPanelFlash.ClearedByUse(Target(0, 0xFF), PlayerToolMode.SellRoom, 0, null, BottomPanelOpenSet.None));

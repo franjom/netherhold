@@ -68,7 +68,7 @@ public class KwdCreaturesWriterTests
         CheckList(original.UnhappyJobs, (c, a) => c with { UnhappyJobs = a }, c => c.UnhappyJobs, PrefFields(0xE44));
         CheckList(original.AngryJobs, (c, a) => c with { AngryJobs = a }, c => c.AngryJobs, PrefFields(0xE5C));
         CheckList(original.AlternativeJobs, (c, a) => c with { AlternativeJobs = a }, c => c.AlternativeJobs, [(0xE84, 4), (0xE88, 2), (0xE8A, 2)]);
-        JobType[] hates = [.. original.HateJobs]; hates[0] = (JobType)13;
+        JobType[] hates = [.. original.HateJobs]; hates[0] = JobType.StealGold;
         AssertEdit(original with { HateJobs = hates }, 0xE78, 4, c => Assert.Equal(hates, c.HateJobs));
 
         void CheckList<T>(IReadOnlyList<T> list, Func<CreatureDef, T[], CreatureDef> replace,

@@ -46,7 +46,7 @@ public class RoomLogTests
         RoomLog log = Read(Row(41, "build", room: 7, size: 6, 10, 20, 12, 21));
 
         BuildRoomCommand build = Only<BuildRoomCommand>(log.At(40));
-        Assert.Equal((RoomTypeId)4, build.RoomId);
+        Assert.Equal(RoomTypeId.Hatchery, build.RoomId);
         Assert.Equal(3, build.PlayerId.Value);
         Assert.Equal(
             [
