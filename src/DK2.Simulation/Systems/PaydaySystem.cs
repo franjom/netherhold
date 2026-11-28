@@ -113,6 +113,12 @@ public sealed class PaydaySystem : ICreatureUpdateStep
                     continue;
                 }
 
+                // The Call to Arms check at 0x004BE206 precedes the GetPaid check.
+                if (CallToArmsRules.IsUnderCallToArms(world, creature))
+                {
+                    continue;
+                }
+
                 creatures++;
 
                 if (creature.GetPaid)

@@ -39,7 +39,8 @@ Nothing happens unless the next-payday stamp at `player+0xB53` is non-zero and
 
 1. Message `0x2E` — "It's payday" — is raised for the player.
 2. The player's creature chain is walked (it steps through `+0x10`). Each
-   creature that is payable and not exempt is handled one of two ways:
+   payable creature outside the [Call to Arms exemption](functions/004BE1A0.md)
+   is handled one of two ways:
    - if `creature+0x3E2` is zero, its wage is accrued (`FUN_0048b6b0`), its
      failed-attempt counter `creature+0x474` is reset to zero, and it tries to
      collect (`FUN_00472320`);
@@ -275,8 +276,9 @@ then angry, then leaves — or rebels, if converted).
 
 ## 6. Where the anger comes from — `FUN_00478d00` (2026-09-06, ADR-0079)
 
-Reached from the creature update **immediately before the needs routine**, and
-it charges all three standing sources one after another, **independently**:
+Reached from the creature update **immediately before the needs routine**.
+After its [eligibility gates](functions/00478D00.md), it charges the three
+standing sources independently:
 
 | Source | Field | Condition |
 |---|---|---|

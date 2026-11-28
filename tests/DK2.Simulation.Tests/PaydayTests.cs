@@ -188,6 +188,41 @@ public class PaydayTests
         Assert.Equal(500, goblin.WageOwed);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CallToArmsSkipsTheWageAndPreservesThePaydayExemption(bool bannerOn)
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        CreatureState fighter = world.SpawnCreature(db, GoblinId, Keeper, Floor);
+        CreatureState excused = world.SpawnCreature(db, GoblinId, Keeper, new TilePos(1, 1));
+        excused.GetPaid = true;
+        world.Player(Keeper).CallToArms.On = bannerOn;
+        fighter.HeedingCallToArms = !bannerOn;
+        excused.HeedingCallToArms = !bannerOn;
+        GameTick firstPayday = world.Player(Keeper).NextPaydayTick;
+        int intervalTicks = PaydayRules.IntervalTicks(db);
+        GameSimulation sim = Simulation(db, world);
+
+        RunToFirstPayday(sim, db);
+
+        Assert.Equal(0, fighter.WageOwed);
+        Assert.Equal(0, excused.WageOwed);
+        Assert.True(excused.GetPaid);
+        Assert.Equal(firstPayday, world.Player(Keeper).LastPaydayTick);
+        Assert.Equal(firstPayday.Value + intervalTicks, world.Player(Keeper).NextPaydayTick.Value);
+
+        world.Player(Keeper).CallToArms.On = false;
+        fighter.HeedingCallToArms = false;
+        excused.HeedingCallToArms = false;
+        sim.Run(intervalTicks);
+
+        Assert.Equal(500, fighter.WageOwed);
+        Assert.Equal(0, excused.WageOwed);
+        Assert.False(excused.GetPaid);
+    }
+
     /// <summary>The clock is armed by the keeper's first non-worker (<c>0x004BE330</c>, called
     /// from the constructor at <c>0x0048795E</c>), so imps alone never bring a payday.</summary>
     [Fact]

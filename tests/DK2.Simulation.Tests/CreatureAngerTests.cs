@@ -778,6 +778,35 @@ public class CreatureAngerTests
         Assert.Equal(default, CreatureAngerRules.PerSecond(world, db, definition, goblin));
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CallToArmsSuppressesEveryNeedChargeUntilItEnds(bool bannerOn)
+    {
+        GameDatabase db = Db;
+        WorldState world = World(db);
+        world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Room, (int)RoomTypeId.Hatchery, RoomNeedRules.Available));
+        world.Player(Keeper).Availabilities.Add(new AvailabilityState(AvailabilityKind.Room, (int)RoomTypeId.Lair, RoomNeedRules.Available));
+        CreatureState goblin = HungryGoblin(db, world);
+        goblin.WageOwed = 100;
+        CreatureDef definition = db.CreatureById(GoblinId);
+
+        world.Player(Keeper).CallToArms.On = bannerOn;
+        goblin.HeedingCallToArms = !bannerOn;
+        Assert.Equal(default, CreatureAngerRules.PerSecond(world, db, definition, goblin));
+
+        int ordinaryState = goblin.Dk2StateId;
+        StatePlacement.Place(goblin, JobRules.StateFor(JobType.Sulk)!.Value);
+        CreatureAnger sulking = CreatureAngerRules.PerSecond(world, db, definition, goblin);
+        Assert.Equal(new CreatureAnger { Treatment = -550 }, sulking);
+
+        StatePlacement.Place(goblin, ordinaryState);
+        world.Player(Keeper).CallToArms.On = false;
+        goblin.HeedingCallToArms = false;
+        CreatureAnger resumed = CreatureAngerRules.PerSecond(world, db, definition, goblin);
+        Assert.True(resumed.Lair > 0 && resumed.Hunger > 0 && resumed.Pay > 0);
+    }
+
     public static IEnumerable<object[]> ModeledNeedAngerSuppressedStates()
     {
         return NeedAngerSuppressedStates().Where(row =>

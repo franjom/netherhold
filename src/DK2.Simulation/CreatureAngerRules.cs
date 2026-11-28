@@ -197,18 +197,19 @@ public static class CreatureAngerRules
         {
             return delta;
         }
-        // The need-anger routine 0x00478D00 returns at once for a follower (0x00478D1D): no lair,
-        // food or pay charge. The in-lair calm below is another routine's and still applies.
+        // The need-anger routine 0x00478D00 skips followers (0x00478D1D) and creatures under
+        // Call to Arms (0x00478D2B). The in-lair calm below still applies.
         // The dispatcher calls it for a keeper's non-workers only (0x00476FC0, ADR-0485; the worker
         // jump 0x00477130, ADR-0667); the cooling below is the lair hooks' (0x004DFF00), for anyone.
-        bool follower = state.FollowLeaderId != 0 || !NeedRules.IsAsked(creature, state);
+        bool chargesNeeds = state.FollowLeaderId == 0 && NeedRules.IsAsked(creature, state)
+            && !CallToArmsRules.IsUnderCallToArms(world, state);
 
         // Additive (ADR-0079) and per bucket (ADR-0081): the original's need-anger routine
         // (FUN_00478d00) tests lair, food and pay in turn and charges each into its own counter, so
         // a bedless unpaid creature takes both and neither pays off the other.
         // Lair: no bed, a lair object (def+0x771, not TimeSleep; ADR-0667), and the Lair offered or
         // owned (0x00478DB7-0x00478DD5, ADR-0666).
-        if (!follower && creature.LairObjectId != 0 && !LairRules.HasBed(world, database, state)
+        if (chargesNeeds && creature.LairObjectId != 0 && !LairRules.HasBed(world, database, state)
             && Offers(world, database, state.OwnerPlayerId, RoomTypeId.Lair))
         {
             // A creature whose record gives it no lair object at all — the Imp, the Skeleton,
@@ -219,14 +220,14 @@ public static class CreatureAngerRules
         // Hungry while its keeper could feed it (ADR-0651): 0x00478D00 charges bucket 1 at
         // HungerNeed >= level-scaled HungerFill when Hatchery availability is 3 or the keeper owns
         // one, so a map that offers no Hatchery angers nobody. Eating forgets it (CreatureEatSystem).
-        if (!follower && EatingRules.IsHungry(database, creature, state)
+        if (chargesNeeds && EatingRules.IsHungry(database, creature, state)
             && Offers(world, database, state.OwnerPlayerId, RoomTypeId.Hatchery))
         {
             delta.Hunger += Loaded(creature.AngerNoFood);
         }
 
         // Owed wages it has not collected.
-        if (!follower && PaydayRules.IsOwedWages(database, creature, state))
+        if (chargesNeeds && PaydayRules.IsOwedWages(database, creature, state))
         {
             delta.Pay += Loaded(creature.AngerNoPay);
         }
