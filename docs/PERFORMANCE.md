@@ -4,7 +4,7 @@ Owner requirement, revised 2026-10-25: minimum 60 FPS during gameplay on the
 current laptop at 1920x1080 in a standalone build. Hardware, resolution, tiers, required
 scenario coverage and the Godot harness ceilings are recorded in
 [`performance-target.json`](../tools/tester-package/performance-target.json), each number with its
-source. `tools/perf/frame_budget.py` reads the same tier definitions.
+source.
 The resulting frame budget is 1000/60 ms (about 16.67 ms). An average or percentile below it does
 not excuse a slower frame.
 The optimization goal remains 100+ FPS; meeting the 60 FPS floor does not end
@@ -32,13 +32,14 @@ Selecting a backend does not certify the frame budget.
 - Verify visual ordering, lighting, blending, animation and effect content
   independently. A faster image with missing effects is a failed change.
 
-Use the [tester package](../tools/tester-package/README.md) for release
-qualification. The regression checks run in CI without a GPU. Rendered acceptance
-requires a capture on the target machine.
+Use `tools/tester-package/summarise_capture.py` to qualify current Godot release
+captures. The regression checks run in CI without a GPU. Rendered acceptance
+requires a capture on the target machine. See the [tester package](../tools/tester-package/README.md).
 
-`tools/perf/frame_budget.py` judges a PresentMon capture frame by frame against
-the budget. It returns 0 for a passing capture, 1 for a budget failure, 2 for
-invalid evidence, and 3 for a valid GPU diagnostic capture.
+`tools/perf/frame_budget.py` evaluates legacy Level 2 portal-introduction captures
+against the tier budget. It returns 0 for a passing capture, 1 for a budget
+failure, 2 for invalid evidence, and 3 for a valid GPU diagnostic capture. The
+current `compare_captures.py` also uses its screenshot validator.
 
 ## Coverage and current status
 
@@ -178,8 +179,7 @@ and returns files for review (ADR-0691):
    stops the trace, takes a screenshot outside the timed interval and zips
    the result with `godot.log`, the game's own hardware metadata and the
    build's SHA256 manifest. `summarise_capture.py` judges the capture against
-   a tier. `frame_budget.py` takes `--tier` as well, for the Level2 portal
-   introduction capture its shape belongs to.
+   a tier.
 2. **Telemetry inside the release game** (`--record-frames <dir>`, `FrameTelemetry` and
    Godot's `FrameRecorder`, godot/README.md, *Probes*; ADR-0691): off by default, allocation-free on ordinary frames: per frame the
    interval, ticks run, the join wait, Present, the animated frame, chunk

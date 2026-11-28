@@ -382,14 +382,19 @@ environment chains and the per-alpha and per-tint materials; the terrain variant
 flame's per-frame materials; the per-string HUD text
 textures; the CPU liquid wave (done, item 9); the gamma lookup (with the prototype).
 
-## Shared `DK2.Presentation` code that becomes Unity-only or dead
+## Shared rendering code after the migration
 
 - **Unity-only:** `BlendedTerrainStream.SortingOrder`; the tag-overlay predicate; the flower and effect slots
   (`PlaceItems`, `RunsBehind`, `ItemOrders`, `AddEffect`, `RepeatEffect`), while collect, cull, depth order and runs
   stay; per-key terrain surfacing for tagged, red, tinted and overlay (`TerrainMaterialKey.For` and the
   `TerrainMaterialLook` colours stay as rules); `LiquidSurfaceWave.Wave` and `LiquidSurfaceField.Animate` (Godot calls `Refresh` and waves in
-  `WorldLiquid.gdshader`; the constants, sine tables, phase steps, `Points` and the `Vertex` mirror stay shared); `ICreatureAnimationSurface.Upload` (the frozen Unity path; Godot uses the pose surface from item 8); `HudImagePixels.Fill`; `ClassicMeshShadow` and the silhouette code; `EffectQuadBuffer`.
-- **Dead in production:** `MinimapDiscImage` (retained as the independent shader-test oracle).
+  `WorldLiquid.gdshader`; the constants, sine tables, phase steps, `Points` and the `Vertex` mirror stay shared); `HudImagePixels.Fill`.
+- `WorldScene.Effects` uses `EffectQuadBuffer` for effect quads. `WorldScene.CreatureShadows` and the
+  shared shadow coverage use `ClassicMeshShadow`.
+- `MinimapParity` uses `MinimapDiscImage` as the CPU reference for the GPU minimap.
+- `AnimatedModel` implements `ICreatureAnimationSurface` to install and show animation segments.
+  It also implements the pose surface from item 8 and rejects CPU uploads. The shared player
+  still calls `Upload` for CPU surfaces.
 - **Stays shared:** `HudTextPixels.Measure`, `HudTriangles`, `ViewFrustum`, `TerrainChunkScheduler`,
   `TerrainTileBuilder`.
 - **Godot code that goes:** (`ZeroOrderOffset`, `SortFromOrigin`'s scheme and `RunSlot`'s vertex expansion went in 3q; `Copy` was removed in item 8)

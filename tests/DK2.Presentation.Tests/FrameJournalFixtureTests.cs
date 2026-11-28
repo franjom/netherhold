@@ -16,18 +16,18 @@ namespace DK2.Presentation.Tests;
 /// and no command, and its tick hashes are HashVersion 523's, so it pins the frame records and the tick schedule,
 /// not a command stream or a state hash.
 /// </summary>
-public class UnityFrameJournalFixtureTests
+public class FrameJournalFixtureTests
 {
-    private const string Folder = "tests/DK2.Presentation.Tests/Fixtures/unity-level1-frames/";
+    private const string Folder = "tests/DK2.Presentation.Tests/Fixtures/level1-frames/";
 
     [Fact]
-    public void TheRecordedFrames_RecordedAgainThroughTheSession_GiveUnitysJournalByteForByte()
+    public void TheRecordedFrames_RecordedAgainThroughTheSession_GiveTheOriginalJournalByteForByte()
     {
         byte[] recorded = File.ReadAllBytes(Dk2CaptureGate.PathFor(Folder + "frames.journal"));
         var journal = FrameInputJournal.Read(new MemoryStream(recorded));
         Assert.Equal(FrameJournalSession.UnityKeyTable, journal.Header[FrameJournalSession.KeyTableKey]);
         Assert.Equal(509, journal.Frames.Count);
-        string root = Path.Combine(Path.GetTempPath(), "dk2-unity-frames-" + Guid.NewGuid().ToString("N"));
+        string root = Path.Combine(Path.GetTempPath(), "dk2-level1-frames-" + Guid.NewGuid().ToString("N"));
         try
         {
             var warnings = new List<string>();
