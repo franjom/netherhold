@@ -300,7 +300,7 @@ actual category's `SFX.map`.
 | `0x326` | [0x00466CB0](functions/00466CB0.md) at `0x00466DC7` (state 31, a spell book taken by the Library) and [0x00466DF0](functions/00466DF0.md) at `0x00466F0B` (state 32, a crate taken by the Workshop), then state 10; state 33 (a Special) has none | STRONGLY INFERRED | the book arm of `UpdateCarryingObject`, `StoreCrate` |
 | `0x327`, `0x328` | [0x00467460](functions/00467460.md) at `0x00467575` (state 37, a door) and [0x004671B0](functions/004671B0.md) at `0x0046729F` (state 35, a trap): on the match, after the crate is consumed | STRONGLY INFERRED | `UpdateCarryingCrate` |
 | `0x33D` | [0x00497960](functions/00497960.md) at `0x00497A9A`: the reinforce action's handler, once the wall is done and the clip has completed or wrapped (`+0xF1 & 6`), on each call | STRONGLY INFERRED site | waits: ours has no clip for the reinforce action, its gate has no mirror |
-| `0x343`, `0x342` | [0x004651A0](functions/004651A0.md) at `0x004653B0` and [0x004653F0](functions/004653F0.md) at `0x0046547A`: the teleport's two halves | STRONGLY INFERRED sites | waits: the imp teleport is unbuilt (Q418) |
+| `0x343`, `0x342` | [0x004651A0](functions/004651A0.md) at `0x004653B0` and [0x004653F0](functions/004653F0.md) at `0x0046547A`: the teleport's two halves | STRONGLY INFERRED sites | requested by the departure and arrival path (ADR-0825) |
 
 `creature_imp` alone has `0x10D` (three samples), so only an imp's carrying sounds; every other carrier is silent, and a Portal Gem
 carrier makes no request (`CarriedThingSoundSystem` skips it by type: ours keeps `+0x3C3` and `+0x3C5` in one field). `0x326` has two, `0x327` one, `0x328` two, `0x33D`, `0x342` and `0x343` one each, all in `creature_imp` only.

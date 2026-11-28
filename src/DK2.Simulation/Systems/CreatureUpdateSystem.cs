@@ -151,6 +151,7 @@ public sealed class CreatureUpdateSystem : ISimulationSystem
                     ClaimActionRules.Poll(context, creature);
                     IdleActionRules.Poll(context, creature);
                     CombatPitSystem.PollAction(context, creature);
+                    ImpTaskSystem.PollTeleportAction(context, creature);
                     actionPolled = true;
                 }
                 step.Update(context, creature);
@@ -173,6 +174,7 @@ public sealed class CreatureUpdateSystem : ISimulationSystem
                 ClaimActionRules.Poll(context, creature);
                 IdleActionRules.Poll(context, creature);
                 CombatPitSystem.PollAction(context, creature);
+                ImpTaskSystem.PollTeleportAction(context, creature);
             }
             // 0x0048A037: after the state handler, before the dust, the reveal and the root walk;
             // no step ours runs after the handler reads the bit.

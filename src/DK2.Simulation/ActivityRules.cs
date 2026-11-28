@@ -29,7 +29,7 @@ public static class ActivityRules
             return CreatureActivity.Dead;
         }
 
-        if (state is Systems.StateShadow.TravelToPoint or Systems.StateShadow.TravelToRoom or CombatStates.Approaching)
+        if (state is Systems.StateShadow.TravelToPoint or Systems.StateShadow.TravelToRoom or CombatStates.Approaching or ImpStates.TeleportingOut or ImpStates.TeleportingIn)
         {
             return Walking(creature, creature.UtilityNewState);
         }

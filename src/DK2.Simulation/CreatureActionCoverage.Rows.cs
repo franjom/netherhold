@@ -78,8 +78,8 @@ public static partial class CreatureActionCoverage
         rows.Add(Built(57, typeof(CasinoStep), "Dance", "states 152, 153, 158, 159; the win celebration", "states 158 and 159"));
         rows.Add(NeverBegun(58, $"no begin call passes 58; {Table}"));
         rows.Add(Built(59, typeof(FinaleRules), "Appear", "state 230"));
-        rows.Add(Unbuilt(60, "the imp teleport", "the teleport is not built (Q418)"));
-        rows.Add(Unbuilt(61, "state 51", "the teleport is not built (Q418)"));
+        rows.Add(Built(60, typeof(ImpTaskSystem), "BeginTaskWalk", "the imp teleport"));
+        rows.Add(Built(61, typeof(ImpTaskSystem), "UpdateTeleport", "state 51"));
         rows.Add(Unbuilt(62, "the collapse", "the collapse sets state 216 with no art 7 action"));
         rows.Add(Built(63, typeof(TorturerStep), "Face", "state 128", "a fixed six-turn hold (TortureRules.WhipTurns), no art 32 clip"));
         rows.Add(Built(64, typeof(TremorRules), nameof(TremorRules.RunRecovery), "state 210"));

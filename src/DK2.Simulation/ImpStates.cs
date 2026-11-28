@@ -14,6 +14,8 @@ namespace DK2.Simulation;
 [Dk2Behavior(Confidence.StronglyInferred, "docs/research/imp-state-exits.md")]
 public static class ImpStates
 {
+    public const int TeleportingOut = 51;
+    public const int TeleportingIn = 52;
     /// <summary>State 10, the worker's task selection (<c>0x00463DF0</c>). Its task handlers
     /// start every walk to work, and every even work state returns here.</summary>
     public const int TaskSelection = 10;

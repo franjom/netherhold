@@ -20,7 +20,7 @@ public static class CreatureCurrentAction
     /// or an ordinary claim, floor-attack or room-conversion action.</summary>
     public static bool IsRunning(CreatureState creature, GameTick tick)
     {
-        return creature.PossessedMelee.Active || creature.PossessedExcavation.Kind != PossessedExcavationKind.None
+        return creature.TeleportAction != ImpTeleportAction.None || creature.PossessedMelee.Active || creature.PossessedExcavation.Kind != PossessedExcavationKind.None
         || creature.ClaimAction.Kind != ClaimActionKind.None
         || creature.CombatPitAction != CombatPitActionId.None
         || creature.IdleAction != IdleActionId.None || creature.SwingInProgress || tick.Value < creature.ActionUntilTick || creature.Tunnel.Digging
@@ -32,6 +32,10 @@ public static class CreatureCurrentAction
     /// or free-aimed cast in progress, 17 for a melee swing in its hold, 16 for a cast in its hold; 0 for none or one ours does not tell apart.</summary>
     public static int IndexOf(CreatureState creature, CreatureDef definition, GameTick tick)
     {
+        if (creature.TeleportAction != ImpTeleportAction.None)
+        {
+            return (int)creature.TeleportAction;
+        }
         if (creature.PossessedMelee.Active)
         {
             return CreatureActionTable.MeleeSwing;

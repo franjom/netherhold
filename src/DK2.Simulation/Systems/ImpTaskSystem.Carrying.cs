@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2026 Franjo Misetic
+// Copyright (C) 2026 Franjo Misetic
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE in the project root for the full license text.
 
@@ -252,7 +252,7 @@ public sealed partial class ImpTaskSystem
 
         // 30 walks it to its room in 6, resuming in the state for its kind.
         BeginTaskWalk(context, creature,
-            ImpStates.CarryingStateFor(context.Database.ObjectById(thing.ObjectTypeId)!.Flags));
+            ImpStates.CarryingStateFor(context.Database.ObjectById(thing.ObjectTypeId)!.Flags), noTeleport: true);
 
         creature.TargetObjectId = -1;
         ObjectCarryRules.TakeHold(creature, thing);
@@ -300,7 +300,7 @@ public sealed partial class ImpTaskSystem
                 creature.TargetTileIndex = destination;
                 int carrying = creature.UtilityNewState;
                 StateShadow.Arrive(context, SystemName, creature);
-                BeginTaskWalk(context, creature, carrying);
+                BeginTaskWalk(context, creature, carrying, noTeleport: carrying != ImpStates.CarryingCorpse);
                 return;
             }
 
@@ -682,7 +682,7 @@ public sealed partial class ImpTaskSystem
         BeginTaskWalk(context, creature,
             CreatureDeathRules.IsCorpse(body) ? ImpStates.CarryingCorpse
             : body.OwnerPlayerId == creature.OwnerPlayerId ? ImpStates.CarryingToLair
-            : ImpStates.CarryingToPrison);
+            : ImpStates.CarryingToPrison, noTeleport: true);
 
         ForgetBody(creature);
         CarryRules.PickUp(creature, body);
@@ -762,7 +762,7 @@ public sealed partial class ImpTaskSystem
                 creature.TargetTileIndex = destination;
                 int carrying = creature.UtilityNewState;
                 StateShadow.Arrive(context, SystemName, creature);
-                BeginTaskWalk(context, creature, carrying);
+                BeginTaskWalk(context, creature, carrying, noTeleport: carrying != ImpStates.CarryingCorpse);
                 return;
             }
 
@@ -851,7 +851,7 @@ public sealed partial class ImpTaskSystem
             if (next >= 0 && RouteTo(context, creature, grid, next))
             {
                 creature.TargetTileIndex = next;
-                BeginTaskWalk(context, creature, ImpStates.CarryingToPrison);
+                BeginTaskWalk(context, creature, ImpStates.CarryingToPrison, noTeleport: true);
                 context.Emit(SystemName, "prisoner_redirected",
                     $"imp={creature.Id} body={body.Id} from={Describe(world, cell)} to={Describe(world, next)}");
                 return;
@@ -921,14 +921,39 @@ public sealed partial class ImpTaskSystem
     /// <summary>An imp task's walk, which DK2 starts through the walk wrapper <c>0x004651A0</c>
     /// (45 call sites, every imp task handler; not the wander, state 87): its ability scan, then
     /// the walk. Ours begins the walk only once a route is found, where DK2 scans before routing.</summary>
-    private static void BeginTaskWalk(SimulationContext context, CreatureState creature, int resume)
+    private static void BeginTaskWalk(SimulationContext context, CreatureState creature, int resume, bool noTeleport = false)
     {
         if (resume != ImpStates.SecretDoorApproach)
         {
             creature.SecretDoorTask = false;
         }
 
-        CastOnTheWalk(context, creature);
+        int slot = CastOnTheWalk(context, creature);
+        Steering.Fixed16Vector target = creature.Body.PathTargetPos;
+        var targetTile = new TilePos(target.X / (SteeringUnitsPerPositionUnit * Fp32.One),
+            target.Y / (SteeringUnitsPerPositionUnit * Fp32.One));
+        if (slot >= 0 && !noTeleport
+            && (Math.Abs(creature.Tile.X - targetTile.X) > 2 || Math.Abs(creature.Tile.Y - targetTile.Y) > 2)
+            && context.World.Contains(targetTile)
+            && !context.Database.TerrainById(context.World.Tile(targetTile).TerrainId).IsSolid
+            && context.Navigation.Route(creature.Body.Pos, target,
+                Navigation.WorldSteering.ProfileOf(context.Database.CreatureById(creature.CreatureTypeId),
+                    creature.OwnerPlayerId, creature.RouteOptions), []))
+        {
+            creature.SpellStamps[slot] = context.Tick.Value;
+            creature.UtilityNewState = resume;
+            creature.TeleportTarget = new FpPosition3(new Fp32(target.X / SteeringUnitsPerPositionUnit),
+                new Fp32(target.Y / SteeringUnitsPerPositionUnit), new Fp32(0));
+            CreatureStateMachine.EndAction(creature);
+            creature.TeleportAction = ImpTeleportAction.Departure;
+            creature.TeleportActionUntilTick = context.Tick.Value + TeleportDepartureTicks;
+            ActionAnimationClock.Begin(creature, context.Database.CreatureById(creature.CreatureTypeId),
+                TeleportArtSlot, context.Rng);
+            CreatureStateMachine.TrySetState(context.Hooks, creature, ImpStates.TeleportingOut, context.Tick.Value);
+            WorkerPickupRules.SetEnabled(creature, false);
+            TeleportPresentation(context, creature, arriving: false);
+            return;
+        }
         CreatureStateMachine.BeginTravel(context.Hooks, creature, StateShadow.TravelToPoint, resume);
     }
 
@@ -937,10 +962,10 @@ public sealed partial class ImpTaskSystem
     /// creature's level, with a spell, and ready by <c>0x0048C800</c>. A teleport slot (flag
     /// <c>0x20</c>) ends the scan; a speed slot (<c>0x40</c>, the Imp's Imp Haste in slot 0) is cast on
     /// the spot: the slot stamped, then <c>0x0048CAD0</c> with the record's two words, refused while a
-    /// speed effect runs. The teleport itself is not built (Q418), and the speed-blur display word
+    /// speed effect runs. The speed-blur display word
     /// <c>+0x4DD</c> is not kept.
     /// </summary>
-    private static void CastOnTheWalk(SimulationContext context, CreatureState creature)
+    private static int CastOnTheWalk(SimulationContext context, CreatureState creature)
     {
         GameDatabase database = context.Database;
         CreatureDef definition = database.CreatureById(creature.CreatureTypeId);
@@ -961,7 +986,7 @@ public sealed partial class ImpTaskSystem
             CreatureSpellDef spell = SpellRules.SpellOf(database, definition, slot)!;
             if ((spell.Flags & PossessionRules.TeleportSpellFlag) != 0)
             {
-                break;
+                return slot;
             }
 
             if ((spell.Flags & PossessionRules.SpeedSpellFlag) == 0)
@@ -972,6 +997,7 @@ public sealed partial class ImpTaskSystem
             creature.SpellStamps[slot] = now;
             StatusEffectRules.ModifySpeed(context, creature, unchecked((int)spell.ShotData1), unchecked((int)spell.ShotData2));
         }
+        return -1;
     }
 
     /// <summary>A walk of DK2's that ours does not make: 6 resuming in the state, arrived at on
@@ -984,6 +1010,10 @@ public sealed partial class ImpTaskSystem
         }
 
         BeginTaskWalk(context, creature, resume);
+        if (creature.Dk2StateId is ImpStates.TeleportingOut or ImpStates.TeleportingIn)
+        {
+            return;
+        }
         StateShadow.Arrive(context, SystemName, creature);
     }
 
@@ -1040,7 +1070,7 @@ public sealed partial class ImpTaskSystem
                 creature.TargetTileIndex = cell;
                 StateShadow.Arrive(context, SystemName, creature);
                 WorkerPickupRules.SetEnabled(creature, false);
-                BeginTaskWalk(context, creature, ImpStates.AtThePrisonDoor);
+                BeginTaskWalk(context, creature, ImpStates.AtThePrisonDoor, noTeleport: true);
                 return true;
             }
         }
@@ -1050,7 +1080,7 @@ public sealed partial class ImpTaskSystem
         {
             creature.TargetTileIndex = next;
             StateShadow.Arrive(context, SystemName, creature);
-            BeginTaskWalk(context, creature, ImpStates.CarryingToPrison);
+            BeginTaskWalk(context, creature, ImpStates.CarryingToPrison, noTeleport: true);
             context.Emit(SystemName, "prisoner_redirected",
                 $"imp={creature.Id} body={body.Id} from={Describe(world, here)} to={Describe(world, next)}");
             return true;
@@ -1090,7 +1120,7 @@ public sealed partial class ImpTaskSystem
         }
 
         creature.TargetTileIndex = door;
-        BeginTaskWalk(context, creature, ImpStates.LeavingThePrisoner);
+        BeginTaskWalk(context, creature, ImpStates.LeavingThePrisoner, noTeleport: true);
         return true;
     }
 
