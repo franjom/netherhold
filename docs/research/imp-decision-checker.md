@@ -59,7 +59,7 @@ Historical agreement percentages remain observations of those fixtures.
 They must not be described as exact native-state equivalence, nor may a
 mismatch alone justify changing job priorities. Conversely, 337 agreements
 cannot validate work duration, movement, task creation or interruption timing.
-The [failed candidate acceptance](imp-candidate-acceptance.md) remains valid
+The failed candidate acceptance remains valid
 as a replay result; this checker audit does not reverse that verdict.
 
 ## Required boundary for the next behavioral comparison

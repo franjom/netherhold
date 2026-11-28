@@ -48,9 +48,9 @@ whole game. New effects, renderers, shaders and gameplay workloads need
 representative regression coverage before claiming the target is met.
 
 The target is currently unmet. Arrival measurements and optimization evidence
-have one home: [portal arrival performance](research/portal-arrival-performance.md).
+have one home: portal arrival performance.
 Engine-neutral cache measurements are in
-[Level6a Editor performance](research/level6a-editor-performance.md).
+Level6a Editor performance.
 
 The headless simulation has its own opt-in budget
 (50x real time, 100 ms per tick): [ADR-0575](DECISIONS.md), `GOAL_ALIGNMENT.md` gap 4.

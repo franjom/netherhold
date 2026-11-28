@@ -29,7 +29,7 @@ Evidence:
 - Values documented by earlier community work now STRONGLY INFERRED against real data:
   ClaimTileHealth=825, MineGoldHealth=-300, MaxGoldPerTreasuryTile=3000,
   DeadBodyDiesAfterSeconds=60, PayDayFrequencySeconds=600, ...
-  Full table: docs/research/game-database-dump.md
+  Full table: `dk2tools kwd vars`
 - `GlobalVariables.kwd` also carries a THINGS(190) chunk of 39 records; they are
   all tag 205 (Camera) and they parse (Q15, ADR-0091). Answered: they are the
   camera presets (zoom bounds, lens, pitch, etc.) that `0x00570A20`/`0x0056F900`

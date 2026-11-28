@@ -7,7 +7,7 @@ Reviewed 2026-11-11 against local HEAD `49a861a7` (records checked again at `ea3
 had 81 PRs above the previous marker 999: 70 open, 10 merged, 1 closed. This
 is a relevance audit of their descriptions and production patches against our
 code, tests and canonical research, done in the same form as
-[the 938-999 audit](openkeeper-pr-audit-938-999.md). No gameplay fix was made,
+the 938-999 audit. No gameplay fix was made,
 no test suite was run and no native experiment was played. "Covered" means the
 code and tests exist, not that they were run for this audit. No OpenKeeper
 code was copied.

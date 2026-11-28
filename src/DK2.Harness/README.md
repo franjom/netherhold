@@ -176,8 +176,7 @@ The claim line names the map, seed, controller, win tick, finale, receipt direct
 headless run, not rendered play; only Level 1 has been won so far.
 
 Not implemented (design stages 3-8): play beyond Level 1, an external model or agent,
-rendering, audio, the real UI, the front end and skirmish maps. A headless run does not certify rendered timing. Plan and as-built notes:
-`docs/plans/2026-11-07-campaign-player-stages1-2.md` (tasks 4, 6 and 7); the receipt procedure is also described in `tools/build_receipt.py`'s header.
+rendering, audio, the real UI, the front end and skirmish maps. A headless run does not certify rendered timing. The receipt procedure is described in `tools/build_receipt.py`'s header.
 
 Exit code 1 means a scenario failed to load or run, or an expectation failed. The
 file format, output files and corpus are in `scenarios/README.md`. Campaign maps need

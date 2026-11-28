@@ -6,7 +6,7 @@ needs no AI model, while establishing a reusable foundation for external agents 
 future Enhanced keeper.
 **Goals:** 2 (campaign compatibility), 6 (oracle testing) and 10 (agent interface),
 with support for 5 (fidelity), 9 (determinism) and 11 (presentation modes).
-**Implementation:** [stages 1-2 plan](2026-11-07-campaign-player-stages1-2.md), Task 1 (detached player contract), task 2 (visibility-safe observation builder), task 3 (action admission and receipts), task 4 (tick-loop integration, replay identity, run manifest), task 5 (the `CampaignPlayer` controller), task 6 (`run --campaign-player`, limits, evidence folder, verdicts) and task 7 (the Level 1 acceptance: seeds 1-3 won headless, each with the finale reaching the gem pickup, journals replayed without the controller) are built and merged to master. Stages 3 onward are not built.
+**Implementation:** stages 1-2 plan, Task 1 (detached player contract), task 2 (visibility-safe observation builder), task 3 (action admission and receipts), task 4 (tick-loop integration, replay identity, run manifest), task 5 (the `CampaignPlayer` controller), task 6 (`run --campaign-player`, limits, evidence folder, verdicts) and task 7 (the Level 1 acceptance: seeds 1-3 won headless, each with the finale reaching the gem pickup, journals replayed without the controller) are built and merged to master. Stages 3 onward are not built.
 
 ## Relationship to existing work
 
@@ -313,7 +313,7 @@ Their future value motivates clean interfaces, not early implementation of them.
 
 Execution agents must use the applicable [repository .NET skills](../../.agents/skills/README.md),
 with explicit emphasis on measured performance and allocation cost. The
-[implementation plan](2026-11-07-campaign-player-stages1-2.md#net-skills-and-optimization-gate)
+implementation plan
 owns skill routing and the optimization gate. Performance improvements must
 preserve player-information isolation, snapshot lifetime and deterministic
 outcomes for the same applied inputs; reducing fidelity or evidence coverage is

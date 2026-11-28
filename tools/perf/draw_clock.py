@@ -5,7 +5,7 @@
 """Evenness of a scripted fly-by in a frames.csv from the game probe or the release recorder.
 
 The draw clock (render_tick) should advance 4 ticks a wall second whatever the frame rate; a frame
-whose advance per second is off by more than 2 ticks is a visible step (docs/research/level8-intro-motion.md).
+whose advance per second is off by more than 2 ticks is a visible step.
 Prints the share of path frames that fail, p95 error, boundary holds and catch-ups, and the same
 counted over steady frames only (neither this frame nor the one before over 25 ms), which separates the
 clock from frame-time hitches. Exit 1 when the share of path frames over 2 ticks/s is above --limit.

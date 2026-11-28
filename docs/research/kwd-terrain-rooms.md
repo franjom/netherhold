@@ -92,7 +92,7 @@ Combined with the VARIABLES health deltas (`MineGoldHealth=-300`,
 `ClaimTileHealth=825`, `DigRockHealth=-5000`, `ReinforceWallHealth=50`,
 `RepairWallHealth=22`), this is the complete numeric model for digging,
 claiming and reinforcing. How often the deltas are applied is Q1, the tick
-rate; the full table is `terrain-room-dump.md`.
+rate; the full table is `dk2tools kwd terrain`.
 
 ## Finding — room ids resolve gaps in Flame's disassembly
 

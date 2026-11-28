@@ -374,7 +374,7 @@ Unaffected: whether a room's *effect* needs more than capacity is not tested her
 ## ADR-0029 — Selling a room returns half its cost, and the data said so all along
 **Date:** 2026-09-03 · **Status:** accepted
 
-**Context.** Q34 asked what selling a room refunds; the owner observed **50 % of the cost, per tile** on 2026-08-29. This project recorded it with a warning that the number appeared in *neither* candidate variable, since `RoomDef.ReturnPercentage` and `RoomSellValuePercentageOfCost` "both say 100" — a transcription error of our own, because `RoomSellValuePercentageOfCost` is **50** and `docs/research/game-database-dump.md`, generated from the install, has said 50 since it was written.
+**Context.** Q34 asked what selling a room refunds; the owner observed **50 % of the cost, per tile** on 2026-08-29. This project recorded it with a warning that the number appeared in *neither* candidate variable, since `RoomDef.ReturnPercentage` and `RoomSellValuePercentageOfCost` "both say 100" — a transcription error of our own, because `RoomSellValuePercentageOfCost` is **50** and `dk2tools kwd vars`, generated from the install, has said 50 since it was written.
 **Decision.** Selling is implemented entirely from the data.
 - **The refund.** `RoomRules.RefundPerTile` = `Cost` × `ReturnPercentage` % × `RoomSellValuePercentageOfCost` %. With the shipped numbers that is half the cost per tile for every buildable room — a treasury 100 of its 200, a temple 1500 of its 3000 — exactly what the owner measured.
 - **`ReturnPercentage` is a per-room gate, not a rival refund rate**, the reading that makes the two variables agree rather than compete: **100** for every room a keeper can build (17 of them), **0** for exactly the hero gates, which a keeper cannot sell, and nothing in between. That the zero rows coincide precisely with the unsellable rooms is the internal check, asserted in both directions so that "the field is always 100" could not fit the same evidence. Whether the two numbers multiply or the per-room value overrides the global is **indistinguishable on shipped data** — no room carries a middle value — so the behaviour is settled and the composition is not. They are multiplied, the reading that still behaves sensibly on data we do not have.
@@ -11688,11 +11688,12 @@ requiring both still occupy them on one arbitrary final tick.
 
 ## ADR-0501 — Camera and creatures share a late draw clock
 **Date:** 2026-10-17 · **Status:** accepted · amended by ADR-0687 (one elapsed sample per frame; the draw clock lags the tick clock by one frame)
+**Systems:** camera-lighting
 
 **Context.** A worker wait and presentation preparation can consume much of a
 frame. Counting that work on the following frame causes slow/catch-up motion
 even at high median FPS; the cinematic camera also sampled an earlier fraction.
-Measurements: [level8-intro-motion.md](research/level8-intro-motion.md).
+Measurements: level8-intro-motion.md.
 
 **Decision.** Sample elapsed real time after worker synchronization and again
 after presentation preparation, retaining time scaling and the per-frame catchup

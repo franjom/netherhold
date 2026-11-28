@@ -58,7 +58,7 @@ From the [ladder](../research/campaign-bot-ladder.md): the controller before Tas
 
 ## .NET skills and optimization gate
 
-As in the [stages 1-2 plan](2026-11-07-campaign-player-stages1-2.md#net-skills-and-optimization-gate):
+As in the stages 1-2 plan:
 `csharp-refactoring` for Task 1, `run-tests` for test commands, `analyzing-dotnet-performance` on
 routines and the tuner, and a measurement before any optimization claim. The tuner has a
 throughput gate (Task 7).

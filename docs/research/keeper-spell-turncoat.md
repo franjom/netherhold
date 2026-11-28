@@ -66,7 +66,6 @@ accesses, not the absence of indirect/bulk accesses.
 
 ## 4. Regression comparison
 
-Stage0 baseline: `../plans/2026-10-03-keeper-spells-baseline.md`.
 All 42 scenarios retain byte-identical event logs and final world output;
 all ten keeper command traces are also identical. All 42 hash series and
 their reports change only through version/composition, matching the prediction.

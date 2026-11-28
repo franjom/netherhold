@@ -40,7 +40,7 @@ None of the three was reachable from the shipped data.
 
 **The heart's nine is borrowed evidence.** A keeper with no treasury tops out at
 **16000** gold — CONFIRMED by the owner off the game's own counter — against a
-`MaxGoldPerDungeonHeartTile` of **1000** (`game-database-dump.md`). So **16** of
+`MaxGoldPerDungeonHeartTile` of **1000** (`dk2tools kwd vars`). So **16** of
 a heart's 25 tiles store gold and the other **9** do not, because the heart's
 structure is standing on them. A tile that cannot hold gold because there is a
 heart on it is not a tile a creature can stand on either.

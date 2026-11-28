@@ -44,3 +44,80 @@ Checked 2026-11-14: the key answers a `channels` lookup and both tools run.
 | Source | Videos (2026-11-14) | Permission |
 |---|---|---|
 | S1 | 925 | Not asked as of 2026-11-14 |
+
+## Turning a recording into a question list
+
+The owner records DK2 playing, an agent analyses the footage, and the resulting
+note is read back into the project. The first run reversed behaviour this project
+had shipped for three weeks (Q56); every test agreed with the wrong rule, so the
+running game is the only oracle for that class of defect.
+
+### What makes the output useful
+
+1. **CONFIRMED observations** — what was seen, with timings, separated from any
+   interpretation. *"Waited ~30 seconds at exactly 4 Imps; the replacement
+   appeared ~1.3–1.5 seconds after the sacrifice; subsequent ones ~5 seconds
+   apart."*
+2. **An explicit CONTRADICTION against our code**, naming the method and quoting
+   the line. *"`ImpSupplySystem.TopUp` sets `FreeImpCountdownTicks = 0` … that
+   cannot reproduce the observed first replacement."* The highest value per word,
+   and the part a model that only reads the repo cannot produce.
+3. **A confidence ladder over the inferences**, on this project's own rungs.
+   Keeping the unknowns *labelled* rather than smoothed over is what made them
+   safe to act on.
+4. **Numbered questions addressed to the decompiler**, ordered, with a closing
+   sentence naming which one mattered most.
+
+### The rule for reading it back
+
+**Its observations are oracle. Its inferences are reasoning about our repo.** Act
+on a CONFIRMED observation the way you would act on the owner speaking; check an
+inference before building on it. In the 2026-09-05 document one inference was
+wrong in a harmless direction — `TimeBetweenReattemptingSleepSeconds` was offered
+as a possible retry interval, and it is read by **zero instructions in the whole
+executable**.
+
+A remembered observation that contradicts a recording is also a finding rather
+than noise: Q150 was settled without a second recording because the owner
+corrected the first one from memory (four creature types *always* bed down
+first), and the decompiler did the rest.
+
+### The prompt
+
+````text
+You are analysing recordings of Dungeon Keeper 2 (1999, v1.70) for a project
+that reimplements it in C# as a behaviourally faithful clean-room
+reimplementation. The original game is the oracle: the goal is not working code,
+it is code that behaves like DK2.
+
+You will be given one or more screen recordings, and read access to the repo.
+
+Produce a document with these four parts, in this order:
+
+1. CONFIRMED OBSERVATIONS. Only what is visible. Give timings as measured, with
+   the uncertainty ("approximately 1.3-1.5 seconds", not "1.4 seconds"). Say
+   what was on screen, not what it means. Include negative observations - what
+   did NOT happen is evidence.
+
+2. CONTRADICTIONS WITH THE IMPLEMENTATION. For each observation, find the code
+   that claims to implement it and say whether it can produce what was seen.
+   Name the file and method and quote the line. If it cannot, say so plainly.
+   THIS IS THE MOST VALUABLE SECTION - a contradiction here is worth more than
+   ten observations, because it is the only thing that catches a defect the
+   test suite agrees with.
+
+3. WHAT IS ESTABLISHED, on this project's own confidence ladder:
+   CONFIRMED (seen), STRONGLY INFERRED (the only reading that fits),
+   HYPOTHESIS (fits, others also fit), UNKNOWN (say so; do not smooth it over).
+   An UNKNOWN left labelled is useful. An UNKNOWN dressed as an inference is a
+   future defect.
+
+4. QUESTIONS FOR THE DECOMPILER, numbered, ordered by what they unblock, and
+   phrased so someone with Ghidra open can answer them one at a time. End with
+   one sentence naming which question matters most and why.
+
+Write the document as a `docs/research/` note that follows AGENTS.md (one fact,
+one home; every claim on the confidence ladder; the evidence named), and update
+the open-question rows it answers. DO NOT commit. DO NOT open a pull request.
+Do not invent DK2 behaviour: if the footage does not show it, it is UNKNOWN.
+````

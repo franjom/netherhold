@@ -129,8 +129,7 @@ remain limits of that shared approximation.
 The focused simulation tests cover casts/refusals, slot allocation,
 field/hash/save symmetry, RNG order, walls, creature routing and recovery.
 Both complete 42-scenario runs (`build/keeper-spells-tremor-a` and `-b`)
-match byte-for-byte. All hash series differ from the Stage 0 series listed
-in `docs/plans/2026-10-03-keeper-spells-baseline.md`: version 170 and the fixed
+match byte-for-byte. All hash series differ from the Stage 0 series: version 170 and the fixed
 records/false creature flags change composition. Every event log and final
 world dump remains identical; none of those scenarios casts Tremor.
 

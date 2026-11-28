@@ -397,6 +397,6 @@ pass; independent review found no remaining issue. The four targeted replays
 are valid; Level 1 seed 18 again wins at 1796. The Level 4 table above records
 mixed results. ADR-0512 integrates the inter-worker visibility correction while
 retaining the final work pass; it does not implement the whole native scheduler.
-[Broader measurements](imp-candidate-acceptance.md) remain campaign diagnostics,
+Broader measurements remain campaign diagnostics,
 not a veto on this verified boundary.
-The [first additional Level 4 seed-8 death](imp-survival-trace.md) has a separate causal trace.
+The first additional Level 4 seed-8 death has a separate causal trace.

@@ -208,7 +208,7 @@ particles, plus one light in each case. This verifies consumer output, not a
 camera-close-up image comparison. The Unity adapter compiles and updated
 assemblies are synced.
 The owner's subsequent Warlock screenshot shows the restored effect; measured
-costs and remaining attribution limits are in [arrival performance](portal-arrival-performance.md).
+costs and remaining attribution limits are in arrival performance.
 
 ## Verification and limits
 

@@ -58,7 +58,7 @@ parameter. The disassembly (`0x00456249`–`0x004563F5`) is the reading.
 ## 3. The finders and where a gambler stands — STRONGLY INFERRED
 
 The Casino's room record lists objects 87, 59, 67 and 68 in its first four slots
-(`terrain-room-dump.md`): *Roulette Table*, *Barrel*, *Bar Table* and *Alcove Barrels*. Slots
+(`dk2tools kwd terrain`): *Roulette Table*, *Barrel*, *Bar Table* and *Alcove Barrels*. Slots
 0–2 are floor furniture and slot 3 wall furniture (`auto-placed-furniture.md`).
 
 - **`0x004D72D0`, a table.** Over the room's objects (`room+0xE`, next `+0x12A`), each whose type

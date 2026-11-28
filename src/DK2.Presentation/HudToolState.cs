@@ -22,8 +22,8 @@ public enum DungeonToolMode : byte
 
 /// <summary>The HUD's tool state: the tool, the bottom panel's
 /// choice, the query tool, the selected minimap corner and the room the build tool places. Each reset is its own
-/// transition and resets the relevant state. The six differ, and the differences are an open point
-/// (docs/plans/2026-11-16-godot-step2-audit.md, "Tool resets"), not settled here.</summary>
+/// transition and resets the relevant state. The six differ, and the differences are an open point,
+/// not settled here.</summary>
 public sealed class HudToolState
 {
     public DungeonToolMode Tool { get; private set; } = DungeonToolMode.Hand;

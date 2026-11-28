@@ -36,8 +36,7 @@ Solid PlayerColouredWall quarters retain normal inversion. Floor quarters do not
 
 Built: `HasTop` and `QuarterKind.Top` submissions invert the normal in
 `TerrainTileBuilder.Add` before rotation. Decoded assets, positions, floors, room
-quarter sets and animation normals retain their existing paths. Production
-regressions and image checks are in classic-lighting-verification.md.
+quarter sets and animation normals retain their existing paths.
 
 ## 2. Texture stages and remaining limits
 
@@ -74,8 +73,8 @@ their native path is`0x00599960` through`0x00585F90`. The Unity-era `ClassicMesh
 asset, frame choice and lighting mode, preserving distinct shared meshes for
 the two draw roles. No per-renderer material block or frame allocation is added.
 
-Production role regressions fail before this correction and pass on Levels1/8;
-counts and capture limits live in classic-lighting-verification.md. Authored object
+Production role regressions fail before this correction and pass on Levels1/8.
+Authored object
 lights use the separate dynamic path below (Q603).
 
 ## 4. Authored object-light descriptors

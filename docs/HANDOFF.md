@@ -24,15 +24,20 @@ questions live in their canonical documents; this file links to them.
 - Possession colour ramps and the final Godot scene/HUD pass are built (ADR-0818);
   colour output defaults to normal gamma under ADR-0822, with an explicit developer launch path;
   implementation and acceptance limits: [possession colour rendering](research/possession-colour-rendering.md).
-- Classic rendering, HUD and front-end integration are on master. Owner play,
-  visual and hearing acceptance remain open in the
-  [completion acceptance record](plans/2026-10-29-hud-and-front-end-completion.md#acceptance-record)
-  and [HUD comparison checklist](research/hud-comparison-checklist.md).
-  Lighting acceptance and remaining comparison/performance limits live in
-  [classic lighting verification](research/classic-lighting-verification.md).
-- Godot is the presentation adapter (ADR-0824). The
-  [migration plan](plans/2026-11-15-godot-migration.md)
-  records the completed move to Godot and .NET 10. The [Godot guide](../godot/README.md)
+- Classic rendering, HUD and front-end integration are on master. Owner acceptance is
+  open, and ADR-0497 stays proposed until it is given: hear the title, both intros and the
+  menu sounds; play a new campaign through Level1's map, briefing and Go; hear the opening
+  Mentor speech and the first fight's music; compare objective, save/restart/load, live
+  settings and Continue with the original; play abandon, loss and win through to the
+  statistics and hi-score; check readability at 1024×768 and 2560×1440. Documented limits:
+  credits, page 26's paragraph (Q686), native overwrite/disable policies (Q683),
+  sensitivity mapping (Q687) and the distant full-map preview's lighting.
+  Lighting rules: [classic lighting](research/classic-lighting.md).
+  Not yet checked in Godot (2026-11-28): the environment pass over a plan, a faded
+  plan and the cage key, the ambient keys live, a non-default brightness, and the
+  map wrap past 83 tiles.
+- Godot is the presentation adapter (ADR-0824); the move to Godot and .NET 10 is
+  complete. The [Godot guide](../godot/README.md)
   covers the pinned toolchain, gameplay, capture and export.
 - OpenKeeper clean-up (owner, 2026-11-14): [ADR-0003](DECISIONS.md) makes OpenKeeper facts only and has code taken
   earlier rewritten from the binary one item at a time. The engine-texture decoder is rewritten and matches DKII.EXE's
@@ -134,19 +139,17 @@ These are entry points, not a new priority order.
 - Possession first-person view: built, unit-tested and inspected in Godot captures; owner play acceptance remains. Rules are in `PossessionSession` (`DK2.Presentation`, ADR-0805). `InGameHud.Possession.cs` supplies the input and applies its result. The room-pillar roof is built; remaining
   lighting, listener, object-death bridge and mouse-calibration boundaries are recorded in
   [client completion](research/possession-client-completion.md). Godot uses `PossessionCamera.NearClipDistance`, 0.05, a remake choice. Evidence and remake choices:
-  [possession client](research/possession-client.md), [plan](plans/2026-11-14-possession-view.md);
+  [possession client](research/possession-client.md), plan;
   simulation side and owner play questions: [possession arms](research/possession-arms-and-inputs.md).
   The special abilities and sniper are partly built; carry/throw physics remain unbuilt ([scope](research/possession-special-abilities.md), ADR-0819; trap flight consumer ADR-0820).
   Authored foreground swings and creature filters are built ([scope](research/possession-foreground.md));
   current-action and transition-pointer targets use the existing hover pass, with ordinary world-space badges ([scope](research/possession-target-highlight.md)).
   The shared possession HUD and Godot canvas implement the reviewed 4:3 geometry and compositing, height-fitted widescreen content (ADR-0821), settled-only shortcuts and native-stamp recharge display; [scope and limits](research/possession-hud.md).
-- Godot migration steps 1–4 are complete. The modern-rendering audit remains
-  open for the owner's visual acceptance of `--light-perpixel`. See the
-  [migration plan](plans/2026-11-15-godot-migration.md#step-3-a-playable-level-in-godot)
-  and [torch-light artifacts](research/godot-torch-light-artifacts.md).
+- Open: the owner's visual acceptance of `--light-perpixel`, continuous per-pixel DK2
+  lighting (the classic per-vertex look stays the default, ADR-0813); scope, limits and
+  cost: [torch-light artifacts](research/godot-torch-light-artifacts.md).
   Campaign play, options, saves, HUD, possession, sound and media are described in
-  the [adapter guide](../godot/README.md). For the exit conditions and evidence on
-  camera, lighting and controls, see the verification entries in the plan. The
+  the [adapter guide](../godot/README.md). The
   [performance targets](PERFORMANCE.md) cover the tester export, draw clock and
   gameplay frame budgets.
 - World-sound coverage and pending hearing checks: [world-sounds plan](plans/2026-10-31-world-sounds.md).
@@ -156,7 +159,7 @@ These are entry points, not a new priority order.
   and rendered-HUD automation remain follow-up work; use the completion acceptance
   record above for the integrated walkthrough and its journals.
   Approved design: [agentic campaign playtesting](plans/2026-11-07-agentic-campaign-playtesting-design.md).
-  The [stages 1-2 plan](plans/2026-11-07-campaign-player-stages1-2.md) is built and merged
+  The stages 1-2 plan is built and merged
   to master. Task 1, the detached player contract
   (`DK2.Simulation.Players`, `DK2.AI.Players`), task 2, the visibility-safe observation
   (`PlayerObservationBuilder` in `DK2.Presentation`), and task 3, bounded action admission

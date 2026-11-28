@@ -60,7 +60,7 @@ Every terrain with a non-zero mana field, from the reference install
 ```
 
 The relevant globals (`dk2tools kwd vars`, full table in
-`game-database-dump.md`):
+`dk2tools kwd vars`):
 
 ```
    42  ExcessManaDecreaseRatePerSecond                                           5

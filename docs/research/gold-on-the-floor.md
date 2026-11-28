@@ -357,7 +357,7 @@ neutral workers.
 
 - Any creature with a non-zero `MaxGoldHeld` takes gold. Shipped values include Imp 1400,
   Goblin 5000 and Vampire 7500. The Skeleton has 0, so it takes nothing
-  (`creature-table-dump.md`).
+  (`dk2tools kwd creatures`).
 - The creature's owner is never compared with anything. The pile only has to be neutral,
   and every floor pile is, so an enemy or a hero on your ground takes your gold the same
   way.

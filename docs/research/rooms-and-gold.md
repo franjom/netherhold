@@ -8,7 +8,7 @@ consequence that shapes the rest: **gold is not a number on a player, it is a
 thing in a tile.**
 
 **Source(s).** The reference install's ROOMS, TERRAIN and VARIABLES records
-(`dk2tools kwd rooms`, `kwd roomflags`, `game-database-dump.md`); owner
+(`dk2tools kwd rooms`, `kwd roomflags`, `dk2tools kwd vars`); owner
 observation of the original (2026-08-29, 2026-08-30, 2026-09-03); `DKII.EXE`
 reads recorded in `gold-on-the-floor.md`.
 
@@ -48,7 +48,7 @@ reads recorded in `gold-on-the-floor.md`.
 ## Gold is in tiles, not on players
 
 All **26** ROOMS records — cost, size, terrain id, placement flags — and the
-TERRAIN records they point at are dumped in `terrain-room-dump.md`. Every room's
+TERRAIN records they point at are dumped in `dk2tools kwd terrain`. Every room's
 terrain is flagged `Room` and no two rooms share a terrain id, both asserted by
 `RoomsOnRealDataTests`: `GameDatabase.RoomByTerrain` is a dictionary and would
 silently lose a room if either failed.
@@ -293,7 +293,7 @@ So a treasury tile returns 100 of its 200 and a temple tile 1500 of its 3000,
 exactly the 50 % per tile the owner measured in the original. **Trap:
 `RoomSellValuePercentageOfCost` is 50, not 100** — a mistranscription had it at
 100 for four sessions and nearly produced an override for a number that was never
-missing. Check `game-database-dump.md` before recording a number as absent.
+missing. Check `dk2tools kwd vars` before recording a number as absent.
 
 **`ReturnPercentage` is a gate, not a rate.** It takes two values across all 26
 rooms — 100 and 0 — and the zero rows are **precisely** the hero gates, asserted in

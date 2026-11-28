@@ -3,7 +3,7 @@
 Status: **first candidate accepted by the owner as the shape** (2026-10-07): `t1-tripo-web`, from the owner's
 free Tripo web account (results below). The API run `t1-tripo` was refused for lack of API
 credit after its two images had been uploaded. Primitive-based construction is paused: the
-procedural blockouts v001–v015 stay as comparisons (`2026-10-07-imp-blockout.md`). A generated
+procedural blockouts v001–v015 stay as comparisons. A generated
 mesh is a candidate starting point, never an asset. Uploads so far, both approved by the owner for
 a free-plan test: `reference/front.png` and `reference/rear.png`, to the Tripo API and the Tripo web
 studio. Nothing is uploaded without the owner's explicit approval of the named service and plan.

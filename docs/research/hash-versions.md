@@ -371,4 +371,4 @@ sensitivity tests (`PlayerMessageTests`); snapshot round trips cannot prove cove
 
 **300** — `0x2F1568CD9D248B1B`. FormatVersion stays 297. Behaviour only: each portal crystal blocks the convex hull of its `Portal_Gem` primitive below body height instead of that primitive's full bounding box, padded by the mover's radius with bevelled corners (ADR-0527 amendment 2). No new fields.
 
-[Versions 250–299](hash-versions-250-299.md), [versions 170–249](hash-versions-170-249.md) and [versions 9–169](hash-versions-early.md) retain the earlier pins and their reasons.
+Versions 250–299, versions 170–249 and versions 9–169 retain the earlier pins and their reasons.

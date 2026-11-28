@@ -2,8 +2,7 @@
 
 Start here before recording, replaying or capturing the original game. Each line names the one tool for a job, its
 limit, and the page with its options and traps. Do not guess a tool's arguments or a packet's fields: the pages
-below hold them, with the evidence. The overlapping tools were merged on 2026-11-16
-(`docs/plans/2026-11-16-capture-tools-consolidation.md`).
+below hold them, with the evidence. The overlapping tools were merged on 2026-11-16.
 
 All native tools need an elevated shell (DK2 runs elevated) and no other DK2 process. Evidence goes under
 `F:\DK2Evidence\`, add-only: every output path must be new.

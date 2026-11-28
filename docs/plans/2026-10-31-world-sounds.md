@@ -7,7 +7,7 @@
 
 **Architecture:** unchanged (ADR-0002, ADR-0408). Every request is read from DKII.EXE before it is built. A request that a simulation function makes is emitted by our mirror of that function as a `SimEvent`, the way `ThingSoundRules` does for creatures; a request that a cursor or presentation function makes is emitted by `DK2.Presentation` into `SoundRequests`. Unity only plays. Sound never touches simulation state: no task in this plan moves the hash, and a task that finds it must stops and reports.
 
-**Tech stack:** as in [the completion plan](2026-10-29-hud-and-front-end-completion.md), header.
+**Tech stack:** as in the completion plan, header.
 
 ---
 
@@ -24,7 +24,7 @@ The completion plan's "Later world-sound queue" note (after Task C3) is supersed
 
 ## 1. Rules for the executor
 
-[The completion plan §1](2026-10-29-hud-and-front-end-completion.md#1-rules-for-the-executor) applies unchanged: worktree per phase, `kb_get` before decompiling and `kb_upsert` after, confidence on every claim, tests first, the gate, review and documentation pass per task. In addition:
+The completion plan §1 applies unchanged: worktree per phase, `kb_get` before decompiling and `kb_upsert` after, confidence on every claim, tests first, the gate, review and documentation pass per task. In addition:
 
 - **Emit where DK2 emits.** For each call site in the tables below, find our mirror of the containing function through its KB record's `implements` line. If the function is not built, the sound waits for it; write nothing that fakes the trigger.
 - **Category comes from the requester.** DK2 chooses the category from the thing's definition, never from the event: creature definition `+0x6E3`, object definition `+0x10E`, room or terrain definition `+0x195`, door definition `+0xA9`, trap definition `+0xB0`, shot definition `+0x125`, keeper spell `+0x72`, or the hand category (manager slot `+0x58`). Use the matching `SoundCategory` field our definitions already load (`CreatureDef.SoundCategory`, the KWD records' `SoundCategory`).

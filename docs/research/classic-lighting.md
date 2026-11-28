@@ -231,8 +231,6 @@ URP punctual lights. Singular zero-incidence remains outside the native contract
 framebuffer transfer and matched original brightness remain open.
 Fresh runners use native lighting inputs; serialized scene overrides remain.
 
-Controlled GPU results, campaign captures and CPU measurements are maintained
-in [classic-lighting-verification.md](classic-lighting-verification.md).
 Legacy arithmetic/camera entry points remain `ClassicLightingProbe.Run` and
 `ClassicLightingRenderProbe.Run` in DK2.Unity.Editor. They do not save owner settings.
 
@@ -259,8 +257,8 @@ setting ambient RGB. The option's meaning and consumers remain untraced.
 
 CONFIRMED live Level1 capture (2026-10-16, untouched defaults): ambient RGB is
 `0,0,0`, stored ambient512, Cheap Lighting0 and settings`+0x5C`1. Evidence:
-ignored`reverse-engineering/step5-native-level1-inputs.json`; binary identity and
-capture limits are in classic-lighting-verification.md. Ambient is not the mismatch.
+ignored`reverse-engineering/step5-native-level1-inputs.json` (copy in `F:/DK2Evidence/archive/housekeeping-native--2026-11-28--001`).
+Ambient is not the mismatch.
 The native diagnostic excludes Unity's directional/sky fill; the owner accepted
 the brighter preview with it off; ADR-0522 makes that the default. `ClassicAmbientLight` and +/− implement the
 command math without registry writes. Framebuffer transfer remains open (Q603).
@@ -398,6 +396,4 @@ joins at view distance 10) and publishes the tables to `ClassicTileLightBuffer` 
 
 ## 10. Selected-table Unity verification
 
-The bridge design and whole-grid authority are in ADR-0484. Current controlled
-fixtures, automatic campaign-source checks, batch anchors and measurement limits
-live in [classic-lighting-verification.md](classic-lighting-verification.md).
+The bridge design and whole-grid authority are in ADR-0484.

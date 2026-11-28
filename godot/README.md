@@ -169,7 +169,7 @@ is an instance of its sheet's batch among the blended items (`WorldScene.Blended
 element's model, a group part, a type-6 model's frame, a shot body) is a pooled model per mesh with the element's tint
 added to its light (an instance uniform), which Godot sorts by its box as an object. Native evidence: [shot effects](../docs/research/shot-effects.md).
 
-Lightning (`WorldScene.Lightning.cs`, step 3l) uses `LightningDrawList` for shots, targets, procedural effects and clip-install crackle. It builds ribbons in camera space and writes reused render-world buffers; `Shaders/Lightning.gdshader` draws their original `Lightning` texture, unshaded, additive, without depth writes. Each ribbon section is a pooled additive item carrying its four exact corners; existing upload comparisons and geometry bounds handle changes and culling. Verification and limits: [migration plan, step 3l](../docs/plans/2026-11-15-godot-migration.md).
+Lightning (`WorldScene.Lightning.cs`, step 3l) uses `LightningDrawList` for shots, targets, procedural effects and clip-install crackle. It builds ribbons in camera space and writes reused render-world buffers; `Shaders/Lightning.gdshader` draws their original `Lightning` texture, unshaded, additive, without depth writes. Each ribbon section is a pooled additive item carrying its four exact corners; existing upload comparisons and geometry bounds handle changes and culling. Verification and limits: migration plan, step 3l.
 
 The blended items (`WorldScene.BlendedItems.cs`, step 3k): the effect sprites, the wall flames and the status flowers
 (`WorldScene.Flowers.cs`, each layer an instance of its icon's batch) are added each frame with their distance from the

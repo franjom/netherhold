@@ -4,7 +4,7 @@ Status: draft roadmap, 2026-10-17; revised 2026-10-28 against
 [the performance policy](../PERFORMANCE.md), ADR-0537 and the portal-arrival
 research. Documentation only; no architecture change or implementation is
 accepted by this proposal. Headless tick cost is a separate plan:
-[simulation throughput](2026-10-28-simulation-throughput.md).
+simulation throughput.
 
 ## Problem and target
 
@@ -18,15 +18,15 @@ Two targets apply:
 - **Even motion.** The latest Level8 motion capture has 2.72% uneven-timing
   frames against the owner's 1–1.5% target; this is not a count of visible
   freezes. Definition, conditions and evidence:
-  [Level8 motion](../research/level8-intro-motion.md).
+  Level8 motion.
 
 Tick duration: Release .NET runs of the keeper scenarios have an 8–13 ms
 median tick (2026-10-28, measured for the throughput plan). Level8's opening
 ticks, Unity Mono's tick durations and how often the join blocks remain
 unmeasured. P0 must supply them before selecting an architectural change.
 
-The portal-arrival captures (2026-10-25, [portal arrival
-performance](../research/portal-arrival-performance.md)) show the join is one
+The portal-arrival captures (2026-10-25, portal arrival
+performance) show the join is one
 suspect among several. Near one hitch a worker tick took 39 ms, and worker
 blocking is STRONGLY INFERRED, not measured. In the same frames the main thread
 spent about 50 ms creating a creature (28 ms of it a cold mesh build) and about
@@ -90,7 +90,7 @@ about 3–7% by itself, and under ADR-0537 fails the capture outright. Whether i
 
 Files to start in: `DungeonRunner.cs`, `UnitySimulationProfiler.cs`, existing
 animation/terrain markers and `tools/classic-unity-probe/`. Existing rendering
-measurements and limits: [lighting verification](../research/classic-lighting-verification.md).
+measurements and limits: lighting verification.
 
 **Exit:** an attributed baseline and one ranked change with a predicted saving
 on the critical path. If waiting is negligible, do not build P1. First remove
@@ -140,16 +140,15 @@ regression. Otherwise retain the joined path.
 
 - **P2:** select one measured presentation kernel, such as animation sampling.
   Before moving one to workers, try its serial reduction: for animation, the
-  audit's C1 (`performance-audit-2026-10.md`) resamples and uploads every posed
-  actor every frame, and skipping provably unchanged poses comes first.
+  presentation resamples and uploads every posed actor every frame, and skipping provably unchanged poses comes first.
   Give a kernel that still needs workers immutable captured inputs and disjoint outputs, coarse bounded batches
   and a serial fallback; include scheduling, conversion and upload in the result.
   This can precede P1 with a small safe input capture. Jobs/Burst remain adapter-only.
 - **GPU:** not planned; revisit the existing animation experiments in `git show 909a6c5e2:tools/classic-unity-probe/README.md`
   only if CPU preparation remains the bottleneck and classic fidelity is retained.
 - **Simulation:** the tick itself stays serial. Shortening it, and the one
-  overlap outside it, are in [simulation
-  throughput](2026-10-28-simulation-throughput.md). Of that plan, the faster
+  overlap outside it, are in simulation
+  throughput. Of that plan, the faster
   state hash also shortens Unity's tick while the input journal is on; the
   keeper-AI work does not, because Unity runs no computer keeper. A tick longer
   than one frame is a join-placement problem for P1.

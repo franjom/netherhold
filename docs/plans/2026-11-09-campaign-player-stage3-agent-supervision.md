@@ -20,7 +20,7 @@ the routines or the harness.
 1.0.0 (stdio transport, already in the local NuGet cache), existing netstandard2.1 assemblies,
 xUnit 2/VSTest. No model provider SDK, network listener, API key or Unity dependency.
 **Spec:** [design](2026-11-07-agentic-campaign-playtesting-design.md), stage 4 row; stages 1-2
-as built in [their plan](2026-11-07-campaign-player-stages1-2.md).
+as built in their plan.
 
 ## Owner decisions (2026-11-09)
 

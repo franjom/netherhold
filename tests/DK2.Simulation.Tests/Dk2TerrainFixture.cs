@@ -15,7 +15,7 @@ namespace DK2.Simulation.Tests;
 /// <remarks>
 /// Unlike <see cref="TestWorld"/>, nothing here is invented: every number is
 /// DK2's own, extracted by <c>dk2tools</c> and recorded in
-/// <c>docs/research/terrain-room-dump.md</c>, <c>game-database-dump.md</c> and
+/// <c>dk2tools kwd terrain</c>, <c>dk2tools kwd vars</c> and
 /// <c>imp-tasks.md</c>. A transcription can drift from the game it claims to
 /// copy, so the <c>*OnRealDataTests</c> in <c>DK2.Behavior.Tests</c> re-run the
 /// same assertions against a real install whenever one is present.
@@ -191,7 +191,7 @@ internal static class Dk2TerrainFixture
               TerrainFlags.Ownable, 10000, 10000, LibraryTerrain, ClaimedPath),
 
             // The three rooms the job choosers walk to (Training Room, Temple,
-            // Casino), from the shipped table (terrain-room-dump.md). With the
+            // Casino), from the shipped table (`dk2tools kwd terrain`). With the
             // Library they cover every happy and unhappy job table the fixture's
             // creatures carry.
             T(TrainingRoomTerrain, "Training Room",
@@ -1276,7 +1276,7 @@ internal static class Dk2TerrainFixture
             TimeSleep = 0,
             LairObjectId = 0,
             DecomposeValue = 0,
-            MaxGoldHeld = 0, // the shipped Skeleton's: it never takes gold (creature-table-dump.md)
+            MaxGoldHeld = 0, // the shipped Skeleton's: it never takes gold (`dk2tools kwd creatures`)
 
             // Attracted by a Prison, which is the room that makes it.
             Attractions =

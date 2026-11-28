@@ -62,7 +62,7 @@ fields:
 | `+0xdf` | `UtilityNewState` | the state a "move to" hands control to |
 
 The dump prints thirty more, including the whole `ImpJobData` block and the
-lair/prison sub-blocks; those are `creature-table-dump.md`'s business.
+lair/prison sub-blocks; those are `dk2tools kwd creatures`'s business.
 
 ### 2.1 The state table
 

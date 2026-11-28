@@ -3,7 +3,7 @@
 Status: **proposed; the first checkpoints are built**. `DK2.Convert` reads
 every KMF and texture; `tools/blender/` builds and checks the original Imp's
 Blender reference (§10, step 1, in part, 2026-10-06). The procedural Imp
-blockouts (v001–v015, `docs/plans/2026-10-07-imp-blockout.md`) did not reach
+blockouts (v001–v015) did not reach
 the approved concepts (ADR-0398) and are paused. Geometry now goes the §6
 provider route: an image-to-3D candidate whose shape the owner accepted, a
 retopologised and baked light mesh, and its footwear

@@ -122,7 +122,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 - Cast raw PowerShell Get-Content results to [string] before ConvertTo-Json; otherwise extended properties can turn the value into an object.
 
-- Runtime-selected material variants can disappear only in standalone builds; see [the verified card regression](research/classic-lighting-verification.md#windowed-player-and-counter-calibration).
+- Runtime-selected material variants can disappear only in standalone builds; see the verified card regression.
 
 - Reset mesh UV channels with explicit zero arrays after GPU fixtures; clearing them to empty can retain stale stream values after another UV channel changes.
 

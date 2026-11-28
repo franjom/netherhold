@@ -488,7 +488,7 @@ Confidence reflects *our ability to reproduce the behaviour*, not merely to pars
 | **Digging / claiming** | ● | | | One data-driven rule (ADR-0009/0089); crowding cap built (ADR-0026/0030); "fill in" is not a DK2 action (Q219) |
 | **Rooms — definitions, types, capacity** | ● | | | Flame `CRoom` + `room_type.h`; KWD `ROOMS(120)` |
 | **Rooms — placement/merge/bridge rules** | | ● | | Placement from placeable-on flags (ADR-0016); bridges ADR-0031/0032, span adjacency ADR-0304; OpenKeeper's open issues admit mismatch |
-| **Economy — parameters** | ● | | | KWD `VARIABLES(230)` MiscVariables; `game-database-dump.md` |
+| **Economy — parameters** | ● | | | KWD `VARIABLES(230)` MiscVariables; `dk2tools kwd vars` |
 | **Economy — payday/wage procedure** | ● | | | Built as a journey (ADR-0078/0079); `f3E2_getPaid`, `SkipNextPayment` |
 | **Creature stats & data** | ● | | | KWD `CREATURES(170)`, `CreatureStats` StatTypes |
 | **Creature state representation** | ● | | | Flame `creature_state.h` — 54 named flags |
@@ -923,7 +923,7 @@ the order, and revision 2 changes only that column and the last three rows.
 | **M7** ◐ | 3 | Combat & heroes | Combat resolution, hero parties, hero gates, traps, doors. Built: combat, hero parties, the door fight (ADR-0318), hero gates (ADR-0320), every shipped trap (ADR-0321, ADR-0331), the Boulder's rolling object (ADR-0333), the Jack In The Box's Jack (ADR-0337), the reveal (ADR-0338), the Guard Post (ADR-0330), trap upkeep and trap damage (ADR-0326), the alarm's route word (ADR-0332), creatures fighting a revealed trap (scan D, ADR-0340); disarming is deferred under ADR-0329's scoped inference (Q455), shot heights move to M9 and the Boulder's slap to object slapping (ADR-0341); left: the owner's observations, Q520's wall disputed, Q513, Q524, Q362 (`F:\DK2Evidence\studies\doors-and-traps-md--unknown-date--001\payload\doors-and-traps.md`) | 3–5 mo |
 | **M8** ◐ | 5 | Breadth | All rooms, all creatures, all keeper spells, research, possession, prison/torture/graveyard/temple. Built: the research tree and its spell upgrades (ADR-0247, ADR-0350); all 13 keeper spells — Create Imp, Call to Arms, Thunderbolt, Heal, Inferno, Chicken, Create Gold, Tremor, Turncoat, Summon Horny, OneShotReaper and Possession's simulation side (ADR-0350; its followers, commands and arms ADR-0445, ADR-0446, ADR-0468–ADR-0470; its first-person view is built, unseen in an editor), and Sight of Evil's cast with an empty effect, its region being presentation (ADR-0352, Q194, Q534) | 6–12 mo |
 | **M9** | cont. | Fidelity | 500+ behavioural regression scenarios green; documented divergence list; pathfinding rewritten against oracle traces | continuous |
-| **M10** | 6 | Campaign | Full campaign playable start to finish. Front end read, build plan in `docs/plans/2026-10-23-front-end.md` | after M8 |
+| **M10** | 6 | Campaign | Full campaign playable start to finish. Front end read and built | after M8 |
 | **M11** | 8 | Modern presentation | PBR materials, modern lighting, HD textures, modern UI, ultrawide. Begun: the asset pipeline's Imp proof of concept (`docs/ASSET_PIPELINE.md` §10, ADR-0398) | after M10 |
 | **M12** ◐ | **4** | **Keeper AI** | A computer keeper plays a stock level unaided: digs, expands, builds to a need, recruits, defends, attacks. Measured against DK2's own keeper on the same map, not against our expectations | 4–8 mo |
 | **M13** | 7 | **Skirmish** | Any multiplayer-capable map playable against 1–3 computer keepers, with win and loss conditions, alliances and the lose-by-conquest path | after M12 |
@@ -1279,7 +1279,7 @@ the cheapest high-quality source available. The 1999 *player* manual was read (A
 
 Done: the GOG install (`Dk2Install.Find()`); the licensing question (ADR-0041, §10.1); the
 repository; the Flame clone, pinned and building (§2.2.1); the WAD reader; the KWD/KLD
-reader, all 18 record types (ADR-0091); `docs/research/game-database-dump.md`; and the
+reader, all 18 record types (ADR-0091); `dk2tools kwd vars`; and the
 conflict register, which became `docs/research/open-questions.md`.
 
 The five questions that list was seeded with, for the record: DK2's tick rate is **4 a

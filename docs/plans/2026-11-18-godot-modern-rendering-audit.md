@@ -1,8 +1,8 @@
 # Godot modern-rendering audit
 
 **Status:** audit, 2026-11-18, read-only, approved by the owner as proposed. Policy: [ADR-0813](../DECISIONS.md).
-It re-orders the rest of step 3 of [the migration plan](2026-11-15-godot-migration.md) and supersedes the move order
-of [the step-3 audit](2026-11-16-godot-step3-audit.md) from 3j onward. Nothing was built or run. File:line
+It re-orders the rest of step 3 of the migration plan and supersedes the move order
+of the step-3 audit from 3j onward. Nothing was built or run. File:line
 references are as of HEAD 57bbd328 with the uncommitted lighting prototype, and go stale as work lands. Godot source
 references are to the 4.8 engine tree (`render_forward_clustered.cpp`, `rendering_server.h`).
 

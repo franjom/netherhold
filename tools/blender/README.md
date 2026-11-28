@@ -141,4 +141,3 @@ new `--out` folder. The decisions are in `docs/plans/2026-10-07-imp-footwear.md`
 `evaluate_candidate.py` approves nothing. The trial plan and commands are in
 `docs/plans/2026-10-07-imp-image-to-3d-trial.md`.
 
-The Imp's commands and review state: `docs/plans/2026-10-07-imp-blockout.md`.

@@ -254,8 +254,7 @@ the only type that turns a key into a path.
 `DK2.Convert` (`dk2tools convert`) writes KMF → glTF/GLB and engine textures →
 PNG, and every key it produces round-trips through `FileAssetProvider`. **No
 renderer loads original art yet.** ADR-0408 decides the classic look reads the
-install directly through `DK2.Art`, not the converter's output
-(`docs/plans/2026-10-09-classic-look.md`).
+install directly through `DK2.Art`, not the converter's output.
 
 **Modern assets** are one more answer to the same keys, from the replacement
 tier; the converted tier stays the classic look. What a modern asset may and may

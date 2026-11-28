@@ -3,7 +3,7 @@ systems: [tooling-process, rooms, creatures, doors-traps]
 ---
 # OpenKeeper PR relevance: merged 1296 to 1363, and the behavioural open PRs above 1161
 
-Reviewed 2026-11-20. This continues [the 1162-1295 merged audit](openkeeper-pr-audit-1162-1295-merged.md).
+Reviewed 2026-11-20. This continues the 1162-1295 merged audit.
 It covers every **merged** OpenKeeper PR numbered 1296 to 1363 (11 PRs) and 56 **open** PRs picked for
 their behavioural claims. PR links are provenance for leads, not proof of DK2 behaviour, and no
 OpenKeeper code was copied. No code was changed, no test was run and no native experiment was

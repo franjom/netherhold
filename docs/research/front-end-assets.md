@@ -27,7 +27,7 @@ Confidence: **CONFIRMED** = the running game shows it (owner observation, native
 | SDT sound banks | `FrontEndHD`, `GuiHD`, `Patch_1HD`, 10 `Track_*`, 33 speech banks | `DK2.Data.Media.SdtArchive` and `MpegAudioDecoder` | built in F8; scope and limits: ADR-0583 | medium |
 | `*BANK.map` / `*SFX.map` event maps | 2 per sound object | `DK2.Data.Media.BankMap` and `SfxMap` | built in F8; native unknown fields remain explicit | medium |
 | Music sequencing | `musicSFX.map` (27,042 B), 10 `Track_*` archives (9 music, `Track_Zero` the ambience) | `MusicDirector`, `MusicSegmentPicker` and the runtime player | built in F8; remaining producers and acceptance: `music.md` section10 | medium-large |
-| Movies `.tgq` | 24 files, 213 MB | `DK2.Data.Media` and Unity `ClassicMoviePlayer` | decoder and sequencing built; [runtime/owner acceptance](../plans/2026-10-29-hud-and-front-end-completion.md#acceptance-record) | large |
+| Movies `.tgq` | 24 files, 213 MB | `DK2.Data.Media` and Unity `ClassicMoviePlayer` | decoder and sequencing built; runtime/owner acceptance | large |
 | `Settings/HiScores.dat` | 1 | `DK2.Data.Campaign.HiScoresFile` | reader/writer and F5 qualification/name entry built; owner acceptance remains in the completion plan | small |
 | Save games (load menu) | `Data/Save/*.SAV`, `*.QSAV` | `DK2.Data.Save.Dk2SaveReader` | whether it reads the fields the load menu lists was not checked | UNKNOWN |
 
