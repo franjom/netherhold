@@ -478,7 +478,9 @@ A reviewer rejects a change that breaks these, the same as a wrong claim about t
 
 Use explicit constructors for classes and structs, including private test helpers; store captured constructor arguments in private fields. Primary constructors on classes and structs are rejected by `CSharpStyleTests.ClassesAndStructsUseExplicitConstructors`.
 
-For C# changes, run the Tools suite's `CSharpStyleTests` before committing or merging, alongside the relevant behavior tests. A clean build and green gameplay suites do not check this repository-wide style gate.
+Every first-party C# file starts with the three license comments followed by a blank line, including test files and small helper files.
+
+For C# changes, run the Tools suite's `CSharpStyleTests` and the Core suite's `LicenseHeaderTests` before committing or merging, alongside the relevant behavior tests. Both scan source across the repository; a clean build and green gameplay suites do not check these gates.
 
 ## Commit messages
 
