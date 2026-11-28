@@ -18,6 +18,8 @@ and refresh both the lock and Claude metadata when a skill changes.
 
 ## Selected skills
 
+Local cleanup policy and procedure: [housekeeping](housekeeping/SKILL.md).
+
 Local remote-worker integration: [delegate-qwen](delegate-qwen/SKILL.md).
 Its installation and shared adapter are in [tools/qwen](../../tools/qwen/README.md).
 

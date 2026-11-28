@@ -409,6 +409,13 @@ history. It reached 6,491 lines of dated session narrative before being cut to
 469 on 2026-09-08. Budget 500 lines. Do not append a sitting; edit the section
 the fact belongs to.
 
+## Housekeeping
+
+Anything that does not give value goes (owner, 2026-11-28). A finished plan is folded into HANDOFF or an ADR
+and deleted in the same change; findings go into the doc they belong to, not a new dated file; run output goes
+under the OS temp directory, not the clone. When asked for a cleanup, or when a workstream ends, follow the
+`housekeeping` skill (`.agents/skills/housekeeping/SKILL.md`).
+
 ## Before changing architecture
 
 Read:
