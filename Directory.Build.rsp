@@ -1,0 +1,4 @@
+# MSBuild reads this file for every build under this directory (worktrees included).
+# Node reuse keeps ~one worker per core alive after each build; with several agents
+# building in parallel those workers pile up by the dozen. Workers now exit with their build.
+-nodeReuse:false
