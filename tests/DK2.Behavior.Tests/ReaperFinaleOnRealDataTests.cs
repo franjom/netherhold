@@ -52,8 +52,7 @@ public class ReaperFinaleOnRealDataTests
             },
         };
         using FileStream journal = File.OpenRead(Dk2CaptureGate.PathFor(Fixture + "input.journal"));
-        // The journal hashes were refreshed at HashVersion 537; commands and metadata are retained.
-        // A later hash version replays it with its hashes as evidence, not a verdict.
+        // This test checks the finale outcome using recorded inputs across hash versions.
         ScenarioResult result = new ScenarioRunner(ScenarioCorpus.Database, Dk2InstallGate.Path).Replay(
             Scenario.Load(Dk2CaptureGate.PathFor(Fixture + "level1.yaml")), InputJournal.Read(journal), options,
             acceptOtherHashVersion: true);
