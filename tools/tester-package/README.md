@@ -65,8 +65,7 @@ rebuilds. A debug export, another backend than the Godot .NET export, a renderer
 other than Vulkan or Direct3D 12, another resolution, metadata without a CPU and
 GPU (a headless run), or an error line in `godot.log` (a display that is off
 logs Vulkan error -13 every frame and presents nothing) makes the capture
-invalid rather than failed. Exit 0 pass, 1 fail, 2 invalid. Captures from the
-Unity player are no longer read.
+invalid rather than failed. Exit 0 pass, 1 fail, 2 invalid.
 
 What a capture cannot do yet: play the dig burst (no scripted digging in a
 release run), or certify against `frame_budget.py`, whose capture shape is the

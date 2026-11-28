@@ -46,9 +46,10 @@ turn N+1 (ADR-0152) and the level time limit counts down, the registered systems
 run in order, the trigger emitter records the turn, and the clock advances.
 
 `SimulationSystems.Default()` is the one declaration of which systems run and in
-what order (ADR-0013). It is what the scenario runner, the Unity `DungeonRunner`
-and the real-data tests all construct, so a scenario and the test suite can never
-disagree about ordering. A test that needs one system absent removes it from that
+what order (ADR-0013). It is what the scenario runner, the game's session
+starters (`GameSessionStarter`, `CampaignSimulationFactory`) and the real-data
+tests all construct, so a scenario and the test suite can never disagree about
+ordering. A test that needs one system absent removes it from that
 array rather than building its own.
 
 ## Design decisions worth knowing

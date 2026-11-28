@@ -31,7 +31,7 @@ questions live in their canonical documents; this file links to them.
   Lighting acceptance and remaining comparison/performance limits live in
   [classic lighting verification](research/classic-lighting-verification.md).
 - Godot is the presentation adapter (ADR-0824). The
-  [migration plan](plans/2026-11-15-godot-migration.md#step-5-remove-unity-at-parity)
+  [migration plan](plans/2026-11-15-godot-migration.md)
   records the completed move to Godot and .NET 10. The [Godot guide](../godot/README.md)
   covers the pinned toolchain, gameplay, capture and export.
 - OpenKeeper clean-up (owner, 2026-11-14): [ADR-0003](DECISIONS.md) makes OpenKeeper facts only and has code taken

@@ -35,7 +35,7 @@ The remake has one source-of-truth rule, applied twice:
 | | source of truth | what the remake does |
 |---|---|---|
 | **gameplay** | original DK2 behaviour (`DKII.EXE`, the shipped data, the running game) | C# reimplements it (`AGENTS.md`, Goal 5) |
-| **graphics** | original DK2 visual design (the shipped meshes, textures and animation frames) | modern assets and Unity rendering re-express it |
+| **graphics** | original DK2 visual design (the shipped meshes, textures and animation frames) | modern assets and Godot rendering re-express it |
 
 The consequences are the same on both sides. Unknowns are recovered from the
 original before anything is invented. A deliberate departure is documented as a
@@ -146,7 +146,7 @@ follow-through, deformation and each creature's mannerisms.
 
 The **runtime representation may change**. The remake does not have to play
 vertex animation; the preferred direction is a reconstructed skeletal rig whose
-animation reproduces the original frames, because a rig is what Unity blends,
+animation reproduces the original frames, because a rig is what the engine blends,
 interpolates, retargets to LODs and extends with secondary motion. That rig
 corresponds to **no original skeleton**, because there is none. It is judged on
 three things only: it deforms the modern mesh correctly, it reproduces DK2's
@@ -173,7 +173,7 @@ AI is an **asset modernization assistant**. It may help with reconstruction,
 geometry enhancement, detail suggestions, retopology, UVs, texture
 reconstruction and upscaling, PBR map generation, rig reconstruction and skin
 weights, animation cleanup, LODs, collision, Blender scripting, validation,
-comparison renders and Unity import.
+comparison renders and Godot import.
 
 It may not redesign. Its image and texture generation is **reference-driven**:
 conditioned on the original texture and geometry, and checked against them.

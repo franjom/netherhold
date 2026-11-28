@@ -184,19 +184,17 @@ are defined in §9.
     through. *Reliable mechanically;* budgets are empirical (§8).
 11. **Validation** — §7. *Reliable as a veto, never as an approval.*
 12. **Export format** — glTF 2.0 (`.glb`) is the archival interchange, the same
-    format `DK2.Convert` writes. Whether Unity imports that or an FBX exported
-    from the same scene is open (§11): glTFast imports skins and blend shapes,
-    but its documentation calls Mecanim animation import limited (checked
-    2026-09-26).
-13. **Unity import** — an editor script in the adapter imports a version,
+    format `DK2.Convert` writes. Godot imports glTF natively, with skins,
+    blend shapes and animations; whether the modern tier needs anything else is
+    open (§11).
+13. **Godot import** — an editor script in the adapter imports a version,
     assigns materials and records the import result in the report. *Reliable
-    once the format is chosen.*
-14. **Prefab generation** — the same script builds one prefab per `AssetRef`
-    key: `LODGroup`, materials, collider, and an animator whose states are the
-    clip keys `WorldView` asks for. How a Unity-side provider resolves a key to a
-    prefab (Addressables address = key is the obvious candidate) is part of the
-    PoC. Today `DungeonScene` draws the classic tier from the install (ADR-0408)
-    or placeholders; no modern prefab exists.
+    once the format is settled.*
+14. **Scene generation** — the same script builds one scene per `AssetRef`
+    key: LODs, materials, collision, and an animation player whose animations
+    are the clip keys `WorldView` asks for. How the adapter resolves a key to a
+    scene is part of the PoC. Today the Godot adapter draws the classic tier
+    from the install or placeholders; no modern scene exists.
 15. **Artefact and version tracking** — §3.
 
 ## 5. Animation reconstruction
@@ -234,7 +232,7 @@ KMF clips ──► weld by geometry index ──► one mesh sequence (all clip
   thereby always attributable to the rig or to the transfer, never "somewhere".
 - **Weights to the modern mesh** by surface correspondence from the original
   (Blender's data-transfer tools), then smoothed; automatic weights on the modern
-  mesh as the fallback. At most four influences per vertex, for Unity.
+  mesh as the fallback. At most four influences per vertex, the engine's skinning limit.
 - **Props and parts** — the chicken, bottle, bed, the Imp's horn, the Reaper's
   gem — are separate meshes on their own rigid bone, fitted to their original
   trajectory.
@@ -280,7 +278,7 @@ Validation:
   rig fit         PASS    worst frame RMS … (… quantization steps), IDLE_2 f117
   transfer        PASS    landmark RMS …; silhouette IoU per frame ≥ …
   clips           PASS    32/32 present; frame counts identical
-  unity import    PASS
+  godot import    PASS
   visual review   REQUIRED
 ```
 
@@ -288,7 +286,7 @@ Validation:
   deltas, scale and orientation, per-view silhouette IoU and overlays, one-sided
   surface distance from the original to the modern surface (normalised by the
   bounding-box diagonal), UV validity, texture resolutions, required PBR maps,
-  Unity import status.
+  Godot import status.
 - **Animation:** synchronised side-by-side and overlay playback — original KMF
   frames beside the modern clip at the same time, scale, orientation, camera and
   speed; rig-fit error per frame on the original mesh; transfer error on
@@ -309,7 +307,7 @@ Validation:
 
 ## 8. LOD and budgets
 
-Four levels, `LOD0` close-up to `LOD3` crowds, through Unity's `LODGroup`. **No
+Four levels, `LOD0` close-up to `LOD3` crowds, through Godot's visibility ranges. **No
 polygon budget is fixed** until measured: the PoC renders the Lair kit (§10)
 populated with increasing numbers of modern Imps on the target hardware, and
 budgets follow from visual quality at gameplay camera distance, creature count,
@@ -320,7 +318,7 @@ GPU and skinning cost, and the render pipeline chosen (§11).
 | class | meaning | stages |
 |---|---|---|
 | **Reliable** | deterministic, scriptable, checkable today | extraction; Blender scene build; reference renders; retopology; normal baking; decimation; numeric validation; version tracking |
-| **Experimental** | may work; the PoC finds out | intent reconstruction of geometry; provider geometry; texture upscaling and PBR map derivation; rig fitting; weight transfer to the modern mesh; Unity animation import |
+| **Experimental** | may work; the PoC finds out | intent reconstruction of geometry; provider geometry; texture upscaling and PBR map derivation; rig fitting; weight transfer to the modern mesh; Godot animation import |
 | **Needs visual approval** | always, whatever the metrics say | every modern asset, every clip, every material set |
 | **May need manual 3D work** | occasionally, by a human | faces and hands; any geometry the first two routes cannot make faithful; weight fixes at hard joints; seams in modular pieces |
 
@@ -375,8 +373,8 @@ from an in-game screenshot; the placement rule gates in-game use, not the asset.
 5. Imp rig: both fitting methods, rig-fit check on the original mesh, choose.
 6. Transfer to the modern Imp; bake all 32 clips; transfer check; side-by-side
    playback; owner review of every clip.
-7. LODs and collision; export; Unity import and prefabs; the Imp, the dummy and
-   the Lair kit in one Unity scene beside the classic assets.
+7. LODs and collision; export; Godot import and scenes; the Imp, the dummy and
+   the Lair kit in one Godot scene beside the classic assets.
 8. The crowd measurement (§8), then budgets.
 9. Revise this document: thresholds, the rig method, the export format, the
    manifest schema, and every stage whose reliability class turned out wrong.
@@ -389,11 +387,11 @@ from the source with no undocumented step.
 
 For the owner:
 
-1. **Render pipeline.** Decided: URP, carrying the classic and the modern
-   look as two material and lighting sets (ADR-0408).
-2. **Unity interchange** for the modern tier: glTF through glTFast, or FBX.
-   Decided in PoC step 7. The classic look needs none: Unity reads the
-   install through `KmfReader` (ADR-0408).
+1. **Rendering.** Decided: Godot's renderer, with the classic look as the
+   default and modern rendering of the same rules beside it (ADR-0813).
+2. **Interchange** for the modern tier: glTF, which Godot imports natively.
+   Confirmed in PoC step 7. The classic look needs none: the adapter reads the
+   install through `KmfReader`.
 3. **Where hand-touched derived work lives.** It cannot enter this repository;
    a private store is needed before the first manual edit.
 4. **When.** The PoC is pre-M11 work that no milestone schedules; M11 runs

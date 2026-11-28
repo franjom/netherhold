@@ -36,17 +36,12 @@ Use the [tester package](../tools/tester-package/README.md) for release
 qualification. The regression checks run in CI without a GPU. Rendered acceptance
 requires a capture on the target machine.
 
-The historical Unity capture used its lightweight FPS qualification with frame
-timing and profiler recorders disabled. PresentMon measured presentation intervals
-without GPU tracking. Its procedure is in
-`git show 909a6c5e2:tools/classic-unity-probe/README.md` under *Portal arrival
-performance research*. `tools/perf/frame_budget.py` still reads those captures.
-It returns 0 for a passing capture, 1 for a budget failure, 2 for invalid evidence,
-and 3 for a valid GPU diagnostic capture.
+`tools/perf/frame_budget.py` judges a PresentMon capture frame by frame against
+the budget. It returns 0 for a passing capture, 1 for a budget failure, 2 for
+invalid evidence, and 3 for a valid GPU diagnostic capture.
 
 ## Coverage and current status
 
-The historical Unity acceptance fixture was Level2’s Warlock introduction.
 Godot measurements cover Level1, Level6a and Level7 below. Other required
 scenarios still need rendered acceptance fixtures and results. A passing capture certifies only that capture, not the
 whole game. New effects, renderers, shaders and gameplay workloads need
@@ -54,7 +49,7 @@ representative regression coverage before claiming the target is met.
 
 The target is currently unmet. Arrival measurements and optimization evidence
 have one home: [portal arrival performance](research/portal-arrival-performance.md).
-The closed Unity FPS investigation and scoped engine-neutral cache measurements are in
+Engine-neutral cache measurements are in
 [Level6a Editor performance](research/level6a-editor-performance.md).
 
 The headless simulation has its own opt-in budget
@@ -186,8 +181,7 @@ and returns files for review (ADR-0691):
    a tier. `frame_budget.py` takes `--tier` as well, for the Level2 portal
    introduction capture its shape belongs to.
 2. **Telemetry inside the release game** (`--record-frames <dir>`, `FrameTelemetry` and
-   Godot's `FrameRecorder`, godot/README.md, *Probes*; Unity's player had the same
-   columns, ADR-0691): off by default, allocation-free on ordinary frames: per frame the
+   Godot's `FrameRecorder`, godot/README.md, *Probes*; ADR-0691): off by default, allocation-free on ordinary frames: per frame the
    interval, ticks run, the join wait, Present, the animated frame, chunk
    rebuilds, GC collections, the draw clock, the camera and whether a path
    plays, using stopwatch timestamps. Written at
@@ -206,18 +200,3 @@ tester's FPS counter is not one, and the policy above does not accept it. Eviden
 `F:\DK2Evidence\` like any capture that cannot be regenerated here.
 Measurements so far, all on the owner's laptop and headless, are in the
 [parallelism plan](plans/2026-10-17-parallelism-design.md), addendum 2026-11-06.
-
-GPU cost of MSAA and brightness (`game-unity-probe -Benchmark`, Level1, 1920x1080, Vulkan, an AMD
-Radeon integrated GPU, 12 rounds of 4 s, camera still, simulation paused; branch HEAD `c4eda66e` plus the display-settings
-change): median GPU ms per frame, 1x MSAA 2.094 [1.932..3.803], 2x 2.599 [2.474..3.685], 4x 2.694 [2.567..3.581],
-8x 3.129 [3.009..3.623], Gamma 45 at 1x with the earlier multiply 2.301 [2.215..3.961]. The frame there
-is CPU-bound (frame p50 4.60 ms), so 4x MSAA does not change its frame rate on that machine. Probe runs
-before 2026-11-14 are not comparable (docs/TRAPS.md).
-
-Brightness as a gamma curve (`pow(c, 30/Gamma)` in one full-screen pass, replacing the multiply), same
-probe and scene, MSAA 4, 12 rounds of 4 s, a later session in which the machine ran slower overall (frame
-p50 7.0 ms against 4.6 ms above), so compare only within this table. Median GPU ms per frame: Gamma 30
-(no pass) 5.068 [4.275..5.292]; Gamma 45 multiply 5.147 [4.938..7.252], curve 5.263 [4.238..5.345]; Gamma 20
-multiply 4.933 [4.376..5.400], curve 5.238 [4.779..5.382]. The curve costs at most about 0.3 ms over the
-multiply. The benchmark pauses the simulation, but presentation effects such as the Heart still animate,
-which adds noise between variants. D3D12 and OpenGLCore were not measured.

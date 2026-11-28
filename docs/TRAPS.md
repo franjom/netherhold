@@ -43,7 +43,7 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - `TerrainChunkScheduler` uploads chunks within a 4 ms wall-clock budget, so a faster build splits a multi-chunk rebuild across frames differently (Level7 frame 122 differed from HEAD with nothing rendered differently). Compare Movie Maker captures across builds with `FlushBudgetMilliseconds = 0` in both trees.
 
 ## Shell and files
-- Two sessions share one index: `git rm` stages at once, and another session's plain `git commit` takes it (a probe commit took 1a's Unity deletions and was redone). Delete with `rm` and commit by path (`git commit -- <paths>`).
+- Two sessions share one index: `git rm` stages at once, and another session's plain `git commit` takes it (a probe commit took another session's staged deletions and was redone). Delete with `rm` and commit by path (`git commit -- <paths>`).
 - Codex MCP calls can time out after 300 seconds despite a larger `ctx_execute` budget; its `background: true` discards stdout, so the wrapper must write its own log and exit receipt.
 - Normalize hash-manifest relative keys to one path separator before updating entries; mixed slashes can retain duplicate paths and invalidate setup provenance.
 - Build a hash manifest's inventory before opening its output file; otherwise a recursive scan can include the manifest's own empty-file hash.
@@ -97,13 +97,10 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 - PowerShell 5 with ErrorActionPreference=Stop treats native stderr as NativeCommandError; capture child stdout/stderr directly when expecting test failures.
 
-
 - Inspect original BMP captures in small batches; nine 1600×1200 images exceeded code-mode's 64MiB IPC frame limit.
 
 - Warm isolated terrain GPU probes before recording pixel baselines; the first presentation can differ from subsequent terrain flushes.
 - Gameplay GPU probes that rebuild terrain require isolated Play Mode; edit-mode Object.Destroy can retain old chunks and log errors despite passing pixel/model checks.
-
-- Unity 6000.6 returned the material override tag value `True` as `true`; use lowercase marker tokens when comparing `Material.GetTag` results.
 
 - A managed worker with a different Windows SID may need per-command `git -c safe.directory=<absolute repository>`; do not change the owner's global Git trust configuration.
 
@@ -127,16 +124,11 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 
 - Runtime-selected material variants can disappear only in standalone builds; see [the verified card regression](research/classic-lighting-verification.md#windowed-player-and-counter-calibration).
 
-- Missing Unity mesh UV2/UV3 shader inputs arrived as ones on D3D12, routing static terrain into animated lighting; publish explicit zero channels instead of assuming absent streams are zero.
-
-- Unity 6000.6 Mono's per-thread allocation meter reports 0 for a live 64KiB allocation; calibrate before claiming zero, and do not treat GC.Alloc's TimeNanoseconds recorder as bytes.
-
 - Reset mesh UV channels with explicit zero arrays after GPU fixtures; clearing them to empty can retain stale stream values after another UV channel changes.
 
 - D3D12 skips draws with an unbound declared StructuredBuffer even behind a runtime-disabled branch; use shader variants to omit inactive buffer resources.
 - Recentring a probe's Mesh.vertices around a moved Transform needs RecalculateBounds after each replacement; stale local bounds can cull unchanged world geometry.
 - Edit-mode world probes must explicitly prepare runtime transparent batches; an opaque capture can otherwise omit blended terrain entirely.
-
 
 - `dk2tools status` discovery counts can differ from full test-run totals; report verified counts from `dotnet test` summaries.
 
@@ -354,16 +346,11 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Native byte arguments can have unrelated upper stack bits; oracle stubs must mask to the callee's actual width before indexing or testing availability.
 - `apply_patch` with `Add File` can replace an existing file; check that a knowledge-base record is absent before adding it, and preserve existing evidence/history when updating it.
 - If the native oracle's Python helper exits because `py -3` has no registered interpreter, set `DK2_PYTHON` to the installed executable alongside `DK2_UNICORN_DLL`.
-- Unity Mono rounds `TimeSpan.FromSeconds(1f/60f)` to170000ticks; construct elapsed time with `FromTicks(round(seconds*TicksPerSecond))` when sub-millisecond accumulation matters.
 - The source license gate requires all three notice lines plus a blank line, including the LICENSE reference. A copyright and SPDX pair alone fails.
 - A sandbox account can differ from the checkout owner; use per-command `git -c safe.directory=D:/DungeonKeeperRemake` (or inherited `GIT_CONFIG_COUNT` entries for repo tools), without changing the owner's global Git config.
 - `hand-cursor-rendering.md` contains legacy single-byte section signs among UTF-8 text; strict UTF-8 patching rejects it. Keep unrelated byte normalization out of a cursor fix.
 - Matched-state probes must restore constructor-owned fields before binding RNG; otherwise fixture setup can consume draws before the decision (research/decision-parity-audit.md).
-- A hidden standalone Unity window can skip all screen rendering despite active CPU loops; require camera render callbacks and a nonblank PNG before treating its timings as rendered performance. `game-unity-probe -Windowed` ran hidden until 2026-11-14 (0 GPU frames, black screenshot).
-- The URP renderer asset has `postProcessData` unset, so URP runs no post-processing and a Volume (`ColorAdjustments.postExposure`) does nothing in a player; a screenshot at Gamma 20/30/45 showed the same mean brightness. Draw a pass from `endCameraRendering` instead (`ClassicSettingsRendering`).
-- `game-unity-probe` runs before 2026-11-14 built a default scene (stock camera, shadow-casting light, fog of war off, wrong ambient and camera preset), so their lighting, GPU and frame numbers are not comparable with later runs, which build `Dungeon.unity`.
 - PowerShell variable names are case-insensitive: a `$r` loop variable overwrote an earlier `$R`. Use distinct names.
-- Mono Stopwatch and Unity frame timestamps can have different epochs despite equal frequencies; align Windows captures with QueryPerformanceCounter.
 - ShaderUtil reports an uninitialized SRP compatibility result before a shader has actually drawn; check after a GPU render.
 - Start PresentMon before creating the graphics context, retain its process Handle for ExitCode, reject lost ETW events, and stop only the probe's own named session on failure.
 - A background (concurrent) GC charges a running thread's unused allocation-context tail to `GC.GetAllocatedBytesForCurrentThread` (1-8 KB it never allocated), so under CPU load a random zero-allocation test failed; `tests/Directory.Build.props` turns concurrent GC off for test hosts (blocking GCs leave the counter exact). Keep it, and check the test host still runs `GCLatencyMode.Batch` before blaming product code or loosening an assertion.
@@ -376,8 +363,6 @@ that hits a new one; delete a line whose cause is fixed. Ghidra-specific traps l
 - Codex local exec can fail before process creation with "setup refresh had errors"; sandbox escalation worked here.
 - Windows PowerShell piping non-ASCII script text to python - can turn symbols into question marks; keep pipe input ASCII and use Unicode escapes.
 - Windows PowerShell can strip nested quotes from Python `-c` arguments; use a script file for replacements containing quoted prose.
-- Unity `Transform.InverseTransformPoint` can differ in low bits from `worldToLocalMatrix.MultiplyPoint3x4`; preserve native point conversions when extracting bit-exact camera-space geometry.
-- URP `Volume.sharedProfile` is a public field, so reflection must use `GetField`; `GetProperty` compiled but failed during the Options runtime probe.
 
 - UI Toolkit pointer event positions and worldBound are panel units; multiplying them by physical screen-height scaling truncates scrollbar travel above the reference resolution.
 - EditorApplication.update callbacks can outpace rendered play frames; UI capture probes must wait on Time.frameCount before checking page images.

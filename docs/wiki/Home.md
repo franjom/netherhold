@@ -12,15 +12,6 @@ presentation are still being verified.
 > live in the repository under [`docs/`](https://github.com/franjom/netherhold/tree/master/docs),
 > where they are versioned and checked with the code. Each wiki page links to them.
 
-## Screenshots
-
-<p align="center">
-<img src="https://github.com/franjom/netherhold/raw/master/screenshots/image_main_menu.jpg" alt="Main menu" width="49%">
-<img src="https://github.com/franjom/netherhold/raw/master/screenshots/image_level_1_1.jpg" alt="Level 1" width="49%">
-</p>
-
-More in the [README](https://github.com/franjom/netherhold#screenshots).
-
 ## How the project works
 
 - **The original binary is the primary source.** Behaviour is researched in

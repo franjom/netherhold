@@ -916,7 +916,7 @@ the order, and revision 2 changes only that column and the last three rows.
 | **M0** ✅ | — | Research baseline | This document; repo skeleton; DK2 v1.70 installed; Flame + OpenKeeper building locally | 1–2 wk |
 | **M1** ✅ | — | Formats readable | `DK2.Tools extract` dumps WAD contents; KWD parses to `GameDatabase`; all 18 record types round-trip; unit tests over the shipped campaign maps | complete 2026-09-07 |
 | **M2** ✅ | — | Deterministic skeleton | `GameSimulation.Tick()` exists; `StateHash()` stable; save/load round-trips; determinism gate green; headless harness runs a scenario file | 3–4 wk |
-| **M3** ✅ | — | Dungeon prototype | Grid + terrain from a real KWD; dig, claim, reinforce; one imp doing tasks; treasury; gold; Unity view renders it with placeholder art | 8–12 wk |
+| **M3** ✅ | — | Dungeon prototype | Grid + terrain from a real KWD; dig, claim, reinforce; one imp doing tasks; treasury; gold; a presentation view renders it with placeholder art | 8–12 wk |
 | **M4** ✅ | — | First creature loop | Portal spawn; lair claim; hunger→hatchery; sleep; training; payday; job selection with logged reasons | 8–12 wk |
 | **M5** ◐ | 2 | First oracle comparison | Memory-reading oracle probe working against DK2; 20+ scenarios captured from both sides; first divergence report | 4–6 wk |
 | **M6** ◐ | **1** | Real level loads | A stock campaign level loads, terrain and things place correctly, triggers/objectives fire, **level is winnable** | 6–10 wk |
@@ -1014,7 +1014,7 @@ imp finds the nearest job its keeper can reach, walks at the speed its own recor
 works, on the priority order read from the binary (Q24, ADR-0018/0058); mined gold is
 carried as the tail of a mining job rather than a fourth job (Q31, ADR-0019), and the
 crowding cap of three imps to a wall face is built (ADR-0026/0030). Rooms, the treasury,
-gold and mana are in. Unity 6 LTS renders campaign level 1 as coloured boxes through an
+gold and mana are in. The presentation view rendered campaign level 1 as coloured boxes through an
 asset abstraction that resolves every key with no DK2 art installed (ADR-0034/0035/0036).
 
 Three findings from M3 that changed the design rather than filling it in:
@@ -1199,7 +1199,7 @@ Severity: **C**ritical / **H**igh / **M**edium / **L**ow. Probability: as given.
 | R16 | **AI-generated code silently invents mechanics.** | **H** | Medium | Confidence tags mandatory in docs and code comments; `[Dk2Behavior]` on the rule type. Any simulation constant not traceable to parsed data or a cited source fails review. |
 | R17 | **Regression corpus becomes unmaintainable** as systems change. | M | Medium | Scenarios are declarative data, not code. Comparison tolerances explicit and versioned. |
 | R18 | **Performance** — hundreds of creatures + pathfinding on a fixed tick. | M | Medium | Headless harness makes profiling easy. Fixed-point is cheap. **Budgeted by opt-in tests** (ADR-0575): campaign Levels 1–4 headless at 50× real time or better, no corpus-scenario tick after the first two over 100 ms; measured 80–220× and a worst tick of about 40 ms on hash 328. Not in CI, since a wall-clock assert needs an idle machine. The Godot frame target is measured separately (`docs/PERFORMANCE.md`). |
-| R19 | **Adapter choice constrains the simulation.** | M | Low | Godot replaced Unity through the shared presentation boundary (ADR-0824). |
+| R19 | **Adapter choice constrains the simulation.** | M | Low | The adapter sits behind the shared presentation boundary, so replacing it leaves the simulation untouched (ADR-0824). |
 | R20 | **Multiplayer expectations** creep in early and distort the architecture. | M | Low | Out of scope until post-M10. Determinism happens to make it feasible later; that is a side effect, not a goal. |
 
 **The two that decide the project's fate: R1 (pathfinding) and R4 (scope).**

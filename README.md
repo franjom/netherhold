@@ -15,55 +15,6 @@ original game. Campaign compatibility, gameplay fidelity and the Godot
 presentation are still being verified. See the [current state and remaining
 work](docs/HANDOFF.md) and the [implementation plan](DK2_REIMPLEMENTATION_PLAN.md).
 
-## Screenshots
-
-Historical screenshots from the retired Unity adapter show the front-end menus,
-level briefing and Level 1.
-
-<p align="center">
-<img src="screenshots/image_main_menu.jpg" alt="Main menu" width="49%">
-<img src="screenshots/image_menu_singleplayer.jpg" alt="Single player menu" width="49%">
-<img src="screenshots/image_menu_campaign.jpg" alt="Campaign menu" width="49%">
-<img src="screenshots/image_level_briefing.jpg" alt="Level briefing" width="49%">
-<img src="screenshots/image_level_1_1.jpg" alt="Level 1, screenshot 1" width="49%">
-<img src="screenshots/image_level_1_2.jpg" alt="Level 1, screenshot 2" width="49%">
-<img src="screenshots/image_level_1_3.jpg" alt="Level 1, screenshot 3" width="49%">
-<img src="screenshots/image_level_1_4.jpg" alt="Level 1, screenshot 4" width="49%">
-<img src="screenshots/image_level_1_5.jpg" alt="Level 1, screenshot 5" width="49%">
-<img src="screenshots/image_level_1_6.jpg" alt="Level 1, screenshot 6" width="49%">
-<img src="screenshots/image_level_1_7.jpg" alt="Level 1, screenshot 7" width="49%">
-<img src="screenshots/image_level_1_8.jpg" alt="Level 1, screenshot 8" width="49%">
-</p>
-
-## Historical Unity performance at 1920×1080
-
-Recorded on **2026-11-06** using a Unity 6000.6.0f1 release IL2CPP player,
-Vulkan, windowed 1920×1080, VSync off. Workload: Level 6a's opening fly-by,
-seed 1, one 40-second capture per frame-cap setting on an idle laptop.
-
-| Hardware | Configuration |
-|---|---|
-| CPU | AMD Ryzen 7 7735HS, 8 cores / 16 threads |
-| GPU | Integrated AMD Radeon Graphics; driver 32.0.21045.16010 |
-| Memory | 31.2 GB usable, as reported by Windows |
-| OS | Windows 11 Pro, build 26300 |
-
-| Frame cap | Average FPS | Median frame | 99th-percentile frame | Longest frame |
-|---|---:|---:|---:|---:|
-| Uncapped | 186 | 5.0 ms | 12.0 ms | 34.5 ms |
-| 120 FPS | 118 | 8.3 ms | 12.7 ms | 32.1 ms |
-| 60 FPS | 60 | 16.7 ms | 17.1 ms | 23.2 ms |
-
-These recorder measurements exclude the first two seconds of gameplay; including
-that startup interval, the longest frames were 538, 458 and 433 ms respectively.
-They describe the P1 build measured that day, before its subsequent optimizations,
-and one short workload. Capture package: `20261106-125325` (recorded with local
-changes). Raw captures and SHA-256 inventory are retained at
-`F:/DK2Evidence/studies/readme-performance-1080p--2026-11-07--001/`.
-The every-frame 60 FPS target remains unmet; see the
-[measurement results](docs/plans/2026-11-06-presented-world.md#result-measured-2026-11-06)
-and [performance acceptance policy](docs/PERFORMANCE.md).
-
 ## Build and test
 
 Install the .NET SDK selected by [global.json](global.json) (.NET 10 or a newer
@@ -151,7 +102,6 @@ referenced projects retain their own terms; see [THIRD-PARTY-NOTICES.md](THIRD-P
 The project license does not grant redistribution rights to original DK2 files.
 
 This repository contains no original DK2 game files. Everything the game needs
-is read at run time from your own installation (`DK2_DIR`). The screenshots
-above show the original game's artwork as this build renders it from such an
-installation. Dungeon Keeper is a trademark of its owner; this project is not
-affiliated with or endorsed by Electronic Arts or Bullfrog Productions.
+is read at run time from your own installation (`DK2_DIR`). Dungeon Keeper is
+a trademark of its owner; this project is not affiliated with or endorsed by
+Electronic Arts or Bullfrog Productions.
