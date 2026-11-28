@@ -87,8 +87,9 @@ def validate_api():
     for name, extra in [('chat', {}), ('streaming', {'stream': True}), ('tool_calling', {
         'tools': [{'type': 'function', 'function': {'name': 'ping', 'description': 'Return pong',
                    'parameters': {'type': 'object', 'properties': {}, 'additionalProperties': False}}}],
-        'tool_choice': {'type': 'function', 'function': {'name': 'ping'}}})]:
-        payload = {'model': model, 'messages': [{'role': 'user', 'content': 'Call ping if available; otherwise reply pong.'}], 'max_tokens': 64, **extra}
+        'tool_choice': 'auto'})]:
+        # Reasoning models spend tokens thinking before answering; 64 left content empty.
+        payload = {'model': model, 'messages': [{'role': 'user', 'content': 'Call ping if available; otherwise reply pong.'}], 'max_tokens': 1024, **extra}
         try:
             with request_api('/chat/completions', payload) as response:
                 body = read_response(response)
@@ -96,7 +97,7 @@ def validate_api():
                 valid = 'data:' in body and '[DONE]' in body
             else:
                 message = json.loads(body)['choices'][0]['message']
-                valid = bool(message.get('tool_calls')) if name == 'tool_calling' else bool(message.get('content') or message.get('reasoning_content'))
+                valid = bool(message.get('tool_calls')) if name == 'tool_calling' else bool(message.get('content') or message.get('reasoning_content') or message.get('reasoning'))
             report[name] = 'passed' if valid else 'failed'
         except (ValueError, KeyError, IndexError) as error:
             report[name] = str(error)
