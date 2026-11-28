@@ -254,10 +254,17 @@ public class ImpTeleportTests
         new GameSimulation(db, world, 1, [new Probe(context => check(context, imp))]).Run(ticks);
     }
 
-    private sealed class Probe(Action<SimulationContext> action) : ISimulationSystem
+    private sealed class Probe : ISimulationSystem
     {
+        private readonly Action<SimulationContext> _action;
+
+        public Probe(Action<SimulationContext> action)
+        {
+            _action = action;
+        }
+
         public string Name { get { return "TeleportTest"; } }
-        public void Execute(SimulationContext context) { action(context); }
+        public void Execute(SimulationContext context) { _action(context); }
     }
 }
 
