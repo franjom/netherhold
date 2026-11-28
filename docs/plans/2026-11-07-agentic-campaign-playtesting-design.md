@@ -11,7 +11,7 @@ with support for 5 (fidelity), 9 (determinism) and 11 (presentation modes).
 ## Relationship to existing work
 
 Extend [autonomous playtesting](2026-10-27-autonomous-playtesting.md), ADR-0552,
-and [Stage D Unity input](2026-10-27-stage-d-unity-input.md), ADR-0553.
+and Stage D input journals, ADR-0553.
 Their built stages remain the baseline; this design proposes the next scope.
 Do not create a competing scenario runner, journal format or simulation loop.
 

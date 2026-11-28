@@ -1,6 +1,6 @@
 # On-demand autonomous playtesting
 
-**Status:** accepted as ADR-0552 (2026-10-27). Stages A, B and C built (the harness half of B); snapshots in failure bundles, DK2-behaviour invariants and a fog-aware fuzzer are not. Unity journals and the Unity input path are Stage D, ADR-0553 (`plans/2026-10-27-stage-d-unity-input.md`).
+**Status:** accepted as ADR-0552 (2026-10-27). Stages A, B and C built (the harness half of B); snapshots in failure bundles, DK2-behaviour invariants and a fog-aware fuzzer are not. Input journals are Stage D, ADR-0553.
 **Mandate:** `AGENTS.md` Goal 10 (AI/Bot Interface). Related milestones: M5, M6, M9, M10, M12–M14.
 
 **Proposed extension:** [agentic campaign playtesting](2026-11-07-agentic-campaign-playtesting-design.md)

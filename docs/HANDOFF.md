@@ -151,8 +151,8 @@ These are entry points, not a new priority order.
   gameplay frame budgets.
 - World-sound coverage and pending hearing checks: [world-sounds plan](plans/2026-10-31-world-sounds.md).
   Check the current code and Git history before relying on its branch-status prose.
-- Autonomous playtesting: [Stages A–C](plans/2026-10-27-autonomous-playtesting.md)
-  and [Stage D](plans/2026-10-27-stage-d-unity-input.md). Input replay/extraction
+- Autonomous playtesting: [Stages A–C](plans/2026-10-27-autonomous-playtesting.md).
+  Input replay/extraction
   and rendered-HUD automation remain follow-up work; use the completion acceptance
   record above for the integrated walkthrough and its journals.
   Approved design: [agentic campaign playtesting](plans/2026-11-07-agentic-campaign-playtesting-design.md).

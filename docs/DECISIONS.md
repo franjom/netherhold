@@ -12801,8 +12801,7 @@ enter as recorded inputs. (3) A separate ADR decides the Input System, settling 
 pan axes, text entry, edge timing and UI Toolkit delivery. (4) Migration behind one adapter,
 both backends only during the baseline comparison, legacy removed after. (5) A windowed Mono
 player from a separate checkout, with a fixed-step mode for the frame clock, virtual input
-devices and `runInBackground`, drives the real HUD. The plan is
-`plans/2026-10-27-stage-d-unity-input.md`.
+devices and `runInBackground`, drives the real HUD. (Plan retired with the Unity adapter.)
 
 **Consequences.** Phase 2 needs the owner to play three to five short sessions; nothing can
 drive legacy input. Phase 5's fixed step is a production change to the frame clock, because
