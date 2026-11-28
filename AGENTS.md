@@ -474,6 +474,12 @@ Owner rule, 2026-11-25. Code that mirrors a DKII.EXE function must read as C# wr
 
 A reviewer rejects a change that breaks these, the same as a wrong claim about the binary.
 
+## C# constructor style and verification
+
+Use explicit constructors for classes and structs, including private test helpers; store captured constructor arguments in private fields. Primary constructors on classes and structs are rejected by `CSharpStyleTests.ClassesAndStructsUseExplicitConstructors`.
+
+For C# changes, run the Tools suite's `CSharpStyleTests` before committing or merging, alongside the relevant behavior tests. A clean build and green gameplay suites do not check this repository-wide style gate.
+
 ## Commit messages
 
 - Match the language of recent commits in the repo (`git log --oneline -20`).
