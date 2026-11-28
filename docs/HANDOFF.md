@@ -8,6 +8,7 @@ questions live in their canonical documents; this file links to them.
 - Milestones and acceptance criteria: [reimplementation plan §8](../DK2_REIMPLEMENTATION_PLAN.md).
   Generate counts with `dk2tools status`; use `dk2tools coverage` for implementation
   coverage. Neither counts nor historical test totals are maintained here.
+- Imp task-walk teleporting (Q418): [ADR-0825](DECISIONS.md#adr-0825---let-veteran-imps-teleport-to-work); scope and limitation in the [wrapper record](research/functions/004651A0.md).
 - Current simulation/save composition: [hash versions](research/hash-versions.md).
   Door/trap death-effect requests and newest-first door health updates are built (hash/save 529;
   [doors](research/door-blocking.md#6-health-recovery-and-the-two-kills), [traps](research/traps.md#3-the-update-0x004a84e0-in-its-order)).

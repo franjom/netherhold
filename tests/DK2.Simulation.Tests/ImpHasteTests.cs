@@ -39,7 +39,7 @@ public class ImpHasteTests
     }
 
     /// <summary>A ready teleport slot before the speed slot ends the scan (<c>0x004651A0</c> breaks
-    /// on flag <c>0x20</c>), so nothing is cast; the teleport itself is not built (Q418).</summary>
+    /// on flag <c>0x20</c>), so the later speed slot is not cast.</summary>
     [Fact]
     public void AReadyTeleportSlotFirstEndsTheScan()
     {

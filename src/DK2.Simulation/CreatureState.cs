@@ -1076,6 +1076,9 @@ public sealed partial class CreatureState
 
     /// <summary>The counted idle action carried across idle and wander states, or none.</summary>
     public IdleActionId IdleAction;
+    public ImpTeleportAction TeleportAction;
+    public long TeleportActionUntilTick;
+    public FpPosition3 TeleportTarget;
     public Systems.CombatPitActionId CombatPitAction;
 
     public ReinforcementActionState ReinforcementAction;
@@ -1735,6 +1738,11 @@ public sealed partial class CreatureState
         hash.Add(CombatStateEnteredTick);
         hash.Add(StateEnteredTick);
         hash.Add((byte)IdleAction);
+        hash.Add((byte)TeleportAction);
+        hash.Add(TeleportActionUntilTick);
+        hash.Add(TeleportTarget.X.Raw);
+        hash.Add(TeleportTarget.Y.Raw);
+        hash.Add(TeleportTarget.Z.Raw);
         hash.Add((byte)CombatPitAction);
         hash.Add(ActionArtSlot);
         hash.Add(ActionAnimationPhase);

@@ -29,7 +29,7 @@ public static class WorldSnapshot
     /// <c>DeterminismTests.StateHash_IsStableAcrossBuildsAndMachines</c> in the
     /// same commit, and never loosen that assertion.
     /// </summary>
-    private const int FormatVersion = 538;
+    private const int FormatVersion = 539;
 
     /// <summary>Which generator the snapshot carries; its state follows the tag
     /// (ADR-0275, ADR-0564).</summary>
@@ -577,6 +577,11 @@ public static class WorldSnapshot
             w.Write(c.CombatStateEnteredTick);
             w.Write(c.StateEnteredTick);
             w.Write((byte)c.IdleAction);
+            w.Write((byte)c.TeleportAction);
+            w.Write(c.TeleportActionUntilTick);
+            w.Write(c.TeleportTarget.X.Raw);
+            w.Write(c.TeleportTarget.Y.Raw);
+            w.Write(c.TeleportTarget.Z.Raw);
             w.Write((byte)c.CombatPitAction);
             w.Write(c.ActionArtSlot);
             w.Write(c.ActionAnimationPhase);
@@ -1601,6 +1606,9 @@ public static class WorldSnapshot
                 CombatStateEnteredTick = r.ReadInt64(),
                 StateEnteredTick = r.ReadInt64(),
                 IdleAction = (IdleActionId)r.ReadByte(),
+                TeleportAction = (ImpTeleportAction)r.ReadByte(),
+                TeleportActionUntilTick = r.ReadInt64(),
+                TeleportTarget = new FpPosition3(new Fp32(r.ReadInt32()), new Fp32(r.ReadInt32()), new Fp32(r.ReadInt32())),
                 CombatPitAction = (Systems.CombatPitActionId)r.ReadByte(),
                 ActionArtSlot = r.ReadByte(),
                 ActionAnimationPhase = r.ReadInt32(),

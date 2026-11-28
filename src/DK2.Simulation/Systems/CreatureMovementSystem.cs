@@ -141,7 +141,7 @@ public sealed class CreatureMovementSystem : ICreatureUpdateStep
             // id 1 at 0x0048A202; state 6 integrates it itself), so a kicked or working imp stands
             // (imp-task-objects-and-walks.md §3). Ours routes imps in states of its own too, so the
             // gate names the ones DK2 is read to hold still: selection 10–12 and the work 13–26.
-            if (creature.Dk2StateId is >= 10 and <= 26)
+            if (creature.Dk2StateId is (>= 10 and <= 26) or ImpStates.TeleportingOut or ImpStates.TeleportingIn)
             {
                 return;
             }

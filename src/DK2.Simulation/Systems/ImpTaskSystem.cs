@@ -323,6 +323,10 @@ public sealed partial class ImpTaskSystem : ICreatureUpdateStep
 
     private void Update(SimulationContext context, CreatureState creature, CreatureDef definition)
     {
+        if (UpdateTeleport(context, creature))
+        {
+            return;
+        }
         if (creature.Dk2StateId == ImpCreationRules.FallingState)
         {
             ImpCreationRules.Step(context, creature);
@@ -500,15 +504,15 @@ public sealed partial class ImpTaskSystem : ICreatureUpdateStep
 
     /// <summary>State 10 takes the task and walks through the imp wrapper in 6, resuming in
     /// the kind's entry state. An imp already in its stance still takes the walk, and the
-    /// entry state moves to the work state on the same tick. The teleport branch (51, 52) is
-    /// not built: every imp walks (Q418).</summary>
+    /// entry state moves to the work state on the same tick. Eligible Imps can instead
+    /// teleport through states 51 and 52 (ADR-0825).</summary>
     private static void SetOutInState(
         SimulationContext context, CreatureState creature, TileWorkKind kind, bool routed)
     {
         StateShadow.Move(context, SystemName, creature, ImpStates.TaskSelection);
         BeginTaskWalk(context,
             creature, ImpStates.For(kind).Entry);
-        if (!routed)
+        if (!routed && creature.Dk2StateId == StateShadow.TravelToPoint)
         {
             AtWork(context, creature);
         }

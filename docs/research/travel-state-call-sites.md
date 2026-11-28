@@ -11,7 +11,7 @@ Source(s):
 
 Original version: DK2 v1.70 (GOG)
 
-Questions: opens **Q418** (the Imp's teleport branch is read and not built).
+Questions: **Q418** is built; see ADR-0825.
 Companion to `travel-states.md`, which owns the protocol; this note is its call-site
 table, the list §9 said the caller scan reproduces. `imp-task-priority.md` owns the
 imp task kinds, `job-selection.md` the job handlers.
@@ -351,5 +351,6 @@ Five things a slice needs:
 
 ## Implementation and tests
 
-Nothing built; research only. Q418 records the teleport gap. The retirement slices
-(ADR-0135 step two) copy the resume column above.
+The Imp teleport branch is built (ADR-0825); its implementation and remaining
+display limitation are recorded in the [wrapper record](functions/004651A0.md).
+The retirement slices (ADR-0135 step two) copy the resume column above.

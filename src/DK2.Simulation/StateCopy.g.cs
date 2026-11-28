@@ -186,6 +186,9 @@ namespace DK2.Simulation
             ActionHandlerDone = other.ActionHandlerDone;
             ActionCount = other.ActionCount;
             IdleAction = other.IdleAction;
+            TeleportAction = other.TeleportAction;
+            TeleportActionUntilTick = other.TeleportActionUntilTick;
+            TeleportTarget = other.TeleportTarget;
             CombatPitAction = other.CombatPitAction;
             ReinforcementAction = other.ReinforcementAction;
             PossessedExcavation = other.PossessedExcavation;

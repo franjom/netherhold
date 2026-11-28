@@ -64,8 +64,8 @@ public static partial class CreatureStateCoverage
         rows.Add(Built(48, typeof(ImpStates), nameof(ImpStates.PuttingDownTheRefusedBody)));
         rows.Add(Unbuilt(49, "not read"));
         rows.Add(Unbuilt(50, "its handler 0x004B4C20 returns 1 (state-categories.md §7.1); nothing in src/ enters it"));
-        rows.Add(Unbuilt(51, "partly read in travel-states.md 2.4, imp-state-exits.md 3; not built"));
-        rows.Add(Unbuilt(52, "partly read in travel-states.md 2.4, imp-state-exits.md 3; not built"));
+        rows.Add(Built(51, typeof(ImpStates), nameof(ImpStates.TeleportingOut)));
+        rows.Add(Built(52, typeof(ImpStates), nameof(ImpStates.TeleportingIn)));
         rows.Add(Built(53, typeof(ResearchStep), nameof(ResearchStep.ChoosingState)));
         rows.Add(Built(54, typeof(ResearchStep), nameof(ResearchStep.AtTheShelfState)));
         rows.Add(Unreachable(55, "STRONGLY INFERRED as Q415: no SetState, wrapper, walk, +0xDF store or room-table site enters it (library-states.md §2)"));

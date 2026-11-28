@@ -4185,7 +4185,7 @@ the Imp's Teleport and Haste paths (Q401). The pit/torture exclusions are built;
 1. **`MovingToJob` and `Working` retire.** Taking a job moves 1 to 10, and 10 walks in 6 resuming in the kind's entry state; arrival hands over to it and it moves to the work state, which holds for every swing. A finished tile, a gone task or a lost stance goes through 10 and hands the id back; a failed walk drops from 6 to 1.
 2. **`ImpStates.For` pairs each kind with its states** by the action the work state starts: the three digs 13/14, mining 25/26, claiming 15/16, a rival room 17/18, a rival floor 19/20, reinforcing 21/22, repairing 23/24.
 3. **An imp already in its stance still takes the walk**, and 6, the entry state and the work state fall in one tick.
-4. **Not built:** the teleport branch (51, 52; Q418), the entry state's wait for an occupied stance, 14's failed follow-up returning 0, and the carrying activities, so 26's walk to a store releases the id.
+4. **Not built:** the entry state's wait for an occupied stance, 14's failed follow-up returning 0, and the carrying activities, so 26's walk to a store releases the id.
 
 **Consequences.**
 - Negative controls, one at a time: pairing dig or mining with the other's states, dropping the two activities from the retired set, and skipping the same-tick arrival each fail a named test; reselecting after every swing fails fifteen existing imp tests.
@@ -8789,8 +8789,8 @@ the only creature with either flag. Ours never cast it.
 **Decision.** `ImpTaskSystem.BeginTaskWalk` runs `CastOnTheWalk` before every task walk's
 `BeginTravel` (not the wander's), through `SpellRules.CanCast` and `StatusEffectRules.ModifySpeed`.
 Deviates: ours begins a walk only once a route is found, where DK2 scans before routing, so a walk
-whose route fails casts in DK2 and not in ours; `+0x4DD` (display) is not kept; the teleport is not
-built (Q418). The haste itself keeps ADR-0168's approximation (Q399: ours scales the cap every
+whose route fails casts in DK2 and not in ours; `+0x4DD` (display) is not kept.
+ADR-0825 adds the teleport branch (Q418). The haste itself keeps ADR-0168's approximation (Q399: ours scales the cap every
 tick, running included). The 45 call sites were not mapped one to one: the dig, claim and
 reinforce handlers hold two to four each, read as their alternative walks (a free or a held side,
 reinforce or repair), which ours starts through one `CommitJob`; if any is a second walk inside one
@@ -8909,7 +8909,7 @@ the first whose task is free (per-pile tasks are not built, Q155); ours runs 27 
 walk ends, DK2 on the next; 27 takes on the target tile and abandons an imp that ended elsewhere,
 where DK2 takes around wherever it stands; 27's task check (`0x00508070`) is not read, so whether
 it fails on an emptied tile is unknown (with empty hands the outcome is the same); the wrapper's
-teleport for a walk over two tiles is not built (Q418).
+teleport branch is covered by ADR-0825 (Q418).
 
 **Measured** (hash 193, before the merge with ADR-0388) against master `885ec6d8` (Level 1 19/20, Level 2 1/20, Level 3 seed 01
 won at 3604): Level 1 18/20 (seeds 8 and 16 lost, seed 6 now won), Level 2 4/20 (seeds 3, 5, 10
@@ -10879,8 +10879,8 @@ a free side's task and tries the next side, as `0x0046AEA0` does. A held claim o
 reinforce slot is kicked only after the walk starts. The dig caller still kicks first
 and then moves to its next candidate tile, where `0x0046A550` tries the next slot and
 side and `0x00469AF0` gives the selection up (Q590). Gold, object and body fetches still
-ignore a failed route (Q590). Teleporting walks are unbuilt
-(Q418); DK2's teleport also needs the target reachable. Not modelled: DK2 raises the task
+ignore a failed route (Q590). Teleporting walks are covered by ADR-0825
+(Q418). Not modelled: DK2 raises the task
 and writes its flavour (`0x005080E0`) before the walk, and a failed walk keeps both.
 Hash/save version 245, with ADR-0472.
 
@@ -19622,3 +19622,28 @@ This supersedes ADR-0036 and ADR-0690. Use ADR-0813 for rendering decisions.
 Godot already warms its own level (ADR-0689). Keep the option to move turns onto a
 worker with a presented-world handoff (ADR-0694). Keep `DeferredEventSink`,
 `WorkerDrawLag` and their CI coverage for that work.
+
+## ADR-0825 - let veteran Imps teleport to work
+
+**Date:** 2026-11-28 | **Status:** accepted | **Systems:** imps-tile-work, creatures
+
+**Context.** Q418's researched wrapper selects a ready teleport ability before
+walking to work. Its distance and route gates and carry exceptions are recorded
+in [the wrapper](research/functions/004651A0.md). ADR-0572's travel helper ends
+a running action; passing through it after starting teleport would end action 60.
+
+**Decision.** Add the teleport branch to the existing task-walk ability scan,
+keeping self-casts and the walk fallback. Follow the call-site table's carry
+restrictions, including state 41's re-route and the gold-store leg permitting
+teleporting. Use departure and arrival actions 60 and 61, then resume
+the saved job state. Keep teleport action state in the simulation and saves,
+and request the researched departure and arrival sound/effect pairs. Replace
+the previous action when starting action 60, following the action starter,
+without the travel helper's subsequent cancellation.
+
+**Consequences.** Level-qualified Imps can reach distant, route-feasible work
+without walking. The exact cooldown-expiry tick remains unavailable, matching
+the existing casting rule. Original action timing is recorded in
+[action 60](research/functions/00499B80.md) and
+[action 61](research/functions/00499BE0.md); completion is recorded in
+[state 52](research/functions/004654A0.md).

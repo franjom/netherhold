@@ -337,7 +337,7 @@ public sealed partial class ImpTaskSystem
 
             creature.TargetObjectId = -1;
             ObjectCarryRules.TakeHold(creature, crate);
-            BeginTaskWalk(context, creature, InstallStateOf(kind));
+            BeginTaskWalk(context, creature, InstallStateOf(kind), noTeleport: true);
             context.Emit(SystemName, "crate_picked_up",
                 $"imp={creature.Id} player={creature.OwnerPlayerId} crate={crate.Id} " +
                 $"to=({to.X},{to.Y}) steps={creature.Body.PathTotalCount}");
@@ -442,7 +442,7 @@ public sealed partial class ImpTaskSystem
             creature.TargetTileIndex = destination;
             int carrying = creature.UtilityNewState;
             StateShadow.Arrive(context, SystemName, creature);
-            BeginTaskWalk(context, creature, carrying);
+            BeginTaskWalk(context, creature, carrying, noTeleport: true);
             return;
         }
 
