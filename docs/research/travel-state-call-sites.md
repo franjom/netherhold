@@ -230,8 +230,8 @@ walk half.
    result.
 
 That the selected slot is the Imp's `ImpTeleport` ability is STRONGLY INFERRED,
-from the manual ("veterans get Teleport") and the wrapper's shape. The bits of
-`+0x27` are unread, and this project has no imp teleport (Q418).
+from the manual ("veterans get Teleport") and the wrapper's use of bit
+`0x20`. See the [wrapper record](functions/004651A0.md) and Q418.
 
 **`noTeleport` is 1** on every carry leg, so an imp carrying a body, an object or a
 crate walks. The one exception is state 41's re-route (`0x00467CB6`), which passes
